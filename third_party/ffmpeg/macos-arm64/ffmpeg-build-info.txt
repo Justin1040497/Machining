@@ -1,0 +1,18 @@
+FFmpeg version: 7.1.1
+x264 source: https://code.videolan.org/videolan/x264.git
+FFmpeg source: https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz
+Target: macOS arm64
+Configure flags:
+  --enable-gpl
+  --enable-version3
+  --enable-libx264
+  --enable-videotoolbox
+  --enable-audiotoolbox
+  --disable-shared
+  --enable-static
+  --disable-sdl2
+  --disable-ffplay
+  --disable-doc
+  --disable-debug
+  --pkg-config-flags=--static
+Nonfree enabled: no

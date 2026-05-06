@@ -1,0 +1,147 @@
+<mxfile host="app.diagrams.net" modified="2026-04-28T00:00:00.000Z" agent="Codex" version="24.7.17">
+  <diagram id="ffmpeg-command-builder" name="FFmpeg Command Builder">
+    <mxGraphModel dx="2200" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1600" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="title1" value="FFmpeg 命令构造器：输入校验阶段" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#9ca3af;fontColor=#4b5563;fontSize=28;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="70" width="520" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="g1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#c7ccd1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="145" width="2040" height="250" as="geometry"/>
+        </mxCell>
+        <mxCell id="n1" value="接收 MediaTask&#xa;只读取任务和配置" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="135" y="230" width="220" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="d1" value="mediaKind 是否为 video?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="420" y="205" width="150" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e1" value="抛出错误&#xa;当前版本只支持视频" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="645" y="170" width="250" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="d2" value="purpose 是否支持?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="660" y="265" width="140" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2" value="抛出错误&#xa;未知任务目的" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="880" y="310" width="230" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="d3" value="config 是否可构造?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1160" y="210" width="160" height="120" as="geometry"/>
+        </mxCell>
+        <mxCell id="e3" value="抛出错误&#xa;不支持的格式 / 编码 / 分辨率" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1390" y="170" width="300" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="n2" value="进入输出路径构造&#xa;不执行 FFmpeg" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1490" y="280" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="title2" value="FFmpeg 命令构造器：输出路径阶段" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#9ca3af;fontColor=#4b5563;fontSize=28;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="435" width="520" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="g2" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#c7ccd1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="510" width="2040" height="280" as="geometry"/>
+        </mxCell>
+        <mxCell id="n3" value="读取 config.outputDirectory" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="135" y="610" width="230" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="d4" value="输出目录为空?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="430" y="585" width="140" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="n4" value="Y：使用源文件所在目录" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="650" y="535" width="240" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="n5" value="N：使用用户选择的输出目录" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="650" y="690" width="260" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="n6" value="生成基础文件名&#xa;compression: 原名_compressed&#xa;conversion: 原名_converted" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="990" y="590" width="300" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="d5" value="目标路径是否等于原文件&#xa;或文件已存在?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1370" y="570" width="190" height="140" as="geometry"/>
+        </mxCell>
+        <mxCell id="n7" value="Y：追加序号&#xa;-1 / -2 / -3&#xa;禁止覆盖原文件" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1640" y="535" width="260" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="n8" value="N：确认 outputPath" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1640" y="685" width="250" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="title3" value="FFmpeg 命令构造器：参数构造阶段" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#9ca3af;fontColor=#4b5563;fontSize=28;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="830" width="520" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="g3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#c7ccd1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="905" width="2040" height="330" as="geometry"/>
+        </mxCell>
+        <mxCell id="n9" value="基础参数&#xa;-hide_banner&#xa;-y 不使用&#xa;-i inputPath" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="135" y="1010" width="240" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="d6" value="purpose 是 compression?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="455" y="985" width="170" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="n10" value="Y：压缩参数&#xa;-c:v libx264&#xa;-preset slow&#xa;-crf 20" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="715" y="930" width="250" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="n11" value="N：转换参数&#xa;保持质量策略&#xa;按目标封装格式输出" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="715" y="1080" width="250" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="d7" value="分辨率是否保持原始?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#1f2937;strokeColor=#111827;fontColor=#ffffff;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1045" y="985" width="170" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="n12" value="N：追加缩放参数&#xa;-vf scale=..." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1305" y="930" width="250" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="n13" value="Y：不追加 scale" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1305" y="1085" width="250" height="64" as="geometry"/>
+        </mxCell>
+        <mxCell id="n14" value="追加通用输出参数&#xa;-pix_fmt yuv420p&#xa;-c:a aac&#xa;-b:a 192k&#xa;-movflags +faststart&#xa;-progress pipe:1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1645" y="970" width="300" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="title4" value="FFmpeg 命令构造器：返回 / 异常阶段" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3f4f6;strokeColor=#9ca3af;fontColor=#4b5563;fontSize=28;fontStyle=1;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1275" width="560" height="54" as="geometry"/>
+        </mxCell>
+        <mxCell id="g4" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f9fafb;strokeColor=#c7ccd1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="1350" width="2040" height="190" as="geometry"/>
+        </mxCell>
+        <mxCell id="n15" value="追加 outputPath&#xa;形成完整 args" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="135" y="1410" width="240" height="70" as="geometry"/>
+        </mxCell>
+        <mxCell id="n16" value="返回 FfmpegCommandPlan&#xa;ffmpegPath 不在这里处理&#xa;args + outputPath + logHint" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="465" y="1395" width="310" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="n17" value="执行器后续负责：&#xa;Process.start&#xa;进度解析&#xa;日志落盘&#xa;状态流转" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="865" y="1395" width="280" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="n18" value="异常统一向上抛出&#xa;任务状态由执行器决定&#xa;命令构造器不改数据库" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#111827;fontSize=16;" vertex="1" parent="1">
+          <mxGeometry x="1285" y="1395" width="310" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="edge1" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n1" target="d1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge2" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d1" target="e1"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge3" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d1" target="d2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge4" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d2" target="e2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge5" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d2" target="d3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge6" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d3" target="e3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge7" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d3" target="n2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge8" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n3" target="d4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge9" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d4" target="n4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge10" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d4" target="n5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge11" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n4" target="n6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge12" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n5" target="n6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge13" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n6" target="d5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge14" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d5" target="n7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge15" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d5" target="n8"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge16" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n9" target="d6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge17" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d6" target="n10"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge18" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d6" target="n11"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge19" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n10" target="d7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge20" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n11" target="d7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge21" value="N" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d7" target="n12"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge22" value="Y" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="d7" target="n13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge23" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n12" target="n14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge24" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n13" target="n14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge25" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n15" target="n16"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge26" value="" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;" edge="1" parent="1" source="n16" target="n17"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge27" value="构造失败路径" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;dashed=1;" edge="1" parent="1" source="e1" target="n18"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge28" value="构造失败路径" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;dashed=1;" edge="1" parent="1" source="e2" target="n18"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="edge29" value="构造失败路径" style="endArrow=block;html=1;rounded=0;strokeColor=#111827;dashed=1;" edge="1" parent="1" source="e3" target="n18"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
