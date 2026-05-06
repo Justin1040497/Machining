@@ -1,8 +1,15 @@
 # Machining
 
-Machining 是一个本地视频压缩桌面应用，基于 Flutter Desktop 和 FFmpeg 构建。它把常用的视频压缩、格式转换、预览和批量任务能力做成图形化工作台，适合处理录屏、课程、会议、素材和日常视频文件。
+[![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-000000)](#安装)
+[![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目架构)
+[![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#内置-ffmpeg)
+[![Encoder](https://img.shields.io/badge/encoder-libx264-444444)](#内置-ffmpeg)
+[![Processing](https://img.shields.io/badge/processing-local%20only-2E7D32)](#功能)
+[![Runtime License](https://img.shields.io/badge/runtime%20license-GPLv3%2B-C62828)](#许可)
 
-所有媒体处理都在本机完成，视频不会上传到云端。
+Machining 是一个本地视频压缩桌面应用，基于 Flutter Desktop 和 FFmpeg 构建。现在已经具备了自定义参数压缩视频的功能，在后续，会添加其他文件压缩、格式转换等更多的文件处理的功能，为了秉持操作简单、高质量快速度的产品理念，后续的版本中会逐渐封装各种参数预设，但同样会保留自定义的操作。
+
+Machining 的发布包包含 FFmpeg / FFprobe 运行时。当前内置运行时基于 FFmpeg 7.1.1 和 x264 构建，并启用了 GPL/libx264 相关能力；包含该运行时的分发包需要遵守 GPLv3-or-later 许可要求。FFmpeg 和 x264 归各自原项目维护，Machining 仅调用并随应用分发相应运行时。详细说明见 `docs/` 中的 FFmpeg 许可与分发文档。
 
 ## 功能
 
