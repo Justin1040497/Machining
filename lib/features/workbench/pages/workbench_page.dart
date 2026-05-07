@@ -8,6 +8,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
 import 'package:machining/application/services/preview_frame_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
+import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/task_status.dart';
@@ -60,6 +61,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   int selectedQualityIndex = 2;
   OutputFormat selectedOutputFormat = OutputFormat.mp4;
   VideoCodec selectedVideoCodec = VideoCodec.h264;
+  EncoderBackend selectedEncoderBackend = EncoderBackend.auto;
   ResolutionPreset selectedResolutionPreset = ResolutionPreset.p1080;
   String? selectedTaskId;
   String? syncedConfigTaskId;
@@ -398,6 +400,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       setState(() {
         selectedOutputFormat = config.outputFormat;
         selectedVideoCodec = config.videoCodec;
+        selectedEncoderBackend = config.encoderBackend;
         selectedResolutionPreset = config.resolutionPreset;
         saveToSourceDirectory = config.outputDirectory.trim().isEmpty;
         exportDirectoryController.text = saveToSourceDirectory
@@ -1116,6 +1119,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       selectedQualityIndex = nextQualityIndex;
       selectedOutputFormat = initialConfig.outputFormat;
       selectedVideoCodec = initialConfig.videoCodec;
+      selectedEncoderBackend = initialConfig.encoderBackend;
       selectedResolutionPreset = initialConfig.resolutionPreset;
       saveToSourceDirectory = true;
       exportDirectoryDragging = false;
@@ -1143,6 +1147,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   Future<void> updateSelectedTaskConfig({
     OutputFormat? outputFormat,
     VideoCodec? videoCodec,
+    EncoderBackend? encoderBackend,
     ResolutionPreset? resolutionPreset,
     String? outputDirectory,
     int? compressionCrf,
@@ -1157,6 +1162,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       config: task.config.copyWith(
         outputFormat: outputFormat,
         videoCodec: videoCodec,
+        encoderBackend: encoderBackend,
         resolutionPreset: resolutionPreset,
         outputDirectory: outputDirectory,
         compressionCrf: compressionCrf,
@@ -1284,6 +1290,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               allowExtremeCompression:
                   isSourceAlreadyCompressed(task) &&
                   selectedQualityOption.isLowestVolume,
+              encoderCapabilities: runtime.encoderCapabilities,
             ),
           );
 
@@ -1723,7 +1730,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Widget buildVideoConfigPanel() {
-    return Padding(
+    return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -1757,10 +1764,37 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               if (value == null) {
                 return;
               }
+              final nextEncoderBackend =
+                  isBackendCompatibleWithCodec(selectedEncoderBackend, value)
+                  ? selectedEncoderBackend
+                  : EncoderBackend.auto;
               setState(() {
                 selectedVideoCodec = value;
+                selectedEncoderBackend = nextEncoderBackend;
               });
-              unawaited(updateSelectedTaskConfig(videoCodec: value));
+              unawaited(
+                updateSelectedTaskConfig(
+                  videoCodec: value,
+                  encoderBackend: nextEncoderBackend,
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+          buildConfigDropdown<EncoderBackend>(
+            label: '编码器',
+            trailingText: selectedEncoderBackend.label,
+            value: selectedEncoderBackend,
+            values: availableEncoderBackends(),
+            itemLabel: (value) => value.label,
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              setState(() {
+                selectedEncoderBackend = value;
+              });
+              unawaited(updateSelectedTaskConfig(encoderBackend: value));
             },
           ),
           const SizedBox(height: 14),
@@ -1789,6 +1823,45 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         ],
       ),
     );
+  }
+
+  List<EncoderBackend> availableEncoderBackends() {
+    final softwareBackend = selectedVideoCodec == VideoCodec.hevc
+        ? EncoderBackend.libx265
+        : EncoderBackend.libx264;
+
+    late final List<EncoderBackend> backends;
+    if (Platform.isMacOS) {
+      backends = [
+        EncoderBackend.auto,
+        EncoderBackend.videotoolbox,
+        softwareBackend,
+      ];
+    } else if (Platform.isWindows) {
+      backends = [
+        EncoderBackend.auto,
+        EncoderBackend.nvenc,
+        EncoderBackend.qsv,
+        EncoderBackend.amf,
+        softwareBackend,
+      ];
+    } else {
+      backends = [EncoderBackend.auto, softwareBackend];
+    }
+
+    if (!backends.contains(selectedEncoderBackend)) {
+      return [...backends, selectedEncoderBackend];
+    }
+
+    return backends;
+  }
+
+  bool isBackendCompatibleWithCodec(EncoderBackend backend, VideoCodec codec) {
+    return switch (backend) {
+      EncoderBackend.libx264 => codec == VideoCodec.h264,
+      EncoderBackend.libx265 => codec == VideoCodec.hevc,
+      _ => true,
+    };
   }
 
   Widget buildConfigDropdown<T>({

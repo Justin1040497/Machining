@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:machining/application/services/compression_advisor.dart';
 import 'package:machining/application/services/ffmpeg_command_builder.dart';
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/media_kind.dart';
@@ -27,14 +28,17 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
   FfmpegCommandPlan build(
     MediaTask task, {
     bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   }) {
-    ensureSupportedTask(task);
+    ensureSupportedTask(task, encoderCapabilities);
 
     final outputPath = buildOutputPath(task);
     final targetCodec = resolveTargetVideoCodec(task);
     final videoEncoder = resolveVideoEncoder(
       targetCodec: targetCodec,
       backend: task.config.encoderBackend,
+      encoderCapabilities: encoderCapabilities,
     );
     final recommendation = compressionAdvisor.recommend(
       task,
@@ -70,13 +74,16 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     required double durationSeconds,
     required String outputPath,
     bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   }) {
-    ensureSupportedTask(task);
+    ensureSupportedTask(task, encoderCapabilities);
 
     final targetCodec = resolveTargetVideoCodec(task);
     final videoEncoder = resolveVideoEncoder(
       targetCodec: targetCodec,
       backend: task.config.encoderBackend,
+      encoderCapabilities: encoderCapabilities,
     );
     final recommendation = compressionAdvisor.recommend(
       task,
@@ -124,7 +131,10 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     throw CompressionConfirmationRequiredException(recommendation.message);
   }
 
-  void ensureSupportedTask(MediaTask task) {
+  void ensureSupportedTask(
+    MediaTask task,
+    FfmpegEncoderCapabilities encoderCapabilities,
+  ) {
     if (task.mediaKind != MediaKind.video) {
       throw const FfmpegCommandBuildException('当前版本只支持视频任务');
     }
@@ -133,6 +143,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     resolveVideoEncoder(
       targetCodec: resolveTargetVideoCodec(task),
       backend: task.config.encoderBackend,
+      encoderCapabilities: encoderCapabilities,
     );
   }
 
@@ -161,22 +172,25 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
   String resolveVideoEncoder({
     required VideoCodec targetCodec,
     required EncoderBackend backend,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   }) {
-    return switch ((targetCodec, backend)) {
-      (VideoCodec.h264, EncoderBackend.auto) => 'libx264',
-      (VideoCodec.h264, EncoderBackend.libx264) => 'libx264',
-      (VideoCodec.h264, EncoderBackend.videotoolbox) => 'h264_videotoolbox',
-      (VideoCodec.hevc, EncoderBackend.auto) => 'libx265',
-      (VideoCodec.hevc, EncoderBackend.libx265) => 'libx265',
-      (VideoCodec.hevc, EncoderBackend.videotoolbox) => 'hevc_videotoolbox',
-      (VideoCodec.h264, EncoderBackend.libx265) =>
-        throw const FfmpegCommandBuildException('H.264 不能使用 libx265 编码器'),
-      (VideoCodec.hevc, EncoderBackend.libx264) =>
-        throw const FfmpegCommandBuildException('HEVC 不能使用 libx264 编码器'),
-      (VideoCodec.source, _) => throw const FfmpegCommandBuildException(
-        'source 必须先解析成具体目标编码',
-      ),
-    };
+    try {
+      return encoderCapabilities.resolveEncoderName(
+        targetCodec: targetCodec,
+        backend: backend,
+      );
+    } on SourceCodecNotResolvedException {
+      throw const FfmpegCommandBuildException('source 必须先解析成具体目标编码');
+    } on IncompatibleEncoderBackendException {
+      throw FfmpegCommandBuildException(
+        '${targetCodec.label} 不能使用 ${backend.label} 编码器',
+      );
+    } on UnsupportedEncoderBackendException catch (error) {
+      throw FfmpegCommandBuildException(
+        '当前 FFmpeg 不支持 ${error.backend.label} 编码器: ${error.encoderName}',
+      );
+    }
   }
 
   String buildOutputPath(MediaTask task) {
@@ -256,6 +270,12 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     CompressionRecommendation recommendation,
     String videoEncoder,
   ) {
+    if (FfmpegEncoderCapabilities.softwareOnly.isHardwareEncoder(
+      videoEncoder,
+    )) {
+      return buildHardwareCompressionArgs(recommendation, videoEncoder);
+    }
+
     final baseArgs = <String>[
       '-c:v',
       videoEncoder,
@@ -281,6 +301,91 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-bufsize',
       formatBitrate(targetVideoBitrate * 2),
     ];
+  }
+
+  List<String> buildHardwareCompressionArgs(
+    CompressionRecommendation recommendation,
+    String videoEncoder,
+  ) {
+    final targetVideoBitrate = recommendation.targetVideoBitrate;
+    final quality = recommendation.crf.toString();
+
+    if (videoEncoder.endsWith('_videotoolbox')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        if (targetVideoBitrate == null) ...['-q:v', quality],
+        if (targetVideoBitrate != null) ...[
+          '-b:v',
+          formatBitrate(targetVideoBitrate),
+        ],
+      ];
+    }
+
+    if (videoEncoder.endsWith('_nvenc')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-preset',
+        'p5',
+        '-rc',
+        'vbr',
+        if (targetVideoBitrate == null) ...['-cq', quality, '-b:v', '0'],
+        if (targetVideoBitrate != null) ...[
+          '-b:v',
+          formatBitrate(targetVideoBitrate),
+          '-maxrate',
+          formatBitrate(targetVideoBitrate),
+          '-bufsize',
+          formatBitrate(targetVideoBitrate * 2),
+        ],
+      ];
+    }
+
+    if (videoEncoder.endsWith('_qsv')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        if (targetVideoBitrate == null) ...['-global_quality', quality],
+        if (targetVideoBitrate != null) ...[
+          '-b:v',
+          formatBitrate(targetVideoBitrate),
+          '-maxrate',
+          formatBitrate(targetVideoBitrate),
+          '-bufsize',
+          formatBitrate(targetVideoBitrate * 2),
+        ],
+      ];
+    }
+
+    if (videoEncoder.endsWith('_amf')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-quality',
+        'balanced',
+        if (targetVideoBitrate == null) ...[
+          '-rc',
+          'cqp',
+          '-qp_i',
+          quality,
+          '-qp_p',
+          quality,
+        ],
+        if (targetVideoBitrate != null) ...[
+          '-rc',
+          'vbr_peak',
+          '-b:v',
+          formatBitrate(targetVideoBitrate),
+          '-maxrate',
+          formatBitrate(targetVideoBitrate),
+          '-bufsize',
+          formatBitrate(targetVideoBitrate * 2),
+        ],
+      ];
+    }
+
+    return ['-c:v', videoEncoder];
   }
 
   List<String> buildResolutionArgs(ResolutionPreset preset) {

@@ -1,3 +1,4 @@
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
 
 class PreviewFrameFingerprint {
@@ -52,11 +53,13 @@ class PreviewFrameRequest {
   final String ffmpegPath;
   final MediaTask task;
   final bool allowExtremeCompression;
+  final FfmpegEncoderCapabilities encoderCapabilities;
 
   const PreviewFrameRequest({
     required this.ffmpegPath,
     required this.task,
     this.allowExtremeCompression = false,
+    this.encoderCapabilities = FfmpegEncoderCapabilities.softwareOnly,
   });
 }
 
@@ -75,6 +78,8 @@ abstract class PreviewFrameGenerator {
   PreviewFrameFingerprint buildFingerprint(
     MediaTask task, {
     bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   });
 
   Future<PreviewFrameResult> generate(PreviewFrameRequest request);

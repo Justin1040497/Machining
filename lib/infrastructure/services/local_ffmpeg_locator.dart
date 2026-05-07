@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/application/services/ffmpeg_locator.dart';
+import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:path/path.dart' as path;
 
 /// 使用本地文件系统和系统 PATH 解析 FFmpeg / FFprobe
@@ -24,7 +26,13 @@ class LocalFfmpegLocator implements FfmpegLocator {
       customPath: customFfprobePath,
     );
 
-    return ResolvedFfmpegRuntime(ffmpeg: ffmpeg, ffprobe: ffprobe);
+    return ResolvedFfmpegRuntime(
+      ffmpeg: ffmpeg,
+      ffprobe: ffprobe,
+      encoderCapabilities: ffmpeg == null
+          ? FfmpegEncoderCapabilities.softwareOnly
+          : await detectEncoderCapabilities(ffmpeg.path),
+    );
   }
 
   @override
@@ -179,6 +187,36 @@ class LocalFfmpegLocator implements FfmpegLocator {
     } on Object {
       return null;
     }
+  }
+
+  Future<FfmpegEncoderCapabilities> detectEncoderCapabilities(
+    String ffmpegPath,
+  ) async {
+    final result = await runCommand(ffmpegPath, ['-hide_banner', '-encoders']);
+    if (result == null || result.exitCode != 0) {
+      return FfmpegEncoderCapabilities.softwareOnly;
+    }
+
+    return FfmpegEncoderCapabilities.fromEncodersOutput(
+      '${result.stdout}\n${result.stderr}',
+      autoBackendPriority: autoBackendPriority(),
+    );
+  }
+
+  List<EncoderBackend> autoBackendPriority() {
+    if (Platform.isMacOS) {
+      return const [EncoderBackend.videotoolbox];
+    }
+
+    if (Platform.isWindows) {
+      return const [
+        EncoderBackend.nvenc,
+        EncoderBackend.qsv,
+        EncoderBackend.amf,
+      ];
+    }
+
+    return const [];
   }
 
   /// 生成当前系统可能存在的内置工具候选路径

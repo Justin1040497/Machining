@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:machining/application/services/compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/application/services/preview_frame_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/infrastructure/services/default_ffmpeg_command_builder.dart';
@@ -49,6 +50,8 @@ class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
   PreviewFrameFingerprint buildFingerprint(
     MediaTask task, {
     bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   }) {
     final recommendation = compressionAdvisor.recommend(
       task,
@@ -65,6 +68,7 @@ class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
         config.outputFormat.name,
         config.videoCodec.name,
         config.encoderBackend.name,
+        encoderCapabilities.fingerprintValue,
         config.resolutionPreset.name,
         allowExtremeCompression,
         analysis?.durationMs,
@@ -96,6 +100,7 @@ class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
     final fingerprint = buildFingerprint(
       task,
       allowExtremeCompression: request.allowExtremeCompression,
+      encoderCapabilities: request.encoderCapabilities,
     );
     final durationSeconds = durationMs / 1000;
     final frames = <PreviewFramePair>[];
@@ -130,6 +135,7 @@ class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
         durationSeconds: previewSegmentDurationSeconds,
         outputPath: segmentPath,
         allowExtremeCompression: request.allowExtremeCompression,
+        encoderCapabilities: request.encoderCapabilities,
       );
       try {
         await runCheckedCommand(

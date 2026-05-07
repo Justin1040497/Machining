@@ -186,3 +186,151 @@ flutter test: 40 tests passed
 ```
 
 Windows native build still needs to be verified on the Windows machine because macOS cannot run `flutter build windows`.
+
+---
+
+# 2026-05-07 GPU Encoder Acceleration
+
+## Problem Summary
+
+Machining 原先的“自动选择”编码器实际仍然回退到 CPU 编码：
+
+```text
+H.264 -> libx264
+HEVC  -> libx265
+```
+
+这样在 macOS 和 Windows 上即使 FFmpeg 具备硬件编码器，任务也不会自动使用 GPU 加速。
+
+## Goal
+
+在不破坏现有 FFmpeg 队列、预览和命令构造结构的前提下，增加跨平台 GPU 编码加速：
+
+- macOS 支持 VideoToolbox。
+- Windows 支持 NVIDIA NVENC、Intel Quick Sync、AMD AMF。
+- `auto` 能按平台和 FFmpeg 能力自动选择 GPU 编码器。
+- 如果当前 FFmpeg 或硬件不支持 GPU 编码器，自动回退到 `libx264` / `libx265`。
+
+## Fix
+
+### Add Encoder Capability Model
+
+新增 `FfmpegEncoderCapabilities`，集中记录当前 FFmpeg 支持的 encoder 名称和自动选择优先级。
+
+检测命令：
+
+```text
+ffmpeg -hide_banner -encoders
+```
+
+识别的硬件编码器：
+
+```text
+h264_videotoolbox
+hevc_videotoolbox
+h264_nvenc
+hevc_nvenc
+h264_qsv
+hevc_qsv
+h264_amf
+hevc_amf
+```
+
+### Detect Capabilities In Runtime Resolution
+
+`LocalFfmpegLocator` 在解析到可用 `ffmpeg` 后，读取 `-encoders` 输出并生成能力对象。
+
+自动选择优先级：
+
+```text
+macOS   -> VideoToolbox -> libx264/libx265
+Windows -> NVENC -> QSV -> AMF -> libx264/libx265
+```
+
+### Extend Encoder Backend
+
+`EncoderBackend` 增加：
+
+```text
+nvenc
+qsv
+amf
+```
+
+UI 侧新增“编码器”下拉项。用户可以选择：
+
+- 自动选择
+- 平台硬件编码器
+- 当前目标编码对应的软件编码器
+
+切换 H.264 / HEVC 时，如果当前软件编码器不兼容，会自动回到“自动选择”。
+
+### Update FFmpeg Command Builder
+
+`DefaultFfmpegCommandBuilder` 现在接收 `FfmpegEncoderCapabilities`，并根据目标编码和后端解析实际 FFmpeg encoder。
+
+压缩参数按 encoder 类型分流：
+
+- `libx264` / `libx265`：继续使用 `-preset` + `-crf` 或目标码率。
+- VideoToolbox：使用 `-q:v` 或目标码率。
+- NVENC：使用 `-preset p5`、`-rc vbr`、`-cq` 或目标码率。
+- QSV：使用 `-global_quality` 或目标码率。
+- AMF：使用 `-quality balanced`、`-rc cqp` / `vbr_peak`。
+
+### Wire Queue And Preview
+
+正式任务队列和预览片段生成都会传入同一份 runtime encoder capabilities，避免预览和正式导出使用不同的编码路线。
+
+预览 fingerprint 也包含 FFmpeg encoder capability 信息，防止能力变化后复用旧预览。
+
+## Modified Files
+
+- `README.md`
+- `lib/application/services/ffmpeg_command_builder.dart`
+- `lib/application/services/ffmpeg_locator.dart`
+- `lib/application/services/ffmpeg_task_queue_runner.dart`
+- `lib/application/services/preview_frame_generator.dart`
+- `lib/domain/enums/encoder_backend.dart`
+- `lib/features/workbench/pages/workbench_page.dart`
+- `lib/infrastructure/services/default_ffmpeg_command_builder.dart`
+- `lib/infrastructure/services/local_ffmpeg_locator.dart`
+- `lib/infrastructure/services/local_preview_frame_generator.dart`
+- `test/ffmpeg_command_builder_test.dart`
+- `test/ffmpeg_task_queue_runner_test.dart`
+
+## Added Files
+
+- `lib/application/services/ffmpeg_encoder_capabilities.dart`
+
+## Validation Method Or Test Result
+
+On macOS development machine:
+
+```text
+flutter test test/ffmpeg_command_builder_test.dart test/ffmpeg_task_queue_runner_test.dart test/preview_frame_generator_test.dart
+flutter analyze
+```
+
+Results:
+
+```text
+Selected Flutter tests: passed, 33 tests
+flutter analyze: No issues found
+```
+
+Also inspected bundled Windows runtime binary strings and found GPU encoder symbols:
+
+```text
+h264_nvenc
+hevc_nvenc
+h264_qsv
+hevc_qsv
+h264_amf
+hevc_amf
+```
+
+Final runtime validation still needs to run on Windows with:
+
+```powershell
+third_party\ffmpeg\windows-x64\ffmpeg.exe -hide_banner -encoders
+```

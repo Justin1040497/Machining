@@ -1,3 +1,4 @@
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
 
 class FfmpegCommandPlan {
@@ -38,5 +39,7 @@ abstract class FfmpegCommandBuilder {
   FfmpegCommandPlan build(
     MediaTask task, {
     bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   });
 }

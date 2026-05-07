@@ -5,7 +5,10 @@ enum EncoderBackend {
   auto,
   libx264,
   libx265,
-  videotoolbox;
+  videotoolbox,
+  nvenc,
+  qsv,
+  amf;
 
   String get label {
     switch (this) {
@@ -17,6 +20,12 @@ enum EncoderBackend {
         return "libx265";
       case EncoderBackend.videotoolbox:
         return "VideoToolbox";
+      case EncoderBackend.nvenc:
+        return "NVIDIA NVENC";
+      case EncoderBackend.qsv:
+        return "Intel Quick Sync";
+      case EncoderBackend.amf:
+        return "AMD AMF";
     }
   }
 }

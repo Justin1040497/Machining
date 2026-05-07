@@ -344,6 +344,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       plan = commandBuilder.build(
         task,
         allowExtremeCompression: allowExtremeCompression,
+        encoderCapabilities: runtime.encoderCapabilities,
       );
     } on CompressionConfirmationRequiredException catch (error) {
       await refreshStatus();

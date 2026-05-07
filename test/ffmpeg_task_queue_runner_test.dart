@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:machining/application/repositories/media_task_repository.dart';
 import 'package:machining/application/services/ffmpeg_command_builder.dart';
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/application/services/ffmpeg_locator.dart';
 import 'package:machining/application/services/ffmpeg_process_observer.dart';
 import 'package:machining/application/services/ffmpeg_process_starter.dart';
@@ -389,6 +390,8 @@ class FakeCommandBuilder implements FfmpegCommandBuilder {
   FfmpegCommandPlan build(
     MediaTask task, {
     bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
   }) {
     allowExtremeCompressionValues.add(allowExtremeCompression);
     final error = this.error;

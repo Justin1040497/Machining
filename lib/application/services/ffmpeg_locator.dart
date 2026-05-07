@@ -1,3 +1,5 @@
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
+
 /// FFmpeg 二进制来源
 enum FfmpegBinarySource {
   /// 用户自定义路径优先
@@ -22,11 +24,16 @@ class ResolvedFfmpegTool {
 class ResolvedFfmpegRuntime {
   final ResolvedFfmpegTool? ffmpeg;
   final ResolvedFfmpegTool? ffprobe;
+  final FfmpegEncoderCapabilities encoderCapabilities;
 
   bool get canEncode => ffmpeg != null;
   bool get canAnalyze => ffprobe != null;
 
-  const ResolvedFfmpegRuntime({required this.ffmpeg, required this.ffprobe});
+  const ResolvedFfmpegRuntime({
+    required this.ffmpeg,
+    required this.ffprobe,
+    this.encoderCapabilities = FfmpegEncoderCapabilities.softwareOnly,
+  });
 }
 
 /// 用户主动设置的工具路径无效

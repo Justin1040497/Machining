@@ -1,33 +1,34 @@
 # Machining
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon-000000)](#安装)
+[![Platform](https://img.shields.io/badge/platform-macOS%20%7C%20Windows-000000)](#安装)
 [![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目架构)
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#内置-ffmpeg)
-[![Encoder](https://img.shields.io/badge/encoder-libx264-444444)](#内置-ffmpeg)
+[![Encoder](https://img.shields.io/badge/encoder-GPU%20accelerated-444444)](#gpu-编码加速)
 [![Processing](https://img.shields.io/badge/processing-local%20only-2E7D32)](#功能)
 [![Runtime License](https://img.shields.io/badge/runtime%20license-GPLv3%2B-C62828)](#许可)
 
 Machining 是一个本地视频压缩桌面应用，基于 Flutter Desktop 和 FFmpeg 构建。现在已经具备了自定义参数压缩视频的功能，在后续，会添加其他文件压缩、格式转换等更多的文件处理的功能，为了秉持操作简单、高质量快速度的产品理念，后续的版本中会逐渐封装各种参数预设，但同样会保留自定义的操作。
 
-Machining 的发布包包含 FFmpeg / FFprobe 运行时。当前内置运行时基于 FFmpeg 7.1.1 和 x264 构建，并启用了 GPL/libx264 相关能力；包含该运行时的分发包需要遵守 GPLv3-or-later 许可要求。FFmpeg 和 x264 归各自原项目维护，Machining 仅调用并随应用分发相应运行时。详细说明见 `docs/` 中的 FFmpeg 许可与分发文档。
+Machining 的发布包包含 FFmpeg / FFprobe 运行时。当前内置运行时基于 FFmpeg 7.1.1 构建，支持 CPU 编码和可用平台的 GPU 硬件编码；包含该运行时的分发包需要遵守对应 FFmpeg 构建的许可要求。FFmpeg、x264 等依赖归各自原项目维护，Machining 仅调用并随应用分发相应运行时。详细说明见 `docs/` 中的 FFmpeg 许可与分发文档。
 
 ## 功能
 
 - 拖拽或选择导入本地视频
 - 自动分析视频时长、编码、码率和分辨率
 - 生成压缩前后预览帧
-- 调整输出格式、编码、分辨率、压缩质量和输出文件名
+- 调整输出格式、视频编码、编码器、分辨率、压缩质量和输出文件名
+- 支持 macOS 和 Windows 的 GPU 硬件编码加速，自动检测 FFmpeg 可用编码器
 - 执行视频压缩和格式转换
 - 管理任务队列，支持暂停、继续、删除和重命名
 - 压缩完成后显示输出路径，并可在 Finder 中打开
-- 内置 macOS arm64 FFmpeg / FFprobe，不要求用户安装 Homebrew
+- 内置 macOS arm64 和 Windows x64 FFmpeg / FFprobe，不要求用户手动安装 FFmpeg
 
 ## 使用
 
 1. 打开 Machining。
 2. 把视频文件拖进窗口，或通过导入按钮选择视频。
 3. 选择任务后查看视频信息和预览。
-4. 按需要调整输出格式、编码、分辨率、质量和文件名。
+4. 按需要调整输出格式、视频编码、编码器、分辨率、质量和文件名。
 5. 点击开始处理。
 6. 任务完成后在弹窗中打开输出位置。
 
@@ -35,10 +36,16 @@ Machining 的发布包包含 FFmpeg / FFprobe 运行时。当前内置运行时�
 
 ## 安装
 
-目前项目主要面向 macOS Apple Silicon。构建产物是 macOS `.app`：
+目前项目支持 macOS Apple Silicon 和 Windows x64。macOS 构建产物是 `.app`：
 
 ```text
 build/macos/Build/Products/Release/machining.app
+```
+
+Windows 构建产物位于：
+
+```text
+build/windows/x64/runner/Release/
 ```
 
 如果你拿到的是已经构建好的 app，可以直接打开使用。若 macOS 阻止打开，需要根据实际签名和分发方式处理安全设置。
@@ -47,14 +54,12 @@ build/macos/Build/Products/Release/machining.app
 
 需要：
 
-- macOS Apple Silicon
 - Flutter / Dart
-- Xcode Command Line Tools
-- Homebrew
-- `nasm`
-- `pkg-config`
+- macOS Apple Silicon 或 Windows x64
+- macOS 开发需要 Xcode Command Line Tools、Homebrew、`nasm`、`pkg-config`
+- Windows 开发需要 Visual Studio C++ 桌面构建工具
 
-安装 FFmpeg 构建依赖：
+macOS 安装 FFmpeg 构建依赖：
 
 ```bash
 brew install nasm pkg-config
@@ -66,30 +71,48 @@ brew install nasm pkg-config
 flutter pub get
 ```
 
-运行开发版：
+运行 macOS 开发版：
 
 ```bash
 flutter run -d macos
 ```
 
+运行 Windows 开发版：
+
+```powershell
+flutter run -d windows
+```
+
 ## 构建
 
-Debug 构建：
+macOS Debug 构建：
 
 ```bash
 flutter build macos --debug
 ```
 
-Release 构建：
+macOS Release 构建：
 
 ```bash
 flutter build macos --release
 ```
 
-Release app 位置：
+macOS Release app 位置：
 
 ```text
 build/macos/Build/Products/Release/machining.app
+```
+
+Windows Release 构建：
+
+```powershell
+flutter build windows --release
+```
+
+Windows Release 位置：
+
+```text
+build/windows/x64/runner/Release/
 ```
 
 ## 内置 FFmpeg
@@ -146,6 +169,40 @@ machining.exe 同级目录/ffmpeg/
 ```
 
 如果这两个文件不存在，Windows 构建会直接失败，避免生成缺少内置 FFmpeg 的发布包。
+
+## GPU 编码加速
+
+Machining 会在解析 FFmpeg 运行时时执行 `ffmpeg -hide_banner -encoders`，检测当前 FFmpeg 支持哪些硬件编码器。任务配置为“自动选择”时，会优先使用可用 GPU 编码器；如果当前电脑或 FFmpeg 不支持对应编码器，会回退到 CPU 编码。
+
+macOS 支持：
+
+```text
+H.264 -> h264_videotoolbox
+HEVC  -> hevc_videotoolbox
+```
+
+Windows 支持：
+
+```text
+NVIDIA -> h264_nvenc / hevc_nvenc
+Intel  -> h264_qsv / hevc_qsv
+AMD    -> h264_amf / hevc_amf
+```
+
+自动选择优先级：
+
+```text
+macOS   -> VideoToolbox -> libx264/libx265
+Windows -> NVENC -> Quick Sync -> AMF -> libx264/libx265
+```
+
+可以在 Windows 上用以下命令确认内置 FFmpeg 是否包含 GPU 编码器：
+
+```powershell
+third_party\ffmpeg\windows-x64\ffmpeg.exe -hide_banner -encoders
+```
+
+输出中如果包含 `h264_nvenc`、`h264_qsv` 或 `h264_amf`，Machining 就可以在对应硬件可用时使用 GPU 编码。
 
 ## 项目架构
 

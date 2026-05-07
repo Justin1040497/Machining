@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:machining/application/services/ffmpeg_command_builder.dart';
+import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/media_kind.dart';
@@ -257,6 +258,62 @@ void main() {
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
+    test('auto uses VideoToolbox when the runtime supports it', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          encoderBackend: EncoderBackend.auto,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 3000000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'libx265', 'h264_videotoolbox'},
+          autoBackendPriority: [EncoderBackend.videotoolbox],
+        ),
+      );
+
+      expect(plan.args, containsAllInOrder(['-c:v', 'h264_videotoolbox']));
+      expect(plan.args, containsAllInOrder(['-b:v', '2032k']));
+      expect(plan.args, isNot(contains('-crf')));
+    });
+
+    test('auto uses Windows hardware backend priority before software', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.hevc,
+          encoderBackend: EncoderBackend.auto,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 3000000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'libx265', 'hevc_qsv', 'hevc_amf'},
+          autoBackendPriority: [
+            EncoderBackend.nvenc,
+            EncoderBackend.qsv,
+            EncoderBackend.amf,
+          ],
+        ),
+      );
+
+      expect(plan.args, containsAllInOrder(['-c:v', 'hevc_qsv']));
+      expect(plan.args, containsAllInOrder(['-b:v', '2032k']));
+      expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
+    });
+
     test('rejects non-video tasks', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
@@ -277,6 +334,21 @@ void main() {
         config: VideoTaskConfig.initial().copyWith(
           videoCodec: VideoCodec.hevc,
           encoderBackend: EncoderBackend.libx264,
+        ),
+      );
+
+      expect(
+        () => builder.build(task),
+        throwsA(isA<FfmpegCommandBuildException>()),
+      );
+    });
+
+    test('rejects explicitly selected unsupported hardware backend', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          encoderBackend: EncoderBackend.nvenc,
         ),
       );
 
