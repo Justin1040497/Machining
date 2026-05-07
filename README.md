@@ -99,9 +99,14 @@ Machining 运行时优先使用应用包内的 FFmpeg / FFprobe。仓库中的�
 ```text
 third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/windows-x64/ffmpeg.exe
+third_party/ffmpeg/windows-x64/ffprobe.exe
 ```
 
-这两个二进制文件不提交到 Git，需要本地生成：
+这些二进制文件不提交到 Git，需要在对应平台本地准备。
+`third_party` 目录本身会保留在仓库中，用来放置说明文件和运行时目录结构；只有 `ffmpeg`、`ffprobe`、`ffmpeg.exe`、`ffprobe.exe` 这类平台二进制被 `.gitignore` 排除。
+
+macOS arm64 运行时可以用脚本生成：
 
 ```bash
 scripts/build_ffmpeg_macos_arm64.sh
@@ -126,6 +131,21 @@ grep -h '^ffmpegPath:' "$LOG_DIR"/*.log | tail -1
 ```
 
 如果输出路径指向 `machining.app/Contents/Resources/ffmpeg/ffmpeg`，说明内置 FFmpeg 已生效。
+
+Windows 构建时，CMake 会把：
+
+```text
+third_party/ffmpeg/windows-x64/ffmpeg.exe
+third_party/ffmpeg/windows-x64/ffprobe.exe
+```
+
+复制到：
+
+```text
+machining.exe 同级目录/ffmpeg/
+```
+
+如果这两个文件不存在，Windows 构建会直接失败，避免生成缺少内置 FFmpeg 的发布包。
 
 ## 项目架构
 

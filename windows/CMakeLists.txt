@@ -87,6 +87,20 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
+# Bundle the Windows FFmpeg runtime when the local binaries are present.
+# The Dart runtime locator checks "<exe dir>/ffmpeg/ffmpeg.exe" and
+# "<exe dir>/ffmpeg/ffprobe.exe" before falling back to PATH.
+set(BUNDLED_FFMPEG_WINDOWS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/ffmpeg/windows-x64")
+if(EXISTS "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffmpeg.exe" AND EXISTS "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffprobe.exe")
+  install(FILES
+    "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffmpeg.exe"
+    "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffprobe.exe"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/ffmpeg"
+    COMPONENT Runtime)
+else()
+  message(FATAL_ERROR "Bundled Windows FFmpeg binaries not found in ${BUNDLED_FFMPEG_WINDOWS_DIR}. Place ffmpeg.exe and ffprobe.exe there before building.")
+endif()
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"

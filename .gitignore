@@ -50,3 +50,5 @@ app.*.map.json
 # FFmpeg & FFprobe
 third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/windows-x64/ffmpeg.exe
+third_party/ffmpeg/windows-x64/ffprobe.exe

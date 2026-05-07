@@ -26,6 +26,11 @@ constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
 
+// Logical size. On a 150% scaled display this maps to about 1824 x 1340
+// physical pixels, matching the measured compact layout target.
+constexpr int kMinWindowWidth = 1216;
+constexpr int kMinWindowHeight = 893;
+
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;
 
@@ -195,6 +200,13 @@ Win32Window::MessageHandler(HWND hwnd,
       SetWindowPos(hwnd, nullptr, newRectSize->left, newRectSize->top, newWidth,
                    newHeight, SWP_NOZORDER | SWP_NOACTIVATE);
 
+      return 0;
+    }
+    case WM_GETMINMAXINFO: {
+      auto min_max_info = reinterpret_cast<MINMAXINFO*>(lparam);
+      const double scale_factor = FlutterDesktopGetDpiForHWND(hwnd) / 96.0;
+      min_max_info->ptMinTrackSize.x = Scale(kMinWindowWidth, scale_factor);
+      min_max_info->ptMinTrackSize.y = Scale(kMinWindowHeight, scale_factor);
       return 0;
     }
     case WM_SIZE: {
