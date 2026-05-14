@@ -36,16 +36,16 @@
   - 更新目标总码率和目标视频码率预期。
 - `test/ffmpeg_command_builder_test.dart`
   - 更新极限压缩下 `-b:v`、`-maxrate`、`-bufsize` 参数预期。
-- `docs/log.md`
+- `docs/archive/README.md`
   - 追加本次调优记录。
 
 ## Added Files
 
-- `docs/logs/2026-04-30-extreme-compression-ratio-085.md`
+- `docs/archive/logs/2026-04-30-extreme-compression-ratio-085.md`
 
 ## Purpose Of Each Added File
 
-- `docs/logs/2026-04-30-extreme-compression-ratio-085.md`
+- `docs/archive/logs/2026-04-30-extreme-compression-ratio-085.md`
   - 记录极限压缩目标码率比例从 0.75 调整到 0.85 的原因、修改范围和验证结果。
 
 ## Deleted Files

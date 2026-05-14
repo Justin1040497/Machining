@@ -36,8 +36,8 @@ class WorkbenchPage extends ConsumerStatefulWidget {
 }
 
 class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
-  static const double minWorkbenchWidth = 1000;
-  static const double minWorkbenchHeight = 820;
+  static const double minWorkbenchWidth = 750;
+  static const double minWorkbenchHeight = 640;
   static const videoTypeGroup = XTypeGroup(
     label: '视频文件',
     extensions: ['mp4', 'mov', 'mkv', 'm4v', 'avi', 'webm'],
@@ -69,6 +69,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool saveToSourceDirectory = true;
   bool exportDirectoryDragging = false;
   bool workbenchImportDragging = false;
+  bool queueActionInFlight = false;
   bool previewGenerating = false;
   double previewCompareRatio = 0.5;
   int selectedPreviewFrameIndex = 0;
@@ -134,6 +135,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                 syncSelectedTaskConfigAfterBuild(selectedTask);
                 syncQualityPresetAfterBuild(selectedTask);
 
+                final hasRunningTask = tasks.any(
+                  (task) => task.status == TaskStatus.running,
+                );
+
                 return ConstrainedBox(
                   constraints: BoxConstraints(
                     minWidth: minWorkbenchWidth,
@@ -145,154 +150,23 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                         ? minWorkbenchHeight
                         : constraints.maxHeight,
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        height: 48,
-                        width: double.infinity,
-                        decoration: BoxDecoration(color: Colors.white),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Spacer(),
-                            buildTopBarIconButton(
-                              tooltip: '打开设置窗口',
-                              icon: Icons.settings_outlined,
-                              onPressed: () {
-                                showWorkbenchDialog(
-                                  title: '设置',
-                                  message: '设置窗口内容待接入',
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 8),
-                            buildTopBarIconButton(
-                              tooltip: '打开日志窗口',
-                              icon: Icons.article_outlined,
-                              onPressed: () {
-                                showWorkbenchDialog(
-                                  title: '日志',
-                                  message: '日志窗口内容待接入',
-                                );
-                              },
-                            ),
-                            const SizedBox(width: 16),
-                          ],
+                  child: DecoratedBox(
+                    decoration: const BoxDecoration(color: Color(0xFFF3F3F3)),
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          bottom: 48,
+                          child: buildTaskListCard(taskList, selectedTask),
                         ),
-                      ),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 332,
-                              height: double.infinity,
-                              child: buildTaskListCard(taskList, selectedTask),
-                            ),
-                            Expanded(
-                              child: SizedBox(
-                                width: double.infinity,
-                                child: Column(
-                                  children: [
-                                    Expanded(
-                                      flex: 12,
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: Card(
-                                          color: Colors.white,
-                                          clipBehavior: Clip.antiAlias,
-                                          child: buildPreviewPanel(
-                                            selectedTask,
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    SizedBox(
-                                      height: 46,
-                                      width: double.infinity,
-                                      child: buildPreviewToolbar(),
-                                    ),
-                                    Expanded(
-                                      flex: 17,
-                                      child: SizedBox(
-                                        width: double.infinity,
-                                        child: Row(
-                                          children: [
-                                            Expanded(
-                                              child: Column(
-                                                children: [
-                                                  Expanded(
-                                                    flex: 1,
-                                                    child: SizedBox(
-                                                      width: double.infinity,
-                                                      child: Card(
-                                                        color: Colors.white,
-                                                        child:
-                                                            buildQualitySliderPanel(),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                  Expanded(
-                                                    flex: 3,
-                                                    child: SizedBox(
-                                                      width: double.infinity,
-                                                      child: Card(
-                                                        color: Colors.white,
-                                                        child:
-                                                            buildVideoConfigPanel(),
-                                                      ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Expanded(
-                                              child: SizedBox(
-                                                height: double.infinity,
-                                                child: Column(
-                                                  children: [
-                                                    Expanded(
-                                                      flex: 14,
-                                                      child: SizedBox(
-                                                        width: double.infinity,
-                                                        child: Card(
-                                                          color: Colors.white,
-                                                          child:
-                                                              selectedTask ==
-                                                                  null
-                                                              ? buildEmptyFileInfoPanel()
-                                                              : buildFileInfoPanel(
-                                                                  selectedTask,
-                                                                ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    Expanded(
-                                                      flex: 13,
-                                                      child: SizedBox(
-                                                        width: double.infinity,
-                                                        child: Card(
-                                                          color: Colors.white,
-                                                          child:
-                                                              buildExportPathPanel(),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                        Align(
+                          alignment: Alignment.bottomCenter,
+                          child: buildMainBottomBar(
+                            taskList: taskList,
+                            hasRunningTask: hasRunningTask,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },
@@ -525,44 +399,12 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     AsyncValue<List<MediaTask>> taskList,
     MediaTask? selectedTask,
   ) {
-    return Card(
-      color: Colors.white,
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          children: [
-            Expanded(
-              child: taskList.when(
-                loading: buildTaskListLoading,
-                error: (error, stackTrace) => buildTaskListError(error),
-                data: (tasks) => buildTaskList(tasks, selectedTask),
-              ),
-            ),
-            SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                buildSidebarActionButton(
-                  tooltip: '添加任务',
-                  icon: Icons.add_rounded,
-                  color: const Color(0xFF6290FF),
-                  onPressed: pickAndAddTasks,
-                ),
-                const SizedBox(width: 12),
-                buildSidebarActionButton(
-                  tooltip: '清空列表',
-                  icon: Icons.delete_outline_rounded,
-                  color: const Color(0xFFFF5B61),
-                  onPressed:
-                      (!taskList.hasValue || taskList.requireValue.isEmpty)
-                      ? null
-                      : confirmClearTasks,
-                ),
-              ],
-            ),
-            const SizedBox(height: 4),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(27, 31, 27, 0),
+      child: taskList.when(
+        loading: buildTaskListLoading,
+        error: (error, stackTrace) => buildTaskListError(error),
+        data: (tasks) => buildTaskList(tasks, selectedTask),
       ),
     );
   }
@@ -573,6 +415,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     return ReorderableListView.builder(
+      padding: EdgeInsets.zero,
       buildDefaultDragHandles: false,
       itemCount: tasks.length,
       onReorder: (oldIndex, newIndex) {
@@ -594,7 +437,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
         return Padding(
           key: ValueKey(task.id),
-          padding: EdgeInsets.only(bottom: index == tasks.length - 1 ? 0 : 10),
+          padding: EdgeInsets.only(bottom: index == tasks.length - 1 ? 0 : 13),
           child: WorkbenchTaskListItem(
             task: task,
             selected: selectedTask?.id == task.id,
@@ -612,6 +455,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onPause: () => pauseTask(task),
             onRemove: () => deleteTask(task),
             onRetry: () => retryTask(task),
+            onConfigure: () => showTaskConfigurationDialog(task),
             onSecondaryTapDown: (details) {
               unawaited(showTaskContextMenu(task, details.globalPosition));
             },
@@ -644,11 +488,260 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   Widget buildTaskListEmpty() {
     return const Center(
       child: Text(
-        '暂无任务\n点击下方 + 添加视频',
+        '暂无任务\n点击左下角 + 添加视频',
         textAlign: TextAlign.center,
         style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12, height: 1.5),
       ),
     );
+  }
+
+  Future<void> pauseRunningTasks() async {
+    final taskList = ref.read(mediaTaskListProvider);
+    if (!taskList.hasValue) {
+      return;
+    }
+
+    for (final task in taskList.requireValue) {
+      if (task.status == TaskStatus.running) {
+        await pauseTask(task);
+      }
+    }
+  }
+
+  Future<void> showTaskConfigurationDialog(MediaTask task) async {
+    setState(() {
+      selectedTaskId = task.id;
+      selectedOutputFormat = task.config.outputFormat;
+      selectedVideoCodec = task.config.videoCodec;
+      selectedEncoderBackend = task.config.encoderBackend;
+      selectedResolutionPreset = task.config.resolutionPreset;
+      saveToSourceDirectory = task.config.outputDirectory.trim().isEmpty;
+      exportDirectoryDragging = false;
+      exportDirectoryController.text = saveToSourceDirectory
+          ? defaultExportPath
+          : task.config.outputDirectory;
+      outputFileNameController.text = task.config.outputFileName;
+      selectedQualityIndex = initialQualityIndexForTask(task);
+      syncedConfigTaskId = task.id;
+      syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
+      previewFrameResult = null;
+      selectedPreviewFrameIndex = 0;
+    });
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return Dialog(
+          backgroundColor: const Color(0xFFF6F6F6),
+          insetPadding: const EdgeInsets.symmetric(
+            horizontal: 46,
+            vertical: 36,
+          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760, maxHeight: 680),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(22, 18, 14, 12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          task.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFF111111),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '关闭',
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(
+                          Icons.close_rounded,
+                          color: Color(0xFF9A9A9A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+                    child: Column(
+                      children: [
+                        Card(
+                          color: Colors.white,
+                          child: SizedBox(
+                            height: 96,
+                            child: buildQualitySliderPanel(),
+                          ),
+                        ),
+                        Card(
+                          color: Colors.white,
+                          child: buildVideoConfigPanel(),
+                        ),
+                        Card(
+                          color: Colors.white,
+                          child: SizedBox(
+                            height: 220,
+                            child: buildFileInfoPanel(task),
+                          ),
+                        ),
+                        Card(
+                          color: Colors.white,
+                          child: SizedBox(
+                            height: 180,
+                            child: buildExportPathPanel(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget buildMainBottomBar({
+    required AsyncValue<List<MediaTask>> taskList,
+    required bool hasRunningTask,
+  }) {
+    final hasTasks = taskList.hasValue && taskList.requireValue.isNotEmpty;
+
+    return SizedBox(
+      height: 62,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          SizedBox.expand(
+            child: Container(
+              color: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 22),
+              child: Row(
+                children: [
+                  buildDockIconButton(
+                    tooltip: '添加任务',
+                    icon: Icons.add_rounded,
+                    onPressed: pickAndAddTasks,
+                    size: 26,
+                  ),
+                  const SizedBox(width: 12),
+                  buildDockIconButton(
+                    tooltip: '设置',
+                    icon: Icons.settings,
+                    onPressed: () {
+                      showWorkbenchDialog(title: '设置', message: '设置窗口内容待接入');
+                    },
+                  ),
+                  Spacer(),
+                  buildDockIconButton(
+                    tooltip: '清空列表',
+                    icon: Icons.delete_outline_rounded,
+                    color: const Color(0xFFFF5B61),
+                    onPressed: hasTasks ? confirmClearTasks : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 62 / 2 - 12,
+            left: 0,
+            right: 0,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                buildPrimaryQueueButton(
+                  hasTasks: hasTasks,
+                  hasRunningTask: hasRunningTask,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildDockIconButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+    double size = 22,
+    Color color = Colors.black,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(icon, size: size, color: color),
+      ),
+    );
+  }
+
+  Widget buildPrimaryQueueButton({
+    required bool hasTasks,
+    required bool hasRunningTask,
+  }) {
+    return Tooltip(
+      message: hasRunningTask ? '暂停所有任务' : '开始执行',
+      child: SizedBox(
+        width: 68,
+        height: 68,
+        child: FilledButton(
+          onPressed: hasTasks && !queueActionInFlight
+              ? () => unawaited(handlePrimaryQueueAction(hasRunningTask))
+              : null,
+          style: FilledButton.styleFrom(
+            backgroundColor: const Color(0xFF6290FF),
+            disabledBackgroundColor: const Color(0xFFB9CBFF),
+            foregroundColor: Colors.white,
+            disabledForegroundColor: Colors.white,
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+            elevation: 0,
+          ),
+          child: Icon(
+            hasRunningTask ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            size: 34,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> handlePrimaryQueueAction(bool hasRunningTask) async {
+    if (queueActionInFlight) {
+      return;
+    }
+
+    setState(() {
+      queueActionInFlight = true;
+    });
+
+    try {
+      if (hasRunningTask) {
+        await pauseRunningTasks();
+        return;
+      }
+
+      await startExecutionQueue();
+    } finally {
+      if (mounted) {
+        setState(() {
+          queueActionInFlight = false;
+        });
+      }
+    }
   }
 
   Future<void> pickAndAddTasks() async {

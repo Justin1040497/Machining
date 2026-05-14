@@ -1,6 +1,13 @@
-# 开发日志索引
+# 历史归档索引
 
-这个目录保留 Machining 从规划到 1.0 的历史开发记录。日志是过程记录，不代表当前产品范围；当前事实以 README 和 `docs/*-v1.0.md` 为准。
+这个目录保留 Machining 从规划到 1.0 的历史开发记录。日志是过程记录，不代表当前产品范围；当前事实以 `docs/README.md`、`docs/product/`、`docs/architecture/` 和源码为准。
+
+当前文档事实请优先阅读：
+
+- `docs/README.md`
+- `docs/product/README.md`
+- `docs/architecture/README.md`
+- `docs/develop/`
 
 ## 当前版本
 
@@ -28,7 +35,13 @@
 历史日志位于：
 
 ```text
-docs/logs/
+docs/archive/logs/
 ```
 
-这些文件按日期记录阶段性实现和决策。若历史日志与 1.0 文档冲突，以 1.0 文档为准。
+这些文件按日期记录阶段性实现和决策。若历史日志与当前文档冲突，以当前文档和源码为准。
+
+早期执行计划位于：
+
+```text
+docs/archive/plan/
+```

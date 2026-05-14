@@ -37,19 +37,19 @@ dart run tool/machining_cli.dart compress <input-video>
 
 ## Modified Files
 
-- `docs/log.md`
+- `docs/archive/README.md`
   - 追加本次 CLI 开发验证入口的总日志索引。
 
 ## Added Files
 
 - `tool/machining_cli.dart`
-- `docs/logs/2026-04-29-cli-real-video-validation-entry.md`
+- `docs/archive/logs/2026-04-29-cli-real-video-validation-entry.md`
 
 ## Purpose Of Each Added File
 
 - `tool/machining_cli.dart`
   - 提供开发验证用 CLI 入口，复用现有 FFprobe / FFmpeg 服务跑真实视频压缩链路。
-- `docs/logs/2026-04-29-cli-real-video-validation-entry.md`
+- `docs/archive/logs/2026-04-29-cli-real-video-validation-entry.md`
   - 记录 CLI 的实现边界、验证方式和后续未完成事项。
 
 ## Deleted Files

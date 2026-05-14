@@ -43,16 +43,16 @@
   - 更新普通压缩命令参数预期。
 - `test/compression_advisor_test.dart`
   - 更新普通压缩 CRF 预期。
-- `docs/log.md`
+- `docs/archive/README.md`
   - 追加本次普通默认压缩策略调优记录。
 
 ## Added Files
 
-- `docs/logs/2026-04-29-normal-compression-default-tuning.md`
+- `docs/archive/logs/2026-04-29-normal-compression-default-tuning.md`
 
 ## Purpose Of Each Added File
 
-- `docs/logs/2026-04-29-normal-compression-default-tuning.md`
+- `docs/archive/logs/2026-04-29-normal-compression-default-tuning.md`
   - 记录普通默认压缩策略调整原因、修改范围和验证结果。
 
 ## Deleted Files

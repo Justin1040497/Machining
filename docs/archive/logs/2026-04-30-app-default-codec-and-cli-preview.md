@@ -36,12 +36,12 @@ Followed the updated Feishu flowcharts:
 
 ## Added Files
 
-- `docs/logs/2026-04-30-app-default-codec-and-cli-preview.md`
+- `docs/archive/logs/2026-04-30-app-default-codec-and-cli-preview.md`
 - `lib/domain/value_objects/app_compression_settings.dart`
 
 ## Purpose Of Each Added File
 
-- `docs/logs/2026-04-30-app-default-codec-and-cli-preview.md`: records the completed behavior, changed files, validation, and remaining confirmation points.
+- `docs/archive/logs/2026-04-30-app-default-codec-and-cli-preview.md`: records the completed behavior, changed files, validation, and remaining confirmation points.
 - `lib/domain/value_objects/app_compression_settings.dart`: stores app-level compression defaults, starting with the default output video codec.
 
 ## Deleted Files

@@ -12,6 +12,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
   final VoidCallback? onPause;
   final VoidCallback? onRetry;
   final VoidCallback? onRemove;
+  final VoidCallback? onConfigure;
   final GestureTapDownCallback? onSecondaryTapDown;
 
   const WorkbenchTaskListItem({
@@ -25,6 +26,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
     this.onPause,
     this.onRetry,
     this.onRemove,
+    this.onConfigure,
     this.onSecondaryTapDown,
   });
 
@@ -33,48 +35,35 @@ class WorkbenchTaskListItem extends StatelessWidget {
   bool get hasProgressBackground =>
       task.status == TaskStatus.running && task.progress > 0;
 
-  bool get canShowTaskAction {
-    return switch (task.status) {
-      TaskStatus.failed ||
-      TaskStatus.cancelled ||
-      TaskStatus.missingSource => true,
-      TaskStatus.pending ||
-      TaskStatus.paused ||
-      TaskStatus.running => task.analysisResult != null,
-      TaskStatus.completed => true,
-      _ => false,
-    };
-  }
+  bool get canShowTaskAction => true;
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         onSecondaryTapDown: onSecondaryTapDown,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
-          height: 60,
+          height: 86,
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: selected
-                  ? const Color(0xFF5F8CFF)
+                  ? const Color(0xFFDBDBDB)
                   : const Color(0xFFE3E3E3),
-              width: selected ? 1.5 : 1,
+              width: 1,
             ),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x1F5F8CFF),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ]
-                : null,
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x08000000),
+                blurRadius: 1,
+                offset: Offset(0, 1),
+              ),
+            ],
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -82,20 +71,24 @@ class WorkbenchTaskListItem extends StatelessWidget {
               if (hasProgressBackground) buildProgressBackground(),
               Row(
                 children: [
-                  if (canDrag) buildDragHandle() else SizedBox(width: 12),
+                  const SizedBox(width: 14),
                   buildThumbnail(),
                   const SizedBox(width: 12),
                   Expanded(child: buildTaskText()),
+                  buildTaskIconButton(
+                    tooltip: '任务设置',
+                    icon: Icons.settings_outlined,
+                    onPressed: onConfigure,
+                  ),
+                  const SizedBox(width: 4),
                   if (canShowTaskAction) buildTaskActionButton(),
-                  IconButton(
+                  const SizedBox(width: 4),
+                  buildTaskIconButton(
                     tooltip: '移除任务',
                     onPressed: onRemove,
-                    icon: const Icon(
-                      Icons.close_rounded,
-                      color: Color(0xFF9A9A9A),
-                      size: 18,
-                    ),
+                    icon: Icons.close_rounded,
                   ),
+                  const SizedBox(width: 10),
                 ],
               ),
             ],
@@ -116,7 +109,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
         child: Container(
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(7),
-            color: Color(0xFFCBEAFF),
+            color: Color(0xFFEAF2FF),
           ),
         ),
       ),
@@ -126,10 +119,30 @@ class WorkbenchTaskListItem extends StatelessWidget {
   Widget buildTaskActionButton() {
     final action = resolveTaskAction();
 
-    return IconButton(
+    return buildTaskIconButton(
       tooltip: action.tooltip,
       onPressed: action.onPressed,
-      icon: Icon(action.icon, color: const Color(0xFF9A9A9A), size: 18),
+      icon: action.icon,
+    );
+  }
+
+  Widget buildTaskIconButton({
+    required String tooltip,
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: SizedBox(
+        width: 36,
+        height: 36,
+        child: IconButton(
+          onPressed: onPressed,
+          padding: EdgeInsets.zero,
+          splashRadius: 18,
+          icon: Icon(icon, color: const Color(0xFF9A9A9A), size: 22),
+        ),
+      ),
     );
   }
 
@@ -140,18 +153,15 @@ class WorkbenchTaskListItem extends StatelessWidget {
         icon: Icons.pause_rounded,
         onPressed: onPause,
       ),
-      TaskStatus.completed ||
-      TaskStatus.failed ||
-      TaskStatus.cancelled ||
-      TaskStatus.missingSource => TaskAction(
+      TaskStatus.paused => TaskAction(
+        tooltip: '继续任务',
+        icon: Icons.play_arrow_rounded,
+        onPressed: onStart,
+      ),
+      _ => TaskAction(
         tooltip: '重试任务',
         icon: Icons.refresh_rounded,
         onPressed: onRetry,
-      ),
-      _ => TaskAction(
-        tooltip: '启动任务',
-        icon: Icons.play_arrow_rounded,
-        onPressed: onStart,
       ),
     };
   }
@@ -189,7 +199,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
       height: 40,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(4),
-        color: const Color(0xFFE8EFF4),
+        color: const Color(0xFFE7EEF5),
         image: thumbnail == null
             ? null
             : DecorationImage(image: thumbnail!, fit: BoxFit.cover),
@@ -218,7 +228,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF111111),
-              fontSize: 12,
+              fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -227,7 +237,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
         Row(
           children: [
             buildStatusBadge(),
-            SizedBox(width: 8),
+            SizedBox(width: 10),
             Text(
               formatBytes(task.sourceFileFingerprint?.fileSize),
               style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 11),
@@ -245,7 +255,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
     return UnconstrainedBox(
       child: Container(
         height: 15,
-        padding: const EdgeInsets.symmetric(horizontal: 7),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
         alignment: Alignment.center,
         decoration: BoxDecoration(
           color: style.backgroundColor,
@@ -257,7 +267,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: style.foregroundColor,
-            fontSize: 9,
+            fontSize: 8,
             height: 1,
             fontWeight: FontWeight.w500,
           ),
@@ -283,7 +293,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
       case TaskStatus.completed:
         return const TaskStatusStyle(
           label: '已完成',
-          backgroundColor: Color(0xFF45C46B),
+          backgroundColor: Color(0xFFD7D7D7),
           foregroundColor: Colors.white,
         );
       case TaskStatus.failed:

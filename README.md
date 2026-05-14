@@ -282,10 +282,17 @@ flutter test
 
 ## 文档
 
-项目文档在 `docs/`，包括产品说明、需求说明、产品设计、技术设计、FFmpeg 许可与分发、路线图、开发计划、数据模型、测试计划和压缩基准计划。
+项目文档入口在 `docs/README.md`。
 
-历史开发记录在 `docs/logs/`。
+常用文档目录：
+
+- `docs/product/`：产品范围、需求、设计和路线图
+- `docs/architecture/`：技术设计、技术栈和数据模型
+- `docs/features/`：功能版本开发流水线
+- `docs/develop/`：发布计划、测试计划和验证说明
+- `docs/reference/`：FFmpeg 许可、分发和图表资料
+- `docs/archive/`：历史日志和旧计划
 
 ## 许可
 
-项目内置 FFmpeg + x264 构建路线，分发时需要遵守相应的 GPL 许可要求。详细说明见 `docs/` 中的 FFmpeg 许可与分发文档。
+项目内置 FFmpeg + x264 构建路线，分发时需要遵守相应的 GPL 许可要求。详细说明见 `docs/reference/ffmpeg-license-and-distribution-v1.0.md`。

@@ -61,11 +61,11 @@
 
 ## Added Files
 
-- `docs/logs/2026-04-29-target-bitrate-extreme-compression.md`
+- `docs/archive/logs/2026-04-29-target-bitrate-extreme-compression.md`
 
 ## Purpose Of Each Added File
 
-- `docs/logs/2026-04-29-target-bitrate-extreme-compression.md`
+- `docs/archive/logs/2026-04-29-target-bitrate-extreme-compression.md`
   - 记录本次极限压缩策略从 CRF 调整为目标码率控制的原因、实现范围和验证结果。
 
 ## Deleted Files

@@ -34,11 +34,11 @@ Followed the updated Feishu flowcharts:
 
 ## Added Files
 
-- `docs/logs/2026-04-30-cli-codec-resolution-options.md`
+- `docs/archive/logs/2026-04-30-cli-codec-resolution-options.md`
 
 ## Purpose Of Each Added File
 
-- `docs/logs/2026-04-30-cli-codec-resolution-options.md`: records the completed behavior, changed files, validation, and remaining confirmation points for this implementation step.
+- `docs/archive/logs/2026-04-30-cli-codec-resolution-options.md`: records the completed behavior, changed files, validation, and remaining confirmation points for this implementation step.
 
 ## Deleted Files
 

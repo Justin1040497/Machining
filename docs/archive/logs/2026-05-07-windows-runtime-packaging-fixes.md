@@ -137,7 +137,7 @@ hooks:
 ## Added Files
 
 - `third_party/ffmpeg/windows-x64/README.md`
-- `docs/logs/2026-05-07-windows-runtime-packaging-fixes.md`
+- `docs/archive/logs/2026-05-07-windows-runtime-packaging-fixes.md`
 
 ## Deleted Files
 

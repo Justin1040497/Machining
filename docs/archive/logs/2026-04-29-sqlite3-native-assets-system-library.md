@@ -49,7 +49,7 @@ hooks:
 
 ## Added Files
 
-- `docs/logs/2026-04-29-sqlite3-native-assets-system-library.md`
+- `docs/archive/logs/2026-04-29-sqlite3-native-assets-system-library.md`
   - 记录 sqlite3 native assets 下载超时的原因、解决方式和验证结果。
 
 ## Deleted Files

@@ -26,10 +26,8 @@ constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
 
-// Logical size. On a 150% scaled display this maps to about 1824 x 1340
-// physical pixels, matching the measured compact layout target.
-constexpr int kMinWindowWidth = 1216;
-constexpr int kMinWindowHeight = 893;
+constexpr int kMinWindowWidth = 685;
+constexpr int kMinWindowHeight = 685;
 
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;

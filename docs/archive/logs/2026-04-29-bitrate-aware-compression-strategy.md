@@ -81,7 +81,7 @@
 - `lib/infrastructure/services/default_compression_advisor.dart`
 - `test/compression_advisor_test.dart`
 - `test/ffprobe_media_analyzer_test.dart`
-- `docs/logs/2026-04-29-bitrate-aware-compression-strategy.md`
+- `docs/archive/logs/2026-04-29-bitrate-aware-compression-strategy.md`
 
 ## Purpose Of Each Added File
 
@@ -93,7 +93,7 @@
   - 覆盖码率来源优先级、低码率提醒和极限压缩推荐。
 - `test/ffprobe_media_analyzer_test.dart`
   - 覆盖 FFprobe 直接码率解析和估算码率。
-- `docs/logs/2026-04-29-bitrate-aware-compression-strategy.md`
+- `docs/archive/logs/2026-04-29-bitrate-aware-compression-strategy.md`
   - 记录本次服务层能力调整、白板对应关系和验证结果。
 
 ## Deleted Files
