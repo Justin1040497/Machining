@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
 import 'package:machining/application/services/preview_frame_generator.dart';
+import 'package:machining/application/services/video_thumbnail_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/output_format.dart';
@@ -35,8 +36,38 @@ class WorkbenchPage extends ConsumerStatefulWidget {
   ConsumerState createState() => _WorkbenchPageState();
 }
 
+class _WorkbenchAppTopBar extends StatelessWidget {
+  const _WorkbenchAppTopBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: _WorkbenchPageState.appTopBarHeight,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(color: Color(0xFF1D2629)),
+        child: Row(
+          children: const [
+            SizedBox(width: 88),
+            Text(
+              'machining',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Color(0xFFAEB7BC),
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
-  static const double minWorkbenchWidth = 750;
+  static const double appTopBarHeight = 52;
+  static const double minWorkbenchWidth = 685;
   static const double minWorkbenchHeight = 640;
   static const videoTypeGroup = XTypeGroup(
     label: '视频文件',
@@ -74,6 +105,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   double previewCompareRatio = 0.5;
   int selectedPreviewFrameIndex = 0;
   PreviewFrameResult? previewFrameResult;
+  final Map<String, String> thumbnailPathByKey = {};
+  final Set<String> thumbnailGenerationKeys = {};
+  final Set<String> thumbnailFailureKeys = {};
   late final TextEditingController exportDirectoryController;
   late final TextEditingController outputFileNameController;
   final Set<String> notifiedAnalysisErrorKeys = {};
@@ -134,10 +168,12 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                 syncSelectedTaskIdAfterBuild(selectedTask);
                 syncSelectedTaskConfigAfterBuild(selectedTask);
                 syncQualityPresetAfterBuild(selectedTask);
+                syncTaskThumbnailsAfterBuild(tasks);
 
                 final hasRunningTask = tasks.any(
                   (task) => task.status == TaskStatus.running,
                 );
+                final titleBarHeight = Platform.isMacOS ? appTopBarHeight : 0.0;
 
                 return ConstrainedBox(
                   constraints: BoxConstraints(
@@ -154,7 +190,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                     decoration: const BoxDecoration(color: Color(0xFFF3F3F3)),
                     child: Stack(
                       children: [
+                        if (Platform.isMacOS)
+                          const Align(
+                            alignment: Alignment.topCenter,
+                            child: _WorkbenchAppTopBar(),
+                          ),
                         Positioned.fill(
+                          top: titleBarHeight,
                           bottom: 48,
                           child: buildTaskListCard(taskList, selectedTask),
                         ),
@@ -442,20 +484,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             task: task,
             selected: selectedTask?.id == task.id,
             reorderIndex: index,
+            thumbnail: thumbnailForTask(task),
             onTap: () {
-              setState(() {
-                selectedTaskId = task.id;
-                syncedConfigTaskId = null;
-                syncedQualityTaskKey = null;
-                previewFrameResult = null;
-                selectedPreviewFrameIndex = 0;
-              });
+              unawaited(showTaskConfigurationDialog(task));
             },
             onStart: () => startOrResumeTask(task),
             onPause: () => pauseTask(task),
             onRemove: () => deleteTask(task),
             onRetry: () => retryTask(task),
-            onConfigure: () => showTaskConfigurationDialog(task),
             onSecondaryTapDown: (details) {
               unawaited(showTaskContextMenu(task, details.globalPosition));
             },
@@ -493,6 +529,103 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12, height: 1.5),
       ),
     );
+  }
+
+  ImageProvider? thumbnailForTask(MediaTask task) {
+    final thumbnailPath = thumbnailPathByKey[thumbnailKeyForTask(task)];
+    if (thumbnailPath == null || !File(thumbnailPath).existsSync()) {
+      return null;
+    }
+
+    return FileImage(File(thumbnailPath));
+  }
+
+  void syncTaskThumbnailsAfterBuild(List<MediaTask> tasks) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      for (final task in tasks) {
+        unawaited(generateTaskThumbnail(task));
+      }
+    });
+  }
+
+  Future<void> generateTaskThumbnail(MediaTask task) async {
+    final key = thumbnailKeyForTask(task);
+    if (thumbnailPathByKey.containsKey(key) ||
+        thumbnailGenerationKeys.contains(key) ||
+        thumbnailFailureKeys.contains(key)) {
+      return;
+    }
+
+    thumbnailGenerationKeys.add(key);
+    try {
+      final runtime = await ref.read(ffmpegRuntimeProvider.future);
+      final ffmpeg = runtime.ffmpeg;
+      if (ffmpeg == null) {
+        return;
+      }
+
+      final directory = Directory(
+        path.join(Directory.systemTemp.path, 'machining', 'thumbnails'),
+      );
+      await directory.create(recursive: true);
+
+      final outputPath = path.join(
+        directory.path,
+        thumbnailFileNameForTask(task),
+      );
+      final outputFile = File(outputPath);
+      if (!await outputFile.exists()) {
+        await ref
+            .read(videoThumbnailGeneratorProvider)
+            .generate(
+              VideoThumbnailRequest(
+                ffmpegPath: ffmpeg.path,
+                task: task,
+                outputPath: outputPath,
+              ),
+            );
+        if (!await outputFile.exists()) {
+          thumbnailFailureKeys.add(key);
+          return;
+        }
+      }
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        thumbnailPathByKey[key] = outputPath;
+      });
+    } on Object {
+      thumbnailFailureKeys.add(key);
+    } finally {
+      thumbnailGenerationKeys.remove(key);
+    }
+  }
+
+  String thumbnailKeyForTask(MediaTask task) {
+    final fingerprint = task.sourceFileFingerprint;
+    return [
+      task.id,
+      task.inputPath,
+      fingerprint?.fileSize ?? 0,
+      fingerprint?.lastModifiedAt ?? 0,
+    ].join('|');
+  }
+
+  String thumbnailFileNameForTask(MediaTask task) {
+    final fingerprint = task.sourceFileFingerprint;
+    final name = [
+      task.id,
+      fingerprint?.fileSize ?? 0,
+      fingerprint?.lastModifiedAt ?? 0,
+    ].join('_');
+    return '$name.jpg';
   }
 
   Future<void> pauseRunningTasks() async {

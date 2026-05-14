@@ -9,6 +9,7 @@ import 'package:machining/application/services/ffmpeg_process_starter.dart';
 import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
 import 'package:machining/application/services/media_analyzer.dart';
 import 'package:machining/application/services/preview_frame_generator.dart';
+import 'package:machining/application/services/video_thumbnail_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/infrastructure/providers/drift_provider.dart';
 import 'package:machining/infrastructure/services/default_compression_advisor.dart';
@@ -18,6 +19,7 @@ import 'package:machining/infrastructure/services/local_ffmpeg_locator.dart';
 import 'package:machining/infrastructure/services/local_ffmpeg_process_observer.dart';
 import 'package:machining/infrastructure/services/local_ffmpeg_process_starter.dart';
 import 'package:machining/infrastructure/services/local_preview_frame_generator.dart';
+import 'package:machining/infrastructure/services/local_video_thumbnail_generator.dart';
 import 'package:path/path.dart' as path;
 
 /// FFmpeg / FFprobe 路径解析服务
@@ -54,6 +56,13 @@ final previewFrameGeneratorProvider = Provider<PreviewFrameGenerator>((ref) {
     commandBuilder: ref.watch(defaultFfmpegCommandBuilderProvider),
     compressionAdvisor: ref.watch(compressionAdvisorProvider),
   );
+});
+
+/// FFmpeg 视频缩略图生成服务，自动跳过黑屏帧。
+final videoThumbnailGeneratorProvider = Provider<VideoThumbnailGenerator>((
+  ref,
+) {
+  return const LocalVideoThumbnailGenerator();
 });
 
 /// FFmpeg 进程启动服务，只负责把命令计划启动成系统进程

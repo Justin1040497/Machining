@@ -12,7 +12,6 @@ class WorkbenchTaskListItem extends StatelessWidget {
   final VoidCallback? onPause;
   final VoidCallback? onRetry;
   final VoidCallback? onRemove;
-  final VoidCallback? onConfigure;
   final GestureTapDownCallback? onSecondaryTapDown;
 
   const WorkbenchTaskListItem({
@@ -26,7 +25,6 @@ class WorkbenchTaskListItem extends StatelessWidget {
     this.onPause,
     this.onRetry,
     this.onRemove,
-    this.onConfigure,
     this.onSecondaryTapDown,
   });
 
@@ -75,12 +73,6 @@ class WorkbenchTaskListItem extends StatelessWidget {
                   buildThumbnail(),
                   const SizedBox(width: 12),
                   Expanded(child: buildTaskText()),
-                  buildTaskIconButton(
-                    tooltip: '任务设置',
-                    icon: Icons.settings_outlined,
-                    onPressed: onConfigure,
-                  ),
-                  const SizedBox(width: 4),
                   if (canShowTaskAction) buildTaskActionButton(),
                   const SizedBox(width: 4),
                   buildTaskIconButton(
