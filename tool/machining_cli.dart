@@ -305,12 +305,15 @@ class MachiningCli {
   List<String> formatCompressionModePreview(
     CompressionRecommendation recommendation,
   ) {
-    if (recommendation.profile != CompressionProfile.extreme) {
+    if (recommendation.profile == CompressionProfile.normal) {
       return ['压缩模式: 普通质量压缩 CRF ${recommendation.crf}', '预计输出大小: CRF 模式无法准确预估'];
     }
 
+    final modeText = recommendation.profile == CompressionProfile.targetSize
+        ? '指定目标体积压缩'
+        : '目标码率压缩';
     return [
-      '压缩模式: 目标码率压缩',
+      '压缩模式: $modeText',
       '预计输出大小: ${formatBytesNullable(recommendation.estimatedOutputSizeBytes)}',
       '目标总码率: ${formatBitrate(recommendation.targetTotalBitrate)}',
       '目标视频码率: ${formatBitrate(recommendation.targetVideoBitrate)}',

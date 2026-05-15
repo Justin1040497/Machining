@@ -2,7 +2,7 @@ import 'package:machining/domain/entities/media_task.dart';
 
 enum CompressionBitrateSource { videoStream, container, estimated, unknown }
 
-enum CompressionProfile { normal, extreme }
+enum CompressionProfile { normal, targetSize, extreme }
 
 class CompressionRecommendation {
   final CompressionProfile profile;

@@ -35,34 +35,35 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     final outputPath = buildOutputPath(task);
     final targetCodec = resolveTargetVideoCodec(task);
-    final videoEncoder = resolveVideoEncoder(
-      targetCodec: targetCodec,
-      backend: task.config.encoderBackend,
-      encoderCapabilities: encoderCapabilities,
-    );
     final recommendation = compressionAdvisor.recommend(
       task,
       allowExtremeCompression: allowExtremeCompression,
     );
-    ensureCompressionConfirmed(task, recommendation);
-    final args = <String>[
-      '-hide_banner',
-      '-i',
-      task.inputPath,
-      ...buildPurposeArgs(task, recommendation, videoEncoder),
-      ...buildResolutionArgs(task.config.resolutionPreset),
-      ...buildCommonOutputArgs(
-        task.config.outputFormat,
-        recommendation,
-        targetCodec,
+    final videoEncoder = resolveVideoEncoder(
+      targetCodec: targetCodec,
+      backend: resolveBackendForRecommendation(
+        task: task,
+        targetCodec: targetCodec,
+        encoderCapabilities: encoderCapabilities,
       ),
-      '-progress',
-      'pipe:1',
-      outputPath,
-    ];
+      encoderCapabilities: encoderCapabilities,
+    );
+    ensureCompressionConfirmed(task, recommendation);
+    final steps = buildCommandSteps(
+      task: task,
+      recommendation: recommendation,
+      targetCodec: targetCodec,
+      videoEncoder: videoEncoder,
+      outputPath: outputPath,
+    );
+    final args = steps.last.args;
 
     return FfmpegCommandPlan(
       args: args,
+      steps: steps,
+      cleanupPathPrefixes: steps.length > 1
+          ? [passLogFilePrefix(outputPath)]
+          : const [],
       outputPath: outputPath,
       logHint: buildLogHint(task, recommendation, targetCodec, videoEncoder),
     );
@@ -193,6 +194,35 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
   }
 
+  EncoderBackend resolveBackendForRecommendation({
+    required MediaTask task,
+    required VideoCodec targetCodec,
+    required FfmpegEncoderCapabilities encoderCapabilities,
+  }) {
+    if (task.config.encoderBackend != EncoderBackend.auto ||
+        task.purpose != TaskPurpose.compression) {
+      return task.config.encoderBackend;
+    }
+
+    final softwareBackend = softwareBackendFor(targetCodec);
+    if (encoderCapabilities.supportsEncoder(
+      targetCodec: targetCodec,
+      backend: softwareBackend,
+    )) {
+      return softwareBackend;
+    }
+
+    return EncoderBackend.auto;
+  }
+
+  EncoderBackend softwareBackendFor(VideoCodec targetCodec) {
+    return switch (targetCodec) {
+      VideoCodec.h264 => EncoderBackend.libx264,
+      VideoCodec.hevc => EncoderBackend.libx265,
+      VideoCodec.source => throw const SourceCodecNotResolvedException(),
+    };
+  }
+
   String buildOutputPath(MediaTask task) {
     final inputDirectory = path.dirname(task.inputPath);
     final outputDirectory = task.config.outputDirectory.trim().isEmpty
@@ -266,6 +296,175 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     };
   }
 
+  List<FfmpegCommandStep> buildCommandSteps({
+    required MediaTask task,
+    required CompressionRecommendation recommendation,
+    required VideoCodec targetCodec,
+    required String videoEncoder,
+    required String outputPath,
+  }) {
+    if (shouldUseTwoPassTargetSize(
+      task: task,
+      recommendation: recommendation,
+      videoEncoder: videoEncoder,
+    )) {
+      return buildTwoPassTargetSizeSteps(
+        task: task,
+        recommendation: recommendation,
+        targetCodec: targetCodec,
+        videoEncoder: videoEncoder,
+        outputPath: outputPath,
+      );
+    }
+
+    final args = buildSinglePassArgs(
+      task: task,
+      recommendation: recommendation,
+      targetCodec: targetCodec,
+      videoEncoder: videoEncoder,
+      outputPath: outputPath,
+    );
+    return [
+      FfmpegCommandStep(args: args, label: '生成输出文件', outputPath: outputPath),
+    ];
+  }
+
+  List<String> buildSinglePassArgs({
+    required MediaTask task,
+    required CompressionRecommendation recommendation,
+    required VideoCodec targetCodec,
+    required String videoEncoder,
+    required String outputPath,
+  }) {
+    return [
+      '-hide_banner',
+      '-i',
+      task.inputPath,
+      ...buildPurposeArgs(task, recommendation, videoEncoder),
+      ...buildResolutionArgs(task.config.resolutionPreset),
+      ...buildCommonOutputArgs(
+        task.config.outputFormat,
+        recommendation,
+        targetCodec,
+      ),
+      '-progress',
+      'pipe:1',
+      outputPath,
+    ];
+  }
+
+  bool shouldUseTwoPassTargetSize({
+    required MediaTask task,
+    required CompressionRecommendation recommendation,
+    required String videoEncoder,
+  }) {
+    return task.purpose == TaskPurpose.compression &&
+        recommendation.profile == CompressionProfile.targetSize &&
+        !FfmpegEncoderCapabilities.softwareOnly.isHardwareEncoder(videoEncoder);
+  }
+
+  List<FfmpegCommandStep> buildTwoPassTargetSizeSteps({
+    required MediaTask task,
+    required CompressionRecommendation recommendation,
+    required VideoCodec targetCodec,
+    required String videoEncoder,
+    required String outputPath,
+  }) {
+    final passLogFile = passLogFilePrefix(outputPath);
+    final firstPassArgs = [
+      '-hide_banner',
+      '-y',
+      '-i',
+      task.inputPath,
+      ...buildTwoPassVideoArgs(
+        recommendation,
+        videoEncoder,
+        passNumber: 1,
+        passLogFile: passLogFile,
+      ),
+      ...buildResolutionArgs(task.config.resolutionPreset),
+      '-progress',
+      'pipe:1',
+      '-an',
+      '-f',
+      'null',
+      nullOutputTarget(),
+    ];
+    final secondPassArgs = [
+      '-hide_banner',
+      '-i',
+      task.inputPath,
+      ...buildTwoPassVideoArgs(
+        recommendation,
+        videoEncoder,
+        passNumber: 2,
+        passLogFile: passLogFile,
+      ),
+      ...buildResolutionArgs(task.config.resolutionPreset),
+      ...buildCommonOutputArgs(
+        task.config.outputFormat,
+        recommendation,
+        targetCodec,
+      ),
+      '-progress',
+      'pipe:1',
+      outputPath,
+    ];
+
+    return [
+      FfmpegCommandStep(args: firstPassArgs, label: '分析目标体积'),
+      FfmpegCommandStep(
+        args: secondPassArgs,
+        label: '生成目标体积文件',
+        outputPath: outputPath,
+      ),
+    ];
+  }
+
+  List<String> buildTwoPassVideoArgs(
+    CompressionRecommendation recommendation,
+    String videoEncoder, {
+    required int passNumber,
+    required String passLogFile,
+  }) {
+    final targetVideoBitrate = recommendation.targetVideoBitrate;
+    if (targetVideoBitrate == null) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-preset',
+        recommendation.preset,
+        '-crf',
+        recommendation.crf.toString(),
+      ];
+    }
+
+    return [
+      '-c:v',
+      videoEncoder,
+      '-preset',
+      recommendation.preset,
+      '-b:v',
+      formatBitrate(targetVideoBitrate),
+      '-pass',
+      passNumber.toString(),
+      '-passlogfile',
+      passLogFile,
+    ];
+  }
+
+  String passLogFilePrefix(String outputPath) {
+    final directory = path.dirname(outputPath);
+    final baseName = path
+        .basenameWithoutExtension(outputPath)
+        .replaceAll(RegExp(r'[^A-Za-z0-9_.-]'), '_');
+    return path.join(directory, '.$baseName.ffmpeg-pass');
+  }
+
+  String nullOutputTarget() {
+    return Platform.isWindows ? 'NUL' : '/dev/null';
+  }
+
   List<String> buildCompressionArgs(
     CompressionRecommendation recommendation,
     String videoEncoder,
@@ -283,7 +482,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       recommendation.preset,
     ];
 
-    if (recommendation.profile != CompressionProfile.extreme) {
+    if (recommendation.profile == CompressionProfile.normal) {
       return [...baseArgs, '-crf', recommendation.crf.toString()];
     }
 
@@ -476,8 +675,16 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     String videoEncoder,
     ResolutionPreset resolutionPreset,
   ) {
-    if (recommendation.profile == CompressionProfile.extreme) {
-      return '${recommendation.message}，目标分辨率 ${resolutionPreset.label}，'
+    if (recommendation.profile == CompressionProfile.extreme ||
+        recommendation.profile == CompressionProfile.targetSize) {
+      final strategy =
+          recommendation.profile == CompressionProfile.targetSize &&
+              !FfmpegEncoderCapabilities.softwareOnly.isHardwareEncoder(
+                videoEncoder,
+              )
+          ? '使用指定目标体积两遍压缩策略'
+          : recommendation.message;
+      return '$strategy，目标分辨率 ${resolutionPreset.label}，'
           '目标编码 ${targetCodec.label} / $videoEncoder，'
           '目标视频码率 ${formatBitrate(recommendation.targetVideoBitrate!)}，'
           '目标音频码率 ${formatBitrate(recommendation.targetAudioBitrate!)}';

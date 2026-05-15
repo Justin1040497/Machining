@@ -1031,6 +1031,51 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     requiredDuringInsert: false,
     defaultValue: const Constant(28),
   );
+  static const VerificationMeta _compressionModeMeta = const VerificationMeta(
+    'compressionMode',
+  );
+  @override
+  late final GeneratedColumn<String> compressionMode = GeneratedColumn<String>(
+    'compression_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('smart'),
+  );
+  static const VerificationMeta _smartPresetMeta = const VerificationMeta(
+    'smartPreset',
+  );
+  @override
+  late final GeneratedColumn<String> smartPreset = GeneratedColumn<String>(
+    'smart_preset',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetSizeBytesMeta = const VerificationMeta(
+    'targetSizeBytes',
+  );
+  @override
+  late final GeneratedColumn<int> targetSizeBytes = GeneratedColumn<int>(
+    'target_size_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _targetSizeRatioMeta = const VerificationMeta(
+    'targetSizeRatio',
+  );
+  @override
+  late final GeneratedColumn<double> targetSizeRatio = GeneratedColumn<double>(
+    'target_size_ratio',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _outputFileNameMeta = const VerificationMeta(
     'outputFileName',
   );
@@ -1121,6 +1166,10 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     resolutionPreset,
     outputDirectory,
     compressionCrf,
+    compressionMode,
+    smartPreset,
+    targetSizeBytes,
+    targetSizeRatio,
     outputFileName,
     createdAt,
     startedAt,
@@ -1416,6 +1465,42 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('compression_mode')) {
+      context.handle(
+        _compressionModeMeta,
+        compressionMode.isAcceptableOrUnknown(
+          data['compression_mode']!,
+          _compressionModeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('smart_preset')) {
+      context.handle(
+        _smartPresetMeta,
+        smartPreset.isAcceptableOrUnknown(
+          data['smart_preset']!,
+          _smartPresetMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_size_bytes')) {
+      context.handle(
+        _targetSizeBytesMeta,
+        targetSizeBytes.isAcceptableOrUnknown(
+          data['target_size_bytes']!,
+          _targetSizeBytesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('target_size_ratio')) {
+      context.handle(
+        _targetSizeRatioMeta,
+        targetSizeRatio.isAcceptableOrUnknown(
+          data['target_size_ratio']!,
+          _targetSizeRatioMeta,
+        ),
+      );
+    }
     if (data.containsKey('output_file_name')) {
       context.handle(
         _outputFileNameMeta,
@@ -1591,6 +1676,22 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.int,
         data['${effectivePrefix}compression_crf'],
       )!,
+      compressionMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}compression_mode'],
+      )!,
+      smartPreset: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}smart_preset'],
+      ),
+      targetSizeBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}target_size_bytes'],
+      ),
+      targetSizeRatio: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}target_size_ratio'],
+      ),
       outputFileName: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}output_file_name'],
@@ -1654,6 +1755,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String resolutionPreset;
   final String outputDirectory;
   final int compressionCrf;
+  final String compressionMode;
+  final String? smartPreset;
+  final int? targetSizeBytes;
+  final double? targetSizeRatio;
   final String outputFileName;
   final int createdAt;
   final int? startedAt;
@@ -1692,6 +1797,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     required this.resolutionPreset,
     required this.outputDirectory,
     required this.compressionCrf,
+    required this.compressionMode,
+    this.smartPreset,
+    this.targetSizeBytes,
+    this.targetSizeRatio,
     required this.outputFileName,
     required this.createdAt,
     this.startedAt,
@@ -1777,6 +1886,16 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     map['resolution_preset'] = Variable<String>(resolutionPreset);
     map['output_directory'] = Variable<String>(outputDirectory);
     map['compression_crf'] = Variable<int>(compressionCrf);
+    map['compression_mode'] = Variable<String>(compressionMode);
+    if (!nullToAbsent || smartPreset != null) {
+      map['smart_preset'] = Variable<String>(smartPreset);
+    }
+    if (!nullToAbsent || targetSizeBytes != null) {
+      map['target_size_bytes'] = Variable<int>(targetSizeBytes);
+    }
+    if (!nullToAbsent || targetSizeRatio != null) {
+      map['target_size_ratio'] = Variable<double>(targetSizeRatio);
+    }
     map['output_file_name'] = Variable<String>(outputFileName);
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || startedAt != null) {
@@ -1861,6 +1980,16 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       resolutionPreset: Value(resolutionPreset),
       outputDirectory: Value(outputDirectory),
       compressionCrf: Value(compressionCrf),
+      compressionMode: Value(compressionMode),
+      smartPreset: smartPreset == null && nullToAbsent
+          ? const Value.absent()
+          : Value(smartPreset),
+      targetSizeBytes: targetSizeBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetSizeBytes),
+      targetSizeRatio: targetSizeRatio == null && nullToAbsent
+          ? const Value.absent()
+          : Value(targetSizeRatio),
       outputFileName: Value(outputFileName),
       createdAt: Value(createdAt),
       startedAt: startedAt == null && nullToAbsent
@@ -1937,6 +2066,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       resolutionPreset: serializer.fromJson<String>(json['resolutionPreset']),
       outputDirectory: serializer.fromJson<String>(json['outputDirectory']),
       compressionCrf: serializer.fromJson<int>(json['compressionCrf']),
+      compressionMode: serializer.fromJson<String>(json['compressionMode']),
+      smartPreset: serializer.fromJson<String?>(json['smartPreset']),
+      targetSizeBytes: serializer.fromJson<int?>(json['targetSizeBytes']),
+      targetSizeRatio: serializer.fromJson<double?>(json['targetSizeRatio']),
       outputFileName: serializer.fromJson<String>(json['outputFileName']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       startedAt: serializer.fromJson<int?>(json['startedAt']),
@@ -1988,6 +2121,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'resolutionPreset': serializer.toJson<String>(resolutionPreset),
       'outputDirectory': serializer.toJson<String>(outputDirectory),
       'compressionCrf': serializer.toJson<int>(compressionCrf),
+      'compressionMode': serializer.toJson<String>(compressionMode),
+      'smartPreset': serializer.toJson<String?>(smartPreset),
+      'targetSizeBytes': serializer.toJson<int?>(targetSizeBytes),
+      'targetSizeRatio': serializer.toJson<double?>(targetSizeRatio),
       'outputFileName': serializer.toJson<String>(outputFileName),
       'createdAt': serializer.toJson<int>(createdAt),
       'startedAt': serializer.toJson<int?>(startedAt),
@@ -2029,6 +2166,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     String? resolutionPreset,
     String? outputDirectory,
     int? compressionCrf,
+    String? compressionMode,
+    Value<String?> smartPreset = const Value.absent(),
+    Value<int?> targetSizeBytes = const Value.absent(),
+    Value<double?> targetSizeRatio = const Value.absent(),
     String? outputFileName,
     int? createdAt,
     Value<int?> startedAt = const Value.absent(),
@@ -2099,6 +2240,14 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     resolutionPreset: resolutionPreset ?? this.resolutionPreset,
     outputDirectory: outputDirectory ?? this.outputDirectory,
     compressionCrf: compressionCrf ?? this.compressionCrf,
+    compressionMode: compressionMode ?? this.compressionMode,
+    smartPreset: smartPreset.present ? smartPreset.value : this.smartPreset,
+    targetSizeBytes: targetSizeBytes.present
+        ? targetSizeBytes.value
+        : this.targetSizeBytes,
+    targetSizeRatio: targetSizeRatio.present
+        ? targetSizeRatio.value
+        : this.targetSizeRatio,
     outputFileName: outputFileName ?? this.outputFileName,
     createdAt: createdAt ?? this.createdAt,
     startedAt: startedAt.present ? startedAt.value : this.startedAt,
@@ -2187,6 +2336,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       compressionCrf: data.compressionCrf.present
           ? data.compressionCrf.value
           : this.compressionCrf,
+      compressionMode: data.compressionMode.present
+          ? data.compressionMode.value
+          : this.compressionMode,
+      smartPreset: data.smartPreset.present
+          ? data.smartPreset.value
+          : this.smartPreset,
+      targetSizeBytes: data.targetSizeBytes.present
+          ? data.targetSizeBytes.value
+          : this.targetSizeBytes,
+      targetSizeRatio: data.targetSizeRatio.present
+          ? data.targetSizeRatio.value
+          : this.targetSizeRatio,
       outputFileName: data.outputFileName.present
           ? data.outputFileName.value
           : this.outputFileName,
@@ -2234,6 +2395,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('resolutionPreset: $resolutionPreset, ')
           ..write('outputDirectory: $outputDirectory, ')
           ..write('compressionCrf: $compressionCrf, ')
+          ..write('compressionMode: $compressionMode, ')
+          ..write('smartPreset: $smartPreset, ')
+          ..write('targetSizeBytes: $targetSizeBytes, ')
+          ..write('targetSizeRatio: $targetSizeRatio, ')
           ..write('outputFileName: $outputFileName, ')
           ..write('createdAt: $createdAt, ')
           ..write('startedAt: $startedAt, ')
@@ -2277,6 +2442,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     resolutionPreset,
     outputDirectory,
     compressionCrf,
+    compressionMode,
+    smartPreset,
+    targetSizeBytes,
+    targetSizeRatio,
     outputFileName,
     createdAt,
     startedAt,
@@ -2319,6 +2488,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.resolutionPreset == this.resolutionPreset &&
           other.outputDirectory == this.outputDirectory &&
           other.compressionCrf == this.compressionCrf &&
+          other.compressionMode == this.compressionMode &&
+          other.smartPreset == this.smartPreset &&
+          other.targetSizeBytes == this.targetSizeBytes &&
+          other.targetSizeRatio == this.targetSizeRatio &&
           other.outputFileName == this.outputFileName &&
           other.createdAt == this.createdAt &&
           other.startedAt == this.startedAt &&
@@ -2359,6 +2532,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<String> resolutionPreset;
   final Value<String> outputDirectory;
   final Value<int> compressionCrf;
+  final Value<String> compressionMode;
+  final Value<String?> smartPreset;
+  final Value<int?> targetSizeBytes;
+  final Value<double?> targetSizeRatio;
   final Value<String> outputFileName;
   final Value<int> createdAt;
   final Value<int?> startedAt;
@@ -2398,6 +2575,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.resolutionPreset = const Value.absent(),
     this.outputDirectory = const Value.absent(),
     this.compressionCrf = const Value.absent(),
+    this.compressionMode = const Value.absent(),
+    this.smartPreset = const Value.absent(),
+    this.targetSizeBytes = const Value.absent(),
+    this.targetSizeRatio = const Value.absent(),
     this.outputFileName = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.startedAt = const Value.absent(),
@@ -2438,6 +2619,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     required String resolutionPreset,
     required String outputDirectory,
     this.compressionCrf = const Value.absent(),
+    this.compressionMode = const Value.absent(),
+    this.smartPreset = const Value.absent(),
+    this.targetSizeBytes = const Value.absent(),
+    this.targetSizeRatio = const Value.absent(),
     this.outputFileName = const Value.absent(),
     required int createdAt,
     this.startedAt = const Value.absent(),
@@ -2489,6 +2674,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? resolutionPreset,
     Expression<String>? outputDirectory,
     Expression<int>? compressionCrf,
+    Expression<String>? compressionMode,
+    Expression<String>? smartPreset,
+    Expression<int>? targetSizeBytes,
+    Expression<double>? targetSizeRatio,
     Expression<String>? outputFileName,
     Expression<int>? createdAt,
     Expression<int>? startedAt,
@@ -2543,6 +2732,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       if (resolutionPreset != null) 'resolution_preset': resolutionPreset,
       if (outputDirectory != null) 'output_directory': outputDirectory,
       if (compressionCrf != null) 'compression_crf': compressionCrf,
+      if (compressionMode != null) 'compression_mode': compressionMode,
+      if (smartPreset != null) 'smart_preset': smartPreset,
+      if (targetSizeBytes != null) 'target_size_bytes': targetSizeBytes,
+      if (targetSizeRatio != null) 'target_size_ratio': targetSizeRatio,
       if (outputFileName != null) 'output_file_name': outputFileName,
       if (createdAt != null) 'created_at': createdAt,
       if (startedAt != null) 'started_at': startedAt,
@@ -2585,6 +2778,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<String>? resolutionPreset,
     Value<String>? outputDirectory,
     Value<int>? compressionCrf,
+    Value<String>? compressionMode,
+    Value<String?>? smartPreset,
+    Value<int?>? targetSizeBytes,
+    Value<double?>? targetSizeRatio,
     Value<String>? outputFileName,
     Value<int>? createdAt,
     Value<int?>? startedAt,
@@ -2630,6 +2827,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       resolutionPreset: resolutionPreset ?? this.resolutionPreset,
       outputDirectory: outputDirectory ?? this.outputDirectory,
       compressionCrf: compressionCrf ?? this.compressionCrf,
+      compressionMode: compressionMode ?? this.compressionMode,
+      smartPreset: smartPreset ?? this.smartPreset,
+      targetSizeBytes: targetSizeBytes ?? this.targetSizeBytes,
+      targetSizeRatio: targetSizeRatio ?? this.targetSizeRatio,
       outputFileName: outputFileName ?? this.outputFileName,
       createdAt: createdAt ?? this.createdAt,
       startedAt: startedAt ?? this.startedAt,
@@ -2752,6 +2953,18 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     if (compressionCrf.present) {
       map['compression_crf'] = Variable<int>(compressionCrf.value);
     }
+    if (compressionMode.present) {
+      map['compression_mode'] = Variable<String>(compressionMode.value);
+    }
+    if (smartPreset.present) {
+      map['smart_preset'] = Variable<String>(smartPreset.value);
+    }
+    if (targetSizeBytes.present) {
+      map['target_size_bytes'] = Variable<int>(targetSizeBytes.value);
+    }
+    if (targetSizeRatio.present) {
+      map['target_size_ratio'] = Variable<double>(targetSizeRatio.value);
+    }
     if (outputFileName.present) {
       map['output_file_name'] = Variable<String>(outputFileName.value);
     }
@@ -2808,6 +3021,10 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('resolutionPreset: $resolutionPreset, ')
           ..write('outputDirectory: $outputDirectory, ')
           ..write('compressionCrf: $compressionCrf, ')
+          ..write('compressionMode: $compressionMode, ')
+          ..write('smartPreset: $smartPreset, ')
+          ..write('targetSizeBytes: $targetSizeBytes, ')
+          ..write('targetSizeRatio: $targetSizeRatio, ')
           ..write('outputFileName: $outputFileName, ')
           ..write('createdAt: $createdAt, ')
           ..write('startedAt: $startedAt, ')
@@ -3170,6 +3387,10 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       required String resolutionPreset,
       required String outputDirectory,
       Value<int> compressionCrf,
+      Value<String> compressionMode,
+      Value<String?> smartPreset,
+      Value<int?> targetSizeBytes,
+      Value<double?> targetSizeRatio,
       Value<String> outputFileName,
       required int createdAt,
       Value<int?> startedAt,
@@ -3211,6 +3432,10 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<String> resolutionPreset,
       Value<String> outputDirectory,
       Value<int> compressionCrf,
+      Value<String> compressionMode,
+      Value<String?> smartPreset,
+      Value<int?> targetSizeBytes,
+      Value<double?> targetSizeRatio,
       Value<String> outputFileName,
       Value<int> createdAt,
       Value<int?> startedAt,
@@ -3385,6 +3610,26 @@ class $$TaskRowsTableFilterComposer
 
   ColumnFilters<int> get compressionCrf => $composableBuilder(
     column: $table.compressionCrf,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get compressionMode => $composableBuilder(
+    column: $table.compressionMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get smartPreset => $composableBuilder(
+    column: $table.smartPreset,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get targetSizeBytes => $composableBuilder(
+    column: $table.targetSizeBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get targetSizeRatio => $composableBuilder(
+    column: $table.targetSizeRatio,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3583,6 +3828,26 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get compressionMode => $composableBuilder(
+    column: $table.compressionMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get smartPreset => $composableBuilder(
+    column: $table.smartPreset,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get targetSizeBytes => $composableBuilder(
+    column: $table.targetSizeBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get targetSizeRatio => $composableBuilder(
+    column: $table.targetSizeRatio,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get outputFileName => $composableBuilder(
     column: $table.outputFileName,
     builder: (column) => ColumnOrderings(column),
@@ -3762,6 +4027,26 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get compressionMode => $composableBuilder(
+    column: $table.compressionMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get smartPreset => $composableBuilder(
+    column: $table.smartPreset,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get targetSizeBytes => $composableBuilder(
+    column: $table.targetSizeBytes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get targetSizeRatio => $composableBuilder(
+    column: $table.targetSizeRatio,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get outputFileName => $composableBuilder(
     column: $table.outputFileName,
     builder: (column) => column,
@@ -3842,6 +4127,10 @@ class $$TaskRowsTableTableManager
                 Value<String> resolutionPreset = const Value.absent(),
                 Value<String> outputDirectory = const Value.absent(),
                 Value<int> compressionCrf = const Value.absent(),
+                Value<String> compressionMode = const Value.absent(),
+                Value<String?> smartPreset = const Value.absent(),
+                Value<int?> targetSizeBytes = const Value.absent(),
+                Value<double?> targetSizeRatio = const Value.absent(),
                 Value<String> outputFileName = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> startedAt = const Value.absent(),
@@ -3881,6 +4170,10 @@ class $$TaskRowsTableTableManager
                 resolutionPreset: resolutionPreset,
                 outputDirectory: outputDirectory,
                 compressionCrf: compressionCrf,
+                compressionMode: compressionMode,
+                smartPreset: smartPreset,
+                targetSizeBytes: targetSizeBytes,
+                targetSizeRatio: targetSizeRatio,
                 outputFileName: outputFileName,
                 createdAt: createdAt,
                 startedAt: startedAt,
@@ -3922,6 +4215,10 @@ class $$TaskRowsTableTableManager
                 required String resolutionPreset,
                 required String outputDirectory,
                 Value<int> compressionCrf = const Value.absent(),
+                Value<String> compressionMode = const Value.absent(),
+                Value<String?> smartPreset = const Value.absent(),
+                Value<int?> targetSizeBytes = const Value.absent(),
+                Value<double?> targetSizeRatio = const Value.absent(),
                 Value<String> outputFileName = const Value.absent(),
                 required int createdAt,
                 Value<int?> startedAt = const Value.absent(),
@@ -3961,6 +4258,10 @@ class $$TaskRowsTableTableManager
                 resolutionPreset: resolutionPreset,
                 outputDirectory: outputDirectory,
                 compressionCrf: compressionCrf,
+                compressionMode: compressionMode,
+                smartPreset: smartPreset,
+                targetSizeBytes: targetSizeBytes,
+                targetSizeRatio: targetSizeRatio,
                 outputFileName: outputFileName,
                 createdAt: createdAt,
                 startedAt: startedAt,

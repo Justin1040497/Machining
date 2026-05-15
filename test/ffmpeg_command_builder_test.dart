@@ -2,14 +2,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:machining/application/services/ffmpeg_command_builder.dart';
 import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
+import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
+import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/task_purpose.dart';
 import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
+import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/infrastructure/services/default_ffmpeg_command_builder.dart';
 
@@ -45,7 +48,7 @@ void main() {
         '-c:a',
         'aac',
         '-b:a',
-        '128k',
+        '96k',
         '-movflags',
         '+faststart',
         '-progress',
@@ -94,6 +97,69 @@ void main() {
 
       expect(plan.args, containsAllInOrder(['-crf', '24']));
       expect(plan.logHint, contains('CRF 24'));
+    });
+
+    test('uses target bitrate for target size compression mode', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/source.mp4',
+        fileName: 'source.mp4',
+        sourceFileSize: 100000000,
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          compressionMode: CompressionMode.targetSize,
+          targetSizeBytes: 50000000,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 5000000,
+          audioBitrate: 192000,
+          durationMs: 100000,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.steps, hasLength(2));
+      expect(plan.steps.first.args, containsAllInOrder(['-pass', '1']));
+      expect(plan.steps.first.args, containsAllInOrder(['-an', '-f', 'null']));
+      expect(plan.steps.first.outputPath, isNull);
+      expect(plan.args, isNot(contains('-crf')));
+      expect(plan.args, containsAllInOrder(['-b:v', '3872k']));
+      expect(plan.args, containsAllInOrder(['-pass', '2']));
+      expect(plan.args, containsAllInOrder(['-b:a', '128k']));
+      expect(plan.logHint, contains('指定目标体积两遍压缩策略'));
+    });
+
+    test('strict target size keeps very low requested bitrate', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/source.mp4',
+        fileName: 'source.mp4',
+        sourceFileSize: 105 * 1024 * 1024,
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          compressionMode: CompressionMode.targetSize,
+          targetSizeBytes: 10 * 1024 * 1024,
+          resolutionPreset: ResolutionPreset.p720,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 654000,
+          audioBitrate: 118000,
+          audioCodec: 'aac',
+          durationMs: 1125000,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.steps, hasLength(2));
+      expect(plan.args, isNot(contains('-crf')));
+      expect(plan.args, containsAllInOrder(['-b:v', '51k']));
+      expect(plan.args, containsAllInOrder(['-pass', '2']));
+      expect(plan.args, containsAllInOrder(['-b:a', '24k']));
+      expect(plan.args, isNot(contains('500k')));
     });
 
     test('requires confirmation before building low bitrate compression', () {
@@ -258,7 +324,7 @@ void main() {
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
-    test('auto uses VideoToolbox when the runtime supports it', () {
+    test('smart auto prefers software CRF when it is available', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         config: VideoTaskConfig.initial().copyWith(
@@ -279,12 +345,102 @@ void main() {
         ),
       );
 
+      expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
+      expect(plan.args, containsAllInOrder(['-crf', '28']));
+      expect(plan.args, isNot(contains('-b:v')));
+    });
+
+    test('configured hardware smart mode uses a capped bitrate', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          encoderBackend: EncoderBackend.videotoolbox,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 3000000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'h264_videotoolbox'},
+          autoBackendPriority: [EncoderBackend.videotoolbox],
+        ),
+      );
+
       expect(plan.args, containsAllInOrder(['-c:v', 'h264_videotoolbox']));
-      expect(plan.args, containsAllInOrder(['-b:v', '2032k']));
+      expect(plan.args, containsAllInOrder(['-b:v', '2064k']));
       expect(plan.args, isNot(contains('-crf')));
     });
 
-    test('auto uses Windows hardware backend priority before software', () {
+    test(
+      'smart auto falls back to capped hardware when HEVC software is absent',
+      () {
+        final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+        final task = videoTask(
+          inputPath: '/videos/dji.mp4',
+          config: VideoTaskConfig.initial().copyWith(
+            videoCodec: VideoCodec.hevc,
+            encoderBackend: EncoderBackend.auto,
+            resolutionPreset: ResolutionPreset.p720,
+            smartPreset: SmartCompressionPreset.compact,
+            compressionCrf: 32,
+          ),
+          analysisResult: MediaAnalysisResult(
+            videoHeight: 2160,
+            videoBitrate: 90000000,
+            audioBitrate: 317000,
+          ),
+        );
+
+        final plan = builder.build(
+          task,
+          encoderCapabilities: const FfmpegEncoderCapabilities(
+            encoderNames: {'libx264', 'hevc_videotoolbox'},
+            autoBackendPriority: [EncoderBackend.videotoolbox],
+          ),
+        );
+
+        expect(plan.args, containsAllInOrder(['-c:v', 'hevc_videotoolbox']));
+        expect(plan.args, containsAllInOrder(['-b:v', '792k']));
+        expect(plan.args, isNot(contains('62896k')));
+      },
+    );
+
+    test('target size auto prefers software two-pass over hardware', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        sourceFileSize: 100000000,
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          encoderBackend: EncoderBackend.auto,
+          compressionMode: CompressionMode.targetSize,
+          targetSizeBytes: 50000000,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 5000000,
+          durationMs: 100000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'h264_videotoolbox'},
+          autoBackendPriority: [EncoderBackend.videotoolbox],
+        ),
+      );
+
+      expect(plan.steps, hasLength(2));
+      expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
+      expect(plan.args, isNot(contains('h264_videotoolbox')));
+    });
+
+    test('smart auto prefers HEVC software before Windows hardware', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         config: VideoTaskConfig.initial().copyWith(
@@ -309,8 +465,8 @@ void main() {
         ),
       );
 
-      expect(plan.args, containsAllInOrder(['-c:v', 'hevc_qsv']));
-      expect(plan.args, containsAllInOrder(['-b:v', '2032k']));
+      expect(plan.args, containsAllInOrder(['-c:v', 'libx265']));
+      expect(plan.args, containsAllInOrder(['-crf', '28']));
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
@@ -367,8 +523,9 @@ MediaTask videoTask({
   TaskPurpose purpose = TaskPurpose.compression,
   VideoTaskConfig? config,
   MediaAnalysisResult? analysisResult,
+  int? sourceFileSize,
 }) {
-  return MediaTask(
+  var task = MediaTask(
     id: 'task-1',
     inputPath: inputPath,
     fileName: fileName,
@@ -383,4 +540,12 @@ MediaTask videoTask({
     createdAt: 1,
     analysisResult: analysisResult,
   );
+
+  if (sourceFileSize != null) {
+    task = task.withSourceFileFingerprint(
+      SourceFileFingerprint(fileSize: sourceFileSize, lastModifiedAt: 1),
+    );
+  }
+
+  return task;
 }

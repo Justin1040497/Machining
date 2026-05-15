@@ -27,12 +27,15 @@ class FfmpegEncoderCapabilities {
     String output, {
     required List<EncoderBackend> autoBackendPriority,
   }) {
-    final names = <String>{'libx264', 'libx265'};
+    final names = <String>{};
+    for (final encoderName in knownSoftwareEncoderNames) {
+      if (encoderOutputContainsName(output, encoderName)) {
+        names.add(encoderName);
+      }
+    }
+
     for (final encoderName in knownHardwareEncoderNames) {
-      if (RegExp(
-        r'(^|\s)' + RegExp.escape(encoderName) + r'(\s|$)',
-        multiLine: true,
-      ).hasMatch(output)) {
+      if (encoderOutputContainsName(output, encoderName)) {
         names.add(encoderName);
       }
     }
@@ -42,6 +45,15 @@ class FfmpegEncoderCapabilities {
       autoBackendPriority: autoBackendPriority,
     );
   }
+
+  static bool encoderOutputContainsName(String output, String encoderName) {
+    return RegExp(
+      r'(^|\s)' + RegExp.escape(encoderName) + r'(\s|$)',
+      multiLine: true,
+    ).hasMatch(output);
+  }
+
+  static const knownSoftwareEncoderNames = <String>{'libx264', 'libx265'};
 
   static const knownHardwareEncoderNames = <String>{
     'h264_videotoolbox',
@@ -53,6 +65,20 @@ class FfmpegEncoderCapabilities {
     'h264_amf',
     'hevc_amf',
   };
+
+  static const knownEncoderNames = <String>{
+    ...knownSoftwareEncoderNames,
+    ...knownHardwareEncoderNames,
+  };
+
+  factory FfmpegEncoderCapabilities.assumeBundledFallback({
+    required List<EncoderBackend> autoBackendPriority,
+  }) {
+    return FfmpegEncoderCapabilities(
+      encoderNames: const {'libx264'},
+      autoBackendPriority: autoBackendPriority,
+    );
+  }
 
   String resolveEncoderName({
     required VideoCodec targetCodec,
@@ -81,6 +107,17 @@ class FfmpegEncoderCapabilities {
     }
 
     return encoderName;
+  }
+
+  bool supportsEncoder({
+    required VideoCodec targetCodec,
+    required EncoderBackend backend,
+  }) {
+    final encoderName = encoderNameFor(
+      targetCodec: targetCodec,
+      backend: backend,
+    );
+    return encoderName != null && encoderNames.contains(encoderName);
   }
 
   EncoderBackend resolveAutoBackend(VideoCodec targetCodec) {

@@ -9,6 +9,7 @@ import 'package:machining/application/services/ffmpeg_process_starter.dart';
 import 'package:machining/application/services/source_file_checker.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/task_status.dart';
+import 'package:path/path.dart' as path;
 
 enum FfmpegQueueStatus { idle, ready, running }
 
@@ -35,14 +36,22 @@ enum TaskExecutionState { running, paused, finishing }
 
 class TaskExecution {
   final String taskId;
-  final StartedFfmpegProcess startedProcess;
-  final Future<FfmpegProcessObservation> observationFuture;
+  final String ffmpegPath;
+  final FfmpegCommandPlan plan;
+  final File logFile;
+  StartedFfmpegProcess startedProcess;
+  Future<FfmpegProcessObservation> observationFuture;
+  int stepIndex;
   TaskExecutionState state;
 
   TaskExecution({
     required this.taskId,
+    required this.ffmpegPath,
+    required this.plan,
+    required this.logFile,
     required this.startedProcess,
     required this.observationFuture,
+    required this.stepIndex,
     required this.state,
   });
 }
@@ -237,6 +246,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final execution = _executions.remove(taskId);
     execution?.state = TaskExecutionState.finishing;
     execution?.startedProcess.process.kill();
+    if (execution != null) {
+      await cleanupPlanFiles(execution.plan);
+    }
 
     if (_foregroundTaskId == taskId) {
       _foregroundTaskId = null;
@@ -257,6 +269,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     for (final execution in _executions.values) {
       execution.state = TaskExecutionState.finishing;
       execution.startedProcess.process.kill();
+      await cleanupPlanFiles(execution.plan);
     }
 
     _executions.clear();
@@ -374,11 +387,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     );
     await repository.saveTask(runningTask);
 
-    late final StartedFfmpegProcess startedProcess;
+    late final TaskExecution execution;
     try {
-      startedProcess = await processStarter.start(
+      execution = await startExecutionStep(
+        task: runningTask,
+        plan: plan,
+        stepIndex: 0,
         ffmpegPath: runtime.ffmpeg!.path,
-        args: plan.args,
         logFile: logFile,
       );
     } on Object catch (error) {
@@ -392,47 +407,74 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    final observationFuture = processObserver.observe(
-      startedProcess: startedProcess,
-      task: runningTask,
-      outputPath: plan.outputPath,
-      onProgress: (progress) async {
-        final currentTasks = await repository.loadAllTasks();
-        final currentTask = findTaskById(currentTasks, runningTask.id);
-        if (currentTask == null || currentTask.status != TaskStatus.running) {
-          return;
-        }
-
-        await repository.saveTask(currentTask.withProgress(progress));
-      },
-    );
-
-    _executions[runningTask.id] = TaskExecution(
-      taskId: runningTask.id,
-      startedProcess: startedProcess,
-      observationFuture: observationFuture,
-      state: TaskExecutionState.running,
-    );
+    _executions[runningTask.id] = execution;
     _foregroundTaskId = runningTask.id;
     _queueStatus = FfmpegQueueStatus.running;
-
-    unawaited(
-      observationFuture
-          .then(
-            (observation) => finishObservedTask(runningTask.id, observation),
-          )
-          .catchError(
-            (Object error) => finishObservedTask(
-              runningTask.id,
-              FfmpegProcessObservation.failed('FFmpeg 输出监听失败: $error'),
-            ),
-          ),
-    );
+    observeExecution(execution);
 
     return FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.started,
       task: runningTask,
       message: 'FFmpeg 进程已启动并开始后台观测',
+    );
+  }
+
+  Future<TaskExecution> startExecutionStep({
+    required MediaTask task,
+    required FfmpegCommandPlan plan,
+    required int stepIndex,
+    required String ffmpegPath,
+    required File logFile,
+  }) async {
+    final step = plan.steps[stepIndex];
+    final startedProcess = await processStarter.start(
+      ffmpegPath: ffmpegPath,
+      args: step.args,
+      logFile: logFile,
+    );
+    final observationFuture = processObserver.observe(
+      startedProcess: startedProcess,
+      task: task,
+      outputPath: step.outputPath,
+      onProgress: (progress) async {
+        final currentTasks = await repository.loadAllTasks();
+        final currentTask = findTaskById(currentTasks, task.id);
+        if (currentTask == null || currentTask.status != TaskStatus.running) {
+          return;
+        }
+
+        final stepCount = plan.steps.length;
+        final scaledProgress = ((stepIndex + progress) / stepCount)
+            .clamp(0, 0.999)
+            .toDouble();
+        await repository.saveTask(currentTask.withProgress(scaledProgress));
+      },
+    );
+
+    return TaskExecution(
+      taskId: task.id,
+      ffmpegPath: ffmpegPath,
+      plan: plan,
+      logFile: logFile,
+      startedProcess: startedProcess,
+      observationFuture: observationFuture,
+      stepIndex: stepIndex,
+      state: TaskExecutionState.running,
+    );
+  }
+
+  void observeExecution(TaskExecution execution) {
+    unawaited(
+      execution.observationFuture
+          .then(
+            (observation) => finishObservedTask(execution.taskId, observation),
+          )
+          .catchError(
+            (Object error) => finishObservedTask(
+              execution.taskId,
+              FfmpegProcessObservation.failed('FFmpeg 输出监听失败: $error'),
+            ),
+          ),
     );
   }
 
@@ -506,16 +548,53 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return;
     }
 
+    final task = findTaskById(await repository.loadAllTasks(), taskId);
+    if (task == null || task.status == TaskStatus.cancelled) {
+      _executions.remove(taskId);
+      if (_foregroundTaskId == taskId) {
+        _foregroundTaskId = null;
+      }
+      await continueAfterTask();
+      return;
+    }
+
+    if (observation.status == FfmpegProcessObservationStatus.completed &&
+        execution.stepIndex < execution.plan.steps.length - 1) {
+      final nextStepIndex = execution.stepIndex + 1;
+      try {
+        final nextExecution = await startExecutionStep(
+          task: task,
+          plan: execution.plan,
+          stepIndex: nextStepIndex,
+          ffmpegPath: execution.ffmpegPath,
+          logFile: execution.logFile,
+        );
+        execution.startedProcess = nextExecution.startedProcess;
+        execution.observationFuture = nextExecution.observationFuture;
+        execution.stepIndex = nextStepIndex;
+        execution.state = TaskExecutionState.running;
+        observeExecution(execution);
+      } on Object catch (error) {
+        execution.state = TaskExecutionState.finishing;
+        _executions.remove(taskId);
+        if (_foregroundTaskId == taskId) {
+          _foregroundTaskId = null;
+        }
+        await cleanupPlanFiles(execution.plan);
+        final failedTask = task.markFailed(
+          'FFmpeg 启动失败: $error',
+          failedAt: (await now()).millisecondsSinceEpoch,
+        );
+        await repository.saveTask(failedTask);
+        await continueAfterTask();
+      }
+      return;
+    }
+
     execution.state = TaskExecutionState.finishing;
     _executions.remove(taskId);
     if (_foregroundTaskId == taskId) {
       _foregroundTaskId = null;
-    }
-
-    final task = findTaskById(await repository.loadAllTasks(), taskId);
-    if (task == null || task.status == TaskStatus.cancelled) {
-      await continueAfterTask();
-      return;
     }
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
@@ -531,7 +610,31 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await repository.saveTask(failedTask);
     }
 
+    await cleanupPlanFiles(execution.plan);
     await continueAfterTask();
+  }
+
+  Future<void> cleanupPlanFiles(FfmpegCommandPlan plan) async {
+    for (final prefix in plan.cleanupPathPrefixes) {
+      final directory = Directory(path.dirname(prefix));
+      if (!await directory.exists()) {
+        continue;
+      }
+
+      final prefixName = path.basename(prefix);
+      await for (final entity in directory.list()) {
+        if (!path.basename(entity.path).startsWith(prefixName)) {
+          continue;
+        }
+
+        try {
+          await entity.delete(recursive: true);
+        } on Object {
+          // Best-effort cleanup; compression result should not fail because
+          // FFmpeg pass logs were already removed or locked by the OS.
+        }
+      }
+    }
   }
 
   Future<void> continueAfterTask() async {

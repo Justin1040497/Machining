@@ -52,6 +52,13 @@ class TaskRows extends Table {
   TextColumn get outputDirectory => text().named('output_directory')();
   IntColumn get compressionCrf =>
       integer().named('compression_crf').withDefault(const Constant(28))();
+  TextColumn get compressionMode =>
+      text().named('compression_mode').withDefault(const Constant('smart'))();
+  TextColumn get smartPreset => text().named('smart_preset').nullable()();
+  IntColumn get targetSizeBytes =>
+      integer().named('target_size_bytes').nullable()();
+  RealColumn get targetSizeRatio =>
+      real().named('target_size_ratio').nullable()();
   TextColumn get outputFileName =>
       text().named('output_file_name').withDefault(const Constant(''))();
   IntColumn get createdAt => integer().named('created_at')();

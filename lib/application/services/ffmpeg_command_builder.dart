@@ -1,16 +1,40 @@
 import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
 
+class FfmpegCommandStep {
+  final List<String> args;
+  final String? outputPath;
+  final String label;
+
+  const FfmpegCommandStep({
+    required this.args,
+    required this.label,
+    this.outputPath,
+  });
+}
+
 class FfmpegCommandPlan {
   final List<String> args;
+  final List<FfmpegCommandStep> steps;
+  final List<String> cleanupPathPrefixes;
   final String outputPath;
   final String logHint;
 
-  const FfmpegCommandPlan({
+  FfmpegCommandPlan({
     required this.args,
     required this.outputPath,
     required this.logHint,
-  });
+    List<FfmpegCommandStep>? steps,
+    this.cleanupPathPrefixes = const [],
+  }) : steps =
+           steps ??
+           [
+             FfmpegCommandStep(
+               args: args,
+               label: '执行 FFmpeg',
+               outputPath: outputPath,
+             ),
+           ];
 }
 
 class FfmpegCommandBuildException implements Exception {

@@ -9,9 +9,11 @@ import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
 import 'package:machining/application/services/preview_frame_generator.dart';
 import 'package:machining/application/services/video_thumbnail_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
+import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
+import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/features/workbench/pages/workbench_page/bottom_bar.dart';
@@ -27,6 +29,8 @@ import 'package:machining/features/workbench/providers/media_task_notifier.dart'
 import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
 import 'package:path/path.dart' as path;
 
+const Object _configValueNotProvided = Object();
+
 class WorkbenchPage extends ConsumerStatefulWidget {
   const WorkbenchPage({super.key});
 
@@ -40,6 +44,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   VideoCodec selectedVideoCodec = VideoCodec.h264;
   EncoderBackend selectedEncoderBackend = EncoderBackend.auto;
   ResolutionPreset selectedResolutionPreset = ResolutionPreset.p1080;
+  CompressionMode selectedCompressionMode = CompressionMode.smart;
+  SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced;
   String? selectedTaskId;
   String? syncedConfigTaskId;
   String? syncedQualityTaskKey;
@@ -259,6 +265,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         selectedVideoCodec = config.videoCodec;
         selectedEncoderBackend = config.encoderBackend;
         selectedResolutionPreset = config.resolutionPreset;
+        selectedCompressionMode = config.compressionMode;
+        selectedSmartPreset =
+            config.smartPreset ??
+            smartPresetForQualityIndex(config.compressionCrf);
         saveToSourceDirectory = config.outputDirectory.trim().isEmpty;
         exportDirectoryController.text = saveToSourceDirectory
             ? defaultExportPath
@@ -495,6 +505,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       selectedVideoCodec = task.config.videoCodec;
       selectedEncoderBackend = task.config.encoderBackend;
       selectedResolutionPreset = task.config.resolutionPreset;
+      selectedCompressionMode = task.config.compressionMode;
+      selectedSmartPreset =
+          task.config.smartPreset ??
+          smartPresetForQualityIndex(task.config.compressionCrf);
       saveToSourceDirectory = task.config.outputDirectory.trim().isEmpty;
       exportDirectoryDragging = false;
       exportDirectoryController.text = saveToSourceDirectory
@@ -513,16 +527,43 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     var draftVideoCodec = selectedVideoCodec;
     var draftEncoderBackend = selectedEncoderBackend;
     var draftResolutionPreset = selectedResolutionPreset;
+    var draftCompressionMode = selectedCompressionMode;
+    var draftSmartPreset = selectedSmartPreset;
+    var draftTargetSizeBytes =
+        task.config.targetSizeBytes ??
+        targetSizeBytesForQualityOption(
+          task,
+          WorkbenchConstants.qualityOptions[draftQualityIndex],
+        );
 
     Future<void> saveDraftAndClose(BuildContext dialogContext) async {
+      final qualityOption =
+          WorkbenchConstants.qualityOptions[draftQualityIndex];
+      final isTargetSize = draftCompressionMode == CompressionMode.targetSize;
+      if (isTargetSize &&
+          (draftTargetSizeBytes == null || draftTargetSizeBytes! <= 0)) {
+        showWorkbenchSnackBar('请输入有效目标大小');
+        return;
+      }
+
+      final targetSizeRatio = targetSizeRatioForBytes(
+        task: task,
+        targetSizeBytes: draftTargetSizeBytes,
+        fallbackRatio: qualityOption.targetRatio,
+      );
       try {
         await updateSelectedTaskConfig(
           outputFormat: draftOutputFormat,
           videoCodec: draftVideoCodec,
           encoderBackend: draftEncoderBackend,
           resolutionPreset: draftResolutionPreset,
-          compressionCrf:
-              WorkbenchConstants.qualityOptions[draftQualityIndex].crf,
+          compressionCrf: qualityOption.crf,
+          compressionMode: isTargetSize
+              ? CompressionMode.targetSize
+              : CompressionMode.smart,
+          smartPreset: isTargetSize ? null : draftSmartPreset,
+          targetSizeBytes: isTargetSize ? draftTargetSizeBytes : null,
+          targetSizeRatio: isTargetSize ? targetSizeRatio : null,
         );
 
         if (!mounted) {
@@ -535,6 +576,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           selectedVideoCodec = draftVideoCodec;
           selectedEncoderBackend = draftEncoderBackend;
           selectedResolutionPreset = draftResolutionPreset;
+          selectedCompressionMode = isTargetSize
+              ? CompressionMode.targetSize
+              : CompressionMode.smart;
+          selectedSmartPreset = draftSmartPreset;
         });
 
         if (dialogContext.mounted) {
@@ -557,12 +602,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             return WorkbenchTaskConfigurationDialog(
               task: task,
               thumbnail: thumbnailForTask(task),
-              qualityOptions: WorkbenchConstants.qualityOptions,
               selectedQualityIndex: draftQualityIndex,
               selectedOutputFormat: draftOutputFormat,
               selectedVideoCodec: draftVideoCodec,
               selectedEncoderBackend: draftEncoderBackend,
               selectedResolutionPreset: draftResolutionPreset,
+              selectedCompressionMode: draftCompressionMode,
+              selectedSmartPreset: draftSmartPreset,
+              selectedTargetSizeBytes: draftTargetSizeBytes,
               availableEncoderBackends: availableEncoderBackends(
                 videoCodec: draftVideoCodec,
                 selectedBackend: draftEncoderBackend,
@@ -573,6 +620,27 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               },
               onSave: () {
                 unawaited(saveDraftAndClose(dialogContext));
+              },
+              onCompressionModeChanged: (value) {
+                updateDialogState(() {
+                  draftCompressionMode = value == CompressionMode.targetSize
+                      ? CompressionMode.targetSize
+                      : CompressionMode.smart;
+                  draftTargetSizeBytes ??= targetSizeBytesForQualityOption(
+                    task,
+                    WorkbenchConstants.qualityOptions[draftQualityIndex],
+                  );
+                });
+              },
+              onSmartPresetChanged: (value) {
+                updateDialogState(() {
+                  draftSmartPreset = value;
+                });
+              },
+              onTargetSizeBytesChanged: (value) {
+                updateDialogState(() {
+                  draftTargetSizeBytes = value;
+                });
               },
               onQualityChanged: (index) {
                 if (index == draftQualityIndex) {
@@ -1102,6 +1170,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       resolutionPreset: ResolutionPreset.original,
       outputDirectory: '',
       compressionCrf: WorkbenchConstants.qualityOptions[nextQualityIndex].crf,
+      compressionMode: CompressionMode.smart,
+      smartPreset: smartPresetForQualityIndex(nextQualityIndex),
+      targetSizeBytes: null,
+      targetSizeRatio: null,
       outputFileName: '',
     );
 
@@ -1111,6 +1183,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       selectedVideoCodec = initialConfig.videoCodec;
       selectedEncoderBackend = initialConfig.encoderBackend;
       selectedResolutionPreset = initialConfig.resolutionPreset;
+      selectedCompressionMode = initialConfig.compressionMode;
+      selectedSmartPreset =
+          initialConfig.smartPreset ?? SmartCompressionPreset.balanced;
       saveToSourceDirectory = true;
       exportDirectoryDragging = false;
       exportDirectoryController.text = defaultExportPath;
@@ -1141,6 +1216,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     ResolutionPreset? resolutionPreset,
     String? outputDirectory,
     int? compressionCrf,
+    CompressionMode? compressionMode,
+    Object? smartPreset = _configValueNotProvided,
+    Object? targetSizeBytes = _configValueNotProvided,
+    Object? targetSizeRatio = _configValueNotProvided,
     String? outputFileName,
   }) async {
     final task = currentSelectedTask();
@@ -1156,6 +1235,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         resolutionPreset: resolutionPreset,
         outputDirectory: outputDirectory,
         compressionCrf: compressionCrf,
+        compressionMode: compressionMode,
+        smartPreset: smartPreset,
+        targetSizeBytes: targetSizeBytes,
+        targetSizeRatio: targetSizeRatio,
         outputFileName: outputFileName,
       ),
     );
@@ -1277,7 +1360,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
     final targetBitrate =
         recommendation.targetTotalBitrate ??
-        calculateQualityTargetBitrate(analysis?.preferredBitrate);
+        calculateQualityTargetBitrate(task, analysis?.preferredBitrate);
 
     return WorkbenchFileInfoData(
       sourceRows: [
@@ -1391,6 +1474,19 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       WorkbenchConstants.qualityOptions[selectedQualityIndex];
 
   int initialQualityIndexForTask(MediaTask task) {
+    if (task.config.compressionMode == CompressionMode.targetSize) {
+      return qualityIndexForTargetSize(
+        task: task,
+        targetSizeBytes: task.config.targetSizeBytes,
+        targetSizeRatio: task.config.targetSizeRatio,
+      );
+    }
+
+    final smartPreset = task.config.smartPreset;
+    if (smartPreset != null) {
+      return qualityIndexForSmartPreset(smartPreset);
+    }
+
     final configuredIndex = qualityIndexForCrf(task.config.compressionCrf);
     if (isSourceAlreadyCompressed(task) && configuredIndex == 2) {
       return WorkbenchConstants.qualityOptions.length - 1;
@@ -1413,24 +1509,129 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     return 2;
   }
 
+  int qualityIndexForTargetSize({
+    required MediaTask task,
+    required int? targetSizeBytes,
+    required double? targetSizeRatio,
+  }) {
+    final sourceSize = task.sourceFileFingerprint?.fileSize;
+    if (sourceSize != null &&
+        sourceSize > 0 &&
+        targetSizeBytes != null &&
+        targetSizeBytes > 0) {
+      return qualityIndexForTargetSizeRatio(targetSizeBytes / sourceSize);
+    }
+
+    return qualityIndexForTargetSizeRatio(targetSizeRatio);
+  }
+
+  int qualityIndexForTargetSizeRatio(double? targetSizeRatio) {
+    if (targetSizeRatio == null || targetSizeRatio <= 0) {
+      return 4;
+    }
+
+    var nearestIndex = 0;
+    var nearestDistance = double.infinity;
+    for (
+      var index = 0;
+      index < WorkbenchConstants.qualityOptions.length;
+      index += 1
+    ) {
+      final option = WorkbenchConstants.qualityOptions[index];
+      final distance = (option.targetRatio - targetSizeRatio).abs();
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearestIndex;
+  }
+
+  int qualityIndexForSmartPreset(SmartCompressionPreset preset) {
+    return switch (preset) {
+      SmartCompressionPreset.balanced => 4,
+      SmartCompressionPreset.chat => 6,
+      SmartCompressionPreset.clear => 3,
+      SmartCompressionPreset.compact => 8,
+    };
+  }
+
+  SmartCompressionPreset smartPresetForQualityIndex(int qualityIndexOrCrf) {
+    if (qualityIndexOrCrf == 6 || qualityIndexOrCrf == 30) {
+      return SmartCompressionPreset.chat;
+    }
+    if (qualityIndexOrCrf == 3 || qualityIndexOrCrf == 27) {
+      return SmartCompressionPreset.clear;
+    }
+    if (qualityIndexOrCrf == 8 || qualityIndexOrCrf == 32) {
+      return SmartCompressionPreset.compact;
+    }
+
+    return SmartCompressionPreset.balanced;
+  }
+
+  int? targetSizeBytesForQualityOption(MediaTask task, QualityOption option) {
+    final sourceSize = task.sourceFileFingerprint?.fileSize;
+    if (sourceSize == null || sourceSize <= 0) {
+      return null;
+    }
+
+    return (sourceSize * option.targetRatio).round();
+  }
+
+  double? targetSizeRatioForBytes({
+    required MediaTask task,
+    required int? targetSizeBytes,
+    required double fallbackRatio,
+  }) {
+    final sourceSize = task.sourceFileFingerprint?.fileSize;
+    if (sourceSize == null || sourceSize <= 0) {
+      return fallbackRatio;
+    }
+
+    if (targetSizeBytes == null || targetSizeBytes <= 0) {
+      return fallbackRatio;
+    }
+
+    return targetSizeBytes / sourceSize;
+  }
+
   bool isSourceAlreadyCompressed(MediaTask task) {
     return WorkbenchFormatters.isSourceAlreadyCompressed(task);
   }
 
-  int? calculateQualityTargetBitrate(int? sourceBitrate) {
+  int? calculateQualityTargetBitrate(MediaTask task, int? sourceBitrate) {
     if (sourceBitrate == null || sourceBitrate <= 0) {
       return null;
     }
 
-    return (sourceBitrate * selectedQualityOption.targetRatio).round();
+    final targetRatio =
+        task.config.compressionMode == CompressionMode.targetSize
+        ? task.config.targetSizeRatio ?? selectedQualityOption.targetRatio
+        : selectedQualityOption.targetRatio;
+
+    return (sourceBitrate * targetRatio).round();
   }
 
   String formatCompressionMode(MediaTask task) {
+    if (task.config.compressionMode == CompressionMode.targetSize) {
+      final targetSizeBytes =
+          task.config.targetSizeBytes ??
+          targetSizeBytesForQualityOption(task, selectedQualityOption);
+      if (targetSizeBytes != null) {
+        return '目标体积 ${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
+      }
+
+      return '目标体积';
+    }
+
+    final smartPreset = task.config.smartPreset ?? selectedSmartPreset;
     if (isSourceAlreadyCompressed(task) &&
-        selectedQualityOption.isLowestVolume) {
+        smartPreset == SmartCompressionPreset.compact) {
       return '低码率极限压缩';
     }
 
-    return '${selectedQualityOption.label} CRF ${selectedQualityOption.crf}';
+    return '${smartPreset.label} / ${selectedQualityOption.label}';
   }
 }

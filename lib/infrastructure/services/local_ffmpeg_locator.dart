@@ -194,7 +194,9 @@ class LocalFfmpegLocator implements FfmpegLocator {
   ) async {
     final result = await runCommand(ffmpegPath, ['-hide_banner', '-encoders']);
     if (result == null || result.exitCode != 0) {
-      return FfmpegEncoderCapabilities.softwareOnly;
+      return FfmpegEncoderCapabilities.assumeBundledFallback(
+        autoBackendPriority: autoBackendPriority(),
+      );
     }
 
     return FfmpegEncoderCapabilities.fromEncodersOutput(

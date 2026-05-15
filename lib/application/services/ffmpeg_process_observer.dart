@@ -20,7 +20,7 @@ abstract class FfmpegProcessObserver {
   Future<FfmpegProcessObservation> observe({
     required StartedFfmpegProcess startedProcess,
     required MediaTask task,
-    required String outputPath,
+    required String? outputPath,
     required Future<void> Function(double progress) onProgress,
   });
 }

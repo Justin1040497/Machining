@@ -3,8 +3,10 @@ import 'package:machining/application/repositories/media_task_repository.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/media_kind.dart';
+import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
+import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/task_purpose.dart';
 import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/domain/enums/video_codec.dart';
@@ -104,6 +106,10 @@ extension MediaTaskMapper on MediaTask {
       resolutionPreset: Value(config.resolutionPreset.name),
       outputDirectory: Value(config.outputDirectory),
       compressionCrf: Value(config.compressionCrf),
+      compressionMode: Value(config.compressionMode.name),
+      smartPreset: Value(config.smartPreset?.name),
+      targetSizeBytes: Value(config.targetSizeBytes),
+      targetSizeRatio: Value(config.targetSizeRatio),
       outputFileName: Value(config.outputFileName),
       createdAt: Value(createdAt),
       startedAt: Value(startedAt),
@@ -133,6 +139,16 @@ extension TaskRowMapper on TaskRow {
         ),
         outputDirectory: outputDirectory,
         compressionCrf: compressionCrf,
+        compressionMode: enumValueByName(
+          CompressionMode.values,
+          compressionMode,
+        ),
+        smartPreset: nullableEnumValueByName(
+          SmartCompressionPreset.values,
+          smartPreset,
+        ),
+        targetSizeBytes: targetSizeBytes,
+        targetSizeRatio: targetSizeRatio,
         outputFileName: outputFileName,
       ),
       progress: progress,
@@ -205,4 +221,12 @@ T enumValueByName<T extends Enum>(List<T> values, String name) {
   }
 
   throw StateError('未知的枚举值: $name');
+}
+
+T? nullableEnumValueByName<T extends Enum>(List<T> values, String? name) {
+  if (name == null || name.trim().isEmpty) {
+    return null;
+  }
+
+  return enumValueByName(values, name);
 }

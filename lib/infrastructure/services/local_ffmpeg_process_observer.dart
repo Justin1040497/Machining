@@ -18,7 +18,7 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
   Future<FfmpegProcessObservation> observe({
     required StartedFfmpegProcess startedProcess,
     required MediaTask task,
-    required String outputPath,
+    required String? outputPath,
     required Future<void> Function(double progress) onProgress,
   }) async {
     final stderrSink = startedProcess.logFile.openWrite(mode: FileMode.append);
@@ -49,7 +49,7 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
       return FfmpegProcessObservation.failed('FFmpeg 退出码: $exitCode');
     }
 
-    if (!outputPathExists(outputPath)) {
+    if (outputPath != null && !outputPathExists(outputPath)) {
       return const FfmpegProcessObservation.failed('输出文件缺失');
     }
 

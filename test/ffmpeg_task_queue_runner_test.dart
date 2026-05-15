@@ -184,6 +184,66 @@ void main() {
       expect(harness.runner.queueStatus, FfmpegQueueStatus.idle);
     });
 
+    test('runs multi-step command plan sequentially', () async {
+      final task = videoTask(id: 'two-pass', sortOrder: 0);
+      final harness = QueueHarness(
+        tasks: [task],
+        commandBuilder: FakeCommandBuilder(
+          stepArgs: [
+            ['-hide_banner', '-i', '/videos/two-pass.mp4', '-pass', '1'],
+            [
+              '-hide_banner',
+              '-i',
+              '/videos/two-pass.mp4',
+              '-pass',
+              '2',
+              '/videos/two-pass.out.mp4',
+            ],
+          ],
+        ),
+      );
+
+      await harness.runner.start();
+
+      expect(harness.processStarter.starts, hasLength(1));
+      expect(
+        harness.processStarter.starts.first.args,
+        containsAll(['-pass', '1']),
+      );
+      expect(
+        harness.repository.taskById('two-pass').status,
+        TaskStatus.running,
+      );
+
+      harness.processObserver.complete(
+        'two-pass',
+        const FfmpegProcessObservation.completed(),
+      );
+      await pumpEventQueue();
+
+      expect(harness.processStarter.starts, hasLength(2));
+      expect(
+        harness.processStarter.starts.last.args,
+        containsAll(['-pass', '2']),
+      );
+      expect(
+        harness.repository.taskById('two-pass').status,
+        TaskStatus.running,
+      );
+
+      harness.processObserver.complete(
+        'two-pass',
+        const FfmpegProcessObservation.completed(),
+      );
+      await pumpEventQueue();
+
+      expect(
+        harness.repository.taskById('two-pass').status,
+        TaskStatus.completed,
+      );
+      expect(harness.runner.foregroundTaskId, isNull);
+    });
+
     test('start fails the task when FFmpeg is unavailable', () async {
       final task = videoTask(id: 'no-ffmpeg', sortOrder: 0);
       final harness = QueueHarness(
@@ -297,7 +357,7 @@ class FakeProcessObserver implements FfmpegProcessObserver {
   Future<FfmpegProcessObservation> observe({
     required StartedFfmpegProcess startedProcess,
     required MediaTask task,
-    required String outputPath,
+    required String? outputPath,
     required Future<void> Function(double progress) onProgress,
   }) {
     observedTaskIds.add(task.id);
@@ -382,9 +442,10 @@ class FakeSourceFileChecker implements SourceFileChecker {
 
 class FakeCommandBuilder implements FfmpegCommandBuilder {
   final Object? error;
+  final List<List<String>>? stepArgs;
   final List<bool> allowExtremeCompressionValues = [];
 
-  FakeCommandBuilder({this.error});
+  FakeCommandBuilder({this.error, this.stepArgs});
 
   @override
   FfmpegCommandPlan build(
@@ -399,13 +460,29 @@ class FakeCommandBuilder implements FfmpegCommandBuilder {
       throw error;
     }
 
+    final defaultArgs = [
+      '-hide_banner',
+      '-i',
+      task.inputPath,
+      '/videos/${task.id}.out.mp4',
+    ];
+    final stepArgs = this.stepArgs;
+
     return FfmpegCommandPlan(
-      args: [
-        '-hide_banner',
-        '-i',
-        task.inputPath,
-        '/videos/${task.id}.out.mp4',
-      ],
+      args: stepArgs?.last ?? defaultArgs,
+      steps: stepArgs
+          ?.asMap()
+          .entries
+          .map(
+            (entry) => FfmpegCommandStep(
+              args: entry.value,
+              label: '测试步骤 ${entry.key + 1}',
+              outputPath: entry.key == stepArgs.length - 1
+                  ? '/videos/${task.id}.out.mp4'
+                  : null,
+            ),
+          )
+          .toList(),
       outputPath: '/videos/${task.id}.out.mp4',
       logHint: '测试命令',
     );
