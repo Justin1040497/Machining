@@ -9,6 +9,7 @@ class WorkbenchBottomBar extends StatelessWidget {
     required this.hasRunningTask,
     required this.queueActionInFlight,
     required this.onAddTask,
+    // ignore: unused_element
     required this.onOpenSettings,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
@@ -43,12 +44,12 @@ class WorkbenchBottomBar extends StatelessWidget {
                     onPressed: onAddTask,
                     size: 26,
                   ),
-                  const SizedBox(width: 12),
-                  _DockIconButton(
-                    tooltip: '设置',
-                    icon: Icons.settings,
-                    onPressed: onOpenSettings,
-                  ),
+                  // const SizedBox(width: 12),
+                  // _DockIconButton(
+                  //   tooltip: '设置',
+                  //   icon: Icons.settings,
+                  //   onPressed: onOpenSettings,
+                  // ),
                   const Spacer(),
                   _DockIconButton(
                     tooltip: '清空列表',

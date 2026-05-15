@@ -39,7 +39,7 @@ Machining 的发布包包含 FFmpeg / FFprobe 运行时。当前内置运行时�
 目前项目支持 macOS Apple Silicon 和 Windows x64。macOS 构建产物是 `.app`：
 
 ```text
-build/macos/Build/Products/Release/machining.app
+build/macos/Build/Products/Release/Machining.app
 ```
 
 Windows 构建产物位于：
@@ -100,7 +100,7 @@ flutter build macos --release
 macOS Release app 位置：
 
 ```text
-build/macos/Build/Products/Release/machining.app
+build/macos/Build/Products/Release/Machining.app
 ```
 
 Windows Release 构建：
@@ -143,7 +143,7 @@ scripts/build_ffmpeg_macos_arm64.sh
 macOS 构建时，Xcode 会把二进制复制到：
 
 ```text
-machining.app/Contents/Resources/ffmpeg/
+Machining.app/Contents/Resources/ffmpeg/
 ```
 
 验证 app 实际使用的 FFmpeg：
@@ -153,7 +153,7 @@ LOG_DIR="$(getconf DARWIN_USER_TEMP_DIR)machining/ffmpeg-logs"
 grep -h '^ffmpegPath:' "$LOG_DIR"/*.log | tail -1
 ```
 
-如果输出路径指向 `machining.app/Contents/Resources/ffmpeg/ffmpeg`，说明内置 FFmpeg 已生效。
+如果输出路径指向 `Machining.app/Contents/Resources/ffmpeg/ffmpeg`，说明内置 FFmpeg 已生效。
 
 Windows 构建时，CMake 会把：
 
