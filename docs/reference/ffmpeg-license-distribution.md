@@ -2,7 +2,7 @@
 
 ## 当前选择
 
-Machining v1.3.0+1 内置 FFmpeg 7.1.1，并启用 x264 / libx264。因此发布包需要按 GPL 路线处理。
+Machining v1.3.0+1 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
 
 当前构建脚本启用：
 
@@ -21,6 +21,16 @@ Machining v1.3.0+1 内置 FFmpeg 7.1.1，并启用 x264 / libx264。因此发布
 ```
 
 `--enable-nonfree` 未启用。
+
+根目录已经补齐基础许可文件：
+
+```text
+LICENSE
+COPYING
+NOTICE
+THIRD_PARTY_NOTICES.md
+SOURCE_OFFER.md
+```
 
 ## 仓库策略
 
@@ -70,16 +80,16 @@ OK: libx264 encoder is available
 - GPLv3 许可证文本
 - FFmpeg / x264 的版权说明
 - 用户能够替换或重新构建运行时的说明
+- 发布包内许可证目录，至少包含 `LICENSE`、`COPYING`、`NOTICE`、`THIRD_PARTY_NOTICES.md`、`SOURCE_OFFER.md` 和 FFmpeg 构建元数据
 
 ## v1.3 状态
 
-当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测和智能压缩工作流。但尚未完成正式公开发布所需的签名、公证、DMG、安装包和许可证文件打包。因此 v1.3.0+1 可以作为本地使用和内部验证版本，正式公开发布前仍需要补齐下方发布合规事项。
+当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、智能压缩工作流、根目录 GPLv3+ 许可证文件、第三方声明和源码分发说明。但尚未完成正式公开发布所需的签名、公证、DMG、安装包和许可证文件随包打包。因此 v1.3.0+1 可以作为本地使用和内部验证版本，正式公开发布前仍需要补齐下方发布合规事项。
 
 ## 发布合规待办
 
-- 增加 `LICENSE`
-- 增加 `THIRD_PARTY_NOTICES`
 - 增加 Release 包内许可证目录
 - 形成 DMG 分发结构
-- 补充源码分发说明
+- 在每个公开 Release 页面同时提供源码包或清晰源码链接
+- 发布前复核 `THIRD_PARTY_NOTICES.md` 中的直接依赖和传递依赖许可证
 - 验证另一台 Mac 上的运行和 Gatekeeper 行为
