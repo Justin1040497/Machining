@@ -1,0 +1,52 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0-windows10.0.17763": {
+      "Autofac": {
+        "type": "Direct",
+        "requested": "[9.0.0, )",
+        "resolved": "9.0.0",
+        "contentHash": "G8TpUMVIq1pEAMuAao8h5MKduY91SotjgK93wQb5LaxbJUVE0/XjCA6t2SOp+AkPC3GB/C2MAiF2D7krYjraFw=="
+      },
+      "gong-wpf-dragdrop": {
+        "type": "Direct",
+        "requested": "[4.0.0, )",
+        "resolved": "4.0.0",
+        "contentHash": "nDj86v1XHhgmQR8PPo/uDDp/xdLDxcqZdvIwSxWAHQPiRX/GBXK13FYY0C2xQow9RSl6j5FKLk8xoYrdb52vqg=="
+      },
+      "Microsoft.Toolkit.Uwp.Notifications": {
+        "type": "Direct",
+        "requested": "[7.1.3, )",
+        "resolved": "7.1.3",
+        "contentHash": "A1dglAzb24gjehmb7DwGd07mfyZ1gacAK7ObE0KwDlRc3mayH2QW7cSOy3TkkyELjLg19OQBuhPOj4SpXET9lg=="
+      },
+      "Microsoft.Xaml.Behaviors.Wpf": {
+        "type": "Direct",
+        "requested": "[1.1.135, )",
+        "resolved": "1.1.135",
+        "contentHash": "r8qBEXmQfORso2+MVHnt8PSH4761zJ0SIxgQTSEDVLU97EN2FZdG6/ZCYUPhQy+OrPKgnpYBCAs3PS6Bs7wRsg=="
+      },
+      "System.Management": {
+        "type": "Direct",
+        "requested": "[10.0.0, )",
+        "resolved": "10.0.0",
+        "contentHash": "LE3rDZoPzulou78Tsq+3ALhUs4vatQ03v2QWbYVIenVPneUH/+LTUmHyyl098OxIFLQI6sNkZs8YHbUnT/sm3A=="
+      },
+      "handbrake.app.core": {
+        "type": "Project",
+        "dependencies": {
+          "HandBrake.Interop": "[1.11.0, )"
+        }
+      },
+      "handbrake.interop": {
+        "type": "Project"
+      },
+      "handbrake.worker": {
+        "type": "Project",
+        "dependencies": {
+          "HandBrake.Interop": "[1.11.0, )"
+        }
+      }
+    }
+  }
+}

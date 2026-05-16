@@ -1,0 +1,41 @@
+$(eval $(call import.MODULE.defs,LIBVPL,libvpl))
+$(eval $(call import.CONTRIB.defs,LIBVPL))
+
+LIBVPL.FETCH.url       = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/libvpl-2.16.0.tar.gz
+LIBVPL.FETCH.url      += https://github.com/intel/libvpl/archive/refs/tags/v2.16.0.tar.gz
+LIBVPL.FETCH.sha256    = d60931937426130ddad9f1975c010543f0da99e67edb1c6070656b7947f633b6
+LIBVPL.FETCH.basename  = libvpl-2.16.0.tar.gz
+LIBVPL.EXTRACT.tarbase = libvpl-2.16.0
+
+LIBVPL.build_dir             = build
+LIBVPL.CONFIGURE.exe         = cmake
+LIBVPL.CONFIGURE.args.build  =
+LIBVPL.CONFIGURE.args.host   = -DCMAKE_HOST_SYSTEM="$(LIBVPL.CONFIGURE.host)"
+LIBVPL.CONFIGURE.args.prefix = -DCMAKE_INSTALL_PREFIX="$(LIBVPL.CONFIGURE.prefix)" -DCMAKE_INSTALL_LIBDIR=lib
+LIBVPL.CONFIGURE.deps        =
+LIBVPL.CONFIGURE.static      =
+LIBVPL.CONFIGURE.shared      = -DBUILD_SHARED_LIBS=OFF
+LIBVPL.CONFIGURE.extra       = -DBUILD_TESTS=OFF -DBUILD_EXAMPLES=OFF -DBUILD_EXPERIMENTAL=ON -DINSTALL_DEV=ON
+ifeq ($(GCC.O),$(filter $(GCC.O),size size-aggressive))
+    LIBVPL.CONFIGURE.extra += -DCMAKE_BUILD_TYPE=MinSizeRel
+else
+    ifneq (none,$(LIBVPL.GCC.g))
+        LIBVPL.CONFIGURE.extra += -DCMAKE_BUILD_TYPE=Debug
+    else
+        LIBVPL.CONFIGURE.extra += -DCMAKE_BUILD_TYPE=Release
+    endif
+endif
+
+ifeq (1,$(HOST.cross))
+    ifeq (mingw,$(HOST.system))
+        LIBVPL.CONFIGURE.extra += -DWIN32=ON -DMINGW=ON
+        LIBVPL.CONFIGURE.extra += -DCMAKE_SYSTEM_NAME=Windows
+        LIBVPL.CONFIGURE.extra += -DCMAKE_C_COMPILER=$(LIBVPL.GCC.gcc)
+        LIBVPL.CONFIGURE.extra += -DCMAKE_CXX_COMPILER=$(LIBVPL.GCC.gxx)
+        LIBVPL.CONFIGURE.extra += -DCMAKE_RC_COMPILER=$(HOST.cross.prefix)windres
+    endif
+    LIBVPL.CONFIGURE.extra     += -DCMAKE_SYSTEM_PROCESSOR=$(HOST.machine)
+endif
+
+## find CMakeLists.txt
+LIBVPL.CONFIGURE.extra += "$(call fn.ABSOLUTE,$(LIBVPL.EXTRACT.dir/))"

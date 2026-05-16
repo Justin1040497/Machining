@@ -1,0 +1,199 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.17763.0</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <PackageId>HandBrake</PackageId>
+    <Authors>HandBrake Team</Authors>
+    <Company>HandBrake Team</Company>
+    <Product>HandBrake</Product>
+    <Copyright>Copyright © 2003-2026 HandBrake Team</Copyright>
+    <Description>HandBrake is an open-source, GPL-licensed, multiplatform,video transcoder.</Description>
+    <PackageProjectUrl>https://handbrake.fr</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HandBrake/HandBrake</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <AssemblyVersion>1.11.0.0</AssemblyVersion>
+    <Version>1.11.0</Version>
+    <Platforms>AnyCPU</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ApplicationIcon>handbrakepineapple.ico</ApplicationIcon>
+    <StartupObject />
+    <AssemblyName>HandBrake</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <LangVersion>latest</LangVersion>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <OutputPath>bin\Debug</OutputPath>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1605</WarningsAsErrors>
+    <NoWarn>1701;1702;CS0067</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <OutputPath>bin\Release</OutputPath>
+    <WarningsAsErrors>$(WarningsAsErrors);NU1605</WarningsAsErrors>
+    <NoWarn>1701;1702;CS0067</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Factories\**" />
+    <EmbeddedResource Remove="Factories\**" />
+    <None Remove="Factories\**" />
+    <Page Remove="Factories\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="handbrakepineapple.ico" />
+    <None Remove="public.4096.key" />
+    <None Remove="Views\Images\close_no_ring.png" />
+    <None Remove="Views\Images\Dark\Reorder.png" />
+    <None Remove="Views\Images\EmptyCoverArt.png" />
+    <None Remove="Views\Images\error.png" />
+    <None Remove="Views\Images\Light\Reorder.png" />
+    <None Remove="Views\Images\pause_small.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+	<PackageReference Include="Autofac" Version="9.0.0" />
+    <PackageReference Include="gong-wpf-dragdrop" Version="4.0.0" />
+    <PackageReference Include="Microsoft.Toolkit.Uwp.Notifications" Version="7.1.3" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+    <PackageReference Include="System.Management" Version="10.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HandBrake.App.Core\HandBrake.App.Core.csproj" />
+    <ProjectReference Include="..\HandBrake.Interop\HandBrake.Interop.csproj" />
+    <ProjectReference Include="..\HandBrake.Worker\HandBrake.Worker.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="handbrakepineapple.ico" />
+    <Resource Include="Views\Images\close64.png" />
+    <Resource Include="Views\Images\close64_dark.png" />
+    <Resource Include="Views\Images\close_no_ring.png" />
+    <Resource Include="Views\Images\Complete.png" />
+    <Resource Include="Views\Images\Dark\Activity.png" />
+    <Resource Include="Views\Images\Dark\Activity2.png" />
+    <Resource Include="Views\Images\Dark\Add.png" />
+    <Resource Include="Views\Images\Dark\AddToQueue.png" />
+    <Resource Include="Views\Images\Dark\Advanced.png" />
+    <Resource Include="Views\Images\Dark\Copy.png" />
+    <Resource Include="Views\Images\Dark\Disc.png" />
+    <Resource Include="Views\Images\Dark\File.png" />
+    <Resource Include="Views\Images\Dark\Folder.png" />
+    <Resource Include="Views\Images\Dark\New.png" />
+    <Resource Include="Views\Images\Dark\Presets2.png" />
+    <Resource Include="Views\Images\Dark\Preview.png" />
+    <Resource Include="Views\Images\Dark\Queue.png" />
+    <Resource Include="Views\Images\Dark\Refresh.png" />
+    <Resource Include="Views\Images\Dark\Remove.png" />
+    <Resource Include="Views\Images\Dark\Reorder.png" />
+    <Resource Include="Views\Images\Dark\Settings.png" />
+    <Resource Include="Views\Images\Dark\Source.png" />
+    <Resource Include="Views\Images\Disc.png" />
+    <Resource Include="Views\Images\disc_small.png" />
+    <Resource Include="Views\Images\EmptyCoverArt.png" />
+    <Resource Include="Views\Images\error.png" />
+    <Resource Include="Views\Images\ErrorX.png" />
+    <Resource Include="Views\Images\information.png" />
+    <Resource Include="Views\Images\information64.png" />
+    <Resource Include="Views\Images\Light\Activity.png" />
+    <Resource Include="Views\Images\Light\Activity2.png" />
+    <Resource Include="Views\Images\Light\Add.png" />
+    <Resource Include="Views\Images\Light\AddToQueue.png" />
+    <Resource Include="Views\Images\Light\Advanced.png" />
+    <Resource Include="Views\Images\Light\Copy.png" />
+    <Resource Include="Views\Images\Light\Disc.png" />
+    <Resource Include="Views\Images\Light\File.png" />
+    <Resource Include="Views\Images\Light\Folder.png" />
+    <Resource Include="Views\Images\Light\New.png" />
+    <Resource Include="Views\Images\Light\Presets2.png" />
+    <Resource Include="Views\Images\Light\Preview.png" />
+    <Resource Include="Views\Images\Light\Queue.png" />
+    <Resource Include="Views\Images\Light\Refresh.png" />
+    <Resource Include="Views\Images\Light\Remove.png" />
+    <Resource Include="Views\Images\Light\Reorder.png" />
+    <Resource Include="Views\Images\Light\Settings.png" />
+    <Resource Include="Views\Images\Light\Source.png" />
+    <Resource Include="Views\Images\logo128.png" />
+    <Resource Include="Views\Images\logo64.png" />
+    <Resource Include="Views\Images\Pause.png" />
+    <Resource Include="Views\Images\pause_small.png" />
+    <Resource Include="Views\Images\Play.png" />
+    <Resource Include="Views\Images\Play_small.png" />
+    <Resource Include="Views\Images\question.png" />
+    <Resource Include="Views\Images\stop.png" />
+    <Resource Include="Views\Images\warningsmall.png" />
+    <Resource Include="Views\Images\Working0.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="portable.ini.template">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="public.4096.key" />
+    <EmbeddedResource Include="public.key" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Update="Properties\ResourcesTooltips.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>ResourcesTooltips.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Properties\ResourcesTooltips.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <LastGenOutput>ResourcesTooltips.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Page Update="Themes\Controls\ContextMenuLight.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </Page>
+    <Page Update="Themes\Controls\GroupBoxDark.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Themes\Controls\ToolbarLight.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Themes\Controls\ToolbarDark.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Themes\Light.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </Page>
+    <Page Update="Views\Standalone\CropPanelView.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </Page>
+    <Page Update="Views\Styles\ThemedStyles.xaml">
+      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
+    </Page>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Properties\PublishProfiles\" />
+  </ItemGroup>
+</Project>

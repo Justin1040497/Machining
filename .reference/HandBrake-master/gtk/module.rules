@@ -1,0 +1,43 @@
+$(eval $(call import.MODULE.rules,GTK))
+
+build: gtk.build
+install: gtk.install
+install-strip: gtk.install-strip
+uninstall: gtk.uninstall
+clean: gtk.clean
+xclean: gtk.xclean
+
+gtk.configure: $(GTK.SETUP.stamp)
+
+$(GTK.SETUP.stamp): | $(LIBHB.a) $(BUILD/)GNUmakefile
+	$(GTK.CONFIGURE.env) $(MESON.exe) setup \
+		$(call fn.ABSOLUTE,$(GTK.build/)) $(call fn.ABSOLUTE,$(GTK.src/)) $(GTK.CONFIGURE.extra) $(GTK.CONFIGURE.cross)
+
+$(GTK.CONFIGURE.stamp): $(BUILD/)GNUmakefile | $(GTK.SETUP.stamp)
+	$(MESON.exe) configure $(call fn.ABSOLUTE,$(GTK.build/)) $(GTK.CONFIGURE.extra)
+	$(TOUCH.exe) $(call fn.ABSOLUTE,$(GTK.CONFIGURE.stamp))
+
+gtk.reconfigure: | $(GTK.SETUP.stamp)
+	$(MESON.exe) setup --reconfigure \
+		$(call fn.ABSOLUTE,$(GTK.build/)) $(call fn.ABSOLUTE,$(GTK.src/)) $(GTK.CONFIGURE.extra)
+
+gtk.build: | $(GTK.SETUP.stamp) $(GTK.CONFIGURE.stamp)
+	+$(NINJA.exe) -C $(GTK.build/) $(GTK.BUILD.extra)
+
+gtk.test:
+	$(MESON.exe) test -C $(GTK.build/) $(GTK.BUILD.extra)
+
+gtk.install-strip:
+	$(MESON.exe) install -C $(GTK.build/) --strip
+
+gtk.install:
+	$(MESON.exe) install -C $(GTK.build/)
+
+gtk.uninstall:
+	$(NINJA.exe) uninstall -C $(GTK.build/)
+
+gtk.clean:
+	$(NINJA.exe) clean -C $(GTK.build/)
+
+gtk.xclean:
+	$(RM.exe) -fr $(GTK.build/)

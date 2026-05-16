@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackageId>HandBrake.Worker</PackageId>
+    <Authors>HandBrake Team</Authors>
+    <Company>HandBrake Team</Company>
+    <Product>HandBrake.Worker</Product>
+    <Copyright>Copyright © 2003-2026 HandBrake Team</Copyright>
+    <Description>HandBrake is an open-source, GPL-licensed, multiplatform,video transcoder.</Description>
+    <PackageProjectUrl>https://handbrake.fr</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/HandBrake/HandBrake</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <AssemblyVersion>1.11.0.0</AssemblyVersion>
+    <Platforms>AnyCPU</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <ApplicationIcon>handbrakepineapple.ico</ApplicationIcon>
+    <StartupObject />
+    <AssemblyName>HandBrake.Worker</AssemblyName>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <AppendRuntimeIdentifierToOutputPath>false</AppendRuntimeIdentifierToOutputPath>
+    <FileVersion>1.11.0.0</FileVersion>
+    <Version>1.11.0</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HandBrake.Interop\HandBrake.Interop.csproj" />
+  </ItemGroup>
+
+</Project>

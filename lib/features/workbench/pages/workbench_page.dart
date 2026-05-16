@@ -43,7 +43,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   OutputFormat selectedOutputFormat = OutputFormat.mp4;
   VideoCodec selectedVideoCodec = VideoCodec.h264;
   EncoderBackend selectedEncoderBackend = EncoderBackend.auto;
-  ResolutionPreset selectedResolutionPreset = ResolutionPreset.p1080;
+  ResolutionPreset selectedResolutionPreset = ResolutionPreset.original;
   CompressionMode selectedCompressionMode = CompressionMode.smart;
   SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced;
   String? selectedTaskId;
@@ -62,6 +62,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   final Set<String> thumbnailFailureKeys = {};
   late final TextEditingController exportDirectoryController;
   late final TextEditingController outputFileNameController;
+  OverlayEntry? workbenchNoticeEntry;
+  Timer? workbenchNoticeTimer;
   final Set<String> notifiedAnalysisErrorKeys = {};
   final Set<String> notifiedCompletedTaskKeys = {};
 
@@ -74,6 +76,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   @override
   void dispose() {
+    workbenchNoticeTimer?.cancel();
+    workbenchNoticeEntry?.remove();
     exportDirectoryController.dispose();
     outputFileNameController.dispose();
     super.dispose();
@@ -263,7 +267,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       setState(() {
         selectedOutputFormat = config.outputFormat;
         selectedVideoCodec = config.videoCodec;
-        selectedEncoderBackend = config.encoderBackend;
+        selectedEncoderBackend = EncoderBackend.auto;
         selectedResolutionPreset = config.resolutionPreset;
         selectedCompressionMode = config.compressionMode;
         selectedSmartPreset =
@@ -359,30 +363,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     final outputPath = task.outputPath?.trim();
-    final message = outputPath == null || outputPath.isEmpty
-        ? '任务已完成，但没有记录输出路径。'
-        : '输出路径：\n$outputPath';
 
     await showDialog<void>(
       context: context,
       builder: (context) {
-        return AlertDialog(
-          title: const Text('压缩完成'),
-          content: SelectableText(message),
-          actions: [
-            if (outputPath != null && outputPath.isNotEmpty)
-              TextButton(
-                onPressed: () {
+        return _TaskCompletedDialog(
+          fileName: outputPath == null || outputPath.isEmpty
+              ? task.fileName
+              : path.basename(outputPath),
+          outputPath: outputPath,
+          onClose: () => Navigator.of(context).pop(),
+          onReveal: outputPath == null || outputPath.isEmpty
+              ? null
+              : () {
                   Navigator.of(context).pop();
-                  unawaited(revealPathInFinder(outputPath));
+                  unawaited(revealPathInFileManager(outputPath));
                 },
-                child: const Text('在 Finder 中打开'),
-              ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('知道了'),
-            ),
-          ],
         );
       },
     );
@@ -503,7 +499,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       selectedTaskId = task.id;
       selectedOutputFormat = task.config.outputFormat;
       selectedVideoCodec = task.config.videoCodec;
-      selectedEncoderBackend = task.config.encoderBackend;
+      selectedEncoderBackend = EncoderBackend.auto;
       selectedResolutionPreset = task.config.resolutionPreset;
       selectedCompressionMode = task.config.compressionMode;
       selectedSmartPreset =
@@ -525,7 +521,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     var draftQualityIndex = selectedQualityIndex;
     var draftOutputFormat = selectedOutputFormat;
     var draftVideoCodec = selectedVideoCodec;
-    var draftEncoderBackend = selectedEncoderBackend;
+    var draftEncoderBackend = EncoderBackend.auto;
     var draftResolutionPreset = selectedResolutionPreset;
     var draftCompressionMode = selectedCompressionMode;
     var draftSmartPreset = selectedSmartPreset;
@@ -616,7 +612,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               ),
               onClose: () => Navigator.of(dialogContext).pop(),
               onOpenSource: () {
-                unawaited(revealPathInFinder(task.inputPath));
+                unawaited(revealPathInFileManager(task.inputPath));
               },
               onSave: () {
                 unawaited(saveDraftAndClose(dialogContext));
@@ -936,8 +932,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       ),
       items: const [
         PopupMenuItem(
-          value: TaskContextMenuAction.revealInFinder,
-          child: Text('在 Finder 中打开'),
+          value: TaskContextMenuAction.revealInFileManager,
+          child: Text('打开文件所在位置'),
         ),
         PopupMenuItem(
           value: TaskContextMenuAction.rename,
@@ -952,8 +948,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     switch (selectedAction) {
-      case TaskContextMenuAction.revealInFinder:
-        await revealTaskInFinder(task);
+      case TaskContextMenuAction.revealInFileManager:
+        await revealTaskInFileManager(task);
       case TaskContextMenuAction.rename:
         await renameTask(task);
       case TaskContextMenuAction.delete:
@@ -961,27 +957,44 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  Future<void> revealTaskInFinder(MediaTask task) async {
+  Future<void> revealTaskInFileManager(MediaTask task) async {
     final targetPath = task.outputPath?.trim().isNotEmpty == true
         ? task.outputPath!.trim()
         : task.inputPath;
-    await revealPathInFinder(targetPath);
+    await revealPathInFileManager(targetPath);
   }
 
-  Future<void> revealPathInFinder(String targetPath) async {
-    if (!Platform.isMacOS) {
-      showWorkbenchSnackBar('当前系统暂不支持 Finder');
+  Future<void> revealPathInFileManager(String targetPath) async {
+    final trimmedPath = targetPath.trim();
+    if (trimmedPath.isEmpty) {
+      showWorkbenchSnackBar('没有可打开的文件位置');
       return;
     }
 
     try {
-      final result = await Process.run('open', ['-R', targetPath]);
+      final result = await runRevealInFileManager(trimmedPath);
       if (result.exitCode != 0) {
-        showWorkbenchSnackBar('打开 Finder 失败: ${result.stderr}');
+        showWorkbenchSnackBar('打开文件所在位置失败: ${result.stderr}');
       }
     } on Object catch (error) {
-      showWorkbenchSnackBar('打开 Finder 失败: $error');
+      showWorkbenchSnackBar('打开文件所在位置失败: $error');
     }
+  }
+
+  Future<ProcessResult> runRevealInFileManager(String targetPath) {
+    if (Platform.isMacOS) {
+      return Process.run('open', ['-R', targetPath]);
+    }
+
+    if (Platform.isWindows) {
+      return Process.run('explorer', ['/select,$targetPath']);
+    }
+
+    if (Platform.isLinux) {
+      return Process.run('xdg-open', [path.dirname(targetPath)]);
+    }
+
+    return Future.value(ProcessResult(0, 1, '', '当前系统暂不支持打开文件所在位置'));
   }
 
   Future<void> renameTask(MediaTask task) async {
@@ -1167,6 +1180,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     final initialConfig = task.config.copyWith(
       outputFormat: WorkbenchFormatters.inferInitialOutputFormat(task),
       videoCodec: WorkbenchFormatters.inferInitialVideoCodec(task),
+      encoderBackend: EncoderBackend.auto,
       resolutionPreset: ResolutionPreset.original,
       outputDirectory: '',
       compressionCrf: WorkbenchConstants.qualityOptions[nextQualityIndex].crf,
@@ -1255,13 +1269,38 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-        action: action,
-      ),
+    workbenchNoticeTimer?.cancel();
+    workbenchNoticeEntry?.remove();
+
+    final overlay = Overlay.of(context);
+    workbenchNoticeEntry = OverlayEntry(
+      builder: (context) {
+        return _WorkbenchNotice(
+          message: message,
+          actionLabel: action?.label,
+          onActionPressed: action == null
+              ? null
+              : () {
+                  hideWorkbenchNotice();
+                  action.onPressed();
+                },
+          onDismissed: hideWorkbenchNotice,
+        );
+      },
     );
+
+    overlay.insert(workbenchNoticeEntry!);
+    workbenchNoticeTimer = Timer(
+      const Duration(seconds: 4),
+      hideWorkbenchNotice,
+    );
+  }
+
+  void hideWorkbenchNotice() {
+    workbenchNoticeTimer?.cancel();
+    workbenchNoticeTimer = null;
+    workbenchNoticeEntry?.remove();
+    workbenchNoticeEntry = null;
   }
 
   Future<void> showWorkbenchDialog({
@@ -1633,5 +1672,288 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     return '${smartPreset.label} / ${selectedQualityOption.label}';
+  }
+}
+
+class _WorkbenchNotice extends StatelessWidget {
+  const _WorkbenchNotice({
+    required this.message,
+    required this.onDismissed,
+    this.actionLabel,
+    this.onActionPressed,
+  });
+
+  final String message;
+  final String? actionLabel;
+  final VoidCallback? onActionPressed;
+  final VoidCallback onDismissed;
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final noticeWidth = screenWidth < 460 ? screenWidth - 32 : 380.0;
+
+    return Positioned(
+      top: WorkbenchConstants.appTopBarHeight + 14,
+      right: 16,
+      child: SafeArea(
+        child: Material(
+          color: Colors.transparent,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: noticeWidth,
+              minWidth: screenWidth < 460 ? 0 : 320,
+            ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE4E8F0)),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x1A000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(top: 2),
+                      child: Icon(
+                        Icons.info_outline_rounded,
+                        size: 18,
+                        color: Color(0xFF6290FF),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        message,
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Color(0xFF1E2430),
+                          fontSize: 13,
+                          height: 1.35,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                    if (actionLabel != null && onActionPressed != null) ...[
+                      const SizedBox(width: 8),
+                      TextButton(
+                        onPressed: onActionPressed,
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF4D7DFF),
+                          minimumSize: const Size(44, 30),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          textStyle: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        child: Text(actionLabel!),
+                      ),
+                    ],
+                    Tooltip(
+                      message: '关闭',
+                      child: IconButton(
+                        onPressed: onDismissed,
+                        icon: const Icon(Icons.close_rounded, size: 17),
+                        color: const Color(0xFF8A9099),
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints.tightFor(
+                          width: 30,
+                          height: 30,
+                        ),
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TaskCompletedDialog extends StatelessWidget {
+  const _TaskCompletedDialog({
+    required this.fileName,
+    required this.outputPath,
+    required this.onClose,
+    required this.onReveal,
+  });
+
+  final String fileName;
+  final String? outputPath;
+  final VoidCallback onClose;
+  final VoidCallback? onReveal;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasOutputPath = outputPath != null && outputPath!.isNotEmpty;
+
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 410),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 22, 24, 21),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0x176290FF),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      Icons.check_rounded,
+                      color: Color(0xFF6290FF),
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '压缩完成',
+                          style: TextStyle(
+                            color: Color(0xFF111111),
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          hasOutputPath
+                              ? '文件已保存，可以打开所在位置查看。'
+                              : '任务已完成，但没有记录输出路径。',
+                          style: const TextStyle(
+                            color: Color(0xFF777777),
+                            fontSize: 12,
+                            height: 1.45,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF7F7F7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE4E4E4)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      fileName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Color(0xFF111111),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (hasOutputPath) ...[
+                      const SizedBox(height: 7),
+                      SelectableText(
+                        outputPath!,
+                        style: const TextStyle(
+                          color: Color(0xFF8C8C8C),
+                          fontSize: 11,
+                          height: 1.35,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(height: 22),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  if (onReveal != null) ...[
+                    _CompletedDialogActionButton(
+                      label: '打开文件所在位置',
+                      backgroundColor: const Color(0xFF6290FF),
+                      onPressed: onReveal!,
+                      width: 118,
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  _CompletedDialogActionButton(
+                    label: '知道了',
+                    backgroundColor: const Color(0xFFB8B8B8),
+                    onPressed: onClose,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompletedDialogActionButton extends StatelessWidget {
+  const _CompletedDialogActionButton({
+    required this.label,
+    required this.backgroundColor,
+    required this.onPressed,
+    this.width = 75,
+  });
+
+  final String label;
+  final Color backgroundColor;
+  final VoidCallback onPressed;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 28,
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          backgroundColor: backgroundColor,
+          foregroundColor: Colors.white,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+        ),
+        child: Text(label),
+      ),
+    );
   }
 }

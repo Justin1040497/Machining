@@ -1,0 +1,53 @@
+$(eval $(call import.MODULE.rules,LIBHB))
+
+libhb.build: $(LIBHB.a)
+
+$(LIBHB.a): | $(dir $(LIBHB.a))
+$(LIBHB.a): $(LIBHB.metal.o) $(LIBHB.c.o) $(LIBHB.m.o)
+	$(AR.exe) rsu $@ $^
+
+$(LIBHB.c.o): $(LIBHB.d)
+$(LIBHB.c.o): | $(dir $(LIBHB.c.o))
+$(LIBHB.c.o): $(BUILD/)%.o: $(SRC/)%.c
+	$(call LIBHB.GCC.C_O,$@,$<)
+$(LIBHB.m.o): $(LIBHB.d)
+$(LIBHB.m.o): | $(dir $(LIBHB.m.o))
+$(LIBHB.m.o): $(BUILD/)%.o: $(SRC/)%.m
+	$(call LIBHB.GCC.C_O,$@,$<)
+
+$(LIBHB.metal.o): $(LIBHB.d)
+$(LIBHB.metal.o): | $(dir $(LIBHB.metal.o))
+$(LIBHB.metal.o): $(BUILD/)%.o: $(SRC/)%.metal
+	$(call LIBHB.METAL.C_O,$(patsubst %.o,%,$@),$<)
+
+$(LIBHB.m4.out): $(BUILD/)project/handbrake.m4
+$(LIBHB.m4.out): | $(dir $(LIBHB.m4.out))
+$(LIBHB.m4.out): $(LIBHB.build/)%: $(LIBHB.src/)%.m4
+	$(M4.exe) -Iproject $< > $@
+
+$(LIBHB.h.out): | $(dir $(LIBHB.h.out))
+$(LIBHB.h.out): $(BUILD/)%: $(SRC/)%
+	$(CP.exe) $< $@
+
+libhb.clean:
+	$(RM.exe) -f $(LIBHB.out)
+
+###############################################################################
+
+ifeq (1-mingw,$(HOST.cross)-$(HOST.system))
+
+libhb.build: $(LIBHB.dll)
+
+$(LIBHB.dll): | $(dirname $(LIBHB.dll) $(LIBHB.lib))
+$(LIBHB.dll): $(LIBHB.c.o)
+	$(call LIBHB.GCC.DYLIB++,$@,$^ $(LIBHB.dll.libs))
+ifeq (none,$(FFMPEG.GCC.g))
+	$(STRIP.exe) -s $(LIBHB.dll)
+endif
+
+endif
+
+###############################################################################
+
+clean: libhb.clean
+build: libhb.build

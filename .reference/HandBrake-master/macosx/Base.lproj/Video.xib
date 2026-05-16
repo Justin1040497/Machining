@@ -1,0 +1,737 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="HBVideoController">
+            <connections>
+                <outlet property="encoderOptionsView" destination="6Tf-Wn-haS" id="i6p-jq-gD8"/>
+                <outlet property="framerateVfrPfrButton" destination="Fc1-EX-DWd" id="8QD-xk-iyu"/>
+                <outlet property="presetSlider" destination="fue-2d-Bjn" id="Y5o-X7-1oU"/>
+                <outlet property="unparseTextField" destination="dwn-bf-Ua0" id="nAq-NT-A51"/>
+                <outlet property="vidQualitySlider" destination="GPu-Ht-bKg" id="UgM-J6-en4"/>
+                <outlet property="view" destination="wAC-5p-nXb" id="i3V-vv-tDn"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <view id="wAC-5p-nXb">
+            <rect key="frame" x="0.0" y="0.0" width="920" height="386"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="150" translatesAutoresizingMaskIntoConstraints="NO" id="gfa-Hb-cDP">
+                    <rect key="frame" x="294" y="356" width="45" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Quality:" id="F3s-qR-qeE">
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="pD7-5v-U6l"/>
+                    </connections>
+                </textField>
+                <textField toolTip="Average Bitrate varies quality to ensure the data rate remains relatively consistent throughout the video." focusRingType="none" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="A3o-Zx-OfM">
+                    <rect key="frame" x="504" y="309" width="78" height="19"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="78" id="EZ2-qD-5pb"/>
+                    </constraints>
+                    <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" id="eQl-KB-XJu">
+                        <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" minimumIntegerDigits="0" maximumIntegerDigits="42" id="TQJ-nd-2BX">
+                            <real key="minimum" value="1"/>
+                            <real key="maximum" value="1000000"/>
+                        </numberFormatter>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="enabled2" keyPath="self.video" previousBinding="mjs-X8-KV8" id="VTs-xH-tZg">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.avgBitrate" id="YEC-nC-Y5Q">
+                            <dictionary key="options">
+                                <bool key="NSContinuouslyUpdatesValue" value="YES"/>
+                                <integer key="NSNotApplicablePlaceholder" value="0"/>
+                                <integer key="NSNullPlaceholder" value="0"/>
+                                <bool key="NSRaisesForNotApplicableKeys" value="NO"/>
+                                <bool key="NSValidatesImmediately" value="YES"/>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled3" keyPath="self.video.isAverageBitrateSupported" previousBinding="VTs-xH-tZg" id="AFt-8F-tsu">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled" keyPath="self.video.qualityType" id="mjs-X8-KV8">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </textField>
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="50" translatesAutoresizingMaskIntoConstraints="NO" id="Pai-3Q-Gs3">
+                    <rect key="frame" x="527" y="356" width="11" height="14"/>
+                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="0" id="bvD-W7-O0N">
+                        <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="wYW-16-bWA"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="EsL-F5-tAO"/>
+                        <binding destination="-2" name="enabled" keyPath="self.video.isConstantQualitySupported" id="vfD-XL-S4P"/>
+                        <binding destination="-2" name="value" keyPath="self.video.quality" id="tMZ-Xb-TuF"/>
+                    </connections>
+                </textField>
+                <popUpButton toolTip="Framerate (Frames Per Second). Number of pictures displayed during each second of video." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9tc-EO-QMd">
+                    <rect key="frame" x="113" y="327" width="151" height="22"/>
+                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="0VS-Ah-Q3S">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <menu key="menu" id="Jj0-Qw-HF8">
+                            <items>
+                                <menuItem id="Xzy-hl-maq"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <connections>
+                        <accessibilityConnection property="title" destination="bAn-iZ-ieF" id="Tje-aM-83p"/>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="yN5-l3-JRJ">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="selectedValue" keyPath="self.video.frameRate" previousBinding="Heu-SS-Uwq" id="XC7-GV-Uae">
+                            <dictionary key="options">
+                                <bool key="NSAllowsEditingMultipleValuesSelection" value="NO"/>
+                                <string key="NSValueTransformerName">HBFrameRateTransformer</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="content" keyPath="self.video.frameRates" id="Heu-SS-Uwq"/>
+                    </connections>
+                </popUpButton>
+                <button translatesAutoresizingMaskIntoConstraints="NO" id="bnV-aE-FVh">
+                    <rect key="frame" x="344" y="285" width="129" height="16"/>
+                    <string key="toolTip">Multi-pass encoding analyzes the entire source video before encoding. The information gathered enables the encoder to make more informed decisions about quality and data rate in Average Bitrate mode.</string>
+                    <buttonCell key="cell" type="check" title="Multi-pass encoding" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="nPA-nO-Eik">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="c4g-dz-q05">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.multiPass" id="oMA-Mr-zX3"/>
+                        <binding destination="-2" name="enabled2" keyPath="self.video.multiPassSupported" previousBinding="c4g-dz-q05" id="e4I-LB-isN">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </button>
+                <button toolTip="Turbo first pass speeds up the analysis pass of a multi-pass encode for a slight penalty to analysis." translatesAutoresizingMaskIntoConstraints="NO" id="olm-zg-k9Y">
+                    <rect key="frame" x="503" y="285" width="125" height="16"/>
+                    <buttonCell key="cell" type="check" title="Turbo analysis pass" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="vSc-VB-NEv">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled2" keyPath="self.video" previousBinding="iZE-er-OQN" id="Fbv-qd-JTg">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="hidden" keyPath="self.video.multiPass" previousBinding="Fbv-qd-JTg" id="rIt-i4-ObE">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled" keyPath="self.video.qualityType" id="iZE-er-OQN">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.turboMultiPass" id="4Ms-BT-qNe"/>
+                        <binding destination="-2" name="hidden2" keyPath="self.video.turboMultiPassSupported" previousBinding="rIt-i4-ObE" id="dcp-wp-0qC">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </button>
+                <popUpButton toolTip="Video encoder. Determines video type and settings used during encoding." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="xwK-Yu-a1e">
+                    <rect key="frame" x="113" y="351" width="151" height="22"/>
+                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="KHu-7m-NR7">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <menu key="menu" id="6Cs-jo-8Q6">
+                            <items>
+                                <menuItem id="cZC-bI-lgS"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <constraints>
+                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="143" id="8aS-6C-FvY"/>
+                    </constraints>
+                    <connections>
+                        <accessibilityConnection property="title" destination="rOd-nt-22T" id="d3c-sR-Kgt"/>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="Dhc-7W-mCB">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="selectedValue" keyPath="self.video.encoder" previousBinding="PbS-nr-Hjk" id="h1y-Vg-Gyg">
+                            <dictionary key="options">
+                                <bool key="NSAllowsEditingMultipleValuesSelection" value="NO"/>
+                                <string key="NSValueTransformerName">HBVideoEncoderTransformer</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="content" keyPath="self.video.encoders" id="PbS-nr-Hjk"/>
+                    </connections>
+                </popUpButton>
+                <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="bAn-iZ-ieF">
+                    <rect key="frame" x="18" y="332" width="93" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Framerate (FPS):" id="SJc-tv-AMH">
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="FB8-Bt-u3y"/>
+                    </connections>
+                </textField>
+                <popUpButton toolTip="Color Range. Determines the values of the reference black and white. Set to limited to maximize compatibility." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="R00-pj-eFX">
+                    <rect key="frame" x="113" y="261" width="133" height="22"/>
+                    <popUpButtonCell key="cell" type="push" title="Same As Source" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="F37-pp-Zet" id="gzf-9B-0My">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <menu key="menu" title="OtherViews" id="r18-GT-7jT">
+                            <items>
+                                <menuItem title="Same As Source" state="on" id="F37-pp-Zet"/>
+                                <menuItem title="Limited" tag="1" id="0jj-Au-RHD"/>
+                                <menuItem title="Full" tag="2" id="TVE-3O-C2l"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <constraints>
+                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="125" id="z1D-rh-UvU"/>
+                    </constraints>
+                    <connections>
+                        <accessibilityConnection property="title" destination="7oJ-hv-HBm" id="ldG-PE-mUV"/>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="raL-U2-uzQ">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="selectedTag" keyPath="self.video.colorRange" id="9Rn-sf-bfZ"/>
+                    </connections>
+                </popUpButton>
+                <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="7oJ-hv-HBm">
+                    <rect key="frame" x="18" y="266" width="93" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Color Range:" id="yBk-7V-j1G">
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="CAE-c3-Xkf"/>
+                    </connections>
+                </textField>
+                <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="200" translatesAutoresizingMaskIntoConstraints="NO" id="rOd-nt-22T">
+                    <rect key="frame" x="18" y="356" width="93" height="14"/>
+                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Video Encoder:" id="Mrb-6Q-0YM">
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="2Sr-Kw-dnE"/>
+                    </connections>
+                </textField>
+                <slider horizontalHuggingPriority="1000" verticalHuggingPriority="749" horizontalCompressionResistancePriority="200" translatesAutoresizingMaskIntoConstraints="NO" id="GPu-Ht-bKg">
+                    <rect key="frame" x="359" y="333" width="543" height="17"/>
+                    <string key="toolTip">Constant Quality varies bitrate to ensure visual quality remains relatively consistent throughout the video.
+
+Adjust the quality slider to the right to increase quality or to the left to decrease quality, in small increments of plus or minus 1-2.
+
+Recommended values for the x264 and x265 encoders are RF 18-28. Higher quality settings may produce extremely large files.
+
+x264 is lossless at RF 0.</string>
+                    <sliderCell key="cell" controlSize="mini" continuous="YES" state="on" alignment="left" maxValue="51" doubleValue="33.149999999999999" tickMarkPosition="above" sliderType="linear" id="hOs-xu-ZdT">
+                        <font key="font" metaFont="label" size="9"/>
+                    </sliderCell>
+                    <connections>
+                        <binding destination="-2" name="enabled2" keyPath="self.video" previousBinding="wCA-ag-GHJ" id="ywk-WQ-GNY">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled3" keyPath="self.video.isConstantQualitySupported" previousBinding="ywk-WQ-GNY" id="riO-a0-Jfa">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled" keyPath="self.video.qualityType" id="wCA-ag-GHJ"/>
+                    </connections>
+                </slider>
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="60" translatesAutoresizingMaskIntoConstraints="NO" id="1au-ZO-l1i">
+                    <rect key="frame" x="502" y="356" width="21" height="14"/>
+                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="RF:" id="rRB-9F-pHn">
+                        <font key="font" metaFont="controlContent" size="11"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                    <connections>
+                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="S90-zY-jeW"/>
+                        <binding destination="-2" name="value" keyPath="self.video.constantQualityLabel" id="ri5-aE-FP5"/>
+                        <binding destination="-2" name="enabled" keyPath="self.video.isConstantQualitySupported" id="6YN-nu-K6b"/>
+                    </connections>
+                </textField>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Vae-sv-7Up">
+                    <rect key="frame" x="344" y="355.5" width="114" height="15"/>
+                    <buttonCell key="cell" type="radio" title="Constant Quality" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="ZjL-cY-O5f">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="Ewd-OO-T3Z">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled2" keyPath="self.video.isConstantQualitySupported" previousBinding="Ewd-OO-T3Z" id="cEw-6S-gon">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.qualityType" id="X1H-PE-sRI"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="brN-9J-qa1">
+                    <rect key="frame" x="344" y="310.5" width="147" height="15"/>
+                    <buttonCell key="cell" type="radio" title="Average Bitrate (kbps):" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="VQe-CK-YDR">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="Lf0-yc-zAF">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="enabled2" keyPath="self.video.isAverageBitrateSupported" previousBinding="Lf0-yc-zAF" id="XaR-Gg-soY">
+                            <dictionary key="options">
+                                <integer key="NSMultipleValuesPlaceholder" value="-1"/>
+                                <integer key="NSNoSelectionPlaceholder" value="-1"/>
+                                <integer key="NSNotApplicablePlaceholder" value="-1"/>
+                                <integer key="NSNullPlaceholder" value="-1"/>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.qualityType" id="SE7-YP-gRu">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Fc1-EX-DWd">
+                    <rect key="frame" x="116" y="310.5" width="120" height="15"/>
+                    <buttonCell key="cell" type="radio" title="Variable Framerate" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="zZo-75-1WG">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="CRn-MS-g4d">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.frameRateMode" id="Jy2-df-VQy">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Y3k-tv-pIb">
+                    <rect key="frame" x="116" y="288.5" width="126" height="15"/>
+                    <buttonCell key="cell" type="radio" title="Constant Framerate" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="6Dd-IP-Pwt">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="controlContent" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled" keyPath="self.video" id="pSp-Yq-ng6">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                        <binding destination="-2" name="value" keyPath="self.video.frameRateMode" id="aEW-Di-Bkn"/>
+                    </connections>
+                </button>
+                <stackView distribution="fill" orientation="vertical" alignment="centerX" spacing="0.0" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="h2m-9o-ibu">
+                    <rect key="frame" x="0.0" y="53" width="920" height="204"/>
+                    <subviews>
+                        <customView id="6Tf-Wn-haS" userLabel="presets view">
+                            <rect key="frame" x="0.0" y="0.0" width="920" height="204"/>
+                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                            <subviews>
+                                <textField focusRingType="none" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="200" translatesAutoresizingMaskIntoConstraints="NO" id="w5n-Cd-ztl">
+                                    <rect key="frame" x="58" y="158" width="42" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Preset:" id="QWu-rv-zfM">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="6co-mW-Uij"/>
+                                    </connections>
+                                </textField>
+                                <textField focusRingType="none" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="200" translatesAutoresizingMaskIntoConstraints="NO" id="O1a-XY-efg">
+                                    <rect key="frame" x="58" y="134" width="42" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Tune:" id="fzT-im-zKN">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="qqN-38-Teg"/>
+                                    </connections>
+                                </textField>
+                                <textField focusRingType="none" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="200" translatesAutoresizingMaskIntoConstraints="NO" id="LUQ-6T-KDP">
+                                    <rect key="frame" x="58" y="110" width="42" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Profile:" id="Hho-GY-qOR">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="bfj-4o-20r"/>
+                                    </connections>
+                                </textField>
+                                <textField focusRingType="none" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="200" translatesAutoresizingMaskIntoConstraints="NO" id="Axj-zl-Cyb">
+                                    <rect key="frame" x="58" y="86" width="42" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Level:" id="sTM-lk-DBC">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="cYi-Rc-gI9"/>
+                                    </connections>
+                                </textField>
+                                <popUpButton toolTip="Video encoder tune. Further adjusts encoder preset to optimize settings for specific scenarios." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cXd-X7-OhB">
+                                    <rect key="frame" x="102" y="129" width="132" height="22"/>
+                                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="DM4-nK-RoT">
+                                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <menu key="menu" id="rXn-NC-pEv"/>
+                                    </popUpButtonCell>
+                                    <connections>
+                                        <accessibilityConnection property="title" destination="O1a-XY-efg" id="trc-UR-fhX"/>
+                                        <binding destination="-2" name="enabled" keyPath="self.presetViewEnabled" id="Wpm-H8-E4d"/>
+                                        <binding destination="-2" name="selectedValue" keyPath="self.video.tune" previousBinding="MXu-MX-2ny" id="TEI-Z1-Pbs">
+                                            <dictionary key="options">
+                                                <string key="NSValueTransformerName">HBTuneTransformer</string>
+                                            </dictionary>
+                                        </binding>
+                                        <binding destination="-2" name="contentValues" keyPath="self.video.tunes" id="MXu-MX-2ny">
+                                            <dictionary key="options">
+                                                <string key="NSValueTransformerName">HBTunesTransformer</string>
+                                            </dictionary>
+                                        </binding>
+                                    </connections>
+                                </popUpButton>
+                                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kh8-d2-hSD">
+                                    <rect key="frame" x="102" y="105" width="132" height="22"/>
+                                    <string key="toolTip">Video encoder profile. Sets and ensures compliance with the specified video compression standard profile. Overrides all other settings.</string>
+                                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="Pod-LO-yvB">
+                                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <menu key="menu" id="gIJ-Xs-uVF"/>
+                                    </popUpButtonCell>
+                                    <connections>
+                                        <accessibilityConnection property="title" destination="LUQ-6T-KDP" id="zfD-Yv-FWB"/>
+                                        <binding destination="-2" name="enabled" keyPath="self.presetViewEnabled" id="OYk-nJ-dpx"/>
+                                        <binding destination="-2" name="selectedValue" keyPath="self.video.profile" previousBinding="ZNW-OE-4rP" id="CRz-On-Jen">
+                                            <dictionary key="options">
+                                                <string key="NSNullPlaceholder">auto</string>
+                                            </dictionary>
+                                        </binding>
+                                        <binding destination="-2" name="content" keyPath="self.video.profiles" id="ZNW-OE-4rP"/>
+                                    </connections>
+                                </popUpButton>
+                                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8CM-4G-oId">
+                                    <rect key="frame" x="102" y="81" width="132" height="22"/>
+                                    <string key="toolTip">Video encoder level. Sets and ensures compliance with the specified video compression standard level. Overrides all other settings.</string>
+                                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="hlv-UO-sPl">
+                                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <menu key="menu" id="Aes-nP-7qS"/>
+                                    </popUpButtonCell>
+                                    <connections>
+                                        <accessibilityConnection property="title" destination="Axj-zl-Cyb" id="v1S-v6-Ub4"/>
+                                        <binding destination="-2" name="enabled" keyPath="self.presetViewEnabled" id="sp3-SA-dvF"/>
+                                        <binding destination="-2" name="selectedValue" keyPath="self.video.level" previousBinding="Qra-An-Qa9" id="4Hq-BG-Ulb">
+                                            <dictionary key="options">
+                                                <string key="NSNullPlaceholder">auto</string>
+                                            </dictionary>
+                                        </binding>
+                                        <binding destination="-2" name="content" keyPath="self.video.levels" id="Qra-An-Qa9"/>
+                                    </connections>
+                                </popUpButton>
+                                <button translatesAutoresizingMaskIntoConstraints="NO" id="stU-Fo-Avu">
+                                    <rect key="frame" x="250" y="133" width="87" height="16"/>
+                                    <string key="toolTip">Fast Decode uses settings that reduce CPU usage during playback of the encoded video. Useful for devices that struggle to play video without stuttering.</string>
+                                    <buttonCell key="cell" type="check" title="Fast Decode" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="EcY-w1-bc8">
+                                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                    </buttonCell>
+                                    <connections>
+                                        <binding destination="-2" name="enabled" keyPath="self.presetViewEnabled" id="FIH-tq-fAP"/>
+                                        <binding destination="-2" name="value" keyPath="self.video.fastDecode" id="4jp-4p-LNV"/>
+                                        <binding destination="-2" name="hidden" keyPath="self.video.fastDecodeSupported" previousBinding="FIH-tq-fAP" id="AfB-x5-8eN">
+                                            <dictionary key="options">
+                                                <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                            </dictionary>
+                                        </binding>
+                                    </connections>
+                                </button>
+                                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="t4D-CZ-8G3">
+                                    <rect key="frame" x="248" y="110" width="104" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Additional Options:" id="ja7-Zr-y1P">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="7kM-A1-tFP"/>
+                                    </connections>
+                                </textField>
+                                <textField focusRingType="none" horizontalHuggingPriority="240" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="rbo-w6-ENd">
+                                    <rect key="frame" x="358" y="82" width="542" height="42"/>
+                                    <string key="toolTip">Additional video encoder options. For advanced use only.
+
+Syntax: option-1=foo:opt2=bar,baz</string>
+                                    <constraints>
+                                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="300" id="YcB-hR-KrW"/>
+                                        <constraint firstAttribute="height" constant="42" id="a6X-k4-xjy"/>
+                                    </constraints>
+                                    <textFieldCell key="cell" controlSize="small" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="zMF-lE-Bfa">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <accessibilityConnection property="title" destination="t4D-CZ-8G3" id="8GZ-2Y-Fsd"/>
+                                        <binding destination="-2" name="enabled" keyPath="self.presetViewEnabled" id="7Pf-kN-lAP"/>
+                                        <binding destination="-2" name="value" keyPath="self.video.videoOptionExtra" id="FNg-9F-Ukg"/>
+                                    </connections>
+                                </textField>
+                                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="SOa-xA-qAq">
+                                    <rect key="frame" x="237" y="158" width="54" height="14"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="50" id="A77-A3-lQn"/>
+                                    </constraints>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" id="J2V-D8-55I">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="dfQ-ef-HDl"/>
+                                        <binding destination="-2" name="value" keyPath="self.video.preset" id="pVA-9B-hDu"/>
+                                    </connections>
+                                </textField>
+                                <textField toolTip="Displays all internal video encoder options." focusRingType="none" horizontalHuggingPriority="240" horizontalCompressionResistancePriority="250" verticalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dwn-bf-Ua0">
+                                    <rect key="frame" x="18" y="12" width="884" height="57"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="22" id="aXf-QV-oea"/>
+                                    </constraints>
+                                    <textFieldCell key="cell" lineBreakMode="charWrapping" selectable="YES" sendsActionOnEndEditing="YES" alignment="left" title="Unparse:" id="CLk-dp-1b7">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="Rk3-rM-Cbd"/>
+                                    </connections>
+                                </textField>
+                                <textField focusRingType="none" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="Rrl-E5-sJ2">
+                                    <rect key="frame" x="18" y="180" width="95" height="14"/>
+                                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Encoder Options:" id="cRF-pz-1jt">
+                                        <font key="font" metaFont="controlContent" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                    <connections>
+                                        <binding destination="-2" name="textColor" keyPath="self.labelColor" id="UoW-6H-vgy"/>
+                                    </connections>
+                                </textField>
+                                <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="Ve7-0n-AJu">
+                                    <rect key="frame" x="119" y="185" width="781" height="5"/>
+                                </box>
+                                <slider verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="fue-2d-Bjn">
+                                    <rect key="frame" x="104" y="155" width="128" height="20"/>
+                                    <string key="toolTip">Video encoder preset. Adjusts encoder settings to balance compression efficiency and encoding speed. Slower encoder presets may use settings that are less compatible with certain devices.
+
+Adjust the slider to the right to increase compression efficiency at the expense of encoding speed, or to the left to increase encoding speed at the expense of compression efficiency.</string>
+                                    <constraints>
+                                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="124" id="1VD-1X-Ivb"/>
+                                    </constraints>
+                                    <sliderCell key="cell" controlSize="small" continuous="YES" state="on" alignment="left" maxValue="5" tickMarkPosition="above" numberOfTickMarks="2" allowsTickMarkValuesOnly="YES" sliderType="linear" id="ZSO-Fx-xZB"/>
+                                    <connections>
+                                        <accessibilityConnection property="title" destination="w5n-Cd-ztl" id="OR5-aR-Ihc"/>
+                                        <binding destination="-2" name="enabled" keyPath="self.presetViewEnabled" id="DEx-eY-Kf9"/>
+                                    </connections>
+                                </slider>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="width" secondItem="kh8-d2-hSD" secondAttribute="width" id="5pl-Yh-gh3"/>
+                                <constraint firstItem="w5n-Cd-ztl" firstAttribute="width" secondItem="LUQ-6T-KDP" secondAttribute="width" id="7oh-PN-d1I"/>
+                                <constraint firstItem="stU-Fo-Avu" firstAttribute="leading" secondItem="cXd-X7-OhB" secondAttribute="trailing" constant="21" id="9QH-2W-D4E"/>
+                                <constraint firstItem="t4D-CZ-8G3" firstAttribute="top" secondItem="rbo-w6-ENd" secondAttribute="top" id="9ne-7F-dEL"/>
+                                <constraint firstItem="O1a-XY-efg" firstAttribute="width" secondItem="w5n-Cd-ztl" secondAttribute="width" id="A4s-6l-CkH"/>
+                                <constraint firstItem="LUQ-6T-KDP" firstAttribute="leading" secondItem="O1a-XY-efg" secondAttribute="leading" id="D4w-FS-SK0"/>
+                                <constraint firstAttribute="bottom" secondItem="dwn-bf-Ua0" secondAttribute="bottom" constant="12" id="Fji-vZ-D9B"/>
+                                <constraint firstAttribute="trailing" secondItem="Ve7-0n-AJu" secondAttribute="trailing" constant="20" id="GKz-ra-Za0"/>
+                                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="stU-Fo-Avu" secondAttribute="trailing" constant="20" symbolic="YES" id="HFW-m8-KXl"/>
+                                <constraint firstItem="t4D-CZ-8G3" firstAttribute="leading" secondItem="8CM-4G-oId" secondAttribute="trailing" constant="20" id="HUN-Zo-wTw"/>
+                                <constraint firstItem="O1a-XY-efg" firstAttribute="leading" secondItem="w5n-Cd-ztl" secondAttribute="leading" id="Hj9-DD-Jgc"/>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="width" secondItem="cXd-X7-OhB" secondAttribute="width" id="HnJ-Pu-jJg"/>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="baseline" secondItem="w5n-Cd-ztl" secondAttribute="baseline" id="Hvn-wn-ziW"/>
+                                <constraint firstItem="cXd-X7-OhB" firstAttribute="leading" secondItem="O1a-XY-efg" secondAttribute="trailing" constant="8" id="J6M-u0-s7L"/>
+                                <constraint firstItem="8CM-4G-oId" firstAttribute="top" secondItem="kh8-d2-hSD" secondAttribute="bottom" constant="8" id="LJJ-Pb-ZUM"/>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="width" secondItem="8CM-4G-oId" secondAttribute="width" id="LvT-8v-Jix"/>
+                                <constraint firstAttribute="trailing" secondItem="rbo-w6-ENd" secondAttribute="trailing" constant="20" id="NeT-ot-UTb"/>
+                                <constraint firstItem="Ve7-0n-AJu" firstAttribute="trailing" secondItem="rbo-w6-ENd" secondAttribute="trailing" id="QHc-qt-Fhw"/>
+                                <constraint firstItem="cXd-X7-OhB" firstAttribute="baseline" secondItem="stU-Fo-Avu" secondAttribute="baseline" id="TY7-aI-GSe"/>
+                                <constraint firstItem="Rrl-E5-sJ2" firstAttribute="top" secondItem="6Tf-Wn-haS" secondAttribute="top" constant="10" id="TgQ-uN-cdN"/>
+                                <constraint firstItem="8CM-4G-oId" firstAttribute="baseline" secondItem="Axj-zl-Cyb" secondAttribute="baseline" id="V2P-Xb-6NM"/>
+                                <constraint firstItem="dwn-bf-Ua0" firstAttribute="leading" secondItem="6Tf-Wn-haS" secondAttribute="leading" constant="20" id="YLU-sI-wE9"/>
+                                <constraint firstItem="kh8-d2-hSD" firstAttribute="baseline" secondItem="LUQ-6T-KDP" secondAttribute="baseline" id="ZSR-Qu-TTl"/>
+                                <constraint firstItem="Rrl-E5-sJ2" firstAttribute="leading" secondItem="6Tf-Wn-haS" secondAttribute="leading" constant="20" id="cFy-gt-4Tm"/>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="baseline" secondItem="SOa-xA-qAq" secondAttribute="baseline" id="d0H-uT-C2g"/>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="leading" secondItem="w5n-Cd-ztl" secondAttribute="trailing" constant="8" id="d4w-dN-Kor"/>
+                                <constraint firstItem="rbo-w6-ENd" firstAttribute="leading" secondItem="t4D-CZ-8G3" secondAttribute="trailing" constant="8" id="fX5-ge-qgJ"/>
+                                <constraint firstItem="SOa-xA-qAq" firstAttribute="leading" secondItem="fue-2d-Bjn" secondAttribute="trailing" constant="9" id="fpM-FM-v0i"/>
+                                <constraint firstItem="cXd-X7-OhB" firstAttribute="top" secondItem="fue-2d-Bjn" secondAttribute="bottom" constant="8" id="gFK-Ja-0uF"/>
+                                <constraint firstItem="Axj-zl-Cyb" firstAttribute="leading" secondItem="LUQ-6T-KDP" secondAttribute="leading" id="gYb-xX-wdk"/>
+                                <constraint firstItem="cXd-X7-OhB" firstAttribute="baseline" secondItem="O1a-XY-efg" secondAttribute="baseline" id="gZb-41-Ibw"/>
+                                <constraint firstItem="w5n-Cd-ztl" firstAttribute="leading" secondItem="Rrl-E5-sJ2" secondAttribute="leading" constant="40" id="hUf-oP-F12"/>
+                                <constraint firstItem="LUQ-6T-KDP" firstAttribute="width" secondItem="Axj-zl-Cyb" secondAttribute="width" id="nFY-kt-Oe1"/>
+                                <constraint firstItem="kh8-d2-hSD" firstAttribute="top" secondItem="cXd-X7-OhB" secondAttribute="bottom" constant="8" id="oKf-gB-vp9"/>
+                                <constraint firstItem="Ve7-0n-AJu" firstAttribute="centerY" secondItem="Rrl-E5-sJ2" secondAttribute="centerY" id="pI2-l6-05s"/>
+                                <constraint firstItem="kh8-d2-hSD" firstAttribute="leading" secondItem="LUQ-6T-KDP" secondAttribute="trailing" constant="8" id="qQs-Cd-Crl"/>
+                                <constraint firstItem="dwn-bf-Ua0" firstAttribute="top" secondItem="8CM-4G-oId" secondAttribute="bottom" constant="16" id="s9P-cd-eHu"/>
+                                <constraint firstItem="Ve7-0n-AJu" firstAttribute="leading" secondItem="Rrl-E5-sJ2" secondAttribute="trailing" constant="8" id="uiY-F7-gJR"/>
+                                <constraint firstItem="8CM-4G-oId" firstAttribute="leading" secondItem="Axj-zl-Cyb" secondAttribute="trailing" constant="8" id="vVd-h7-c1U"/>
+                                <constraint firstItem="fue-2d-Bjn" firstAttribute="top" secondItem="Rrl-E5-sJ2" secondAttribute="bottom" constant="7" id="wYd-q0-rdZ"/>
+                                <constraint firstItem="kh8-d2-hSD" firstAttribute="baseline" secondItem="t4D-CZ-8G3" secondAttribute="baseline" id="wwz-lH-VCZ"/>
+                                <constraint firstItem="t4D-CZ-8G3" firstAttribute="leading" secondItem="kh8-d2-hSD" secondAttribute="trailing" constant="20" id="xYM-Nu-tX6"/>
+                                <constraint firstAttribute="trailing" secondItem="dwn-bf-Ua0" secondAttribute="trailing" constant="20" id="zQp-7m-Fm7"/>
+                            </constraints>
+                        </customView>
+                    </subviews>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
+            </subviews>
+            <constraints>
+                <constraint firstItem="gfa-Hb-cDP" firstAttribute="firstBaseline" secondItem="Vae-sv-7Up" secondAttribute="firstBaseline" id="0kX-Ab-X5K"/>
+                <constraint firstItem="bAn-iZ-ieF" firstAttribute="leading" secondItem="rOd-nt-22T" secondAttribute="leading" id="1Ef-t6-WNM"/>
+                <constraint firstItem="R00-pj-eFX" firstAttribute="top" secondItem="Y3k-tv-pIb" secondAttribute="bottom" constant="8" symbolic="YES" id="3oO-zW-zeT"/>
+                <constraint firstItem="gfa-Hb-cDP" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="9tc-EO-QMd" secondAttribute="trailing" constant="8" symbolic="YES" id="4cy-QR-OG6"/>
+                <constraint firstItem="Y3k-tv-pIb" firstAttribute="leading" secondItem="9tc-EO-QMd" secondAttribute="leading" id="5PE-fo-oii"/>
+                <constraint firstItem="9tc-EO-QMd" firstAttribute="width" secondItem="xwK-Yu-a1e" secondAttribute="width" id="7GS-Rj-bPM"/>
+                <constraint firstItem="9tc-EO-QMd" firstAttribute="baseline" secondItem="bAn-iZ-ieF" secondAttribute="baseline" id="7ME-g9-qFa"/>
+                <constraint firstItem="bAn-iZ-ieF" firstAttribute="width" secondItem="rOd-nt-22T" secondAttribute="width" id="7bO-dm-xB0"/>
+                <constraint firstItem="bnV-aE-FVh" firstAttribute="top" secondItem="brN-9J-qa1" secondAttribute="bottom" constant="11" id="7kD-fN-uKP"/>
+                <constraint firstItem="GPu-Ht-bKg" firstAttribute="leading" secondItem="Vae-sv-7Up" secondAttribute="leading" constant="16" id="8oT-Pe-dhL"/>
+                <constraint firstItem="brN-9J-qa1" firstAttribute="firstBaseline" secondItem="A3o-Zx-OfM" secondAttribute="firstBaseline" id="Aaw-iQ-f0a"/>
+                <constraint firstItem="1au-ZO-l1i" firstAttribute="baseline" secondItem="gfa-Hb-cDP" secondAttribute="baseline" id="BfH-Qs-3mV"/>
+                <constraint firstItem="bnV-aE-FVh" firstAttribute="leading" secondItem="brN-9J-qa1" secondAttribute="leading" id="D6T-CW-ala"/>
+                <constraint firstItem="A3o-Zx-OfM" firstAttribute="leading" secondItem="1au-ZO-l1i" secondAttribute="leading" id="F0a-Kc-s3X"/>
+                <constraint firstItem="7oJ-hv-HBm" firstAttribute="leading" secondItem="bAn-iZ-ieF" secondAttribute="leading" id="FBs-xM-65K"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="olm-zg-k9Y" secondAttribute="trailing" constant="20" id="Fsh-Kh-XyK"/>
+                <constraint firstItem="R00-pj-eFX" firstAttribute="leading" secondItem="7oJ-hv-HBm" secondAttribute="trailing" constant="8" symbolic="YES" id="GIg-Oa-2fQ"/>
+                <constraint firstItem="Pai-3Q-Gs3" firstAttribute="leading" secondItem="1au-ZO-l1i" secondAttribute="trailing" constant="8" symbolic="YES" id="GPO-LT-xtY"/>
+                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="h2m-9o-ibu" secondAttribute="bottom" constant="18" id="GUs-eQ-AGW"/>
+                <constraint firstItem="9tc-EO-QMd" firstAttribute="top" secondItem="xwK-Yu-a1e" secondAttribute="bottom" constant="8" id="GeU-VZ-YTd"/>
+                <constraint firstItem="olm-zg-k9Y" firstAttribute="leading" secondItem="bnV-aE-FVh" secondAttribute="trailing" constant="31" id="HWr-FL-VKu"/>
+                <constraint firstItem="7oJ-hv-HBm" firstAttribute="width" secondItem="bAn-iZ-ieF" secondAttribute="width" id="Iex-wW-LTD"/>
+                <constraint firstItem="xwK-Yu-a1e" firstAttribute="baseline" secondItem="gfa-Hb-cDP" secondAttribute="baseline" id="KMY-23-CNr"/>
+                <constraint firstItem="9tc-EO-QMd" firstAttribute="leading" secondItem="bAn-iZ-ieF" secondAttribute="trailing" constant="8" id="LOL-Rd-Xdp"/>
+                <constraint firstItem="GPu-Ht-bKg" firstAttribute="top" secondItem="Vae-sv-7Up" secondAttribute="bottom" constant="8" id="PIy-tb-2VH"/>
+                <constraint firstItem="h2m-9o-ibu" firstAttribute="top" secondItem="R00-pj-eFX" secondAttribute="bottom" constant="8" symbolic="YES" id="RHk-bG-srb"/>
+                <constraint firstItem="Vae-sv-7Up" firstAttribute="leading" secondItem="brN-9J-qa1" secondAttribute="leading" id="SDC-yH-bYi"/>
+                <constraint firstItem="rOd-nt-22T" firstAttribute="leading" secondItem="wAC-5p-nXb" secondAttribute="leading" constant="20" id="U8S-gG-od4"/>
+                <constraint firstItem="Y3k-tv-pIb" firstAttribute="top" secondItem="Fc1-EX-DWd" secondAttribute="bottom" constant="8" id="V4I-Zk-x8R"/>
+                <constraint firstItem="gfa-Hb-cDP" firstAttribute="leading" secondItem="xwK-Yu-a1e" secondAttribute="trailing" constant="36" id="X7s-4B-e33"/>
+                <constraint firstItem="gfa-Hb-cDP" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Fc1-EX-DWd" secondAttribute="trailing" constant="8" symbolic="YES" id="XpL-gA-cOo"/>
+                <constraint firstItem="1au-ZO-l1i" firstAttribute="leading" secondItem="Vae-sv-7Up" secondAttribute="trailing" constant="46" id="Za9-Lu-OUj"/>
+                <constraint firstItem="7oJ-hv-HBm" firstAttribute="firstBaseline" secondItem="R00-pj-eFX" secondAttribute="firstBaseline" id="amL-M8-vVE"/>
+                <constraint firstItem="brN-9J-qa1" firstAttribute="top" secondItem="GPu-Ht-bKg" secondAttribute="bottom" constant="10" id="bQV-DG-M7N"/>
+                <constraint firstItem="xwK-Yu-a1e" firstAttribute="leading" secondItem="rOd-nt-22T" secondAttribute="trailing" constant="8" id="bV5-2x-8ji"/>
+                <constraint firstItem="bnV-aE-FVh" firstAttribute="baseline" secondItem="olm-zg-k9Y" secondAttribute="baseline" id="gA6-nQ-o4p"/>
+                <constraint firstItem="rOd-nt-22T" firstAttribute="baseline" secondItem="xwK-Yu-a1e" secondAttribute="baseline" id="gSI-9O-c0a"/>
+                <constraint firstItem="h2m-9o-ibu" firstAttribute="leading" secondItem="wAC-5p-nXb" secondAttribute="leading" id="gVM-KS-um6"/>
+                <constraint firstItem="Fc1-EX-DWd" firstAttribute="top" secondItem="9tc-EO-QMd" secondAttribute="bottom" constant="6" id="h8H-lD-5AW"/>
+                <constraint firstItem="A3o-Zx-OfM" firstAttribute="leading" secondItem="brN-9J-qa1" secondAttribute="trailing" constant="13" id="hDQ-FZ-M9G"/>
+                <constraint firstItem="Fc1-EX-DWd" firstAttribute="leading" secondItem="9tc-EO-QMd" secondAttribute="leading" id="ich-lj-Kpj"/>
+                <constraint firstAttribute="trailing" secondItem="h2m-9o-ibu" secondAttribute="trailing" id="kS2-4n-24U"/>
+                <constraint firstItem="gfa-Hb-cDP" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="Y3k-tv-pIb" secondAttribute="trailing" constant="8" symbolic="YES" id="kXy-RO-xGg"/>
+                <constraint firstItem="rOd-nt-22T" firstAttribute="top" secondItem="wAC-5p-nXb" secondAttribute="top" constant="16" id="lZs-Yt-3BK"/>
+                <constraint firstItem="Vae-sv-7Up" firstAttribute="firstBaseline" secondItem="1au-ZO-l1i" secondAttribute="firstBaseline" id="m6s-yk-F1V"/>
+                <constraint firstAttribute="trailing" secondItem="GPu-Ht-bKg" secondAttribute="trailing" constant="20" id="sL1-if-zZ9"/>
+                <constraint firstItem="Pai-3Q-Gs3" firstAttribute="baseline" secondItem="1au-ZO-l1i" secondAttribute="baseline" id="sVB-mt-wYZ"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Pai-3Q-Gs3" secondAttribute="trailing" constant="20" symbolic="YES" id="yJK-FI-8b5"/>
+                <constraint firstItem="A3o-Zx-OfM" firstAttribute="leading" secondItem="olm-zg-k9Y" secondAttribute="leading" id="ydG-Lc-8Ru"/>
+                <constraint firstItem="Vae-sv-7Up" firstAttribute="leading" secondItem="gfa-Hb-cDP" secondAttribute="trailing" constant="8" id="zxZ-dZ-W0N"/>
+            </constraints>
+            <point key="canvasLocation" x="-75" y="175"/>
+        </view>
+    </objects>
+</document>

@@ -1,0 +1,158 @@
+{
+    "app-id": "fr.handbrake.ghb.Plugin.IntelMediaSDK",
+    "branch": "1",
+    "runtime": "fr.handbrake.ghb",
+    "runtime-version": "development",
+    "sdk": "org.gnome.Sdk//49",
+    "build-extension": true,
+    "separate-locales": false,
+    "modules": [
+        {
+            "name": "intel-gmmlib",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/intel/gmmlib/archive/refs/tags/intel-gmmlib-22.8.2.tar.gz",
+                    "sha256": "2e43e538a002574f45d480a24e02297c960963dc7914b7328791d9836832ff43"
+                }
+            ],
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.10",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_INSTALL_LIBDIR=lib"
+            ],
+            "build-options": {
+                "prefix" : "/app/extensions/IntelMediaSDK",
+                "make-args": [
+                    "-v"
+                ],
+                "make-install-args": [
+                    "-v"
+                ],
+                "strip": true
+            }
+        },
+        {
+            "name": "libva",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/intel/libva/archive/refs/tags/2.22.0.tar.gz",
+                    "sha256": "467c418c2640a178c6baad5be2e00d569842123763b80507721ab87eb7af8735"
+                }
+            ],
+            "no-autogen": false,
+            "config-opts": ["--with-drivers-path=/app/extensions/IntelMediaSDK/lib/dri"],
+            "build-options": {
+                "prefix" : "/app/extensions/IntelMediaSDK",
+                "strip": true
+            }
+        },
+        {
+            "name": "libva-utils",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/intel/libva-utils/archive/refs/tags/2.22.0.tar.gz",
+                    "sha256": "7b57615c130427ec134bb5d2b80af516ce5bb19a40e89b1dab46a0d59760d96c"
+                }
+            ],
+            "no-autogen": false,
+            "build-options": {
+                "prefix" : "/app/extensions/IntelMediaSDK",
+                "prepend-pkg-config-path": "/app/extensions/IntelMediaSDK/lib/pkgconfig",
+                "strip": true
+            }
+        },
+        {
+            "name": "intel-media-driver",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/intel/media-driver/archive/refs/tags/intel-media-25.3.4.tar.gz",
+                    "sha256": "ef9a7a0881b250d23df7d4676341a3729b28887bcf404a74d48db5f44ffa0220"
+                }
+            ],
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.10",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_INSTALL_LIBDIR=lib",
+                "-DMEDIA_RUN_TEST_SUITE=OFF",
+                "-DENABLE_PRODUCTION_KMD=ON"
+            ],
+            "build-options": {
+                "cxxflags": "-Wno-error=array-bounds=",
+                "prefix" : "/app/extensions/IntelMediaSDK",
+                "prepend-pkg-config-path": "/app/extensions/IntelMediaSDK/lib/pkgconfig",
+                "strip": true
+            }
+        },
+        {
+            "name": "mediasdk",
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_POLICY_VERSION_MINIMUM=3.10",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_INSTALL_LIBDIR=lib",
+                "-DBUILD_SAMPLES=OFF",
+                "-DBUILD_TESTS=OFF",
+                "-DBUILD_TOOLS=OFF",
+                "-DBUILD_TESTS=OFF",
+                "-DMFX_ENABLE_SW_FALLBACK=OFF"
+            ],
+            "build-options": {
+                "prefix" : "/app/extensions/IntelMediaSDK",
+                "prepend-pkg-config-path": "/app/extensions/IntelMediaSDK/lib/pkgconfig",
+                "strip": true
+            },
+            "post-install": [
+                "install -Dp -m 644 ${FLATPAK_BUILDER_BUILDDIR}/fr.handbrake.ghb.Plugin.IntelMediaSDK.metainfo.xml --target-directory=${FLATPAK_DEST}/share/metainfo"
+            ],
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/Intel-Media-SDK/MediaSDK/archive/refs/tags/intel-mediasdk-22.6.5.tar.gz",
+                    "sha256": "3a671cc692da5111c041088f5e32528b4346e122e8a134fad71310c572705106"
+                },
+                {
+                    "type": "patch",
+                    "path": "intel-mediasdk-gcc13.patch"
+                },
+                {
+                    "type": "file",
+                    "path": "fr.handbrake.ghb.Plugin.IntelMediaSDK.metainfo.xml"
+                }
+            ]
+        },
+        {
+            "name": "onevpl-intel-gpu",
+            "buildsystem": "cmake-ninja",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DCMAKE_INSTALL_LIBDIR=lib"
+            ],
+            "build-options": {
+                "prefix" : "/app/extensions/IntelMediaSDK",
+                "prepend-pkg-config-path": "/app/extensions/IntelMediaSDK/lib/pkgconfig",
+                "strip": true
+            },
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/intel/vpl-gpu-rt/archive/refs/tags/intel-onevpl-25.2.6.tar.gz",
+                    "sha256": "d236ede2ab87063d0d8d52932779ff446a885b8dc4ef840d1a756c6776ef6fef"
+                },
+                {
+                    "type": "file",
+                    "path": "fr.handbrake.ghb.Plugin.IntelMediaSDK.metainfo.xml"
+                }
+            ]
+        }
+    ]
+}

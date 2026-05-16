@@ -1,0 +1,335 @@
+use crate::video::{CompressionSettings, CompressionResult, get_ffmpeg_binary};
+use tauri::Manager; // 引入 Manager trait 以便使用 AppHandle.path()
+use tauri::Emitter; // 新增：引入 Emitter 以启用 app_handle.emit()
+use crate::video::utils::tokio_command_with_no_window;
+// use std::sync::{Arc, OnceLock};
+// use tokio::sync::Semaphore;
+
+fn map_jpeg_quality(crf_value: Option<u8>) -> u8 {
+    // ffmpeg mjpeg quality range: 2(best) - 31(worst)
+    let q = crf_value.unwrap_or(80).min(100) as f64; // 0-100, higher = better
+    let mapped = 31.0 - (q * 29.0 / 100.0);
+    let qv = mapped.round() as i32 + 0; // keep within 2..=31 below
+    qv.clamp(2, 31) as u8
+}
+
+fn build_png_filter_and_codec(crf_value: Option<u8>) -> (String, Vec<String>) {
+    // 默认质量改为 80
+    let q = crf_value.unwrap_or(80).min(100);
+    
+    if q == 100 {
+        // 质量 100（无损）：使用参数 -compression_level 90 -pred mixed
+        (
+            "png".to_string(),
+            vec![
+                "-compression_level".to_string(), "90".to_string(),
+                "-pred".to_string(), "mixed".to_string(),
+            ]
+        )
+    } else {
+        // 其他质量值：使用 palettegen + paletteuse 滤镜
+        let max_colors = if q >= 80 {
+            256  // 质量 80：256 色
+        } else if q >= 60 {
+            128  // 质量 60（默认）：128 色
+        } else if q >= 40 {
+            96   // 质量 40：96 色
+        } else if q >= 20 {
+            64   // 极低质量 20：64 色
+        } else {
+            64   // 移除 32 色档，最低仍为 64 色
+        };
+        
+        let filter = format!(
+            "split[s0][s1];[s0]palettegen=max_colors={}:stats_mode=full[p];[s1][p]paletteuse=dither=sierra2_4a",
+            max_colors
+        );
+        
+        ("png".to_string(), vec!["-vf".to_string(), filter])
+    }
+}
+
+fn map_webp_quality(crf_value: Option<u8>) -> u8 {
+    // libwebp uses 0-100 quality scale, higher = better
+    crf_value.unwrap_or(80).min(100)
+}
+
+fn build_scale_filter(settings: &CompressionSettings) -> Option<String> {
+    if settings.resolution.eq_ignore_ascii_case("original") { return None; }
+    if settings.resolution.eq_ignore_ascii_case("custom") {
+        if let Some(custom) = &settings.custom_resolution {
+            return Some(format!("scale={}:{}", custom.width, custom.height));
+        }
+        return None;
+    }
+    // Expect formats like "1920x1080"
+    if settings.resolution.contains('x') {
+        return Some(format!("scale={}", settings.resolution));
+    }
+    None
+}
+
+#[allow(non_snake_case)]
+#[tauri::command]
+pub async fn compress_image(
+    taskId: String,
+    inputPath: String,
+    outputPath: String,
+    settings: CompressionSettings,
+    app_handle: tauri::AppHandle,
+) -> Result<CompressionResult, String> {
+    // 移除：进入排队逻辑
+    // let sem = image_compress_semaphore().clone();
+    // let permit = match sem.clone().try_acquire_owned() {
+    //     Ok(p) => p,
+    //     Err(_) => {
+    //         let _ = app_handle.emit(
+    //             &format!("image-compression-queued-{}", taskId),
+    //             serde_json::json!({ "taskId": taskId })
+    //         );
+    //         sem.acquire_owned().await.map_err(|e| format!("Failed to queue image compression: {}", e))?
+    //     }
+    // };
+
+    // Resolve ffmpeg path (reuse logic from video module)
+    let ffmpeg_path = if cfg!(debug_assertions) {
+        let current_exe = std::env::current_exe().unwrap();
+        let src_tauri_dir = current_exe.parent().unwrap().parent().unwrap().parent().unwrap();
+        src_tauri_dir.join("bin").join(get_ffmpeg_binary())
+    } else {
+        // 生产环境：构建候选路径并选择第一个存在的
+        let resource_dir = app_handle.path().resource_dir().unwrap();
+        let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+        candidates.push(resource_dir.join("bin").join(get_ffmpeg_binary()));
+        if let Ok(exe_path) = std::env::current_exe() {
+            if let Some(exe_dir) = exe_path.parent() {
+                // 带后缀的打包文件名
+                candidates.push(exe_dir.join(get_ffmpeg_binary()));
+                // 无后缀名称（如 Contents/MacOS/ffmpeg）
+                #[cfg(target_os = "windows")]
+                {
+                    candidates.push(exe_dir.join("ffmpeg.exe"));
+                }
+                #[cfg(not(target_os = "windows"))]
+                {
+                    candidates.push(exe_dir.join("ffmpeg"));
+                }
+            }
+        }
+        candidates.into_iter().find(|p| p.exists()).unwrap_or_else(|| resource_dir.join("bin").join(get_ffmpeg_binary()))
+    };
+
+    // 基本参数打印
+    println!("[Image] ================= compress_image =================");
+    println!("[Image] taskId: {}", taskId);
+    println!("[Image] FFmpeg path: {:?}", ffmpeg_path);
+    println!("[Image] input: {}", inputPath);
+    println!("[Image] output: {}", outputPath);
+    println!("[Image] format: {}", settings.format);
+    println!("[Image] quality_type: {}", settings.quality_type);
+    println!("[Image] crf_value: {:?}", settings.crf_value);
+    println!("[Image] resolution: {}", settings.resolution);
+    if let Some(custom) = &settings.custom_resolution {
+        println!("[Image] custom_resolution: {}x{}", custom.width, custom.height);
+    } else {
+        println!("[Image] custom_resolution: (none)");
+    }
+
+    if !ffmpeg_path.exists() {
+        // 进一步给出候选路径提示，帮助定位打包位置
+        let mut tried: Vec<String> = Vec::new();
+        if cfg!(debug_assertions) {
+            let current_exe = std::env::current_exe().unwrap();
+            let src_tauri_dir = current_exe.parent().unwrap().parent().unwrap().parent().unwrap();
+            tried.push(src_tauri_dir.join("bin").join(get_ffmpeg_binary()).display().to_string());
+        } else {
+            let resource_dir = app_handle.path().resource_dir().unwrap();
+            tried.push(resource_dir.join("bin").join(get_ffmpeg_binary()).display().to_string());
+            if let Ok(exe_path) = std::env::current_exe() {
+                if let Some(exe_dir) = exe_path.parent() {
+                    tried.push(exe_dir.join(get_ffmpeg_binary()).display().to_string());
+                    #[cfg(target_os = "windows")]
+                    {
+                        tried.push(exe_dir.join("ffmpeg.exe").display().to_string());
+                    }
+                    #[cfg(not(target_os = "windows"))]
+                    {
+                        tried.push(exe_dir.join("ffmpeg").display().to_string());
+                    }
+                }
+            }
+        }
+        return Err(format!(
+            "FFmpeg binary not found. Tried: {}",
+            tried.join(" | ")
+        ));
+    }
+
+    let original_size = std::fs::metadata(&inputPath)
+        .map_err(|e| format!("Failed to get file size: {}", e))?
+        .len();
+
+    // Prepare ffmpeg command（仅改为无窗口，参数保持不变）
+    let mut cmd = tokio_command_with_no_window(&ffmpeg_path);
+    let mut args_for_log: Vec<String> = Vec::new();
+    cmd.arg("-y");
+    args_for_log.push("-y".to_string());
+    cmd.arg("-i").arg(&inputPath);
+    args_for_log.push("-i".to_string());
+    args_for_log.push(inputPath.clone());
+
+    // Get scale filter first
+    let scale_filter = build_scale_filter(&settings);
+
+    // Set codec and quality based on output format
+    let format_lower = settings.format.to_lowercase();
+    match format_lower.as_str() {
+        "jpg" | "jpeg" => {
+            let q = map_jpeg_quality(settings.crf_value);
+            
+            // Apply scale filter if needed
+            if let Some(scale) = scale_filter {
+                println!("[Image] scale_filter: {}", scale);
+                cmd.arg("-vf").arg(&scale);
+                args_for_log.push("-vf".to_string());
+                args_for_log.push(scale);
+            } else {
+                println!("[Image] scale_filter: <none> (original)");
+            }
+            
+            cmd.arg("-c:v").arg("mjpeg");
+            cmd.arg("-q:v").arg(q.to_string());
+            args_for_log.push("-c:v".to_string());
+            args_for_log.push("mjpeg".to_string());
+            args_for_log.push("-q:v".to_string());
+            args_for_log.push(q.to_string());
+            println!("[Image] codec=mjpeg, args: -q:v {}", q);
+        },
+        "png" => {
+            let (codec, png_args) = build_png_filter_and_codec(settings.crf_value);
+            
+            // PNG的滤镜和缩放需要特殊处理
+            if png_args.len() >= 2 && png_args[0] == "-vf" {
+                // 使用palette滤镜的情况，需要合并scale和palette滤镜
+                let palette_filter = &png_args[1];
+                if let Some(scale) = scale_filter {
+                    // 合并scale和palette滤镜：先scale再palette
+                    let combined_filter = format!("{},{}", scale, palette_filter);
+                    cmd.arg("-vf").arg(&combined_filter);
+                    args_for_log.push("-vf".to_string());
+                    args_for_log.push(combined_filter.clone());
+                    println!("[Image] combined_filter: {}", combined_filter);
+                } else {
+                    cmd.arg("-vf").arg(palette_filter);
+                    args_for_log.push("-vf".to_string());
+                    args_for_log.push(palette_filter.clone());
+                    println!("[Image] palette_filter: {}", palette_filter);
+                }
+            } else {
+                // 无损PNG（compression_level），正常处理scale
+                if let Some(scale) = scale_filter {
+                    println!("[Image] scale_filter: {}", scale);
+                    cmd.arg("-vf").arg(&scale);
+                    args_for_log.push("-vf".to_string());
+                    args_for_log.push(scale);
+                } else {
+                    println!("[Image] scale_filter: <none> (original)");
+                }
+                
+                // 添加无损 PNG 参数（可能包含多项，例如 -compression_level 90 -pred mixed）
+                for a in &png_args {
+                    cmd.arg(a);
+                    args_for_log.push(a.clone());
+                }
+                println!("[Image] codec=png, args: {}", png_args.join(" "));
+            }
+            
+            cmd.arg("-c:v").arg(&codec);
+            args_for_log.push("-c:v".to_string());
+            args_for_log.push(codec);
+        },
+        "webp" => {
+            let q = map_webp_quality(settings.crf_value);
+            
+            // Apply scale filter if needed
+            if let Some(scale) = scale_filter {
+                println!("[Image] scale_filter: {}", scale);
+                cmd.arg("-vf").arg(&scale);
+                args_for_log.push("-vf".to_string());
+                args_for_log.push(scale);
+            } else {
+                println!("[Image] scale_filter: <none> (original)");
+            }
+            
+            cmd.arg("-c:v").arg("libwebp");
+            cmd.arg("-q:v").arg(q.to_string());
+            args_for_log.push("-c:v".to_string());
+            args_for_log.push("libwebp".to_string());
+            args_for_log.push("-q:v".to_string());
+            args_for_log.push(q.to_string());
+            println!("[Image] codec=libwebp, args: -q:v {}", q);
+        },
+        _ => {
+            return Err(format!("Unsupported image format: {}", settings.format));
+        }
+    }
+
+    // 输出路径
+    cmd.arg(&outputPath);
+    args_for_log.push(outputPath.clone());
+    // 可选：通过事件发送 FFmpeg 命令到前端（若不需要可删除）
+    let args_joined = args_for_log
+        .iter()
+        .map(|a| if a.contains(' ') { format!("\"{}\"", a) } else { a.clone() })
+        .collect::<Vec<_>>()
+        .join(" ");
+    let _ = app_handle.emit(
+        &format!("compression-command-{}", taskId),
+        serde_json::json!({
+            "taskId": taskId,
+            "command": format!("{:?} {}", ffmpeg_path, args_joined),
+            "args": args_for_log,
+        }),
+    );
+
+    println!("[Image] ffmpeg command: {:?} {}",
+        ffmpeg_path,
+        args_joined
+    );
+
+    let status = cmd.status().await.map_err(|e| format!("Failed to execute ffmpeg: {}", e))?;
+
+    if !status.success() {
+        return Err(format!("ffmpeg exited with status: {}", status));
+    }
+
+    // 检查输出文件是否存在
+    println!("[Image] Checking output file existence...");
+    println!("[Image] Output path: {}", outputPath);
+    println!("[Image] Output path exists: {}", std::path::Path::new(&outputPath).exists());
+    
+    if !std::path::Path::new(&outputPath).exists() {
+        return Err(format!("Output file was not created: {}", outputPath));
+    }
+
+    // 计算压缩前后的文件大小
+    let compressed_size = std::fs::metadata(&outputPath)
+        .map_err(|e| format!("Failed to get compressed file size: {}", e))?
+        .len();
+
+    println!("[Image] Compression completed successfully!");
+    println!("[Image] Original size: {} bytes", original_size);
+    println!("[Image] Compressed size: {} bytes", compressed_size);
+    println!("[Image] Final output path: {}", outputPath);
+
+    // 移除：permit 释放（已不存在）
+
+    Ok(CompressionResult {
+        success: true,
+        output_path: Some(outputPath.clone()),
+        error: None,
+        original_size,
+        compressed_size: Some(compressed_size),
+        compressed_metadata: None,
+    })
+}

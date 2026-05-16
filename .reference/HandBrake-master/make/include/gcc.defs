@@ -1,0 +1,245 @@
+GCC.gcc = gcc
+GCC.gxx = $(dir $(GCC.gcc))$(subst cc,c++,$(subst clang,clang++,$(subst gcc,g++,$(notdir $(GCC.gcc)))))
+
+GCC.strip   = $$(if $$(filter none,$$(GCC.g)),1)
+GCC.dylib   = 1
+GCC.pipe    = 1
+GCC.c_std   = 1
+GCC.cxx_std = 0
+GCC.ML      = 1
+GCC.H       = 0
+GCC.W       = all $(GCC.W.extra)
+GCC.archs   =
+GCC.sysroot =
+GCC.minver  =
+GCC.vis     = 0
+GCC.pic     = 0
+ifndef GCC.g
+	GCC.g       = none
+endif
+ifndef GCC.O
+    GCC.O       = none
+endif
+ifndef GCC.cpu
+    GCC.cpu     = none
+endif
+ifndef GCC.lto
+    GCC.lto     = none
+endif
+GCC.D       =
+GCC.I       =
+GCC.muldefs = 0
+GCC.start   = 0
+GCC.a       =
+GCC.F       =
+GCC.f       =
+GCC.L       =
+GCC.l       =
+GCC.end     = 0
+
+GCC.extra         = 1
+GCC.extra.h_o     = 1
+GCC.extra.c_o     = 1
+GCC.extra.dylib   = 1
+GCC.extra.exe     = 1
+GCC.extra.hpp_o   = 1
+GCC.extra.cpp_o   = 1
+GCC.extra.dylib++ = 1
+GCC.extra.exe++   = 1
+
+GCC.args.pipe              = -pipe
+GCC.args.strip             = -Wl,-S
+GCC.args.dylib             = -dynamiclib
+GCC.args.ML                = -fmessage-length=0
+GCC.args.H                 = -H
+GCC.args.W                 = -W$(1)
+ifeq (darwin,$(HOST.system))
+    GCC.args.archs         = -arch $(1)
+endif
+GCC.args.sysroot           = --sysroot=$(1)
+GCC.args.minver            = -mmacosx-version-min=$(1)
+GCC.args.vis               = -fvisibility=hidden
+GCC.args.pic               = -fPIC
+GCC.args.c_std             = -std=gnu99
+GCC.args.cxx_std           = -std=c++98
+GCC.args.g.none            = -g0
+GCC.args.g.min             = -gdwarf-2 -g1
+GCC.args.g.std             = -gdwarf-2
+GCC.args.g.max             = -gdwarf-2 -g3
+GCC.args.O.none            = -O0
+GCC.args.O.size            = -Os
+GCC.args.O.size-aggressive = -Oz
+GCC.args.O.speed           = -O3
+GCC.args.cpu.none          =
+GCC.args.cpu.native        =
+ifeq ($(HOST.machine),$(filter $(HOST.machine),i686 x86_64))
+    GCC.args.cpu.native   += -march=native
+endif
+GCC.args.lto.none          =
+GCC.args.lto.off           = -fno-lto
+GCC.args.lto.on            = -flto
+GCC.args.lto.thin          = -flto=thin
+GCC.args.D                 = -D$(1)
+GCC.args.I                 = -I$(1)
+GCC.args.muldefs           = -Wl,--allow-multiple-definition
+GCC.args.start             = -Wl,--start-group
+GCC.args.F                 = -F$(1)
+GCC.args.f                 = -framework $(1)
+GCC.args.L                 = -L$(1)
+GCC.args.l                 = -l$(1)
+GCC.args.pkgconfig         = $(1)
+GCC.args.end               = -Wl,--end-group
+
+GCC.args.extra         =
+ifeq ($(HOST.machine),$(filter $(HOST.machine),i686 x86_64))
+    GCC.args.extra    += -mfpmath=sse -msse2
+endif
+GCC.args.extra        += $(CPPFLAGS) $(CFLAGS)
+GCC.args.extra.h_o     =
+GCC.args.extra.c_o     =
+GCC.args.extra.dylib   = $(LDFLAGS)
+GCC.args.extra.exe     = $(LDFLAGS)
+GCC.args.extra.hpp_o   =
+GCC.args.extra.cpp_o   =
+GCC.args.extra.dylib++ = $(LDFLAGS)
+GCC.args.extra.exe++   = $(LDFLAGS)
+# If hardening is enabled -D_FORTIFY_SOURCE=2 adds compile-time protection and run-time
+# checking against static sized buffer overflow flaws. -fstack-protector-strong enables
+# stack canaries to detect stack buffer overflows (stack overwrites).
+ifeq (1,$(SECURITY.harden))
+    GCC.args.extra     += -fstack-protector-strong -D_FORTIFY_SOURCE=2
+    GCC.args.extra.exe += -fstack-protector-strong
+endif
+
+###############################################################################
+
+define import.GCC
+    $(1).GCC.gcc = $$(GCC.gcc)
+    $(1).GCC.gxx = $$(dir $$($(1).GCC.gcc))$$(subst cc,c++,$$(subst clang,clang++,$$(subst gcc,g++,$$(notdir $$($(1).GCC.gcc)))))
+
+    $(1).GCC.pipe    = $$(GCC.pipe)
+    $(1).GCC.c_std   = $$(GCC.c_std)
+    $(1).GCC.cxx_std = $$(GCC.cxx_std)
+    $(1).GCC.strip   = $$(if $$(filter none,$$($(1).GCC.g)),1)
+    $(1).GCC.dylib   = $$(GCC.dylib)
+    $(1).GCC.ML      = $$(GCC.ML) 
+    $(1).GCC.H       = $$(GCC.H) 
+    $(1).GCC.W       = $$(GCC.W)
+    $(1).GCC.archs   = $$(GCC.archs)
+    $(1).GCC.sysroot = $$(GCC.sysroot)
+    $(1).GCC.minver  = $$(GCC.minver)
+    $(1).GCC.vis     = $$(GCC.vis)
+    $(1).GCC.pic     = $$(GCC.pic)
+    $(1).GCC.g       = $$(GCC.g)
+    $(1).GCC.O       = $$(GCC.O)
+    $(1).GCC.cpu     = $$(GCC.cpu)
+    $(1).GCC.lto     = $$(GCC.lto)
+    $(1).GCC.D       = $$(GCC.D)
+    $(1).GCC.I       = $$(GCC.I)
+    $(1).GCC.muldefs = $$(GCC.muldefs)
+    $(1).GCC.start   = $$(GCC.start)
+    $(1).GCC.a       = $$(GCC.a)
+    $(1).GCC.F       = $$(GCC.F)
+    $(1).GCC.f       = $$(GCC.f)
+    $(1).GCC.L       = $$(GCC.L)
+    $(1).GCC.l       = $$(GCC.l)
+    $(1).GCC.end     = $$(GCC.end)
+
+    $(1).GCC.extra         = $$(GCC.extra)
+    $(1).GCC.extra.h_o     = $$(GCC.extra.h_o)
+    $(1).GCC.extra.c_o     = $$(GCC.extra.c_o)
+    $(1).GCC.extra.dylib   = $$(GCC.extra.dylib)
+    $(1).GCC.extra.exe     = $$(GCC.extra.exe)
+    $(1).GCC.extra.hpp_o   = $$(GCC.extra.hpp_o)
+    $(1).GCC.extra.cpp_o   = $$(GCC.extra.cpp_o)
+    $(1).GCC.extra.dylib++ = $$(GCC.extra.dylib++)
+    $(1).GCC.extra.exe++   = $$(GCC.extra.exe++)
+
+    $(1).GCC.args.pipe      = $$(GCC.args.pipe)
+    $(1).GCC.args.c_std     = $$(GCC.args.c_std)
+    $(1).GCC.args.cxx_std   = $$(GCC.args.cxx_std)
+    $(1).GCC.args.strip     = $$(GCC.args.strip)
+    $(1).GCC.args.dylib     = $$(GCC.args.dylib)
+    $(1).GCC.args.ML        = $$(GCC.args.ML)
+    $(1).GCC.args.H         = $$(GCC.args.H)
+    $(1).GCC.args.W         = $$(GCC.args.W)
+    $(1).GCC.args.archs     = $$(GCC.args.archs)
+    $(1).GCC.args.sysroot   = $$(GCC.args.sysroot)
+    $(1).GCC.args.minver    = $$(GCC.args.minver)
+    $(1).GCC.args.vis       = $$(GCC.args.vis)
+    $(1).GCC.args.pic       = $$(GCC.args.pic)
+    $(1).GCC.args.g.none    = $$(GCC.args.g.none)
+    $(1).GCC.args.g.min     = $$(GCC.args.g.min)
+    $(1).GCC.args.g.std     = $$(GCC.args.g.std)
+    $(1).GCC.args.g.max     = $$(GCC.args.g.max)
+    $(1).GCC.args.O.none    = $$(GCC.args.O.none)
+    $(1).GCC.args.O.size    = $$(GCC.args.O.size)
+    $(1).GCC.args.O.speed   = $$(GCC.args.O.speed)
+    $(1).GCC.args.cpu.none  = $$(GCC.args.cpu.none)
+    $(1).GCC.args.cpu.native = $$(GCC.args.cpu.native)
+    $(1).GCC.args.lto.none  = $$(GCC.args.lto.none)
+    $(1).GCC.args.lto.off   = $$(GCC.args.lto.off)
+    $(1).GCC.args.lto.on    = $$(GCC.args.lto.on)
+    $(1).GCC.args.lto.thin  = $$(GCC.args.lto.thin)
+    $(1).GCC.args.D         = $$(GCC.args.D)
+    $(1).GCC.args.I         = $$(GCC.args.I)
+    $(1).GCC.args.muldefs   = $$(GCC.args.muldefs)
+    $(1).GCC.args.start     = $$(GCC.args.start)
+    $(1).GCC.args.F         = $$(GCC.args.F)
+    $(1).GCC.args.f         = $$(GCC.args.f)
+    $(1).GCC.args.L         = $$(GCC.args.L)
+    $(1).GCC.args.l         = $$(GCC.args.l)
+    $(1).GCC.args.pkgconfig = $$(GCC.args.pkgconfig)
+    $(1).GCC.args.end       = $$(GCC.args.end)
+
+    $(1).GCC.args.extra         = $$(GCC.args.extra)
+    $(1).GCC.args.extra.h_o     = $$(GCC.args.extra.h_o)
+    $(1).GCC.args.extra.c_o     = $$(GCC.args.extra.c_o)
+    $(1).GCC.args.extra.dylib   = $$(GCC.args.extra.dylib)
+    $(1).GCC.args.extra.exe     = $$(GCC.args.extra.exe)
+    $(1).GCC.args.extra.hpp_o   = $$(GCC.args.extra.hpp_o)
+    $(1).GCC.args.extra.cpp_o   = $$(GCC.args.extra.cpp_o)
+    $(1).GCC.args.extra.dylib++ = $$(GCC.args.extra.dylib++)
+    $(1).GCC.args.extra.exe++   = $$(GCC.args.extra.exe++)
+
+    ###########################################################################
+
+    $(1).GCC.c = -c $$(4)
+    $(1).GCC.o = -o $$(3)
+
+    # FUNCTION: C precompiled headers
+    $(1).GCC.H_O.args = !gcc ?c_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.h_o .cpu .lto *D *I !c !o
+    $(1).GCC.H_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.H_O.args),$$(1),$$(2))
+
+    # FUNCTION: C compile source
+    $(1).GCC.C_O.args = !gcc ?c_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.c_o .cpu .lto *D *I !c !o
+    $(1).GCC.C_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.C_O.args),$$(1),$$(2))
+
+    # FUNCTION: C++ precompile headers
+    $(1).GCC.HPP_O.args = !gxx ?cxx_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.hpp_o .cpu .lto *D *I !c !o
+    $(1).GCC.HPP_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.HPP_O.args),$$(1),$$(2))
+
+    # FUNCTION: C++ compile source
+    $(1).GCC.CPP_O.args = !gxx ?cxx_std ?pipe ?ML ?H *W *archs *sysroot *minver ?vis ?pic .g .O ?extra ?extra.cpp_o .cpu .lto *D *I !c !o
+    $(1).GCC.CPP_O = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.CPP_O.args),$$(1),$$(2))
+
+    ###########################################################################
+
+    $(1).GCC.i = $$(4)
+
+    # FUNCTION: C link dynamic-lib
+    $(1).GCC.DYLIB.args = !gcc ?c_std ?pipe ?strip ?dylib ?extra.dylib ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.DYLIB = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.DYLIB.args),$$(1),$$(2))
+
+    # FUNCTION: C link executable
+    $(1).GCC.EXE.args = !gcc ?c_std ?pipe ?strip ?extra.exe ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.EXE = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.EXE.args),$$(1),$$(2))
+
+    # FUNCTION: C++ link dynamic-lib
+    $(1).GCC.DYLIB++.args = !gxx ?cxx_std ?pipe ?strip ?dylib ?extra.dylib++ ?ML *W *archs *sysroot *minvers ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.DYLIB++ = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.DYLIB++.args),$$(1),$$(2))
+
+    # FUNCTION: C++ link executable
+    $(1).GCC.EXE++.args = !gxx ?cxx_std ?pipe ?strip ?extra.exe++ ?ML *W *archs *sysroot *minver ?vis ?pic .g .O ?extra .lto *D *I !o ?muldefs ?start !i *F *f *L *l !pkgconfig *i !a ?end
+    $(1).GCC.EXE++ = $$(call fn.ARGS,$(1).GCC,$$($(1).GCC.EXE++.args),$$(1),$$(2))
+endef

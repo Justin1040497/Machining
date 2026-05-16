@@ -1,0 +1,45 @@
+.PHONY: report.main report.gcc report.metal report.modules report.var report.true report.help
+.PHONY: shell.run
+
+report.modules::
+
+report.main:
+	@$(MAKE) report.true REPORT=main
+
+report.gcc:
+	@$(MAKE) report.true REPORT=gcc
+
+report.metal:
+	@$(MAKE) report.true REPORT=metal
+
+report.var:
+	@$(MAKE) report.true REPORT=var
+
+## needed for nested make (which drives each report)
+report.true:
+	@true
+
+## linefeed is important
+define REPORT.help.item.global
+	@echo 'report.$(1)' | awk '{ printf("  %-21s  $(REPORT.help.$(1))\n", $$0) }'
+
+endef
+define REPORT.help.item.module
+	@echo '$($(1).name).report' | awk '{ printf("  %-21s  $(1)-scoped vars\n", $$0) }'
+
+endef
+
+REPORT.help.main = global general vars
+REPORT.help.gcc  = global gcc vars (inherited by module GCC)
+REPORT.help.metal = global metal vars (inherited by module Metal)
+REPORT.help.var  = usage: make report.var name=VARNAME
+
+report.help:
+	@echo "  AVAILABLE MAKEFILE VARS REPORTS"
+	@echo "  ----------------------------------------------------------------"
+	$(foreach n,main gcc metal var,$(call REPORT.help.item.global,$n))
+	$(foreach n,$(MODULES.NAMES),$(call REPORT.help.item.module,$n))
+
+## diagnostic aid when troubleshooting build issues
+shell.run:
+	$(command)

@@ -1,0 +1,94 @@
+$(eval $(call import.MODULE.defs,TEST,test,LIBHB))
+$(eval $(call import.GCC,TEST))
+
+TEST.PKGCONFIG.env = PKG_CONFIG_PATH="$(call fn.ABSOLUTE,$(CONTRIB.build/))lib/pkgconfig:$(PKG_CONFIG_PATH)"
+TEST.PKGCONFIG.exe = $(TEST.PKGCONFIG.env) $(PKGCONFIG.exe)
+
+TEST.src/   = $(SRC/)test/
+TEST.build/ = $(BUILD/)test/
+
+TEST.c   = $(wildcard $(TEST.src/)*.c)
+TEST.c.o = $(patsubst $(SRC/)%.c,$(BUILD/)%.o,$(TEST.c))
+
+TEST.exe = $(BUILD/)$(call TARGET.exe,$(HB.name)CLI)
+
+TEST.GCC.L = $(CONTRIB.build/)lib
+
+TEST.libs = $(LIBHB.a)
+
+TEST.pkgconfig_libs = libass libavformat libavfilter libavcodec libavutil libswresample dvdnav \
+	dvdread libswscale theoraenc theoradec vorbis vorbisenc ogg x264 libbluray \
+	jansson libturbojpeg SvtAv1Enc
+
+TEST.pkgconfig_libs += $(foreach m,$(MODULES.NAMES),$($m.OSL.libs))
+
+ifeq (1,$(FEATURE.flatpak))
+    TEST.pkgconfig_libs += glib-2.0
+endif
+
+TEST.GCC.pkgconfig = $(shell $(TEST.PKGCONFIG.exe) --libs $(TEST.pkgconfig_libs))
+
+TEST.install.exe = $(DESTDIR)$(PREFIX/)bin/$(notdir $(TEST.exe))
+ifeq (1,$(FEATURE.flatpak))
+    TEST.metainfo.template = $(TEST.src/)fr.handbrake.HandBrakeCLI.metainfo.xml.in.in
+    TEST.metainfo = $(TEST.build/)fr.handbrake.HandBrakeCLI.metainfo.xml
+    TEST.install.metainfo = $(DESTDIR)$(PREFIX/)share/metainfo/$(notdir $(TEST.metainfo))
+endif
+
+###############################################################################
+
+TEST.out += $(TEST.c.o)
+TEST.out += $(TEST.exe)
+ifeq (1,$(FEATURE.flatpak))
+    TEST.out += $(TEST.metainfo)
+endif
+
+BUILD.out += $(TEST.out)
+BUILD.out += $(TEST.install.exe)
+ifeq (1,$(FEATURE.flatpak))
+    BUILD.out += $(TEST.install.metainfo)
+endif
+
+###############################################################################
+
+TEST.GCC.I += $(LIBHB.GCC.I)
+
+ifeq ($(HOST.system),darwin)
+    TEST.GCC.f += IOKit CoreServices CoreText CoreGraphics AudioToolbox VideoToolbox CoreMedia CoreVideo IOSurface Foundation DiskArbitration Metal
+    TEST.GCC.l += iconv
+else ifeq ($(HOST.system),linux)
+    TEST.GCC.l += pthread dl m
+ifeq (1, $(FEATURE.numa))
+    TEST.GCC.l += numa
+endif
+else ifeq ($(HOST.system),kfreebsd)
+    TEST.GCC.l += pthread dl m
+else ifneq (,$(filter $(HOST.system),freebsd netbsd openbsd))
+    TEST.GCC.L += $(LOCALBASE)/lib
+ifneq (,$(filter $(HOST.system),openbsd))
+    TEST.GCC.L += $(X11BASE)/lib
+    TEST.GCC.l += iconv
+endif
+    TEST.GCC.l += pthread m
+else ifeq ($(HOST.system),solaris)
+    TEST.GCC.l += pthread nsl socket
+ifneq (,$(filter $(HOST.release),2.10))
+    TEST.GCC.l += iconv
+endif
+    TEST.GCC.D += _POSIX_C_SOURCE=200112L __EXTENSIONS__
+else ifeq (1-mingw,$(HOST.cross)-$(HOST.system))
+ifeq ($(HAS.dlfcn),1)
+    TEST.GCC.l += dl
+endif
+ifeq (1,$(HAS.pthread))
+    TEST.GCC.l += pthread
+else
+    TEST.GCC.l += pthreadGC2
+endif
+    TEST.GCC.l += bcrypt iconv ws2_32 regex uuid ole32 gdi32 userenv ntdll
+    ifeq (1,$(FEATURE.mf))
+        TEST.GCC.l += mfplat strmiids
+    endif
+    TEST.GCC.D += PTW32_STATIC_LIB
+    TEST.GCC.args.extra.exe++ += -static
+endif #   (1-mingw,$(HOST.cross)-$(HOST.system))

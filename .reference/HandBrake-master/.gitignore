@@ -1,0 +1,45 @@
+# Visual Studio
+win/CS/*/bin
+win/CS/*/obj
+win/CS/.vs
+win/CS/**/*.suo
+win/CS/*.VC.opendb
+win/CS/*.VC.db
+win/CS/**/*.Cache
+win/CS/**/*.user
+win/CS/packages/**/*
+win/CS/**/applicationhost.config
+win/CS/HandBrakeAppX/win32/**/*
+win/CS/HandBrakeAppX/bld/**/*
+win/CS/HandBrakeAppX/AppPackages/**/*
+win/CS/HandBrakeAppX/BundleArtifacts/**/*
+*.ide
+win/CS/*.DotSettings
+
+# Xcode
+macosx/**/xcuserdata
+macosx/**/xcshareddata/IDEWorkspaceChecks.plist
+
+# Build system
+build/
+build.*/
+download/
+
+# Gtk
+gtk/ABOUT-NLS
+gtk/Makefile.in*
+gtk/src/Makefile.in*
+gtk/aclocal.m4
+gtk/autom4te.cache
+gtk/compile
+gtk/config.*
+gtk/configure
+gtk/configure~
+gtk/depcomp
+gtk/install-sh
+gtk/ltmain.sh
+gtk/m4
+gtk/missing
+gtk/po/Makevars.template
+gtk/po/*.gmo
+gtk/po/*~

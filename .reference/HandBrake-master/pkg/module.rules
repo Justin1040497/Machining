@@ -1,0 +1,31 @@
+$(eval $(call import.MODULE.rules,PKG))
+
+###############################################################################
+
+.PHONY: pkg.create
+
+pkg.create:: $(PKG.src.tar.bz2)
+
+pkg.createx:: pkg.create $(PKG.src-contrib.tar.bz2)
+
+pkg.clean:
+	$(RM.exe) -fr $(STAGE.out/)
+	$(RM.exe) -fr $(PKG.out/)
+
+$(PKG.src.tar.bz2): | $(dir $(PKG.src.tar.bz2))
+$(PKG.src.tar.bz2): $(STAGE.out.src.dist/)
+	$(TAR.exe) cjf $@ -C $(STAGE.out.src/) $(PKG.basename)
+
+$(STAGE.out.src.dist/):
+	$(MKDIR.exe) -p $(STAGE.out.src/)
+	$(GIT.exe) -C $(SRC/) archive --format=tar --prefix=$(PKG.basename)/ $(HB.repo.shorthash) | $(TAR.exe) -xC $(STAGE.out.src/)
+	$(SRC/)scripts/repo-info.sh $(SRC/) $(GIT.exe) > $@/version.txt
+
+$(PKG.src-contrib.tar.bz2):
+	$(TAR.exe) cjf $@ -C $(CONTRIB.download/) \
+	    $(foreach f,$(MODULES.NAMES),$(notdir $($f.FETCH.tar)))
+
+###############################################################################
+
+## include optional platform packaging
+-include $(SRC/)pkg/$(HOST.system)/module.rules

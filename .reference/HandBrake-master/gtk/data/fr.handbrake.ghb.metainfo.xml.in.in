@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018-2026 John Stebbins <your@email.com> -->
+<component type="desktop-application">
+  <id>fr.handbrake.ghb</id>
+  <translation type="gettext">ghb</translation>
+  <developer id="fr.handbrake">
+    <name>HandBrake Team</name>
+  </developer>
+  <developer_name>HandBrake Team</developer_name>
+  <update_contact>jstebbins.hb_AT_gmail.com</update_contact>
+  <launchable type="desktop-id">fr.handbrake.ghb.desktop</launchable>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-only</project_license>
+  <name>HandBrake</name>
+  <summary>Video Transcoder</summary>
+
+  <description>
+    <p>HandBrake is a tool for converting video from nearly any format to a selection of modern, widely supported codecs.</p>
+    <p>Reasons you'll love Handbrake:</p>
+    <ul>
+      <li>Convert video from nearly any format</li>
+      <li>Free and Open Source</li>
+      <li>Multi-Platform (Windows, Mac and Linux)</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://handbrake.fr/</url>
+  <url type="help">https://handbrake.fr/docs/</url>
+  <url type="bugtracker">https://github.com/HandBrake/HandBrake/issues</url>
+  <url type="translate">https://explore.transifex.com/HandBrakeProject/</url>
+
+  <branding>
+    <color type="primary" scheme_preference="light">#87ceeb</color>
+    <color type="primary" scheme_preference="dark">#205c8d</color>
+  </branding>
+
+  <screenshots>
+    <screenshot type="default">
+      <image>https://handbrake.github.io/flatpak/HandBrake_Summary_linux.png</image>
+      <caption>Main window and settings summary</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://handbrake.github.io/flatpak/HandBrake_Dimensions_linux.png</image>
+      <caption>Video resolution and cropping settings</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://handbrake.github.io/flatpak/HandBrake_Video_linux.png</image>
+      <caption>Video encoder settings</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://handbrake.github.io/flatpak/HandBrake_Audio_linux.png</image>
+      <caption>Audio track selection and settings</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://handbrake.github.io/flatpak/HandBrake_Chapters_linux.png</image>
+      <caption>Chapter title editing</caption>
+    </screenshot>
+  </screenshots>
+
+  <provides>
+    <binary>ghb</binary>
+    <mediatype>application/ogg</mediatype>
+    <mediatype>application/x-extension-mp4</mediatype>
+    <mediatype>application/x-flac</mediatype>
+    <mediatype>application/x-matroska</mediatype>
+    <mediatype>application/x-ogg</mediatype>
+    <mediatype>audio/ac3</mediatype>
+    <mediatype>audio/mp4</mediatype>
+    <mediatype>audio/mpeg</mediatype>
+    <mediatype>audio/ogg</mediatype>
+    <mediatype>audio/x-flac</mediatype>
+    <mediatype>audio/x-matroska</mediatype>
+    <mediatype>audio/x-mp2</mediatype>
+    <mediatype>audio/x-mp3</mediatype>
+    <mediatype>audio/x-mpeg</mediatype>
+    <mediatype>audio/x-vorbis</mediatype>
+    <mediatype>video/mp4</mediatype>
+    <mediatype>video/mp4v-es</mediatype>
+    <mediatype>video/mpeg</mediatype>
+    <mediatype>video/msvideo</mediatype>
+    <mediatype>video/quicktime</mediatype>
+    <mediatype>video/vnd.divx</mediatype>
+    <mediatype>video/webm</mediatype>
+    <mediatype>video/x-avi</mediatype>
+    <mediatype>video/x-m4v</mediatype>
+    <mediatype>video/x-matroska</mediatype>
+    <mediatype>video/x-mpeg</mediatype>
+    <mediatype>video/x-ms-wmv</mediatype>
+    <mediatype>video/ogg</mediatype>
+    <mediatype>video/x-ogm+ogg</mediatype>
+    <mediatype>video/x-theora+ogg</mediatype>
+    <mediatype>x-content/video-dvd</mediatype>
+    <mediatype>x-content/video-vcd</mediatype>
+    <mediatype>x-content/video-svcd</mediatype>
+  </provides>
+
+  <recommends>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </recommends>
+
+  <supports>
+    <control>touch</control>
+  </supports>
+
+  <requires>
+    <display_length compare="ge">768</display_length>
+  </requires>
+
+  <releases>
+    <release version="@RELEASE_TAG@" date="@RELEASE_DATE@">
+      <description>
+        <ul>
+          <li>Uses GtkFileLauncher to open files in sandboxed apps.</li>
+          <li>Added buttons to cycle through previews on summary page.</li>
+          <li>Added an option to change the UI display language.</li>
+        </ul>
+        <p>Fixed issues:</p>
+        <ul>
+          <li>Fixed size calculation for disk space check.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.10.0" date="2025-08-10">
+      <description>
+        <ul>
+          <li>Added new "Social 10MB" presets</li>
+          <li>Improved metadata passthru, preserving additional metadata</li>
+          <li>Added an option to choose the encoder color range</li>
+          <li>Added an option to disable track names passthru and autonaming</li>
+          <li>SubRip/UTF-8 subtitles are now passed through to MKV without conversion to SSA</li>
+        </ul>
+        <p>Fixed issues:</p>
+        <ul>
+          <li>Fixed VCN encoder presets</li>
+          <li>Fixed an excessive memory usage during the indepth scan</li>
+          <li>Fixed Opus and Vorbis passthru validation in Webm</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.9.2" date="2025-02-20">
+      <description>
+        <ul>
+          <li>Allowed muxing NVENC AV1 and VCN AV1 in WebM container</li>
+          <li>Fixed a crash that could happen when a source contains chapters with no titles</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.9.1" date="2025-02-10">
+      <description>
+        <ul>
+          <li>Fixed an issue that could happen when chapters titles are not UTF-8</li>
+          <li>Improved support for SRT files with overlapping subtitles</li>
+          <li>Fixed AC3 and EAC3 extradata in MKV</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.9.0" date="2024-12-01">
+      <description>
+        <ul>
+          <li>Added Intel QSV VVC (hardware) video decoder</li>
+          <li>Added a preference to keep duplicated Blu-ray titles</li>
+          <li>Added support for lossless VP9 encoding</li>
+          <li>Improved quality of subtitles burn-in</li>
+        </ul>
+        <p>Fixed issues:</p>
+        <ul>
+          <li>Fixed a rare video corruption issue that could happen when burning-in subtitles</li>
+          <li>Fixed the Power Save option to pause the encodes only when enabled</li>
+          <li>Fixed the queue being stopped when removing completed items</li>
+          <li>Fixed chapters names not being saved properly</li>
+        </ul>
+      </description>
+    </release>
+    <release version="1.8.2" date="2024-08-07">
+      <description>
+        <p>Fixed an issue where an encoded file could be output to the wrong filename when using the queue.</p>
+      </description>
+    </release>
+    <release version="1.8.1" date="2024-06-21">
+      <description>
+        <p>Fixed an issue where dvd subtitles could be corrupted during rendering.</p>
+      </description>
+    </release>
+    <release version="1.8.0" date="2024-05-19">
+      <description>
+        <p>Migrates the UI to GTK 4, adds support for recursive scanning, and improves drag-and-drop to support multiple files and subtitle files.</p>
+      </description>
+    </release>
+    <release version="1.7.3" date="2024-02-09">
+      <description>
+        <p>Fixes an issue where adding a new default audio track automatically set the gain to -20dB.</p>
+      </description>
+    </release>
+    <release version="1.7.2" date="2023-12-17">
+      <description>
+        <p>Addresses an issue where the file chooser opens in the home directory instead of the folder that was previously selected.</p>
+      </description>
+    </release>
+    <release version="1.7.1" date="2023-11-22">
+      <description>
+        <p>Fixed Intel QSV devices enumeration where devices from other vendors are present.</p>
+      </description>
+    </release>
+    <release version="1.7.0" date="2023-11-12">
+      <description>
+        <p>Drag and drop support, native file chooser, chapter import and export, Dolby Vision metadata passthru, and various user interface improvements.</p>
+      </description>
+    </release>
+    <release version="1.6.1" date="2023-01-15">
+      <description>
+        <p>Updated missing translations and fixed an issue with QSV hardware detection.</p>
+      </description>
+    </release>
+    <release version="1.6.0" date="2022-12-28">
+      <description>
+        <p>Adds support for the AV1 codec, new encoder profiles and filters, and various user interface improvements.</p>
+      </description>
+    </release>
+    <release version="1.5.1" date="2022-01-10">
+      <description>
+        <p>Fixed an issue with the source tarball that broke Flathub builds.</p>
+      </description>
+    </release>
+    <release version="1.5.0" date="2022-01-09">
+      <description>
+        <p>Updated video engine to preserve chroma sample location information, and updated Intel Quick Sync to use the Intel oneAPI Video Processing Library.</p>
+      </description>
+    </release>
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+</component>
+

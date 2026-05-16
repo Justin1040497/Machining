@@ -1,0 +1,61 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32328.378
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{5CB7BC74-449C-4E95-98AB-E1E4387E514B}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		build.xml = build.xml
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HandBrake.Worker", "HandBrake.Worker\HandBrake.Worker.csproj", "{F8370F37-B226-4830-AEE7-6D7AE403E3D2}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HandBrake.Interop", "HandBrake.Interop\HandBrake.Interop.csproj", "{ED5C8D53-0988-4CEB-934A-6B1D840C6335}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HandBrakeWPF", "HandBrakeWPF\HandBrakeWPF.csproj", "{C3A8A5D8-2793-42FD-ADC5-9A296F1C4335}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NSIS Installer", "NSIS Installer", "{CC58646B-D0A4-469E-B947-A00C5D271103}"
+	ProjectSection(SolutionItems) = preProject
+		HandBrake.Nsis.Installer\Installer64.nsi = HandBrake.Nsis.Installer\Installer64.nsi
+		HandBrake.Nsis.Installer\InstallerBackground.bmp = HandBrake.Nsis.Installer\InstallerBackground.bmp
+		HandBrake.Nsis.Installer\MakeNightly64.nsi = HandBrake.Nsis.Installer\MakeNightly64.nsi
+	EndProjectSection
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HandBrake.App.Core", "HandBrake.App.Core\HandBrake.App.Core.csproj", "{F3D54128-F034-4241-BB73-AA7BBE9A47C1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F8370F37-B226-4830-AEE7-6D7AE403E3D2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F8370F37-B226-4830-AEE7-6D7AE403E3D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F8370F37-B226-4830-AEE7-6D7AE403E3D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F8370F37-B226-4830-AEE7-6D7AE403E3D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED5C8D53-0988-4CEB-934A-6B1D840C6335}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED5C8D53-0988-4CEB-934A-6B1D840C6335}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED5C8D53-0988-4CEB-934A-6B1D840C6335}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED5C8D53-0988-4CEB-934A-6B1D840C6335}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C3A8A5D8-2793-42FD-ADC5-9A296F1C4335}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3A8A5D8-2793-42FD-ADC5-9A296F1C4335}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3A8A5D8-2793-42FD-ADC5-9A296F1C4335}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3A8A5D8-2793-42FD-ADC5-9A296F1C4335}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3D54128-F034-4241-BB73-AA7BBE9A47C1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3D54128-F034-4241-BB73-AA7BBE9A47C1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3D54128-F034-4241-BB73-AA7BBE9A47C1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3D54128-F034-4241-BB73-AA7BBE9A47C1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{CC58646B-D0A4-469E-B947-A00C5D271103} = {5CB7BC74-449C-4E95-98AB-E1E4387E514B}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F2A9851D-E91D-41D4-9C3C-636A61503FCB}
+		RESX_Rules = {"EnabledRules":["StringFormat"]}
+		RESX_TaskErrorCategory = Message
+	EndGlobalSection
+EndGlobal

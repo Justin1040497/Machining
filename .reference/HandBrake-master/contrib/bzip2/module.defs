@@ -1,0 +1,30 @@
+$(eval $(call import.MODULE.defs,BZIP2,bzip2))
+$(eval $(call import.CONTRIB.defs,BZIP2))
+
+BZIP2.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs/bzip2-1.0.8.tar.gz
+BZIP2.FETCH.url    += https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz
+BZIP2.FETCH.sha256  = ab5a03176ee106d3f0fa90e381da478ddae405918153cca248e682cd0c4a2269
+
+BZIP2.CONFIGURE = $(TOUCH.exe) $@
+
+BZIP2.BUILD.extra = \
+    PREFIX="$(BZIP2.CONFIGURE.prefix)" \
+    CC="$(BZIP2.GCC.gcc)" \
+    $(BZIP2.CONFIGURE.env.CFLAGS) \
+    RANLIB="$(RANLIB.exe)"
+
+BZIP2.BUILD.ntargets = libbz2.a
+
+BZIP2.GCC.args.extra += $(BZIP2.GCC.args.O.$(BZIP2.GCC.O))
+
+define BZIP2.INSTALL
+    $(CP.exe) $(BZIP2.EXTRACT.dir/)libbz2.a $(CONTRIB.build/)lib/
+    $(CP.exe) $(BZIP2.EXTRACT.dir/)bzlib.h $(CONTRIB.build/)include/
+    $(TOUCH.exe) $@
+endef
+
+define BZIP2.UNINSTALL
+    $(RM.exe) -f $(CONTRIB.build/)lib/libbz2.a
+    $(RM.exe) -f $(CONTRIB.build/)include/bzlib.h
+    $(RM.exe) -f $(BZIP2.INSTALL.target)
+endef

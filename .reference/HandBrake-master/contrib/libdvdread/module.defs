@@ -1,0 +1,41 @@
+$(eval $(call import.MODULE.defs,LIBDVDREAD,libdvdread))
+$(eval $(call import.CONTRIB.defs,LIBDVDREAD))
+
+LIBDVDREAD.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/libdvdread-7.0.1.tar.bz2
+LIBDVDREAD.FETCH.url    += https://code.videolan.org/videolan/libdvdread/-/archive/7.0.1/libdvdread-7.0.1.tar.bz2
+LIBDVDREAD.FETCH.sha256  = b69f74d9ceea1ed173b579deba99f669c2cb42f3fd06d7d23b33ff222aa63763
+
+LIBDVDREAD.build_dir             = build/
+LIBDVDREAD.CONFIGURE.exe         = $(MESON.exe) setup
+LIBDVDREAD.prefix                = $(call fn.ABSOLUTE,$(LIBDVDREAD.prefix/))contrib/
+LIBDVDREAD.CONFIGURE.deps        =
+LIBDVDREAD.CONFIGURE.shared      =
+LIBDVDREAD.CONFIGURE.host        =
+LIBDVDREAD.CONFIGURE.build       =
+LIBDVDREAD.CONFIGURE.static      = -Ddefault_library=static
+LIBDVDREAD.CONFIGURE.extra       = --libdir=$(call fn.ABSOLUTE,$(LIBDVDREAD.prefix/))contrib/lib/ \
+                                  -Dc_args="-I$(call fn.ABSOLUTE,$(CONTRIB.build/)include) $(call fn.ARGS,LIBDVDREAD.GCC,*archs *sysroot *minver ?extra)" \
+                                  -Dc_link_args="-L$(call fn.ABSOLUTE,$(CONTRIB.build/)lib) $(call fn.ARGS,LIBDVDREAD.GCC,*archs *sysroot *minver ?extra.exe)" \
+                                  -Dpkg_config_path=$(call fn.ABSOLUTE,$(CONTRIB.build/)lib/pkgconfig) \
+                                  -Dlibdvdcss=disabled
+LIBDVDREAD.CONFIGURE.env         =
+
+ifeq (1-mingw,$(HOST.cross)-$(HOST.system))
+     LIBDVDREAD.CONFIGURE.extra += -Ddlfcn=builtin
+endif
+
+LIBDVDREAD.GCC.args.extra += $(LIBDVDREAD.GCC.args.O.$(LIBDVDREAD.GCC.O))
+
+ifeq (darwin,$(HOST.system))
+    LIBDVDREAD.CONFIGURE.extra += --cross-file=$(call fn.ABSOLUTE,$(LIBDVDREAD.EXTRACT.dir/))package/crossfiles/$(HOST.machine)-darwin-gcc.meson
+endif
+
+ifeq (1-mingw,$(HOST.cross)-$(HOST.system))
+    LIBDVDREAD.CONFIGURE.extra += --cross-file=$(call fn.ABSOLUTE,$(LIBDVDREAD.EXTRACT.dir/))package/crossfiles/$(HOST.machine)-w64-mingw32.meson
+endif
+
+LIBDVDREAD.BUILD.make       = $(NINJA.exe)
+LIBDVDREAD.BUILD.extra      = -v
+LIBDVDREAD.INSTALL.make     = $(NINJA.exe)
+LIBDVDREAD.CLEAN.make       = $(NINJA.exe)
+LIBDVDREAD.UNINSTALL.make   = $(NINJA.exe)

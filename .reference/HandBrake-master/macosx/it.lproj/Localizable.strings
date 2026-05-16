@@ -1,0 +1,646 @@
+/* Job statistics */
+" (%@ %% of the source file)" = " (%@%% del file originale)";
+
+/* Preview -> size info label */
+" Scaled To Screen" = " Adattata allo schermo";
+
+/* No comment provided by engineer. */
+"- --:--" = "- --:--";
+
+/* No comment provided by engineer. */
+"--:--" = "--:--";
+
+/* Preview -> size info label */
+"(%.0f%% actual size)" = "(%.0f%% dimensione reale)";
+
+/* Preview -> size info label */
+"(Actual size)" = "(Dimensione reale)";
+
+/* Main Window -> preset modified */
+"(Modified)" = "(Modificato)";
+
+/* Job statistics */
+"%@ fps" = "%@ fps";
+
+/* Queue status */
+"%lu encode pending" = "%lu conversione in sospeso";
+
+/* Queue status */
+"%lu encodes pending" = "%lu conversioni in sospeso";
+
+/* No comment provided by engineer. */
+"%lu jobs selected" = "%lu lavori selezionati";
+
+/* Add preset window -> picture setting */
+"480p NTSC SD" = "480p NTSC SD";
+
+/* Add preset window -> picture setting */
+"576p PAL SD" = "576p PAL SD";
+
+/* Add preset window -> picture setting */
+"720p HD" = "720p HD";
+
+/* Add preset window -> picture setting */
+"1080p HD" = "1080p HD";
+
+/* Add preset window -> picture setting */
+"1440p 2.5K Quad HD" = "1440p 2.5K Quad HD";
+
+/* Add preset window -> picture setting */
+"2160p 4K Ultra HD" = "2160p 4K Ultra HD";
+
+/* Add preset window -> picture setting */
+"4320p 8K Ultra HD" = "4320p 8K Ultra HD";
+
+/* Destination same as source alert -> message
+File already exists alert -> message */
+"A file already exists at the selected destination." = "Un documento esiste già nella destinazione selezionata.";
+
+/* Queue Window Action Toolbar Item */
+"Action" = "Azione";
+
+/* Main Window Activity Toolbar Item */
+"Activity" = "Attività";
+
+/* Picture HUD -> scale button */
+"Actual Scale" = "Dimensione reale";
+
+/* Main Window Add Toolbar Item */
+"Add All Titles To Queue" = "Aggiungi tutti i titoli alla coda";
+
+/* Queue undo action name */
+"Add Job To Queue" = "aggiungi lavoro alla coda";
+
+/* Queue undo action name */
+"Add Jobs To Queue" = "aggiungi lavori alla coda";
+
+/* Touch bar */
+"Add Preset" = "Aggiungi preset";
+
+/* Touch bar */
+"Add Titles To Queue" = "Aggiungi titoli alla coda";
+
+/* Main Window Add Toolbar Item */
+"Add Titles To Queue…" = "Aggiungi titoli alla coda…";
+
+/* Main Window Add Toolbar Item
+Touch bar */
+"Add To Queue" = "Aggiungi in coda";
+
+/* Preferences Advanced Toolbar Item */
+"Advanced" = "Avanzate";
+
+/* Main Window -> Same as source destination open panel */
+"Allow" = "Consenti";
+
+/* Preferences -> Output Name Token */
+"Angle" = "Angolazione";
+
+/* HBLanguage -> Any language */
+"Any" = "Qualsiasi";
+
+/* Delete preset alert -> message */
+"Are you sure you want to permanently delete the selected preset?" = "Sei sicuro di voler eliminare permanentemente il preset selezionato?";
+
+/* Delete preset alert -> message */
+"Are you sure you want to permanently delete the selected presets?" = "Sei sicuro di voler eliminare permanentemente i preset selezionati?";
+
+/* Quit Alert -> message */
+"Are you sure you want to quit HandBrake?" = "Sei sicuro di volere uscire da HandBrake?";
+
+/* Copy Protection Alert -> first button */
+"Attempt Scan Anyway" = "Prova comunque la scansione";
+
+/* Player HUD -> audio menu */
+"Audio" = "Audio";
+
+/* Job statistics */
+"Average speed:" = "Velocità media:";
+
+/* Preferences -> Output Name Token */
+"Bit Depth" = "Profondità di bit";
+
+/* Copy Protection Alert -> second button
+Delete preset alert -> second button
+File already exists alert -> first button
+File already exists in queue alert -> first button
+Preview -> live preview alert alternate button
+Touch bar */
+"Cancel" = "Annulla";
+
+/* Touch bar */
+"Cancel Encoding" = "Annulla conversione";
+
+/* Toolbar Open/Cancel Item
+Touch bar */
+"Cancel Scan" = "Annulla scansione";
+
+/* Toolbar Open/Cancel Item */
+"Cancel Scanning Source" = "Annulla scansione della sorgente";
+
+/* HBRange -> display name
+Preferences -> Output Name Token */
+"Chapters" = "Capitoli";
+
+/* Main Window -> Destination open panel */
+"Choose" = "Scegli";
+
+/* Preferences -> Output Name Token */
+"Codec" = "Codec";
+
+/* Queue Alert -> cancel rip first button */
+"Continue Encoding" = "Continua conversione";
+
+/* Copy Protection Alert -> message */
+"Copy-Protected sources are not supported." = "Sorgenti protette da sistemi di protezione dei contenuti non sono supportate. ";
+
+/* Preferences -> Output Name Token */
+"Creation-Date" = "Data di creazione";
+
+/* Preferences -> Output Name Token */
+"Creation-Time" = "Orario di creazione";
+
+/* Touch bar */
+"Current Time" = "Tempo attuale";
+
+/* Add preset window -> picture setting */
+"Custom" = "Personalizzato";
+
+/* Preferences -> Output Name Token */
+"Date" = "Data";
+
+/* Delete preset alert -> first button */
+"Delete Preset" = "Elimina preset";
+
+/* Delete preset alert -> first button */
+"Delete Presets" = "Elimina";
+
+/* Queue Window Details Toolbar Item */
+"Details" = "Dettagli";
+
+/* Queue Window When Done Toolbar Item */
+"Do Nothing" = "Non far nulla";
+
+/* File already exists alert -> informative text
+File already exists in queue alert -> informative text */
+"Do you want to overwrite %@?" = "Vuoi sostituire %@?";
+
+/* Quit Alert -> second button */
+"Don't Quit" = "Non uscire";
+
+/* Touch bar */
+"Done" = "OK";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode canceled" = "Conversione annullata";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode complete" = "Conversione completata";
+
+/* HBQueueItemView -> Encode state accessibility label
+Queue done notification failed message */
+"Encode failed" = "Conversione fallita";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode ready" = "Conversione pronta";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode working" = "Conversione in corso";
+
+/* Preferences -> Output Name Token */
+"Encoder" = "Codificatore";
+
+/* No comment provided by engineer. */
+"Encoding %lu Jobs" = "Converto %lu lavori";
+
+/* No comment provided by engineer. */
+"Encoding Job: %@" = "Converto lavoro: %@";
+
+/* Job statistics */
+"Ended at:" = "Completato il:";
+
+/* Export presets save panel title */
+"Export preset" = "Esporta";
+
+/* Export presets save panel title */
+"Export presets" = "Esporta preset";
+
+/* Default name for a newly added excluded file extension */
+"extension" = "estensione";
+
+/* File already exists alert -> message */
+"File already exists." = "Il documente esiste già.";
+
+/* Preferences Output File Name Toolbar Item */
+"File name" = "Nome documento";
+
+/* HBRange -> display name */
+"Frames" = "Fotogrammi";
+
+/* Preferences General Toolbar Item */
+"General" = "Generali";
+
+/* Main Window -> title */
+"HandBrake" = "HandBrake";
+
+/* Preview -> live preview alert message */
+"HandBrake can't open the preview." = "HandBrake non può aprire l'anteprima.";
+
+/* Preview -> live preview alert informative text */
+"HandBrake can't playback this combination of video/audio/container format. Do you want to open it in an external player?" = "HandBrake non può riprodurre questa combinazione di formati video/audio/contenitore. Vuoi aprirlo in un riproduttore esterno?";
+
+/* Main Window -> Same as source destination open panel */
+"HandBrake does not have permission to write to this folder. To allow HandBrake to write to this folder, click \"Allow\"" = "HandBrake non dispone dei permessi per scrivere in questa cartella. Per consentire ad HandBrake di scrivere in questa cartella, premi \"Consenti\"";
+
+/* Preferences -> Output Name Token */
+"Height" = "Altezza";
+
+/* Queue -> sidebar menu */
+"Hide Sidebar" = "Nascondi la barra laterale";
+
+/* Quit Alert -> informative text */
+"If you quit HandBrake your current encode will be reloaded into your queue at next launch. Do you want to quit anyway?" = "Se esci da Handbrake la tua conversione attuale sarà ricaricata in coda al prossimo avvio. Confermi di voler uscire?";
+
+/* Import preset open panel title */
+"Import presets" = "Importa preset";
+
+/* Chapters import -> invalid CSV line count description */
+"Incorrect line count" = "Numero di righe non corretto";
+
+/* Chapters import -> invalid CSV description */
+"Invalid chapters CSV file" = "Documento di capitoli CSV non valido";
+
+/* Queue Edit Alert -> stop and edit first button
+Queue Stop Alert -> stop and remove first button */
+"Keep Encoding" = "Continua la conversione";
+
+/* Touch bar */
+"Live Preview" = "Anteprima Live";
+
+/* Preferences -> Output Name Token */
+"Modification-Date" = "Data di modifica";
+
+/* Preferences -> Output Name Token */
+"Modification-Time" = "Ora di modifica";
+
+/* Queue undo action name */
+"Move Job in Queue" = "sposta lavoro nella coda";
+
+/* Queue undo action name */
+"Move Jobs in Queue" = "sposta lavori nella coda";
+
+/* Add preset window -> My Presets */
+"My Presets" = "Personalizzati";
+
+/* Queue status */
+"No encode pending" = "Nessuna conversione in sospeso";
+
+/* Preview -> accessibility label */
+"No image" = "Nessuna immagine";
+
+/* No comment provided by engineer. */
+"No job selected" = "Nessun lavoro selezionato";
+
+/* Main Window -> Info text */
+"No Valid Preset" = "Nessun preset valido";
+
+/* Main Window -> Info text */
+"No Valid Source Found" = "Nessuna sorgente valida trovata";
+
+/* Add preset window -> picture setting */
+"None" = "Nessuno";
+
+/* Queue Done Alert -> shut down first button
+Queue Done Alert -> sleep first button */
+"OK" = "OK";
+
+/* File already exists alert -> informative text */
+"One or more file already exists. Do you want to overwrite?" = "Uno o più documenti preesistenti. Vuoi sovrascrivere?";
+
+/* Preview -> live preview alert default button */
+"Open in external player" = "Apri in un riproduttore esterno";
+
+/* Main Window Open Toolbar Item
+Toolbar Open/Cancel Item
+Touch bar */
+"Open Source" = "Apri sorgente";
+
+/* File already exists alert -> second button
+File already exists in queue alert -> second button */
+"Overwrite" = "Sostituisci";
+
+/* Main Window Pause Toolbar Item
+Toolbar Pause Item */
+"Pause" = "Sospendi";
+
+/* Queue -> pause/resume menu
+Toolbar Pause Item
+Touch bar */
+"Pause Encoding" = "Metti la conversione in pausa";
+
+/* Main Window Pause Toolbar Item
+Touch bar */
+"Pause/Resume Encoding" = "Sospendi/Riprendi conversione";
+
+/* Job statistics */
+"Paused time:" = "Tempo in pausa:";
+
+/* Video -> Framerate */
+"Peak Framerate (VFR)" = "Picco freq. fotogrammi (VFR)";
+
+/* Queue Window Action Toolbar Item */
+"Perform tasks with the selected items" = "Esegui azioni con gli elementi selezionati";
+
+/* Touch bar */
+"Play/Pause" = "Riproduci/Sospendi";
+
+/* Add preset window -> name alert informative text
+Rename preset window -> name alert informative text */
+"Please enter a name." = "Inserisci un nome.";
+
+/* Copy Protection Alert -> informative text */
+"Please note that HandBrake does not support the removal of copy-protection from DVD Discs. You can if you wish use any other 3rd party software for this function. This warning will be shown only once each time HandBrake is run." = "Tieni conto che HandBrake non supporta la rimozioni di sistemi di protezione dei contenuti dai dischi DVD. Se preferisci puoi usare altri software di terze parti per questa funzione. Questo avviso verrà mostrato solamente una volta ogni volta che HandBrake è avviato.";
+
+/* Queue Done Alert -> shut down second button
+Queue Done Alert -> sleep second button */
+"Preferences…" = "Preferenze…";
+
+/* Preferences -> Output Name Token */
+"Preset" = "Preset";
+
+/* Main Window Presets Toolbar Item */
+"Presets" = "Preset";
+
+/* Preview -> progress formatter title */
+"preview" = "anteprima";
+
+/* Main Window Preview Toolbar Item
+Preview -> window title */
+"Preview" = "Anteprima";
+
+/* Preview -> window title format */
+"Preview - %@ %@" = "Anteprima - %1$@ %2$@";
+
+/* Preview -> accessibility label */
+"Preview Image, Size: %f x %f, Scale: %.0f%%" = "Immagine di anteprima, Dimensione: %1$f x %2$f, Scala: %3$.0f%%";
+
+/* Queue Window When Done Toolbar Item */
+"Put Computer to Sleep" = "Metti il computer in stop";
+
+/* Queue notification alert message */
+"Put down that cocktail…" = "Appoggia quel cocktail…";
+
+/* Preferences -> Output Name Token */
+"Quality Type" = "Tipo di qualità";
+
+/* Preferences -> Output Name Token */
+"Quality/Bitrate" = "Qualità/Frequenza dati";
+
+/* Main Window Presets Toolbar Item
+Preferences Queue Toolbar Item
+Queue window title */
+"Queue" = "Coda";
+
+/* Queue window title */
+"Queue (%@)" = "Coda (%@)";
+
+/* Queue Window Quick Look Toolbar Item */
+"Quick Look" = "Visualizzazione rapida";
+
+/* Quit Alert -> first button */
+"Quit" = "Esci";
+
+/* Queue Window When Done Toolbar Item */
+"Quit HandBrake" = "Esci da HandBrake";
+
+/* Touch bar */
+"Remaining Time" = "Tempo rimanente";
+
+/* Queue Window Action Toolbar Item */
+"Remove All Jobs" = "Rimuovi tutti i lavori";
+
+/* Queue Window Action Toolbar Item */
+"Remove Completed Jobs" = "Rimuovi i lavori completati";
+
+/* HBQueueItemView -> Remove button accessibility label */
+"Remove job" = "Rimuovi lavoro";
+
+/* Queue undo action name */
+"Remove Job From Queue" = "rimuovi lavoro dalla coda";
+
+/* Queue undo action name */
+"Remove Jobs From Queue" = "rimuovi lavori dalla coda";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Rescanning for editing" = "Analizzo per rendere modificabile";
+
+/* Queue Window Action Toolbar Item */
+"Reset All Jobs" = "Ripristina tutti i lavori";
+
+/* Queue Window Action Toolbar Item */
+"Reset Failed Jobs" = "Ripristina i lavori falliti";
+
+/* Toolbar Pause Item */
+"Resume" = "Riprendi";
+
+/* Queue -> pause/resume men
+Toolbar Pause Item */
+"Resume Encoding" = "Riprendi conversione";
+
+/* HBQueueItemView -> Reveal button accessibility label */
+"Reveal destination in Finder" = "Mostra destinazione nel Finder";
+
+/* Job statistics */
+"Run time:" = "Tempo:";
+
+/* Export presets panel prompt */
+"Save" = "Salva";
+
+/* Picture HUD -> scale button
+Touch bar */
+"Scale To Screen" = "Adatta allo schermo";
+
+/* HBRange -> display name */
+"Seconds" = "Secondi";
+
+/* Queue Window When Done Toolbar Item */
+"Select an action to run when the queue is done" = "Seleziona un'azione da eseguire quando la coda è terminata";
+
+/* Queue Alert -> cancel rip informative text */
+"Select Continue Encoding to dismiss this dialog without making changes." = "Seleziona \"Continua conversione\" per mandare via questo avviso senza fare modifiche.";
+
+/* Preferences -> send to app destination open panel */
+"Select the desired external application" = "Seleziona l'applicazione desiderata";
+
+/* Titles selection sheet -> informative text */
+"Select the titles to add to the queue using the %@ preset:" = "Seleziona i titoli da aggiungere alla coda usando il preset %@:";
+
+/* Notification -> Show in Finder */
+"Show" = "Mostra";
+
+/* Main Window Activity Toolbar Item
+Touch bar */
+"Show Activity Window" = "Mostra finestra di attività";
+
+/* Main Window Presets Toolbar Item */
+"Show Presets List" = "Mostra elenco preset";
+
+/* Main Window Preview Toolbar Item
+Touch bar */
+"Show Preview Window" = "Mostra finestra di anteprima";
+
+/* Main Window Presets Toolbar Item */
+"Show Queue Window" = "Mostra finestra della coda";
+
+/* Queue -> sidebar menu */
+"Show Sidebar" = "Mostra la barra laterale";
+
+/* Queue Window When Done Toolbar Item */
+"Shut Down Computer" = "Spegni il computer";
+
+/* Job statistics */
+"Size:" = "Dimensione:";
+
+/* Queue Alert -> cancel rip second button */
+"Skip Current Job" = "Salta lavoro attuale";
+
+/* Touch bar */
+"Slider" = "Slider";
+
+/* Preferences -> Output Name Token */
+"Source" = "Sorgente";
+
+/* Main Window Start Toolbar Item
+Toolbar Start/Stop Item */
+"Start" = "Avvia";
+
+/* Menu Start/Stop Item
+Queue -> start/stop menu
+Toolbar Start/Stop Item */
+"Start Encoding" = "Avvia conversione";
+
+/* Toolbar Start/Stop Item */
+"Start Queue" = "Avvia coda";
+
+/* Main Window Start Toolbar Item
+Touch bar */
+"Start/Stop Encoding" = "Avvia/Interrompi conversione";
+
+/* Job statistics */
+"Started at:" = "Avviato il:";
+
+/* Queue -> Stop action
+Toolbar Start/Stop Item */
+"Stop" = "Interrompi";
+
+/* Queue -> Stop action */
+"Stop action." = "Azione di interruzione.";
+
+/* Queue Alert -> cancel rip third button */
+"Stop After Current Job" = "Interrompi dopo il lavoro attuale";
+
+/* Queue Alert -> cancel rip fourth button */
+"Stop All" = "Interrompi tutto";
+
+/* Queue -> start/stop menu
+Toolbar Start/Stop Item */
+"Stop Encoding" = "Interrompi conversione";
+
+/* Queue Stop Alert -> stop and remove second button */
+"Stop Encoding and Delete" = "Interrompi conversione ed elimina";
+
+/* Queue Edit Alert -> stop and edit second button */
+"Stop Encoding and Edit" = "Interrompi conversione e modifica";
+
+/* Queue Edit Alert -> stop and edit message */
+"Stop This Encode and Edit It?" = "Interrompere e modifica questa conversione?";
+
+/* Queue Stop Alert -> stop and remove message */
+"Stop This Encode and Remove It?" = "Interrompere e rimuovere questa conversione?";
+
+/* Player HUD -> subtitles menu */
+"Subtitles" = "Sottotitoli";
+
+/* Queue Done Alert -> shut down message */
+"The computer will shut down after encoding is done." = "Il computer verrà spento al completamento della conversione.";
+
+/* Queue Done Alert -> sleep message */
+"The computer will sleep after encoding is done." = "Il computer entrerà in stop al completamento della conversione.";
+
+/* Chapters import -> invalid CSV recovery suggestion */
+"The CSV file is not a valid chapters CSV file." = "Il document CSV non è un documento CSV di capitoli valido.";
+
+/* Destination same as source alert -> informative text */
+"The destination is the same as the source, you can not overwrite your source file!" = "La destinazione è uguale alla sorgente, non è possibile sovrascrivere il documento sorgente!";
+
+/* Chapters import -> invalid CSV line count recovery suggestion */
+"The line count in the chapters CSV file does not match the number of chapters in the movie." = "Il numero di righe nel CSV dei capitoli non corrisponde al numero dei capitoli nel filmato.";
+
+/* Add preset window -> name alert message
+Rename preset window -> name alert message */
+"The preset name cannot be empty." = "Il nome del preset non può essere vuoto.";
+
+/* File already exists in queue alert -> message */
+"There is already a queue item for this destination." = "Un elemento della coda è già presente per questa destinazione.";
+
+/* Invalid destination alert -> informative text */
+"This is not a valid destination directory!" = "La cartella di destinazione non è valida!";
+
+/* Preferences -> Output Name Token */
+"Time" = "Orario";
+
+/* Preferences -> Output Name Token */
+"Title" = "Titolo";
+
+/* Queue Window Details Toolbar Item */
+"Toggle details sidebar" = "Mostra/Nascondi la barra laterale";
+
+/* HBLanguage -> Unknown language */
+"Unknown" = "Sconosciuta";
+
+/* Video -> Framerate */
+"Variable Framerate" = "Freq. fotogrammi variabile";
+
+/* Invalid destination alert -> message */
+"Warning!" = "Attenzione!";
+
+/* Queue Window When Done Toolbar Item */
+"When Done" = "Al completamento";
+
+/* Preferences -> Output Name Token */
+"Width" = "Larghezza";
+
+/* No comment provided by engineer. */
+"Working" = "Lavoro";
+
+/* Queue Alert -> cancel rip message */
+"You are currently encoding. What would you like to do?" = "Attualmente stai convertendo. Come preferisci continuare?";
+
+/* Delete preset alert -> informative text */
+"You can't undo this action." = "Non puoi annullare questa azione.";
+
+/* Queue Done Alert -> shut down informative text */
+"You have selected to shut down the computer after encoding. To turn off shut down, go to the HandBrake preferences." = "Hai impostato di spegnere il computer dopo la conversione.";
+
+/* Queue Done Alert -> sleep informative text */
+"You have selected to sleep the computer after encoding. To turn off sleeping, go to the HandBrake preferences." = "Hai impostato di mettere il computer in stop dopo la conversione.";
+
+/* Queue -> disk almost full alert informative text */
+"You need to make more space available on your destination disk." = "È necessario liberare più spazio sul disco di destinazione.";
+
+/* Queue -> disk almost full alert message */
+"Your destination disk is almost full." = "Il disco di destinazione è quasi pieno.";
+
+/* Queue done notification message */
+"Your encode %@ couldn't be completed." = "Non è stato possibile convertire %@ .";
+
+/* Queue done notification message */
+"Your encode %@ is done!" = "La tua conversione %@ è completa!";
+
+/* Queue Edit Alert -> stop and edit informative text
+Queue Stop Alert -> stop and remove informative text */
+"Your movie will be lost if you don't continue encoding." = "Il tuo filmato andrà perso se non continui la conversione.";
+
+/* Queue done notification message */
+"Your queue is done!" = "La tua coda è stata completata!";
+

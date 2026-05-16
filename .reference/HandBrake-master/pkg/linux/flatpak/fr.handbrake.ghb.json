@@ -1,0 +1,97 @@
+{
+    "app-id": "fr.handbrake.ghb",
+    "runtime": "org.gnome.Platform",
+    "runtime-version": "49",
+    "sdk": "org.gnome.Sdk",
+    "command": "ghb",
+    "finish-args": [
+        "--device=all",
+        "--share=ipc",
+        "--socket=fallback-x11",
+        "--socket=wayland",
+        "--socket=pulseaudio",
+        "--filesystem=host",
+        "--filesystem=xdg-run/gvfs",
+        "--filesystem=xdg-run/gvfsd",
+        "--talk-name=org.gtk.vfs.*",
+        "--system-talk-name=org.freedesktop.login1",
+        "--system-talk-name=org.freedesktop.UPower",
+        "--env=PATH=/app/bin:/app/extensions/bin:/usr/bin",
+        "--env=LIBVA_DRIVERS_PATH=/app/extensions/lib/dri",
+        "--env=LD_LIBRARY_PATH=/app/extensions/lib",
+        "--env=JAVA_HOME=/app/extensions/jre",
+        "--env=GIO_EXTRA_MODULES=/app/lib/gio/modules"
+    ],
+    "add-extensions": {
+        "fr.handbrake.ghb.Plugin": {
+            "version": "1",
+            "directory": "extensions",
+            "add-ld-path": "lib",
+            "merge-dirs": "lib;bin;share;jre",
+            "subdirectories": true,
+            "no-autodownload": true,
+            "autodelete": true
+        }
+    },
+    "modules": [
+        {
+            "name": "numactl",
+            "sources": [
+                {
+                    "type": "archive",
+                    "url": "https://github.com/numactl/numactl/archive/refs/tags/v2.0.19.tar.gz",
+                    "sha256": "8b84ffdebfa0d730fb2fc71bb7ec96bb2d38bf76fb67246fde416a68e04125e4",
+                    "x-checker-data": {
+                        "type": "anitya",
+                        "project-id": 2507,
+                        "url-template": "https://github.com/numactl/numactl/archive/refs/tags/v$version.tar.gz"
+                    }
+                }
+            ],
+            "rm-configure": true,
+            "cleanup": [
+                "/include",
+                "/lib/pkgconfig",
+                "/lib/*.a",
+                "/lib/*.la",
+                "/lib/*.so",
+                "/share/man"
+            ]
+        },
+        {
+            "name": "handbrake",
+            "no-autogen": true,
+            "config-opts": [
+                "--flatpak"
+            ],
+            "build-options": {
+            },
+            "builddir": true,
+            "post-install": ["install -d /app/extensions"],
+            "sources": [
+                {
+                    "type": "archive",
+                    "path": "handbrake.tar.bz2",
+                    "strip-components": 1
+                },
+                {
+                    "type": "archive",
+                    "path": "download.tgz",
+                    "strip-components": 0
+                }
+            ],
+            "modules": [
+            ],
+            "cleanup": [
+                "/etc",
+                "/include",
+                "/lib/cmake",
+                "/lib/pkgconfig",
+                "/lib/*.a",
+                "/lib/*.la",
+                "/lib/*.so"
+            ]
+        }
+    ]
+}
+

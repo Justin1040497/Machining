@@ -1,0 +1,157 @@
+$(eval $(call import.MODULE.defs,MACOSX,macosx))
+$(eval $(call import.GCC,MACOSX))
+
+MACOSX.src/   = $(SRC/)macosx/
+MACOSX.build/ = $(BUILD/)macosx/
+MACOSX.xroot/ = $(BUILD/)xroot/
+
+MACOSX.m4.in  = $(wildcard $(MACOSX.src/)*.m4)
+MACOSX.m4.out = $(MACOSX.m4.in:$(MACOSX.src/)%.m4=$(MACOSX.build/)%)
+
+MACOSX.osl.filelist = $(MACOSX.build/)osl.filelist.txt
+
+###############################################################################
+
+BUILD.out += $(MACOSX.m4.out)
+BUILD.out += $(MACOSX.osl.filelist)
+
+###############################################################################
+
+MACOSX.project = -project $(MACOSX.src/)HandBrake.xcodeproj
+
+## configuration: must be one of { release, debug }
+ifeq (1,$(SECURITY.sandbox))
+   MACOSX.configuration = -configuration $(MACOSX.map.g.$(MACOSX.GCC.g))-sandbox
+else
+   MACOSX.configuration = -configuration $(MACOSX.map.g.$(MACOSX.GCC.g))
+endif
+
+## mapping from symbolic debug value to xcode configuration
+MACOSX.map.g.none = release
+MACOSX.map.g.min  = debug
+MACOSX.map.g.std  = debug
+MACOSX.map.g.max  = debug
+
+## mapping from symbolic optimization value to actual level
+MACOSX.map.O.none            = 0
+MACOSX.map.O.size            = s
+MACOSX.map.O.size-aggressive = z
+MACOSX.map.O.speed           = 3
+
+## mapping from symbolic cpu target value to cflags
+MACOSX.map.cpu.none   = $(GCC.args.cpu.none)
+MACOSX.map.cpu.native = $(GCC.args.cpu.native)
+
+## mapping from symbolic lto value to llvm lto value
+MACOSX.map.lto.none   =
+MACOSX.map.lto.on     = YES
+MACOSX.map.lto.thin   = YES_THIN
+MACOSX.map.lto.off    = NO
+
+## xcconfig: must be one of macosx/xcconfig/*.xcconfig
+MACOSX.xcconfig = $(foreach x,$(XCODE.xcconfig),-xcconfig $(MACOSX.src/)xcconfig/$(x))
+MACOSX.sdk      = $(foreach sdk,$(GCC.sysroot),-sdk $(sdk))
+
+## extra CFLAGS: macro definitions
+MACOSX.extra_cflags = $(MACOSX.GCC.D) $(MACOSX.map.cpu.$(MACOSX.GCC.cpu))
+
+## link time optimization
+MACOSX.lto = $(MACOSX.map.lto.$(MACOSX.GCC.lto))
+
+## launch a build through xcode; which in turn will do a nested make against
+## this build system with normal build rules enabled.
+##
+## $(1) = list of targets
+## $(2) = list of goals to shunt through xcodebuild->make
+##
+
+MACOSX.XCODE = $(strip \
+    $(XCODEBUILD.exe) \
+        $(MACOSX.project) \
+        $(foreach t,$(1),-target $t) \
+        $(MACOSX.configuration) \
+        $(MACOSX.xcconfig) \
+        \
+        SYMROOT='$(XCODE.symroot)' \
+        CONFIGURATION_BUILD_DIR='$(XCODE.symroot)' \
+        CONFIGURATION_TEMP_DIR='$(XCODE.symroot)' \
+        \
+        EXTERNAL_BUILD='$(abspath $(BUILD))' \
+        EXTERNAL_CONF_ARGS='$(CONF.args)' \
+        EXTERNAL_DRIVER='$(XCODE.driver)' \
+        EXTERNAL_GOALS='$(3)' \
+        EXTERNAL_JOBS='$(MACOSX.JOBS)' \
+        EXTERNAL_O='$(MACOSX.map.O.$(MACOSX.GCC.O))' \
+        EXTERNAL_VARS='$(-*-command-variables-*-)' \
+        \
+        OTHER_CFLAGS='$(strip $(MACOSX.extra_cflags))' \
+        LLVM_LTO='$(MACOSX.lto)' \
+        \
+        $(2) )
+
+MACOSX.SIGN.flags = $(if $(filter 1,$(SECURITY.sandbox)),-sr,-r)
+MACOSX.SIGN.id = $(if $(ID),$(ID),-)
+MACOSX.SIGN = $(strip $(MACOSX.src/)hbsign $(MACOSX.SIGN.flags) '$(MACOSX.SIGN.id)' $(MACOSX.xroot/)HandBrake.app $(MACOSX.xroot/)HandBrakeCLI)
+
+MACOSX.NOTARIZE = $(strip $(MACOSX.src/)hbnotarize '$(USERNAME)' '$(TEAMID)' $(MACOSX.xroot/)HandBrake.app $(MACOSX.xroot/)HandBrakeCLI)
+
+###############################################################################
+##
+## Universal binary
+##
+###############################################################################
+
+MACOSX.UB.xcconfigs = osx1013.arm64 osx1013.x86_64
+MACOSX.UB.builds    = $(wildcard $(foreach n,$(MACOSX.UB.xcconfigs),$(SRC/)build.$n))
+MACOSX.UB.first     = $(word 1,$(MACOSX.UB.xcconfigs))
+MACOSX.UB.more      = $(wordlist 2,999,$(MACOSX.UB.xcconfigs))
+
+MACOSX.UB.products/ = $(MACOSX.xroot/)
+
+MACOSX.UB.app/         = HandBrake.app/Contents/
+MACOSX.UB.frameworks/  = $(MACOSX.UB.app/)Frameworks/
+MACOSX.UB.xpcServices/ = $(MACOSX.UB.app/)XPCServices/
+
+MACOSX.UB.contents = $(MACOSX.UB.app/)MacOS/HandBrake \
+              $(MACOSX.UB.frameworks/)HandBrakeKit.framework/Versions/A/HandBrakeKit \
+              $(MACOSX.UB.xpcServices/)HandBrakeXPCService.xpc/Contents/MacOS/HandBrakeXPCService \
+              $(MACOSX.UB.xpcServices/)HandBrakeXPCService2.xpc/Contents/MacOS/HandBrakeXPCService2 \
+              $(MACOSX.UB.xpcServices/)HandBrakeXPCService3.xpc/Contents/MacOS/HandBrakeXPCService3 \
+              $(MACOSX.UB.xpcServices/)HandBrakeXPCService4.xpc/Contents/MacOS/HandBrakeXPCService4
+
+MACOSX.UB.BUILD = $(SRC/)configure --force --build=$(BUILD/)ub.$(1) --xcode-config=$(1) $(CONF.args) --launch
+
+## linefeed is important
+define MACOSX.UB.BUILD.item
+    $(call MACOSX.UB.BUILD,$(1)) --launch-jobs=0
+
+endef
+
+define MACOSX.UB.BUILD.SERIAL
+    $(foreach n,$(MACOSX.UB.xcconfigs),$(call MACOSX.UB.BUILD.item,$n))
+endef
+
+define MACOSX.UB.BUILD.lipo
+    $(LIPO.exe) $(foreach n,$(MACOSX.UB.xcconfigs),ub.$n/$(MACOSX.UB.products/)$1) -create -output $(MACOSX.UB.products/)$1
+
+endef
+
+define MACOSX.UB.COMBINE
+    $(RM.exe) -fr $(MACOSX.UB.products/)
+    $(MKDIR.exe) -p $(MACOSX.UB.products/)
+
+    $(CP.exe) ub.$(MACOSX.UB.first)/$(MACOSX.UB.products/)HandBrakeCLI $(MACOSX.UB.products/).
+    $(LIPO.exe) $(foreach n,$(MACOSX.UB.xcconfigs),ub.$n/$(MACOSX.UB.products/)HandBrakeCLI) -create -output $(MACOSX.UB.products/)HandBrakeCLI
+
+    $(CP.exe) -R ub.$(MACOSX.UB.first)/$(MACOSX.UB.products/)HandBrake.app $(MACOSX.UB.products/).
+    $(foreach n,$(MACOSX.UB.contents),$(call MACOSX.UB.BUILD.lipo,$n))
+
+    @sync
+    @echo ""
+    @echo "$@: { $(MACOSX.UB.xcconfigs) } combined -> $(MACOSX.UB.products/)HandBrakeCLI"
+    @echo "$@: UB executable size: `du -sh $(MACOSX.UB.products/)HandBrakeCLI | awk '{ print $$1 }'`"
+    @echo ""
+    @echo "$@: { $(MACOSX.UB.xcconfigs) } combined -> $(MACOSX.UB.products/)HandBrake.app"
+    @echo "$@: UB executable size: `du -sh $(MACOSX.UB.products/)$(1) | awk '{ print $$1 }'`"
+    @echo ""
+endef

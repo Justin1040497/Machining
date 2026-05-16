@@ -1,0 +1,1032 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="HBAudioDefaultsController">
+            <connections>
+                <outlet property="tableController" destination="ZBe-aP-wvq" id="HBN-Z2-bbo"/>
+                <outlet property="tracksControl" destination="N4q-sT-WgW" id="e0J-yK-2pi"/>
+                <outlet property="tracksController" destination="I6S-EX-Dvu" id="oEz-8a-ef7"/>
+                <outlet property="window" destination="kwM-lz-5lG" id="rob-Fo-JhL"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Audio Selection Behaviour" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" restorable="NO" visibleAtLaunch="NO" animationBehavior="default" id="kwM-lz-5lG">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="54" y="544" width="766" height="474"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1055"/>
+            <view key="contentView" misplaced="YES" id="ZP2-Cp-K5w">
+                <rect key="frame" x="0.0" y="0.0" width="769" height="507"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sC2-52-liU">
+                        <rect key="frame" x="691" y="13" width="64" height="27"/>
+                        <buttonCell key="cell" type="push" title="OK" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="kDe-1L-VkD">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="menu" size="11"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="ok:" target="-2" id="pNO-TU-osz"/>
+                            <outlet property="nextKeyView" destination="oiD-QI-wly" id="1gO-sY-HNE"/>
+                        </connections>
+                    </button>
+                    <stackView distribution="fill" orientation="vertical" alignment="leading" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8Pw-Kq-eMN">
+                        <rect key="frame" x="468" y="305" width="223" height="158"/>
+                        <subviews>
+                            <stackView distribution="fill" orientation="horizontal" alignment="top" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OkV-lt-k7P">
+                                <rect key="frame" x="0.0" y="24" width="223" height="134"/>
+                                <subviews>
+                                    <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="l4i-pd-Cbk">
+                                        <rect key="frame" x="-2" y="120" width="100" height="14"/>
+                                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Auto Passthru:" id="s6s-EH-5CB">
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <stackView distribution="fill" orientation="horizontal" alignment="top" spacing="6" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WFJ-He-GIV">
+                                        <rect key="frame" x="104" y="0.0" width="119" height="134"/>
+                                        <subviews>
+                                            <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="6" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="55H-sv-jYf">
+                                                <rect key="frame" x="0.0" y="0.0" width="49" height="134"/>
+                                                <subviews>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="GHJ-25-kZl">
+                                                        <rect key="frame" x="-1" y="119" width="45" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports MP2. This permits MP2 passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="MP2" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="Z8O-AS-UdA">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="i2Z-jt-9Zf"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowMP2Passthru" id="tWz-Ef-iMQ"/>
+                                                            <outlet property="nextKeyView" destination="vUx-OV-W5T" id="Eax-8B-PgB"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="fzd-MO-xaB">
+                                                        <rect key="frame" x="-1" y="99" width="44" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports AAC. This permits AAC passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="AAC" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="cUX-iP-UAs">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="4LE-EX-uwv"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowAACPassthru" id="nsQ-cP-JyI"/>
+                                                            <outlet property="nextKeyView" destination="15L-M3-3Tq" id="hoi-NF-AwX"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button id="OWh-gZ-JcF" userLabel="Opus">
+                                                        <rect key="frame" x="-1" y="79" width="49" height="16"/>
+                                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                                        <string key="toolTip">Enable this if your playback device supports Opus. This permits Opus passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="Opus" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="eA6-za-Up0">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="xyr-I0-DO0"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowOpusPassthru" id="dkZ-N8-x3J"/>
+                                                            <outlet property="nextKeyView" destination="BK7-c4-kkk" id="Ujf-Rh-dFs"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="fgl-Ev-ELt">
+                                                        <rect key="frame" x="-1" y="59" width="43" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports AC3. This permits AC3 passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="AC3" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="VnE-3R-bUf">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="939-Ac-M99"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowAC3Passthru" id="Aig-Ok-RyG"/>
+                                                            <outlet property="nextKeyView" destination="IxI-o9-jMs" id="GMN-bR-6Nb"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button horizontalHuggingPriority="249" translatesAutoresizingMaskIntoConstraints="NO" id="E93-Md-aWa">
+                                                        <rect key="frame" x="-1" y="39" width="50" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports DTS. This permits DTS passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="DTS" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="8mC-Wx-myL">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="fDC-wm-Xdh"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowDTSPassthru" id="IWX-ek-0Bd"/>
+                                                            <outlet property="nextKeyView" destination="os0-Jl-OXF" id="ghh-uP-g1g"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1mq-gM-6vW">
+                                                        <rect key="frame" x="-1" y="19" width="50" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports ALAC. This permits ALAC passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="ALAC" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="S0X-gJ-f6A">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="smallSystem"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowALACPassthru" id="3O2-Eo-bxs"/>
+                                                            <outlet property="nextKeyView" destination="gOm-E9-8K7" id="svK-c5-5LN"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="xIT-uq-7c7">
+                                                        <rect key="frame" x="-1" y="-1" width="46" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports PCM. This permits PCM passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="PCM" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="HyS-Lz-BJz">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="smallSystem"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowPCMPassthru" id="ZWM-a6-0HD"/>
+                                                            <outlet property="nextKeyView" destination="LdN-Cx-ZJY" id="k9A-U5-qP7"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <visibilityPriorities>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                </visibilityPriorities>
+                                                <customSpacing>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                </customSpacing>
+                                            </stackView>
+                                            <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="6" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hmB-iB-sbe">
+                                                <rect key="frame" x="55" y="20" width="64" height="114"/>
+                                                <subviews>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="vUx-OV-W5T">
+                                                        <rect key="frame" x="-1" y="99" width="45" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports MP3. This permits MP3 passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="MP3" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="sdZ-Rx-JoG">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="Fj1-2v-43m"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowMP3Passthru" id="rVF-G7-BYA"/>
+                                                            <outlet property="nextKeyView" destination="fzd-MO-xaB" id="1fb-a1-B25"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="15L-M3-3Tq">
+                                                        <rect key="frame" x="-1" y="79" width="55" height="16"/>
+                                                        <buttonCell key="cell" type="check" title="Vorbis" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="rXl-qc-MHk">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="smallSystem"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowVorbisPassthru" id="3fc-D1-FXb"/>
+                                                            <outlet property="nextKeyView" destination="OWh-gZ-JcF" id="xNU-gK-HHE"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="BK7-c4-kkk">
+                                                        <rect key="frame" x="-1" y="59" width="55" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports E-AC3. This permits E-AC3 passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="E-AC3" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="u9h-dn-wcK">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="83N-qg-BsJ"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowEAC3Passthru" id="vcL-wd-H1f"/>
+                                                            <outlet property="nextKeyView" destination="fgl-Ev-ELt" id="Drx-MD-iqV"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button horizontalHuggingPriority="249" translatesAutoresizingMaskIntoConstraints="NO" id="IxI-o9-jMs">
+                                                        <rect key="frame" x="-1" y="39" width="65" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports DTS-HD. This permits DTS-HD passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="DTS-HD" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="LX6-kc-5vq">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="S8M-P1-c2B"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowDTSHDPassthru" id="w77-9v-vIh"/>
+                                                            <outlet property="nextKeyView" destination="E93-Md-aWa" id="Pc0-y8-j41"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="os0-Jl-OXF">
+                                                        <rect key="frame" x="-1" y="19" width="61" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports TrueHD. This permits TrueHD passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="TrueHD" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="z9d-P3-6UP">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="tU2-ar-p5a"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowTrueHDPassthru" id="3fh-cT-PtB"/>
+                                                            <outlet property="nextKeyView" destination="1mq-gM-6vW" id="g73-5H-2P6"/>
+                                                        </connections>
+                                                    </button>
+                                                    <button translatesAutoresizingMaskIntoConstraints="NO" id="gOm-E9-8K7" userLabel="FLAC">
+                                                        <rect key="frame" x="-1" y="-1" width="49" height="16"/>
+                                                        <string key="toolTip">Enable this if your playback device supports FLAC. This permits FLAC passthru to be selected when automatic passthru selecion is enabled.</string>
+                                                        <buttonCell key="cell" type="check" title="FLAC" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" state="on" inset="2" id="sJU-xA-Jo1">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <accessibilityConnection property="title" destination="l4i-pd-Cbk" id="cki-fU-C92"/>
+                                                            <binding destination="-2" name="value" keyPath="self.settings.allowFLACPassthru" id="DTs-Gs-XLc"/>
+                                                            <outlet property="nextKeyView" destination="xIT-uq-7c7" id="iPP-CG-EFW"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <visibilityPriorities>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                    <integer value="1000"/>
+                                                </visibilityPriorities>
+                                                <customSpacing>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                    <real value="3.4028234663852886e+38"/>
+                                                </customSpacing>
+                                            </stackView>
+                                        </subviews>
+                                        <visibilityPriorities>
+                                            <integer value="1000"/>
+                                            <integer value="1000"/>
+                                        </visibilityPriorities>
+                                        <customSpacing>
+                                            <real value="3.4028234663852886e+38"/>
+                                            <real value="3.4028234663852886e+38"/>
+                                        </customSpacing>
+                                    </stackView>
+                                </subviews>
+                                <visibilityPriorities>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                </visibilityPriorities>
+                                <customSpacing>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                </customSpacing>
+                            </stackView>
+                            <stackView distribution="fill" orientation="horizontal" alignment="centerY" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ePQ-pq-eNY">
+                                <rect key="frame" x="0.0" y="0.0" width="151" height="16"/>
+                                <subviews>
+                                    <textField focusRingType="none" horizontalHuggingPriority="248" verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="Tth-IR-7cU">
+                                        <rect key="frame" x="-2" y="1" width="100" height="14"/>
+                                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Passthru Fallback:" id="AQe-Sg-Qgh">
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton toolTip="Audio encoder to use when a track suitable for passthru is unavailable." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="LdN-Cx-ZJY">
+                                        <rect key="frame" x="100" y="-4" width="55" height="22"/>
+                                        <popUpButtonCell key="cell" type="push" title="Item" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="UJy-A2-Bb1" id="OqD-Tf-29c">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <menu key="menu" id="PtB-Wp-B9X">
+                                                <items>
+                                                    <menuItem title="Item" state="on" id="UJy-A2-Bb1"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <accessibilityConnection property="title" destination="Tth-IR-7cU" id="eOb-bG-eUP"/>
+                                            <binding destination="-2" name="content" keyPath="self.settings.audioEncoderFallbacks" id="71J-tI-ct9">
+                                                <dictionary key="options">
+                                                    <string key="NSValueTransformerName">HBFallbackEncodersTransformer</string>
+                                                </dictionary>
+                                            </binding>
+                                            <binding destination="-2" name="selectedValue" keyPath="self.settings.encoderFallback" previousBinding="71J-tI-ct9" id="vA7-D4-O6Y">
+                                                <dictionary key="options">
+                                                    <string key="NSValueTransformerName">HBFallbackEncoderTransformer</string>
+                                                </dictionary>
+                                            </binding>
+                                            <outlet property="nextKeyView" destination="uF5-6E-EIe" id="gaK-Cr-XA9"/>
+                                        </connections>
+                                    </popUpButton>
+                                </subviews>
+                                <visibilityPriorities>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                </visibilityPriorities>
+                                <customSpacing>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                </customSpacing>
+                            </stackView>
+                        </subviews>
+                        <constraints>
+                            <constraint firstItem="Tth-IR-7cU" firstAttribute="width" secondItem="l4i-pd-Cbk" secondAttribute="width" id="vuM-84-08f"/>
+                        </constraints>
+                        <visibilityPriorities>
+                            <integer value="1000"/>
+                            <integer value="1000"/>
+                        </visibilityPriorities>
+                        <customSpacing>
+                            <real value="3.4028234663852886e+38"/>
+                            <real value="3.4028234663852886e+38"/>
+                        </customSpacing>
+                    </stackView>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="600" translatesAutoresizingMaskIntoConstraints="NO" id="RtZ-Cz-5mG">
+                        <rect key="frame" x="18" y="223" width="253" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Audio encoder settings for each selected track:" id="007-WM-RmC">
+                            <font key="font" metaFont="menu" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="N4q-sT-WgW">
+                        <rect key="frame" x="17" y="48" width="54" height="21"/>
+                        <segmentedCell key="cell" controlSize="small" borderStyle="border" alignment="left" style="rounded" trackingMode="momentary" id="otA-K4-TxM">
+                            <font key="font" metaFont="menu" size="11"/>
+                            <segments>
+                                <segment toolTip="Add Audio Track" image="NSAddTemplate" width="24">
+                                    <nil key="label"/>
+                                </segment>
+                                <segment toolTip="Remove Selected Audio Track" image="NSRemoveTemplate" width="23" tag="1">
+                                    <nil key="label"/>
+                                </segment>
+                            </segments>
+                        </segmentedCell>
+                        <connections>
+                            <action selector="addTrack:" target="-2" id="vsd-5z-3e3"/>
+                            <outlet property="nextKeyView" destination="sC2-52-liU" id="mmR-bd-cFG"/>
+                        </connections>
+                    </segmentedControl>
+                    <scrollView wantsLayer="YES" autohidesScrollers="YES" horizontalLineScroll="26" horizontalPageScroll="10" verticalLineScroll="26" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="hGL-Ew-UVJ">
+                        <rect key="frame" x="20" y="75" width="729" height="140"/>
+                        <clipView key="contentView" id="jkU-Fi-GCv">
+                            <rect key="frame" x="1" y="1" width="727" height="138"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="firstColumnOnly" tableStyle="plain" columnSelection="YES" multipleSelection="NO" autosaveColumns="NO" rowHeight="24" rowSizeStyle="automatic" headerView="IbE-bD-EWJ" viewBased="YES" id="ZsG-T1-vGv">
+                                    <rect key="frame" x="0.0" y="0.0" width="727" height="115"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                    <size key="intercellSpacing" width="3" height="2"/>
+                                    <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                    <tableColumns>
+                                        <tableColumn width="230.5" minWidth="143" maxWidth="1000" id="pR9-d4-SNf">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Codec">
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="uFK-z7-8Yj">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                            <prototypeCellViews>
+                                                <tableCellView id="UBy-AR-7XQ">
+                                                    <rect key="frame" x="1" y="1" width="231" height="24"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <subviews>
+                                                        <popUpButton toolTip="Audio encoder." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="6lx-af-rBL">
+                                                            <rect key="frame" x="-1" y="0.0" width="233" height="22"/>
+                                                            <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="t8s-X1-tQV">
+                                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                <menu key="menu" id="3Re-GO-fwv"/>
+                                                            </popUpButtonCell>
+                                                            <accessibility description="Codec"/>
+                                                            <connections>
+                                                                <binding destination="UBy-AR-7XQ" name="selectedValue" keyPath="objectValue.encoder" previousBinding="e1c-VC-o3V" id="jXp-yy-HhF">
+                                                                    <dictionary key="options">
+                                                                        <string key="NSValueTransformerName">HBEncoderTransformer</string>
+                                                                    </dictionary>
+                                                                </binding>
+                                                                <binding destination="UBy-AR-7XQ" name="content" keyPath="objectValue.encoders" id="e1c-VC-o3V"/>
+                                                            </connections>
+                                                        </popUpButton>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstItem="6lx-af-rBL" firstAttribute="centerY" secondItem="UBy-AR-7XQ" secondAttribute="centerY" id="69M-L6-IlJ"/>
+                                                        <constraint firstAttribute="trailing" secondItem="6lx-af-rBL" secondAttribute="trailing" constant="3" id="b0g-QN-mE5"/>
+                                                        <constraint firstItem="6lx-af-rBL" firstAttribute="leading" secondItem="UBy-AR-7XQ" secondAttribute="leading" constant="3" id="gEB-tA-iF8"/>
+                                                    </constraints>
+                                                </tableCellView>
+                                            </prototypeCellViews>
+                                        </tableColumn>
+                                        <tableColumn width="149.5" minWidth="128" maxWidth="3.4028234663852886e+38" id="0kT-0J-3k2">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Mixdown">
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="1XC-VS-X3g">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                            <prototypeCellViews>
+                                                <tableCellView id="uS1-Fd-V9I">
+                                                    <rect key="frame" x="234.5" y="1" width="149" height="24"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <subviews>
+                                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="igm-hS-rrD">
+                                                            <rect key="frame" x="-1" y="0.0" width="151" height="22"/>
+                                                            <string key="toolTip">Mixdown type. Controls how multi-channel audio is mixed into fewer channels, or whether the original channels are preserved.
+
+Dolby Surround and Dolby Pro Logic II convert multi-channel audio to stereo and matrix encode additional channels for surround reproduction on compatible equipment, while maintaining stereo compatibility.</string>
+                                                            <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="2JY-Ie-KSg">
+                                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                <menu key="menu" id="cKk-6o-udN"/>
+                                                            </popUpButtonCell>
+                                                            <accessibility description="Mixdown"/>
+                                                            <connections>
+                                                                <binding destination="uS1-Fd-V9I" name="selectedValue" keyPath="objectValue.mixdown" previousBinding="NKE-F5-7xp" id="OiI-FJ-A66">
+                                                                    <dictionary key="options">
+                                                                        <string key="NSValueTransformerName">HBMixdownTransformer</string>
+                                                                    </dictionary>
+                                                                </binding>
+                                                                <binding destination="uS1-Fd-V9I" name="enabled" keyPath="objectValue.mixdownEnabled" id="c7n-yf-re8"/>
+                                                                <binding destination="uS1-Fd-V9I" name="content" keyPath="objectValue.mixdowns" id="NKE-F5-7xp">
+                                                                    <dictionary key="options">
+                                                                        <string key="NSValueTransformerName">HBMixdownsTransformer</string>
+                                                                    </dictionary>
+                                                                </binding>
+                                                            </connections>
+                                                        </popUpButton>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstItem="igm-hS-rrD" firstAttribute="centerY" secondItem="uS1-Fd-V9I" secondAttribute="centerY" id="G2p-Ue-m7C"/>
+                                                        <constraint firstAttribute="trailing" secondItem="igm-hS-rrD" secondAttribute="trailing" constant="3" id="rE2-yu-vnE"/>
+                                                        <constraint firstItem="igm-hS-rrD" firstAttribute="leading" secondItem="uS1-Fd-V9I" secondAttribute="leading" constant="3" id="scd-Mn-gB5"/>
+                                                    </constraints>
+                                                </tableCellView>
+                                            </prototypeCellViews>
+                                        </tableColumn>
+                                        <tableColumn width="109.5" minWidth="74" maxWidth="3.4028234663852886e+38" id="LxC-Qx-psh">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Samplerate">
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="dpw-He-8eZ">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                            <prototypeCellViews>
+                                                <tableCellView id="5No-Mm-bpD">
+                                                    <rect key="frame" x="387" y="1" width="110" height="24"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <subviews>
+                                                        <popUpButton toolTip="Audio sample rate in kilohertz (kHz). Auto is recommended." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="r80-yv-59n">
+                                                            <rect key="frame" x="-1" y="0.0" width="112" height="22"/>
+                                                            <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="pdm-QA-coL">
+                                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                <menu key="menu" id="xhO-vr-WJF"/>
+                                                            </popUpButtonCell>
+                                                            <accessibility description="Samplerate"/>
+                                                            <connections>
+                                                                <binding destination="5No-Mm-bpD" name="enabled" keyPath="objectValue.mixdownEnabled" id="E9O-S2-Uq8"/>
+                                                                <binding destination="5No-Mm-bpD" name="selectedValue" keyPath="objectValue.sampleRate" previousBinding="adb-9q-L5r" id="DxT-bF-prJ">
+                                                                    <dictionary key="options">
+                                                                        <string key="NSNullPlaceholder">Auto</string>
+                                                                        <string key="NSValueTransformerName">HBSampleRateTransformer</string>
+                                                                    </dictionary>
+                                                                </binding>
+                                                                <binding destination="5No-Mm-bpD" name="content" keyPath="objectValue.sampleRates" id="adb-9q-L5r"/>
+                                                            </connections>
+                                                        </popUpButton>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstAttribute="trailing" secondItem="r80-yv-59n" secondAttribute="trailing" constant="3" id="2HE-NI-bX5"/>
+                                                        <constraint firstItem="r80-yv-59n" firstAttribute="leading" secondItem="5No-Mm-bpD" secondAttribute="leading" constant="3" id="Nuj-Xz-LVY"/>
+                                                        <constraint firstItem="r80-yv-59n" firstAttribute="centerY" secondItem="5No-Mm-bpD" secondAttribute="centerY" id="PQl-7l-TMd"/>
+                                                    </constraints>
+                                                </tableCellView>
+                                            </prototypeCellViews>
+                                        </tableColumn>
+                                        <tableColumn width="95.5" minWidth="74" maxWidth="3.4028234663852886e+38" id="vhn-7C-4aZ">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Bitrate">
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="3o5-Gn-Vao">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                            <prototypeCellViews>
+                                                <tableCellView id="Bxd-gI-dFS">
+                                                    <rect key="frame" x="499.5" y="1" width="95" height="24"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <subviews>
+                                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hHP-dw-nba">
+                                                            <rect key="frame" x="-1" y="0.0" width="97" height="22"/>
+                                                            <string key="toolTip">Audio bit rate in kilobits per second (kbps). Smaller values reduce audio quality. Larger values use more data and may be less compatible.</string>
+                                                            <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="U8n-oy-hkv">
+                                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                <menu key="menu" id="pWk-70-S7v"/>
+                                                            </popUpButtonCell>
+                                                            <accessibility description="Bitrate"/>
+                                                            <connections>
+                                                                <binding destination="Bxd-gI-dFS" name="selectedValue" keyPath="objectValue.bitRate" previousBinding="aT6-o7-lFG" id="CSr-pu-s9O">
+                                                                    <dictionary key="options">
+                                                                        <string key="NSValueTransformerName">HBIntegerTransformer</string>
+                                                                    </dictionary>
+                                                                </binding>
+                                                                <binding destination="Bxd-gI-dFS" name="content" keyPath="objectValue.bitRates" id="aT6-o7-lFG"/>
+                                                                <binding destination="Bxd-gI-dFS" name="enabled" keyPath="objectValue.bitrateEnabled" id="paa-Sa-JU9"/>
+                                                            </connections>
+                                                        </popUpButton>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstItem="hHP-dw-nba" firstAttribute="leading" secondItem="Bxd-gI-dFS" secondAttribute="leading" constant="3" id="BBz-1c-LaX"/>
+                                                        <constraint firstItem="hHP-dw-nba" firstAttribute="centerY" secondItem="Bxd-gI-dFS" secondAttribute="centerY" id="EQF-5M-Wcu"/>
+                                                        <constraint firstAttribute="trailing" secondItem="hHP-dw-nba" secondAttribute="trailing" constant="3" id="Sqg-TH-Ay6"/>
+                                                    </constraints>
+                                                </tableCellView>
+                                            </prototypeCellViews>
+                                        </tableColumn>
+                                        <tableColumn width="62" minWidth="61" maxWidth="3.4028234663852886e+38" id="N7h-CJ-quV">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Gain">
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="fH9-oV-QdJ">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                            <prototypeCellViews>
+                                                <tableCellView id="fhc-Nv-0Oh">
+                                                    <rect key="frame" x="598" y="1" width="62" height="28"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <subviews>
+                                                        <textField toolTip="Audio gain in decibels (dB). Increases or decreases audio volume." focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xnA-03-Bul">
+                                                            <rect key="frame" x="31" y="7" width="30" height="14"/>
+                                                            <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" alignment="center" title="0" id="OVr-Jm-VrK">
+                                                                <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="0" maximumIntegerDigits="42" id="xHc-m4-rcn"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                            </textFieldCell>
+                                                            <accessibility description="Gain"/>
+                                                            <connections>
+                                                                <binding destination="fhc-Nv-0Oh" name="value" keyPath="objectValue.gain" id="dSi-TT-1tH"/>
+                                                                <binding destination="fhc-Nv-0Oh" name="enabled" keyPath="objectValue.passThruDisabled" id="NpX-pb-t52"/>
+                                                            </connections>
+                                                        </textField>
+                                                        <slider toolTip="Audio gain in decibels (dB). Increases or decreases audio volume." horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="DbI-6O-BzA">
+                                                            <rect key="frame" x="3" y="3" width="22" height="22"/>
+                                                            <sliderCell key="cell" controlSize="small" continuous="YES" alignment="left" minValue="-5" maxValue="16" doubleValue="-0.79999999999999982" numberOfTickMarks="21" allowsTickMarkValuesOnly="YES" sliderType="circular" id="ea5-qc-etr"/>
+                                                            <accessibility description="Gain"/>
+                                                            <connections>
+                                                                <binding destination="fhc-Nv-0Oh" name="value" keyPath="objectValue.gain" id="frc-hE-wEW"/>
+                                                                <binding destination="fhc-Nv-0Oh" name="enabled" keyPath="objectValue.passThruDisabled" id="uQZ-XI-fJG"/>
+                                                            </connections>
+                                                        </slider>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstItem="xnA-03-Bul" firstAttribute="centerY" secondItem="fhc-Nv-0Oh" secondAttribute="centerY" id="1gM-jy-ydl"/>
+                                                        <constraint firstItem="DbI-6O-BzA" firstAttribute="centerY" secondItem="fhc-Nv-0Oh" secondAttribute="centerY" id="8HO-2a-0jg"/>
+                                                        <constraint firstItem="xnA-03-Bul" firstAttribute="leading" secondItem="DbI-6O-BzA" secondAttribute="trailing" constant="8" symbolic="YES" id="Cdu-ya-Xcp"/>
+                                                        <constraint firstAttribute="trailing" secondItem="xnA-03-Bul" secondAttribute="trailing" constant="3" id="ISR-6D-0LD"/>
+                                                        <constraint firstItem="DbI-6O-BzA" firstAttribute="leading" secondItem="fhc-Nv-0Oh" secondAttribute="leading" constant="3" id="UFq-Xa-DGq"/>
+                                                    </constraints>
+                                                </tableCellView>
+                                            </prototypeCellViews>
+                                        </tableColumn>
+                                        <tableColumn width="62" minWidth="61" maxWidth="3.4028234663852886e+38" id="zX9-T9-wKy">
+                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="DRC">
+                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="calibratedWhite"/>
+                                            </tableHeaderCell>
+                                            <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="7sl-o7-pUh">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                            <prototypeCellViews>
+                                                <tableCellView id="t2K-5D-xsX">
+                                                    <rect key="frame" x="663" y="1" width="62" height="27"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <subviews>
+                                                        <slider horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="DGi-Dl-5nh">
+                                                            <rect key="frame" x="3" y="3" width="22" height="22"/>
+                                                            <string key="toolTip">Dynamic Range Compression. Reduces the volume difference between loud and quiet sounds. Only applies to AC-3 source tracks when encoding to another format.
+
+0: Do not apply DRC.
+1: Apply DRC according to the compression hints embedded in the source track.
+
+Values greater than 1 further increase the volume of quiet sounds. Values greater than 2.5 are typically unnecessary and may introduce audible distortion.</string>
+                                                            <sliderCell key="cell" controlSize="small" continuous="YES" alignment="left" maxValue="4" numberOfTickMarks="16" allowsTickMarkValuesOnly="YES" sliderType="circular" id="MFS-fh-Kd1"/>
+                                                            <accessibility description="DRC"/>
+                                                            <connections>
+                                                                <binding destination="t2K-5D-xsX" name="value" keyPath="objectValue.drc" id="SVc-TS-Jvf"/>
+                                                                <binding destination="t2K-5D-xsX" name="enabled" keyPath="objectValue.passThruDisabled" id="VZj-BF-MXl"/>
+                                                            </connections>
+                                                        </slider>
+                                                        <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BaY-Lo-8xn">
+                                                            <rect key="frame" x="31" y="7" width="30" height="14"/>
+                                                            <string key="toolTip">Dynamic Range Compression. Reduces the volume difference between loud and quiet sounds. Only applies to AC-3 source tracks when encoding to another format.
+
+0: Do not apply DRC.
+1: Apply DRC according to the compression hints embedded in the source track.
+
+Values greater than 1 further increase the volume of quiet sounds. Values greater than 2.5 are typically unnecessary and may introduce audible distortion.</string>
+                                                            <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" alignment="center" title="0" id="MiI-OV-waZ">
+                                                                <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="0" maximumIntegerDigits="42" id="FR6-Cx-d2s"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                            </textFieldCell>
+                                                            <accessibility description="DRC"/>
+                                                            <connections>
+                                                                <binding destination="t2K-5D-xsX" name="value" keyPath="objectValue.drc" id="QDG-V6-YC7"/>
+                                                                <binding destination="t2K-5D-xsX" name="enabled" keyPath="objectValue.passThruDisabled" id="fkn-Xq-SM0"/>
+                                                            </connections>
+                                                        </textField>
+                                                    </subviews>
+                                                    <constraints>
+                                                        <constraint firstItem="DGi-Dl-5nh" firstAttribute="leading" secondItem="t2K-5D-xsX" secondAttribute="leading" constant="3" id="0zB-Ob-EuK"/>
+                                                        <constraint firstItem="BaY-Lo-8xn" firstAttribute="leading" secondItem="DGi-Dl-5nh" secondAttribute="trailing" constant="8" symbolic="YES" id="UCb-jm-FVj"/>
+                                                        <constraint firstItem="DGi-Dl-5nh" firstAttribute="centerY" secondItem="t2K-5D-xsX" secondAttribute="centerY" id="XCA-82-B1e"/>
+                                                        <constraint firstItem="BaY-Lo-8xn" firstAttribute="centerY" secondItem="t2K-5D-xsX" secondAttribute="centerY" id="iTt-zz-dyS"/>
+                                                        <constraint firstAttribute="trailing" secondItem="BaY-Lo-8xn" secondAttribute="trailing" constant="3" id="qXd-Fq-bWj"/>
+                                                    </constraints>
+                                                </tableCellView>
+                                            </prototypeCellViews>
+                                        </tableColumn>
+                                    </tableColumns>
+                                    <connections>
+                                        <accessibilityConnection property="title" destination="RtZ-Cz-5mG" id="iVE-13-9dA"/>
+                                        <binding destination="I6S-EX-Dvu" name="content" keyPath="arrangedObjects" id="qIU-3F-B41"/>
+                                        <binding destination="I6S-EX-Dvu" name="selectionIndexes" keyPath="selectionIndexes" previousBinding="qIU-3F-B41" id="7jj-cy-g0F"/>
+                                    </connections>
+                                </tableView>
+                            </subviews>
+                        </clipView>
+                        <constraints>
+                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="140" id="4LW-Vv-px8"/>
+                        </constraints>
+                        <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="ToF-HP-PBf">
+                            <rect key="frame" x="1" y="123" width="724" height="16"/>
+                            <autoresizingMask key="autoresizingMask"/>
+                        </scroller>
+                        <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="Dhw-4v-YLa">
+                            <rect key="frame" x="224" y="17" width="15" height="102"/>
+                            <autoresizingMask key="autoresizingMask"/>
+                        </scroller>
+                        <tableHeaderView key="headerView" wantsLayer="YES" id="IbE-bD-EWJ">
+                            <rect key="frame" x="0.0" y="0.0" width="727" height="23"/>
+                            <autoresizingMask key="autoresizingMask"/>
+                        </tableHeaderView>
+                    </scrollView>
+                    <button translatesAutoresizingMaskIntoConstraints="NO" id="uF5-6E-EIe">
+                        <rect key="frame" x="80" y="51" width="245" height="16"/>
+                        <string key="toolTip">Only the primary audio track will be encoded with the full encoder list. All additional audio tracks will be encoded with first encoder only.</string>
+                        <buttonCell key="cell" type="check" title="Use only first encoder for secondary audio" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="66v-2g-DHn">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="menu" size="11"/>
+                        </buttonCell>
+                        <connections>
+                            <binding destination="-2" name="value" keyPath="self.settings.secondaryEncoderMode" id="Umc-CV-pJy"/>
+                        </connections>
+                    </button>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kJY-av-BYf">
+                        <rect key="frame" x="631" y="13" width="64" height="27"/>
+                        <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Jn4-1L-J1g">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="menu" size="11"/>
+                            <string key="keyEquivalent" base64-UTF8="YES">
+Gw
+</string>
+                        </buttonCell>
+                        <connections>
+                            <action selector="cancel:" target="-2" id="Vkr-zh-YAJ"/>
+                        </connections>
+                    </button>
+                    <button horizontalHuggingPriority="750" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="M11-Ls-RrL">
+                        <rect key="frame" x="19" y="18" width="18" height="19"/>
+                        <buttonCell key="cell" type="help" bezelStyle="helpButton" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="sOl-fj-Vc8">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="menu" size="11"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="openUserGuide:" target="-2" id="6x5-4X-rQB"/>
+                        </connections>
+                    </button>
+                    <stackView distribution="fill" orientation="vertical" alignment="leading" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mON-8C-X5t">
+                        <rect key="frame" x="20" y="253" width="392" height="234"/>
+                        <subviews>
+                            <stackView distribution="fill" orientation="horizontal" alignment="centerY" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dYR-Xt-Vb4">
+                                <rect key="frame" x="0.0" y="218" width="351" height="16"/>
+                                <subviews>
+                                    <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="fPg-3n-1TN">
+                                        <rect key="frame" x="-2" y="1" width="138" height="14"/>
+                                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Track Selection Behavior:" id="GbM-vm-RC2">
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="oiD-QI-wly">
+                                        <rect key="frame" x="138" y="-4" width="217" height="22"/>
+                                        <string key="toolTip">Track Selection Behavior.
+
+None will not select any audio tracks by default.
+
+First Matching Selected Languages adds the first audio track matching each of the selected languages present in the source.
+
+All Matching Selected Languages adds all audio tracks matching each of the selected languages present in the source.</string>
+                                        <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="mvw-Hg-JFM" id="21e-KY-8TR">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <menu key="menu" id="Kwy-lU-VuU">
+                                                <items>
+                                                    <menuItem title="None" state="on" id="mvw-Hg-JFM"/>
+                                                    <menuItem title="First Matching Selected Languages" id="jDd-Ji-7Sm"/>
+                                                    <menuItem title="All Matching Selected Languages" id="GZP-q7-SYy"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <accessibilityConnection property="title" destination="fPg-3n-1TN" id="nyV-Vs-N4Z"/>
+                                            <binding destination="-2" name="selectedIndex" keyPath="self.settings.trackSelectionBehavior" id="sKn-Mr-Hce"/>
+                                            <outlet property="nextKeyView" destination="Of7-71-Ci6" id="jgQ-nK-YLu"/>
+                                        </connections>
+                                    </popUpButton>
+                                </subviews>
+                                <visibilityPriorities>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                </visibilityPriorities>
+                                <customSpacing>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                </customSpacing>
+                            </stackView>
+                            <stackView distribution="fill" orientation="horizontal" alignment="top" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="GSL-ZN-P2c">
+                                <rect key="frame" x="0.0" y="0.0" width="392" height="210"/>
+                                <subviews>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="300" translatesAutoresizingMaskIntoConstraints="NO" id="Jsz-Er-bsF">
+                                        <rect key="frame" x="-2" y="196" width="138" height="14"/>
+                                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="Languages:" id="mAT-Jp-SG1">
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <scrollView toolTip="Select the languages to use with the Track Selection Behavior setting." wantsLayer="YES" autohidesScrollers="YES" horizontalLineScroll="16" horizontalPageScroll="10" verticalLineScroll="16" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="aTC-39-h6S">
+                                        <rect key="frame" x="142" y="0.0" width="250" height="210"/>
+                                        <clipView key="contentView" ambiguous="YES" id="TdE-Sh-NcS">
+                                            <rect key="frame" x="1" y="1" width="248" height="208"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <subviews>
+                                                <tableView verticalHuggingPriority="750" ambiguous="YES" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" tableStyle="plain" columnReordering="NO" columnResizing="NO" autosaveColumns="NO" rowHeight="14" viewBased="YES" id="Of7-71-Ci6">
+                                                    <rect key="frame" x="0.0" y="0.0" width="248" height="208"/>
+                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                    <size key="intercellSpacing" width="3" height="2"/>
+                                                    <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                    <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                                    <tableColumns>
+                                                        <tableColumn identifier="checkBox" width="245" minWidth="16" maxWidth="1000" id="G44-XP-6xE">
+                                                            <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left">
+                                                                <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                                <color key="backgroundColor" white="0.33333298560000002" alpha="1" colorSpace="calibratedWhite"/>
+                                                            </tableHeaderCell>
+                                                            <buttonCell key="dataCell" type="check" bezelStyle="regularSquare" imagePosition="left" controlSize="small" lineBreakMode="truncatingMiddle" inset="2" id="6by-yL-8VC">
+                                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                                <font key="font" metaFont="menu" size="11"/>
+                                                            </buttonCell>
+                                                            <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                                            <prototypeCellViews>
+                                                                <tableCellView id="haT-6q-XQu">
+                                                                    <rect key="frame" x="1" y="1" width="245" height="17"/>
+                                                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                    <subviews>
+                                                                        <button translatesAutoresizingMaskIntoConstraints="NO" id="F5N-kV-6cy">
+                                                                            <rect key="frame" x="2" y="2" width="14" height="16"/>
+                                                                            <buttonCell key="cell" type="check" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="NOa-yY-z7A">
+                                                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                            </buttonCell>
+                                                                            <connections>
+                                                                                <binding destination="haT-6q-XQu" name="value" keyPath="objectValue.isSelected" id="iqC-IJ-lPN"/>
+                                                                                <binding destination="haT-6q-XQu" name="toolTip" keyPath="objectValue.language" id="hyE-CO-x5w"/>
+                                                                            </connections>
+                                                                        </button>
+                                                                        <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qqA-7S-cT9">
+                                                                            <rect key="frame" x="17" y="2" width="227" height="14"/>
+                                                                            <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="XKL-2e-Dlv">
+                                                                                <font key="font" metaFont="menu" size="11"/>
+                                                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                                <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                                            </textFieldCell>
+                                                                            <connections>
+                                                                                <binding destination="haT-6q-XQu" name="value" keyPath="objectValue.language" id="4SZ-Qu-swV"/>
+                                                                            </connections>
+                                                                        </textField>
+                                                                    </subviews>
+                                                                    <constraints>
+                                                                        <constraint firstAttribute="trailing" secondItem="qqA-7S-cT9" secondAttribute="trailing" constant="3" id="0VW-tG-QqT"/>
+                                                                        <constraint firstItem="qqA-7S-cT9" firstAttribute="centerY" secondItem="haT-6q-XQu" secondAttribute="centerY" id="Pck-z1-IQ5"/>
+                                                                        <constraint firstItem="qqA-7S-cT9" firstAttribute="leading" secondItem="F5N-kV-6cy" secondAttribute="trailing" constant="4" id="ftC-wK-cXx"/>
+                                                                        <constraint firstItem="F5N-kV-6cy" firstAttribute="top" secondItem="haT-6q-XQu" secondAttribute="top" constant="1" id="l7i-WR-pj7"/>
+                                                                        <constraint firstItem="F5N-kV-6cy" firstAttribute="leading" secondItem="haT-6q-XQu" secondAttribute="leading" constant="3" id="zf1-cU-AmQ"/>
+                                                                    </constraints>
+                                                                    <connections>
+                                                                        <outlet property="textField" destination="qqA-7S-cT9" id="wHA-8l-Rbu"/>
+                                                                    </connections>
+                                                                </tableCellView>
+                                                            </prototypeCellViews>
+                                                            <connections>
+                                                                <binding destination="ZBe-aP-wvq" name="value" keyPath="arrangedObjects.isSelected" id="fRp-oC-H6C"/>
+                                                            </connections>
+                                                        </tableColumn>
+                                                    </tableColumns>
+                                                    <connections>
+                                                        <accessibilityConnection property="title" destination="Jsz-Er-bsF" id="qgm-4v-94Y"/>
+                                                        <binding destination="ZBe-aP-wvq" name="content" keyPath="arrangedObjects" id="ak7-UG-Fqe"/>
+                                                        <outlet property="dataSource" destination="ZBe-aP-wvq" id="Xy6-f7-IyO"/>
+                                                        <outlet property="delegate" destination="ZBe-aP-wvq" id="zNm-1U-ikF"/>
+                                                    </connections>
+                                                </tableView>
+                                            </subviews>
+                                        </clipView>
+                                        <constraints>
+                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="250" id="7Rp-Nn-e0h"/>
+                                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="210" id="u5x-I4-dLx"/>
+                                        </constraints>
+                                        <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="bXf-U5-ogz">
+                                            <rect key="frame" x="1" y="163" width="247" height="16"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                        </scroller>
+                                        <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="BWM-rq-VTg">
+                                            <autoresizingMask key="autoresizingMask"/>
+                                        </scroller>
+                                        <accessibility description="Audio Track Languages"/>
+                                    </scrollView>
+                                </subviews>
+                                <visibilityPriorities>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                </visibilityPriorities>
+                                <customSpacing>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                </customSpacing>
+                            </stackView>
+                        </subviews>
+                        <constraints>
+                            <constraint firstItem="fPg-3n-1TN" firstAttribute="width" secondItem="Jsz-Er-bsF" secondAttribute="width" id="5ux-xc-S6f"/>
+                        </constraints>
+                        <visibilityPriorities>
+                            <integer value="1000"/>
+                            <integer value="1000"/>
+                        </visibilityPriorities>
+                        <customSpacing>
+                            <real value="3.4028234663852886e+38"/>
+                            <real value="3.4028234663852886e+38"/>
+                        </customSpacing>
+                    </stackView>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="jVF-av-Sw6">
+                        <rect key="frame" x="571" y="275" width="129" height="16"/>
+                        <buttonCell key="cell" type="check" title="Passthru track name" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="XmJ-lo-ciO">
+                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                        </buttonCell>
+                        <connections>
+                            <binding destination="-2" name="value" keyPath="self.settings.passthruName" id="Vdb-dy-WkL"/>
+                        </connections>
+                    </button>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bqY-oZ-Dez">
+                        <rect key="frame" x="466" y="276" width="100" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" alignment="right" title="Name:" id="aQn-7q-tQG">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="8C3-yX-7tT">
+                        <rect key="frame" x="568" y="248" width="120" height="22"/>
+                        <popUpButtonCell key="cell" type="push" title="Off" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="AaG-rx-x5W" id="Rde-g8-st2">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="smallSystem"/>
+                            <menu key="menu" id="uDn-6R-tds">
+                                <items>
+                                    <menuItem title="Off" state="on" id="AaG-rx-x5W"/>
+                                    <menuItem title="Unnamed Tracks" id="gjw-kg-H3W"/>
+                                    <menuItem title="All Tracks" id="s0U-gp-0sK"/>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <connections>
+                            <binding destination="-2" name="selectedIndex" keyPath="self.settings.automaticNamingBehavior" id="8SF-Vd-s3C"/>
+                        </connections>
+                    </popUpButton>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Sl3-PL-ybS">
+                        <rect key="frame" x="466" y="253" width="100" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" alignment="right" title="Autonaming:" id="XOM-af-vzp">
+                            <font key="font" metaFont="smallSystem"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="kJY-av-BYf" firstAttribute="width" secondItem="sC2-52-liU" secondAttribute="width" id="3US-QJ-5QL"/>
+                    <constraint firstItem="Tth-IR-7cU" firstAttribute="leading" secondItem="bqY-oZ-Dez" secondAttribute="leading" id="6TO-Se-4Mn"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="RtZ-Cz-5mG" secondAttribute="trailing" constant="20" symbolic="YES" id="7dT-AF-zH9"/>
+                    <constraint firstItem="mON-8C-X5t" firstAttribute="leading" secondItem="ZP2-Cp-K5w" secondAttribute="leading" constant="20" symbolic="YES" id="84z-cH-d09"/>
+                    <constraint firstItem="kJY-av-BYf" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="M11-Ls-RrL" secondAttribute="trailing" constant="12" symbolic="YES" id="864-c4-BeW"/>
+                    <constraint firstItem="M11-Ls-RrL" firstAttribute="top" secondItem="N4q-sT-WgW" secondAttribute="bottom" constant="15" id="AOo-Sb-GZW"/>
+                    <constraint firstItem="8C3-yX-7tT" firstAttribute="leading" secondItem="Sl3-PL-ybS" secondAttribute="trailing" constant="8" symbolic="YES" id="AeR-Ps-v4g"/>
+                    <constraint firstAttribute="trailing" secondItem="sC2-52-liU" secondAttribute="trailing" constant="20" id="B62-ty-pmI"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="8Pw-Kq-eMN" secondAttribute="trailing" constant="20" id="Fu8-nq-Vft"/>
+                    <constraint firstAttribute="bottom" secondItem="M11-Ls-RrL" secondAttribute="bottom" constant="20" id="G1B-eX-eqE"/>
+                    <constraint firstItem="uF5-6E-EIe" firstAttribute="leading" secondItem="N4q-sT-WgW" secondAttribute="trailing" constant="13" id="J0L-CA-XLI"/>
+                    <constraint firstItem="8C3-yX-7tT" firstAttribute="firstBaseline" secondItem="Sl3-PL-ybS" secondAttribute="firstBaseline" id="Kp4-Za-XgQ"/>
+                    <constraint firstItem="kJY-av-BYf" firstAttribute="baseline" secondItem="sC2-52-liU" secondAttribute="baseline" id="LdH-5O-jKo"/>
+                    <constraint firstItem="Sl3-PL-ybS" firstAttribute="top" secondItem="bqY-oZ-Dez" secondAttribute="bottom" constant="9" id="Qq9-ES-dj1"/>
+                    <constraint firstItem="RtZ-Cz-5mG" firstAttribute="leading" secondItem="ZP2-Cp-K5w" secondAttribute="leading" constant="20" id="R53-5h-0vJ"/>
+                    <constraint firstAttribute="bottom" secondItem="sC2-52-liU" secondAttribute="bottom" constant="20" id="RRW-Y5-912"/>
+                    <constraint firstItem="8Pw-Kq-eMN" firstAttribute="leading" secondItem="mON-8C-X5t" secondAttribute="trailing" constant="56" id="Wad-TB-7OD"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="8C3-yX-7tT" secondAttribute="trailing" constant="20" symbolic="YES" id="YpH-o8-mMO"/>
+                    <constraint firstItem="jVF-av-Sw6" firstAttribute="leading" secondItem="bqY-oZ-Dez" secondAttribute="trailing" constant="8" symbolic="YES" id="ZNF-8f-XQc"/>
+                    <constraint firstItem="bqY-oZ-Dez" firstAttribute="top" secondItem="Tth-IR-7cU" secondAttribute="bottom" constant="16" id="amj-wt-gHG"/>
+                    <constraint firstItem="Tth-IR-7cU" firstAttribute="width" secondItem="bqY-oZ-Dez" secondAttribute="width" id="bZu-Zw-J4W"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="uF5-6E-EIe" secondAttribute="trailing" constant="20" symbolic="YES" id="cEr-2s-7rp"/>
+                    <constraint firstItem="M11-Ls-RrL" firstAttribute="leading" secondItem="N4q-sT-WgW" secondAttribute="leading" id="fBT-WX-Q5Z"/>
+                    <constraint firstAttribute="trailing" secondItem="hGL-Ew-UVJ" secondAttribute="trailing" constant="20" id="glz-Tw-AyY"/>
+                    <constraint firstItem="hGL-Ew-UVJ" firstAttribute="top" secondItem="RtZ-Cz-5mG" secondAttribute="bottom" constant="8" id="jhe-0p-LYz"/>
+                    <constraint firstItem="mON-8C-X5t" firstAttribute="top" secondItem="ZP2-Cp-K5w" secondAttribute="top" constant="20" symbolic="YES" id="kni-de-kzf"/>
+                    <constraint firstItem="uF5-6E-EIe" firstAttribute="centerY" secondItem="N4q-sT-WgW" secondAttribute="centerY" id="nJR-6O-xLy"/>
+                    <constraint firstItem="jVF-av-Sw6" firstAttribute="firstBaseline" secondItem="bqY-oZ-Dez" secondAttribute="firstBaseline" id="qco-nx-Mur"/>
+                    <constraint firstItem="Sl3-PL-ybS" firstAttribute="width" secondItem="bqY-oZ-Dez" secondAttribute="width" id="qf8-02-v7L"/>
+                    <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="jVF-av-Sw6" secondAttribute="trailing" constant="20" symbolic="YES" id="sOd-JV-Xyo"/>
+                    <constraint firstItem="bqY-oZ-Dez" firstAttribute="leading" secondItem="Sl3-PL-ybS" secondAttribute="leading" id="u0J-Vk-x2O"/>
+                    <constraint firstItem="sC2-52-liU" firstAttribute="leading" secondItem="kJY-av-BYf" secondAttribute="trailing" constant="8" id="vZI-9R-5tO"/>
+                    <constraint firstItem="N4q-sT-WgW" firstAttribute="top" secondItem="hGL-Ew-UVJ" secondAttribute="bottom" constant="8" id="w2O-Xt-Vdr"/>
+                    <constraint firstItem="RtZ-Cz-5mG" firstAttribute="top" secondItem="GSL-ZN-P2c" secondAttribute="bottom" constant="16" id="wcv-WR-Xhf"/>
+                    <constraint firstItem="OkV-lt-k7P" firstAttribute="top" secondItem="aTC-39-h6S" secondAttribute="top" id="xZ9-Ez-b8b"/>
+                    <constraint firstItem="hGL-Ew-UVJ" firstAttribute="leading" secondItem="ZP2-Cp-K5w" secondAttribute="leading" constant="20" id="yag-PB-aqP"/>
+                    <constraint firstItem="hGL-Ew-UVJ" firstAttribute="leading" secondItem="N4q-sT-WgW" secondAttribute="leading" id="zUn-OY-n5b"/>
+                </constraints>
+            </view>
+            <connections>
+                <outlet property="initialFirstResponder" destination="oiD-QI-wly" id="Vxi-xi-P0d"/>
+            </connections>
+            <point key="canvasLocation" x="-1557" y="-368"/>
+        </window>
+        <arrayController objectClassName="HBLang" id="ZBe-aP-wvq" userLabel="Languages Table Controller" customClass="HBLanguageArrayController">
+            <declaredKeys>
+                <string>language</string>
+                <string>isSelected</string>
+            </declaredKeys>
+            <classReference key="objectClass" className="HBLang"/>
+            <connections>
+                <binding destination="-2" name="contentArray" keyPath="languagesList.languagesArray" id="vKV-y3-Zbg"/>
+                <outlet property="tableView" destination="Of7-71-Ci6" id="IBV-kN-tPc"/>
+            </connections>
+        </arrayController>
+        <arrayController objectClassName="HBAudioTrackPreset" avoidsEmptySelection="NO" id="I6S-EX-Dvu" userLabel="Tracks Controller">
+            <declaredKeys>
+                <string>encoder</string>
+                <string>mixdown</string>
+                <string>sampleRate</string>
+                <string>bitRate</string>
+                <string>gain</string>
+                <string>drc</string>
+            </declaredKeys>
+            <classReference key="objectClass" className="HBAudioTrackPreset"/>
+            <connections>
+                <binding destination="-2" name="contentArray" keyPath="self.settings.tracksArray" id="oDO-aQ-oZJ"/>
+            </connections>
+        </arrayController>
+    </objects>
+    <resources>
+        <image name="NSAddTemplate" width="18" height="17"/>
+        <image name="NSRemoveTemplate" width="18" height="5"/>
+    </resources>
+</document>

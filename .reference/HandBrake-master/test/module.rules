@@ -1,0 +1,61 @@
+$(eval $(call import.MODULE.rules,TEST))
+
+build: test.build
+install: test.install
+install-strip: test.install-strip
+uninstall: test.uninstall
+clean: test.clean
+xclean: test.xclean
+
+test.build: $(TEST.exe)
+ifeq (1,$(FEATURE.flatpak))
+test.build: $(TEST.metainfo)
+test.install: $(TEST.metainfo)
+endif
+
+########################################
+# sync with ../macosx/module.rules     #
+########################################
+test.install-strip: | $(dir $(TEST.install.exe))
+	$(CP.exe) $(TEST.exe) $(TEST.install.exe)
+	$(STRIP.exe) $(TEST.install.exe)
+
+ifeq (1,$(FEATURE.flatpak))
+$(TEST.metainfo): | $(dir $(TEST.metainfo))
+$(TEST.metainfo): $(TEST.metainfo.template)
+	sed -e 's^RELEASE_TAG^<release version="$(HB.version)" date="$(word 1,$(HB.repo.date))" />^' $< > $@
+
+$(TEST.install.metainfo): $(TEST.metainfo)
+test.install: | $(dir $(TEST.install.metainfo))
+endif
+
+test.install: | $(dir $(TEST.install.exe))
+	$(CP.exe) $(TEST.exe) $(TEST.install.exe)
+ifeq (1,$(FEATURE.flatpak))
+	$(CP.exe) $(TEST.metainfo) $(TEST.install.metainfo)
+endif
+
+test.uninstall:
+	$(RM.exe) -f $(TEST.install.exe)
+
+test.clean:
+	$(RM.exe) -f $(TEST.out)
+
+test.xclean: test.clean
+########################################
+
+$(TEST.exe): | $(dir $(TEST.exe))
+$(TEST.exe): $(TEST.c.o)
+	$(call TEST.GCC.EXE++,$@,$^ $(TEST.libs))
+ifeq (none,$(FFMPEG.GCC.g))
+ifeq (1-mingw,$(HOST.cross)-$(HOST.system))
+	$(STRIP.exe) -s $(TEST.exe)
+else
+	$(STRIP.exe) $(TEST.exe)
+endif
+endif
+
+$(TEST.c.o): $(LIBHB.a)
+$(TEST.c.o): | $(dir $(TEST.c.o))
+$(TEST.c.o): $(BUILD/)%.o: $(SRC/)%.c
+	$(call TEST.GCC.C_O,$@,$<)

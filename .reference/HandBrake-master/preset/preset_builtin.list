@@ -1,0 +1,10 @@
+<resources>
+    <section name="PresetTemplate">
+        <integer name="VersionMajor" value="73" />
+        <integer name="VersionMinor" value="0" />
+        <integer name="VersionMicro" value="0" />
+        <json name="Preset" file="preset_template.json" />
+    </section>
+    <json name="PresetBuiltin" file="preset_builtin.json" />
+    <json name="PresetCLIDefault" file="preset_cli_default.json" />
+</resources>

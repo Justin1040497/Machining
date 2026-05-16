@@ -1,0 +1,22 @@
+$(eval $(call import.MODULE.defs,AMF,amf))
+$(eval $(call import.CONTRIB.defs,AMF))
+
+AMF.FETCH.url        = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/AMF-headers-v1.5.0.tar.gz
+AMF.FETCH.url       += https://github.com/GPUOpen-LibrariesAndSDKs/AMF/releases/download/v1.5.0/AMF-headers-v1.5.0.tar.gz
+AMF.FETCH.sha256     = d569647fa26f289affe81a206259fa92f819d06db1e80cc334559953e82a3f01
+AMF.FETCH.basename   = AMF-headers-v1.5.0.tar.gz
+AMF.EXTRACT.tarbase  = amf-headers-v1.5.0
+
+AMF.CONFIGURE = $(TOUCH.exe) $@
+AMF.BUILD     = $(TOUCH.exe) $@
+
+define AMF.INSTALL
+    $(MKDIR.exe) -p $(CONTRIB.build/)include/AMF
+    $(CP.exe) -R $(AMF.EXTRACT.dir/)AMF/* $(CONTRIB.build/)include/AMF/
+    $(TOUCH.exe) $@
+endef
+
+define AMF.UNINSTALL
+    $(RM.exe) -rf $(CONTRIB.build/)include/AMF
+    $(RM.exe) -f $(AMF.INSTALL.target)
+endef

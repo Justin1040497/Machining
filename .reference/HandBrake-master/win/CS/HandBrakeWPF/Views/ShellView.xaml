@@ -1,0 +1,33 @@
+﻿<Window x:Class="HandBrakeWPF.Views.ShellView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:Data="clr-namespace:System.Windows.Data;assembly=PresentationFramework"
+        xmlns:Converters="clr-namespace:HandBrakeWPF.Converters"
+        xmlns:views="clr-namespace:HandBrakeWPF.Views"
+        Title="{Data:Binding Path=MainViewModel.WindowTitle}"
+        Width="1060"
+        Height="690"
+        MinWidth="1018"
+        MinHeight="690"
+        AllowDrop="True"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        WindowStartupLocation="CenterScreen"
+        TextOptions.TextFormattingMode="Display"
+        Drop="ShellView_OnDrop"
+        Name="shellView">
+
+    <Window.Resources>
+        <Converters:BooleanToVisibilityConverter x:Key="boolToVisConverter" />
+    </Window.Resources>
+
+    <Grid>
+        <views:MainView x:Name="MainViewModel" DataContext="{Binding MainViewModel}"  
+                        Panel.ZIndex="0"  Visibility="{Binding DataContext.ShowMainWindow, ElementName=shellView, Converter={StaticResource boolToVisConverter}, ConverterParameter=false}"
+                        IsEnabled="{Binding DataContext.IsMainPanelEnabled, ElementName=shellView}" />
+
+        <views:OptionsView x:Name="OptionsViewModel" DataContext="{Binding OptionsViewModel}"  
+                           Panel.ZIndex="0"  Visibility="{Binding DataContext.ShowOptions, ElementName=shellView, Converter={StaticResource boolToVisConverter}, ConverterParameter=false}"
+                           IsEnabled="{Binding DataContext.IsMainPanelEnabled, ElementName=shellView}" />
+    </Grid>
+</Window>

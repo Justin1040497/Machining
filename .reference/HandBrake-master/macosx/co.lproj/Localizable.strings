@@ -1,0 +1,646 @@
+/* Job statistics */
+" (%@ %% of the source file)" = " (%@ %% di u schedariu di fonte)";
+
+/* Preview -> size info label */
+" Scaled To Screen" = " Adattata à u screnu";
+
+/* No comment provided by engineer. */
+"- --:--" = "- --:--";
+
+/* No comment provided by engineer. */
+"--:--" = "--:--";
+
+/* Preview -> size info label */
+"(%.0f%% actual size)" = "(%.0f%% di a dimensione reale)";
+
+/* Preview -> size info label */
+"(Actual size)" = "(Dimensione attuale)";
+
+/* Main Window -> preset modified */
+"(Modified)" = "(mudificata)";
+
+/* Job statistics */
+"%@ fps" = "%@ fps";
+
+/* Queue status */
+"%lu encode pending" = "%lu cudificazione in attesa";
+
+/* Queue status */
+"%lu encodes pending" = "%lu cudificazioni in attesa";
+
+/* No comment provided by engineer. */
+"%lu jobs selected" = "%lu travaglii selezziunati";
+
+/* Add preset window -> picture setting */
+"480p NTSC SD" = "480p NTSC SD";
+
+/* Add preset window -> picture setting */
+"576p PAL SD" = "576p PAL SD";
+
+/* Add preset window -> picture setting */
+"720p HD" = "720p HD";
+
+/* Add preset window -> picture setting */
+"1080p HD" = "1080p HD";
+
+/* Add preset window -> picture setting */
+"1440p 2.5K Quad HD" = "1440p 2.5K Quad HD";
+
+/* Add preset window -> picture setting */
+"2160p 4K Ultra HD" = "2160p 4K Ultra HD";
+
+/* Add preset window -> picture setting */
+"4320p 8K Ultra HD" = "4320p 8K Ultra HD";
+
+/* Destination same as source alert -> message
+File already exists alert -> message */
+"A file already exists at the selected destination." = "Un schedariu esiste dighjà in a destinazione selezziunata.";
+
+/* Queue Window Action Toolbar Item */
+"Action" = "Azzione";
+
+/* Main Window Activity Toolbar Item */
+"Activity" = "Attività";
+
+/* Picture HUD -> scale button */
+"Actual Scale" = "Scala attuale";
+
+/* Main Window Add Toolbar Item */
+"Add All Titles To Queue" = "Aghjunghje tutti i tituli à a fila d’attesa";
+
+/* Queue undo action name */
+"Add Job To Queue" = "Aghjunghje un travagliu à a fila d’attesa";
+
+/* Queue undo action name */
+"Add Jobs To Queue" = "Aghjunghje travaglii à a fila d’attesa";
+
+/* Touch bar */
+"Add Preset" = "Aghjunghje una prerigatura";
+
+/* Touch bar */
+"Add Titles To Queue" = "Aghjunghje tituli à a fila d’attesa";
+
+/* Main Window Add Toolbar Item */
+"Add Titles To Queue…" = "Aghjunghje i tituli à a fila d’attesa…";
+
+/* Main Window Add Toolbar Item
+Touch bar */
+"Add To Queue" = "Aghjunghje à a fila d’attesa";
+
+/* Preferences Advanced Toolbar Item */
+"Advanced" = "Espertu";
+
+/* Main Window -> Same as source destination open panel */
+"Allow" = "Permette";
+
+/* Preferences -> Output Name Token */
+"Angle" = "Angulu";
+
+/* HBLanguage -> Any language */
+"Any" = "Qualsiasi";
+
+/* Delete preset alert -> message */
+"Are you sure you want to permanently delete the selected preset?" = "Da veru, vulete squassà a prerigatura selezziunata ?";
+
+/* Delete preset alert -> message */
+"Are you sure you want to permanently delete the selected presets?" = "Da veru, vulete squassà e prerigature selezziunate ?";
+
+/* Quit Alert -> message */
+"Are you sure you want to quit HandBrake?" = "Da veru, vulete esce da HandBrake ?";
+
+/* Copy Protection Alert -> first button */
+"Attempt Scan Anyway" = "Pruvà quantunque l’esplurazione";
+
+/* Player HUD -> audio menu */
+"Audio" = "Audio";
+
+/* Job statistics */
+"Average speed:" = "Vitezza mediana :";
+
+/* Preferences -> Output Name Token */
+"Bit Depth" = "Prufundezza binaria";
+
+/* Copy Protection Alert -> second button
+Delete preset alert -> second button
+File already exists alert -> first button
+File already exists in queue alert -> first button
+Preview -> live preview alert alternate button
+Touch bar */
+"Cancel" = "Abbandunà";
+
+/* Touch bar */
+"Cancel Encoding" = "Abbandunà a cudificazione";
+
+/* Toolbar Open/Cancel Item
+Touch bar */
+"Cancel Scan" = "Abbandunà l’esplurazione";
+
+/* Toolbar Open/Cancel Item */
+"Cancel Scanning Source" = "Abbandunà l’esplurazione di e fonte";
+
+/* HBRange -> display name
+Preferences -> Output Name Token */
+"Chapters" = "Capituli";
+
+/* Main Window -> Destination open panel */
+"Choose" = "Sceglie";
+
+/* Preferences -> Output Name Token */
+"Codec" = "Cudecu";
+
+/* Queue Alert -> cancel rip first button */
+"Continue Encoding" = "Cuntinuà a cudificazione";
+
+/* Copy Protection Alert -> message */
+"Copy-Protected sources are not supported." = "E fonte prutette contr’à a copia ùn sò micca accettate.";
+
+/* Preferences -> Output Name Token */
+"Creation-Date" = "Data di creazione";
+
+/* Preferences -> Output Name Token */
+"Creation-Time" = "Ora di creazione";
+
+/* Touch bar */
+"Current Time" = "Ora attuale";
+
+/* Add preset window -> picture setting */
+"Custom" = "Persunalizatu";
+
+/* Preferences -> Output Name Token */
+"Date" = "Data";
+
+/* Delete preset alert -> first button */
+"Delete Preset" = "Squassà a prerigatura";
+
+/* Delete preset alert -> first button */
+"Delete Presets" = "Squassà e prerigature";
+
+/* Queue Window Details Toolbar Item */
+"Details" = "Detaglii";
+
+/* Queue Window When Done Toolbar Item */
+"Do Nothing" = "Ùn fà nunda";
+
+/* File already exists alert -> informative text
+File already exists in queue alert -> informative text */
+"Do you want to overwrite %@?" = "Vulete rimpiazzà %@ ?";
+
+/* Quit Alert -> second button */
+"Don't Quit" = "Ùn micca esce";
+
+/* Touch bar */
+"Done" = "Fattu";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode canceled" = "Cudificazione abbandunata";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode complete" = "Cudificazione compia";
+
+/* HBQueueItemView -> Encode state accessibility label
+Queue done notification failed message */
+"Encode failed" = "Cudificazione fiascata";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode ready" = "Cudificazione pronta";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode working" = "Cudificazione in corsu";
+
+/* Preferences -> Output Name Token */
+"Encoder" = "Cudificatore";
+
+/* No comment provided by engineer. */
+"Encoding %lu Jobs" = "Cudificazione di %lu travaglii";
+
+/* No comment provided by engineer. */
+"Encoding Job: %@" = "Cudificazione di u travagliu : %@";
+
+/* Job statistics */
+"Ended at:" = "Compiu à :";
+
+/* Export presets save panel title */
+"Export preset" = "Espurtà a prerigatura";
+
+/* Export presets save panel title */
+"Export presets" = "Espurtà e prerigature";
+
+/* Default name for a newly added excluded file extension */
+"extension" = "estensione";
+
+/* File already exists alert -> message */
+"File already exists." = "U schedariu esiste dighjà.";
+
+/* Preferences Output File Name Toolbar Item */
+"File name" = "Nome di schedariu";
+
+/* HBRange -> display name */
+"Frames" = "Fiure";
+
+/* Preferences General Toolbar Item */
+"General" = "Generale";
+
+/* Main Window -> title */
+"HandBrake" = "HandBrake";
+
+/* Preview -> live preview alert message */
+"HandBrake can't open the preview." = "HandBrake ùn pò micca apre a fighjulata.";
+
+/* Preview -> live preview alert informative text */
+"HandBrake can't playback this combination of video/audio/container format. Do you want to open it in an external player?" = "HandBrake ùn pò micca leghje sta cumbinazione di furmatu video/audio/cuntenidore. Vulete aprelu cù un lettore esternu ?";
+
+/* Main Window -> Same as source destination open panel */
+"HandBrake does not have permission to write to this folder. To allow HandBrake to write to this folder, click \"Allow\"" = "HandBrake ùn hà micca u permessu di scrive in stu cartulare. Per permette à HandBrake di scrive in stu cartulare, cliccu nant’à « Permette »";
+
+/* Preferences -> Output Name Token */
+"Height" = "Altezza";
+
+/* Queue -> sidebar menu */
+"Hide Sidebar" = "Piattà a barra laterale";
+
+/* Quit Alert -> informative text */
+"If you quit HandBrake your current encode will be reloaded into your queue at next launch. Do you want to quit anyway?" = "S’è vo iscete d’HandBrake, a vostra cudificazione attuale serà ricaricata in a fila d’attesa à u prossimu avviu. Vulete esce quantunque ?";
+
+/* Import preset open panel title */
+"Import presets" = "Impurtà prerigature";
+
+/* Chapters import -> invalid CSV line count description */
+"Incorrect line count" = "Numeru di linee incurrettu";
+
+/* Chapters import -> invalid CSV description */
+"Invalid chapters CSV file" = "Schedariu di capituli CSV inaccettevule";
+
+/* Queue Edit Alert -> stop and edit first button
+Queue Stop Alert -> stop and remove first button */
+"Keep Encoding" = "Cuntinuà a cudificazione";
+
+/* Touch bar */
+"Live Preview" = "Fighjulata istantanea";
+
+/* Preferences -> Output Name Token */
+"Modification-Date" = "Data di mudificazione";
+
+/* Preferences -> Output Name Token */
+"Modification-Time" = "Ora di mudificazione";
+
+/* Queue undo action name */
+"Move Job in Queue" = "Dispiazzà u travagliu in a fila d’attesa";
+
+/* Queue undo action name */
+"Move Jobs in Queue" = "Dispiazzà i travaglii in a fila d’attesa";
+
+/* Add preset window -> My Presets */
+"My Presets" = "E mo prerigature";
+
+/* Queue status */
+"No encode pending" = "Nisuna cudificazione in attesa";
+
+/* Preview -> accessibility label */
+"No image" = "Nisuna fiura";
+
+/* No comment provided by engineer. */
+"No job selected" = "Nisunu travagliu selezziunatu";
+
+/* Main Window -> Info text */
+"No Valid Preset" = "Alcuna prerigatura accettevule";
+
+/* Main Window -> Info text */
+"No Valid Source Found" = "Ùn si pò truvà nisuna fonte";
+
+/* Add preset window -> picture setting */
+"None" = "Nisuna";
+
+/* Queue Done Alert -> shut down first button
+Queue Done Alert -> sleep first button */
+"OK" = "Vai";
+
+/* File already exists alert -> informative text */
+"One or more file already exists. Do you want to overwrite?" = "Unu o parechji schedarii esistenu dighjà. Vulete rimpiazzalli ?";
+
+/* Preview -> live preview alert default button */
+"Open in external player" = "Apre cù un lettore esternu";
+
+/* Main Window Open Toolbar Item
+Toolbar Open/Cancel Item
+Touch bar */
+"Open Source" = "Apre a fonte";
+
+/* File already exists alert -> second button
+File already exists in queue alert -> second button */
+"Overwrite" = "Rimpiazzà";
+
+/* Main Window Pause Toolbar Item
+Toolbar Pause Item */
+"Pause" = "Pausa";
+
+/* Queue -> pause/resume menu
+Toolbar Pause Item
+Touch bar */
+"Pause Encoding" = "Interrompe a cudificazione";
+
+/* Main Window Pause Toolbar Item
+Touch bar */
+"Pause/Resume Encoding" = "Interrompe / cuntinuà a cudificazione";
+
+/* Job statistics */
+"Paused time:" = "Durata di pausa :";
+
+/* Video -> Framerate */
+"Peak Framerate (VFR)" = "Frequenza di fiure di cresta (VFR)";
+
+/* Queue Window Action Toolbar Item */
+"Perform tasks with the selected items" = "Effettuà e tacche cù l’elementi selezziunati";
+
+/* Touch bar */
+"Play/Pause" = "Lettura / Pausa";
+
+/* Add preset window -> name alert informative text
+Rename preset window -> name alert informative text */
+"Please enter a name." = "Stampittate un nome.";
+
+/* Copy Protection Alert -> informative text */
+"Please note that HandBrake does not support the removal of copy-protection from DVD Discs. You can if you wish use any other 3rd party software for this function. This warning will be shown only once each time HandBrake is run." = "Sappiate chì HandBrake ùn permette micca di caccià e prutezzioni contr’à a copia nant’à i dischi DVD. Per ottene sta funzione, ci vulerà à impiegà un prugramma esternu. St’avertimentu serà affissatu solu una volta à ogni avviu d’HandBrake.";
+
+/* Queue Done Alert -> shut down second button
+Queue Done Alert -> sleep second button */
+"Preferences…" = "Preferenze…";
+
+/* Preferences -> Output Name Token */
+"Preset" = "Prerigatura";
+
+/* Main Window Presets Toolbar Item */
+"Presets" = "Prerigature";
+
+/* Preview -> progress formatter title */
+"preview" = "fighjulata";
+
+/* Main Window Preview Toolbar Item
+Preview -> window title */
+"Preview" = "Fighjulata";
+
+/* Preview -> window title format */
+"Preview - %@ %@" = "Fighjulata - %1$@ %2$@";
+
+/* Preview -> accessibility label */
+"Preview Image, Size: %f x %f, Scale: %.0f%%" = "Fighjulata di a fiura, dimensione : %1$f x %2$f, scala :: %3$.0f%%";
+
+/* Queue Window When Done Toolbar Item */
+"Put Computer to Sleep" = "Mette l’urdinatore in veghja";
+
+/* Queue notification alert message */
+"Put down that cocktail…" = "Ripunite stu bichjeru…";
+
+/* Preferences -> Output Name Token */
+"Quality Type" = "Tipu di qualità";
+
+/* Preferences -> Output Name Token */
+"Quality/Bitrate" = "Qualità / Flussu binariu";
+
+/* Main Window Presets Toolbar Item
+Preferences Queue Toolbar Item
+Queue window title */
+"Queue" = "Fila d’attesa";
+
+/* Queue window title */
+"Queue (%@)" = "Fila d’attesa (%@)";
+
+/* Queue Window Quick Look Toolbar Item */
+"Quick Look" = "Fighjulata";
+
+/* Quit Alert -> first button */
+"Quit" = "Esce";
+
+/* Queue Window When Done Toolbar Item */
+"Quit HandBrake" = "Piantà Handbrake";
+
+/* Touch bar */
+"Remaining Time" = "Tempu rimanentu";
+
+/* Queue Window Action Toolbar Item */
+"Remove All Jobs" = "Caccià tutti i travagli";
+
+/* Queue Window Action Toolbar Item */
+"Remove Completed Jobs" = "Caccià i travagli compii";
+
+/* HBQueueItemView -> Remove button accessibility label */
+"Remove job" = "Caccià u travagliu";
+
+/* Queue undo action name */
+"Remove Job From Queue" = "Caccià u travagliu da a fila d’attesa";
+
+/* Queue undo action name */
+"Remove Jobs From Queue" = "Caccià i travaglii da a fila d’attesa";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Rescanning for editing" = "Nova esplurazione per pudè mudificà";
+
+/* Queue Window Action Toolbar Item */
+"Reset All Jobs" = "Reinizià tutti i travagli";
+
+/* Queue Window Action Toolbar Item */
+"Reset Failed Jobs" = "Reinizià i travagli fiaschi";
+
+/* Toolbar Pause Item */
+"Resume" = "Ripiglià";
+
+/* Queue -> pause/resume men
+Toolbar Pause Item */
+"Resume Encoding" = "Ripiglià a cudificazione";
+
+/* HBQueueItemView -> Reveal button accessibility label */
+"Reveal destination in Finder" = "Palisà a destinazione in u Finder";
+
+/* Job statistics */
+"Run time:" = "Durata di cudificazione :";
+
+/* Export presets panel prompt */
+"Save" = "Arregistrà";
+
+/* Picture HUD -> scale button
+Touch bar */
+"Scale To Screen" = "Adattà à u screnu";
+
+/* HBRange -> display name */
+"Seconds" = "Seconde";
+
+/* Queue Window When Done Toolbar Item */
+"Select an action to run when the queue is done" = "Selezziunà un’azzione à fà quandu a fila d’attesa hè compia";
+
+/* Queue Alert -> cancel rip informative text */
+"Select Continue Encoding to dismiss this dialog without making changes." = "Selezziunate « Cuntinuà a cudificazione » per righjittà stu dialogu senza fà nisunu cambiamentu.";
+
+/* Preferences -> send to app destination open panel */
+"Select the desired external application" = "Selezziunate l’appiecazione esterna desiderata";
+
+/* Titles selection sheet -> informative text */
+"Select the titles to add to the queue using the %@ preset:" = "Selezziunà i tituli à aghjunghje à a fila d’attesa impieghendu a prerigatura %@ :";
+
+/* Notification -> Show in Finder */
+"Show" = "Affissà";
+
+/* Main Window Activity Toolbar Item
+Touch bar */
+"Show Activity Window" = "Affissà a finestra d’attività";
+
+/* Main Window Presets Toolbar Item */
+"Show Presets List" = "Affissà a lista di e prerigature";
+
+/* Main Window Preview Toolbar Item
+Touch bar */
+"Show Preview Window" = "Affissà a finestra di fighjulata";
+
+/* Main Window Presets Toolbar Item */
+"Show Queue Window" = "Affissà a finestra di a fila d’attesa";
+
+/* Queue -> sidebar menu */
+"Show Sidebar" = "Affissà a barra laterale";
+
+/* Queue Window When Done Toolbar Item */
+"Shut Down Computer" = "Piantà l’urdinatore";
+
+/* Job statistics */
+"Size:" = "Dimensione :";
+
+/* Queue Alert -> cancel rip second button */
+"Skip Current Job" = "Tralascià u travagliu in corsu";
+
+/* Touch bar */
+"Slider" = "Cursore";
+
+/* Preferences -> Output Name Token */
+"Source" = "Fonte";
+
+/* Main Window Start Toolbar Item
+Toolbar Start/Stop Item */
+"Start" = "Principià";
+
+/* Menu Start/Stop Item
+Queue -> start/stop menu
+Toolbar Start/Stop Item */
+"Start Encoding" = "Principià a cudificazione";
+
+/* Toolbar Start/Stop Item */
+"Start Queue" = "Principià a fila d’attesa";
+
+/* Main Window Start Toolbar Item
+Touch bar */
+"Start/Stop Encoding" = "Principià / Piantà a cudificazione";
+
+/* Job statistics */
+"Started at:" = "Principiatu à :";
+
+/* Queue -> Stop action
+Toolbar Start/Stop Item */
+"Stop" = "Piantà";
+
+/* Queue -> Stop action */
+"Stop action." = "Piantà l’azzione in corsu.";
+
+/* Queue Alert -> cancel rip third button */
+"Stop After Current Job" = "Piantà dopu à u travagliu in corsu";
+
+/* Queue Alert -> cancel rip fourth button */
+"Stop All" = "Tuttu piantà";
+
+/* Queue -> start/stop menu
+Toolbar Start/Stop Item */
+"Stop Encoding" = "Piantà a cudificazione";
+
+/* Queue Stop Alert -> stop and remove second button */
+"Stop Encoding and Delete" = "Piantà a cudificazione è squassà";
+
+/* Queue Edit Alert -> stop and edit second button */
+"Stop Encoding and Edit" = "Piantà a cudificazione è mudificà";
+
+/* Queue Edit Alert -> stop and edit message */
+"Stop This Encode and Edit It?" = "Piantà sta cudificazione è mudificalla ?";
+
+/* Queue Stop Alert -> stop and remove message */
+"Stop This Encode and Remove It?" = "Piantà sta cudificazione è squassalla ?";
+
+/* Player HUD -> subtitles menu */
+"Subtitles" = "Sottutituli";
+
+/* Queue Done Alert -> shut down message */
+"The computer will shut down after encoding is done." = "L’urdinatore si pianterà dopu à a fine di a cudificazione.";
+
+/* Queue Done Alert -> sleep message */
+"The computer will sleep after encoding is done." = "L’urdinatore si mitterà in veghja dopu à a fine di a cudificazione.";
+
+/* Chapters import -> invalid CSV recovery suggestion */
+"The CSV file is not a valid chapters CSV file." = "U schedariu CSV ùn hè micca un schedariu di capituli accettevule.";
+
+/* Destination same as source alert -> informative text */
+"The destination is the same as the source, you can not overwrite your source file!" = "A destinazione hè listessa chì a fonte, ùn si pò micca rimpiazzà u schedariu di fonte !";
+
+/* Chapters import -> invalid CSV line count recovery suggestion */
+"The line count in the chapters CSV file does not match the number of chapters in the movie." = "U numeru di linee di u schedariu di capituli CSV ùn currisponde micca à u numeru di i capituli di u filmu.";
+
+/* Add preset window -> name alert message
+Rename preset window -> name alert message */
+"The preset name cannot be empty." = "U nome di a prerigatura ùn pò micca esse viotu.";
+
+/* File already exists in queue alert -> message */
+"There is already a queue item for this destination." = "Ci hè dighjà un elementu in a fila d’attesa per sta destinazione.";
+
+/* Invalid destination alert -> informative text */
+"This is not a valid destination directory!" = "U cartulare di destinazione ùn hè micca accettevule !";
+
+/* Preferences -> Output Name Token */
+"Time" = "Tempu";
+
+/* Preferences -> Output Name Token */
+"Title" = "Titulu";
+
+/* Queue Window Details Toolbar Item */
+"Toggle details sidebar" = "Attivà o disattivà a barra laterale di detaglii";
+
+/* HBLanguage -> Unknown language */
+"Unknown" = "Scunnisciutu";
+
+/* Video -> Framerate */
+"Variable Framerate" = "Frequenza di fiure variabile (VFR)";
+
+/* Invalid destination alert -> message */
+"Warning!" = "Avertimentu !";
+
+/* Queue Window When Done Toolbar Item */
+"When Done" = "Quandu hè compiu";
+
+/* Preferences -> Output Name Token */
+"Width" = "Larghezza";
+
+/* No comment provided by engineer. */
+"Working" = "Travagliu in corsu";
+
+/* Queue Alert -> cancel rip message */
+"You are currently encoding. What would you like to do?" = "Una cudificazione hè in corsu. Chì vulete fa ?";
+
+/* Delete preset alert -> informative text */
+"You can't undo this action." = "Ùn si pò disfà st’azzione.";
+
+/* Queue Done Alert -> shut down informative text */
+"You have selected to shut down the computer after encoding. To turn off shut down, go to the HandBrake preferences." = "Avete sceltu di piantà l’urdinatore dopu à a fine di a cudificazione. Per disattivà sta piantata, andate in e Preferenze d’HandBrake.";
+
+/* Queue Done Alert -> sleep informative text */
+"You have selected to sleep the computer after encoding. To turn off sleeping, go to the HandBrake preferences." = "Avete sceltu di mette l’urdinatore in veghja dopu à a fine di a cudificazione. Per disattivà a messa in veghja, andate in e Preferenze d’HandBrake.";
+
+/* Queue -> disk almost full alert informative text */
+"You need to make more space available on your destination disk." = "Ci vole à liberà più di spaziu nant’à u vostru discu di destinazione.";
+
+/* Queue -> disk almost full alert message */
+"Your destination disk is almost full." = "U vostru discu di destinazione hè guasi pienu.";
+
+/* Queue done notification message */
+"Your encode %@ couldn't be completed." = "A vostra cudificazione %@ ùn hè stata micca compia.";
+
+/* Queue done notification message */
+"Your encode %@ is done!" = "A vostra cudificazione hè compia !";
+
+/* Queue Edit Alert -> stop and edit informative text
+Queue Stop Alert -> stop and remove informative text */
+"Your movie will be lost if you don't continue encoding." = "U vostru filmu serà persu s’è vo ùn cuntinuate micca a cudificazione.";
+
+/* Queue done notification message */
+"Your queue is done!" = "A vostra fila d’attesa hè compia !";
+

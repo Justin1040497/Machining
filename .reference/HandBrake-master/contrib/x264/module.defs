@@ -1,0 +1,34 @@
+$(eval $(call import.MODULE.defs,X264,x264))
+$(eval $(call import.CONTRIB.defs,X264))
+
+X264.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/x264-snapshot-20250729-3222.tar.gz
+X264.FETCH.sha256  = f5a6862482c5ad63ecc77fc8d1a8344fb62827137f8e0ccaeba80b4727fae3a2
+
+X264.GCC.args.c_std =
+
+X264.CONFIGURE.deps   =
+X264.CONFIGURE.shared =
+
+X264.CONFIGURE.extra += --disable-lavf --disable-ffms --disable-avs --disable-swscale --disable-gpac --disable-lsmash --disable-cli
+
+ifeq (on,$(GCC.lto))
+    X264.CONFIGURE.extra += --enable-lto
+endif
+
+ifeq (1,$(HOST.cross))
+    X264.CONFIGURE.build  =
+    ifneq ($(HOST.system),darwin)
+        X264.CONFIGURE.extra += --cross-prefix=$(HOST.spec)-
+    endif
+    ifeq (arm64-darwin,$(HOST.machine)-$(HOST.system))
+        X264.CONFIGURE.extra += --extra-asflags="-arch $(HOST.arch)"
+    endif
+endif
+
+ifeq (arm64-darwin,$(HOST.machine)-$(HOST.system))
+    X264.CONFIGURE.extra += --host=arm64-apple-darwin
+endif
+
+ifeq (1,$(FEATURE.flatpak))
+    X264.CONFIGURE.extra += --enable-pic
+endif

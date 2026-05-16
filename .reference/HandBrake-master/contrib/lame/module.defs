@@ -1,0 +1,17 @@
+$(eval $(call import.MODULE.defs,LAME,lame,LIBICONV))
+$(eval $(call import.CONTRIB.defs,LAME))
+
+LAME.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs/lame-3.100.tar.gz
+LAME.FETCH.url    += https://sourceforge.net/projects/lame/files/lame/3.100/lame-3.100.tar.gz
+LAME.FETCH.sha256  = ddfe36cab873794038ae2c1210557ad34857a4b6bdc515785d1da9e175b1da1e
+
+LAME.CONFIGURE.extra += --disable-frontend
+ifneq (none,$(LAME.GCC.g))
+	LAME.CONFIGURE.extra += --enable-debug
+endif
+
+LAME.GCC.args.extra += $(LAME.GCC.args.O.$(LAME.GCC.O))
+
+ifeq (1-msys,$(HOST.cross)-$(BUILD.system))
+    LAME.CONFIGURE.args.build = --build=$(BUILD.machine)-unknown-linux-gnu
+endif

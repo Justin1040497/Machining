@@ -1,0 +1,24 @@
+#!/bin/sh
+
+inpath()
+{
+    IFS=:
+    for d in $PATH
+    do
+        if [ -x $d/$1 ]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
+for p in python3 python3.11 python3.10 python3.9 python3.8 python3.7 python3.6 python
+do
+    if ( inpath $p ); then
+        exec $p `dirname $0`/make/configure.py "$@"
+        exit 0
+    fi
+done
+
+echo "ERROR: no suitable version of python found."
+exit 1

@@ -1,0 +1,818 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="32700.99.1234" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22689"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="HBController">
+            <connections>
+                <outlet property="audioTab" destination="1475" id="KFs-lZ-jXC"/>
+                <outlet property="bottomConstrain" destination="Unb-Sk-dKC" id="f1i-gz-VIc"/>
+                <outlet property="chaptersTab" destination="1989" id="Qic-V7-Bqk"/>
+                <outlet property="destinationPathControl" destination="PJi-21-hie" id="AwZ-Ws-K0u"/>
+                <outlet property="filtersTab" destination="0UB-bG-kwS" id="8wc-MY-h6a"/>
+                <outlet property="mainTabView" destination="1474" id="LnD-zT-6M5"/>
+                <outlet property="openTitleView" destination="lZQ-gl-3wX" id="Wh6-fB-pWi"/>
+                <outlet property="pictureTab" destination="eij-Sn-QmJ" id="8Ww-MT-bhs"/>
+                <outlet property="presetsPopup" destination="bWH-Lp-mKY" id="vot-gQ-hLV"/>
+                <outlet property="progressField" destination="XL7-L5-bkf" id="DCJ-FQ-VIv"/>
+                <outlet property="scanHorizontalLine" destination="3205" id="9af-9F-Sst"/>
+                <outlet property="scanIndicator" destination="3203" id="dh4-U8-kDp"/>
+                <outlet property="sourceLabel" destination="1539" id="C8K-CB-tqm"/>
+                <outlet property="statusField" destination="1123" id="ujy-WJ-FLy"/>
+                <outlet property="subtitlesTab" destination="5194" id="G40-yx-m4P"/>
+                <outlet property="summaryTab" destination="BA0-eg-2Ka" id="wh5-Js-weO"/>
+                <outlet property="titlePopUp" destination="1541" id="543-h9-MCd"/>
+                <outlet property="videoTab" destination="1477" id="oWL-hy-Yj4"/>
+                <outlet property="window" destination="21" id="qib-ZH-aNm"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="HandBrake" allowsToolTipsWhenApplicationIsInactive="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="HBMainWindow" animationBehavior="default" toolbarStyle="expanded" id="21" userLabel="MainWindow">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
+            <windowCollectionBehavior key="collectionBehavior" fullScreenPrimary="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="81" y="385" width="885" height="600"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1055"/>
+            <view key="contentView" id="2" customClass="HBFocusRingView">
+                <rect key="frame" x="0.0" y="0.0" width="885" height="600"/>
+                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                <subviews>
+                    <tabView controlSize="small" translatesAutoresizingMaskIntoConstraints="NO" id="1474">
+                        <rect key="frame" x="13" y="87" width="859" height="415"/>
+                        <constraints>
+                            <constraint firstAttribute="height" relation="greaterThanOrEqual" constant="334" id="Jdl-tV-liS"/>
+                        </constraints>
+                        <tabViewItems>
+                            <tabViewItem label="Summary" identifier="" id="BA0-eg-2Ka">
+                                <view key="view" id="BjX-E2-6tb">
+                                    <rect key="frame" x="10" y="29" width="839" height="373"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Dimensions" identifier="2" id="eij-Sn-QmJ" userLabel="PictureTab">
+                                <view key="view" id="nvx-9b-6fF">
+                                    <rect key="frame" x="10" y="25" width="839" height="377"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Filters" identifier="" id="0UB-bG-kwS">
+                                <view key="view" id="JAj-E3-Cq2">
+                                    <rect key="frame" x="10" y="25" width="839" height="377"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Video" identifier="1" id="1477">
+                                <view key="view" id="1478">
+                                    <rect key="frame" x="10" y="25" width="839" height="377"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Audio" identifier="3" id="1475">
+                                <view key="view" id="1476">
+                                    <rect key="frame" x="10" y="25" width="839" height="377"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Subtitles" identifier="4" id="5194">
+                                <view key="view" id="5195">
+                                    <rect key="frame" x="10" y="25" width="839" height="377"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                            <tabViewItem label="Chapters" identifier="5" id="1989">
+                                <view key="view" id="1990">
+                                    <rect key="frame" x="10" y="25" width="839" height="377"/>
+                                    <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                </view>
+                            </tabViewItem>
+                        </tabViewItems>
+                    </tabView>
+                    <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="1538">
+                        <rect key="frame" x="18" y="570" width="48" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="Source:" id="4905">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <accessibility description="Source file"/>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="65m-tX-rfB"/>
+                        </connections>
+                    </textField>
+                    <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="1540">
+                        <rect key="frame" x="18" y="542" width="33" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="Title:" id="4907">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="cpH-Kt-lRM"/>
+                        </connections>
+                    </textField>
+                    <popUpButton toolTip="Source range selection. By default, all chapters are selected and the entire source is encoded." horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5513">
+                        <rect key="frame" x="517" y="537" width="86" height="22"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="5514">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                            <menu key="menu" id="5515"/>
+                        </popUpButtonCell>
+                        <constraints>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="78" id="Zs8-pX-H7V"/>
+                        </constraints>
+                        <accessibility description="Range Selection"/>
+                        <connections>
+                            <accessibilityConnection property="title" destination="4NG-AB-JWs" id="D9J-Ih-cYu"/>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="OMf-GZ-Uvf">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="selectedIndex" keyPath="self.job.range.type" previousBinding="jpv-yJ-Fca" id="lsk-jg-EAY"/>
+                            <binding destination="-2" name="content" keyPath="self.job.range.types" id="jpv-yJ-Fca"/>
+                        </connections>
+                    </popUpButton>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="1552">
+                        <rect key="frame" x="18" y="64" width="52" height="14"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="Save As:" id="4913">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="cNL-U3-HcC"/>
+                        </connections>
+                    </textField>
+                    <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="1553">
+                        <rect key="frame" x="754" y="542" width="57" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="Duration:" id="4914">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="hidden" keyPath="self.job" id="A4K-w4-n6U">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNil</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField toolTip="Duration of the selected source range in Hours:Minutes:Seconds." verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="1554">
+                        <rect key="frame" x="811" y="542" width="56" height="14"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="52" id="YAI-9M-gNt"/>
+                        </constraints>
+                        <textFieldCell key="cell" controlSize="small" selectable="YES" sendsActionOnEndEditing="YES" alignment="left" title="00:00:00" id="4915">
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" red="0.76630436999999996" green="0.0" blue="0.0" alpha="0.0" colorSpace="calibratedRGB"/>
+                        </textFieldCell>
+                        <accessibility description="Duration"/>
+                        <connections>
+                            <accessibilityConnection property="title" destination="1553" id="N3l-Fy-ezT"/>
+                            <binding destination="-2" name="hidden" keyPath="self.job" id="42H-WA-xrv">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNil</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="value" keyPath="self.job.range.duration" id="I4g-Nz-YXQ"/>
+                        </connections>
+                    </textField>
+                    <textField toolTip="Source file name." verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1539">
+                        <rect key="frame" x="70" y="570" width="44" height="14"/>
+                        <constraints>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="40" id="xNw-RS-Hhf"/>
+                        </constraints>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" sendsActionOnEndEditing="YES" alignment="left" usesSingleLineMode="YES" id="4906">
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                        </textFieldCell>
+                        <connections>
+                            <accessibilityConnection property="title" destination="1538" id="rra-Xj-yD0"/>
+                        </connections>
+                    </textField>
+                    <textField toolTip="File name. This is what your new video will be named." verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1561">
+                        <rect key="frame" x="76" y="62" width="347" height="19"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" continuous="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" id="4919">
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <accessibility description="Output filename"/>
+                        <connections>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="JXO-Eg-p84">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="value" keyPath="self.job.destinationFileName" id="0aV-K7-r7w">
+                                <dictionary key="options">
+                                    <bool key="NSValidatesImmediately" value="YES"/>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField hidden="YES" toolTip="First second to encode." verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5491" userLabel="Time Start Encoding Field">
+                        <rect key="frame" x="607" y="540" width="58" height="19"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="5492">
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <accessibility description="Start time in seconds"/>
+                        <connections>
+                            <binding destination="-2" name="hidden" keyPath="self.job.range.secondsSelected" id="nK6-QE-OSQ">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="value" keyPath="self.job.range.secondsStart" id="ETl-ke-STQ">
+                                <dictionary key="options">
+                                    <bool key="NSContinuouslyUpdatesValue" value="YES"/>
+                                    <bool key="NSValidatesImmediately" value="YES"/>
+                                    <string key="NSValueTransformerName">HBTimeInSecondsTransformer</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField hidden="YES" toolTip="First frame to encode." verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5521" userLabel="Frame Start Encoding Field">
+                        <rect key="frame" x="607" y="540" width="58" height="19"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="5522">
+                            <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" minimumIntegerDigits="0" maximumIntegerDigits="42" id="Wpt-92-R1O">
+                                <real key="minimum" value="0.0"/>
+                            </numberFormatter>
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <accessibility description="Start time in frames"/>
+                        <connections>
+                            <binding destination="-2" name="value" keyPath="self.job.range.frameStart" id="gMK-Oo-iNV">
+                                <dictionary key="options">
+                                    <bool key="NSContinuouslyUpdatesValue" value="YES"/>
+                                    <bool key="NSValidatesImmediately" value="YES"/>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="hidden" keyPath="self.job.range.framesSelected" id="0dp-Lu-RBt">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField hidden="YES" toolTip="Last second to encode." verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5493" userLabel="Time End Encoding Field">
+                        <rect key="frame" x="683" y="540" width="58" height="19"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" id="5494">
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <accessibility description="End time in seconds"/>
+                        <connections>
+                            <binding destination="-2" name="hidden" keyPath="self.job.range.secondsSelected" id="CkY-Gb-kMw">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="value" keyPath="self.job.range.secondsStop" id="AL1-NB-med">
+                                <dictionary key="options">
+                                    <bool key="NSContinuouslyUpdatesValue" value="YES"/>
+                                    <bool key="NSValidatesImmediately" value="YES"/>
+                                    <string key="NSValueTransformerName">HBTimeInSecondsTransformer</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField hidden="YES" toolTip="Last frame to encode." verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="5523" userLabel="Frame End Encoding Field">
+                        <rect key="frame" x="683" y="540" width="58" height="19"/>
+                        <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" id="5524">
+                            <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" minimumIntegerDigits="0" maximumIntegerDigits="42" id="WrK-kN-ZN0">
+                                <real key="minimum" value="0.0"/>
+                            </numberFormatter>
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <accessibility description="End time in frames"/>
+                        <connections>
+                            <binding destination="-2" name="value" keyPath="self.job.range.frameStop" id="pjc-WR-Cps">
+                                <dictionary key="options">
+                                    <bool key="NSContinuouslyUpdatesValue" value="YES"/>
+                                    <bool key="NSValidatesImmediately" value="YES"/>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="hidden" keyPath="self.job.range.framesSelected" id="mCj-hb-nRY">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="1627">
+                        <rect key="frame" x="18" y="513" width="45" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="Preset:" id="4923">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="kL0-6u-vGx"/>
+                        </connections>
+                    </textField>
+                    <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="1628">
+                        <rect key="frame" x="470" y="518" width="395" height="5"/>
+                    </box>
+                    <box verticalHuggingPriority="750" boxType="separator" translatesAutoresizingMaskIntoConstraints="NO" id="3205">
+                        <rect key="frame" x="127" y="575" width="738" height="5"/>
+                        <constraints>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="20" id="8eM-Lw-0wS"/>
+                        </constraints>
+                    </box>
+                    <progressIndicator hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" maxValue="1" bezeled="NO" controlSize="small" style="bar" translatesAutoresizingMaskIntoConstraints="NO" id="3203">
+                        <rect key="frame" x="355" y="572" width="510" height="12"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="510" id="QJ7-6q-bdK"/>
+                        </constraints>
+                    </progressIndicator>
+                    <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="5505">
+                        <rect key="frame" x="667" y="542" width="14" height="14"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="10" id="oZA-uv-S2L"/>
+                        </constraints>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="center" title="–" id="5506">
+                            <font key="font" metaFont="message" size="11"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="hidden" keyPath="self.job" id="3Oi-Rz-VGX">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNil</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <popUpButton toolTip="First chapter to encode." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1545" userLabel="Chapter Start">
+                        <rect key="frame" x="603" y="537" width="66" height="22"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="1547" id="4910">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                            <menu key="menu" id="1546">
+                                <items>
+                                    <menuItem state="on" id="1547"/>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="58" id="LYd-Am-GKJ"/>
+                        </constraints>
+                        <accessibility description="Start Chapter"/>
+                        <connections>
+                            <binding destination="-2" name="selectedIndex" keyPath="self.job.range.chapterStart" previousBinding="iug-tk-BPC" id="6Lh-6x-j09"/>
+                            <binding destination="-2" name="content" keyPath="self.job.range.chapters" id="iug-tk-BPC"/>
+                            <binding destination="-2" name="hidden" keyPath="self.job.range.chaptersSelected" id="ycW-js-Hi5">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </popUpButton>
+                    <popUpButton toolTip="Last chapter to encode." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1548" userLabel="Chapter End">
+                        <rect key="frame" x="679" y="537" width="66" height="22"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="1550" id="4911">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                            <menu key="menu" id="1549">
+                                <items>
+                                    <menuItem state="on" id="1550"/>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="58" id="zhJ-ur-lHA"/>
+                        </constraints>
+                        <accessibility description="End Chapter"/>
+                        <connections>
+                            <binding destination="-2" name="selectedIndex" keyPath="self.job.range.chapterStop" previousBinding="wDD-Bt-zMX" id="eHK-zg-A5x"/>
+                            <binding destination="-2" name="content" keyPath="self.job.range.chapters" id="wDD-Bt-zMX"/>
+                            <binding destination="-2" name="hidden" keyPath="self.job.range.chaptersSelected" id="Afk-fL-rtv">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </popUpButton>
+                    <popUpButton toolTip="Video angle to encode. Only applicable to multi-angle DVD and Blu-ray." horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5181">
+                        <rect key="frame" x="417" y="537" width="46" height="22"/>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="5184" id="5182">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                            <menu key="menu" id="5183">
+                                <items>
+                                    <menuItem state="on" id="5184"/>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="38" id="xGF-g4-jWh"/>
+                        </constraints>
+                        <connections>
+                            <accessibilityConnection property="title" destination="5180" id="1bt-ea-b2b"/>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="pA6-GK-w84">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="selectedValue" keyPath="self.job.angle" previousBinding="aID-g7-zTF" id="Iat-pL-ttI">
+                                <dictionary key="options">
+                                    <string key="NSNullPlaceholder" base64-UTF8="YES">
+IA
+</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="-2" name="content" keyPath="self.job.angles" id="aID-g7-zTF">
+                                <dictionary key="options">
+                                    <string key="NSNullPlaceholder" base64-UTF8="YES">
+IA
+</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="5676" name="hidden" keyPath="values.UseDvdNav" previousBinding="pA6-GK-w84" id="Ocv-Hr-bje">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </popUpButton>
+                    <popUpButton horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="1541">
+                        <rect key="frame" x="53" y="537" width="312" height="22"/>
+                        <string key="toolTip">Title, or video clip, to encode. The longest title is selected by default.
+
+Blu-ray and DVD sources often have multiple titles, the longest of which is typically the main feature.</string>
+                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="4908">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                            <menu key="menu" id="1542"/>
+                            <connections>
+                                <accessibilityConnection property="title" destination="1540" id="8YI-Kk-J0w"/>
+                            </connections>
+                        </popUpButtonCell>
+                        <constraints>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="220" id="Kfe-4R-KRB"/>
+                        </constraints>
+                        <connections>
+                            <accessibilityConnection property="title" destination="1540" id="zCa-Oa-e1z"/>
+                            <action selector="titlePopUpChanged:" target="-2" id="kSs-y7-Mfi"/>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="FoT-nx-ryU">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </popUpButton>
+                    <pathControl verticalHuggingPriority="750" allowsExpansionToolTips="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PJi-21-hie">
+                        <rect key="frame" x="471" y="61" width="328" height="20"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="328" id="Q5R-FC-z1x"/>
+                        </constraints>
+                        <pathCell key="cell" controlSize="small" selectable="YES" alignment="left" id="5Bk-66-HFW">
+                            <font key="font" metaFont="message" size="11"/>
+                            <url key="url" string="file://localhost/Applications/"/>
+                        </pathCell>
+                        <accessibility description="Destination folder path"/>
+                        <connections>
+                            <binding destination="-2" name="value" keyPath="self.job.destinationFolderURL" id="fjI-2f-31v"/>
+                            <outlet property="delegate" destination="-2" id="jfV-bp-JaV"/>
+                            <outlet property="menu" destination="my5-n7-OFP" id="CXO-BG-nnJ"/>
+                        </connections>
+                    </pathControl>
+                    <button toolTip="Browse to select a new destination path for your encode." horizontalHuggingPriority="1000" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="1562">
+                        <rect key="frame" x="795" y="56" width="76" height="27"/>
+                        <buttonCell key="cell" type="push" title="Browse…" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" inset="2" id="4920">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                        </buttonCell>
+                        <accessibility description="Browse Destination"/>
+                        <connections>
+                            <action selector="browseDestination:" target="-2" id="FqS-ZD-MaJ"/>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="uGd-Ul-eBq">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </button>
+                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="50" translatesAutoresizingMaskIntoConstraints="NO" id="gfs-4j-YSE">
+                        <rect key="frame" x="441" y="64" width="22" height="14"/>
+                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="left" title="To:" id="rfK-nQ-Aq2">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="dvP-fr-nOv"/>
+                        </connections>
+                    </textField>
+                    <box autoresizesSubviews="NO" borderType="line" title="Box" titlePosition="noTitle" translatesAutoresizingMaskIntoConstraints="NO" id="d0E-xw-bxh">
+                        <rect key="frame" x="-7" y="-4" width="899" height="52"/>
+                        <view key="contentView" id="idQ-Ti-X2a">
+                            <rect key="frame" x="4" y="5" width="891" height="44"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="3000" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="1123">
+                                    <rect key="frame" x="22" y="22" width="847" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" allowsUndo="NO" sendsActionOnEndEditing="YES" alignment="left" title="Encoding Job 1: Test.mp4" usesSingleLineMode="YES" id="4846">
+                                        <font key="font" metaFont="smallSystemBold"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" preferredMaxLayoutWidth="3000" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="XL7-L5-bkf">
+                                    <rect key="frame" x="22" y="8" width="847" height="14"/>
+                                    <textFieldCell key="cell" controlSize="small" allowsUndo="NO" sendsActionOnEndEditing="YES" alignment="left" title="Progress" usesSingleLineMode="YES" id="KUR-YZ-Da8">
+                                        <font key="font" metaFont="message" size="11"/>
+                                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="XL7-L5-bkf" firstAttribute="top" secondItem="1123" secondAttribute="bottom" id="4mE-qY-tI5"/>
+                                <constraint firstAttribute="trailing" secondItem="XL7-L5-bkf" secondAttribute="trailing" constant="24" id="9FM-Xe-XF0"/>
+                                <constraint firstItem="1123" firstAttribute="top" secondItem="idQ-Ti-X2a" secondAttribute="top" constant="8" id="SEd-Ur-o24"/>
+                                <constraint firstItem="XL7-L5-bkf" firstAttribute="leading" secondItem="idQ-Ti-X2a" secondAttribute="leading" constant="24" id="SNp-DD-HgR"/>
+                                <constraint firstAttribute="trailing" secondItem="1123" secondAttribute="trailing" constant="24" id="VYX-jz-5IE"/>
+                                <constraint firstItem="1123" firstAttribute="leading" secondItem="idQ-Ti-X2a" secondAttribute="leading" constant="24" id="W5K-34-8HI"/>
+                            </constraints>
+                        </view>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="46" id="Jqz-kV-yCt"/>
+                        </constraints>
+                    </box>
+                    <popUpButton verticalHuggingPriority="750" verticalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="bWH-Lp-mKY">
+                        <rect key="frame" x="65" y="508" width="212" height="22"/>
+                        <popUpButtonCell key="cell" type="push" title="Selected Preset" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" id="4hk-61-M1H">
+                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                            <menu key="menu" id="X2f-Tk-x0c">
+                                <items>
+                                    <menuItem title="Selected Preset" state="on" hidden="YES" id="OYP-3T-FnA">
+                                        <connections>
+                                            <binding destination="-2" name="title" keyPath="self.job.presetName" id="vO4-JB-o7Q"/>
+                                        </connections>
+                                    </menuItem>
+                                </items>
+                            </menu>
+                        </popUpButtonCell>
+                        <constraints>
+                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="204" id="k4L-Sa-g4b"/>
+                        </constraints>
+                        <accessibility description="Preset selection"/>
+                        <connections>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="1XP-x4-0GV">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </popUpButton>
+                    <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="5180">
+                        <rect key="frame" x="374" y="542" width="41" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="Angle:" id="5185">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="pe4-ce-1x7"/>
+                            <binding destination="5676" name="hidden" keyPath="values.UseDvdNav" id="GhV-lP-BWw">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSNegateBoolean</string>
+                                </dictionary>
+                            </binding>
+                        </connections>
+                    </textField>
+                    <textField horizontalHuggingPriority="1000" verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" preferredMaxLayoutWidth="100" translatesAutoresizingMaskIntoConstraints="NO" id="4NG-AB-JWs">
+                        <rect key="frame" x="472" y="542" width="43" height="14"/>
+                        <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="Range:" id="IxV-PW-oYh">
+                            <font key="font" metaFont="smallSystemBold"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                        <connections>
+                            <binding destination="-2" name="textColor" keyPath="self.labelColor" id="NpP-Z0-hPs"/>
+                        </connections>
+                    </textField>
+                    <button toolTip="Reload the encoding settings for the currently selected preset. Modifications will be discarded." verticalHuggingPriority="750" verticalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="AhR-pK-Oz4">
+                        <rect key="frame" x="275" y="505" width="64" height="27"/>
+                        <buttonCell key="cell" type="push" title="Reload" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cgS-BU-Nfd">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="reloadPreset:" target="-2" id="v7a-73-wrT"/>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="pER-xA-jjU">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="5676" name="hidden" keyPath="values.HBHideButtons" previousBinding="pER-xA-jjU" id="wOC-Ys-6ZR"/>
+                        </connections>
+                    </button>
+                    <button toolTip="Save New Preset…" verticalHuggingPriority="750" verticalCompressionResistancePriority="1000" translatesAutoresizingMaskIntoConstraints="NO" id="2vD-zN-YMe">
+                        <rect key="frame" x="335" y="505" width="126" height="27"/>
+                        <buttonCell key="cell" type="push" title="Save New Preset…" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="IOU-3L-nvB">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message" size="11"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="showAddPresetPanel:" target="-2" id="QgW-qo-eKy"/>
+                            <binding destination="-2" name="enabled" keyPath="self.job" id="XiA-f4-ZO2">
+                                <dictionary key="options">
+                                    <string key="NSValueTransformerName">NSIsNotNil</string>
+                                </dictionary>
+                            </binding>
+                            <binding destination="5676" name="hidden" keyPath="values.HBHideButtons" previousBinding="XiA-f4-ZO2" id="rdw-AT-F5e"/>
+                        </connections>
+                    </button>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="5180" firstAttribute="leading" secondItem="1541" secondAttribute="trailing" constant="15" id="0Bt-0B-noA"/>
+                    <constraint firstItem="1628" firstAttribute="centerY" secondItem="2vD-zN-YMe" secondAttribute="centerY" id="0J5-jO-GJE"/>
+                    <constraint firstItem="5491" firstAttribute="width" secondItem="1545" secondAttribute="width" id="18C-7M-Qr7"/>
+                    <constraint firstItem="PJi-21-hie" firstAttribute="leading" secondItem="gfs-4j-YSE" secondAttribute="trailing" constant="10" id="2dV-0m-kAI"/>
+                    <constraint firstItem="1539" firstAttribute="baseline" secondItem="1538" secondAttribute="baseline" id="3gB-bu-uWq"/>
+                    <constraint firstItem="5493" firstAttribute="baseline" secondItem="1548" secondAttribute="baseline" id="4Q1-FP-JWE"/>
+                    <constraint firstItem="1548" firstAttribute="baseline" secondItem="1553" secondAttribute="baseline" id="5U2-Lr-4Qc"/>
+                    <constraint firstItem="5180" firstAttribute="baseline" secondItem="5181" secondAttribute="baseline" id="7rI-Pr-24u"/>
+                    <constraint firstItem="5181" firstAttribute="leading" secondItem="5180" secondAttribute="trailing" constant="8" id="88n-hD-lCW"/>
+                    <constraint firstItem="bWH-Lp-mKY" firstAttribute="baseline" secondItem="1627" secondAttribute="baseline" id="A8O-c5-J59"/>
+                    <constraint firstItem="d0E-xw-bxh" firstAttribute="leading" secondItem="2" secondAttribute="leading" constant="-4" id="ANc-YO-rUk"/>
+                    <constraint firstItem="5523" firstAttribute="leading" secondItem="1548" secondAttribute="leading" id="BFc-Em-mCW"/>
+                    <constraint firstAttribute="trailing" secondItem="1554" secondAttribute="trailing" constant="20" id="CEn-JC-Lxm"/>
+                    <constraint firstAttribute="trailing" secondItem="1628" secondAttribute="trailing" constant="20" id="CO6-Lf-qeZ"/>
+                    <constraint firstItem="1562" firstAttribute="baseline" secondItem="gfs-4j-YSE" secondAttribute="baseline" id="D6B-x1-Rm7"/>
+                    <constraint firstItem="1553" firstAttribute="leading" secondItem="1548" secondAttribute="trailing" constant="15" id="DOO-4b-o8G"/>
+                    <constraint firstItem="5505" firstAttribute="baseline" secondItem="1548" secondAttribute="baseline" id="EGN-hl-cvN"/>
+                    <constraint firstItem="3205" firstAttribute="leading" secondItem="1539" secondAttribute="trailing" constant="15" id="EOg-9m-BWr"/>
+                    <constraint firstItem="gfs-4j-YSE" firstAttribute="leading" secondItem="1561" secondAttribute="trailing" constant="20" id="Eeg-iK-8sW"/>
+                    <constraint firstAttribute="trailing" secondItem="1562" secondAttribute="trailing" constant="20" id="Evo-6G-PeG"/>
+                    <constraint firstItem="1561" firstAttribute="baseline" secondItem="gfs-4j-YSE" secondAttribute="baseline" id="HGj-mW-j31"/>
+                    <constraint firstItem="5521" firstAttribute="width" secondItem="1545" secondAttribute="width" id="HK2-57-npO"/>
+                    <constraint firstItem="d0E-xw-bxh" firstAttribute="top" secondItem="1561" secondAttribute="bottom" constant="16" id="IJL-MH-5Jk"/>
+                    <constraint firstItem="1541" firstAttribute="top" secondItem="1539" secondAttribute="bottom" constant="13" id="JKu-P6-MMV"/>
+                    <constraint firstAttribute="trailing" secondItem="d0E-xw-bxh" secondAttribute="trailing" constant="-4" id="KQg-Rf-J0d"/>
+                    <constraint firstItem="1538" firstAttribute="leading" secondItem="2" secondAttribute="leading" constant="20" id="KkG-gY-C8Q"/>
+                    <constraint firstItem="5513" firstAttribute="leading" secondItem="4NG-AB-JWs" secondAttribute="trailing" constant="8" id="LaE-py-QST"/>
+                    <constraint firstItem="1554" firstAttribute="leading" secondItem="1553" secondAttribute="trailing" constant="4" id="Lrw-hs-Pdg"/>
+                    <constraint firstItem="3203" firstAttribute="top" secondItem="2" secondAttribute="top" constant="16" id="MDg-nr-Pos"/>
+                    <constraint firstItem="2vD-zN-YMe" firstAttribute="baseline" secondItem="AhR-pK-Oz4" secondAttribute="baseline" id="Nzc-xh-xik"/>
+                    <constraint firstItem="1539" firstAttribute="centerY" secondItem="3205" secondAttribute="centerY" id="O7P-Hr-rDa"/>
+                    <constraint firstAttribute="trailing" secondItem="3203" secondAttribute="trailing" constant="20" id="PnZ-2e-abQ"/>
+                    <constraint firstAttribute="trailing" secondItem="3205" secondAttribute="trailing" constant="20" id="QkZ-Q7-VGX"/>
+                    <constraint firstItem="5491" firstAttribute="leading" secondItem="1545" secondAttribute="leading" id="Roc-GD-ttf"/>
+                    <constraint firstItem="5523" firstAttribute="width" secondItem="1548" secondAttribute="width" id="SQy-JH-Agm"/>
+                    <constraint firstItem="1561" firstAttribute="leading" secondItem="1552" secondAttribute="trailing" constant="8" id="TLF-qk-2Eq"/>
+                    <constraint firstItem="bWH-Lp-mKY" firstAttribute="top" secondItem="1541" secondAttribute="bottom" constant="13" id="Tex-Li-ACD"/>
+                    <constraint firstItem="5513" firstAttribute="baseline" secondItem="1545" secondAttribute="baseline" id="TiQ-ye-MeD"/>
+                    <constraint firstItem="1539" firstAttribute="leading" secondItem="1538" secondAttribute="trailing" constant="8" id="Ue2-hw-ZPH"/>
+                    <constraint firstItem="1562" firstAttribute="leading" secondItem="PJi-21-hie" secondAttribute="trailing" constant="2" id="UgJ-hP-CRv"/>
+                    <constraint firstAttribute="bottom" secondItem="d0E-xw-bxh" secondAttribute="bottom" id="Unb-Sk-dKC"/>
+                    <constraint firstItem="1627" firstAttribute="leading" secondItem="2" secondAttribute="leading" constant="20" id="VV8-Hu-yZk"/>
+                    <constraint firstItem="AhR-pK-Oz4" firstAttribute="baseline" secondItem="bWH-Lp-mKY" secondAttribute="baseline" id="WHN-Wz-YyG"/>
+                    <constraint firstItem="5505" firstAttribute="leading" secondItem="1545" secondAttribute="trailing" constant="4" id="Wta-a4-i7N"/>
+                    <constraint firstItem="4NG-AB-JWs" firstAttribute="leading" secondItem="5181" secondAttribute="trailing" constant="15" id="Xtb-eN-L1f"/>
+                    <constraint firstItem="1540" firstAttribute="leading" secondItem="2" secondAttribute="leading" constant="20" id="YBA-8V-7wA"/>
+                    <constraint firstItem="5493" firstAttribute="width" secondItem="1548" secondAttribute="width" id="Z4Q-52-cXt"/>
+                    <constraint firstAttribute="trailing" secondItem="1474" secondAttribute="trailing" constant="20" id="ZCa-qk-7Xv"/>
+                    <constraint firstItem="4NG-AB-JWs" firstAttribute="baseline" secondItem="5513" secondAttribute="baseline" id="Zoh-0t-V3A"/>
+                    <constraint firstItem="1545" firstAttribute="leading" secondItem="5513" secondAttribute="trailing" constant="8" id="aLS-oh-XHW"/>
+                    <constraint firstItem="5491" firstAttribute="baseline" secondItem="1545" secondAttribute="baseline" id="anl-S6-LuT"/>
+                    <constraint firstItem="5521" firstAttribute="leading" secondItem="1545" secondAttribute="leading" id="cja-Gd-DHN"/>
+                    <constraint firstItem="1561" firstAttribute="top" secondItem="1474" secondAttribute="bottom" constant="16" id="dN9-Oy-x6I"/>
+                    <constraint firstItem="5493" firstAttribute="trailing" secondItem="5523" secondAttribute="trailing" id="fEO-qG-sc6"/>
+                    <constraint firstItem="1474" firstAttribute="top" secondItem="bWH-Lp-mKY" secondAttribute="bottom" constant="13" id="fWK-a5-vqI"/>
+                    <constraint firstItem="1628" firstAttribute="leading" secondItem="2vD-zN-YMe" secondAttribute="trailing" constant="15" id="fhO-CZ-d3j"/>
+                    <constraint firstItem="1538" firstAttribute="top" secondItem="2" secondAttribute="top" constant="16" id="fuA-H3-g7K"/>
+                    <constraint firstItem="1540" firstAttribute="baseline" secondItem="1541" secondAttribute="baseline" id="gBD-ib-Qcp"/>
+                    <constraint firstItem="gfs-4j-YSE" firstAttribute="centerY" secondItem="PJi-21-hie" secondAttribute="centerY" id="gR5-Tl-M5T"/>
+                    <constraint firstItem="5523" firstAttribute="leading" secondItem="5493" secondAttribute="leading" id="gm6-wR-wHe"/>
+                    <constraint firstItem="5523" firstAttribute="baseline" secondItem="1548" secondAttribute="baseline" id="kfY-mQ-JIb"/>
+                    <constraint firstItem="1541" firstAttribute="baseline" secondItem="5180" secondAttribute="baseline" id="l58-3I-TTV"/>
+                    <constraint firstItem="2vD-zN-YMe" firstAttribute="leading" secondItem="AhR-pK-Oz4" secondAttribute="trailing" constant="8" id="mbm-ho-ew2"/>
+                    <constraint firstItem="1552" firstAttribute="baseline" secondItem="1561" secondAttribute="baseline" id="n18-gY-q1Z"/>
+                    <constraint firstItem="AhR-pK-Oz4" firstAttribute="leading" secondItem="bWH-Lp-mKY" secondAttribute="trailing" constant="8" id="obL-SF-8PU"/>
+                    <constraint firstItem="1474" firstAttribute="leading" secondItem="2" secondAttribute="leading" constant="20" id="qm5-es-UMl"/>
+                    <constraint firstItem="5493" firstAttribute="baseline" secondItem="5521" secondAttribute="baseline" id="rau-a9-VIU"/>
+                    <constraint firstItem="5181" firstAttribute="baseline" secondItem="4NG-AB-JWs" secondAttribute="baseline" id="tbj-bm-Nbs"/>
+                    <constraint firstItem="1541" firstAttribute="leading" secondItem="1540" secondAttribute="trailing" constant="8" id="vAS-wg-SY2"/>
+                    <constraint firstItem="1553" firstAttribute="baseline" secondItem="1554" secondAttribute="baseline" id="vEY-tK-ETq"/>
+                    <constraint firstItem="5493" firstAttribute="leading" secondItem="1548" secondAttribute="leading" id="vkn-JT-TK1"/>
+                    <constraint firstItem="5521" firstAttribute="baseline" secondItem="1545" secondAttribute="baseline" id="wAY-Q7-JGO"/>
+                    <constraint firstItem="1628" firstAttribute="trailing" secondItem="1554" secondAttribute="trailing" id="wrz-Ln-Dxe"/>
+                    <constraint firstItem="1548" firstAttribute="leading" secondItem="5505" secondAttribute="trailing" constant="4" id="wvM-ZM-Lg5"/>
+                    <constraint firstItem="1552" firstAttribute="leading" secondItem="2" secondAttribute="leading" constant="20" id="x7n-hu-WyG"/>
+                    <constraint firstItem="bWH-Lp-mKY" firstAttribute="leading" secondItem="1627" secondAttribute="trailing" constant="8" id="xar-Kr-fKk"/>
+                    <constraint firstItem="1545" firstAttribute="baseline" secondItem="5505" secondAttribute="baseline" id="xx3-IJ-4pD"/>
+                </constraints>
+            </view>
+            <connections>
+                <outlet property="delegate" destination="-2" id="M3v-Rc-7Ca"/>
+            </connections>
+            <point key="canvasLocation" x="2379" y="-1201"/>
+        </window>
+        <userDefaultsController representsSharedInstance="YES" id="5676"/>
+        <customView id="lZQ-gl-3wX" userLabel="Open Panel View">
+            <rect key="frame" x="0.0" y="0.0" width="234" height="73"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="nHs-z7-brO">
+                    <rect key="frame" x="10" y="0.0" width="214" height="73"/>
+                    <subviews>
+                        <button toolTip="Scan only the specified title instead of all titles." translatesAutoresizingMaskIntoConstraints="NO" id="DN4-48-aOI">
+                            <rect key="frame" x="18" y="37" width="116" height="21"/>
+                            <buttonCell key="cell" type="check" title="Scan only title:" bezelStyle="regularSquare" imagePosition="left" inset="2" id="eQA-t2-FcV">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <binding destination="-2" name="value" keyPath="self.scanSpecificTitle" id="bMP-E7-iZy"/>
+                            </connections>
+                        </button>
+                        <textField toolTip="Title to scan." verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3w9-Iu-3u2">
+                            <rect key="frame" x="142" y="35" width="52" height="21"/>
+                            <constraints>
+                                <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="52" id="BGA-yJ-Apd"/>
+                            </constraints>
+                            <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" title="0" drawsBackground="YES" id="6E4-AG-PEh">
+                                <numberFormatter key="formatter" formatterBehavior="default10_4" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="0" maximumIntegerDigits="42" id="WUJ-g0-wrL">
+                                    <real key="minimum" value="0.0"/>
+                                </numberFormatter>
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                            <connections>
+                                <binding destination="-2" name="enabled" keyPath="self.scanSpecificTitle" id="3aE-hX-Q0r"/>
+                                <binding destination="-2" name="value" keyPath="self.scanSpecificTitleIdx" id="EhO-SP-fUT">
+                                    <dictionary key="options">
+                                        <bool key="NSContinuouslyUpdatesValue" value="YES"/>
+                                        <integer key="NSNullPlaceholder" value="0"/>
+                                        <bool key="NSValidatesImmediately" value="YES"/>
+                                    </dictionary>
+                                </binding>
+                            </connections>
+                        </textField>
+                        <button toolTip="Recursively scan and open the content of every sub-folder." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="5hE-Ri-tcZ">
+                            <rect key="frame" x="18" y="15" width="173" height="18"/>
+                            <buttonCell key="cell" type="check" title="Recursively scan folders" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="Hwu-gp-tRZ">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <binding destination="5676" name="value" keyPath="values.HBRecursiveScan" id="u4n-vk-lah"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="DN4-48-aOI" firstAttribute="leading" secondItem="nHs-z7-brO" secondAttribute="leading" constant="20" id="13C-tG-GpU"/>
+                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="5hE-Ri-tcZ" secondAttribute="trailing" constant="20" id="3Pd-gv-dX6"/>
+                        <constraint firstItem="DN4-48-aOI" firstAttribute="top" secondItem="nHs-z7-brO" secondAttribute="top" constant="16" id="JZd-2D-fiA"/>
+                        <constraint firstItem="DN4-48-aOI" firstAttribute="baseline" secondItem="3w9-Iu-3u2" secondAttribute="baseline" id="MeM-fz-C5e"/>
+                        <constraint firstItem="5hE-Ri-tcZ" firstAttribute="leading" secondItem="DN4-48-aOI" secondAttribute="leading" id="TYH-fs-MNL"/>
+                        <constraint firstItem="5hE-Ri-tcZ" firstAttribute="top" secondItem="DN4-48-aOI" secondAttribute="bottom" constant="6" symbolic="YES" id="aYS-1K-UMW"/>
+                        <constraint firstAttribute="bottom" secondItem="5hE-Ri-tcZ" secondAttribute="bottom" constant="16" id="dVl-WN-Aut"/>
+                        <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="3w9-Iu-3u2" secondAttribute="trailing" constant="20" id="tAR-eN-FSk"/>
+                        <constraint firstItem="3w9-Iu-3u2" firstAttribute="leading" secondItem="DN4-48-aOI" secondAttribute="trailing" constant="8" id="txm-vt-aJ8"/>
+                    </constraints>
+                </customView>
+            </subviews>
+            <constraints>
+                <constraint firstItem="nHs-z7-brO" firstAttribute="top" secondItem="lZQ-gl-3wX" secondAttribute="top" id="Kvj-4E-aem"/>
+                <constraint firstItem="nHs-z7-brO" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="lZQ-gl-3wX" secondAttribute="leading" priority="750" constant="10" id="Q79-5U-xN5"/>
+                <constraint firstItem="nHs-z7-brO" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="lZQ-gl-3wX" secondAttribute="leading" priority="250" constant="11" id="gUc-9s-6qh"/>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="nHs-z7-brO" secondAttribute="trailing" priority="750" constant="10" id="gma-1d-Ecc"/>
+                <constraint firstAttribute="bottom" secondItem="nHs-z7-brO" secondAttribute="bottom" id="kh1-nj-FYU"/>
+                <constraint firstItem="nHs-z7-brO" firstAttribute="centerX" secondItem="lZQ-gl-3wX" secondAttribute="centerX" id="mKh-Iz-BGz"/>
+            </constraints>
+            <point key="canvasLocation" x="255" y="-617"/>
+        </customView>
+        <menu id="my5-n7-OFP">
+            <items>
+                <menuItem title="Reveal in Finder" id="rK6-EB-N9Z">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <connections>
+                        <action selector="revealPathItemInFinder:" target="-2" id="f0R-px-ugx"/>
+                    </connections>
+                </menuItem>
+            </items>
+            <point key="canvasLocation" x="2190" y="-1537"/>
+        </menu>
+    </objects>
+</document>

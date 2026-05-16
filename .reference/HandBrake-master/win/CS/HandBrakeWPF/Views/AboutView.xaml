@@ -1,0 +1,87 @@
+﻿<UserControl x:Class="HandBrakeWPF.Views.AboutView"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+        xmlns:Properties="clr-namespace:HandBrakeWPF.Properties"
+        TextOptions.TextFormattingMode="Display">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Image Grid.Column="0"
+                   Width="96"
+                   Height="96"
+                   Margin="10,10,10,10"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Top"
+                   SnapsToDevicePixels="True"
+                   Source="Images/logo128.png" />
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0"
+                            Margin="5,10,0,0"
+                            Orientation="Horizontal">
+                    <TextBlock Margin="0,0,0,10" FontSize="16" Text="{x:Static Properties:Resources.AboutView_Version}" />
+                    <TextBox Margin="0,0,0,10" BorderThickness="0" FontSize="16" IsReadOnly="True" VerticalAlignment="Bottom" Text="{Binding Version, Mode=OneWay}"
+                             MouseDoubleClick="AboutTextBox_OnMouseDoubleClick" x:Name="versionTextBox" />
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="1"  Margin="5,5,0,0">
+                    <TextBlock Text="{x:Static Properties:Resources.AboutView_Website}" />
+                    <TextBlock>           
+                        <Hyperlink x:Name="handbrakeWebsite" NavigateUri="/" RequestNavigate="HandbrakeWebsite_OnRequestNavigate"  >https://handbrake.fr</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+
+                <StackPanel Orientation="Horizontal" Grid.Row="2"  Margin="5,5,0,0">
+                    <TextBlock Text="{x:Static Properties:Resources.AboutView_GithubTracker}" />
+                    <TextBlock>           
+                        <Hyperlink x:Name="githubWebsite" NavigateUri="/" RequestNavigate="GithubWebsite_OnRequestNavigate"  >https://github.com/HandBrake/HandBrake/issues</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+
+
+                <StackPanel Orientation="Horizontal" Grid.Row="3"  Margin="5,5,0,0">
+                    <TextBlock Text="{x:Static Properties:Resources.AboutView_ReleaseNotes}" />
+                    <TextBlock>           
+                        <Hyperlink x:Name="githubReleaseNotes" NavigateUri="/" RequestNavigate="GithubReleaseNotes_OnRequestNavigate_OnRequestNavigate"  > https://github.com/HandBrake/HandBrake/releases</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+              
+
+                <StackPanel Orientation="Horizontal" Grid.Row="4"  Margin="5,5,0,0">
+                    <TextBlock Text="{x:Static Properties:Resources.AboutView_Documentation}" />
+                    <TextBlock>           
+                        <Hyperlink x:Name="docWebsite" NavigateUri="/" RequestNavigate="DocWebsite_OnRequestNavigate"  >https://handbrake.fr/docs</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+
+                <TextBlock Grid.Row="5" Margin="5,10,0,5" Text="{x:Static Properties:Resources.AboutView_License}" />
+
+                <TextBox Text="{Binding License, Mode=OneWay}" Grid.Row="6" Margin="10,0,10,10" HorizontalAlignment="Stretch"
+                         VerticalAlignment="Stretch" IsReadOnly="True" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" />
+
+         
+            </Grid>
+        </Grid>
+
+    </Grid>
+</UserControl>

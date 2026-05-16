@@ -1,0 +1,438 @@
+/* Video description */
+" - fastdecode" = " - fastdecode";
+
+/* HBStateFormatter -> work time format */
+" (%.2f fps, avg %.2f fps, ETA %@)" = " (%1$.2f fps, avg %2$.2f fps, ETA %3$@)";
+
+/* HBStateFormatter -> work time format */
+" (%.2f fps, avg %.2f fps)" = " (%1$.2f fps, avg %2$.2f fps)";
+
+/* HBStateFormatter -> search time format
+HBStateFormatter -> work time format */
+" (ETA %@)" = " (ETA %@)";
+
+/* HBJob -> video short description framerate */
+" FPS CFR" = " FPS CFR";
+
+/* HBJob -> video short description framerate */
+" FPS PFR" = " FPS PFR";
+
+/* Title short description -> audio format */
+", %d audio tracks" = ", %d faixas de áudio";
+
+/* Title short description -> subtitles format */
+", %d subtitles tracks" = ", %d faixas de legendas";
+
+/* Title short description -> audio format */
+", 1 audio track" = ", 1 faixa de áudio";
+
+/* Title short description -> subtitles format */
+", 1 subtitles track" = ", 1 legen";
+
+/* Format description */
+", Align A/V Start" = ", Alinhar Começo do A/V";
+
+/* HBPicture -> summary */
+", Border: %d/%d/%d/%d" = ", Borda: %1$d/%2$d/%3$d/%4$d";
+
+/* HBJob -> subtitles short description */
+", Burned" = ", Queimado";
+
+/* Format description */
+", Chapter Markers" = ", Marcadores de Capítulos";
+
+/* HBPicture -> summary */
+", Crop: %@ %d/%d/%d/%d" = ", Corte: %1$@ %2$d/%3$d/%4$d/%5$d";
+
+/* Format description */
+", iPod 5G Support" = ", Compatível com iPod 5G";
+
+/* Format description */
+", Web Optimized" = ", Otimizado para Web";
+
+/* HBStateFormatter -> work pass type format */
+"(subtitle scan)" = "(escanear legendas)";
+
+/* Title short description -> video format */
+"%.6g FPS" = "%.6g FPS";
+
+/* Audio description */
+"%@ ▸ Encoder: %@" = "%1$@ ▸ Codificador: %2$@";
+
+/* HBPicture -> short info */
+"%@Output: %dx%d" = "%1$@Saída: %2$dx%3$d";
+
+/* HBPicture -> short info */
+"%@Output: %dx%d, Anamorphic: %dx%d Automatic" = "%1$@Saída: %2$dx%3$d, Anamórfico: %4$dx%5$d Automático";
+
+/* HBPicture -> short info */
+"%@Output: %dx%d, Anamorphic: %dx%d Custom" = "%1$@Saída: %2$dx%3$d, Anamórfico: %4$dx%5$d Customizado";
+
+/* HBPicture -> short non anamorphic info */
+"%dx%d" = "%1$dx%2$d";
+
+/* HBPicture -> short info */
+"%dx%d Storage, %dx%d Display" = "%1$dx%2$d Armazenamento, %3$dx%4$d Mostrar";
+
+/* HBJob -> audio short description */
+"+ %lu additional audio tracks" = "+ %lu faixas adicionais de áudio";
+
+/* HBJob -> subtitles short description */
+"+ %lu additional subtitles tracks" = "+ %lu faixas adicionais de legendas";
+
+/* HBJob -> audio short description */
+"+ 1 additional audio track" = "+ 1 faixa adicional de áudio";
+
+/* HBJob -> subtitles short description */
+"+ 1 additional subtitles track" = "+ 1 faixa adicional de legendas";
+
+/* Title description */
+"1 Foreign Language Search Pass - " = "1 Passe de pesquisa em língua estrangeira -";
+
+/* HBAudio -> Mixdown */
+"5.1 Channels" = "Canais 5.1";
+
+/* HBAudio -> Mixdown */
+"6.1 Channels" = "Canais 6.1";
+
+/* HBAudio -> Mixdown */
+"7.1 (5F/2R/LFE)" = "7.1 (5F/2R/LFE)";
+
+/* HBAudio -> Mixdown */
+"7.1 Channels" = "Canais 7.1";
+
+/* Audio description */
+"Audio:" = "Áudio:";
+
+/* HBPicture -> summary */
+"Automatic" = "Automático";
+
+/* Video description */
+"Bitrate: %d kbps" = "Bitrate: %d kbps";
+
+/* Subtitles description */
+"Burned In" = "Queimado Em";
+
+/* HBFilters -> filter display name */
+"Bwdif" = "Bwdif";
+
+/* Title -> chapter name
+Title description */
+"Chapter %d" = "Capítulo %d";
+
+/* HBJob -> chapters short description */
+"Chapter Markers" = "Marcadores de Capítulos";
+
+/* HBRange -> display name */
+"Chapters" = "Capítulos";
+
+/* Title description */
+"Chapters %d through %d" = "Capítulos %1$d até %2$d";
+
+/* Filters description
+HBJob -> filters short description */
+"Chroma Smooth" = "Suavização do croma";
+
+/* Filters description
+HBJob -> filters short description */
+"Colorspace" = "Espaço de cor";
+
+/* HBJob -> filters short description */
+"Comb Detect" = "Detecção de Pente";
+
+/* Video description */
+"Constant Quality: %.2f %s" = "Qualidade constante: %1$.2f %2$s";
+
+/* HBJob -> video short description framerate */
+"CRF" = "CRF";
+
+/* HBFilters -> custom display name
+HBPicture -> summary */
+"Custom" = "Personalizado";
+
+/* Filters description
+HBJob -> filters short description */
+"Deblock" = "Deblock";
+
+/* HBFilters -> filter display name */
+"Decomb" = "Decomb";
+
+/* HBFilters -> default display name
+Subtitles description */
+"Default" = "Padrão";
+
+/* Video description */
+"default settings" = "%s: Não pôde carregar as configurações abaixo. Valores padrão serão utilizados.\n\n%s";
+
+/* HBFilters -> invalid filter custom settings error recovery suggestion */
+"Default: " = "Padrão:";
+
+/* Filters description */
+"Denoise" = "Denoise";
+
+/* Destination description */
+"Destination:" = "Destino:";
+
+/* Dimensions description
+HBJob -> filters short description */
+"Detelecine" = "Detelecina";
+
+/* Dimensions description */
+"Dimensions:" = "Dimensões:";
+
+/* HBAudio -> Mixdown */
+"Dolby Pro Logic II" = "Dolby Pro Logic II";
+
+/* HBAudio -> Mixdown */
+"Dolby Surround" = "Dolby Surround";
+
+/* Audio description */
+"DRC: %.2f" = "RDC: %.2f";
+
+/* Video description */
+"Encoder: %@, " = "Codificador de áudio.";
+
+/* HBStateFormatter -> work pass display name */
+"Encoding %@ " = "Codificação:";
+
+/* Filters description */
+"Filters:" = "Filtros:";
+
+/* Subtitles description */
+"Forced Only" = "Somente forçado";
+
+/* HBSubtitles -> search pass name */
+"Foreign Audio Search" = "Adicionar Pesquisa de Áudio Estrangeira";
+
+/* Format description */
+"Format:" = "Formato:";
+
+/* Video description */
+"Framerate: " = "Taxa de imagens:";
+
+/* HBRange -> display name */
+"Frames" = "Tempo de início em frames";
+
+/* Title description */
+"Frames %d through %d" = "Quadros %1$d através de %2$d";
+
+/* Audio description */
+"Gain: %.2f" = "Ganho: %.2f";
+
+/* Filters description
+HBJob -> filters short description */
+"Grayscale" = "Escala de cinzas";
+
+/* HBFilters -> filter display name */
+"HQDN3D" = "HQDN3D";
+
+/* HBFilters -> invalid Bwdif custom string description */
+"Invalid Bwdif custom settings." = "Configurações personalizadas inválidas do Bwdif.";
+
+/* HBFilters -> invalid chroma smooth custom string description */
+"Invalid chroma smooth custom settings." = "As configurações personalizadas da suavização do croma são inválidas.";
+
+/* HBFilters -> invalid chroma smooth custom string description */
+"Invalid colorspace custom settings." = "As configurações personalizadas do espaço de cor são inválidas.";
+
+/* HBFilters -> invalid comb detect custom string description */
+"Invalid custom comb detect settings." = "Configurações inválidas de detecção de pentes personalizados.";
+
+/* HBFilters -> invalid detelecine custom string description */
+"Invalid custom detelecine settings." = "Configurações detelecina personalizadas inválidas.";
+
+/* HBFilters -> invalid denoise custom string description */
+"Invalid custom HQDN3D settings" = "Configurações hqdn3D personalizadas inválidas";
+
+/* HBFilters -> invalid denoise custom string description */
+"Invalid custom NLMeans settings" = "Configurações nlmeans personalizadas inválidas";
+
+/* HBFilters -> invalid deblock custom string description */
+"Invalid deblock custom settings." = "Configurações personalizadas de desbloco inválidas.";
+
+/* HBFilters -> invalid Decomb custom string description */
+"Invalid Decomb custom settings." = "Configurações personalizadas inválidas do Decomb.";
+
+/* HBFilters -> invalid lapsharp custom string description */
+"Invalid lapsharp custom settings." = "Configurações personalizadas inválidas do lapsharp.";
+
+/* HBJob -> invalid name error description */
+"Invalid name" = "Nome inválido";
+
+/* HBJob -> invalid preset */
+"Invalid preset" = "Predefinição inválida";
+
+/* HBFilters -> invalid unsharp custom string description */
+"Invalid unsharp custom settings." = "Configurações personalizadas inválidas desharp.";
+
+/* HBFilters -> invalid Yadif custom string description */
+"Invalid Yadif custom settings." = "Configurações personalizadas inválidas do Yadif.";
+
+/* HBFilters -> filter display name */
+"Lapsharp" = "Lapsharp";
+
+/* Video description */
+"Level: %@" = "Nível:";
+
+/* Audio description */
+"Mixdown: %@, Samplerate: %@, Bitrate: %d kbps" = "Mixdown: %1$@, Samplerate: %2$@, Bitrate: %3$d kbps";
+
+/* HBAudio -> Mixdown */
+"Mono" = "Mono";
+
+/* HBAudio -> Mixdown */
+"Mono (Left Only)" = "Mono (somente à esquerda)";
+
+/* HBAudio -> Mixdown */
+"Mono (Right Only)" = "Mono (somente à direita)";
+
+/* Title description */
+"Multi Passes" = "Múltiplos passes";
+
+/* Title description */
+"Multi Passes Turbo" = "Multi Passes Turbo";
+
+/* HBStateFormatter -> pass display name */
+"Muxing…" = "Muxing...";
+
+/* HBFilters -> filter display name */
+"NLMeans" = "NLMeans";
+
+/* HBVideo -> tune */
+"none" = "nenhum";
+
+/* HBAudio -> Mixdown
+HBAudio -> none track name
+HBJob -> filters short description
+HBSubtitles -> none track name */
+"None" = "Nenhum";
+
+/* HBFilters -> filter display name
+HBFilters -> off display name */
+"Off" = "Desligado";
+
+/* Video description */
+"Options: %@" = "Opções...";
+
+/* HBStateFormatter -> work pass number format */
+"Pass %d %@ of %d, %.2f %%" = "Passe %1$d %2$@ de %3$d, %4$.2f %%";
+
+/* HBStateFormatter -> work pass number format */
+"Pass %d of %d, %.2f %%" = "Passe %1$d de %2$d, %3$.2f %%";
+
+/* HBStateFormatter -> work first pass number format */
+"Pass 1" = "Passe 1";
+
+/* HBStateFormatter -> pass display name */
+"Paused" = "Pausado";
+
+/* Video description */
+"Peak %@ (constant frame rate)" = "Pico %@ (taxa constante de quadros)";
+
+/* Video description */
+"Peak %@ (may be lower)" = "Pico %@ (pode ser menor)";
+
+/* Preset description */
+"Preset:" = "Predefinição:";
+
+/* Video description */
+"Preset: %@" = "Sem perfil";
+
+/* Video description */
+"Profile: %@" = "Perfil:";
+
+/* Range description */
+"Range:" = "Intervalo:";
+
+/* HBVideo -> frame rates display name */
+"Same as source" = "Igual a origem";
+
+/* Video description */
+"Same as source (constant)" = "O mesmo que a fonte (constante)";
+
+/* Video description */
+"Same as source (variable)" = "O mesmo que a fonte (variável)";
+
+/* HBStateFormatter -> scan pass format */
+"Scanning title %d of %d, preview %d…" = "Título de digitalização %1$d de %2$d, pré-visualização %3$d...";
+
+/* HBStateFormatter -> scan pass format */
+"Scanning title %d of %d…" = "Título de digitalização %1$d de %2$d...";
+
+/* HBStateFormatter -> search pass display name */
+"Searching for start point:  %.2f %%" = "Em busca de ponto de partida: %.2f %%";
+
+/* HBRange -> display name */
+"Seconds" = "Segundos";
+
+/* Title description */
+"Seconds %d through %d" = "Segundos %1$d através de %2$d";
+
+/* Filters description */
+"Sharpen" = "Afiar";
+
+/* Source description */
+"Source:" = "Fonte:";
+
+/* HBPicture -> short info */
+"Source: %dx%d, " = "Fonte: %1$dx%2$d, ";
+
+/* HBAudio -> Mixdown */
+"Stereo" = "Estéreo";
+
+/* Subtitles description */
+"Subtitles:" = "Legendas:";
+
+/* HBFilters -> invalid filter custom settings error recovery suggestion */
+"Syntax: " = "Sintaxe:";
+
+/* HBJob -> invalid name error recovery suggestion */
+"The file name can't be empty." = "O nome do arquivo não pode ser vazio.";
+
+/* HBJob -> invalid name error recovery suggestion */
+"The file name can't contain the / character." = "O nome do arquivo não pode conter o caracter /.";
+
+/* Preset -> import error description */
+"The preset \"%@\" could not be imported." = "A pré-definição \"%@\" não pôde ser importada.";
+
+/* Job preset -> invalid preset recovery suggestion */
+"The preset is not a valid, try to select a different one." = "A predefinição não é válida, tente escolher uma outra.";
+
+/* Preset -> import error reason */
+"The selected preset is invalid." = "A predefinição selecionada é inválida.";
+
+/* Preset -> import error reason */
+"The selected preset was created with a newer version of HandBrake." = "A predefinição selecionada foi criada com uma versão mais recente do HandBrake.";
+
+/* Title description */
+"Title %d, %@" = "Título %1$d, %2$@";
+
+/* Title description */
+"Title %d, %@, %@" = "Título %1$d, %2$@, %3$@";
+
+/* Audio track title description
+Subtitles track title description */
+"Title: %@" = "Título: %@";
+
+/* Video description */
+"Tune: " = "Ajuste:";
+
+/* HBJob -> video short description encoder name
+Video description */
+"Unknown" = "Desconhecido";
+
+/* HBFilters -> filter display name */
+"Unsharp" = "Unsharp";
+
+/* HBJob -> video short description framerate */
+"VFR" = "VFR";
+
+/* Video description */
+"Video Options:" = "Opções do Vïdeo:";
+
+/* Video description */
+"Video:" = "Video:";
+
+/* HBFilters -> filter display name */
+"Yadif" = "Yadif";
+

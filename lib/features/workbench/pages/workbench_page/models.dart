@@ -8,7 +8,7 @@ class DroppedImportFailure {
   final String reason;
 }
 
-enum TaskContextMenuAction { revealInFinder, rename, delete }
+enum TaskContextMenuAction { revealInFileManager, rename, delete }
 
 @immutable
 class QualityOption {

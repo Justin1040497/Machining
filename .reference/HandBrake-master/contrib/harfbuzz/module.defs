@@ -1,0 +1,57 @@
+__deps__ := FREETYPE
+
+$(eval $(call import.MODULE.defs,HARFBUZZ,harfbuzz,$(__deps__)))
+$(eval $(call import.CONTRIB.defs,HARFBUZZ))
+
+HARFBUZZ.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/harfbuzz-13.1.1.tar.xz
+HARFBUZZ.FETCH.url    += https://github.com/harfbuzz/harfbuzz/releases/download/13.1.1/harfbuzz-13.1.1.tar.xz
+HARFBUZZ.FETCH.sha256  = e7f3b8bac3fdcc529985be8e84fbd65c675ac47ee58512b15a5dd620c79ffe2a
+
+HARFBUZZ.build_dir             = build
+HARFBUZZ.CONFIGURE.exe         = cmake
+HARFBUZZ.CONFIGURE.args.prefix = -DCMAKE_INSTALL_PREFIX="$(HARFBUZZ.CONFIGURE.prefix)"
+HARFBUZZ.CONFIGURE.deps        =
+HARFBUZZ.CONFIGURE.static      =
+HARFBUZZ.CONFIGURE.shared      = -DBUILD_SHARED_LIBS=OFF
+HARFBUZZ.CONFIGURE.extra       = -DHB_BUILD_UTILS=OFF
+HARFBUZZ.CONFIGURE.extra      += -DCMAKE_INSTALL_LIBDIR=lib
+HARFBUZZ.CONFIGURE.extra      += -DHB_HAVE_FREETYPE=ON \
+                                 -DFREETYPE_LIBRARIES="$(call fn.ABSOLUTE,$(CONTRIB.build/))lib" \
+                                 -DFREETYPE_INCLUDE_DIRS="$(call fn.ABSOLUTE,$(CONTRIB.build/))include/freetype2" \
+                                 -DFREETYPE_INCLUDE_DIR_freetype2="$(call fn.ABSOLUTE,$(CONTRIB.build/))include/freetype2" \
+                                 -DFREETYPE_INCLUDE_DIR_ft2build="$(call fn.ABSOLUTE,$(CONTRIB.build/))include/freetype2"
+
+HARFBUZZ.GCC.args.extra += $(HARFBUZZ.GCC.args.O.$(HARFBUZZ.GCC.O))
+
+ifeq (1,$(HOST.cross))
+    ifeq (mingw,$(HOST.system))
+        HARFBUZZ.CONFIGURE.extra += -DWIN32=ON -DMINGW=ON
+        HARFBUZZ.CONFIGURE.extra += -DCMAKE_SYSTEM_NAME=Windows
+        HARFBUZZ.CONFIGURE.extra += -DCMAKE_C_COMPILER=$(HARFBUZZ.GCC.gcc)
+        HARFBUZZ.CONFIGURE.extra += -DCMAKE_CXX_COMPILER=$(HARFBUZZ.GCC.gxx)
+        HARFBUZZ.CONFIGURE.extra += -DCMAKE_RC_COMPILER=$(HOST.cross.prefix)windres
+        HARFBUZZ.CONFIGURE.extra += -DHB_HAVE_DIRECTWRITE=OFF \
+                                    -DHB_HAVE_GLIB=OFF \
+                                    -DHB_HAVE_GOBJECT=OFF \
+                                    -DHB_HAVE_GRAPHITE2=OFF \
+                                    -DHB_HAVE_ICU=OFF \
+                                    -DHB_HAVE_UNISCRIBE=OFF \
+									-DHB_BUILD_RASTER=OFF \
+									-DHB_BUILD_VECTOR=OFF
+        HARFBUZZ.CONFIGURE.args.host  = -DCMAKE_HOST_SYSTEM="$(HARFBUZZ.CONFIGURE.host)"
+    else ifeq ($(HOST.system),darwin)
+        HARFBUZZ.CONFIGURE.args.host  = -DCMAKE_HOST_SYSTEM="$(HARFBUZZ.CONFIGURE.host)"
+    else
+        HARFBUZZ.CONFIGURE.args.host  = -DCMAKE_SYSTEM_NAME="$(HARFBUZZ.CONFIGURE.host)"
+    endif
+    HARFBUZZ.CONFIGURE.args.build = -DCMAKE_HOST_SYSTEM="$(HARFBUZZ.CONFIGURE.build)"
+else
+    HARFBUZZ.CONFIGURE.args.host  = -DCMAKE_HOST_SYSTEM="$(HARFBUZZ.CONFIGURE.host)"
+endif
+
+ifeq ($(HOST.system),darwin)
+    HARFBUZZ.CONFIGURE.extra += -DHB_HAVE_CORETEXT=OFF -DHB_HAVE_GLIB=OFF -DCMAKE_OSX_ARCHITECTURES=$(HOST.machine)
+endif
+
+## find CMakeLists.txt
+HARFBUZZ.CONFIGURE.extra += "$(call fn.ABSOLUTE,$(HARFBUZZ.EXTRACT.dir/))"

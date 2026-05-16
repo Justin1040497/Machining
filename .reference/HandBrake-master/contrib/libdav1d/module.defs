@@ -1,0 +1,44 @@
+$(eval $(call import.MODULE.defs,LIBDAV1D,libdav1d))
+$(eval $(call import.CONTRIB.defs,LIBDAV1D))
+
+LIBDAV1D.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/dav1d-1.5.3.tar.bz2
+LIBDAV1D.FETCH.url    += https://code.videolan.org/videolan/dav1d/-/archive/1.5.3/dav1d-1.5.3.tar.bz2
+LIBDAV1D.FETCH.sha256  = e099f53253f6c247580c554d53a13f1040638f2066edc3c740e4c2f15174ce22
+
+LIBDAV1D.build_dir        = build/
+LIBDAV1D.CONFIGURE.exe    = $(MESON.exe) setup
+LIBDAV1D.CONFIGURE.deps   =
+LIBDAV1D.CONFIGURE.shared =
+LIBDAV1D.CONFIGURE.host   =
+LIBDAV1D.CONFIGURE.build  =
+LIBDAV1D.CONFIGURE.static = -Ddefault_library=static
+LIBDAV1D.CONFIGURE.extra  = --libdir=$(call fn.ABSOLUTE,$(CONTRIB.build/))lib/ \
+                            -Denable_tools=false -Denable_tests=false \
+                            -Dc_args="-I$(call fn.ABSOLUTE,$(CONTRIB.build/)include) $(call fn.ARGS,LIBDAV1D.GCC,*archs *sysroot *minver ?extra)" \
+                            -Dc_link_args="-L$(call fn.ABSOLUTE,$(CONTRIB.build/)lib) $(call fn.ARGS,LIBDAV1D.GCC,*archs *sysroot *minver ?extra.exe)"
+LIBDAV1D.CONFIGURE.env    =
+
+ifneq (none,$(LIBDAV1D.GCC.g))
+    LIBDAV1D.CONFIGURE.extra += --buildtype=debug
+    ifeq (none,$(LIBDAV1D.GCC.O))
+        LIBDAV1D.CONFIGURE.extra += --optimization=g
+    endif
+else
+    LIBDAV1D.CONFIGURE.extra += --buildtype=release
+    ifneq (,$(filter $(LIBDAV1D.GCC.O),size size-aggressive))
+        LIBDAV1D.CONFIGURE.extra += --optimization=s
+    endif
+endif
+
+ifeq (darwin,$(HOST.system))
+        LIBDAV1D.CONFIGURE.extra += --cross-file=$(call fn.ABSOLUTE,$(SRC/))make/cross/$(HOST.machine)-darwin-gcc.meson
+endif
+
+ifeq (1-mingw,$(HOST.cross)-$(HOST.system))
+    LIBDAV1D.CONFIGURE.extra += --cross-file=$(call fn.ABSOLUTE,$(SRC/))make/cross/$(HOST.machine)-w64-mingw32.meson
+endif
+
+LIBDAV1D.BUILD.make       = $(NINJA.exe)
+LIBDAV1D.BUILD.extra      = -v
+LIBDAV1D.INSTALL.make     = $(NINJA.exe)
+LIBDAV1D.CLEAN.make       = $(NINJA.exe)

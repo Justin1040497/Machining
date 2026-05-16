@@ -1,0 +1,227 @@
+﻿<UserControl x:Class="HandBrakeWPF.Controls.SourceSelection"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:controls="clr-namespace:HandBrakeWPF.Controls"
+             xmlns:Properties="clr-namespace:HandBrakeWPF.Properties"
+             xmlns:converters="clr-namespace:HandBrakeWPF.Converters"
+             xmlns:themes="clr-namespace:HandBrakeWPF.Themes"
+             x:Name="sourcePanel">
+
+    <UserControl.Resources>
+        <converters:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converters:ThemeImageConverter x:Key="themeConverter" />
+    </UserControl.Resources>
+
+    <Grid Height="{Binding ElementName=sourcePanel, Path=ActualHeight}">
+
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <Grid VerticalAlignment="Stretch" Grid.Column="0" Width="300" Background="{StaticResource Ui.Background}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="30" />
+            </Grid.ColumnDefinitions>
+
+
+            <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="20,8,0,0">
+                <TextBlock Text="{x:Static Properties:Resources.SourceSelection_SourceSelection}" Style="{StaticResource pageHeader}" />
+            </StackPanel>
+
+            <!-- Title Specific Scan -->
+            <StackPanel Grid.Row="1" Orientation="Vertical" HorizontalAlignment="Left"  Margin="20,15,0,0">
+                <WrapPanel Orientation="Horizontal">
+                    <TextBlock Text="{x:Static Properties:Resources.SourceSelection_ChooseSpecificTitle}" TextWrapping="Wrap" />
+
+                    <controls:NumberBox Width="60" Height="24" Margin="10,0,0,0" ToolTip="{x:Static Properties:ResourcesTooltips.SourceSelection_TitleSpecific}"
+                                Minimum="0" Maximum="5000" Number="{Binding TitleSpecificScan, Mode=TwoWay}" />
+                </WrapPanel>
+
+                <TextBlock Text="{x:Static Properties:Resources.SourceSelection_ChooseVideo}" Margin="0,10,0,0" TextWrapping="Wrap" />
+            </StackPanel>
+
+            <!-- Source Types -->
+
+            <!-- Ctrl + R -->
+            <Button Grid.Row="2"  AutomationProperties.Name="{x:Static Properties:Resources.SourceSelection_ChooseFolder}" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                    Command="{Binding RelayCommand}" CommandParameter="FolderScan"
+                    Margin="20,5,0,0" Padding="8" HorizontalAlignment="Left">
+                <Grid MinWidth="240">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Image Source="{Binding Converter={StaticResource themeConverter}, ConverterParameter='../Views/Images/Folder.png'}" Width="32" Grid.Column="0" />
+                    <StackPanel Orientation="Vertical" Grid.Column="1" Margin="5">
+                        <TextBlock Text="{x:Static Properties:Resources.SourceSelection_FolderBatchScan}" VerticalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="{x:Static Properties:Resources.SourceSelection_OpenFolderWIth}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="5,0,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+
+            <!--Ctrl + F-->
+            <Button Grid.Row="3"  AutomationProperties.Name="{x:Static Properties:Resources.SourceSelection_ChooseFile}" Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}" Command="{Binding RelayCommand}" CommandParameter="FileScan"
+                    Margin="20,5,0,0" Padding="8" HorizontalAlignment="Left">
+                <Grid MinWidth="240">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <Image Source="{Binding Converter={StaticResource themeConverter}, ConverterParameter='../Views/Images/File.png'}" Width="32" Height="32" Grid.Column="0" />
+                    <StackPanel Orientation="Vertical" Grid.Column="1">
+                        <TextBlock Text="{x:Static Properties:Resources.SourceSelection_File}" VerticalAlignment="Center" Margin="5,0,0,0" />
+                        <TextBlock Text="{x:Static Properties:Resources.SourceSelection_SingleVideoFile}" TextWrapping="Wrap" VerticalAlignment="Center" Margin="5,0,0,0" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+
+            <ListBox Grid.Row="4" ItemsSource="{Binding Drives}" Background="Transparent"  BorderThickness="0" Margin="16,25,0,0"
+                     ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+
+                <ListBox.Resources>
+                    <Style TargetType="{x:Type ListBoxItem}" BasedOn="{StaticResource {x:Type ListBoxItem}}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="HorizontalContentAlignment" Value="{Binding HorizontalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                        <Setter Property="VerticalContentAlignment" Value="{Binding VerticalContentAlignment, RelativeSource={RelativeSource AncestorType={x:Type ItemsControl}}}"/>
+                        <Setter Property="Padding" Value="0,0,0,0"/>
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                                    <Border x:Name="Bd" CornerRadius="3" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" Background="{TemplateBinding Background}" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="true">
+                                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" VerticalAlignment="{TemplateBinding VerticalContentAlignment}"/>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsSelected" Value="true">
+                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.HighlightBrushKey}}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.HighlightTextBrushKey}}"/>
+                                        </Trigger>
+                                        <MultiTrigger>
+                                            <MultiTrigger.Conditions>
+                                                <Condition Property="IsSelected" Value="true"/>
+                                                <Condition Property="Selector.IsSelectionActive" Value="false"/>
+                                            </MultiTrigger.Conditions>
+                                            <Setter Property="Background" TargetName="Bd" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightBrushKey}}"/>
+                                            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}}"/>
+                                        </MultiTrigger>
+                                        <Trigger Property="IsEnabled" Value="false">
+                                            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="Transparent"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+
+                </ListBox.Resources>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Button Style="{StaticResource {x:Static ToolBar.ButtonStyleKey}}"
+                                Command="{Binding DataContext.ProcessDriveCommand, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type UserControl}}}" CommandParameter="{Binding Tag}"
+                                Margin="2,0,0,10" Padding="8" HorizontalAlignment="Left" 
+                                Tag="{Binding}" AutomationProperties.Name="{x:Static Properties:Resources.SourceSelection_ChooseDisc}">
+                            <StackPanel Orientation="Horizontal" MinWidth="240">
+                                <Image Source="{Binding Converter={StaticResource themeConverter}, ConverterParameter='../Views/Images/Disc.png'}" Width="32" />
+                                <StackPanel Orientation="Vertical">
+                                    <TextBlock Text="{Binding Text}" VerticalAlignment="Center" Margin="5,0,0,0" />
+                                    <TextBlock Text="{x:Static Properties:Resources.SourceSelection_OpenDVDBluray}" VerticalAlignment="Center" Margin="5,0,0,0" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Button>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Border Background="{StaticResource Ui.UltraLight2}" CornerRadius="4" Grid.Row="7" Margin="20,10,0,20" HorizontalAlignment="Stretch" 
+                    Visibility="{Binding UpdateAvailable, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Margin="8" >
+                    <Grid.ColumnDefinitions >
+                        <ColumnDefinition  Width="Auto"/>
+                        <ColumnDefinition  Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Source="../Views/Images/information64.png" Width="48" Grid.Column="0" />
+
+                    <StackPanel Orientation="Vertical" Grid.Column="1">
+                        <TextBlock HorizontalAlignment="Center" Margin="2,0,0,0" TextWrapping="Wrap" Style="{StaticResource subHeader}"
+                                   TextAlignment="Center"
+                                   Text="{x:Static Properties:Resources.SourceSelection_UpdateAvailable}" />
+
+                        <Button Content="{x:Static Properties:Resources.SourceSelection_UpdateNow}" Margin="0,5,0,0" 
+                                Command="{Binding RelayCommand}" CommandParameter="CheckForUpdates" HorizontalAlignment="Center" />
+                    </StackPanel>
+               
+                </Grid>
+            </Border>
+
+            <Border Background="{StaticResource Ui.UltraLight2}" CornerRadius="4" Grid.Row="7" Margin="20,10,0,20" HorizontalAlignment="Stretch" 
+                    Visibility="{Binding IsOldNightly, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Grid Margin="8" >
+                    <Grid.ColumnDefinitions >
+                        <ColumnDefinition  Width="Auto"/>
+                        <ColumnDefinition  Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <Image Source="../Views/Images/information.png" Width="32" Grid.Column="0" />
+
+                    <StackPanel Orientation="Vertical" Grid.Column="1">
+                        <TextBlock HorizontalAlignment="Center" Margin="2,0,0,0" TextWrapping="Wrap" Style="{StaticResource subText}"
+                                   TextAlignment="Center"
+                                   Text="{x:Static Properties:Resources.SourceSelection_NightlyUpdate}" />
+
+                        <Button Content="{x:Static Properties:Resources.SourceSelection_NightlyUpdateUrl}" Margin="0,5,0,0" 
+                                Command="{Binding RelayCommand}" CommandParameter="NightlyUpdate" HorizontalAlignment="Center" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Cancel Window -->
+            <StackPanel Grid.Row="8" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,2,10">
+                <Button  Command="{Binding RelayCommand}" CommandParameter="CloseSourceSelection" Content="{x:Static Properties:Resources.Generic_Cancel}" IsCancel="True"  Padding="8,2" />
+            </StackPanel>
+
+            <StackPanel Grid.Row="9" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,2,10">
+                <TextBlock>           
+                    <Hyperlink x:Name="Preferences" NavigateUri="/"  RequestNavigate="OpenOptions_OnRequestNavigate" ><TextBlock Text="{x:Static Properties:Resources.Preferences}"/></Hyperlink>
+                </TextBlock>
+                <TextBlock Text="|"  Margin="5,0,5,0"/>
+                <TextBlock>           
+                    <Hyperlink x:Name="help" NavigateUri="/" RequestNavigate="Help_OnRequestNavigate" ><TextBlock Text="{x:Static Properties:Resources.SourceSelection_Help}"/></Hyperlink>
+                </TextBlock>
+                <TextBlock Text="|"  Margin="5,0,5,0"/>
+                <TextBlock>           
+                    <Hyperlink x:Name="AboutHandBrake" NavigateUri="/" RequestNavigate="AboutHandBrake_OnRequestNavigate"> <TextBlock Text="{x:Static Properties:Resources.SourceSelection_AboutHandBrake}" /></Hyperlink>
+                </TextBlock>
+            </StackPanel>
+        </Grid>
+
+        <Grid Grid.Column="1"
+              Background="Black"
+              Opacity="{Binding Source={x:Static themes:ThemeLoader.ThemeOpacity}}"
+              VerticalAlignment="Stretch"
+              HorizontalAlignment="Stretch">
+            <Border BorderThickness="4" CornerRadius="4" BorderBrush="{StaticResource Ui.Light}" VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="{x:Static Properties:Resources.SourceSelection_DropFileHere}" TextWrapping="WrapWithOverflow" Foreground="White" 
+                           Margin="100,150,100,150"  FontSize="22"   />
+            </Border>
+        </Grid>
+    </Grid>
+</UserControl>

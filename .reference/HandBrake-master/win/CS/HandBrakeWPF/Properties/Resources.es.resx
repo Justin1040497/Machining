@@ -1,0 +1,3045 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string"/>
+              <xsd:attribute name="type" type="xsd:string"/>
+              <xsd:attribute name="mimetype" type="xsd:string"/>
+              <xsd:attribute ref="xml:space"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string"/>
+              <xsd:attribute name="name" type="xsd:string"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+              <xsd:attribute ref="xml:space"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Video_EncoderExtraArgs" xml:space="preserve">
+    <value>Lista completa de parámetros del codificador: 
+{0}</value>
+  </data>
+  <data name="Video_x264FastDecode" xml:space="preserve">
+    <value>Reducir el uso de CPU del decodificador.
+
+Actívelo si a su dispositivo le cuesta reproducir la salida. (Por ej.: pierde cuadros)</value>
+  </data>
+  <data name="Video_LosslessWarning" xml:space="preserve">
+    <value>Advertencia: RF 0 es sin pérdida</value>
+  </data>
+  <data name="Video_LosslessWarningTooltip" xml:space="preserve">
+    <value>Un valor de 0 significa sin pérdida y resultará en un tamaño de archivo más grande que el original,
+a menos que el origen también sea sin pérdida.
+
+La escala de x264 y x265 es logarítmica y valores más bajos corresponden a mayor calidad.
+
+Pequeños incrementos en valor resultarán en incrementos progresivamente más grandes del tamaño de archivo.</value>
+  </data>
+  <data name="AddPreset_PictureSizeMode" xml:space="preserve">
+    <value>Opcionalmente, puede guardar una configuración de imagen con este ajuste preestablecido. Hay 3 modos de hacerlo:
+
+Ninguno: La configuración de la imagen no se guarda en este ajuste preestablecido. Al leer un origen, permanecerá tal como está dentro de los límites de resolución del mismo. Esto también afecta a Anamórficos, módulos, recortes, etc.
+
+Personalizado: Opcionalmente puede establecer un Ancho y Alto máximo. Al hacer esto la codificación se realizará con valores iguales o inferiores a estos. Mantener Relación de Aspecto se activará automáticamente.
+
+Origen Máximo: Siempre que sea posible, codificar con la resolución original.</value>
+  </data>
+  <data name="About_GPL" xml:space="preserve">
+    <value>Este programa es software libre; puedes redistribuirlo y/o
+modificarlo bajo los términos de la Licencia Pública General de GNU
+según lo publicado por la Free Software Foundation; ya sea la versión 2
+de la Licencia, o (a su elección) cualquier versión posterior.
+
+Este programa se distribuye con la esperanza de que sea útil,
+pero SIN NINGUNA GARANTÍA; sin siquiera la garantía implícita de
+COMERCIABILIDAD o APTITUD PARA UN PROPÓSITO EN PARTICULAR. Ver la
+Licencia pública general de GNU para más detalles.
+
+Debería haber recibido una copia de la Licencia Pública General de GNU
+junto con este programa; si no, escriba a Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, EE. UU.</value>
+  </data>
+  <data name="QueueSelection_AutoNameWarning" xml:space="preserve">
+    <value>Advertencia: No tienes el nombrado automático de archivos encendido. Puede activarlo en las opciones.</value>
+  </data>
+  <data name="QueueSelection_AutoTrackSelectionWarning" xml:space="preserve">
+    <value>Advertencia: No tiene la selección automática de pistas de audio y subtitulo activada. Puede configurar las pistas por defecto en las opciones.</value>
+  </data>
+  <data name="Presets_ResetComplete" xml:space="preserve">
+    <value>Los preajustes integrados han sido restablecidos.</value>
+  </data>
+  <data name="Presets_ResetHeader" xml:space="preserve">
+    <value>Restablecimiento completo</value>
+  </data>
+  <data name="Video_HigherQuality" xml:space="preserve">
+    <value>Mayor calidad |</value>
+  </data>
+  <data name="Video_LowQuality" xml:space="preserve">
+    <value>| Menor calidad</value>
+  </data>
+  <data name="Video_PlaceboQuality" xml:space="preserve">
+    <value>Calidad placebo |</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Main_TurnOnAutoFileNaming" xml:space="preserve">
+    <value>Debe activar el nombrado automático de archivos Y TAMBIÉN establecer una ruta predeterminada en las preferencias antes de poder agregar a la cola.</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Advertencia</value>
+  </data>
+  <data name="AreYouSure" xml:space="preserve">
+    <value>¿Está seguro?</value>
+  </data>
+  <data name="HandBrake_Title" xml:space="preserve">
+    <value>HandBrake</value>
+  </data>
+  <data name="Main_AlreadyEncoding" xml:space="preserve">
+    <value>HandBrake ya está codificando.</value>
+  </data>
+  <data name="Main_DuplicateDestinationOnQueue" xml:space="preserve">
+    <value>Hay trabajos en la cola con la misma ruta de destino. Elija una ruta diferente para este trabajo.
+
+Es posible que desee configurar las opciones de denominación automática de archivos en "Menú Herramientas -&gt; Preferencias -&gt; Archivos de salida"
+</value>
+  </data>
+  <data name="Main_JobsPending_addon" xml:space="preserve">
+    <value>Trabajos pendientes {0}</value>
+  </data>
+  <data name="Main_NewDefaultPreset" xml:space="preserve">
+    <value>Nuevo conjunto de preajustes por defecto: {0}</value>
+  </data>
+  <data name="Main_NewUpdate" xml:space="preserve">
+    <value>Una nueva actualización esta disponible. Puede instalarla desde
+Barra de herramientas &gt; Opciones</value>
+  </data>
+  <data name="Main_NoPresetSelected" xml:space="preserve">
+    <value>No hay preajustes seleccionados.</value>
+  </data>
+  <data name="Main_NoUpdateOfBuiltInPresets" xml:space="preserve">
+    <value>No puede modificar los preajustes integrados. Por favor, seleccione uno de sus propios preajustes.</value>
+  </data>
+  <data name="Main_PleaseSelectFolder" xml:space="preserve">
+    <value>Por favor, seleccione una carpeta.</value>
+  </data>
+  <data name="Main_PreparingToEncode" xml:space="preserve">
+    <value>Preparando para codificar ...</value>
+  </data>
+  <data name="Main_PresetErrorBuiltInName" xml:space="preserve">
+    <value>No puede importar un preajuste con el mismo nombre que un preajuste integrado.</value>
+  </data>
+  <data name="Main_PresetOverwriteWarning" xml:space="preserve">
+    <value>El preajuste "{0}" ya existe. ¿Desea sobrescribirlo?</value>
+  </data>
+  <data name="Main_Presets" xml:space="preserve">
+    <value>Preajustes</value>
+  </data>
+  <data name="Main_PresetUpdateConfirmation" xml:space="preserve">
+    <value>¿Seguro que desea actualizar el preajuste seleccionado?</value>
+  </data>
+  <data name="Main_PresetUpdated" xml:space="preserve">
+    <value>El preajuste ha sido actualizado con su configuración actual.</value>
+  </data>
+  <data name="Main_PresetUpdateNotification" xml:space="preserve">
+    <value>HandBrake ha determinado que sus preajustes están desactualizados... Estos preajuste se actualizarán.
+Sus preajustes personalizados no se han actualizado, por lo que es posible que tenga que volver a crearlos, eliminándolos y agregándolos de nuevo.
+Se ha realizado una copia de seguridad del archivo user_presets.xml anterior.</value>
+  </data>
+  <data name="Main_QueueFinished" xml:space="preserve">
+    <value>Cola finalizada</value>
+  </data>
+  <data name="Main_ScanCancelled" xml:space="preserve">
+    <value>Búsqueda cancelada</value>
+  </data>
+  <data name="Main_ScanCompleted" xml:space="preserve">
+    <value>Búsqueda completada</value>
+  </data>
+  <data name="Main_ScanFailed_NoReason" xml:space="preserve">
+    <value>Búsqueda fallida</value>
+  </data>
+  <data name="Main_ScanFailed_CheckLog" xml:space="preserve">
+    <value>Búsqueda fallida... Por favor, revise el registro de actividad para más detalles</value>
+  </data>
+  <data name="Main_ScanningPleaseWait" xml:space="preserve">
+    <value>Escaneando origen, por favor espere...</value>
+  </data>
+  <data name="Main_ScanningTitleXOfY" xml:space="preserve">
+    <value>Escaneando título {0} de {1}({2}%)</value>
+  </data>
+  <data name="Main_ScanSource" xml:space="preserve">
+    <value>Primero debe escanear un origen y configurar su trabajo antes de codificar. Pulse el botón 'Origen' en la barra de herramientas para continuar</value>
+  </data>
+  <data name="Main_SelectPreset" xml:space="preserve">
+    <value>Por favor asegúrese de haber seleccionado uno de sus propios preajustes. Tenga en cuenta que no puede exportar preajustes integrados.</value>
+  </data>
+  <data name="Main_SelectPresetForUpdate" xml:space="preserve">
+    <value>Por favor, seleccione un preajuste a actualizar</value>
+  </data>
+  <data name="Main_SelectSource" xml:space="preserve">
+    <value>Seleccione 'Origen' para continuar</value>
+  </data>
+  <data name="Main_XEncodesPending" xml:space="preserve">
+    <value>{0} Trabajos pendientes</value>
+  </data>
+  <data name="Notice" xml:space="preserve">
+    <value>Atención</value>
+  </data>
+  <data name="Overwrite" xml:space="preserve">
+    <value>¿Sobrescribir?</value>
+  </data>
+  <data name="Question" xml:space="preserve">
+    <value>Pregunta</value>
+  </data>
+  <data name="State_Ready" xml:space="preserve">
+    <value>Listo</value>
+  </data>
+  <data name="Updated" xml:space="preserve">
+    <value>Actualizado</value>
+  </data>
+  <data name="Preset_OldVersion_Header" xml:space="preserve">
+    <value>Versión de preajuste</value>
+  </data>
+  <data name="Preset_OldVersion_Message" xml:space="preserve">
+    <value>El preajuste que desea importar es de una versión diferente de HandBrake.
+
+Puede no ser posible el importar todos los valores de este ajuste.
+
+¿Desea continuar?</value>
+  </data>
+  <data name="Preset_UnableToImport_Header" xml:space="preserve">
+    <value>¡No se ha podido importar el preajuste!</value>
+  </data>
+  <data name="Preset_UnableToImport_Message" xml:space="preserve">
+    <value>No se pudo importar el preajuste porque parece corrupto o es de una versión más antigua de HandBrake.</value>
+  </data>
+  <data name="Main_SetDestination" xml:space="preserve">
+    <value>Primero debe seleccionar la ubicación destino del archivo antes de agregarlo a la cola</value>
+  </data>
+  <data name="Main_InvalidDestination" xml:space="preserve">
+    <value>La ruta de destino introducida contenía caracteres no permitidos y no se actualizará.</value>
+  </data>
+  <data name="Preview" xml:space="preserve">
+    <value>Previsualizar {0}</value>
+  </data>
+  <data name="Preview_Scaled" xml:space="preserve">
+    <value>Previsualizar (Redimensionado)</value>
+  </data>
+  <data name="PictureSettings_OutputResolution" xml:space="preserve">
+    <value>Salida: {0}</value>
+  </data>
+  <data name="Main_MatchingFileOverwriteWarning" xml:space="preserve">
+    <value>No se puede codificar en un archivo con la misma ruta de acceso y nombre de archivo que el archivo de origen.  Actualice el nombre de archivo de destino para que no coincida con el archivo de origen. </value>
+  </data>
+  <data name="Main_UnableToLoadHelpMessage" xml:space="preserve">
+    <value>Su sistema evitó que HandBrake abra el navegador</value>
+  </data>
+  <data name="Main_UnableToLoadHelpSolution" xml:space="preserve">
+    <value>Puede acceder a las páginas de ayuda visitando la web directamente: https://handbrake.fr</value>
+  </data>
+  <data name="Main_PresetImportFailed" xml:space="preserve">
+    <value>No se puede importar el preajuste seleccionado.</value>
+  </data>
+  <data name="Main_PresetImportFailedSolution" xml:space="preserve">
+    <value>El preajuste puede estar corrupto o venir de una versión anterior de HandBrake que no es compatible.
+Los preajustes de versiones anteriores deben volver a crearse en la versión actual.</value>
+  </data>
+  <data name="Video_EncoderExtraArgsTooltip" xml:space="preserve">
+    <value>Argumentos avanzados adicionales que se pueden pasar al codificador de vídeo. </value>
+  </data>
+  <data name="Subtitles_BurnInBehaviourModes" xml:space="preserve">
+    <value>Ninguno: solo se grabarán las pistas en las que el contenedor no admite el formato. 
+ Pista de audio externo: la pista de audio externo se grabará si está disponible.
+ Primera pista - Se grabara la primera pista. 
+ Audio externo preferido, sino Primero - Si la pista de audio externo existe, se grabará, de lo contrario se elegirá la primera pista. </value>
+  </data>
+  <data name="Subtitles_WebmSubtitleIncompatibilityHeader" xml:space="preserve">
+    <value>Compatibilidad de subtítulos WebM </value>
+  </data>
+  <data name="Subtitles_WebmSubtitleIncompatibilityError" xml:space="preserve">
+    <value>WebM en HandBrake solo admite subtítulos grabados. 
+
+ Debe cambiar las selecciones de subtítulos. 
+ 
+ Si continúas, tus subtítulos no grabados se perderán.</value>
+  </data>
+  <data name="Main_ScanNoTitlesFound" xml:space="preserve">
+    <value>No se han encontrado fuentes o títulos validos.</value>
+  </data>
+  <data name="Main_ScanNoTitlesFoundMessage" xml:space="preserve">
+    <value>HandBrake no podrá codificar la fuente seleccionada porque no encontró una fuente válida con títulos para codificar. Esto podría deberse a una de las siguientes razones:
+
+- La duración de cada título de la fuente está por debajo del umbral de la opción "Duración mínima del título" en 'Preferencias &gt; Avanzadas'.
+- El archivo de origen no es un archivo de video válido o está en un formato que HandBrake no soporta.
+- Es posible que no tenga acceso de lectura al archivo o que otra aplicación tenga bloqueado el archivo.
+- La fuente puede estar protegida contra copia o incluir DRM. Tenga en cuenta que HandBrake no admite la eliminación de protecciones contra copia.
+
+El registro de actividad puede tener más información.</value>
+  </data>
+  <data name="Main_QueueLabel" xml:space="preserve">
+    <value>Cola{0}</value>
+  </data>
+  <data name="Main_Start" xml:space="preserve">
+    <value>Iniciar Codificación</value>
+  </data>
+  <data name="Main_StartQueue" xml:space="preserve">
+    <value>Iniciar Cola</value>
+  </data>
+  <data name="MainViewModel_CanNotDeleteDefaultPreset" xml:space="preserve">
+    <value>No puede eliminar el preajuste por defecto. Antes establezca otro preajuste como predeterminado.</value>
+  </data>
+  <data name="MainViewModel_PresetRemove_AreYouSure" xml:space="preserve">
+    <value>¿Seguro que desea eliminar el preajuste: </value>
+  </data>
+  <data name="MainViewModel_EncodeStatusChanged_StatusLabel" xml:space="preserve">
+    <value>Codificación: Paso {0}de {1},  {2: 00.00}%, FPS: {3: 000.0}, Promedio de FPS: {4: 000.0},     Tiempo restante: {5}, Transcurrido: {6} {7}</value>
+  </data>
+  <data name="AddPresetViewModel_PresetMustProvideName" xml:space="preserve">
+    <value>El preajuste debe tener un nombre. Rellene el campo Nombre. </value>
+  </data>
+  <data name="AddPresetViewModel_PresetWithSameNameOverwriteWarning" xml:space="preserve">
+    <value>Ya existe un preajuste con este nombre. ¿Quiere sobrescribirlo? </value>
+  </data>
+  <data name="AddPresetViewModel_YouMustFirstScanSource" xml:space="preserve">
+    <value>Primero debe escanear un origen para utilizar la opción 'Source Maximum'. </value>
+  </data>
+  <data name="AddPresetViewModel_CustomWidthHeightFieldsRequired" xml:space="preserve">
+    <value>Los campos Anchura o Altura personalizada deben rellenarse para la opción "Personalizado". </value>
+  </data>
+  <data name="AddPresetViewModel_UnableToAddPreset" xml:space="preserve">
+    <value>No se puede añadir el preajuste</value>
+  </data>
+  <data name="UnknownError" xml:space="preserve">
+    <value>Error desconocido</value>
+  </data>
+  <data name="AudioViewModel_AudioDefaults" xml:space="preserve">
+    <value>Valores predeterminados de audio </value>
+  </data>
+  <data name="AudioViewModel_AudioTracks" xml:space="preserve">
+    <value>Pistas de audio</value>
+  </data>
+  <data name="AudioViewModel_ConfigureDefaults" xml:space="preserve">
+    <value>Comportamiento de selección ...</value>
+  </data>
+  <data name="AudioViewModel_SwitchBackToTracks" xml:space="preserve">
+    <value>Volver a las pistas </value>
+  </data>
+  <data name="ChaptersViewModel_UnableToExportChaptersWarning" xml:space="preserve">
+    <value>¡No se puede guardar el archivo de marcadores de capítulo! </value>
+  </data>
+  <data name="ChaptersViewModel_UnableToExportChaptersMsg" xml:space="preserve">
+    <value>Los nombres de los marcadores de capítulo NO se guardarán en su codificación.</value>
+  </data>
+  <data name="CountdownAlertViewModel_NoticeMessage" xml:space="preserve">
+    <value>La siguiente accion '{0}' acurrira en {1} segundos.</value>
+  </data>
+  <data name="ErrorViewModel_IfTheProblemPersists" xml:space="preserve">
+    <value>Si el problema persiste, por favor, intente reiniciar HandBrake.</value>
+  </data>
+  <data name="ErrorViewModel_NoFurtherInformation" xml:space="preserve">
+    <value>No hay mas informacion disponible sobre este error.</value>
+  </data>
+  <data name="ErrorViewModel_UnknownError" xml:space="preserve">
+    <value>Ha ocurrido un error desconocido.</value>
+  </data>
+  <data name="OptionsViewModel_NewUpdate" xml:space="preserve">
+    <value>¡HandBrake {0} ya está disponible! Consulta las notas de la versión en el sitio web.</value>
+  </data>
+  <data name="OptionsViewModel_NoNewUpdates" xml:space="preserve">
+    <value>No hay actualizaciones por el momento.</value>
+  </data>
+  <data name="OptionsViewModel_UpdateDownloaded" xml:space="preserve">
+    <value>Actualización descargada</value>
+  </data>
+  <data name="OptionsViewModel_UpdateServiceUnavailable" xml:space="preserve">
+    <value>Servicio de actualización no disponible. Puede intentar descargar la actualización directamente de https://handbrake.fr</value>
+  </data>
+  <data name="OptionsViewModel_UpdateFailed" xml:space="preserve">
+    <value>Falló la actualización. Puede intentar descargar la actualización directamente de https://handbrake.fr</value>
+  </data>
+  <data name="PictureSettingsViewModel_StorageDisplayLabel" xml:space="preserve">
+    <value>Tamaño de Almacenamiento: {0}x{1}</value>
+  </data>
+  <data name="QueueSelectionViewModel_AddToQueue" xml:space="preserve">
+    <value>Agregar a la cola</value>
+  </data>
+  <data name="QueueViewModel_NoEncodesPending" xml:space="preserve">
+    <value>No hay codificaciones pendientes</value>
+  </data>
+  <data name="QueueViewModel_NoJobsPending" xml:space="preserve">
+    <value>No hay trabajos activos</value>
+  </data>
+  <data name="QueueViewModel_Queue" xml:space="preserve">
+    <value>Cola</value>
+  </data>
+  <data name="QueueViewModel_ClearQueueConfirmation" xml:space="preserve">
+    <value>¿Está seguro que desea limpiar la cola?</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Confirmar</value>
+  </data>
+  <data name="QueueViewModel_JobsPending" xml:space="preserve">
+    <value>{0} Trabajos pendientes </value>
+  </data>
+  <data name="QueueViewModel_QueuePending" xml:space="preserve">
+    <value>Cola pausada</value>
+  </data>
+  <data name="QueueViewModel_DelSelectedJobConfirmation" xml:space="preserve">
+    <value>¿Está seguro de que desea eliminar los trabajos seleccionados?
+No se eliminarán archivos codificados con esta operación.</value>
+  </data>
+  <data name="QueueViewModel_JobCurrentlyRunningWarning" xml:space="preserve">
+    <value>La codificación esta en progreso. Si la borra, se detendrá, ¿Está seguro que desea continuar?</value>
+  </data>
+  <data name="QueueViewModel_NoPendingJobs" xml:space="preserve">
+    <value>No hay trabajos pendientes.</value>
+  </data>
+  <data name="QueueViewModel_EditConfirmation" xml:space="preserve">
+    <value>¿Está seguro que desea editar este trabajo? Será quitado de la lista y enviado a la ventana principal.</value>
+  </data>
+  <data name="QueueViewModel_QueueReady" xml:space="preserve">
+    <value>Cola lista</value>
+  </data>
+  <data name="QueueViewModel_QueueNotRunning" xml:space="preserve">
+    <value>Cola inactiva</value>
+  </data>
+  <data name="QueueViewModel_QueueCompleted" xml:space="preserve">
+    <value>Cola completada</value>
+  </data>
+  <data name="QueueViewModel_LastJobFinished" xml:space="preserve">
+    <value>El ultimo trabajo de la cola a finalizado</value>
+  </data>
+  <data name="QueueViewModel_QueueStarted" xml:space="preserve">
+    <value>Cola iniciada</value>
+  </data>
+  <data name="QueueViewModel_QueueStatusDisplay" xml:space="preserve">
+    <value>Codificando: Pasada {0} de {1},  {2:00.00}%, FPS: {3:000.0}, Avg FPS: {4:000.0}, Tiempo restante: {5}, Transcurrido: {6:d\:hh\:mm\:ss}</value>
+  </data>
+  <data name="ShellViewModel_CanClose" xml:space="preserve">
+    <value>Actualmente se está ejecutando una codificación. Salir de HandBrake detendrá esta codificación. ¿Está seguro de que desea salir de HandBrake?</value>
+  </data>
+  <data name="StaticPreviewViewModel_Title" xml:space="preserve">
+    <value>Vista previa de la imagen </value>
+  </data>
+  <data name="StaticPreview_UnableToDeletePreview" xml:space="preserve">
+    <value>No se puede eliminar el archivo de vista previa anterior. Es posible que aún tenga una vista previa abierta en su reproductor multimedia. Cierra esta.</value>
+  </data>
+  <data name="StaticPreviewViewModel_ScanFirst" xml:space="preserve">
+    <value>Primero debe escanear un origen y configurar su codificación antes de crear una vista previa.</value>
+  </data>
+  <data name="StaticPreviewViewModel_UnableToPlayFile" xml:space="preserve">
+    <value>No se puede encontrar el archivo de vista previa. Se eliminó el archivo o se produjo un error en la codificación. Compruebe el registro de actividad para obtener más información.</value>
+  </data>
+  <data name="StaticPreviewViewModel_AlreadyEncoding" xml:space="preserve">
+    <value>Handbrake ya está codificando un vídeo! Solo se puede codificar un archivo a la vez.</value>
+  </data>
+  <data name="SubtitlesViewModel_SubDefaults" xml:space="preserve">
+    <value>Subtítulos predeterminados</value>
+  </data>
+  <data name="SubtitlesViewModel_SubTracks" xml:space="preserve">
+    <value>Pistas de subtitulo</value>
+  </data>
+  <data name="SubtitlesViewModel_SwitchToTracks" xml:space="preserve">
+    <value>Volver a las pistas</value>
+  </data>
+  <data name="SubtitlesViewModel_ConfigureDefaults" xml:space="preserve">
+    <value>Comportamiento de selección ...</value>
+  </data>
+  <data name="PresetService_ArchiveFile" xml:space="preserve">
+    <value>Archivo Guardado:</value>
+  </data>
+  <data name="PresetService_UnableToLoad" xml:space="preserve">
+    <value>No se pueden cargar los preajustes.</value>
+  </data>
+  <data name="PresetService_UnableToLoadPresets" xml:space="preserve">
+    <value>HandBrake no pudo cargar su archivo de preajustes. Puede ser debido a una versión antigua no compatible de HandBrake o que el archivo este corrupto. 
+
+ Su antiguo archivo de preajustes fue archivado en:</value>
+  </data>
+  <data name="Main_QueueFinishedErrors" xml:space="preserve">
+    <value>con {0} errores detectados. Consulte la ventana Cola para obtener más detalles.</value>
+  </data>
+  <data name="MainViewModel_LowDiskSpace" xml:space="preserve">
+    <value>Poco espacio en disco</value>
+  </data>
+  <data name="MainViewModel_LowDiskSpaceWarning" xml:space="preserve">
+    <value>Advertencia, se está quedando sin espacio en disco. HandBrake no podrá completar esta codificación si se queda sin espacio. </value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersMalformedLineMsg" xml:space="preserve">
+    <value>Linea {0} es invalida. No se importará nada.</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersWarning" xml:space="preserve">
+    <value>No se puede importar el archivo de capítulo</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersLineDoesNotHaveAtLeastTwoColumns" xml:space="preserve">
+    <value>Todas las líneas del archivo de capítulos deben tener al menos 2 columnas de datos</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersFirstColumnMustContainOnlyIntegerNumber" xml:space="preserve">
+    <value>La primera columna del archivo de capítulos solo debe contener un valor de número entero superior a cero (0)</value>
+  </data>
+  <data name="ChaptersViewModel_UnsupportedFileFormatMsg" xml:space="preserve">
+    <value>Archivos de capítulo de tipo '{0}' no son compatibles actualmente.</value>
+  </data>
+  <data name="ChaptersViewModel_UnsupportedFileFormatWarning" xml:space="preserve">
+    <value>Tipo de archivo de capítulo no compatible</value>
+  </data>
+  <data name="ChaptersViewModel_ValidationFailedWarning" xml:space="preserve">
+    <value>Información de capítulo no válida para el medio de origen</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterCountMismatch" xml:space="preserve">
+    <value>El número de capítulos en el medio de origen 
+    y el número de capítulos en el archivo de entrada no coincide ({0} vs {1}).
+
+ Aún desea importar los nombres de capítulo?</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterCountMismatchMsg" xml:space="preserve">
+    <value>El número de capítulos en el medio de origen 
+    y el número de capítulos en el archivo de entrada no coincide ({0} vs {1}).
+
+ Aún desea importar los nombres de capítulo?</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterCountMismatchWarning" xml:space="preserve">
+    <value>El número de capítulos no coincide entre el archivo de origen y el archivo de entrada</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterDurationMismatchMsg" xml:space="preserve">
+    <value> La duración obtenida de los capítulos del medio original y la duración de los capítulos en el archivo de entrada difiere mucho.
+
+Es muy probable que este archivo de capítulo se haya producido a partir de un medio de origen diferente. 
+
+Está seguro de que desea importar los nombres de capítulo?</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterDurationMismatchWarning" xml:space="preserve">
+    <value>La duración del capitulo no coincide entre el original y el archivo de entrada</value>
+  </data>
+  <data name="ScanService_ScanStopFailed" xml:space="preserve">
+    <value>Se ha producido un error al intentar detener el análisis. Reinicie HandBrake.</value>
+  </data>
+  <data name="Presets_PresetForceReset" xml:space="preserve">
+    <value>HandBrake no puede actualizar su archivo de preajustes al formato de la nueva versión.
+Su archivo de preajuste se archivará y se creará uno nuevo. Tendrá que volver a crear sus propios preajustes. </value>
+  </data>
+  <data name="SettingService_SaveErrorReset" xml:space="preserve">
+    <value>Es posible que deba restablecerse cualquier configuración que haya cambiado.</value>
+  </data>
+  <data name="UserSettings_AnErrorOccurred" xml:space="preserve">
+    <value>Se ha producido un problema al intentar guardar sus preferencias.</value>
+  </data>
+  <data name="UserSettings_YourSettingsHaveBeenReset" xml:space="preserve">
+    <value> Advertencia, su configuración se ha restablecido! </value>
+  </data>
+  <data name="UserSettings_YourSettingsAreCorrupt" xml:space="preserve">
+    <value>El archivo de configuración de usuario estaba dañado o inaccesible. Los ajustes se han restablecido a los valores predeterminados.</value>
+  </data>
+  <data name="UserSettings_UnableToLoad" xml:space="preserve">
+    <value>No se puede cargar el archivo de configuración de usuario: {0}</value>
+  </data>
+  <data name="UserSettings_UnableToLoadSolution" xml:space="preserve">
+    <value>El archivo de configuración de usuario parece estar inaccesible o dañado. Es posible que tenga que eliminar el archivo y dejar que HandBrake genere uno nuevo.</value>
+  </data>
+  <data name="Main_NoPermissionsOrMissingDirectory" xml:space="preserve">
+    <value>El directorio de salida que ha elegido no existe o no tiene permisos para escribir archivos en él.</value>
+  </data>
+  <data name="DirectoryUtils_CreateFolder" xml:space="preserve">
+    <value>Crear Directorio?</value>
+  </data>
+  <data name="DirectoryUtils_CreateFolderMsg" xml:space="preserve">
+    <value> La carpeta en la que está intentando escribir no existe. ¿Desea que HandBrake cree la siguiente carpeta? 
+{0}</value>
+  </data>
+  <data name="MainViewModel_UnableToLaunchDestDir" xml:space="preserve">
+    <value>No se puede iniciar el directorio de destino.</value>
+  </data>
+  <data name="MainViewModel_UnableToLaunchDestDirSolution" xml:space="preserve">
+    <value>Compruebe que tiene un directorio de destino válido.</value>
+  </data>
+  <data name="MainViewModel_EncodeStatusChanged_SubScan_StatusLabel" xml:space="preserve">
+    <value>Paso de procesamiento {0}de {1}, (Escaneo de subtítulos) {2: 00.00}%, Tiempo restante de escaneo: {3}, Transcurrido: {4}</value>
+  </data>
+  <data name="NoAdditionalInformation" xml:space="preserve">
+    <value>Sin Informacion Adicional</value>
+  </data>
+  <data name="WindowTitleStatus" xml:space="preserve">
+    <value>{0} - ({1}%, Pasada {2} de {3})</value>
+  </data>
+  <data name="TaskTrayStatusTitle" xml:space="preserve">
+    <value>{0}
+Codificando 1 trabajo</value>
+  </data>
+  <data name="PauseOnLowDiskspace" xml:space="preserve">
+    <value>Cola pausada. Advertencia, la unidad en la que está codificando tiene poco espacio en disco. Por favor, libere algo de espacio y pulse start para continuar.  También puede ajustar el nivel de espacio mínimo en preferencias.</value>
+  </data>
+  <data name="Main_QueuePaused" xml:space="preserve">
+    <value>Cola pausada</value>
+  </data>
+  <data name="QueueViewModel_QueuePaused" xml:space="preserve">
+    <value>Cola pausada</value>
+  </data>
+  <data name="Main_LowDiskspace" xml:space="preserve">
+    <value>Su directorio de destino tiene poco espacio en disco.
+
+Puede configurar el nivel en el que aparece esta alerta en las preferencias.
+
+¿Desea continuar?</value>
+  </data>
+  <data name="Queue_UnableToResetJob" xml:space="preserve">
+    <value>No se puede restablecer el estado del trabajo, ya que no está en estado de Error o Completado</value>
+  </data>
+  <data name="Queue_UnableToRestoreFile" xml:space="preserve">
+    <value>No se puede restaurar el archivo de cola.</value>
+  </data>
+  <data name="Queue_UnableToRestoreFileExtended" xml:space="preserve">
+    <value>El archivo puede estar dañado o ser de una versión anterior incompatible de HandBrake </value>
+  </data>
+  <data name="Queue_AlreadyEncoding" xml:space="preserve">
+    <value>HandBrake ya esta codificando un archivo.</value>
+  </data>
+  <data name="Queue_AlreadyEncodingSolution" xml:space="preserve">
+    <value>Por favor detenga la codificación actual. Si el problema persiste, por favor reinicie HandBrake.</value>
+  </data>
+  <data name="StaticPreviewView_Title" xml:space="preserve">
+    <value>Vista previa ({0}% tamaño actual)</value>
+  </data>
+  <data name="OsBitnessWarning" xml:space="preserve">
+    <value>HandBrake requiere una versión de 64 bits de Windows 10 o posterior para ejecutarse.</value>
+  </data>
+  <data name="OsVersionWarning" xml:space="preserve">
+    <value>HandBrake requiere Windows 10 o posterior para funcionar. Las versiones 0.9.9 (XP), 0.10.5 (Vista) y 1.3.3 (7 y 8.x) fueron las últimas versiones compatibles con estos sistemas operativos más antiguos.</value>
+  </data>
+  <data name="Main_ContinueAddingToQueue" xml:space="preserve">
+    <value>¿Desea continuar intentando agregar el resto?</value>
+  </data>
+  <data name="Main_QueueOverwritePrompt" xml:space="preserve">
+    <value>El archivo '{0}' ya existe.
+¿Desea sobrescribirlo?
+
+Sugerencia: El comportamiento de sobrescritura de archivos puede controlarse en las preferencias.</value>
+  </data>
+  <data name="Clipboard_Unavailable" xml:space="preserve">
+    <value>El portapapeles del sistema no se encuentra disponible actualmente.</value>
+  </data>
+  <data name="Clipboard_Unavailable_Solution" xml:space="preserve">
+    <value>Esto puede deberse al monitoreo de la aplicación o al bloqueo del portapapeles para su propio uso. No podrá utilizar el portapapeles hasta que esté desbloqueado.</value>
+  </data>
+  <data name="AboutView_License" xml:space="preserve">
+    <value>Licencia:</value>
+  </data>
+  <data name="AboutView_Version" xml:space="preserve">
+    <value>Versión: </value>
+  </data>
+  <data name="AddPresetView_AddNewCategory" xml:space="preserve">
+    <value>-- Añadir Nueva Categoria--</value>
+  </data>
+  <data name="AddPresetView_AddPreset" xml:space="preserve">
+    <value>Añadir preajuste</value>
+  </data>
+  <data name="AddPresetView_Category" xml:space="preserve">
+    <value>Categoria:</value>
+  </data>
+  <data name="AddPresetView_Description" xml:space="preserve">
+    <value>Descripcion:</value>
+  </data>
+  <data name="AddPresetView_Name" xml:space="preserve">
+    <value>Nombre:</value>
+  </data>
+  <data name="AddPresetView_SavePictureSize" xml:space="preserve">
+    <value>Dimensiones:</value>
+  </data>
+  <data name="AudioDefaultView_Behaviours" xml:space="preserve">
+    <value>Selección de Pista de Origen</value>
+  </data>
+  <data name="AudioView_AllowPassThruOf" xml:space="preserve">
+    <value>Permitir passthru de:</value>
+  </data>
+  <data name="AudioView_AudioDefaultsDescription" xml:space="preserve">
+    <value>Configure cómo se seleccionan y configuran automáticamente las pistas de audio al seleccionar un nuevo título o vídeo de origen.</value>
+  </data>
+  <data name="AudioView_AutoPassthruBehaviour" xml:space="preserve">
+    <value>Comportamiento 'Auto Passthru':</value>
+  </data>
+  <data name="AudioView_Bitrate" xml:space="preserve">
+    <value>Bitrate</value>
+  </data>
+  <data name="AudioView_Codec" xml:space="preserve">
+    <value>Codec</value>
+  </data>
+  <data name="AudioView_DRC" xml:space="preserve">
+    <value>DRC</value>
+  </data>
+  <data name="AudioView_Gain" xml:space="preserve">
+    <value>Ganancia</value>
+  </data>
+  <data name="AudioView_Hide" xml:space="preserve">
+    <value>Ocultar</value>
+  </data>
+  <data name="AudioView_Mixdown" xml:space="preserve">
+    <value>Mixdown</value>
+  </data>
+  <data name="AudioView_OtherwiseFallbackEncoder" xml:space="preserve">
+    <value>Codificador de Reserva:</value>
+  </data>
+  <data name="AudioView_ReloadDefaults" xml:space="preserve">
+    <value>Recargar</value>
+  </data>
+  <data name="AudioView_Samplerate" xml:space="preserve">
+    <value>Frecuencia de muestreo</value>
+  </data>
+  <data name="AudioView_Show" xml:space="preserve">
+    <value>Mostrar</value>
+  </data>
+  <data name="AudioView_TrackName" xml:space="preserve">
+    <value>Nombre de pista</value>
+  </data>
+  <data name="AudioView_TrackSelectionBehaviour" xml:space="preserve">
+    <value>Comportamiento de selección de pistas:</value>
+  </data>
+  <data name="AudioView_TrackSettingDefaultBehaviour" xml:space="preserve">
+    <value>Para Pistas Adicionales:</value>
+  </data>
+  <data name="AudioView_WhenAutoPassthru" xml:space="preserve">
+    <value>Cuando 'Auto Pasada' esta eleccionada como codec de audio</value>
+  </data>
+  <data name="ChaptersView_ChapterMarkers" xml:space="preserve">
+    <value>Marcadores de capitulo</value>
+  </data>
+  <data name="ChaptersView_ChapterName" xml:space="preserve">
+    <value>Nombre del Capitulo</value>
+  </data>
+  <data name="ChaptersView_ChapterNumber" xml:space="preserve">
+    <value>Capítulo</value>
+  </data>
+  <data name="ChaptersView_CreateChapterMarkers" xml:space="preserve">
+    <value>Crear marcadores de capitulo</value>
+  </data>
+  <data name="ChaptersView_Duration" xml:space="preserve">
+    <value>Duracion</value>
+  </data>
+  <data name="ChaptersView_Export" xml:space="preserve">
+    <value>Exportar</value>
+  </data>
+  <data name="ChaptersView_Import" xml:space="preserve">
+    <value>Importar</value>
+  </data>
+  <data name="ChapterView_ExportNames" xml:space="preserve">
+    <value>Exportar Nombres</value>
+  </data>
+  <data name="ChapterView_ImportNames" xml:space="preserve">
+    <value>Importar Nombres</value>
+  </data>
+  <data name="ChapterView_ResetChapterNames" xml:space="preserve">
+    <value>Reiniciar Nombres de Capitulo</value>
+  </data>
+  <data name="CountdownAlterView_CancelAction" xml:space="preserve">
+    <value>Cancelar Accion</value>
+  </data>
+  <data name="CountdownAlterView_Proceed" xml:space="preserve">
+    <value>Proceder</value>
+  </data>
+  <data name="CountdownAlterView_WhenDoneAction" xml:space="preserve">
+    <value>Cuando Finalice la Accion</value>
+  </data>
+  <data name="ErrorView_ErrorDetails" xml:space="preserve">
+    <value>Detalles del Error:</value>
+  </data>
+  <data name="FiltersView_Custom" xml:space="preserve">
+    <value>Personalizar:</value>
+  </data>
+  <data name="FiltersView_Deblock" xml:space="preserve">
+    <value>Desbloquear:</value>
+  </data>
+  <data name="FiltersView_Decomb" xml:space="preserve">
+    <value>Decomb</value>
+  </data>
+  <data name="FiltersView_Deinterlace" xml:space="preserve">
+    <value>Desentrelazar:</value>
+  </data>
+  <data name="FiltersView_DeinterlacePreset" xml:space="preserve">
+    <value>Preajuste:</value>
+  </data>
+  <data name="FiltersView_DeinterlacePresetAuto" xml:space="preserve">
+    <value>Desentrelazado</value>
+  </data>
+  <data name="FiltersView_Denoise" xml:space="preserve">
+    <value>Denoise:</value>
+  </data>
+  <data name="FiltersView_DenoisePresetAuto" xml:space="preserve">
+    <value>Eliminación de ruido</value>
+  </data>
+  <data name="FiltersView_DenoiseTuneAuto" xml:space="preserve">
+    <value>Denoise Tune</value>
+  </data>
+  <data name="FiltersView_Detelecine" xml:space="preserve">
+    <value>Detelecine:</value>
+  </data>
+  <data name="FiltersView_Filters" xml:space="preserve">
+    <value>Filtros</value>
+  </data>
+  <data name="FiltersView_FlipVideo" xml:space="preserve">
+    <value>Horizontal</value>
+  </data>
+  <data name="FiltersView_Grayscale" xml:space="preserve">
+    <value>Escala de grises</value>
+  </data>
+  <data name="FiltersView_InterlaceDetection" xml:space="preserve">
+    <value>Detección de entrelazado:</value>
+  </data>
+  <data name="FiltersView_Preset" xml:space="preserve">
+    <value>Preajuste:</value>
+  </data>
+  <data name="FiltersView_Rotate" xml:space="preserve">
+    <value>Rotación:</value>
+  </data>
+  <data name="FiltersView_Sharpen" xml:space="preserve">
+    <value>Enfocar:</value>
+  </data>
+  <data name="FiltersView_SharpenPresetAuto" xml:space="preserve">
+    <value>Agudeza</value>
+  </data>
+  <data name="FiltersView_SharpenTuneAuto" xml:space="preserve">
+    <value>Afinar Agudeza</value>
+  </data>
+  <data name="FiltersView_Tune" xml:space="preserve">
+    <value>Tune:</value>
+  </data>
+  <data name="Generic_Add" xml:space="preserve">
+    <value>Añadir</value>
+  </data>
+  <data name="Generic_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="Generic_Clear" xml:space="preserve">
+    <value>Limpiar</value>
+  </data>
+  <data name="Generic_Close" xml:space="preserve">
+    <value>Cerrar</value>
+  </data>
+  <data name="Generic_CopyToClipboard" xml:space="preserve">
+    <value>Copiar en el portapapeles</value>
+  </data>
+  <data name="Generic_MoveLeft" xml:space="preserve">
+    <value>Mover a la Izquierda</value>
+  </data>
+  <data name="Generic_MoveRight" xml:space="preserve">
+    <value>Mover a la Derecha</value>
+  </data>
+  <data name="Generic_Save" xml:space="preserve">
+    <value>Guardar</value>
+  </data>
+  <data name="LogView_CopyClipboard" xml:space="preserve">
+    <value>Copiar en el portapapeles</value>
+  </data>
+  <data name="LogView_EncodeLog" xml:space="preserve">
+    <value>Registro de codificación</value>
+  </data>
+  <data name="LogView_OpenLogDir" xml:space="preserve">
+    <value>Abrir Directorio del Registro</value>
+  </data>
+  <data name="LogView_ScanLog" xml:space="preserve">
+    <value>ScanLog</value>
+  </data>
+  <data name="MainView_ActivityLog" xml:space="preserve">
+    <value>Registro de Actividad</value>
+  </data>
+  <data name="MainView_AddAll" xml:space="preserve">
+    <value>Añadir Todo</value>
+  </data>
+  <data name="MainView_AddCurrent" xml:space="preserve">
+    <value>Añadir Actual</value>
+  </data>
+  <data name="MainView_AddSelection" xml:space="preserve">
+    <value>Añadir Selección</value>
+  </data>
+  <data name="MainView_AddToQueue" xml:space="preserve">
+    <value>Agregar a la cola</value>
+  </data>
+  <data name="MainView_AdvancedTab" xml:space="preserve">
+    <value>Avanzado</value>
+  </data>
+  <data name="MainView_AlignAVStart" xml:space="preserve">
+    <value>Alinear Inicio A/V</value>
+  </data>
+  <data name="MainView_Angle" xml:space="preserve">
+    <value>Ángulo: </value>
+  </data>
+  <data name="MainView_AudioTab" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="MainView_AudioTrackCount" xml:space="preserve">
+    <value>Pistas de audio</value>
+  </data>
+  <data name="MainView_Browser" xml:space="preserve">
+    <value>Navegar</value>
+  </data>
+  <data name="MainView_ChaptersTab" xml:space="preserve">
+    <value>Capitulos</value>
+  </data>
+  <data name="MainView_Container" xml:space="preserve">
+    <value>Contenedor</value>
+  </data>
+  <data name="MainView_Destination" xml:space="preserve">
+    <value>Destino</value>
+  </data>
+  <data name="MainView_Duration" xml:space="preserve">
+    <value>Duración: </value>
+  </data>
+  <data name="MainView_File" xml:space="preserve">
+    <value>Guardar Como:</value>
+  </data>
+  <data name="MainView_FiltersTab" xml:space="preserve">
+    <value>Filtros</value>
+  </data>
+  <data name="MainView_Format" xml:space="preserve">
+    <value>Formato:</value>
+  </data>
+  <data name="MainView_Help" xml:space="preserve">
+    <value>Ayuda</value>
+  </data>
+  <data name="MainView_iPod5G" xml:space="preserve">
+    <value>Compatibilidad con iPod 5G</value>
+  </data>
+  <data name="MainView_MetaDataTab" xml:space="preserve">
+    <value>Metadatos</value>
+  </data>
+  <data name="MainView_ModifiedPreset" xml:space="preserve">
+    <value>(Modificado)</value>
+  </data>
+  <data name="MainView_Muxing" xml:space="preserve">
+    <value>Multiplexación:  Esto puede tomar un tiempo...</value>
+  </data>
+  <data name="MainView_Options" xml:space="preserve">
+    <value>Opciones</value>
+  </data>
+  <data name="MainView_OutputSettings" xml:space="preserve">
+    <value>Ajustes de salida</value>
+  </data>
+  <data name="MainView_Pause" xml:space="preserve">
+    <value>Pausa</value>
+  </data>
+  <data name="MainView_PictureTab" xml:space="preserve">
+    <value>Dimensiones</value>
+  </data>
+  <data name="MainView_PresetManage" xml:space="preserve">
+    <value>Editar preajuste</value>
+  </data>
+  <data name="MainView_PresetOptionsContextMenu" xml:space="preserve">
+    <value>Opciones predefinidas del Menú contextual</value>
+  </data>
+  <data name="MainView_PresetRemove" xml:space="preserve">
+    <value>Eliminar preajuste</value>
+  </data>
+  <data name="MainView_Presets" xml:space="preserve">
+    <value>Preajustes</value>
+  </data>
+  <data name="MainView_Preview" xml:space="preserve">
+    <value>Previsualizar</value>
+  </data>
+  <data name="MainView_ProgressStatusWithTask" xml:space="preserve">
+    <value>{0}, {1:00.00}%, Tiempo restante:{2}</value>
+  </data>
+  <data name="MainView_Range" xml:space="preserve">
+    <value>Rango:</value>
+  </data>
+  <data name="MainView_Reload" xml:space="preserve">
+    <value>Recargar</value>
+  </data>
+  <data name="MainView_Remove" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="MainView_ResetBuiltInPresets" xml:space="preserve">
+    <value>Restablecer preajustes integrados</value>
+  </data>
+  <data name="MainView_SaveNewPreset" xml:space="preserve">
+    <value>Guardar nuevo preajuste</value>
+  </data>
+  <data name="MainView_Searching" xml:space="preserve">
+    <value>Buscando la hora de inicio</value>
+  </data>
+  <data name="MainView_SetDefault" xml:space="preserve">
+    <value>Establecer predeterminado</value>
+  </data>
+  <data name="MainView_ShowPreview" xml:space="preserve">
+    <value>Previsualizar</value>
+  </data>
+  <data name="MainView_ShowQueue" xml:space="preserve">
+    <value>Cola</value>
+  </data>
+  <data name="MainView_Source" xml:space="preserve">
+    <value>Fuente:</value>
+  </data>
+  <data name="MainView_SourceOpen" xml:space="preserve">
+    <value>Abrir fuente</value>
+  </data>
+  <data name="MainView_StartEncode" xml:space="preserve">
+    <value>Iniciar Codificación</value>
+  </data>
+  <data name="MainView_StartQueue" xml:space="preserve">
+    <value>Iniciar Cola</value>
+  </data>
+  <data name="MainView_Stop" xml:space="preserve">
+    <value>Detener</value>
+  </data>
+  <data name="MainView_StopEncode" xml:space="preserve">
+    <value>Detener Codificación</value>
+  </data>
+  <data name="MainView_StopEncodeConfirm" xml:space="preserve">
+    <value>¿Seguro que desea detener esta codificación?</value>
+  </data>
+  <data name="MainView_SubtitleBeforeScanError" xml:space="preserve">
+    <value>Elija un origen para codificar antes de intentar importar un archivo de subtítulos.</value>
+  </data>
+  <data name="MainView_SubtitlesTab" xml:space="preserve">
+    <value>Subtitulos</value>
+  </data>
+  <data name="MainView_SubtitleTracksCount" xml:space="preserve">
+    <value>Pistas de subtitulo</value>
+  </data>
+  <data name="MainView_SummaryTab" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="MainView_through" xml:space="preserve">
+    <value> - </value>
+  </data>
+  <data name="MainView_Title" xml:space="preserve">
+    <value>Titulo: </value>
+  </data>
+  <data name="MainView_UpdateSelectedPreset" xml:space="preserve">
+    <value>Actualizar el preajuste actual</value>
+  </data>
+  <data name="MainView_VideoTab" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="MainView_WebOptimized" xml:space="preserve">
+    <value>Optimizar para Web</value>
+  </data>
+  <data name="ManagePresetView_ManagePreset" xml:space="preserve">
+    <value>Administrar preajustes</value>
+  </data>
+  <data name="MetaDataView_Title" xml:space="preserve">
+    <value>Metadatos</value>
+  </data>
+  <data name="OptionsView_EnableDirectXDecoding" xml:space="preserve">
+    <value>Permitir el uso de la descodificación DirectX</value>
+  </data>
+  <data name="OptionsView_InvalidFileFormatChars" xml:space="preserve">
+    <value>El formato de archivo introducido contenía caracteres no válidos. Estos han sido eliminados.</value>
+  </data>
+  <data name="OptionsView_PlaySoundWhenDone" xml:space="preserve">
+    <value>Reproducir un sonido cuando se complete cada codificación</value>
+  </data>
+  <data name="OptionsView_PlaySoundWhenQueueDone" xml:space="preserve">
+    <value>Reproducir un sonido cuando se complete la cola</value>
+  </data>
+  <data name="OptionsView_ShowPreviewOnSummaryTab" xml:space="preserve">
+    <value>Mostrar vistas previas en la pestaña de resumen.</value>
+  </data>
+  <data name="OptionsView_ShowStatusInTitleBar" xml:space="preserve">
+    <value>Mostrar el estado de codificación en la barra de título de la aplicación.</value>
+  </data>
+  <data name="Options_7DayLogClear" xml:space="preserve">
+    <value>Borrar archivos de registro de más de 7 días</value>
+  </data>
+  <data name="Options_About" xml:space="preserve">
+    <value>Acerca de HandBrake</value>
+  </data>
+  <data name="Options_Advanced" xml:space="preserve">
+    <value>Avanzado</value>
+  </data>
+  <data name="Options_AdvancedOptions" xml:space="preserve">
+    <value>Opciones avanzadas</value>
+  </data>
+  <data name="Options_Arguments" xml:space="preserve">
+    <value>Argumentos:</value>
+  </data>
+  <data name="Options_AutomaticFileNaming" xml:space="preserve">
+    <value>Nombramiento automático de archivos</value>
+  </data>
+  <data name="Options_AutoNameOutput" xml:space="preserve">
+    <value>Nombrar automáticamente los archivos de salida</value>
+  </data>
+  <data name="Options_CheckForUpdates" xml:space="preserve">
+    <value>Buscar Actualizaciones</value>
+  </data>
+  <data name="Options_ClearCompleted" xml:space="preserve">
+    <value>Borrar siempre la cola de completados después de que finalice una codificación</value>
+  </data>
+  <data name="Options_ClearLogs" xml:space="preserve">
+    <value>Borrar historial de registros</value>
+  </data>
+  <data name="Options_CopyLogToDir" xml:space="preserve">
+    <value>Coloque una copia de los registros de codificación individuales en una ubicación especificada:</value>
+  </data>
+  <data name="Options_CopyLogToEncDir" xml:space="preserve">
+    <value>Coloque una copia de los registros de codificación individuales en la misma ubicación que el vídeo codificado</value>
+  </data>
+  <data name="Options_CurVersion" xml:space="preserve">
+    <value>Versión actual</value>
+  </data>
+  <data name="Options_Decoding" xml:space="preserve">
+    <value>Decodificando</value>
+  </data>
+  <data name="Options_DefaultPath" xml:space="preserve">
+    <value>Ruta predeterminada:</value>
+  </data>
+  <data name="Options_DownloadUpdates" xml:space="preserve">
+    <value>Descargar actualización</value>
+  </data>
+  <data name="Options_DVD" xml:space="preserve">
+    <value>Leyendo DVD</value>
+  </data>
+  <data name="Options_DvdRead" xml:space="preserve">
+    <value>Deshabilitar LibDVDNav. (libdvdread se utilizará en su lugar)</value>
+  </data>
+  <data name="Options_Encoding" xml:space="preserve">
+    <value>Codificando</value>
+  </data>
+  <data name="Options_Format" xml:space="preserve">
+    <value>Formato de archivo:</value>
+  </data>
+  <data name="Options_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="Options_Logging" xml:space="preserve">
+    <value>Registro</value>
+  </data>
+  <data name="Options_LogLevel" xml:space="preserve">
+    <value>Nivel de detalle en registro:</value>
+  </data>
+  <data name="Options_LogPath" xml:space="preserve">
+    <value>Directorio:</value>
+  </data>
+  <data name="Options_LowDiskspaceSize" xml:space="preserve">
+    <value>Pausar la cola si hay poco espacio en disco</value>
+  </data>
+  <data name="Options_MinimiseTray" xml:space="preserve">
+    <value>Minimizar en la bandeja del sistema (requiere reiniciar)</value>
+  </data>
+  <data name="Options_MinTitleScanLength" xml:space="preserve">
+    <value>Duración mínima del título de DVD y Blu-ray en segundos. Se omitirán los títulos más cortos:</value>
+  </data>
+  <data name="Options_KeepDuplicateTitles" xml:space="preserve">
+    <value>Mantener títulos duplicados en fuentes Blu-ray (Requiere reiniciar)</value>
+  </data>
+  <data name="Options_MP4FileExtension" xml:space="preserve">
+    <value>Extension de archivo MP4:</value>
+  </data>
+  <data name="Options_OnStartup" xml:space="preserve">
+    <value>Al inicio</value>
+  </data>
+  <data name="Options_Output" xml:space="preserve">
+    <value>Archivos de salida</value>
+  </data>
+  <data name="Options_Path" xml:space="preserve">
+    <value>Directorio:</value>
+  </data>
+  <data name="Options_PathToMediaPlayer" xml:space="preserve">
+    <value>Ruta del reproductor de medios</value>
+  </data>
+  <data name="Options_PreventSleep" xml:space="preserve">
+    <value>Evitar que el sistema hiberne mientras se codifica</value>
+  </data>
+  <data name="Options_PreviewScanCount" xml:space="preserve">
+    <value>Número de previsualizaciones a escanear:</value>
+  </data>
+  <data name="Options_PriorityLevel" xml:space="preserve">
+    <value>Nivel de prioridad del trabajo:</value>
+  </data>
+  <data name="Options_QsvDecode" xml:space="preserve">
+    <value>Preferir el uso de Intel QuickSync para decodificar vídeo cuando se utiliza el codificador QuickSync y el hardware está disponible para su uso.</value>
+  </data>
+  <data name="Options_QsvDecodeForNonFullPath" xml:space="preserve">
+    <value>Utilice también la decodificación QuickSync cuando no utilice un codificador QuickSync. (es decir, x265) </value>
+  </data>
+  <data name="Options_RemovePunctuation" xml:space="preserve">
+    <value>Quitar puntuación común</value>
+  </data>
+  <data name="Options_ReplaceUnderscores" xml:space="preserve">
+    <value>Reemplazar guiones bajos por espacios</value>
+  </data>
+  <data name="Options_ResetDoNothing" xml:space="preserve">
+    <value>Restablecer a 'No hacer nada' cuando la aplicación es vuelta a abrir.</value>
+  </data>
+  <data name="Options_Scaler" xml:space="preserve">
+    <value>Elegir dimensionador:</value>
+  </data>
+  <data name="Options_Scaling" xml:space="preserve">
+    <value>Redimensionando</value>
+  </data>
+  <data name="Options_SendFileTo" xml:space="preserve">
+    <value>Enviar archivo a:</value>
+  </data>
+  <data name="Options_TitleCase" xml:space="preserve">
+    <value>Cambiar mayúsculas a Estilo Titulo</value>
+  </data>
+  <data name="Options_Updates" xml:space="preserve">
+    <value>Actualizaciones</value>
+  </data>
+  <data name="Options_UserInterface" xml:space="preserve">
+    <value>Interfaz de usuario</value>
+  </data>
+  <data name="Options_Version" xml:space="preserve">
+    <value>Versión:</value>
+  </data>
+  <data name="Options_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Options_VideoPreviewPath" xml:space="preserve">
+    <value>Esta ruta es usada solo para la funcionalidad de previsualización del video.
+VLC y MPC-HC son soportados. Otros reproductores pueden funcionar, aunque no han sido validados.</value>
+  </data>
+  <data name="Options_ViewLogDirectory" xml:space="preserve">
+    <value>Ver Directorio del Registro</value>
+  </data>
+  <data name="Options_WhenDone" xml:space="preserve">
+    <value>Al terminar</value>
+  </data>
+  <data name="Options_x264" xml:space="preserve">
+    <value>Opciones de x264/5</value>
+  </data>
+  <data name="Options_x264Granularity" xml:space="preserve">
+    <value>Granularidad fraccionaria de calidad constante:</value>
+  </data>
+  <data name="PictureSettingsView_Anamorphic" xml:space="preserve">
+    <value>Anamórfico:</value>
+  </data>
+  <data name="PictureSettingsView_Automatic" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="PictureSettingsView_Bottom" xml:space="preserve">
+    <value>Abajo</value>
+  </data>
+  <data name="PictureSettingsView_Cropping" xml:space="preserve">
+    <value>Recorte:</value>
+  </data>
+  <data name="PictureSettingsView_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="PictureSettingsView_DisplayWidth" xml:space="preserve">
+    <value>Tamaño de visualización:</value>
+  </data>
+  <data name="PictureSettingsView_Height" xml:space="preserve">
+    <value>Altura:</value>
+  </data>
+  <data name="PictureSettingsView_KeepAR" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="PictureSettingsView_Left" xml:space="preserve">
+    <value>Izquierda</value>
+  </data>
+  <data name="PictureSettingsView_Output" xml:space="preserve">
+    <value>Dimensiones finales:</value>
+  </data>
+  <data name="PictureSettingsView_PAR" xml:space="preserve">
+    <value>Aspecto de Pixel:</value>
+  </data>
+  <data name="PictureSettingsView_Right" xml:space="preserve">
+    <value>Derecha</value>
+  </data>
+  <data name="PictureSettingsView_Size" xml:space="preserve">
+    <value>Tamaño</value>
+  </data>
+  <data name="PictureSettingsView_Top" xml:space="preserve">
+    <value>Arriba</value>
+  </data>
+  <data name="PictureSettingsView_Width" xml:space="preserve">
+    <value>Tamaño escalado:</value>
+  </data>
+  <data name="Preset_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="Preset_Export" xml:space="preserve">
+    <value>Exportar a archivo</value>
+  </data>
+  <data name="Preset_Import" xml:space="preserve">
+    <value>Importar desde archivo</value>
+  </data>
+  <data name="Preset_Official" xml:space="preserve">
+    <value>Oficial</value>
+  </data>
+  <data name="QueueSelectionView_ChooseTitles" xml:space="preserve">
+    <value>Seleccione títulos:</value>
+  </data>
+  <data name="QueueSelectionView_Title" xml:space="preserve">
+    <value>Agregar a la cola</value>
+  </data>
+  <data name="QueueSelection_UsingPreset" xml:space="preserve">
+    <value>Los títulos seleccionados serán agregados usando el preajuste "{0}".</value>
+  </data>
+  <data name="QueueView_Advanced" xml:space="preserve">
+    <value>Opciones de vídeo:</value>
+  </data>
+  <data name="QueueView_Audio" xml:space="preserve">
+    <value>Audio:</value>
+  </data>
+  <data name="QueueView_ClearAll" xml:space="preserve">
+    <value>Limpiar todo</value>
+  </data>
+  <data name="QueueView_ClearCompleted" xml:space="preserve">
+    <value>Limpiar completados</value>
+  </data>
+  <data name="QueueView_ClearQueue" xml:space="preserve">
+    <value>Limpiar cola</value>
+  </data>
+  <data name="QueueView_ClearSelected" xml:space="preserve">
+    <value>Limpiar seleccionados</value>
+  </data>
+  <data name="QueueView_Delete" xml:space="preserve">
+    <value>Eliminar</value>
+  </data>
+  <data name="QueueView_Destination" xml:space="preserve">
+    <value>Destino:</value>
+  </data>
+  <data name="WhenDone_DoNothing" xml:space="preserve">
+    <value>No hacer nada</value>
+  </data>
+  <data name="QueueView_Duration" xml:space="preserve">
+    <value>Codificar Duración:</value>
+  </data>
+  <data name="QueueView_Edit" xml:space="preserve">
+    <value>Editar</value>
+  </data>
+  <data name="QueueView_EndTime" xml:space="preserve">
+    <value>Tiempo de finalización:</value>
+  </data>
+  <data name="QueueView_Export" xml:space="preserve">
+    <value>Exportar cola</value>
+  </data>
+  <data name="QueueView_FileSize" xml:space="preserve">
+    <value>Tamaño del archivo de salida:</value>
+  </data>
+  <data name="WhenDone_Hibernate" xml:space="preserve">
+    <value>Hibernar</value>
+  </data>
+  <data name="WhenDone_LockSystem" xml:space="preserve">
+    <value>Bloquear sistema</value>
+  </data>
+  <data name="QueueView_LogNotAvailableYet" xml:space="preserve">
+    <value>El registro estará disponible después de que la codificación termine.</value>
+  </data>
+  <data name="WhenDone_Logoff" xml:space="preserve">
+    <value>Cerrar sesión</value>
+  </data>
+  <data name="QueueView_OpenDestDir" xml:space="preserve">
+    <value>Abrir Directorio de Destino</value>
+  </data>
+  <data name="QueueView_OpenSourceDir" xml:space="preserve">
+    <value>Abrir Directorio de la Fuente</value>
+  </data>
+  <data name="QueueView_Options" xml:space="preserve">
+    <value>Opciones</value>
+  </data>
+  <data name="QueueView_Pause" xml:space="preserve">
+    <value>Pausa</value>
+  </data>
+  <data name="QueueView_PausedDuration" xml:space="preserve">
+    <value>Duración de pausa:</value>
+  </data>
+  <data name="QueueView_PictureSettings" xml:space="preserve">
+    <value>Opciones de imagen:</value>
+  </data>
+  <data name="WhenDone_QuitHandBrake" xml:space="preserve">
+    <value>Salir de HandBrake</value>
+  </data>
+  <data name="QueueView_ResetAllJobs" xml:space="preserve">
+    <value>Reintentar todos los trabajos</value>
+  </data>
+  <data name="QueueView_ResetFailed" xml:space="preserve">
+    <value>Reintento fallido</value>
+  </data>
+  <data name="QueueView_ResetSelectedJobs" xml:space="preserve">
+    <value>Reiniciar los trabajos seleccionados</value>
+  </data>
+  <data name="QueueView_Reset" xml:space="preserve">
+    <value>Reiniciar</value>
+  </data>
+  <data name="WhenDone_Shutdown" xml:space="preserve">
+    <value>Apagar</value>
+  </data>
+  <data name="QueueView_Source" xml:space="preserve">
+    <value>Origen:</value>
+  </data>
+  <data name="QueueView_Start" xml:space="preserve">
+    <value>Iniciar cola</value>
+  </data>
+  <data name="QueueView_StartTime" xml:space="preserve">
+    <value>Tiempo de inicio:</value>
+  </data>
+  <data name="QueueView_Statistics" xml:space="preserve">
+    <value>Estadísticas</value>
+  </data>
+  <data name="QueueView_Subtitles" xml:space="preserve">
+    <value>Subtítulos:</value>
+  </data>
+  <data name="QueueView_Summary" xml:space="preserve">
+    <value>Resumen</value>
+  </data>
+  <data name="WhenDone_Suspend" xml:space="preserve">
+    <value>Suspender</value>
+  </data>
+  <data name="QueueView_Video" xml:space="preserve">
+    <value>Video:</value>
+  </data>
+  <data name="QueueView_WhenDone" xml:space="preserve">
+    <value>Al terminar:</value>
+  </data>
+  <data name="Shared_AddAllForSelected" xml:space="preserve">
+    <value>Agregar todos los idiomas restantes seleccionados</value>
+  </data>
+  <data name="Shared_AddAllRemaining" xml:space="preserve">
+    <value>Agregar todos las pistas restantes</value>
+  </data>
+  <data name="Shared_AddNewTrack" xml:space="preserve">
+    <value>Agregar nueva pista</value>
+  </data>
+  <data name="Shared_AddTrack" xml:space="preserve">
+    <value>Pistas</value>
+  </data>
+  <data name="Shared_AvailableLanguages" xml:space="preserve">
+    <value>Idiomas disponibles:</value>
+  </data>
+  <data name="Shared_ChooseLanguages" xml:space="preserve">
+    <value>Seleccionar idiomas:</value>
+  </data>
+  <data name="Shared_ChosenLanguages" xml:space="preserve">
+    <value>Idiomas seleccionados:</value>
+  </data>
+  <data name="Shared_ConfigureDefaultBehaviours" xml:space="preserve">
+    <value>Configurar comportamientos por defecto</value>
+  </data>
+  <data name="Shared_ReloadDefaults" xml:space="preserve">
+    <value>Recargar</value>
+  </data>
+  <data name="SourceSelection_ChooseDisc" xml:space="preserve">
+    <value>Seleccione un disco a escanear</value>
+  </data>
+  <data name="SourceSelection_ChooseFile" xml:space="preserve">
+    <value>Seleccione un archivo a escanear</value>
+  </data>
+  <data name="SourceSelection_ChooseFolder" xml:space="preserve">
+    <value>Seleccione una carpeta para escanear</value>
+  </data>
+  <data name="SourceSelection_ChooseSpecificTitle" xml:space="preserve">
+    <value>Opcionalmente, elija un título específico:</value>
+  </data>
+  <data name="SourceSelection_ChooseVideo" xml:space="preserve">
+    <value>Seleccione los videos que desea codificar:</value>
+  </data>
+  <data name="SourceSelection_File" xml:space="preserve">
+    <value>Archivo</value>
+  </data>
+  <data name="SourceSelection_FolderBatchScan" xml:space="preserve">
+    <value>Carpeta (Búsqueda recursiva)</value>
+  </data>
+  <data name="SourceSelection_OpenDVDBluray" xml:space="preserve">
+    <value>Abrir este DVD o Bluray</value>
+  </data>
+  <data name="SourceSelection_OpenFolderWIth" xml:space="preserve">
+    <value>Abrir una carpeta con uno o más archivos.</value>
+  </data>
+  <data name="SourceSelection_QueueArchiveRecovery" xml:space="preserve">
+    <value>Recuperar archivos de cola</value>
+  </data>
+  <data name="SourceSelection_QueueArchiveRecoveryDesc" xml:space="preserve">
+    <value>Un archivo de la cola previa esta disponible.</value>
+  </data>
+  <data name="SourceSelection_SingleVideoFile" xml:space="preserve">
+    <value>Abrir archivo(s) de vídeo.</value>
+  </data>
+  <data name="SourceSelection_SourceSelection" xml:space="preserve">
+    <value>Selección de origen</value>
+  </data>
+  <data name="StaticPreviewView_Duration" xml:space="preserve">
+    <value>Duración:</value>
+  </data>
+  <data name="StaticPreviewView_LivePreview" xml:space="preserve">
+    <value>Vista previa de codificación</value>
+  </data>
+  <data name="StaticPreviewView_SelectPreviewImage" xml:space="preserve">
+    <value>Seleccione una imagen de previzualización</value>
+  </data>
+  <data name="StaticPreviewView_UseExternalPlayer" xml:space="preserve">
+    <value>Utilizar aplicación de reproducción externa</value>
+  </data>
+  <data name="SubtitlesView_AddCC" xml:space="preserve">
+    <value>Añadir subtítulos cuando estén disponibles</value>
+  </data>
+  <data name="SubtitlesView_AddForeignAudioSearch" xml:space="preserve">
+    <value>Añadir 'Escaneo de audio externo' </value>
+  </data>
+  <data name="SubtitlesView_BurnInBehaviour" xml:space="preserve">
+    <value>Comportamiento de quemado:</value>
+  </data>
+  <data name="SubtitlesView_ImportSubtitle" xml:space="preserve">
+    <value>Importar subtitulos</value>
+  </data>
+  <data name="SubtitlesView_TrackSelectionBehaviour" xml:space="preserve">
+    <value>Comportamiento de selección de pistas:</value>
+  </data>
+  <data name="SubtitleView_AddAllCC" xml:space="preserve">
+    <value> Añadir todos los subtítulos restantes </value>
+  </data>
+  <data name="SubtitleView_SubtitleDefaultsDescription" xml:space="preserve">
+    <value>Configure como las pistas de subtítulos son seleccionadas automáticamente y configuradas cuando selecciona un nuevo titulo o video origen.</value>
+  </data>
+  <data name="SummaryView_AdditionalAudioTracks" xml:space="preserve">
+    <value>Pistas de audio adicionales</value>
+  </data>
+  <data name="SummaryView_AdditionalSubtitleTracks" xml:space="preserve">
+    <value>Pistas de subtítulos adicionales</value>
+  </data>
+  <data name="SummaryView_Burned" xml:space="preserve">
+    <value>Quemados (Forzados)</value>
+  </data>
+  <data name="SummaryView_Chapters" xml:space="preserve">
+    <value>Marcadores de capitulo</value>
+  </data>
+  <data name="SummaryView_Deblock" xml:space="preserve">
+    <value>Desbloquear</value>
+  </data>
+  <data name="SummaryView_Detelecine" xml:space="preserve">
+    <value>Detelecine</value>
+  </data>
+  <data name="SummaryView_display" xml:space="preserve">
+    <value>Pantalla</value>
+  </data>
+  <data name="SummaryView_Grayscale" xml:space="preserve">
+    <value>Escala de grises</value>
+  </data>
+  <data name="SummaryView_NoAudioTracks" xml:space="preserve">
+    <value>Sin pistas de audio</value>
+  </data>
+  <data name="SummaryView_NoChapters" xml:space="preserve">
+    <value>Sin marcadores de capítulos</value>
+  </data>
+  <data name="SummaryView_NoFilters" xml:space="preserve">
+    <value>Sin filtros</value>
+  </data>
+  <data name="SummaryView_NoSource" xml:space="preserve">
+    <value>Sin origen</value>
+  </data>
+  <data name="SummaryView_NoSubtitleTracks" xml:space="preserve">
+    <value>Sin pistas de subtítulos</value>
+  </data>
+  <data name="SummaryView_NoTracks" xml:space="preserve">
+    <value>Sin pistas</value>
+  </data>
+  <data name="SummaryView_PreviewInfo" xml:space="preserve">
+    <value>Previsualización {0} de {1}</value>
+  </data>
+  <data name="SummaryView_Rotation" xml:space="preserve">
+    <value>Rotación</value>
+  </data>
+  <data name="SummaryView_storage" xml:space="preserve">
+    <value>Almacenamiento</value>
+  </data>
+  <data name="VideoView_MultiPass" xml:space="preserve">
+    <value>Codificación multipase</value>
+  </data>
+  <data name="VideoView_AverageBitrate" xml:space="preserve">
+    <value>Bitrate promedio (kbps):</value>
+  </data>
+  <data name="VideoView_Codec" xml:space="preserve">
+    <value>Codificador de vídeo:</value>
+  </data>
+  <data name="VideoView_ColourRange" xml:space="preserve">
+    <value>Rango de Color:</value>
+  </data>
+  <data name="VideoView_ConstantFramerate" xml:space="preserve">
+    <value>Velocidad de fotogramas constante</value>
+  </data>
+  <data name="VideoView_ConstantQuality" xml:space="preserve">
+    <value>Calidad constante:</value>
+  </data>
+  <data name="VideoView_EncoderLevel" xml:space="preserve">
+    <value>Nivel de codificación:</value>
+  </data>
+  <data name="VideoView_EncoderPreset" xml:space="preserve">
+    <value>Preajuste de codificador:</value>
+  </data>
+  <data name="VideoView_EncoderProfile" xml:space="preserve">
+    <value>Perfil del Codificador:</value>
+  </data>
+  <data name="VideoView_EncodeTune" xml:space="preserve">
+    <value>Optimizar Codificador:</value>
+  </data>
+  <data name="VideoView_ExtraOptions" xml:space="preserve">
+    <value>Opciones avanzadas:</value>
+  </data>
+  <data name="VideoView_FastDecode" xml:space="preserve">
+    <value>Decodificación rápida</value>
+  </data>
+  <data name="VideoView_Framerate" xml:space="preserve">
+    <value>Fotogramas (FPS):</value>
+  </data>
+  <data name="VideoView_OptimiseVideo" xml:space="preserve">
+    <value>Opciones de codificador:</value>
+  </data>
+  <data name="VideoView_PeakFramerate" xml:space="preserve">
+    <value> Velocidad máxima de fotogramas</value>
+  </data>
+  <data name="VideoView_Quality" xml:space="preserve">
+    <value>Calidad:</value>
+  </data>
+  <data name="VideoView_TurboAnalysisPass" xml:space="preserve">
+    <value>Pasada de análisis turbo</value>
+  </data>
+  <data name="VideoView_VariableFramerate" xml:space="preserve">
+    <value>Tasa de fotogramas variable</value>
+  </data>
+  <data name="VideoView_Video" xml:space="preserve">
+    <value>Vídeo:</value>
+  </data>
+  <data name="OptionsView_Language" xml:space="preserve">
+    <value>Idioma:</value>
+  </data>
+  <data name="Language_UseSystem" xml:space="preserve">
+    <value>Usar idioma del sistema</value>
+  </data>
+  <data name="SourceSelection_AboutHandBrake" xml:space="preserve">
+    <value>Acerca de HandBrake</value>
+  </data>
+  <data name="SourceSelection_DropFileHere" xml:space="preserve">
+    <value>O suelta un archivo, conjunto de archivos o carpeta aquí ...</value>
+  </data>
+  <data name="SourceSelection_Help" xml:space="preserve">
+    <value>Ayuda</value>
+  </data>
+  <data name="Preferences" xml:space="preserve">
+    <value>Preferencias</value>
+  </data>
+  <data name="AudioDefaultsView_AddTrack" xml:space="preserve">
+    <value>Agregar pista</value>
+  </data>
+  <data name="AudioDefaultsView_AutoAddTracks" xml:space="preserve">
+    <value>Configuración del codificador de audio para cada pista elegida:</value>
+  </data>
+  <data name="AudioDefaultsView_Clear" xml:space="preserve">
+    <value>Limpiar</value>
+  </data>
+  <data name="SubtitlesView_BurnIn" xml:space="preserve">
+    <value>Quemar (Forzar)</value>
+  </data>
+  <data name="SubtitlesView_Default" xml:space="preserve">
+    <value>Por defecto</value>
+  </data>
+  <data name="SubtitlesView_ForcedOnly" xml:space="preserve">
+    <value>Solo forzado</value>
+  </data>
+  <data name="MainView_About" xml:space="preserve">
+    <value>_Acerca de...</value>
+  </data>
+  <data name="MainView_ActivityLogMenu" xml:space="preserve">
+    <value>_Registro de actividad</value>
+  </data>
+  <data name="MainView_CheckForUpdates" xml:space="preserve">
+    <value>_Buscar Actualizaciones</value>
+  </data>
+  <data name="MainView_Exit" xml:space="preserve">
+    <value>_Salir</value>
+  </data>
+  <data name="MainView_ExportToFile" xml:space="preserve">
+    <value>_Exportar a archivo</value>
+  </data>
+  <data name="MainView_FileMenu" xml:space="preserve">
+    <value>_Archivo</value>
+  </data>
+  <data name="MainView_HandBrakeDocs" xml:space="preserve">
+    <value>_Documentación de HandBrake (HTTPS)</value>
+  </data>
+  <data name="MainView_HelpMenu" xml:space="preserve">
+    <value>_Ayuda</value>
+  </data>
+  <data name="MainView_ImportFromFile" xml:space="preserve">
+    <value>_Importar desde archivo</value>
+  </data>
+  <data name="MainView_PreferencesMenu" xml:space="preserve">
+    <value>_Preferencias</value>
+  </data>
+  <data name="MainView_PresetsMenu" xml:space="preserve">
+    <value>_Preajustes</value>
+  </data>
+  <data name="MainView_QueueMenu" xml:space="preserve">
+    <value>_Cola</value>
+  </data>
+  <data name="MainView_ResetPresets" xml:space="preserve">
+    <value>_Restablecer preajustes integrados</value>
+  </data>
+  <data name="MainView_SetCurrentAsDefault" xml:space="preserve">
+    <value>_Establecer actual como por defecto</value>
+  </data>
+  <data name="MainView_ShowPresetPanel" xml:space="preserve">
+    <value>_Mostrar panel de preajustes</value>
+  </data>
+  <data name="MainView_ShowQueueMenu" xml:space="preserve">
+    <value>_Mostrar cola</value>
+  </data>
+  <data name="MainView_ToolsMenu" xml:space="preserve">
+    <value>_Herramientas</value>
+  </data>
+  <data name="OptionsView_CheckingForUpdates" xml:space="preserve">
+    <value>Buscando actualizaciones ...</value>
+  </data>
+  <data name="OptionsView_ClearLogDirConfirm" xml:space="preserve">
+    <value>¿Está seguro de que desea limpiar el directorio de archivos de registro?</value>
+  </data>
+  <data name="OptionsView_ClearLogs" xml:space="preserve">
+    <value>Limpiar registros</value>
+  </data>
+  <data name="OptionsView_Downloading" xml:space="preserve">
+    <value>Descargando...</value>
+  </data>
+  <data name="OptionsView_LogsCleared" xml:space="preserve">
+    <value>¡El directorio de archivos de registro de HandBrake ha sido limpiado!</value>
+  </data>
+  <data name="OptionsView_Notice" xml:space="preserve">
+    <value>Atención</value>
+  </data>
+  <data name="OptionsView_PreparingUpdate" xml:space="preserve">
+    <value>Preparando para actualizar ...</value>
+  </data>
+  <data name="OptionsView_SelectFolder" xml:space="preserve">
+    <value>Por favor, seleccione una carpeta.</value>
+  </data>
+  <data name="OptionsView_SetDefaultLocationOutputFIle" xml:space="preserve">
+    <value>Pulse 'Examinar' para establecer la ubicación por defecto</value>
+  </data>
+  <data name="MainView_Hide" xml:space="preserve">
+    <value>Ocultar</value>
+  </data>
+  <data name="MainView_Show" xml:space="preserve">
+    <value>Mostrar</value>
+  </data>
+  <data name="MainView_ShowAddAllToQueue" xml:space="preserve">
+    <value>'Agregar todo' a la cola</value>
+  </data>
+  <data name="MainView_ShowAddSelectionToQueue" xml:space="preserve">
+    <value>'Agregar selección' a la cola</value>
+  </data>
+  <data name="QueueView_PlayMediaFile" xml:space="preserve">
+    <value>Reproducir archivo</value>
+  </data>
+  <data name="Options_ApplicationToolbar" xml:space="preserve">
+    <value>Barra de herramientas</value>
+  </data>
+  <data name="Options_ShowToolbarAddAll" xml:space="preserve">
+    <value>Mostrar 'Agregar todo a la cola' en la barra de herramientas</value>
+  </data>
+  <data name="Options_ShowToolbarAddSelection" xml:space="preserve">
+    <value>Mostrar 'Agregar selección a la cola' en la barra de herramientas</value>
+  </data>
+  <data name="OptionsView_HardwareDetectFailed" xml:space="preserve">
+    <value>El soporte de codificación por hardware está actualmente desactivado. Si no ha iniciado HandBrake con la opción "--no-hardware", asegúrese de que está ejecutando controladores actualizados para todos los adaptadores gráficos de este sistema.
+
+Esto no afectará a ninguno de los codificadores de software.</value>
+  </data>
+  <data name="Main_PleaseFixSubtitleSettings" xml:space="preserve">
+    <value>Corrija la configuración de subtítulos antes de continuar.</value>
+  </data>
+  <data name="Generic_Apply" xml:space="preserve">
+    <value>Aplicar</value>
+  </data>
+  <data name="Main_ResumeEncode" xml:space="preserve">
+    <value>Continuar codificación</value>
+  </data>
+  <data name="QueueView_Actions" xml:space="preserve">
+    <value>Acciones</value>
+  </data>
+  <data name="QueueView_Import" xml:space="preserve">
+    <value>Importar Cola</value>
+  </data>
+  <data name="QueueViewModel_EncodeStatusChanged_StatusLabel" xml:space="preserve">
+    <value>Codificacion: Paso {0} de {1}, {2:00.00}%, FPS: {3:000.0}, Avg FPS: {4:000.0}
+Tiempo restante: {5}, Transcurrido: {6} {7} </value>
+  </data>
+  <data name="QueueView_DeleteSelected" xml:space="preserve">
+    <value> Eliminar seleccionado</value>
+  </data>
+  <data name="Portable_TmpNotWritable" xml:space="preserve">
+    <value>Modo portátil: No se puede crear el directorio TMP. Compruebe que la ruta es correcta y se puede escribir.</value>
+  </data>
+  <data name="Portable_StorageNotWritable" xml:space="preserve">
+    <value>Modo portátil: No se puede crear el directorio de almacenamiento. Compruebe que la ruta es correcta y se puede escribir.</value>
+  </data>
+  <data name="Portable_IniFileError" xml:space="preserve">
+    <value>Modo portátil: No se puede leer portable.ini. Puede haber un error en este archivo. Vuelva a intentar usar portable.ini.template como guía.</value>
+  </data>
+  <data name="OptionsView_FormatOptions" xml:space="preserve">
+    <value>Opciones de sustitución:
+Puede arrastrar/soltar o introducir el texto anterior.</value>
+  </data>
+  <data name="FileOverwriteBehaviours_Ask" xml:space="preserve">
+    <value>Preguntar si se sobrescribe el archivo</value>
+  </data>
+  <data name="FileOverwriteBehaviours_Autoname" xml:space="preserve">
+    <value>Intentar renombrar el archivo automáticamente</value>
+  </data>
+  <data name="FileOverwriteBehaviours_Overwrite" xml:space="preserve">
+    <value>Sobrescribir el archivo</value>
+  </data>
+  <data name="Options_UIBehaviour" xml:space="preserve">
+    <value>Comportamiento de la Interfaz de Usuario</value>
+  </data>
+  <data name="OptionsView_FileOverwriteBehaviour" xml:space="preserve">
+    <value>Comportamiento de sobrescritura de archivos:</value>
+  </data>
+  <data name="Options_EncodeCompleted" xml:space="preserve">
+    <value>Codificación Completada</value>
+  </data>
+  <data name="Options_Notifications" xml:space="preserve">
+    <value>Notificaciones sonoras</value>
+  </data>
+  <data name="Options_QueueCompleted" xml:space="preserve">
+    <value>Cola completada</value>
+  </data>
+  <data name="Options_WhenDoneColon" xml:space="preserve">
+    <value>Al terminar:</value>
+  </data>
+  <data name="OptionsView_FileCollisionBehaviour" xml:space="preserve">
+    <value>Comportamiento de colisión de nombre de archivo:</value>
+  </data>
+  <data name="CollisionBehaviour_Post" xml:space="preserve">
+    <value>Sufijo</value>
+  </data>
+  <data name="CollisionBehaviour_Pre" xml:space="preserve">
+    <value>Prefijo</value>
+  </data>
+  <data name="CollisionBehaviour_AppendNumber" xml:space="preserve">
+    <value>Añadir Número</value>
+  </data>
+  <data name="FiltersViewAuto_DeblockPreset" xml:space="preserve">
+    <value>FiltersView_DeblockPreset</value>
+  </data>
+  <data name="FiltersViewAuto_DeblockTune" xml:space="preserve">
+    <value>Ajuste de Deblock</value>
+  </data>
+  <data name="OptionsView_EncodeNotes" xml:space="preserve">
+    <value>Nota: No todos los codificadores de hardware tienen preferencias adicionales. Todos los codificadores de hardware disponibles y compatibles en este sistema estarán disponibles para su selección en la pestaña de vídeo en el menú desplegable de codificador de vídeo.</value>
+  </data>
+  <data name="Queue_RecoverQueueQuestionPlural" xml:space="preserve">
+    <value>HandBrake ha detectado varios archivos de cola inacabados. Estos son de varias instancias de HandBrake en ejecución. 
+¿Le gustaría recuperar todos los trabajos pendientes?</value>
+  </data>
+  <data name="Queue_RecoverQueueQuestionSingular" xml:space="preserve">
+    <value>HandBrake ha detectado elementos inacabados en la cola desde la última vez que se inició la aplicación. ¿Le gustaría recuperarlos?</value>
+  </data>
+  <data name="Queue_RecoveryPossible" xml:space="preserve">
+    <value>Recuperación de cola posible</value>
+  </data>
+  <data name="PresetService_ImportingBuiltInWarning" xml:space="preserve">
+    <value>Su archivo de preajustes contiene preajustes integrados. La función de importación no admite la importación de estos. Use 'Menú de preajustes -&gt; Restablecer preajustes integrados' para restaurar los preajustes estándar. 
+
+Cuando se admita, se habrán importado los preajustes de usuario.</value>
+  </data>
+  <data name="Options_PromptBeforeAction" xml:space="preserve">
+    <value>Realizar la acción inmediatamente. (Esto desactivará el cuadro de diálogo de confirmación de 60 segundos)</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Examinar</value>
+  </data>
+  <data name="OptionsView_MediaFileNotSet" xml:space="preserve">
+    <value>No se ha establecido ningún archivo de audio. Por favor, haga clic en 'Examinar' para seleccionar un archivo wav o mp3 para la reproducción.</value>
+  </data>
+  <data name="OptionsView_Play" xml:space="preserve">
+    <value>Reproducir</value>
+  </data>
+  <data name="QueueView_ExportCLI" xml:space="preserve">
+    <value>Exportar cola (solo CLI)</value>
+  </data>
+  <data name="Options_DarkTheme" xml:space="preserve">
+    <value>Usar el tema oscuro. (Requiere reiniciar, solo Windows 10)</value>
+  </data>
+  <data name="QueueView_NotAvailable" xml:space="preserve">
+    <value>No disponible</value>
+  </data>
+  <data name="Options_LowDiskspaceSizeGB" xml:space="preserve">
+    <value>GB</value>
+  </data>
+  <data name="SystemService_ACMains" xml:space="preserve">
+    <value>Alimentación de red detectada. Reanudando codificación... ({0} %) </value>
+  </data>
+  <data name="SystemService_CriticalBattery" xml:space="preserve">
+    <value>¡El nivel de batería del sistema es crítico! ({0} %)</value>
+  </data>
+  <data name="SystemService_LowBatteryLog" xml:space="preserve">
+    <value>¡Batería del sistema baja! ({0}%). Su codificación ha sido pausada.</value>
+  </data>
+  <data name="SystemService_LowDiskSpaceLog" xml:space="preserve">
+    <value> El almacenamiento de la unidad restante ha caído por debajo de  {0} GB en la unidad de destino. Deteniendo la codificación...</value>
+  </data>
+  <data name="AudioDefaultsView_PaneTitle" xml:space="preserve">
+    <value>Selecciones automáticas de audio</value>
+  </data>
+  <data name="SubtitlesDefaultsView_PaneTitle" xml:space="preserve">
+    <value>Selección automática de subtítulos</value>
+  </data>
+  <data name="Options_SystemOptions" xml:space="preserve">
+    <value>Sistema</value>
+  </data>
+  <data name="MetadataView_Actors" xml:space="preserve">
+    <value>Actores:</value>
+  </data>
+  <data name="MetadataView_Comments" xml:space="preserve">
+    <value>Comentarios:</value>
+  </data>
+  <data name="MetadataView_Description" xml:space="preserve">
+    <value>Descripción:</value>
+  </data>
+  <data name="MetadataView_Director" xml:space="preserve">
+    <value>Director:</value>
+  </data>
+  <data name="MetadataView_Genre" xml:space="preserve">
+    <value>Género:</value>
+  </data>
+  <data name="MetadataView_Plot" xml:space="preserve">
+    <value>Trama:</value>
+  </data>
+  <data name="MetadataView_ReleaseDate" xml:space="preserve">
+    <value>Fecha de publicación:</value>
+  </data>
+  <data name="MetadataView_TitleTag" xml:space="preserve">
+    <value>Título:</value>
+  </data>
+  <data name="LogViewModel_Title" xml:space="preserve">
+    <value>Visor de Registro</value>
+  </data>
+  <data name="MainView_Aspect" xml:space="preserve">
+    <value>Aspecto:</value>
+  </data>
+  <data name="MainView_Filters" xml:space="preserve">
+    <value>Filtros:</value>
+  </data>
+  <data name="MainView_Size" xml:space="preserve">
+    <value>Tamaño:</value>
+  </data>
+  <data name="MainView_Tracks" xml:space="preserve">
+    <value>Pistas:</value>
+  </data>
+  <data name="OptionsTab_General" xml:space="preserve">
+    <value>General</value>
+  </data>
+  <data name="OptionsViewModel_CheckForUpdatesMsg" xml:space="preserve">
+    <value>Clic en 'Buscar actualizaciones' para buscar nuevas versiones</value>
+  </data>
+  <data name="OptionsView_BackButton" xml:space="preserve">
+    <value>&lt; Atrás</value>
+  </data>
+  <data name="QueueView_CurrentlyPaused" xml:space="preserve">
+    <value>Actualmente Pausado</value>
+  </data>
+  <data name="Options_OutputFiles" xml:space="preserve">
+    <value>Archivos de salida</value>
+  </data>
+  <data name="PointToPointMode_Chapters" xml:space="preserve">
+    <value>Capítulos</value>
+  </data>
+  <data name="PointToPointMode_Frames" xml:space="preserve">
+    <value>Fotogramas</value>
+  </data>
+  <data name="PointToPointMode_Preview" xml:space="preserve">
+    <value>Previsualizar</value>
+  </data>
+  <data name="PointToPointMode_Seconds" xml:space="preserve">
+    <value>Segundos</value>
+  </data>
+  <data name="SubtitleBehaviourModes_AllMatching" xml:space="preserve">
+    <value>Todos los idiomas seleccionados que coinciden</value>
+  </data>
+  <data name="SubtitleBehaviourModes_FirstMatching" xml:space="preserve">
+    <value>Primer idioma seleccionado que coincide</value>
+  </data>
+  <data name="SubtitleBehaviourModes_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_FirstTrack" xml:space="preserve">
+    <value>Primera pista</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_ForeignAudioPreferredElseFirst" xml:space="preserve">
+    <value>Audio extranjero preferido, de lo contrario el primero</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_ForeignAudioTrack" xml:space="preserve">
+    <value>Pista de audio extranjera</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="SubtitleViewModel_ForeignAudioSearch" xml:space="preserve">
+    <value>Buscar audio extranjero</value>
+  </data>
+  <data name="Subtitle_ForeignAudioScan" xml:space="preserve">
+    <value>Escanear audio extranjero</value>
+  </data>
+  <data name="AudioBehaviourModes_AllMatching" xml:space="preserve">
+    <value>Todos los idiomas seleccionados que coinciden</value>
+  </data>
+  <data name="AudioBehaviourModes_AllTracks" xml:space="preserve">
+    <value>Usar todas las pistas como plantillas</value>
+  </data>
+  <data name="AudioBehaviourModes_FirstMatch" xml:space="preserve">
+    <value>Primer idioma seleccionado que coincide</value>
+  </data>
+  <data name="AudioBehaviourModes_FirstTrack" xml:space="preserve">
+    <value>Usar primera pista como plantilla</value>
+  </data>
+  <data name="AudioBehaviourModes_None" xml:space="preserve">
+    <value>Sin audio</value>
+  </data>
+  <data name="ChapterViewModel_Chapter" xml:space="preserve">
+    <value>Capítulo {0}</value>
+  </data>
+  <data name="Mp4Behaviour_Auto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="Mp4Behaviour_UseM4v" xml:space="preserve">
+    <value>Usar siempre M4V</value>
+  </data>
+  <data name="Mp4Behaviour_UseMp4" xml:space="preserve">
+    <value>Usar siempre MP4</value>
+  </data>
+  <data name="PresetPictureSettingsMode_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="PresetPictureSettingsMode_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="PresetPictureSettingsMode_SourceMaximum" xml:space="preserve">
+    <value>Use siempre la resolución de origen</value>
+  </data>
+  <data name="ProcessPriority_AboveNormal" xml:space="preserve">
+    <value>Por encima de lo normal</value>
+  </data>
+  <data name="ProcessPriority_BelowNormal" xml:space="preserve">
+    <value>Por debajo de lo normal</value>
+  </data>
+  <data name="ProcessPriority_High" xml:space="preserve">
+    <value>Alto</value>
+  </data>
+  <data name="ProcessPriority_Low" xml:space="preserve">
+    <value>Bajo</value>
+  </data>
+  <data name="ProcessPriority_Normal" xml:space="preserve">
+    <value>Normal</value>
+  </data>
+  <data name="UpdateCheck_Monthly" xml:space="preserve">
+    <value>Mensualmente</value>
+  </data>
+  <data name="UpdateCheck_Weekly" xml:space="preserve">
+    <value>Semanalmente</value>
+  </data>
+  <data name="OptionsView_AlwaysUseDefaultPath" xml:space="preserve">
+    <value>Usar siempre la ruta por defecto para cada nuevo nombre generado.</value>
+  </data>
+  <data name="OptionsView_RemotePortLimit" xml:space="preserve">
+    <value>El rango de puertos debe estar entre 5000 y 32767</value>
+  </data>
+  <data name="SourceSelection_UpdateAvailable" xml:space="preserve">
+    <value>¡Una nueva versión está disponible!</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>Copyright (C) 2003-2026 The HandBrake Team</value>
+  </data>
+  <data name="Options_LowBatteryLevel" xml:space="preserve">
+    <value>Nivel de batería bajo:</value>
+  </data>
+  <data name="Options_PauseOnLowBattery" xml:space="preserve">
+    <value>Pausa cualquier trabajo en ejecución cuando la batería esté baja.</value>
+  </data>
+  <data name="SubtitleView_AddRemainingCC" xml:space="preserve">
+    <value> Añadir todos los subtítulos restantes </value>
+  </data>
+  <data name="QueueService_DuplicatesQuestion" xml:space="preserve">
+    <value>Se detectaron trabajos duplicados en el archivo de cola que está intentando importar. ¿Desea sobrescribir los registros existentes?
+Esto también detendrá cualquier trabajo en ejecución existente.</value>
+  </data>
+  <data name="QueueService_DuplicatesTitle" xml:space="preserve">
+    <value>Duplicados detectados</value>
+  </data>
+  <data name="OptionsView_EnableQuicksyncLowPower" xml:space="preserve">
+    <value>Habilitar el hardware QuickSync de bajo consumo (cuando sea soportado).</value>
+  </data>
+  <data name="QueueView_JobInformationNotAvailable" xml:space="preserve">
+    <value>Seleccione un solo trabajo para ver información resumida.</value>
+  </data>
+  <data name="OptionsView_EnableWorkerProcesses" xml:space="preserve">
+    <value>Ejecutar cada trabajo en cola en un proceso de trabajo separado.</value>
+  </data>
+  <data name="OptionsView_WorkerDefaultPort" xml:space="preserve">
+    <value>Puerto de red predeterminado para el trabajador:</value>
+  </data>
+  <data name="Presets_NotAvailableForUse" xml:space="preserve">
+    <value>El preajuste que ha seleccionado no está disponible para su uso en este sistema.
+
+Esto suele ser una indicación de que su sistema no es compatible con el hardware necesario para utilizarlo.
+
+Por favor, elija un preajuste diferente.</value>
+  </data>
+  <data name="OptionsView_ProcessIsolation" xml:space="preserve">
+    <value>Aislamiento de procesos</value>
+  </data>
+  <data name="OptionsView_ProcessIsolation_Warning1" xml:space="preserve">
+    <value>Tenga en cuenta que esta función iniciará un servidor HTTP en 127.0.0.1 en el puerto indicado.</value>
+  </data>
+  <data name="OptionsView_ProcessIsolation_Warning2" xml:space="preserve">
+    <value>Si el puerto está en uso, se usará el primer puerto libre hasta un rango +100 del puerto configurado.</value>
+  </data>
+  <data name="OptionsView_SimultaneousEncodes" xml:space="preserve">
+    <value>Número máximo de codificaciones simultáneas:</value>
+  </data>
+  <data name="StaticPreviewView_CancelPreview" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="MainView_SelectedPresets" xml:space="preserve">
+    <value>Preajuste:</value>
+  </data>
+  <data name="SummaryView_SameAsSource" xml:space="preserve">
+    <value>Igual al original</value>
+  </data>
+  <data name="OptionsViewModel_ResetHandBrake" xml:space="preserve">
+    <value>Restablecer configuración</value>
+  </data>
+  <data name="OptionsViewModel_ResetHandBrakeQuestion" xml:space="preserve">
+    <value>¿Seguro que quiere restablecer la configuración de HandBrake a valores por defecto?</value>
+  </data>
+  <data name="PaddingMode_Custom" xml:space="preserve">
+    <value>Personalizado (sin límite)</value>
+  </data>
+  <data name="PaddingMode_Fill" xml:space="preserve">
+    <value>Ancho y Alto</value>
+  </data>
+  <data name="PaddingMode_Height" xml:space="preserve">
+    <value>Alto (Letterbox)</value>
+  </data>
+  <data name="PaddingMode_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="PaddingMode_Width" xml:space="preserve">
+    <value>Ancho (Pillarbox)</value>
+  </data>
+  <data name="PictureSettingsView_Padding" xml:space="preserve">
+    <value>Rellenar:</value>
+  </data>
+  <data name="PictureSettingsView_PaddingColour" xml:space="preserve">
+    <value>Color:</value>
+  </data>
+  <data name="PictureSettingsView_Borders" xml:space="preserve">
+    <value>Bordes:</value>
+  </data>
+  <data name="PictureSettingsView_ResAndScaling" xml:space="preserve">
+    <value>Resolución y Escalado:</value>
+  </data>
+  <data name="PictureSettingsView_RotateAndCrop" xml:space="preserve">
+    <value>Orientación y Recorte:</value>
+  </data>
+  <data name="QueueView_FilterSettings" xml:space="preserve">
+    <value>Filtros:</value>
+  </data>
+  <data name="SummaryView_Default" xml:space="preserve">
+    <value>Por defecto</value>
+  </data>
+  <data name="SummaryView_Forced" xml:space="preserve">
+    <value>Forzado</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_1080p" xml:space="preserve">
+    <value>1080p HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_480p" xml:space="preserve">
+    <value>480p NTSC SD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_4K" xml:space="preserve">
+    <value>2160p 4K Ultra HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_576p" xml:space="preserve">
+    <value>576p PAL SD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_720p" xml:space="preserve">
+    <value>720p HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_8K" xml:space="preserve">
+    <value>4320p 8K Ultra HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="PictureSettingsView_MaxSize" xml:space="preserve">
+    <value>Tamaño Máximo:</value>
+  </data>
+  <data name="PictureSettingsView_ResLimit" xml:space="preserve">
+    <value>Límite de resolución:</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_none" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="ManagePresetView_DeleteBuiltIn" xml:space="preserve">
+    <value>Eliminar preajustes integrados</value>
+  </data>
+  <data name="ManagePresetView_Export" xml:space="preserve">
+    <value>Exportar preajuste seleccionado</value>
+  </data>
+  <data name="ManagePresetView_Import" xml:space="preserve">
+    <value>Importar preajuste(s) desde archivo</value>
+  </data>
+  <data name="ManagePresetView_PresetInfo" xml:space="preserve">
+    <value>Información de preajuste:</value>
+  </data>
+  <data name="ManagePresetView_RestrictedPreset" xml:space="preserve">
+    <value>Los preajustes incorporados no se pueden modificar.</value>
+  </data>
+  <data name="ManagePresetView_SetDefault" xml:space="preserve">
+    <value>Establecer el preajuste seleccionado como predeterminado</value>
+  </data>
+  <data name="PresetManagerView_Delete" xml:space="preserve">
+    <value>Eliminar preajuste</value>
+  </data>
+  <data name="OptionsView_NotSupported" xml:space="preserve">
+    <value>(No soportado en este sistema)</value>
+  </data>
+  <data name="QueueView_Stop" xml:space="preserve">
+    <value>Detener</value>
+  </data>
+  <data name="String1" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="PresetService_CategoryAlreadyExists" xml:space="preserve">
+    <value>El nombre que ingresaste para la categoría ya existe. Por favor, elige un nombre diferente.</value>
+  </data>
+  <data name="PresetService_CategoryNameEmpty" xml:space="preserve">
+    <value>El nombre de la categoría esta vacío, por favor llene el nombre.</value>
+  </data>
+  <data name="TextEntryView_EnterName" xml:space="preserve">
+    <value>Introduzca un nombre:</value>
+  </data>
+  <data name="ManagePresetView_NoPresetSelected" xml:space="preserve">
+    <value>No se ha seleccionado un preajuste.</value>
+  </data>
+  <data name="ManagePresetView_ExportUserPresets" xml:space="preserve">
+    <value>Exportar todos los preajustes del usuario.</value>
+  </data>
+  <data name="Options_LowDiskspaceLevelText" xml:space="preserve">
+    <value>Alertar de falta de espacio en disco a partir de:</value>
+  </data>
+  <data name="OptionsView_SimultaneousHardwareLimitNotice" xml:space="preserve">
+    <value>Aviso: Este es el límite máximo de trabajos simultáneos. Pueden producirse limitaciones de hardware que reduzcan el número real de trabajos simultáneos durante la codificación. La configuración sólo tendrá efecto en el siguiente lote de cola o reinicio de la aplicación.</value>
+  </data>
+  <data name="Preset_NotAvailable" xml:space="preserve">
+    <value>(No disponible)</value>
+  </data>
+  <data name="AddPresetView_IsDefault" xml:space="preserve">
+    <value>Es por Defecto:</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>No</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Sí</value>
+  </data>
+  <data name="StaticPreviewView_FineTuning" xml:space="preserve">
+    <value>Ajustes Precisos de Imagen</value>
+  </data>
+  <data name="StaticPreviewView_ShowPictureSettingsAdjustment" xml:space="preserve">
+    <value>Mostrar los controles de ajuste de recorte.</value>
+  </data>
+  <data name="DarkTheme_dark" xml:space="preserve">
+    <value>Usar Oscuro</value>
+  </data>
+  <data name="DarkTheme_light" xml:space="preserve">
+    <value>Usar Claro</value>
+  </data>
+  <data name="DarkTheme_system" xml:space="preserve">
+    <value>Coincidir con el Sistema</value>
+  </data>
+  <data name="OptionsView_DarkThemeMode" xml:space="preserve">
+    <value>Tema:</value>
+  </data>
+  <data name="OptionsView_RequiresRestart" xml:space="preserve">
+    <value>(Requiere Reiniciar)</value>
+  </data>
+  <data name="FiltersView_ChromaSmooth" xml:space="preserve">
+    <value>Chroma Suavizado:</value>
+  </data>
+  <data name="FiltersView_ColourSpace" xml:space="preserve">
+    <value>Espacio de Color:</value>
+  </data>
+  <data name="SummaryView_Colourspace" xml:space="preserve">
+    <value>Espacio de Color</value>
+  </data>
+  <data name="PictureSettingsView_SeePreview" xml:space="preserve">
+    <value>Abrir Vista Previa</value>
+  </data>
+  <data name="SummaryView_SourcePreview" xml:space="preserve">
+    <value>Previsualizar Origen:</value>
+  </data>
+  <data name="QueueView_JobStatus" xml:space="preserve">
+    <value>Estado del Trabajo:</value>
+  </data>
+  <data name="QueueView_JobStatus_Cancelled" xml:space="preserve">
+    <value>Cancelado</value>
+  </data>
+  <data name="QueueView_JobStatus_Complete" xml:space="preserve">
+    <value>Completado</value>
+  </data>
+  <data name="QueueView_JobStatus_InitFailed" xml:space="preserve">
+    <value>Configuración inválida. Compruebe el registro para ver los detalles.</value>
+  </data>
+  <data name="QueueView_JobStatus_InvalidInput" xml:space="preserve">
+    <value>Entrada inválida. Compruebe el registro para ver los detalles.</value>
+  </data>
+  <data name="QueueView_JobStatus_NoErrorCode" xml:space="preserve">
+    <value>Estado desconocido. Compruebe el registro para ver los detalles.</value>
+  </data>
+  <data name="QueueView_JobStatus_ReadError" xml:space="preserve">
+    <value>Errores detectados al intentar leer la fuente.</value>
+  </data>
+  <data name="QueueView_JobStatus_Unknown" xml:space="preserve">
+    <value>Fallo desconocido. Compruebe el registro para ver los detalles.</value>
+  </data>
+  <data name="QueueView_JobStatus_WorkerCrash" xml:space="preserve">
+    <value>El trabajo falló. Compruebe el registro para ver los detalles.</value>
+  </data>
+  <data name="Startup_HbDllMissing" xml:space="preserve">
+    <value>Falta el archivo "hb.dll". Por favor, reinstale.</value>
+  </data>
+  <data name="OptionsView_SafeMode" xml:space="preserve">
+    <value>Advertencia: Por favor, tenga en cuenta que esta es una versión en "Modo Seguro" de HandBrake que no incluye soporte para codificadores de hardware. Si desea utilizar el soporte para codificadores de hardware, por favor descargue una compilación que no sea de "Modo Seguro" desde el sitio web.</value>
+  </data>
+  <data name="PadColour_Black" xml:space="preserve">
+    <value>Negro</value>
+  </data>
+  <data name="PadColour_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="PadColour_White" xml:space="preserve">
+    <value>Blanco</value>
+  </data>
+  <data name="PictureSettingsView_PaddingCustomColour" xml:space="preserve">
+    <value>Valor RGB:</value>
+  </data>
+  <data name="SummaryView_Padded" xml:space="preserve">
+    <value>(con relleno)</value>
+  </data>
+  <data name="FiltersView_Flip" xml:space="preserve">
+    <value>Voltear:</value>
+  </data>
+  <data name="PictureSettingsView_SourceDimensions" xml:space="preserve">
+    <value>Dimensiones del Origen:</value>
+  </data>
+  <data name="PictureSettingsViewModel_SourceInfo" xml:space="preserve">
+    <value>Tamaño de almacenamiento: {0}x{1}     Tamaño de visualización: {2}x{3}      Relación de aspecto: {4}</value>
+  </data>
+  <data name="MainViewModel_FilePathSelectError" xml:space="preserve">
+    <value>Se ha detectado un error en el diálogo del explorador de archivos. 
+
+- Por favor, tenga en cuenta que las rutas de archivo largas no son totalmente compatibles. Por favor, mantenga las rutas de los archivos con menos de 255 caracteres. 
+- El último directorio utilizado para esta ventana, se ha restablecido para evitar errores la próxima vez que intente escanear un archivo.</value>
+  </data>
+  <data name="PictureSettingsView_MaxHeight" xml:space="preserve">
+    <value>Altura máxima:</value>
+  </data>
+  <data name="PictureSettingsView_MaxWidth" xml:space="preserve">
+    <value>Ancho máximo:</value>
+  </data>
+  <data name="PictureSettingsViewModel_AspectRatioLabel" xml:space="preserve">
+    <value>Relación de Aspecto: {0}</value>
+  </data>
+  <data name="SummaryView_MetadataPassthru" xml:space="preserve">
+    <value>Metadatos Comunes de Passthru</value>
+  </data>
+  <data name="OptionsViewModel_InvalidAutonamePath" xml:space="preserve">
+    <value>La ruta del nombrado automático por defecto no fue válida. {0} no debe estar antes de {1}</value>
+  </data>
+  <data name="FirstRun_EnableUpdateCheck" xml:space="preserve">
+    <value>¿Desea permitirle a HandBrake buscar actualizaciones automáticamente?
+
+Puede cambiar su elección en cualquier momento modificando las opciones en Preferencias -&gt; General -&gt; Buscar Actualizaciones</value>
+  </data>
+  <data name="FirstRun_EnableUpdateCheckHeader" xml:space="preserve">
+    <value>¿Buscar actualizaciones?</value>
+  </data>
+  <data name="OptionsViewModel_UpdateNotice" xml:space="preserve">
+    <value>- Asegúrese de que no haya codificaciones pendientes en la cola.  
+- Copia de seguridad o tome una nota de los preajustes personalizados que haya creado, ya que pueden no ser totalmente compatibles con versiones más nuevas.</value>
+  </data>
+  <data name="Preset_Default" xml:space="preserve">
+    <value>(Por defecto)</value>
+  </data>
+  <data name="PresetDisplayMode_Category" xml:space="preserve">
+    <value>Categorías</value>
+  </data>
+  <data name="PresetDisplayMode_Flat" xml:space="preserve">
+    <value>Plano</value>
+  </data>
+  <data name="PresetDisplayMode_Partial" xml:space="preserve">
+    <value>Parcialmente plano</value>
+  </data>
+  <data name="OptionsView_PresetDisplayMode" xml:space="preserve">
+    <value>Elija la manera en que los preajustes se muestran en los menús:</value>
+  </data>
+  <data name="QueueView_SelectedPresets" xml:space="preserve">
+    <value>Preajuste:</value>
+  </data>
+  <data name="LogViewModel_Complete" xml:space="preserve">
+    <value>[Terminado]</value>
+  </data>
+  <data name="QueueViewModel_EditJob" xml:space="preserve">
+    <value>¿Editar trabajo?</value>
+  </data>
+  <data name="QueueView_Length" xml:space="preserve">
+    <value>Longitud de salida:</value>
+  </data>
+  <data name="QueueView_MoveToBottom" xml:space="preserve">
+    <value>Mover al final</value>
+  </data>
+  <data name="QueueView_MoveToTop" xml:space="preserve">
+    <value>Mover al principio</value>
+  </data>
+  <data name="QueueView_VideoOutputBitrate" xml:space="preserve">
+    <value>Bitrate de salida:</value>
+  </data>
+  <data name="QueueView_AverageEncodeSpeed" xml:space="preserve">
+    <value>Velocidad media de codificación:</value>
+  </data>
+  <data name="QueueViewModel_DifferenceText" xml:space="preserve">
+    <value>del archivo fuente</value>
+  </data>
+  <data name="QueueViewModel_NotAvailable" xml:space="preserve">
+    <value>No disponible</value>
+  </data>
+  <data name="QueueView_SourceLength" xml:space="preserve">
+    <value>Longitud de la fuente:</value>
+  </data>
+  <data name="Options_Reset" xml:space="preserve">
+    <value>Reiniciar</value>
+  </data>
+  <data name="OptionsViewModel_ResetHandBrakePresetsQuestion" xml:space="preserve">
+    <value>¿Está seguro de que desea restablecer todos los preajustes incorporados?</value>
+  </data>
+  <data name="OptionsView_ResetBuildInPresets" xml:space="preserve">
+    <value>Restablece todos los preajustes incorporados a los valores predeterminados de HandBrake:</value>
+  </data>
+  <data name="OptionsView_ResetBuildInPresetsNotice" xml:space="preserve">
+    <value>(Los preajustes de usuario no se restablecerán)</value>
+  </data>
+  <data name="OptionsView_ResetSettingsToDefaults" xml:space="preserve">
+    <value>Restablece todos los ajustes de HandBrake a los valores predeterminados:</value>
+  </data>
+  <data name="Options_BuiltInPresets" xml:space="preserve">
+    <value>Preajustes integrados</value>
+  </data>
+  <data name="Options_UserSettings" xml:space="preserve">
+    <value>Ajustes de usuario</value>
+  </data>
+  <data name="PresetDisplayMode_FloatingPanel" xml:space="preserve">
+    <value>Árbol flotante</value>
+  </data>
+  <data name="QueueViewModel_PlayFileErrorSolution" xml:space="preserve">
+    <value>Asegúrese de que tiene configuradas las asociaciones de archivos adecuadas en Windows para poder abrir este archivo con un reproductor de vídeo compatible.</value>
+  </data>
+  <data name="QueueViewModel_ImportFail" xml:space="preserve">
+    <value>No se puede leer el archivo de cola.</value>
+  </data>
+  <data name="QueueViewModel_ImportFailSolution" xml:space="preserve">
+    <value>El archivo puede estar dañado o ser de una versión anterior de HandBrake. 
+Sólo se admiten archivos de cola de la versión actual.</value>
+  </data>
+  <data name="Notifications_EncodeDone" xml:space="preserve">
+    <value>Tu codificación HandBrake está lista.</value>
+  </data>
+  <data name="Notifications_QueueDone" xml:space="preserve">
+    <value>¡Tu cola HandBrake está lista!</value>
+  </data>
+  <data name="OptionsView_NotificationRemovalSubText" xml:space="preserve">
+    <value>Esto también desactivará las opciones de mostrar notificaciones de la barra de tareas de Windows en la pestaña «Al terminar». Vuelva a habilitarlas si desea volver a activar esta función.</value>
+  </data>
+  <data name="OptionsView_NotificationRemovalText" xml:space="preserve">
+    <value>Elimine HandBrake del panel de control de notificaciones de Windows.</value>
+  </data>
+  <data name="OptionsView_UninstallMessageBoxHeader" xml:space="preserve">
+    <value>Desinstalado</value>
+  </data>
+  <data name="OptionsView_UninstallMessageBoxText" xml:space="preserve">
+    <value>Se han eliminado los ajustes de notificación.</value>
+  </data>
+  <data name="OptionsView_UninstallToast" xml:space="preserve">
+    <value>Borrar y desinstalar</value>
+  </data>
+  <data name="OptionsView_WindowsNotification" xml:space="preserve">
+    <value>Enviar una notificación a la barra de tareas de Windows.</value>
+  </data>
+  <data name="OptionsView_WindowsNotificationsBanner" xml:space="preserve">
+    <value>Notificaciones de Windows</value>
+  </data>
+  <data name="Main_QueueMultiJobStatus" xml:space="preserve">
+    <value> {0} trabajos completados. {1} Trabajando en {2} trabajos con {3} a la espera de ser procesados.</value>
+  </data>
+  <data name="MainView_AutonameRegenerate" xml:space="preserve">
+    <value>Regenerar (Autoname)</value>
+  </data>
+  <data name="MainView_OpenDirectory" xml:space="preserve">
+    <value>Abrir este directorio</value>
+  </data>
+  <data name="Shared_CollapseAll" xml:space="preserve">
+    <value>Contraer todo</value>
+  </data>
+  <data name="Shared_ExpandAll" xml:space="preserve">
+    <value>Ampliar todo</value>
+  </data>
+  <data name="OptionsView_RightToleftMode" xml:space="preserve">
+    <value>Modo de visualización de derecha a izquierda:</value>
+  </data>
+  <data name="RightToLeft_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="RightToLeft_TextOnly" xml:space="preserve">
+    <value>Sólo texto</value>
+  </data>
+  <data name="RightToLeft_WholeInterface" xml:space="preserve">
+    <value>Toda la interfaz de usuario</value>
+  </data>
+  <data name="SourceSelection_NightlyUpdate" xml:space="preserve">
+    <value>La versión de desarrollo que está utilizando se está quedando anticuada. Es posible que desee actualizarla.</value>
+  </data>
+  <data name="SourceSelection_NightlyUpdateUrl" xml:space="preserve">
+    <value>Descargar vía Github</value>
+  </data>
+  <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
+    <value>Descargar compilaciones de desarrollo (HTTPS)</value>
+  </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>Activar QuickSync Deep Link Hyper Encode</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Prefiere el uso de varios motores de medios para acelerar una sola codificación cuando sea posible. Desactivar para permitir el equilibrio de carga de múltiples codificaciones paralelas entre motores de medios.</value>
+  </data>
+  <data name="MainView_OpenHandBrake" xml:space="preserve">
+    <value>Abrir HandBrake</value>
+  </data>
+  <data name="Startup_UnableToStartInfo" xml:space="preserve">
+    <value>El soporte de codificación de hardware ha sido desactivado ya que es una causa común de problemas de arranque.
+- Por favor, intente reiniciar HandBrake. 
+- Si el problema persiste, es posible que el controlador de la tarjeta gráfica (integrada o discreta) no esté actualizado.
+
+La codificación por hardware se puede volver a activar en las preferencias.</value>
+  </data>
+  <data name="Startup_UnableToStart" xml:space="preserve">
+    <value>HandBrake no ha podido arrancar.</value>
+  </data>
+  <data name="OptionsView_ResetSafeMode" xml:space="preserve">
+    <value>Reiniciar Modo Seguro</value>
+  </data>
+  <data name="OptionsView_ResetSafeModeMessage" xml:space="preserve">
+    <value>Por favor, reinicie HandBrake.</value>
+  </data>
+  <data name="Debug_QueueDataExport" xml:space="preserve">
+    <value>Exportar datos estadísticos de colas (csv)</value>
+  </data>
+  <data name="Debug_QueueExportDataDone" xml:space="preserve">
+    <value>Exportación realizada</value>
+  </data>
+  <data name="Debug_QueueSweep_NotSetup" xml:space="preserve">
+    <value>Primero debe escanear un origen y tener configurado un directorio de destino inicial</value>
+  </data>
+  <data name="OptionsView_FileCollisionNotice" xml:space="preserve">
+    <value>Sólo cuando el archivo ya existe en el disco.</value>
+  </data>
+  <data name="Info" xml:space="preserve">
+    <value>Información</value>
+  </data>
+  <data name="SubtitleView_NoSubtitlesAdded" xml:space="preserve">
+    <value>No se han añadido pistas de subtítulos. 
+
+Esto puede deberse a limitaciones del contenedor de archivos que ha seleccionado. Consulte nuestra documentación de ayuda sobre subtítulos para obtener más información.</value>
+  </data>
+  <data name="DarkTheme_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="SourceSelection_UpdateNow" xml:space="preserve">
+    <value>¡Actualizar ahora!</value>
+  </data>
+  <data name="CropMode_Auto" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="CropMode_Loose" xml:space="preserve">
+    <value>Conservador</value>
+  </data>
+  <data name="CropMode_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="CropMode_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="OptionsView_EnableNvDecSupport" xml:space="preserve">
+    <value>Preferir el uso de Nvidia NVDec para decodificar vídeo cuando se utiliza el codificador NVEnc y el hardware está disponible para su uso.</value>
+  </data>
+  <data name="Options_Hardware" xml:space="preserve">
+    <value>Soporte de hardware</value>
+  </data>
+  <data name="StaticPreviewViewModel_MediaError" xml:space="preserve">
+    <value>El sistema no ha podido reproducir este archivo. 
+
+Tenga en cuenta que algunos códecs, como AV1 o HEVC, requieren los complementos de códec AV1 o HEVC de Microsoft Store para reproducirse.
+Como alternativa, marca la casilla «Usar reproductor externo» que aparece a continuación.</value>
+  </data>
+  <data name="StaticPreviewView_ClosePlayer" xml:space="preserve">
+    <value>Cerrar Jugador</value>
+  </data>
+  <data name="StaticPreviewView_Play" xml:space="preserve">
+    <value>Reproducir</value>
+  </data>
+  <data name="StaticPreviewView_VideoPreview" xml:space="preserve">
+    <value>Avance en vídeo</value>
+  </data>
+  <data name="StaticPreviewViewModel_WebmNotSupported" xml:space="preserve">
+    <value>La vista previa integrada no está disponible para el contenedor WebM. Debe utilizarse un reproductor externo.</value>
+  </data>
+  <data name="StaticPreview_EncodingPreview" xml:space="preserve">
+    <value>Vista previa de codificación ...</value>
+  </data>
+  <data name="StaticPreview_Previews" xml:space="preserve">
+    <value>Previsualizar:</value>
+  </data>
+  <data name="StaticPreview_Volume" xml:space="preserve">
+    <value>Volumen: 0</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Reiniciar</value>
+  </data>
+  <data name="OptionsView_IsoDateFormat" xml:space="preserve">
+    <value>Utilice el formato de fecha ISO (AAAA-MM-DD) en lugar del formato del sistema.</value>
+  </data>
+  <data name="QueueViewModel_ShortEncodeStatus" xml:space="preserve">
+    <value>Paso {0} de {1}, {2:00.00}%, {3:000.0} fps, avg {4:000.0} fps, ETA: {5}</value>
+  </data>
+  <data name="QueueViewModel_ShortSubScanStatus" xml:space="preserve">
+    <value>Buscando Subtítulos {0:00.00}%, ETA: {1}</value>
+  </data>
+  <data name="QueueView_ExtendedQueueDisplay" xml:space="preserve">
+    <value>Ampliar información de cola</value>
+  </data>
+  <data name="QueueView_MinimalQueueDisplay" xml:space="preserve">
+    <value>Minimizar la información de la cola</value>
+  </data>
+  <data name="QueueStats_ShortOutputStats" xml:space="preserve">
+    <value>Salida: {0}, media {1} fps</value>
+  </data>
+  <data name="PresetPane_Desc" xml:space="preserve">
+    <value>Descripción de preajuste:</value>
+  </data>
+  <data name="PresetPane_HidePresetDesc" xml:space="preserve">
+    <value>Ocultar preajuste Descripción</value>
+  </data>
+  <data name="PresetPane_ShowPresetDesc" xml:space="preserve">
+    <value>Mostrar descripción de preajuste</value>
+  </data>
+  <data name="TaskTrayStatusManyTitle" xml:space="preserve">
+    <value>{0}
+Codificación {1} trabajos</value>
+  </data>
+  <data name="StaticPreviewViewModel_MultipleEncodes" xml:space="preserve">
+    <value>No se puede codificar una vista previa. La aplicación está ocupada codificando otro archivo.
+
+Para permitir múltiples codificaciones simultáneas, active «Aislamiento de Procesos» en Menú Herramientas -&gt; Preferencias -&gt; Avanzado -&gt; Aislamiento de Procesos -&gt; «Ejecutar cada trabajo en cola en un proceso worker separado».</value>
+  </data>
+  <data name="AudioView_Quality" xml:space="preserve">
+    <value>Calidad</value>
+  </data>
+  <data name="AudioView_Source" xml:space="preserve">
+    <value>Origen</value>
+  </data>
+  <data name="AboutView_Documentation" xml:space="preserve">
+    <value>Documentación:</value>
+  </data>
+  <data name="AboutView_GithubTracker" xml:space="preserve">
+    <value>GitHub Issue Tracker:</value>
+  </data>
+  <data name="AboutView_Website" xml:space="preserve">
+    <value>Página web:</value>
+  </data>
+  <data name="MainView_PresetClone" xml:space="preserve">
+    <value>Clonar preajuste</value>
+  </data>
+  <data name="PresetPane_MoveDown" xml:space="preserve">
+    <value>Bajar</value>
+  </data>
+  <data name="PresetPane_MoveToBottom" xml:space="preserve">
+    <value>Mover al final</value>
+  </data>
+  <data name="PresetPane_MoveToTop" xml:space="preserve">
+    <value>Mover al principio</value>
+  </data>
+  <data name="PresetPane_MoveUp" xml:space="preserve">
+    <value>Ascender</value>
+  </data>
+  <data name="QueueViewModel_StopButContinueJob" xml:space="preserve">
+    <value>Actualmente hay trabajos en ejecución. Le gustaría completar los trabajos actuales antes de detener la cola?</value>
+  </data>
+  <data name="Options_AddExt" xml:space="preserve">
+    <value>Añadir extensión</value>
+  </data>
+  <data name="Options_ExcludeExtensions" xml:space="preserve">
+    <value>Excluir extensiones de archivo:</value>
+  </data>
+  <data name="Options_ExcludeExtensionsInfo" xml:space="preserve">
+    <value>Las siguientes extensiones de archivo serán ignoradas al escanear una carpeta. La lista no distingue entre mayúsculas y minúsculas. «.» no es obligatorio.</value>
+  </data>
+  <data name="Options_ExtensionExists" xml:space="preserve">
+    <value>Esta extensión de archivo ya existe en la lista.</value>
+  </data>
+  <data name="Options_FileHandling" xml:space="preserve">
+    <value>Gestión de archivos (escaneado)</value>
+  </data>
+  <data name="Options_RecursiveFolderScan" xml:space="preserve">
+    <value>Escanear directorios de forma recursiva cuando se utiliza el modo de escaneo de carpetas.</value>
+  </data>
+  <data name="AudioView_AudioQuality" xml:space="preserve">
+    <value>Calidad de la pista de audio</value>
+  </data>
+  <data name="AudioView_AudioTrackName" xml:space="preserve">
+    <value>Nombre de la pista de audio</value>
+  </data>
+  <data name="AudioView_BitrateSelection" xml:space="preserve">
+    <value>Bitrate de pista de audio</value>
+  </data>
+  <data name="AudioView_DeleteTrack" xml:space="preserve">
+    <value>Borrar esta pista de audio</value>
+  </data>
+  <data name="AudioView_QualityMode" xml:space="preserve">
+    <value>Modo de calidad del codificador de audio</value>
+  </data>
+  <data name="QueueView_AdvancedQueueDisplay" xml:space="preserve">
+    <value>Utilizar la vista avanzada de colas</value>
+  </data>
+  <data name="QueueView_SimpleQueueDisplay" xml:space="preserve">
+    <value>Utilizar la vista de cola simple</value>
+  </data>
+  <data name="VideoView_LosslessEncodeOnly" xml:space="preserve">
+    <value>Sólo codificación sin pérdidas.</value>
+  </data>
+  <data name="MainView_HideClassicMenu" xml:space="preserve">
+    <value>Ocultar menú clásico</value>
+  </data>
+  <data name="MainView_ShowClassicMenu" xml:space="preserve">
+    <value>Mostrar menú clásico</value>
+  </data>
+  <data name="OptionsViewVideo_UnsupportedIntelDriver" xml:space="preserve">
+    <value>(Advertencia: Se ha detectado un controlador no compatible - Se recomienda actualizar)</value>
+  </data>
+  <data name="QueueSelectionView_RangeLimits" xml:space="preserve">
+    <value>Límites de alcance:</value>
+  </data>
+  <data name="QueueSelectionView_RangeLimitsDesc" xml:space="preserve">
+    <value>Limitar la longitud de los títulos añadidos a la cola.</value>
+  </data>
+  <data name="QueueSelectionView_RangeLimitsEnable" xml:space="preserve">
+    <value>Activar límites de rango</value>
+  </data>
+  <data name="AddToQueue_RangeLimitError" xml:space="preserve">
+    <value>Algunos títulos no han podido añadirse a la cola por estar fuera de los límites del rango seleccionado.</value>
+  </data>
+  <data name="QueueView_StartAtTime" xml:space="preserve">
+    <value>Empezar más tarde</value>
+  </data>
+  <data name="QueueView_QueueStartTime" xml:space="preserve">
+    <value>La cola comenzará automáticamente en:</value>
+  </data>
+  <data name="QueueView_EncodeShutdown" xml:space="preserve">
+    <value>Apagando Encode ...</value>
+  </data>
+  <data name="PictureSettingsView_AllowUpscaling" xml:space="preserve">
+    <value>Permitir la ampliación</value>
+  </data>
+  <data name="PictureSettingsView_OptimalSize" xml:space="preserve">
+    <value>Tamaño óptimo</value>
+  </data>
+  <data name="OptionsView_Available" xml:space="preserve">
+    <value>Disponible en este sistema.</value>
+  </data>
+  <data name="OptionsView_NotAvailable" xml:space="preserve">
+    <value>No disponible en este sistema.</value>
+  </data>
+  <data name="MainView_ScanningStatus" xml:space="preserve">
+    <value>Por favor, espere...</value>
+  </data>
+  <data name="MainView_Cancel" xml:space="preserve">
+    <value>Cancelar</value>
+  </data>
+  <data name="MainView_OpenLog" xml:space="preserve">
+    <value>Abrir ventana de registro</value>
+  </data>
+  <data name="OptionsView_EnableNvencEncoding" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="OptionsView_EnableQuicksyncEncoding" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="OptionsView_EnableVceEncoding" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="OptionsView_ChoiceOfEncoderHint" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="AnamorphicMode_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="AnamorphicMode_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="AnamorphicMode_Automatic" xml:space="preserve">
+    <value>Automático</value>
+  </data>
+  <data name="CombDetect_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="CombDetect_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="CombDetect_Default" xml:space="preserve">
+    <value>Por defecto</value>
+  </data>
+  <data name="DeinterlaceFilter_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Denoise_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Detelecine_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Detelecine_Default" xml:space="preserve">
+    <value>Por defecto</value>
+  </data>
+  <data name="Detelecine_Custom" xml:space="preserve">
+    <value>Personalizado</value>
+  </data>
+  <data name="Sharpen_Off" xml:space="preserve">
+    <value>Off</value>
+  </data>
+  <data name="Options_MaxTitleScanDuration" xml:space="preserve">
+    <value>Duración máxima de los títulos de DVD y Blu-ray en segundos. Los títulos más largos se omitirán:</value>
+  </data>
+  <data name="DefaultRangeMode_Chapters" xml:space="preserve">
+    <value>Capítulos</value>
+  </data>
+  <data name="DefaultRangeMode_Seconds" xml:space="preserve">
+    <value>Segundos</value>
+  </data>
+  <data name="DefaultRangeMode_Frames" xml:space="preserve">
+    <value>Fotogramas</value>
+  </data>
+  <data name="Options_RangeModeSelection" xml:space="preserve">
+    <value>Modo de rango por defecto para Títulos:</value>
+  </data>
+  <data name="WhenDone_CustomAction" xml:space="preserve">
+    <value>Acción Personalizada</value>
+  </data>
+  <data name="OptionsView_CustomActionConfig" xml:space="preserve">
+    <value>Configuración de 'Acción Personalizada':</value>
+  </data>
+  <data name="MainView_OpenAutonamePreferences" xml:space="preserve">
+    <value>Abrir las preferencias de nombre automático</value>
+  </data>
+  <data name="Options_RunAction" xml:space="preserve">
+    <value>Ejecutar Script/Ejecutable:</value>
+  </data>
+  <data name="OptionsViewModel_PortableMode" xml:space="preserve">
+    <value>HandBrake está configurado actualmente en modo portable. Para actualizar una instalación portable, descargue la última actualización del sitio web.</value>
+  </data>
+  <data name="MetaData_Add" xml:space="preserve">
+    <value>Añadir Fila</value>
+  </data>
+  <data name="MainView_DebugMenu" xml:space="preserve">
+    <value>Menú de depuración</value>
+  </data>
+  <data name="MainView_DebugExportData" xml:space="preserve">
+    <value>Exportar archivo de depuración (JSON)</value>
+  </data>
+  <data name="MainView_DebugImportData" xml:space="preserve">
+    <value>Importar archivo de depuración (JSON)</value>
+  </data>
+  <data name="MainView_DebugQualitySweep" xml:space="preserve">
+    <value>Añadir a la cola - Barrido de calidad</value>
+  </data>
+  <data name="LogView_ChooseLogFile" xml:space="preserve">
+    <value>Elegir el archivo de registro:</value>
+  </data>
+  <data name="LogView_AutoScrolling" xml:space="preserve">
+    <value>Desplazamiento automático</value>
+  </data>
+  <data name="LogLevel_Minimised" xml:space="preserve">
+    <value>Minimizado</value>
+  </data>
+  <data name="LogLevel_Standard" xml:space="preserve">
+    <value>Estándar</value>
+  </data>
+  <data name="LogLevel_Extended" xml:space="preserve">
+    <value>Extendido</value>
+  </data>
+  <data name="QueueView_CancelDelayStart" xml:space="preserve">
+    <value>Cancelar retraso</value>
+  </data>
+  <data name="QueueView_StartQueueNow" xml:space="preserve">
+    <value>Iniciar cola (Inmediatamente)</value>
+  </data>
+  <data name="AudioTrackNaming_None" xml:space="preserve">
+    <value>Ninguno</value>
+  </data>
+  <data name="AudioTrackNaming_Unnamed" xml:space="preserve">
+    <value>Solo sin nombre</value>
+  </data>
+  <data name="AudioTrackNaming_All" xml:space="preserve">
+    <value>Todas las Pistas</value>
+  </data>
+  <data name="AudioDefaultsView_NamingBehaviour" xml:space="preserve">
+    <value>Comportamiento de nombre de pista:</value>
+  </data>
+  <data name="AudioDefaultsView_AutoNaming" xml:space="preserve">
+    <value>Nombre automático:</value>
+  </data>
+  <data name="AudioDefaultsView_PassthruTrackNames" xml:space="preserve">
+    <value>Nombres de las pistas de paso</value>
+  </data>
+  <data name="SubtitlesDefaultsView_PassthruTrackName" xml:space="preserve">
+    <value>Nombres de las pistas de paso</value>
+  </data>
+  <data name="VideoColourRange_SameAsSource" xml:space="preserve">
+    <value>Igual al original</value>
+  </data>
+  <data name="VideoColourRange_Full" xml:space="preserve">
+    <value>Completo</value>
+  </data>
+  <data name="VideoColourRange_Limited" xml:space="preserve">
+    <value>Limitado</value>
+  </data>
+  <data name="DarkTheme_Modern" xml:space="preserve">
+    <value>Moderno</value>
+  </data>
+  <data name="Options_BeforeUpdating" xml:space="preserve">
+    <value>Antes de actualizar</value>
+  </data>
+  <data name="Options_UpdateNotComplete" xml:space="preserve">
+    <value>Se canceló la instalación de la actualización.</value>
+  </data>
+  <data name="AboutView_ReleaseNotes" xml:space="preserve">
+    <value>Notas de la versión</value>
+  </data>
+  <data name="Options_ReleaseNotesDesc" xml:space="preserve">
+    <value>Puede obtener información sobre los últimos cambios de HandBrake en:</value>
+  </data>
+  <data name="PresetUiType_Menu" xml:space="preserve">
+    <value>Menú</value>
+  </data>
+  <data name="PresetUiType_Overlay" xml:space="preserve">
+    <value>Cubrir</value>
+  </data>
+  <data name="OptionsView_PresetUiType" xml:space="preserve">
+    <value>Mostrar la ventana emergente predefinida de la barra de herramientas como:</value>
+  </data>
+  <data name="QueueViewModel_CancelErrorWillBeCleared" xml:space="preserve">
+    <value>La cola contiene actualmente trabajos en estado "Cancelado" o "Con Error". Estos se borrarán al iniciar la cola.
+
+¿Desea continuar?</value>
+  </data>
+  <data name="QueueView_ExportSelected" xml:space="preserve">
+    <value>Exportar Cola (Seleccionada)</value>
+  </data>
+  <data name="VideoView_SameAsSource" xml:space="preserve">
+    <value>Igual al original</value>
+  </data>
+</root>

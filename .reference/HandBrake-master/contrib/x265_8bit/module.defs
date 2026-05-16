@@ -1,0 +1,70 @@
+__deps__ := 
+$(eval $(call import.MODULE.defs,X265_8,x265_8,$(__deps__),x265))
+$(eval $(call import.CONTRIB.defs,X265_8))
+
+X265_8.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/x265_4.2.tar.gz
+X265_8.FETCH.url    += https://bitbucket.org/multicoreware/x265_git/downloads/x265_4.2.tar.gz
+X265_8.FETCH.sha256  = 40b1ea0453e0309f0eba934e0ddf533f8f6295966679e8894e8f1c1c8d5e1210
+
+X265_8.build_dir             = 8bit
+X265_8.CONFIGURE.exe         = cmake
+X265_8.CONFIGURE.args.prefix = -DCMAKE_INSTALL_PREFIX="$(X265_8.CONFIGURE.prefix)"
+X265_8.CONFIGURE.args.host   = -DCMAKE_HOST_SYSTEM="$(X265_8.CONFIGURE.build)"
+X265_8.CONFIGURE.deps        =
+X265_8.CONFIGURE.static      =
+X265_8.CONFIGURE.shared      = -DENABLE_SHARED=OFF
+X265_8.CONFIGURE.extra       = -DENABLE_CLI=OFF -DHIGH_BIT_DEPTH=OFF -DEXTRA_LIB="x265_main10.a;x265_main12.a" -DEXTRA_LINK_FLAGS=-L. -DLINKED_10BIT=ON -DLINKED_12BIT=ON -DCMAKE_ASM_NASM_FLAGS=-w-macro-params-legacy
+
+ifneq (1,$(FEATURE.numa))
+    X265_8.CONFIGURE.extra  += -DENABLE_LIBNUMA=OFF
+endif
+
+ifeq (size-aggressive,$(GCC.O))
+    X265_8.CONFIGURE.extra += -DCMAKE_CXX_FLAGS_MINSIZEREL="-Oz -DNDEBUG" -DCMAKE_C_FLAGS_MINSIZEREL="-Oz -DNDEBUG"
+endif
+
+ifeq (darwin,$(HOST.system))
+    X265_8.CONFIGURE.extra += -DCMAKE_OSX_ARCHITECTURES=$(HOST.machine)
+endif
+
+ifeq ($(GCC.O),$(filter $(GCC.O),size size-aggressive))
+    X265_8.CONFIGURE.extra += -DCMAKE_BUILD_TYPE=MinSizeRel
+else
+    ifneq (none,$(X265_8.GCC.g))
+        X265_8.CONFIGURE.extra += -DCMAKE_BUILD_TYPE=Debug
+    else
+        X265_8.CONFIGURE.extra += -DCMAKE_BUILD_TYPE=Release
+    endif
+endif
+
+ifeq (on,$(GCC.lto))
+    X265_8.CONFIGURE.extra += -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=TRUE
+else ifeq (thin,$(GCC.lto))
+    X265_8.CONFIGURE.extra += -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=TRUE -DCMAKE_LTO_THIN=TRUE
+else ifeq (off,$(GCC.lto))
+    X265_8.CONFIGURE.extra += -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=FALSE
+endif
+
+X265_8.CONFIGURE.args.host  = -DCMAKE_HOST_SYSTEM="$(X265_8.CONFIGURE.host)"
+ifeq (1,$(HOST.cross))
+    ifeq (mingw,$(HOST.system))
+        X265_8.CONFIGURE.extra += -DWIN32=ON
+        X265_8.CONFIGURE.extra += -DCMAKE_SYSTEM_NAME=Windows
+        X265_8.CONFIGURE.extra += -DCMAKE_C_COMPILER=$(X265_8.GCC.gcc)
+        X265_8.CONFIGURE.extra += -DCMAKE_CXX_COMPILER=$(X265_8.GCC.gxx)
+        X265_8.CONFIGURE.extra += -DCMAKE_RC_COMPILER=$(HOST.cross.prefix)windres
+        X265_8.CONFIGURE.args.host  = -DCMAKE_HOST_SYSTEM="$(X265_8.CONFIGURE.host)"
+    endif
+    X265_8.CONFIGURE.args.build = -DCMAKE_SYSTEM_PROCESSOR=$(HOST.machine)
+endif
+
+## find CMakeLists.txt
+X265_8.CONFIGURE.extra += "$(call fn.ABSOLUTE,$(X265_8.EXTRACT.dir/)source/)"
+
+X265_8.INSTALL.make = $(MV.exe)
+X265_8.INSTALL.args.dir = cd $(1);
+X265_8.INSTALL.extra = libx265.a libx265_main.a
+X265_8.INSTALL.args = @dir !make !extra
+
+# Override operations that are not needed
+X265_8.XCLEAN =

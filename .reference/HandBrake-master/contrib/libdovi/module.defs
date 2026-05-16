@@ -1,0 +1,57 @@
+$(eval $(call import.MODULE.defs,LIBDOVI,libdovi))
+$(eval $(call import.CONTRIB.defs,LIBDOVI))
+
+ifeq (1,$(FEATURE.flatpak))
+    LIBDOVI.FETCH.url      = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/dovi_tool-libdovi-3.3.2_vendor.tar.gz
+    LIBDOVI.FETCH.sha256   = 7a6eac8975ba576cad48eae7e569eebb988bce8f47a0e259647b206e938429cb
+    LIBDOVI.FETCH.basename = dovi_tool-libdovi-3.3.2_vendor.tar.gz
+else
+    LIBDOVI.FETCH.url      = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs2/dovi_tool-libdovi-3.3.2.tar.gz
+    LIBDOVI.FETCH.url     += https://github.com/quietvoid/dovi_tool/archive/refs/tags/libdovi-3.3.2.tar.gz
+    LIBDOVI.FETCH.sha256   = 8ccb1922d7dbb57bc4f2c15c10b90c462f7a5f292efe317c116db923728dd3f1
+    LIBDOVI.FETCH.basename = dovi_tool-libdovi-3.3.2.tar.gz
+endif
+
+LIBDOVI.EXTRACT.tarbase = dovi_tool-libdovi-3.3.2
+
+define LIBDOVI.CONFIGURE
+     cd $(LIBDOVI_DV.dir); $(CARGO.exe) fetch
+     $(TOUCH.exe) $@
+endef
+
+ifeq (1,$(HOST.cross))
+    ifeq ($(HOST.system),darwin)
+        ifneq ($(HOST.machine),$(BUILD.machine))
+            LIBDOVI.target += --target="$(HOST.machine:arm64=aarch64)-$(HOST.vendor)-$(HOST.system)"
+        endif
+    else ifeq ($(HOST.system)-$(HOST.machine),mingw-aarch64)
+        LIBDOVI.target += --target="aarch64-pc-windows-gnullvm"
+    else ifeq ($(HOST.system),mingw)
+        LIBDOVI.target += --target="$(HOST.machine)-pc-windows-gnu"
+    else
+        LIBDOVI.target += --target="$(HOST.machine)-$(HOST.vendor)-$(HOST.system)"
+    endif
+endif
+
+LIBDOVI_DV.dir   = "$(LIBDOVI.EXTRACT.dir/)dolby_vision"
+LIBDOVI.manifest = --manifest-path="$(LIBDOVI.EXTRACT.dir/)dolby_vision/Cargo.toml"
+LIBDOVI.prefix   = --prefix "$(LIBDOVI.CONFIGURE.prefix)"
+LIBDOVI.extra    = --release --library-type staticlib $(LIBDOVI.prefix) $(LIBDOVI.target) \
+                   --libdir="$(LIBDOVI.CONFIGURE.prefix)/lib" --pkgconfigdir="$(LIBDOVI.CONFIGURE.prefix)/lib/pkgconfig"
+
+LIBDOVI.BUILD.make       = cd $(LIBDOVI_DV.dir); $(CARGO.exe) cbuild
+LIBDOVI.BUILD.extra      = $(LIBDOVI.extra)
+LIBDOVI.BUILD.args.dir   =
+
+LIBDOVI.INSTALL.make       = cd $(LIBDOVI_DV.dir); $(CARGO.exe) cinstall
+#LIBDOVI.INSTALL.make     = $(CARGO.exe) cinstall
+LIBDOVI.INSTALL.extra    = $(LIBDOVI.extra)
+LIBDOVI.INSTALL.args.dir =
+
+LIBDOVI.CLEAN.make       = $(CARGO.exe) clean
+LIBDOVI.CLEAN.args.dir   = $(LIBDOVI.manifest)
+LIBDOVI.CLEAN.ntargets   =
+
+## optional static libs need to be marked
+LIBDOVI.OSL.libs  = dovi
+LIBDOVI.OSL.files = $(foreach i,$(LIBDOVI.OSL.libs),$(call fn.ABSOLUTE,$(CONTRIB.build/)lib/lib$(i).a))

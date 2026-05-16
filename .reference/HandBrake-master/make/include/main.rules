@@ -1,0 +1,53 @@
+.DELETE_ON_ERROR:
+.SUFFIXES:
+
+###############################################################################
+
+## shunt make through xcodebuild when FEATURE.xcode=1 and XCODE.driver is applicable
+ifeq (1:shunt,$(FEATURE.xcode):$(if $(filter bootstrap terminal,$(XCODE.driver)),shunt))
+    include $(SRC/)macosx/module.xcodebuild
+else
+
+## only included using special report targets
+ifneq (,$(REPORT))
+    include $(SRC/)make/include/report.defs
+endif
+
+###############################################################################
+
+.PHONY: build clean install uninstall xclean doc report
+
+build:
+clean:
+install:
+install-strip:
+uninstall:
+xclean: contrib.xclean clean
+doc:
+report:: report.main report.modules
+
+## legacy
+mrproper: xclean
+
+###############################################################################
+
+include $(SRC/)make/include/base.rules
+
+include $(MODULES:%=$(SRC/)%/module.rules)
+-include $(SRC/)make/variant/$(HOST.system).rules
+-include $(SRC/)make/variant/$(HOST.system).$(HOST.machine).rules
+
+###############################################################################
+
+## force reconfigure
+.PHONY: reconfigure
+reconfigure:
+	$(SRC/)configure --force $(CONF.args)
+
+###############################################################################
+
+## build all dependency dirs
+$(sort $(dir $(BUILD.out))):
+	$(MKDIR.exe) -p $@
+
+endif ## FEATURE.xcode XCODE.driver

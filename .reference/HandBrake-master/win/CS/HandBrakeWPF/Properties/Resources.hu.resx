@@ -1,0 +1,3044 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string"/>
+              <xsd:attribute name="type" type="xsd:string"/>
+              <xsd:attribute name="mimetype" type="xsd:string"/>
+              <xsd:attribute ref="xml:space"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string"/>
+              <xsd:attribute name="name" type="xsd:string"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+              <xsd:attribute ref="xml:space"/>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Video_EncoderExtraArgs" xml:space="preserve">
+    <value>A kódoló paramétereinek teljes listája: 
+{0}</value>
+  </data>
+  <data name="Video_x264FastDecode" xml:space="preserve">
+    <value>Csökkentse a dekóder CPU-használatát.
+
+Ezt akkor állítsa be, ha a készülék nehezen tudja lejátszani a kimenetet. (pl. kiesett képkockák)</value>
+  </data>
+  <data name="Video_LosslessWarning" xml:space="preserve">
+    <value>Figyelmeztetés: RF 0 veszteségmentes!</value>
+  </data>
+  <data name="Video_LosslessWarningTooltip" xml:space="preserve">
+    <value>A 0 érték veszteségmentességet jelent, és az eredeti forrásnál nagyobb fájlméretet eredményez,
+kivéve, ha a forrás szintén veszteségmentes volt. 
+
+Az x264 és x265 skála logaritmikus, és az alacsonyabb értékek magasabb minőségnek felelnek meg. 
+
+Így az értékek kis mértékű növekedése az eredményül kapott fájl méretének fokozatos növekedését eredményezi.</value>
+  </data>
+  <data name="AddPreset_PictureSizeMode" xml:space="preserve">
+    <value>Ezzel az előbeállítással opcionálisan tárolhat egy képbeállítást. 3 üzemmód létezik:
+
+Nincs: A képbeállításokat nem tárolja az előbeállítás. Forrás betöltésekor a forrás felbontásának határain belül változatlanul megmaradnak. Ez érinti az anamorfikus, modulus, vágás stb. beállításokat is.
+
+Egyéni: Opcionálisan beállíthatja a maximális szélességet és a magasságot. Ha ezt teszi, a kódolás kisebb vagy egyenlő lesz ezekkel az értékekkel. A képarány automatikusan be lesz kapcsolva.
+
+Forrás maximuma: Mindig a forrás felbontásával kódoljon, ahol lehetséges.</value>
+  </data>
+  <data name="About_GPL" xml:space="preserve">
+    <value>Ez a program szabad szoftver; továbbterjesztheti és/vagy
+módosíthatja a GNU General Public License feltételei szerint.
+ahogyan azt a Free Software Foundation közzétette; vagy a 2. verzió
+verziója, vagy (az Ön választása szerint) bármely későbbi verziója.
+
+Ezt a programot abban a reményben terjesztjük, hogy hasznos lesz,
+de MINDEN GARANCIA NÉLKÜL; még a hallgatólagos garancia nélkül is.
+GAZDASÁGOSSÁG vagy EGY KÜLÖNLEGES CÉLRA VALÓ ALKALMAZHATÓSÁG. Lásd a
+GNU General Public License további részletekért.
+
+Meg kell kapnia a GNU General Public License egy példányát.
+a programmal együtt; ha nem, akkor írjon a Szabad Szoftver
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.</value>
+  </data>
+  <data name="QueueSelection_AutoNameWarning" xml:space="preserve">
+    <value>FIGYELMEZTETÉS: Nincs bekapcsolva az automatikus fájlelnevezés. Kérjük, engedélyezze ezt a beállításokban.</value>
+  </data>
+  <data name="QueueSelection_AutoTrackSelectionWarning" xml:space="preserve">
+    <value>FIGYELMEZTETÉS: Jelenleg nincs automatikus hang- és felirat-sávválasztás beállítása. Az alapértelmezett sávválasztási viselkedést az opciókban állíthatja be.</value>
+  </data>
+  <data name="Presets_ResetComplete" xml:space="preserve">
+    <value>A beépített készletek alaphelyzetbe álltak.</value>
+  </data>
+  <data name="Presets_ResetHeader" xml:space="preserve">
+    <value>Visszaállítás befejeződött</value>
+  </data>
+  <data name="Video_HigherQuality" xml:space="preserve">
+    <value>Magasabb minőség |</value>
+  </data>
+  <data name="Video_LowQuality" xml:space="preserve">
+    <value>| Alacsonyabb minőség</value>
+  </data>
+  <data name="Video_PlaceboQuality" xml:space="preserve">
+    <value>Placebo minőség |</value>
+  </data>
+  <data name="Error" xml:space="preserve">
+    <value>Hiba</value>
+  </data>
+  <data name="Main_TurnOnAutoFileNaming" xml:space="preserve">
+    <value>Be kell kapcsolnia az automatikus fájlelnevezést, ÉS be kell állítania egy alapértelmezett elérési utat a beállításokban, mielőtt hozzáadhatná a várólistához.</value>
+  </data>
+  <data name="Warning" xml:space="preserve">
+    <value>Figyelmeztetés</value>
+  </data>
+  <data name="AreYouSure" xml:space="preserve">
+    <value>Biztos vagy benne?</value>
+  </data>
+  <data name="HandBrake_Title" xml:space="preserve">
+    <value>HandBrake</value>
+  </data>
+  <data name="Main_AlreadyEncoding" xml:space="preserve">
+    <value>A HandBrake már kódol.</value>
+  </data>
+  <data name="Main_DuplicateDestinationOnQueue" xml:space="preserve">
+    <value>A várólistán vannak olyan feladatok, amelyeknek ugyanaz a célútvonala. Kérjük, válasszon más útvonalat ehhez a feladathoz.
+ 
+Az automatikus fájlelnevezési beállításokat az "Eszközök menü -&gt; Beállítások -&gt; Kimeneti fájlok" menüpontban érdemes beállítani.
+</value>
+  </data>
+  <data name="Main_JobsPending_addon" xml:space="preserve">
+    <value>Függőben lévő feladatok {0}</value>
+  </data>
+  <data name="Main_NewDefaultPreset" xml:space="preserve">
+    <value>Új alapértelmezett beállításkészlet: {0}</value>
+  </data>
+  <data name="Main_NewUpdate" xml:space="preserve">
+    <value>Új frissítés érhető el. Menjen az Eszközök menü &gt; Beállítások a telepítéshez</value>
+  </data>
+  <data name="Main_NoPresetSelected" xml:space="preserve">
+    <value>Nincs kiválasztott előbeállítás.</value>
+  </data>
+  <data name="Main_NoUpdateOfBuiltInPresets" xml:space="preserve">
+    <value>A beépített előbeállítások nem módosíthatók. Kérjük, válasszon egy saját előbeállítást.</value>
+  </data>
+  <data name="Main_PleaseSelectFolder" xml:space="preserve">
+    <value>Kérjük, válasszon ki egy mappát.</value>
+  </data>
+  <data name="Main_PreparingToEncode" xml:space="preserve">
+    <value>Előkészületek a kódoláshoz ...</value>
+  </data>
+  <data name="Main_PresetErrorBuiltInName" xml:space="preserve">
+    <value>Nem importálhat olyan előbeállítást, amelynek neve megegyezik egy beépített előbeállítás nevével.</value>
+  </data>
+  <data name="Main_PresetOverwriteWarning" xml:space="preserve">
+    <value>"{0}" előbeállítás már létezik. Szeretné felülírni?</value>
+  </data>
+  <data name="Main_Presets" xml:space="preserve">
+    <value>Előbeállítások</value>
+  </data>
+  <data name="Main_PresetUpdateConfirmation" xml:space="preserve">
+    <value>Biztos, hogy frissíteni szeretné a kiválasztott előbeállítást?</value>
+  </data>
+  <data name="Main_PresetUpdated" xml:space="preserve">
+    <value>Az Előbeállítás mostantól frissült az aktuális beállításokkal.</value>
+  </data>
+  <data name="Main_PresetUpdateNotification" xml:space="preserve">
+    <value>A HandBrake megállapította, hogy a beépített előbeállítások elavultak... Ezek az előbeállítások most frissítve lesznek.
+Az egyéni előbeállítások nem lettek frissítve, így ezeket újra létre kell hoznia törléssel és újbóli hozzáadással.
+A korábbi user_presets.xml fájlról biztonsági másolat készült.</value>
+  </data>
+  <data name="Main_QueueFinished" xml:space="preserve">
+    <value>Befejeződött a várólista</value>
+  </data>
+  <data name="Main_ScanCancelled" xml:space="preserve">
+    <value>A vizsgálat megszakítva.</value>
+  </data>
+  <data name="Main_ScanCompleted" xml:space="preserve">
+    <value>A vizsgálat befejeződött</value>
+  </data>
+  <data name="Main_ScanFailed_NoReason" xml:space="preserve">
+    <value>A vizsgálat sikertelen:</value>
+  </data>
+  <data name="Main_ScanFailed_CheckLog" xml:space="preserve">
+    <value>A vizsgálat sikertelen... A részletekért tekintse meg a Tevékenységnaplót.</value>
+  </data>
+  <data name="Main_ScanningPleaseWait" xml:space="preserve">
+    <value>Forrás szkennelése, kérlek várj...</value>
+  </data>
+  <data name="Main_ScanningTitleXOfY" xml:space="preserve">
+    <value>Cím beolvasása {0} of {1} ({2}%)</value>
+  </data>
+  <data name="Main_ScanSource" xml:space="preserve">
+    <value>A kódolás megkezdése előtt először be kell vizsgálnia a forrást, és be kell állítania a feladatot. A folytatáshoz kattintson a "Forrás" gombra az eszköztáron.</value>
+  </data>
+  <data name="Main_SelectPreset" xml:space="preserve">
+    <value>Kérjük, győződjön meg arról, hogy saját előre beállított értékeket választott. Kérjük, vegye figyelembe, hogy a beépített készleteket nem exportálhatja.</value>
+  </data>
+  <data name="Main_SelectPresetForUpdate" xml:space="preserve">
+    <value>Kérjük, válasszon ki egy frissítendő előbeállítást.</value>
+  </data>
+  <data name="Main_SelectSource" xml:space="preserve">
+    <value>A folytatáshoz válassza a "Forrás" lehetőséget</value>
+  </data>
+  <data name="Main_XEncodesPending" xml:space="preserve">
+    <value>{0} Folyamatban lévő feladatok</value>
+  </data>
+  <data name="Notice" xml:space="preserve">
+    <value>Értesítés</value>
+  </data>
+  <data name="Overwrite" xml:space="preserve">
+    <value>Felülírja?</value>
+  </data>
+  <data name="Question" xml:space="preserve">
+    <value>Kérdés</value>
+  </data>
+  <data name="State_Ready" xml:space="preserve">
+    <value>Kész</value>
+  </data>
+  <data name="Updated" xml:space="preserve">
+    <value>Frissítve</value>
+  </data>
+  <data name="Preset_OldVersion_Header" xml:space="preserve">
+    <value>Előbeállítás verzió</value>
+  </data>
+  <data name="Preset_OldVersion_Message" xml:space="preserve">
+    <value>Az előbeállítás, amit megpróbál importálni, a HandBrake egy másik verziójából származik. 
+ Előfordulhat, hogy nem lehet az összes értéket importálni ebből az előbeállításból. 
+
+Szeretné folytatni?</value>
+  </data>
+  <data name="Preset_UnableToImport_Header" xml:space="preserve">
+    <value>Előbeállítás importálása nem lehetséges!</value>
+  </data>
+  <data name="Preset_UnableToImport_Message" xml:space="preserve">
+    <value>Az előbeállítás nem importálható, mivel úgy tűnik, hogy sérült vagy a HandBrake egy régebbi verziójából származik.</value>
+  </data>
+  <data name="Main_SetDestination" xml:space="preserve">
+    <value>A sorba állítás előtt először meg kell adnia a kimeneti fájl rendeltetési elérési útvonalát.</value>
+  </data>
+  <data name="Main_InvalidDestination" xml:space="preserve">
+    <value>A megadott célállomás elérési útvonal tiltott karaktereket tartalmazott, ezért nem frissül.</value>
+  </data>
+  <data name="Preview" xml:space="preserve">
+    <value>Előnézet {0}</value>
+  </data>
+  <data name="Preview_Scaled" xml:space="preserve">
+    <value>Előnézet (Méretezett)</value>
+  </data>
+  <data name="PictureSettings_OutputResolution" xml:space="preserve">
+    <value>Kimenet: {0}</value>
+  </data>
+  <data name="Main_MatchingFileOverwriteWarning" xml:space="preserve">
+    <value>Nem lehet olyan fájlba kódolni, amelynek elérési útja és fájlneve megegyezik a forrásfájléval. Kérjük, frissítse a célfájl nevét, hogy az ne egyezzen meg a forrásfájléval.</value>
+  </data>
+  <data name="Main_UnableToLoadHelpMessage" xml:space="preserve">
+    <value>Az Ön rendszere megakadályozta, hogy a HandBrake elindítsa a webböngészőt.</value>
+  </data>
+  <data name="Main_UnableToLoadHelpSolution" xml:space="preserve">
+    <value>A súgóoldalakat továbbra is elérheti, ha közvetlenül a weboldalra látogat a következő címen: https://handbrake.fr</value>
+  </data>
+  <data name="Main_PresetImportFailed" xml:space="preserve">
+    <value>Nem sikerült importálni a kiválasztott előbeállítást.</value>
+  </data>
+  <data name="Main_PresetImportFailedSolution" xml:space="preserve">
+    <value>Az előbeállítás lehet, hogy sérült, vagy a HandBrake régebbi verziójából származik, amely nem támogatott. 
+A régebbi verziókból származó előbeállításokat újra kell készíteni az aktuális verzióban.</value>
+  </data>
+  <data name="Video_EncoderExtraArgsTooltip" xml:space="preserve">
+    <value>A videó kódolónak átadható további speciális argumentumok.</value>
+  </data>
+  <data name="Subtitles_BurnInBehaviourModes" xml:space="preserve">
+    <value>Nincs - Csak azok a sávok lesznek beégetve, amelyeknél a tároló nem támogatja a formátumot.
+Foreign Audio Track - Az idegen hangsáv beégetésre kerül, ha rendelkezésre áll. 
+First Track - Az első sáv lesz beégetve.
+Foreign Audio Preferred, else First - Ha az idegen hangsáv létezik, akkor az lesz beégetve, ellenkező esetben az első sávot választja a rendszer.</value>
+  </data>
+  <data name="Subtitles_WebmSubtitleIncompatibilityHeader" xml:space="preserve">
+    <value>WebM felirat kompatibilitás</value>
+  </data>
+  <data name="Subtitles_WebmSubtitleIncompatibilityError" xml:space="preserve">
+    <value>A WebM a HandBrake-ben csak az égetett feliratokat támogatja.
+
+Meg kell változtatnia a feliratválasztást.
+
+Ha folytatja, a nem égetett feliratok elvesznek.</value>
+  </data>
+  <data name="Main_ScanNoTitlesFound" xml:space="preserve">
+    <value>Nem található érvényes forrás vagy cím.</value>
+  </data>
+  <data name="Main_ScanNoTitlesFoundMessage" xml:space="preserve">
+    <value>A HandBrake nem fogja tudni kódolni a kiválasztott forrást, mivel nem talált érvényes forrást a kódolandó címekkel. Ennek az alábbi okok valamelyike lehet az oka:
+
+- Az egyes forráscímek időtartama nem éri el a „Beállítások &gt; Speciális” menüpontban a „Minimális cím időtartam” küszöbértéket. 
+- A forrásfájl nem érvényes videofájl, vagy olyan formátumú, amelyet a HandBrake nem támogat.
+- Lehet, hogy nincs olvasási hozzáférése a fájlhoz, vagy egy másik alkalmazás zárolta a fájlt. 
+- A forrás másolásvédett vagy DRM-et tartalmazhat. Felhívjuk figyelmét, hogy a HandBrake nem támogatja a másolásvédelem eltávolítását.
+
+A tevékenységi napló további információkat tartalmazhat.</value>
+  </data>
+  <data name="Main_QueueLabel" xml:space="preserve">
+    <value>Várólista{0}</value>
+  </data>
+  <data name="Main_Start" xml:space="preserve">
+    <value>Kódolás indítása</value>
+  </data>
+  <data name="Main_StartQueue" xml:space="preserve">
+    <value>Várólista indítása</value>
+  </data>
+  <data name="MainViewModel_CanNotDeleteDefaultPreset" xml:space="preserve">
+    <value>Az alapértelmezett előbeállítás nem törölhető. Kérjük, először állítson be egy másik előbeállítást alapértelmezettként.</value>
+  </data>
+  <data name="MainViewModel_PresetRemove_AreYouSure" xml:space="preserve">
+    <value>Biztos, hogy törölni szeretné az előbeállítást:</value>
+  </data>
+  <data name="MainViewModel_EncodeStatusChanged_StatusLabel" xml:space="preserve">
+    <value>Kódolás: Menet: {0} of {1},  {2:00.00}%, FPS: {3:000.0},  Átlag FPS: {4:000.0},  Hátralévő idő: {5},  Eltelt: {6} {7}</value>
+  </data>
+  <data name="AddPresetViewModel_PresetMustProvideName" xml:space="preserve">
+    <value>Az előbeállításnak rendelkeznie kell egy Névvel. Kérjük, töltse ki a Előbeállítás neve mezőt.</value>
+  </data>
+  <data name="AddPresetViewModel_PresetWithSameNameOverwriteWarning" xml:space="preserve">
+    <value>Ezzel a névvel már létezik egy előbeállítás. Szeretné felülírni?</value>
+  </data>
+  <data name="AddPresetViewModel_YouMustFirstScanSource" xml:space="preserve">
+    <value>Először be kell olvasnia egy forrást a "Forrás maximuma" opció használatához.</value>
+  </data>
+  <data name="AddPresetViewModel_CustomWidthHeightFieldsRequired" xml:space="preserve">
+    <value>Az Egyéni szélesség vagy Magasság mezőket ki kell tölteni az "Egyéni" opcióhoz.</value>
+  </data>
+  <data name="AddPresetViewModel_UnableToAddPreset" xml:space="preserve">
+    <value>Előbeállítás hozzáadása nem lehetséges</value>
+  </data>
+  <data name="UnknownError" xml:space="preserve">
+    <value>Ismeretlen hiba</value>
+  </data>
+  <data name="AudioViewModel_AudioDefaults" xml:space="preserve">
+    <value>Audió alapértelmezett beállítások</value>
+  </data>
+  <data name="AudioViewModel_AudioTracks" xml:space="preserve">
+    <value>Hangsávok</value>
+  </data>
+  <data name="AudioViewModel_ConfigureDefaults" xml:space="preserve">
+    <value>Kiválasztási viselkedés ...</value>
+  </data>
+  <data name="AudioViewModel_SwitchBackToTracks" xml:space="preserve">
+    <value>Visszakapcsolás a sávokra</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToExportChaptersWarning" xml:space="preserve">
+    <value>Nem sikerült elmenteni a fejezetjelzők fájlt!</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToExportChaptersMsg" xml:space="preserve">
+    <value>A fejezetjelzők nevei NEM kerülnek elmentésre a kódolásban.</value>
+  </data>
+  <data name="CountdownAlertViewModel_NoticeMessage" xml:space="preserve">
+    <value>A következő '{0}' művelet {1} másodperc múlva fog bekövetkezni.</value>
+  </data>
+  <data name="ErrorViewModel_IfTheProblemPersists" xml:space="preserve">
+    <value>Ha a probléma továbbra is fennáll, próbálja meg újraindítani a HandBrake-et.</value>
+  </data>
+  <data name="ErrorViewModel_NoFurtherInformation" xml:space="preserve">
+    <value>Erről a hibáról nem áll rendelkezésre további információ.</value>
+  </data>
+  <data name="ErrorViewModel_UnknownError" xml:space="preserve">
+    <value>Ismeretlen hiba történt.</value>
+  </data>
+  <data name="OptionsViewModel_NewUpdate" xml:space="preserve">
+    <value>HandBrake {0} is now Available! Please check the website for release notes.</value>
+  </data>
+  <data name="OptionsViewModel_NoNewUpdates" xml:space="preserve">
+    <value>Jelenleg nincsenek új frissítések.</value>
+  </data>
+  <data name="OptionsViewModel_UpdateDownloaded" xml:space="preserve">
+    <value>Frissítés letöltve</value>
+  </data>
+  <data name="OptionsViewModel_UpdateServiceUnavailable" xml:space="preserve">
+    <value>A frissítési szolgáltatás nem elérhető. Megpróbálhatja letölteni a frissítést a https://handbrake.fr webhelyről.</value>
+  </data>
+  <data name="OptionsViewModel_UpdateFailed" xml:space="preserve">
+    <value>A frissítés sikertelen. Megpróbálhatja letölteni a frissítést a https://handbrake.fr webhelyről</value>
+  </data>
+  <data name="PictureSettingsViewModel_StorageDisplayLabel" xml:space="preserve">
+    <value>Tárolási méret: {0}x{1}</value>
+  </data>
+  <data name="QueueSelectionViewModel_AddToQueue" xml:space="preserve">
+    <value>Hozzáadás a várólistához</value>
+  </data>
+  <data name="QueueViewModel_NoEncodesPending" xml:space="preserve">
+    <value>Nincs folyamatban lévő kódolás</value>
+  </data>
+  <data name="QueueViewModel_NoJobsPending" xml:space="preserve">
+    <value>Jelenleg nincsenek kódolási feladatok</value>
+  </data>
+  <data name="QueueViewModel_Queue" xml:space="preserve">
+    <value>Várólista</value>
+  </data>
+  <data name="QueueViewModel_ClearQueueConfirmation" xml:space="preserve">
+    <value>Biztos, hogy ki akarja üríteni a várólistát?</value>
+  </data>
+  <data name="Confirm" xml:space="preserve">
+    <value>Megerősítés</value>
+  </data>
+  <data name="QueueViewModel_JobsPending" xml:space="preserve">
+    <value>{0} függőben lévő feladatok...</value>
+  </data>
+  <data name="QueueViewModel_QueuePending" xml:space="preserve">
+    <value>Várólista szüneteltetve</value>
+  </data>
+  <data name="QueueViewModel_DelSelectedJobConfirmation" xml:space="preserve">
+    <value>Biztosan törölni szeretné a kiválasztott feladatokat?
+Ezzel a művelettel nem törlődnek kódolt fájlok.</value>
+  </data>
+  <data name="QueueViewModel_JobCurrentlyRunningWarning" xml:space="preserve">
+    <value>Ez a kódolás jelenleg folyamatban van. Ha törli, a kódolás leáll. Biztos benne, hogy folytatni kívánja?</value>
+  </data>
+  <data name="QueueViewModel_NoPendingJobs" xml:space="preserve">
+    <value>Nincsenek függőben lévő feladatok.</value>
+  </data>
+  <data name="QueueViewModel_EditConfirmation" xml:space="preserve">
+    <value>Biztos, hogy szerkeszteni szeretné ezt a feladatot? A feladatot eltávolítjuk a várólistáról, és a főablakba küldjük.</value>
+  </data>
+  <data name="QueueViewModel_QueueReady" xml:space="preserve">
+    <value>Várólista kész</value>
+  </data>
+  <data name="QueueViewModel_QueueNotRunning" xml:space="preserve">
+    <value>A várólista nem fut</value>
+  </data>
+  <data name="QueueViewModel_QueueCompleted" xml:space="preserve">
+    <value>Várólista befejeződött</value>
+  </data>
+  <data name="QueueViewModel_LastJobFinished" xml:space="preserve">
+    <value>A várólistán lévő utolsó feladat befejeződött</value>
+  </data>
+  <data name="QueueViewModel_QueueStarted" xml:space="preserve">
+    <value>Várólista elindult</value>
+  </data>
+  <data name="QueueViewModel_QueueStatusDisplay" xml:space="preserve">
+    <value>Kódolás: Menet {0} of {1},  {2:00.00}%, FPS: {3:000.0},  Átlag FPS: {4:000.0},  Hátralévő idő: {5},  Eltelt idő: {6:d\:hh\:mm\:ss}</value>
+  </data>
+  <data name="ShellViewModel_CanClose" xml:space="preserve">
+    <value>Jelenleg egy kódolás fut. A HandBrake kilépése leállítja ezt a kódolást.
+Biztosan ki akar lépni a HandBrake-ből?</value>
+  </data>
+  <data name="StaticPreviewViewModel_Title" xml:space="preserve">
+    <value>Kép előnézete</value>
+  </data>
+  <data name="StaticPreview_UnableToDeletePreview" xml:space="preserve">
+    <value>Nem lehet törölni az előző előnézeti fájlt. Előfordulhat, hogy még mindig meg van nyitva az előnézet a médialejátszóban. Kérlek, zárd be.</value>
+  </data>
+  <data name="StaticPreviewViewModel_ScanFirst" xml:space="preserve">
+    <value>Az előnézet létrehozása előtt először be kell vizsgálnia a forrást, és be kell állítania a kódolást.</value>
+  </data>
+  <data name="StaticPreviewViewModel_UnableToPlayFile" xml:space="preserve">
+    <value>Nem található az előnézeti fájl. A fájl törölve lett, vagy a kódolás meghiúsult. A részletekért tekintse meg a tevékenységnaplót.</value>
+  </data>
+  <data name="StaticPreviewViewModel_AlreadyEncoding" xml:space="preserve">
+    <value>A Handbrake már kódol egy videót! Egyszerre csak egy fájl kódolható.</value>
+  </data>
+  <data name="SubtitlesViewModel_SubDefaults" xml:space="preserve">
+    <value>Felirat alapértelmezett beállításai</value>
+  </data>
+  <data name="SubtitlesViewModel_SubTracks" xml:space="preserve">
+    <value>Feliratos sávok</value>
+  </data>
+  <data name="SubtitlesViewModel_SwitchToTracks" xml:space="preserve">
+    <value>Visszakapcsolás a sávokra</value>
+  </data>
+  <data name="SubtitlesViewModel_ConfigureDefaults" xml:space="preserve">
+    <value>Kiválasztási viselkedés ...</value>
+  </data>
+  <data name="PresetService_ArchiveFile" xml:space="preserve">
+    <value>Archivált fájl:</value>
+  </data>
+  <data name="PresetService_UnableToLoad" xml:space="preserve">
+    <value>Előbeállítások betöltése nem lehetséges.</value>
+  </data>
+  <data name="PresetService_UnableToLoadPresets" xml:space="preserve">
+    <value>A HandBrake nem tudta betölteni az előbeállítások fájlját. Lehet, hogy a HandBrake egy régebbi, nem támogatott verziójából származik, vagy sérült. 
+
+A régi előbeállítások fájlját archiváltuk:</value>
+  </data>
+  <data name="Main_QueueFinishedErrors" xml:space="preserve">
+    <value> {0} hibákat észleltünk. Nézze meg a várólista ablakot a részletekért.</value>
+  </data>
+  <data name="MainViewModel_LowDiskSpace" xml:space="preserve">
+    <value>Kevés lemezterület</value>
+  </data>
+  <data name="MainViewModel_LowDiskSpaceWarning" xml:space="preserve">
+    <value>Figyelem, kevés a lemezterület. A HandBrake nem tudja befejezni ezt a kódolást, ha elfogy a hely.</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersMalformedLineMsg" xml:space="preserve">
+    <value>{0} sor érvénytelen. Semmi sem lesz importálva.</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersWarning" xml:space="preserve">
+    <value>Nem lehet fejezetfájlt importálni</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersLineDoesNotHaveAtLeastTwoColumns" xml:space="preserve">
+    <value>A fejezetfájl minden sorának legalább 2 oszlopnyi adatot kell tartalmaznia</value>
+  </data>
+  <data name="ChaptersViewModel_UnableToImportChaptersFirstColumnMustContainOnlyIntegerNumber" xml:space="preserve">
+    <value>A fejezetfájl első oszlopa csak nullánál nagyobb egész számot tartalmazhat (0)</value>
+  </data>
+  <data name="ChaptersViewModel_UnsupportedFileFormatMsg" xml:space="preserve">
+    <value>'{0}' típusú fejezetfájlok jelenleg nem támogatottak.</value>
+  </data>
+  <data name="ChaptersViewModel_UnsupportedFileFormatWarning" xml:space="preserve">
+    <value>Nem támogatott fejezetfájltípus</value>
+  </data>
+  <data name="ChaptersViewModel_ValidationFailedWarning" xml:space="preserve">
+    <value>Érvénytelen fejezetinformációk a forrásadathordozón</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterCountMismatch" xml:space="preserve">
+    <value>A forrásadathordozó fejezeteinek száma  
+és a bemeneti fájlban lévő fejezetek száma nem egyezik meg ({0} kontra {1}).
+
+Továbbra is importálni szeretné a fejezetneveket?</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterCountMismatchMsg" xml:space="preserve">
+    <value>A forrásadathordozó fejezeteinek száma  
+és a bemeneti fájlban lévő fejezetek száma nem egyezik meg ({0} kontra {1}).
+
+Továbbra is importálni szeretné a fejezetneveket?</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterCountMismatchWarning" xml:space="preserve">
+    <value>A fejezetek száma nem egyezik a forrás és a bemeneti fájl között</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterDurationMismatchMsg" xml:space="preserve">
+    <value>A forrásmédián szereplő fejezetek bejelentett időtartama
+és a bemeneti fájlban szereplő fejezetek időtartama nagymértékben eltér egymástól.
+
+Nagyon valószínű, hogy ez a fejezetfájl más forrásadathordozóról készült.
+
+Biztosan importálni szeretné a fejezetneveket?</value>
+  </data>
+  <data name="ChaptersViewModel_ValidateImportedChapters_ChapterDurationMismatchWarning" xml:space="preserve">
+    <value>A fejezet időtartama nem egyezik a forrás és a bemeneti fájl között</value>
+  </data>
+  <data name="ScanService_ScanStopFailed" xml:space="preserve">
+    <value>Hiba történt a vizsgálat leállítása során. Kérjük, indítsa újra a HandBrake-et.</value>
+  </data>
+  <data name="Presets_PresetForceReset" xml:space="preserve">
+    <value>A HandBrake nem tudja frissíteni az előbeállítások fájlját egy új verzióformátumra.
+Az előre beállított fájl archiválásra kerül, és egy újat hoz létre. Újra létre kell hoznia a saját előbeállításait.</value>
+  </data>
+  <data name="SettingService_SaveErrorReset" xml:space="preserve">
+    <value>Előfordulhat, hogy a módosított beállításokat vissza kell állítani a HandBrake következő indításakor.</value>
+  </data>
+  <data name="UserSettings_AnErrorOccurred" xml:space="preserve">
+    <value>Probléma lépett fel a beállítások mentésekor.</value>
+  </data>
+  <data name="UserSettings_YourSettingsHaveBeenReset" xml:space="preserve">
+    <value>Figyelem, a beállítások visszaállítása megtörtént!</value>
+  </data>
+  <data name="UserSettings_YourSettingsAreCorrupt" xml:space="preserve">
+    <value>A felhasználói beállítási fájl sérült vagy nem érhető el. A beállítások visszaálltak az alapértelmezettre.</value>
+  </data>
+  <data name="UserSettings_UnableToLoad" xml:space="preserve">
+    <value>Nem lehet betölteni a felhasználói beállítási fájlt: {0}</value>
+  </data>
+  <data name="UserSettings_UnableToLoadSolution" xml:space="preserve">
+    <value>Úgy tűnik, hogy a felhasználói beállítási fájl elérhetetlen vagy sérült. Előfordulhat, hogy törölnie kell a fájlt, és hagynia kell, hogy a HandBrake hozzon létre egy újat.</value>
+  </data>
+  <data name="Main_NoPermissionsOrMissingDirectory" xml:space="preserve">
+    <value>A kiválasztott kimeneti könyvtár vagy nem létezik, vagy nincs engedélye fájlok írására.</value>
+  </data>
+  <data name="DirectoryUtils_CreateFolder" xml:space="preserve">
+    <value>Hozzunk létre egy mappát?</value>
+  </data>
+  <data name="DirectoryUtils_CreateFolderMsg" xml:space="preserve">
+    <value>A mappa, ahová írni próbál, nem létezik. Szeretné, ha a HandBrake létrehozná a következő mappát?
+{0}</value>
+  </data>
+  <data name="MainViewModel_UnableToLaunchDestDir" xml:space="preserve">
+    <value>Nem lehet elindítani a célkönyvtárat.</value>
+  </data>
+  <data name="MainViewModel_UnableToLaunchDestDirSolution" xml:space="preserve">
+    <value>Ellenőrizze, hogy rendelkezik-e érvényes célkönyvtárral.</value>
+  </data>
+  <data name="MainViewModel_EncodeStatusChanged_SubScan_StatusLabel" xml:space="preserve">
+    <value>Menet feldolgozása {0} of {1}, (Felirat szkennelés)  {2:00.00}%, Hátralévő szkennelési idő: {3},  Eltelt idő: {4}</value>
+  </data>
+  <data name="NoAdditionalInformation" xml:space="preserve">
+    <value>Nincs további információ</value>
+  </data>
+  <data name="WindowTitleStatus" xml:space="preserve">
+    <value>{0} - ({1}%, Menet {2} / {3})</value>
+  </data>
+  <data name="TaskTrayStatusTitle" xml:space="preserve">
+    <value>{0}
+Kódolás 1 feladat</value>
+  </data>
+  <data name="PauseOnLowDiskspace" xml:space="preserve">
+    <value>Várólista szüneteltetve. Figyelem, a meghajtón, amelyre kódol, kevés a lemezterület. Kérjük, szabadítson fel helyet, és nyomja meg a start gombot a folytatáshoz. A minimális helyszintet a beállításokban is módosíthatja.</value>
+  </data>
+  <data name="Main_QueuePaused" xml:space="preserve">
+    <value>Várólista szüneteltetve</value>
+  </data>
+  <data name="QueueViewModel_QueuePaused" xml:space="preserve">
+    <value>Várólista szüneteltetve</value>
+  </data>
+  <data name="Main_LowDiskspace" xml:space="preserve">
+    <value>A célkönyvtárban kevés a lemezterület. 
+
+Beállíthatja, hogy a riasztás milyen szinten jelenjen meg a beállításokban.
+
+Folytatni szeretné?</value>
+  </data>
+  <data name="Queue_UnableToResetJob" xml:space="preserve">
+    <value>Nem lehet visszaállítani a feladat állapotát, mivel nincs Hiba vagy Befejezett állapotban.</value>
+  </data>
+  <data name="Queue_UnableToRestoreFile" xml:space="preserve">
+    <value>Nem lehet visszaállítani a várólistafájlt.</value>
+  </data>
+  <data name="Queue_UnableToRestoreFileExtended" xml:space="preserve">
+    <value>Lehet, hogy a fájl sérült, vagy a HandBrake régebbi, nem kompatibilis verziójából származik</value>
+  </data>
+  <data name="Queue_AlreadyEncoding" xml:space="preserve">
+    <value>A HandBrake már kódol egy fájlt.</value>
+  </data>
+  <data name="Queue_AlreadyEncodingSolution" xml:space="preserve">
+    <value>Kérjük, állítsa le az aktuális kódolást. Ha a probléma továbbra is fennáll, indítsa újra a HandBrake-et.</value>
+  </data>
+  <data name="StaticPreviewView_Title" xml:space="preserve">
+    <value>Előnézet ({0}% tényleges méret)</value>
+  </data>
+  <data name="OsBitnessWarning" xml:space="preserve">
+    <value>A HandBrake futtatásához a Windows 10 vagy újabb kiadás 64 bites verziója szükséges.</value>
+  </data>
+  <data name="OsVersionWarning" xml:space="preserve">
+    <value>A HandBrake futtatásához Windows 10 vagy újabb kiadás szükséges. A 0.9.9 (XP), 0.10.5 (Vista), 1.3.3 (7 és 8.x) verziók voltak az utolsó verziók, amelyek támogatták ezeket a régebbi operációs rendszereket.</value>
+  </data>
+  <data name="Main_ContinueAddingToQueue" xml:space="preserve">
+    <value>Szeretnéd folytatni a többit is?</value>
+  </data>
+  <data name="Main_QueueOverwritePrompt" xml:space="preserve">
+    <value>'{0}' fájl már létezik!
+Szeretné felülírni?
+
+Tipp: A fájlfelülírási viselkedés a beállításokban szabályozható.</value>
+  </data>
+  <data name="Clipboard_Unavailable" xml:space="preserve">
+    <value>A rendszer vágólapja jelenleg nem érhető el.</value>
+  </data>
+  <data name="Clipboard_Unavailable_Solution" xml:space="preserve">
+    <value>Ennek oka lehet, hogy egy másik alkalmazás figyeli vagy zárolja a vágólapot saját használatra. A vágólapot addig nem fogja tudni használni, amíg fel nem oldja.</value>
+  </data>
+  <data name="AboutView_License" xml:space="preserve">
+    <value>Licensz:</value>
+  </data>
+  <data name="AboutView_Version" xml:space="preserve">
+    <value>Verzió:</value>
+  </data>
+  <data name="AddPresetView_AddNewCategory" xml:space="preserve">
+    <value>-- Új kategória hozzáadása --</value>
+  </data>
+  <data name="AddPresetView_AddPreset" xml:space="preserve">
+    <value>Előbeállítás hozzáadása</value>
+  </data>
+  <data name="AddPresetView_Category" xml:space="preserve">
+    <value>Kategória:</value>
+  </data>
+  <data name="AddPresetView_Description" xml:space="preserve">
+    <value>Leírás:</value>
+  </data>
+  <data name="AddPresetView_Name" xml:space="preserve">
+    <value>Név:</value>
+  </data>
+  <data name="AddPresetView_SavePictureSize" xml:space="preserve">
+    <value>Dimenziók:</value>
+  </data>
+  <data name="AudioDefaultView_Behaviours" xml:space="preserve">
+    <value>Forrássáv kiválasztása</value>
+  </data>
+  <data name="AudioView_AllowPassThruOf" xml:space="preserve">
+    <value>Engedélyezze a következők átvitelét:</value>
+  </data>
+  <data name="AudioView_AudioDefaultsDescription" xml:space="preserve">
+    <value>Konfigurálja, hogy a hangsávok hogyan legyenek automatikusan kiválasztva és konfigurálva, amikor új címet vagy forrásvideót választ.</value>
+  </data>
+  <data name="AudioView_AutoPassthruBehaviour" xml:space="preserve">
+    <value>"Automatikus átvitel" viselkedése:</value>
+  </data>
+  <data name="AudioView_Bitrate" xml:space="preserve">
+    <value>Bitsebesség</value>
+  </data>
+  <data name="AudioView_Codec" xml:space="preserve">
+    <value>Kódek</value>
+  </data>
+  <data name="AudioView_DRC" xml:space="preserve">
+    <value>DRC</value>
+  </data>
+  <data name="AudioView_Gain" xml:space="preserve">
+    <value>Erősítés</value>
+  </data>
+  <data name="AudioView_Hide" xml:space="preserve">
+    <value>Elrejtés</value>
+  </data>
+  <data name="AudioView_Mixdown" xml:space="preserve">
+    <value>Összekeverés</value>
+  </data>
+  <data name="AudioView_OtherwiseFallbackEncoder" xml:space="preserve">
+    <value>Tartalék kódoló:</value>
+  </data>
+  <data name="AudioView_ReloadDefaults" xml:space="preserve">
+    <value>Újratöltés</value>
+  </data>
+  <data name="AudioView_Samplerate" xml:space="preserve">
+    <value>Mintavételezés</value>
+  </data>
+  <data name="AudioView_Show" xml:space="preserve">
+    <value>Mutat</value>
+  </data>
+  <data name="AudioView_TrackName" xml:space="preserve">
+    <value>Sávnév</value>
+  </data>
+  <data name="AudioView_TrackSelectionBehaviour" xml:space="preserve">
+    <value>Sáv kiválasztás viselkedés:</value>
+  </data>
+  <data name="AudioView_TrackSettingDefaultBehaviour" xml:space="preserve">
+    <value>További sávokhoz:</value>
+  </data>
+  <data name="AudioView_WhenAutoPassthru" xml:space="preserve">
+    <value>Ha az 'Automatikus átvitel' van kiválasztva audió kódekként.</value>
+  </data>
+  <data name="ChaptersView_ChapterMarkers" xml:space="preserve">
+    <value>Fejezetjelölők</value>
+  </data>
+  <data name="ChaptersView_ChapterName" xml:space="preserve">
+    <value>Fejezetnév</value>
+  </data>
+  <data name="ChaptersView_ChapterNumber" xml:space="preserve">
+    <value>Fejezet</value>
+  </data>
+  <data name="ChaptersView_CreateChapterMarkers" xml:space="preserve">
+    <value>Fejezetjelölők létrehozása</value>
+  </data>
+  <data name="ChaptersView_Duration" xml:space="preserve">
+    <value>Időtartam</value>
+  </data>
+  <data name="ChaptersView_Export" xml:space="preserve">
+    <value>Exportálás</value>
+  </data>
+  <data name="ChaptersView_Import" xml:space="preserve">
+    <value>Importálás</value>
+  </data>
+  <data name="ChapterView_ExportNames" xml:space="preserve">
+    <value>Nevek exportálása</value>
+  </data>
+  <data name="ChapterView_ImportNames" xml:space="preserve">
+    <value>Nevek importálása</value>
+  </data>
+  <data name="ChapterView_ResetChapterNames" xml:space="preserve">
+    <value>Fejezetnevek visszaállítása</value>
+  </data>
+  <data name="CountdownAlterView_CancelAction" xml:space="preserve">
+    <value>Művelet megszakítása</value>
+  </data>
+  <data name="CountdownAlterView_Proceed" xml:space="preserve">
+    <value>Folytatás</value>
+  </data>
+  <data name="CountdownAlterView_WhenDoneAction" xml:space="preserve">
+    <value>Művelet ha kész</value>
+  </data>
+  <data name="ErrorView_ErrorDetails" xml:space="preserve">
+    <value>Hiba részletei:</value>
+  </data>
+  <data name="FiltersView_Custom" xml:space="preserve">
+    <value>Egyéni:</value>
+  </data>
+  <data name="FiltersView_Deblock" xml:space="preserve">
+    <value>Letiltás megszüntetése:</value>
+  </data>
+  <data name="FiltersView_Decomb" xml:space="preserve">
+    <value>Decomb</value>
+  </data>
+  <data name="FiltersView_Deinterlace" xml:space="preserve">
+    <value>Deinterlace:</value>
+  </data>
+  <data name="FiltersView_DeinterlacePreset" xml:space="preserve">
+    <value>Előbeállítás:</value>
+  </data>
+  <data name="FiltersView_DeinterlacePresetAuto" xml:space="preserve">
+    <value>Deinterlace előbeállítás</value>
+  </data>
+  <data name="FiltersView_Denoise" xml:space="preserve">
+    <value>Zajtalanítás:</value>
+  </data>
+  <data name="FiltersView_DenoisePresetAuto" xml:space="preserve">
+    <value>Zajmentesítés előbeállítása</value>
+  </data>
+  <data name="FiltersView_DenoiseTuneAuto" xml:space="preserve">
+    <value>Zajmentesítés hangolása</value>
+  </data>
+  <data name="FiltersView_Detelecine" xml:space="preserve">
+    <value>Detelecine:</value>
+  </data>
+  <data name="FiltersView_Filters" xml:space="preserve">
+    <value>Szűrők</value>
+  </data>
+  <data name="FiltersView_FlipVideo" xml:space="preserve">
+    <value>Vízszintes</value>
+  </data>
+  <data name="FiltersView_Grayscale" xml:space="preserve">
+    <value>Szürkeárnyalatos</value>
+  </data>
+  <data name="FiltersView_InterlaceDetection" xml:space="preserve">
+    <value>Átlapolás észlelése:</value>
+  </data>
+  <data name="FiltersView_Preset" xml:space="preserve">
+    <value>Előbeállítás:</value>
+  </data>
+  <data name="FiltersView_Rotate" xml:space="preserve">
+    <value>Forgatás:</value>
+  </data>
+  <data name="FiltersView_Sharpen" xml:space="preserve">
+    <value>Élesítés:</value>
+  </data>
+  <data name="FiltersView_SharpenPresetAuto" xml:space="preserve">
+    <value>Élesítés előbeállítás</value>
+  </data>
+  <data name="FiltersView_SharpenTuneAuto" xml:space="preserve">
+    <value>Élesítés hangolása</value>
+  </data>
+  <data name="FiltersView_Tune" xml:space="preserve">
+    <value>Hangolás:</value>
+  </data>
+  <data name="Generic_Add" xml:space="preserve">
+    <value>Hozzáadás</value>
+  </data>
+  <data name="Generic_Cancel" xml:space="preserve">
+    <value>Mégse</value>
+  </data>
+  <data name="Generic_Clear" xml:space="preserve">
+    <value>Tisztítás</value>
+  </data>
+  <data name="Generic_Close" xml:space="preserve">
+    <value>Bezárás</value>
+  </data>
+  <data name="Generic_CopyToClipboard" xml:space="preserve">
+    <value>Másolás a vágólapra</value>
+  </data>
+  <data name="Generic_MoveLeft" xml:space="preserve">
+    <value>Mozgatás balra</value>
+  </data>
+  <data name="Generic_MoveRight" xml:space="preserve">
+    <value>Mozgatás jobbra</value>
+  </data>
+  <data name="Generic_Save" xml:space="preserve">
+    <value>Mentés</value>
+  </data>
+  <data name="LogView_CopyClipboard" xml:space="preserve">
+    <value>Másolás a vágólapra</value>
+  </data>
+  <data name="LogView_EncodeLog" xml:space="preserve">
+    <value>Kódolási napló</value>
+  </data>
+  <data name="LogView_OpenLogDir" xml:space="preserve">
+    <value>Naplókönyvtár megnyitása</value>
+  </data>
+  <data name="LogView_ScanLog" xml:space="preserve">
+    <value>Szkennelési napló</value>
+  </data>
+  <data name="MainView_ActivityLog" xml:space="preserve">
+    <value>Tevékenységi napló</value>
+  </data>
+  <data name="MainView_AddAll" xml:space="preserve">
+    <value>Összes hozzáadása</value>
+  </data>
+  <data name="MainView_AddCurrent" xml:space="preserve">
+    <value>Aktuális hozzáadása</value>
+  </data>
+  <data name="MainView_AddSelection" xml:space="preserve">
+    <value>Kijelölt hozzáadása</value>
+  </data>
+  <data name="MainView_AddToQueue" xml:space="preserve">
+    <value>Hozzáadás a várólistához</value>
+  </data>
+  <data name="MainView_AdvancedTab" xml:space="preserve">
+    <value>Továbbiak</value>
+  </data>
+  <data name="MainView_AlignAVStart" xml:space="preserve">
+    <value>A/V indítás összehangolása</value>
+  </data>
+  <data name="MainView_Angle" xml:space="preserve">
+    <value>Szög: </value>
+  </data>
+  <data name="MainView_AudioTab" xml:space="preserve">
+    <value>Audió</value>
+  </data>
+  <data name="MainView_AudioTrackCount" xml:space="preserve">
+    <value>Hangsávok</value>
+  </data>
+  <data name="MainView_Browser" xml:space="preserve">
+    <value>Tallózás</value>
+  </data>
+  <data name="MainView_ChaptersTab" xml:space="preserve">
+    <value>Fejezetek</value>
+  </data>
+  <data name="MainView_Container" xml:space="preserve">
+    <value>Konténer</value>
+  </data>
+  <data name="MainView_Destination" xml:space="preserve">
+    <value>Rendeltetési hely</value>
+  </data>
+  <data name="MainView_Duration" xml:space="preserve">
+    <value>Időtartam: </value>
+  </data>
+  <data name="MainView_File" xml:space="preserve">
+    <value>Mentés másként:</value>
+  </data>
+  <data name="MainView_FiltersTab" xml:space="preserve">
+    <value>Szűrők</value>
+  </data>
+  <data name="MainView_Format" xml:space="preserve">
+    <value>Formátum:</value>
+  </data>
+  <data name="MainView_Help" xml:space="preserve">
+    <value>Súgó</value>
+  </data>
+  <data name="MainView_iPod5G" xml:space="preserve">
+    <value>iPod 5G támogatás</value>
+  </data>
+  <data name="MainView_MetaDataTab" xml:space="preserve">
+    <value>Metaadatok</value>
+  </data>
+  <data name="MainView_ModifiedPreset" xml:space="preserve">
+    <value>(Módosított)</value>
+  </data>
+  <data name="MainView_Muxing" xml:space="preserve">
+    <value>Összefonás: Ez eltarthat egy darabig...</value>
+  </data>
+  <data name="MainView_Options" xml:space="preserve">
+    <value>Beállítások</value>
+  </data>
+  <data name="MainView_OutputSettings" xml:space="preserve">
+    <value>Kimeneti beállítások</value>
+  </data>
+  <data name="MainView_Pause" xml:space="preserve">
+    <value>Szünet</value>
+  </data>
+  <data name="MainView_PictureTab" xml:space="preserve">
+    <value>Dimenziók</value>
+  </data>
+  <data name="MainView_PresetManage" xml:space="preserve">
+    <value>Előbeállítás szerkesztése</value>
+  </data>
+  <data name="MainView_PresetOptionsContextMenu" xml:space="preserve">
+    <value>Előbeállítások kontextusmenü</value>
+  </data>
+  <data name="MainView_PresetRemove" xml:space="preserve">
+    <value>Előbeállítás törlése</value>
+  </data>
+  <data name="MainView_Presets" xml:space="preserve">
+    <value>Előbeállítások</value>
+  </data>
+  <data name="MainView_Preview" xml:space="preserve">
+    <value>Előnézet</value>
+  </data>
+  <data name="MainView_ProgressStatusWithTask" xml:space="preserve">
+    <value>{0}, {1:00.00}%, Time Remaining: {2}</value>
+  </data>
+  <data name="MainView_Range" xml:space="preserve">
+    <value>Tartomány:</value>
+  </data>
+  <data name="MainView_Reload" xml:space="preserve">
+    <value>Újratöltés</value>
+  </data>
+  <data name="MainView_Remove" xml:space="preserve">
+    <value>Eltávolítás</value>
+  </data>
+  <data name="MainView_ResetBuiltInPresets" xml:space="preserve">
+    <value>Beépített előbeállítások visszaállítása</value>
+  </data>
+  <data name="MainView_SaveNewPreset" xml:space="preserve">
+    <value>Új előbeállítás mentése</value>
+  </data>
+  <data name="MainView_Searching" xml:space="preserve">
+    <value>Kezdési idő keresése</value>
+  </data>
+  <data name="MainView_SetDefault" xml:space="preserve">
+    <value>Beállítás alapértelmezettként</value>
+  </data>
+  <data name="MainView_ShowPreview" xml:space="preserve">
+    <value>Előnézet</value>
+  </data>
+  <data name="MainView_ShowQueue" xml:space="preserve">
+    <value>Várólista</value>
+  </data>
+  <data name="MainView_Source" xml:space="preserve">
+    <value>Forrás:</value>
+  </data>
+  <data name="MainView_SourceOpen" xml:space="preserve">
+    <value>Forrás megnyitása</value>
+  </data>
+  <data name="MainView_StartEncode" xml:space="preserve">
+    <value>Kódolás indítása</value>
+  </data>
+  <data name="MainView_StartQueue" xml:space="preserve">
+    <value>Várólista indítása</value>
+  </data>
+  <data name="MainView_Stop" xml:space="preserve">
+    <value>Állj</value>
+  </data>
+  <data name="MainView_StopEncode" xml:space="preserve">
+    <value>Kódolás leállítása</value>
+  </data>
+  <data name="MainView_StopEncodeConfirm" xml:space="preserve">
+    <value>Biztosan le akarja állítani ezt a kódolást?</value>
+  </data>
+  <data name="MainView_SubtitleBeforeScanError" xml:space="preserve">
+    <value>Kérjük, válassza ki a kódolni kívánt forrást, mielőtt megpróbálna importálni egy feliratfájlt.</value>
+  </data>
+  <data name="MainView_SubtitlesTab" xml:space="preserve">
+    <value>Feliratok</value>
+  </data>
+  <data name="MainView_SubtitleTracksCount" xml:space="preserve">
+    <value>Feliratos sávok</value>
+  </data>
+  <data name="MainView_SummaryTab" xml:space="preserve">
+    <value>Összefoglalás</value>
+  </data>
+  <data name="MainView_through" xml:space="preserve">
+    <value> - </value>
+  </data>
+  <data name="MainView_Title" xml:space="preserve">
+    <value>Cím: </value>
+  </data>
+  <data name="MainView_UpdateSelectedPreset" xml:space="preserve">
+    <value>Aktuális előbeállítás frissítése</value>
+  </data>
+  <data name="MainView_VideoTab" xml:space="preserve">
+    <value>Videó</value>
+  </data>
+  <data name="MainView_WebOptimized" xml:space="preserve">
+    <value>Webre optimalizált</value>
+  </data>
+  <data name="ManagePresetView_ManagePreset" xml:space="preserve">
+    <value>Előbeállítások kezelése</value>
+  </data>
+  <data name="MetaDataView_Title" xml:space="preserve">
+    <value>Metaadatok</value>
+  </data>
+  <data name="OptionsView_EnableDirectXDecoding" xml:space="preserve">
+    <value>DirectX-dekódolás használatának engedélyezése</value>
+  </data>
+  <data name="OptionsView_InvalidFileFormatChars" xml:space="preserve">
+    <value>A megadott fájlformátum érvénytelen karaktereket tartalmazott. Ezeket eltávolítottuk.</value>
+  </data>
+  <data name="OptionsView_PlaySoundWhenDone" xml:space="preserve">
+    <value>Hang lejátszása az egyes kódolások befejezésekor</value>
+  </data>
+  <data name="OptionsView_PlaySoundWhenQueueDone" xml:space="preserve">
+    <value>Hang lejátszása a várólista befejezése után</value>
+  </data>
+  <data name="OptionsView_ShowPreviewOnSummaryTab" xml:space="preserve">
+    <value>Előnézetek megjelenítése az összegzés lapon.</value>
+  </data>
+  <data name="OptionsView_ShowStatusInTitleBar" xml:space="preserve">
+    <value>A kódolás állapotának megjelenítése az alkalmazás címsorában.</value>
+  </data>
+  <data name="Options_7DayLogClear" xml:space="preserve">
+    <value>7 napnál régebbi naplófájlok törlése</value>
+  </data>
+  <data name="Options_About" xml:space="preserve">
+    <value>HandBrake névjegye</value>
+  </data>
+  <data name="Options_Advanced" xml:space="preserve">
+    <value>Továbbiak</value>
+  </data>
+  <data name="Options_AdvancedOptions" xml:space="preserve">
+    <value>További beállítások</value>
+  </data>
+  <data name="Options_Arguments" xml:space="preserve">
+    <value>Argumentumok:</value>
+  </data>
+  <data name="Options_AutomaticFileNaming" xml:space="preserve">
+    <value>Automatikus fájlelnevezés</value>
+  </data>
+  <data name="Options_AutoNameOutput" xml:space="preserve">
+    <value>Kimeneti fájlok automatikus elnevezése</value>
+  </data>
+  <data name="Options_CheckForUpdates" xml:space="preserve">
+    <value>Frissítések keresése</value>
+  </data>
+  <data name="Options_ClearCompleted" xml:space="preserve">
+    <value>A befejezett várólistaelemek törlése a kódolás befejezése után</value>
+  </data>
+  <data name="Options_ClearLogs" xml:space="preserve">
+    <value>Naplóelőzmények törlése</value>
+  </data>
+  <data name="Options_CopyLogToDir" xml:space="preserve">
+    <value>Helyezze el az egyes kódolási naplók másolatát egy megadott helyre:</value>
+  </data>
+  <data name="Options_CopyLogToEncDir" xml:space="preserve">
+    <value>Az egyes kódolási naplók másolatának elhelyezése ugyanarra a helyre, mint a kódolt videó</value>
+  </data>
+  <data name="Options_CurVersion" xml:space="preserve">
+    <value>Jelenlegi verzió</value>
+  </data>
+  <data name="Options_Decoding" xml:space="preserve">
+    <value>Dekódolás</value>
+  </data>
+  <data name="Options_DefaultPath" xml:space="preserve">
+    <value>Alapértelmezett elérési útvonal:</value>
+  </data>
+  <data name="Options_DownloadUpdates" xml:space="preserve">
+    <value>Frissítés letöltése</value>
+  </data>
+  <data name="Options_DVD" xml:space="preserve">
+    <value>DVD-olvasás</value>
+  </data>
+  <data name="Options_DvdRead" xml:space="preserve">
+    <value>Tiltsa le a LibDVDNav-ot. (helyette a libdvdread lesz használva)</value>
+  </data>
+  <data name="Options_Encoding" xml:space="preserve">
+    <value>Kódolás</value>
+  </data>
+  <data name="Options_Format" xml:space="preserve">
+    <value>Fájlformátum:</value>
+  </data>
+  <data name="Options_General" xml:space="preserve">
+    <value>Általános</value>
+  </data>
+  <data name="Options_Logging" xml:space="preserve">
+    <value>Naplózás</value>
+  </data>
+  <data name="Options_LogLevel" xml:space="preserve">
+    <value>Napló részletességi szintje:</value>
+  </data>
+  <data name="Options_LogPath" xml:space="preserve">
+    <value>Útvonal:</value>
+  </data>
+  <data name="Options_LowDiskspaceSize" xml:space="preserve">
+    <value>Várólista szüneteltetése, ha kevés a lemezterület</value>
+  </data>
+  <data name="Options_MinimiseTray" xml:space="preserve">
+    <value>Kis méretűre állítás a tálcára (újraindítást igényel)</value>
+  </data>
+  <data name="Options_MinTitleScanLength" xml:space="preserve">
+    <value>A DVD és Blu-ray cím minimális időtartama másodpercben. A rövidebb címek kimaradnak:</value>
+  </data>
+  <data name="Options_KeepDuplicateTitles" xml:space="preserve">
+    <value>Ismétlődő címek megtartása Blu-ray forrásokon (újraindítást igényel)</value>
+  </data>
+  <data name="Options_MP4FileExtension" xml:space="preserve">
+    <value>MP4 fájlkiterjesztés:</value>
+  </data>
+  <data name="Options_OnStartup" xml:space="preserve">
+    <value>Indításkor</value>
+  </data>
+  <data name="Options_Output" xml:space="preserve">
+    <value>Kimeneti fájlok</value>
+  </data>
+  <data name="Options_Path" xml:space="preserve">
+    <value>Útvonal:</value>
+  </data>
+  <data name="Options_PathToMediaPlayer" xml:space="preserve">
+    <value>A Media Player elérési útja</value>
+  </data>
+  <data name="Options_PreventSleep" xml:space="preserve">
+    <value>Megakadályozza, hogy a rendszer alvó állapotban kerüljön kódolás közben</value>
+  </data>
+  <data name="Options_PreviewScanCount" xml:space="preserve">
+    <value>A beolvasandó képelőnézetek száma:</value>
+  </data>
+  <data name="Options_PriorityLevel" xml:space="preserve">
+    <value>Munka prioritási szint:</value>
+  </data>
+  <data name="Options_QsvDecode" xml:space="preserve">
+    <value>Előnyben részesítse az Intel QuickSync használatát a videó dekódolásához, ha a QuickSync kódolót használja, és a hardver használható.</value>
+  </data>
+  <data name="Options_QsvDecodeForNonFullPath" xml:space="preserve">
+    <value>Akkor is használja a QuickSync dekódolást, ha nem használ QuickSync kódolót. (azaz x265)</value>
+  </data>
+  <data name="Options_RemovePunctuation" xml:space="preserve">
+    <value>Távolítsa el a gyakori írásjeleket</value>
+  </data>
+  <data name="Options_ReplaceUnderscores" xml:space="preserve">
+    <value>Az aláhúzásjelek szóközzel való helyettesítése</value>
+  </data>
+  <data name="Options_ResetDoNothing" xml:space="preserve">
+    <value>Az alkalmazás újraindításakor állítsa vissza a "Ne csinálj semmit" értékre.</value>
+  </data>
+  <data name="Options_Scaler" xml:space="preserve">
+    <value>Válassza ki a méretezőt:</value>
+  </data>
+  <data name="Options_Scaling" xml:space="preserve">
+    <value>Méretezés</value>
+  </data>
+  <data name="Options_SendFileTo" xml:space="preserve">
+    <value>Fájl küldése a:</value>
+  </data>
+  <data name="Options_TitleCase" xml:space="preserve">
+    <value>Kis és nagybetűk változtatása nagybetűsre</value>
+  </data>
+  <data name="Options_Updates" xml:space="preserve">
+    <value>Frissítések</value>
+  </data>
+  <data name="Options_UserInterface" xml:space="preserve">
+    <value>Felhasználói felület</value>
+  </data>
+  <data name="Options_Version" xml:space="preserve">
+    <value>Verzió:</value>
+  </data>
+  <data name="Options_Video" xml:space="preserve">
+    <value>Videó</value>
+  </data>
+  <data name="Options_VideoPreviewPath" xml:space="preserve">
+    <value>Ez az elérési út csak a videó előnézeti funkciójához használható.
+A VLC és az MPC-HC támogatott. Más lejátszók is dolgozhatnak, de nem érvényesítik őket.</value>
+  </data>
+  <data name="Options_ViewLogDirectory" xml:space="preserve">
+    <value>Naplókönyvtár megtekintése</value>
+  </data>
+  <data name="Options_WhenDone" xml:space="preserve">
+    <value>Ha kész</value>
+  </data>
+  <data name="Options_x264" xml:space="preserve">
+    <value>x264/5 beállítások</value>
+  </data>
+  <data name="Options_x264Granularity" xml:space="preserve">
+    <value>Állandó minőségű frakcionált szemcseméret:</value>
+  </data>
+  <data name="PictureSettingsView_Anamorphic" xml:space="preserve">
+    <value>Anamorfikus:</value>
+  </data>
+  <data name="PictureSettingsView_Automatic" xml:space="preserve">
+    <value>Automatikus</value>
+  </data>
+  <data name="PictureSettingsView_Bottom" xml:space="preserve">
+    <value>Lent</value>
+  </data>
+  <data name="PictureSettingsView_Cropping" xml:space="preserve">
+    <value>Vágás:</value>
+  </data>
+  <data name="PictureSettingsView_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="PictureSettingsView_DisplayWidth" xml:space="preserve">
+    <value>Kijelző mérete:</value>
+  </data>
+  <data name="PictureSettingsView_Height" xml:space="preserve">
+    <value>Magasság:</value>
+  </data>
+  <data name="PictureSettingsView_KeepAR" xml:space="preserve">
+    <value>Automatikus</value>
+  </data>
+  <data name="PictureSettingsView_Left" xml:space="preserve">
+    <value>Bal</value>
+  </data>
+  <data name="PictureSettingsView_Output" xml:space="preserve">
+    <value>Végső méretek:</value>
+  </data>
+  <data name="PictureSettingsView_PAR" xml:space="preserve">
+    <value>Képpont-arány:</value>
+  </data>
+  <data name="PictureSettingsView_Right" xml:space="preserve">
+    <value>Jobb</value>
+  </data>
+  <data name="PictureSettingsView_Size" xml:space="preserve">
+    <value>Méret</value>
+  </data>
+  <data name="PictureSettingsView_Top" xml:space="preserve">
+    <value>Fent</value>
+  </data>
+  <data name="PictureSettingsView_Width" xml:space="preserve">
+    <value>Méretarányos méret:</value>
+  </data>
+  <data name="Preset_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="Preset_Export" xml:space="preserve">
+    <value>Exportálás fájlba</value>
+  </data>
+  <data name="Preset_Import" xml:space="preserve">
+    <value>Importálás fájlból</value>
+  </data>
+  <data name="Preset_Official" xml:space="preserve">
+    <value>Hivatalos</value>
+  </data>
+  <data name="QueueSelectionView_ChooseTitles" xml:space="preserve">
+    <value>Válasszon címeket:</value>
+  </data>
+  <data name="QueueSelectionView_Title" xml:space="preserve">
+    <value>Hozzáadás a várólistához</value>
+  </data>
+  <data name="QueueSelection_UsingPreset" xml:space="preserve">
+    <value>A kiválasztott címek az  "{0}"  előbeállítással kerülnek hozzáadásra..</value>
+  </data>
+  <data name="QueueView_Advanced" xml:space="preserve">
+    <value>Videó beállítások:</value>
+  </data>
+  <data name="QueueView_Audio" xml:space="preserve">
+    <value>Audió:</value>
+  </data>
+  <data name="QueueView_ClearAll" xml:space="preserve">
+    <value>Összes törlése</value>
+  </data>
+  <data name="QueueView_ClearCompleted" xml:space="preserve">
+    <value>Törlés befejeződött</value>
+  </data>
+  <data name="QueueView_ClearQueue" xml:space="preserve">
+    <value>Várólista törlése</value>
+  </data>
+  <data name="QueueView_ClearSelected" xml:space="preserve">
+    <value>Kiválasztottak törlése</value>
+  </data>
+  <data name="QueueView_Delete" xml:space="preserve">
+    <value>Törlés</value>
+  </data>
+  <data name="QueueView_Destination" xml:space="preserve">
+    <value>Rendeltetési hely:</value>
+  </data>
+  <data name="WhenDone_DoNothing" xml:space="preserve">
+    <value>Ne tegyen semmit</value>
+  </data>
+  <data name="QueueView_Duration" xml:space="preserve">
+    <value>Kódolás időtartama:</value>
+  </data>
+  <data name="QueueView_Edit" xml:space="preserve">
+    <value>Szerkesztés</value>
+  </data>
+  <data name="QueueView_EndTime" xml:space="preserve">
+    <value>Befejezési idő:</value>
+  </data>
+  <data name="QueueView_Export" xml:space="preserve">
+    <value>Várólista exportálása</value>
+  </data>
+  <data name="QueueView_FileSize" xml:space="preserve">
+    <value>Kimeneti fájlméret:</value>
+  </data>
+  <data name="WhenDone_Hibernate" xml:space="preserve">
+    <value>Hibernálás</value>
+  </data>
+  <data name="WhenDone_LockSystem" xml:space="preserve">
+    <value>Rendszer zárolása</value>
+  </data>
+  <data name="QueueView_LogNotAvailableYet" xml:space="preserve">
+    <value>A napló a kódolás befejezése után lesz elérhető.</value>
+  </data>
+  <data name="WhenDone_Logoff" xml:space="preserve">
+    <value>Kijelentkezés</value>
+  </data>
+  <data name="QueueView_OpenDestDir" xml:space="preserve">
+    <value>Célkönyvtár megnyitása</value>
+  </data>
+  <data name="QueueView_OpenSourceDir" xml:space="preserve">
+    <value>Forráskönyvtár megnyitása</value>
+  </data>
+  <data name="QueueView_Options" xml:space="preserve">
+    <value>Beállítások</value>
+  </data>
+  <data name="QueueView_Pause" xml:space="preserve">
+    <value>Szünet</value>
+  </data>
+  <data name="QueueView_PausedDuration" xml:space="preserve">
+    <value>Szüneteltetett időtartam:</value>
+  </data>
+  <data name="QueueView_PictureSettings" xml:space="preserve">
+    <value>Képbeállítások:</value>
+  </data>
+  <data name="WhenDone_QuitHandBrake" xml:space="preserve">
+    <value>Kilépés a HandBrake-ből</value>
+  </data>
+  <data name="QueueView_ResetAllJobs" xml:space="preserve">
+    <value>Minden munka újrakezdése</value>
+  </data>
+  <data name="QueueView_ResetFailed" xml:space="preserve">
+    <value>Az újrapróbálkozás sikertelen</value>
+  </data>
+  <data name="QueueView_ResetSelectedJobs" xml:space="preserve">
+    <value>Kijelölt feladatok visszaállítása</value>
+  </data>
+  <data name="QueueView_Reset" xml:space="preserve">
+    <value>Visszaállítás</value>
+  </data>
+  <data name="WhenDone_Shutdown" xml:space="preserve">
+    <value>Leállítás</value>
+  </data>
+  <data name="QueueView_Source" xml:space="preserve">
+    <value>Forrás:</value>
+  </data>
+  <data name="QueueView_Start" xml:space="preserve">
+    <value>Várólista indítása</value>
+  </data>
+  <data name="QueueView_StartTime" xml:space="preserve">
+    <value>Kezdési idő:</value>
+  </data>
+  <data name="QueueView_Statistics" xml:space="preserve">
+    <value>Statisztika</value>
+  </data>
+  <data name="QueueView_Subtitles" xml:space="preserve">
+    <value>Feliratok:</value>
+  </data>
+  <data name="QueueView_Summary" xml:space="preserve">
+    <value>Összefoglalás</value>
+  </data>
+  <data name="WhenDone_Suspend" xml:space="preserve">
+    <value>Alvás</value>
+  </data>
+  <data name="QueueView_Video" xml:space="preserve">
+    <value>Videó:</value>
+  </data>
+  <data name="QueueView_WhenDone" xml:space="preserve">
+    <value>Ha kész:</value>
+  </data>
+  <data name="Shared_AddAllForSelected" xml:space="preserve">
+    <value>Az összes többi kiválasztott nyelv hozzáadása</value>
+  </data>
+  <data name="Shared_AddAllRemaining" xml:space="preserve">
+    <value>Az összes fennmaradó sáv hozzáadása</value>
+  </data>
+  <data name="Shared_AddNewTrack" xml:space="preserve">
+    <value>Új sáv hozzáadása</value>
+  </data>
+  <data name="Shared_AddTrack" xml:space="preserve">
+    <value>Sávok</value>
+  </data>
+  <data name="Shared_AvailableLanguages" xml:space="preserve">
+    <value>Elérhető nyelvek:</value>
+  </data>
+  <data name="Shared_ChooseLanguages" xml:space="preserve">
+    <value>Válasszon nyelveket:</value>
+  </data>
+  <data name="Shared_ChosenLanguages" xml:space="preserve">
+    <value>Kiválasztott nyelvek:</value>
+  </data>
+  <data name="Shared_ConfigureDefaultBehaviours" xml:space="preserve">
+    <value>Alapértelmezett viselkedések konfigurálása</value>
+  </data>
+  <data name="Shared_ReloadDefaults" xml:space="preserve">
+    <value>Újratöltés</value>
+  </data>
+  <data name="SourceSelection_ChooseDisc" xml:space="preserve">
+    <value>Válassza ki a beolvasandó lemezt</value>
+  </data>
+  <data name="SourceSelection_ChooseFile" xml:space="preserve">
+    <value>Válassza ki a beolvasandó fájlt</value>
+  </data>
+  <data name="SourceSelection_ChooseFolder" xml:space="preserve">
+    <value>Válassza ki a beolvasandó mappát</value>
+  </data>
+  <data name="SourceSelection_ChooseSpecificTitle" xml:space="preserve">
+    <value>Opcionálisan válasszon egy adott címet:</value>
+  </data>
+  <data name="SourceSelection_ChooseVideo" xml:space="preserve">
+    <value>Ezután válaszd ki a kódolni kívánt videó(ka)t:</value>
+  </data>
+  <data name="SourceSelection_File" xml:space="preserve">
+    <value>Fájl</value>
+  </data>
+  <data name="SourceSelection_FolderBatchScan" xml:space="preserve">
+    <value>Mappa (kötegelt vizsgálat)</value>
+  </data>
+  <data name="SourceSelection_OpenDVDBluray" xml:space="preserve">
+    <value>Nyissa meg ezt a DVD- vagy Bluray-meghajtót</value>
+  </data>
+  <data name="SourceSelection_OpenFolderWIth" xml:space="preserve">
+    <value>Nyisson meg egy vagy több fájlt tartalmazó mappát.</value>
+  </data>
+  <data name="SourceSelection_QueueArchiveRecovery" xml:space="preserve">
+    <value>A várólistafájlok helyreállítása</value>
+  </data>
+  <data name="SourceSelection_QueueArchiveRecoveryDesc" xml:space="preserve">
+    <value>A korábbi várólisták archívuma elérhető.</value>
+  </data>
+  <data name="SourceSelection_SingleVideoFile" xml:space="preserve">
+    <value>Videofájl(ok) megnyitása.</value>
+  </data>
+  <data name="SourceSelection_SourceSelection" xml:space="preserve">
+    <value>Forrás kiválasztása</value>
+  </data>
+  <data name="StaticPreviewView_Duration" xml:space="preserve">
+    <value>Időtartam:</value>
+  </data>
+  <data name="StaticPreviewView_LivePreview" xml:space="preserve">
+    <value>Kódolási előnézet</value>
+  </data>
+  <data name="StaticPreviewView_SelectPreviewImage" xml:space="preserve">
+    <value>Válasszon egy előnézeti képet</value>
+  </data>
+  <data name="StaticPreviewView_UseExternalPlayer" xml:space="preserve">
+    <value>Külső lejátszó alkalmazás használata</value>
+  </data>
+  <data name="SubtitlesView_AddCC" xml:space="preserve">
+    <value>Zárt felirat hozzáadása, ha rendelkezésre áll</value>
+  </data>
+  <data name="SubtitlesView_AddForeignAudioSearch" xml:space="preserve">
+    <value>Adja hozzá az "Idegen hang szkennelést"</value>
+  </data>
+  <data name="SubtitlesView_BurnInBehaviour" xml:space="preserve">
+    <value>Beégési viselkedés:</value>
+  </data>
+  <data name="SubtitlesView_ImportSubtitle" xml:space="preserve">
+    <value>Felirat importálása</value>
+  </data>
+  <data name="SubtitlesView_TrackSelectionBehaviour" xml:space="preserve">
+    <value>Sáv kiválasztás viselkedés:</value>
+  </data>
+  <data name="SubtitleView_AddAllCC" xml:space="preserve">
+    <value>Az összes fennmaradó felirat hozzáadása</value>
+  </data>
+  <data name="SubtitleView_SubtitleDefaultsDescription" xml:space="preserve">
+    <value>Konfigurálja, hogy a feliratsávok hogyan legyenek automatikusan kiválasztva és konfigurálva új cím vagy forrásvideó kiválasztásakor.</value>
+  </data>
+  <data name="SummaryView_AdditionalAudioTracks" xml:space="preserve">
+    <value>További hangsávok</value>
+  </data>
+  <data name="SummaryView_AdditionalSubtitleTracks" xml:space="preserve">
+    <value>További feliratsávok</value>
+  </data>
+  <data name="SummaryView_Burned" xml:space="preserve">
+    <value>Írt</value>
+  </data>
+  <data name="SummaryView_Chapters" xml:space="preserve">
+    <value>Fejezetjelölők</value>
+  </data>
+  <data name="SummaryView_Deblock" xml:space="preserve">
+    <value>Deblock</value>
+  </data>
+  <data name="SummaryView_Detelecine" xml:space="preserve">
+    <value>Detelecine</value>
+  </data>
+  <data name="SummaryView_display" xml:space="preserve">
+    <value>kijelző</value>
+  </data>
+  <data name="SummaryView_Grayscale" xml:space="preserve">
+    <value>Szürkeárnyalatos</value>
+  </data>
+  <data name="SummaryView_NoAudioTracks" xml:space="preserve">
+    <value>Nincsenek hangsávok</value>
+  </data>
+  <data name="SummaryView_NoChapters" xml:space="preserve">
+    <value>Nincsenek fejezetjelölők</value>
+  </data>
+  <data name="SummaryView_NoFilters" xml:space="preserve">
+    <value>Nincsenek szűrők</value>
+  </data>
+  <data name="SummaryView_NoSource" xml:space="preserve">
+    <value>Nincs forrás</value>
+  </data>
+  <data name="SummaryView_NoSubtitleTracks" xml:space="preserve">
+    <value>Nincsenek feliratsávok</value>
+  </data>
+  <data name="SummaryView_NoTracks" xml:space="preserve">
+    <value>Nincsenek sávok</value>
+  </data>
+  <data name="SummaryView_PreviewInfo" xml:space="preserve">
+    <value>{0} / {1} előnézete</value>
+  </data>
+  <data name="SummaryView_Rotation" xml:space="preserve">
+    <value>Forgatás</value>
+  </data>
+  <data name="SummaryView_storage" xml:space="preserve">
+    <value>tárolás</value>
+  </data>
+  <data name="VideoView_MultiPass" xml:space="preserve">
+    <value>Többmenetes kódolás</value>
+  </data>
+  <data name="VideoView_AverageBitrate" xml:space="preserve">
+    <value>Átlagos bitsebesség (kbps):</value>
+  </data>
+  <data name="VideoView_Codec" xml:space="preserve">
+    <value>Videó kódoló:</value>
+  </data>
+  <data name="VideoView_ColourRange" xml:space="preserve">
+    <value>Color Range:</value>
+  </data>
+  <data name="VideoView_ConstantFramerate" xml:space="preserve">
+    <value>Állandó képkockasebesség</value>
+  </data>
+  <data name="VideoView_ConstantQuality" xml:space="preserve">
+    <value>Állandó minőség:</value>
+  </data>
+  <data name="VideoView_EncoderLevel" xml:space="preserve">
+    <value>Kódoló szintje:</value>
+  </data>
+  <data name="VideoView_EncoderPreset" xml:space="preserve">
+    <value>Kódoló előbeállítás:</value>
+  </data>
+  <data name="VideoView_EncoderProfile" xml:space="preserve">
+    <value>Kódoló profilja:</value>
+  </data>
+  <data name="VideoView_EncodeTune" xml:space="preserve">
+    <value>Kódoló hangolás:</value>
+  </data>
+  <data name="VideoView_ExtraOptions" xml:space="preserve">
+    <value>További lehetőségek:</value>
+  </data>
+  <data name="VideoView_FastDecode" xml:space="preserve">
+    <value>Gyors dekódolás</value>
+  </data>
+  <data name="VideoView_Framerate" xml:space="preserve">
+    <value>Képkockasebesség (FPS):</value>
+  </data>
+  <data name="VideoView_OptimiseVideo" xml:space="preserve">
+    <value>Kódoló beállításai:</value>
+  </data>
+  <data name="VideoView_PeakFramerate" xml:space="preserve">
+    <value>Csúcs képkockasebesség</value>
+  </data>
+  <data name="VideoView_Quality" xml:space="preserve">
+    <value>Minőség: </value>
+  </data>
+  <data name="VideoView_TurboAnalysisPass" xml:space="preserve">
+    <value>Turbó elemzési mód</value>
+  </data>
+  <data name="VideoView_VariableFramerate" xml:space="preserve">
+    <value>Változó képkockasebesség</value>
+  </data>
+  <data name="VideoView_Video" xml:space="preserve">
+    <value>Videó: </value>
+  </data>
+  <data name="OptionsView_Language" xml:space="preserve">
+    <value>Nyelv:</value>
+  </data>
+  <data name="Language_UseSystem" xml:space="preserve">
+    <value>Használja a rendszer nyelvét</value>
+  </data>
+  <data name="SourceSelection_AboutHandBrake" xml:space="preserve">
+    <value>HandBrake névjegye</value>
+  </data>
+  <data name="SourceSelection_DropFileHere" xml:space="preserve">
+    <value>Vagy dobjon ide egy fájlt, fájlkészletet vagy mappát...</value>
+  </data>
+  <data name="SourceSelection_Help" xml:space="preserve">
+    <value>Súgó</value>
+  </data>
+  <data name="Preferences" xml:space="preserve">
+    <value>Beállítások</value>
+  </data>
+  <data name="AudioDefaultsView_AddTrack" xml:space="preserve">
+    <value>Sáv hozzáadása</value>
+  </data>
+  <data name="AudioDefaultsView_AutoAddTracks" xml:space="preserve">
+    <value>Hangkódoló beállításai az egyes kiválasztott sávokhoz:</value>
+  </data>
+  <data name="AudioDefaultsView_Clear" xml:space="preserve">
+    <value>Tisztítás</value>
+  </data>
+  <data name="SubtitlesView_BurnIn" xml:space="preserve">
+    <value>Írás optikai lemezre</value>
+  </data>
+  <data name="SubtitlesView_Default" xml:space="preserve">
+    <value>Alapértelmezett</value>
+  </data>
+  <data name="SubtitlesView_ForcedOnly" xml:space="preserve">
+    <value>Csak kényszerített</value>
+  </data>
+  <data name="MainView_About" xml:space="preserve">
+    <value>_Névjegy...</value>
+  </data>
+  <data name="MainView_ActivityLogMenu" xml:space="preserve">
+    <value>_Tevékenységi napló</value>
+  </data>
+  <data name="MainView_CheckForUpdates" xml:space="preserve">
+    <value>_Frissítések keresése</value>
+  </data>
+  <data name="MainView_Exit" xml:space="preserve">
+    <value>_Kilépés</value>
+  </data>
+  <data name="MainView_ExportToFile" xml:space="preserve">
+    <value>_Exportálás fájlba</value>
+  </data>
+  <data name="MainView_FileMenu" xml:space="preserve">
+    <value>_Fájl</value>
+  </data>
+  <data name="MainView_HandBrakeDocs" xml:space="preserve">
+    <value>_HandBrake dokumentáció (HTTPS)</value>
+  </data>
+  <data name="MainView_HelpMenu" xml:space="preserve">
+    <value>_Súgó</value>
+  </data>
+  <data name="MainView_ImportFromFile" xml:space="preserve">
+    <value>_Importálás fájlból</value>
+  </data>
+  <data name="MainView_PreferencesMenu" xml:space="preserve">
+    <value>_Beállítások</value>
+  </data>
+  <data name="MainView_PresetsMenu" xml:space="preserve">
+    <value>_Előbeállítások</value>
+  </data>
+  <data name="MainView_QueueMenu" xml:space="preserve">
+    <value>_Várólista</value>
+  </data>
+  <data name="MainView_ResetPresets" xml:space="preserve">
+    <value>_Beépített előbeállítások visszaállítása</value>
+  </data>
+  <data name="MainView_SetCurrentAsDefault" xml:space="preserve">
+    <value>_Állítsa be a jelenlegit alapértelmezettként</value>
+  </data>
+  <data name="MainView_ShowPresetPanel" xml:space="preserve">
+    <value>Elő_beállítások panel megjelenítése</value>
+  </data>
+  <data name="MainView_ShowQueueMenu" xml:space="preserve">
+    <value>_Várólista megjelenítése</value>
+  </data>
+  <data name="MainView_ToolsMenu" xml:space="preserve">
+    <value>Es_zközök</value>
+  </data>
+  <data name="OptionsView_CheckingForUpdates" xml:space="preserve">
+    <value>Frissítések keresése...</value>
+  </data>
+  <data name="OptionsView_ClearLogDirConfirm" xml:space="preserve">
+    <value>Biztosan törölni szeretné a naplófájl könyvtárát?</value>
+  </data>
+  <data name="OptionsView_ClearLogs" xml:space="preserve">
+    <value>Naplók törlése</value>
+  </data>
+  <data name="OptionsView_Downloading" xml:space="preserve">
+    <value>Letöltés...</value>
+  </data>
+  <data name="OptionsView_LogsCleared" xml:space="preserve">
+    <value>A HandBrake naplófájlkönyvtára törölve lett!</value>
+  </data>
+  <data name="OptionsView_Notice" xml:space="preserve">
+    <value>Értesítés</value>
+  </data>
+  <data name="OptionsView_PreparingUpdate" xml:space="preserve">
+    <value>Felkészülés a frissítésre...</value>
+  </data>
+  <data name="OptionsView_SelectFolder" xml:space="preserve">
+    <value>Kérjük, válasszon ki egy mappát.</value>
+  </data>
+  <data name="OptionsView_SetDefaultLocationOutputFIle" xml:space="preserve">
+    <value>Kattintson a "Tallózás" gombra az alapértelmezett hely beállításához</value>
+  </data>
+  <data name="MainView_Hide" xml:space="preserve">
+    <value>Elrejtés</value>
+  </data>
+  <data name="MainView_Show" xml:space="preserve">
+    <value>Mutat</value>
+  </data>
+  <data name="MainView_ShowAddAllToQueue" xml:space="preserve">
+    <value>'Összes hozzáadása' a várólistához</value>
+  </data>
+  <data name="MainView_ShowAddSelectionToQueue" xml:space="preserve">
+    <value>'Kijelölt hozzáadása' a várólistához</value>
+  </data>
+  <data name="QueueView_PlayMediaFile" xml:space="preserve">
+    <value>Fájl lejátszása</value>
+  </data>
+  <data name="Options_ApplicationToolbar" xml:space="preserve">
+    <value>Alkalmazás eszköztár</value>
+  </data>
+  <data name="Options_ShowToolbarAddAll" xml:space="preserve">
+    <value>Az 'Összes hozzáadása a várólistához' megjelenítése az eszközsoron</value>
+  </data>
+  <data name="Options_ShowToolbarAddSelection" xml:space="preserve">
+    <value>A 'Kijelölt hozzáadása a várólistához' megjelenítése az eszköztáron</value>
+  </data>
+  <data name="OptionsView_HardwareDetectFailed" xml:space="preserve">
+    <value>A hardveres kódolás támogatása jelenleg le van tiltva. Ha nem a "--no-hardware" opcióval indította el a HandBrake-et, győződjön meg arról, hogy a rendszer összes grafikus adapteréhez naprakész illesztőprogramokat futtat.
+
+Ez nem érinti a szoftverkódolókat.</value>
+  </data>
+  <data name="Main_PleaseFixSubtitleSettings" xml:space="preserve">
+    <value>Kérjük, javítsa ki a felirat beállításait, mielőtt folytatná.</value>
+  </data>
+  <data name="Generic_Apply" xml:space="preserve">
+    <value>Alkalmaz</value>
+  </data>
+  <data name="Main_ResumeEncode" xml:space="preserve">
+    <value>Kódolás folytatása</value>
+  </data>
+  <data name="QueueView_Actions" xml:space="preserve">
+    <value>Műveletek</value>
+  </data>
+  <data name="QueueView_Import" xml:space="preserve">
+    <value>Várólista importálása</value>
+  </data>
+  <data name="QueueViewModel_EncodeStatusChanged_StatusLabel" xml:space="preserve">
+    <value>Kódolás: Menet {0} of {1},  {2:00.00}%, FPS: {3:000.0},  Átlagos FPS: {4:000.0}
+Hátralévő idő: {5},  Eltelt idő: {6} {7}</value>
+  </data>
+  <data name="QueueView_DeleteSelected" xml:space="preserve">
+    <value>Kijelölt törlése</value>
+  </data>
+  <data name="Portable_TmpNotWritable" xml:space="preserve">
+    <value>Hordozható mód: Nem lehet TMP-könyvtárat létrehozni. Kérjük, ellenőrizze, hogy az elérési út helyes-e és írható-e.</value>
+  </data>
+  <data name="Portable_StorageNotWritable" xml:space="preserve">
+    <value>Hordozható mód: Nem lehet létrehozni a Storage-könyvtárat. Kérjük, ellenőrizze, hogy az elérési út helyes-e és írható-e.</value>
+  </data>
+  <data name="Portable_IniFileError" xml:space="preserve">
+    <value>Hordozható mód: Nem lehet olvasni portable.ini. Lehet, hogy hiba van ebben a fájlban. Kérjük, próbálja meg újra használni a portable.ini.template sablont útmutatóként.</value>
+  </data>
+  <data name="OptionsView_FormatOptions" xml:space="preserve">
+    <value>Cserélési lehetőségek:
+Húzhatja/dobhatja vagy beírhatja a fenti szöveget.</value>
+  </data>
+  <data name="FileOverwriteBehaviours_Ask" xml:space="preserve">
+    <value>Kérje a fájl felülírását</value>
+  </data>
+  <data name="FileOverwriteBehaviours_Autoname" xml:space="preserve">
+    <value>Próbálja meg automatikusan átnevezni a fájlt</value>
+  </data>
+  <data name="FileOverwriteBehaviours_Overwrite" xml:space="preserve">
+    <value>A fájl felülírása</value>
+  </data>
+  <data name="Options_UIBehaviour" xml:space="preserve">
+    <value>A felhasználói felület viselkedése</value>
+  </data>
+  <data name="OptionsView_FileOverwriteBehaviour" xml:space="preserve">
+    <value>Fájlfelülírási viselkedés:</value>
+  </data>
+  <data name="Options_EncodeCompleted" xml:space="preserve">
+    <value>A kódolás befejeződött</value>
+  </data>
+  <data name="Options_Notifications" xml:space="preserve">
+    <value>Hang értesítések</value>
+  </data>
+  <data name="Options_QueueCompleted" xml:space="preserve">
+    <value>Várólista befejeződött</value>
+  </data>
+  <data name="Options_WhenDoneColon" xml:space="preserve">
+    <value>Ha kész:</value>
+  </data>
+  <data name="OptionsView_FileCollisionBehaviour" xml:space="preserve">
+    <value>Fájlnév-ütközési viselkedés:</value>
+  </data>
+  <data name="CollisionBehaviour_Post" xml:space="preserve">
+    <value>Utótag</value>
+  </data>
+  <data name="CollisionBehaviour_Pre" xml:space="preserve">
+    <value>Előtag</value>
+  </data>
+  <data name="CollisionBehaviour_AppendNumber" xml:space="preserve">
+    <value>Szám hozzáfűzése</value>
+  </data>
+  <data name="FiltersViewAuto_DeblockPreset" xml:space="preserve">
+    <value>FiltersView_DeblockPreset</value>
+  </data>
+  <data name="FiltersViewAuto_DeblockTune" xml:space="preserve">
+    <value>Deblock hangolás</value>
+  </data>
+  <data name="OptionsView_EncodeNotes" xml:space="preserve">
+    <value>Megjegyzés: Nem minden hardveres kódoló rendelkezik extra beállításokkal. A rendszeren elérhető és támogatott összes hardveres kódoló kiválasztható lesz a videó lapon a videokódoló legördülő menüben.</value>
+  </data>
+  <data name="Queue_RecoverQueueQuestionPlural" xml:space="preserve">
+    <value>A HandBrake több befejezetlen várólistafájlt észlelt. Ezek a HandBrake futásának több példányából származnak. Szeretné visszaszerezni az összes befejezetlen feladatot?</value>
+  </data>
+  <data name="Queue_RecoverQueueQuestionSingular" xml:space="preserve">
+    <value>A HandBrake befejezetlen elemeket észlelt a várólistán az alkalmazás legutóbbi indításakor. Szeretné ezeket helyreállítani?</value>
+  </data>
+  <data name="Queue_RecoveryPossible" xml:space="preserve">
+    <value>Lehetséges a várólista helyreállítása</value>
+  </data>
+  <data name="PresetService_ImportingBuiltInWarning" xml:space="preserve">
+    <value>Az előbeállítások fájlja beépített előbeállításokat tartalmazott. Az importáló funkció nem támogatja ezek importálását. Kérjük, használja a 'Előbeállítások menü -&gt; Beépített előbeállítások visszaállítása' menüpontot a standard előbeállítások visszaállításához.
+
+Ahol támogatott, a rendszer importálja a felhasználói készleteket.</value>
+  </data>
+  <data name="Options_PromptBeforeAction" xml:space="preserve">
+    <value>Azonnal hajtsa végre a műveletet. (Ez letiltja a 60 másodperces megerősítő párbeszédpanelt)</value>
+  </data>
+  <data name="Browse" xml:space="preserve">
+    <value>Tallózás</value>
+  </data>
+  <data name="OptionsView_MediaFileNotSet" xml:space="preserve">
+    <value>Nincs hangfájl beállítva. Kérjük, kattintson a "Tallózás" gombra egy wav vagy mp3 fájl kiválasztásához a lejátszáshoz.</value>
+  </data>
+  <data name="OptionsView_Play" xml:space="preserve">
+    <value>Lejátszás</value>
+  </data>
+  <data name="QueueView_ExportCLI" xml:space="preserve">
+    <value>Várólista exportálása (csak CLI)</value>
+  </data>
+  <data name="Options_DarkTheme" xml:space="preserve">
+    <value>Használja a sötét témát. (Újraindítás szükséges, csak Windows 10)</value>
+  </data>
+  <data name="QueueView_NotAvailable" xml:space="preserve">
+    <value>Nem elèrhető</value>
+  </data>
+  <data name="Options_LowDiskspaceSizeGB" xml:space="preserve">
+    <value>GB</value>
+  </data>
+  <data name="SystemService_ACMains" xml:space="preserve">
+    <value>AC hálózati tápellátás észlelve. A kódolás folytatása... ({0} %)</value>
+  </data>
+  <data name="SystemService_CriticalBattery" xml:space="preserve">
+    <value>Rendszer akkuszintje kritikus! ({0} %)</value>
+  </data>
+  <data name="SystemService_LowBatteryLog" xml:space="preserve">
+    <value>Rendszer akkuszintje alacsony! ({0} %). A kódolás szünetel.</value>
+  </data>
+  <data name="SystemService_LowDiskSpaceLog" xml:space="preserve">
+    <value>A célmeghajtón a szabad tárhely {0} GB alá csökkent. Kódolás szüneteltetése...</value>
+  </data>
+  <data name="AudioDefaultsView_PaneTitle" xml:space="preserve">
+    <value>Automatikus hangválasztás</value>
+  </data>
+  <data name="SubtitlesDefaultsView_PaneTitle" xml:space="preserve">
+    <value>Automatikus feliratválasztás</value>
+  </data>
+  <data name="Options_SystemOptions" xml:space="preserve">
+    <value>Rendszer</value>
+  </data>
+  <data name="MetadataView_Actors" xml:space="preserve">
+    <value>Szereplők:</value>
+  </data>
+  <data name="MetadataView_Comments" xml:space="preserve">
+    <value>Megjegyzések:</value>
+  </data>
+  <data name="MetadataView_Description" xml:space="preserve">
+    <value>Leírás:</value>
+  </data>
+  <data name="MetadataView_Director" xml:space="preserve">
+    <value>Rendező:</value>
+  </data>
+  <data name="MetadataView_Genre" xml:space="preserve">
+    <value>Nem:</value>
+  </data>
+  <data name="MetadataView_Plot" xml:space="preserve">
+    <value>Cselekmény:</value>
+  </data>
+  <data name="MetadataView_ReleaseDate" xml:space="preserve">
+    <value>Megjelenés dátuma:</value>
+  </data>
+  <data name="MetadataView_TitleTag" xml:space="preserve">
+    <value>Cím:</value>
+  </data>
+  <data name="LogViewModel_Title" xml:space="preserve">
+    <value>Napló megjelenítő</value>
+  </data>
+  <data name="MainView_Aspect" xml:space="preserve">
+    <value>Vonatkozás:</value>
+  </data>
+  <data name="MainView_Filters" xml:space="preserve">
+    <value>Szűrők:</value>
+  </data>
+  <data name="MainView_Size" xml:space="preserve">
+    <value>Méret:</value>
+  </data>
+  <data name="MainView_Tracks" xml:space="preserve">
+    <value>Sáv:</value>
+  </data>
+  <data name="OptionsTab_General" xml:space="preserve">
+    <value>Általános</value>
+  </data>
+  <data name="OptionsViewModel_CheckForUpdatesMsg" xml:space="preserve">
+    <value>Kattintson a "Frissítések keresése" gombra az új verziók kereséséhez</value>
+  </data>
+  <data name="OptionsView_BackButton" xml:space="preserve">
+    <value>&lt; Vissza</value>
+  </data>
+  <data name="QueueView_CurrentlyPaused" xml:space="preserve">
+    <value>Jelenleg szüneteltetve</value>
+  </data>
+  <data name="Options_OutputFiles" xml:space="preserve">
+    <value>Kimeneti fájlok</value>
+  </data>
+  <data name="PointToPointMode_Chapters" xml:space="preserve">
+    <value>Fejezetek</value>
+  </data>
+  <data name="PointToPointMode_Frames" xml:space="preserve">
+    <value>Keretek</value>
+  </data>
+  <data name="PointToPointMode_Preview" xml:space="preserve">
+    <value>Előnézet</value>
+  </data>
+  <data name="PointToPointMode_Seconds" xml:space="preserve">
+    <value>Másodperc</value>
+  </data>
+  <data name="SubtitleBehaviourModes_AllMatching" xml:space="preserve">
+    <value>Minden megfelelő kijelölt nyelv</value>
+  </data>
+  <data name="SubtitleBehaviourModes_FirstMatching" xml:space="preserve">
+    <value>Első megfelelő kijelölt nyelv</value>
+  </data>
+  <data name="SubtitleBehaviourModes_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_FirstTrack" xml:space="preserve">
+    <value>Első sáv</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_ForeignAudioPreferredElseFirst" xml:space="preserve">
+    <value>Előnyben részesített idegen hang, egyébként az első</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_ForeignAudioTrack" xml:space="preserve">
+    <value>Idegen hangsáv</value>
+  </data>
+  <data name="SubtitleBurnInBehaviourModes_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="SubtitleViewModel_ForeignAudioSearch" xml:space="preserve">
+    <value>Idegen hangsáv keresése</value>
+  </data>
+  <data name="Subtitle_ForeignAudioScan" xml:space="preserve">
+    <value>Idegen hangsáv beolvasás</value>
+  </data>
+  <data name="AudioBehaviourModes_AllMatching" xml:space="preserve">
+    <value>Minden megfelelő kijelölt nyelv</value>
+  </data>
+  <data name="AudioBehaviourModes_AllTracks" xml:space="preserve">
+    <value>Az összes sáv használata sablonként</value>
+  </data>
+  <data name="AudioBehaviourModes_FirstMatch" xml:space="preserve">
+    <value>Első megfelelő kijelölt nyelv</value>
+  </data>
+  <data name="AudioBehaviourModes_FirstTrack" xml:space="preserve">
+    <value>Használja az Első sávot sablonként</value>
+  </data>
+  <data name="AudioBehaviourModes_None" xml:space="preserve">
+    <value>Nincs hang</value>
+  </data>
+  <data name="ChapterViewModel_Chapter" xml:space="preserve">
+    <value>Fejezet {0}</value>
+  </data>
+  <data name="Mp4Behaviour_Auto" xml:space="preserve">
+    <value>Automatikus</value>
+  </data>
+  <data name="Mp4Behaviour_UseM4v" xml:space="preserve">
+    <value>Mindig M4V-t használjon</value>
+  </data>
+  <data name="Mp4Behaviour_UseMp4" xml:space="preserve">
+    <value>Mindig MP4-et használjon</value>
+  </data>
+  <data name="PresetPictureSettingsMode_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="PresetPictureSettingsMode_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="PresetPictureSettingsMode_SourceMaximum" xml:space="preserve">
+    <value>Mindig használja a forrásfelbontást</value>
+  </data>
+  <data name="ProcessPriority_AboveNormal" xml:space="preserve">
+    <value>Normál felett</value>
+  </data>
+  <data name="ProcessPriority_BelowNormal" xml:space="preserve">
+    <value>Normál alatt</value>
+  </data>
+  <data name="ProcessPriority_High" xml:space="preserve">
+    <value>Magas</value>
+  </data>
+  <data name="ProcessPriority_Low" xml:space="preserve">
+    <value>Alacsony</value>
+  </data>
+  <data name="ProcessPriority_Normal" xml:space="preserve">
+    <value>Normál</value>
+  </data>
+  <data name="UpdateCheck_Monthly" xml:space="preserve">
+    <value>Havonta</value>
+  </data>
+  <data name="UpdateCheck_Weekly" xml:space="preserve">
+    <value>Hetente</value>
+  </data>
+  <data name="OptionsView_AlwaysUseDefaultPath" xml:space="preserve">
+    <value>Mindig az alapértelmezett elérési utat használja minden létrehozott új névhez.</value>
+  </data>
+  <data name="OptionsView_RemotePortLimit" xml:space="preserve">
+    <value>A porttartománynak 5000 és 32767 között kell lennie</value>
+  </data>
+  <data name="SourceSelection_UpdateAvailable" xml:space="preserve">
+    <value>Új verzió érhető el!</value>
+  </data>
+  <data name="About_Copyright" xml:space="preserve">
+    <value>Copyright (C) 2003-2026 The HandBrake Team</value>
+  </data>
+  <data name="Options_LowBatteryLevel" xml:space="preserve">
+    <value>Alacsony akkumulátor töltöttségi szint:</value>
+  </data>
+  <data name="Options_PauseOnLowBattery" xml:space="preserve">
+    <value>Szüneteltesse a futó feladatokat, ha az akkumulátor lemerül.</value>
+  </data>
+  <data name="SubtitleView_AddRemainingCC" xml:space="preserve">
+    <value>Az összes fennmaradó felirat hozzáadása</value>
+  </data>
+  <data name="QueueService_DuplicatesQuestion" xml:space="preserve">
+    <value>Az importálni kívánt várólistában duplikált feladatokat észleltek. Szeretné felülírni a meglévő rekordokat? 
+Ez leállítja a már futó feladatokat is.</value>
+  </data>
+  <data name="QueueService_DuplicatesTitle" xml:space="preserve">
+    <value>Ismétlődések észlelhetők</value>
+  </data>
+  <data name="OptionsView_EnableQuicksyncLowPower" xml:space="preserve">
+    <value>Engedélyezze az alacsony fogyasztású QuickSync hardvert (ahol támogatott).</value>
+  </data>
+  <data name="QueueView_JobInformationNotAvailable" xml:space="preserve">
+    <value>Kérjük, válasszon ki egyetlen feladatot az összefoglaló információk megtekintéséhez.</value>
+  </data>
+  <data name="OptionsView_EnableWorkerProcesses" xml:space="preserve">
+    <value>Minden egyes várakozásba állított feladatot külön munkafolyamatban futtat.</value>
+  </data>
+  <data name="OptionsView_WorkerDefaultPort" xml:space="preserve">
+    <value>A feladat alapértelmezett hálózati portja:</value>
+  </data>
+  <data name="Presets_NotAvailableForUse" xml:space="preserve">
+    <value>A kiválasztott előbeállítás nem használható ezen a rendszeren.
+
+Ez általában azt jelzi, hogy a rendszer nem támogatja a használatához szükséges hardvert.
+
+Kérjük, válasszon egy másik előbeállítást.</value>
+  </data>
+  <data name="OptionsView_ProcessIsolation" xml:space="preserve">
+    <value>Folyamat elkülönítése</value>
+  </data>
+  <data name="OptionsView_ProcessIsolation_Warning1" xml:space="preserve">
+    <value>Kérjük, vegye figyelembe, hogy ennek a funkciónak a használata elindít egy HTTP-kiszolgálót, amely a 127.0.0.1-hez van kötve a megadott porton.</value>
+  </data>
+  <data name="OptionsView_ProcessIsolation_Warning2" xml:space="preserve">
+    <value>Ha a beállított port használatban van, akkor a megadott porttól +100-on belül megtalálja az első szabad portot.</value>
+  </data>
+  <data name="OptionsView_SimultaneousEncodes" xml:space="preserve">
+    <value>Az egyidejű kódolások maximális száma:</value>
+  </data>
+  <data name="StaticPreviewView_CancelPreview" xml:space="preserve">
+    <value>Mégse</value>
+  </data>
+  <data name="MainView_SelectedPresets" xml:space="preserve">
+    <value>Előbeállítás:</value>
+  </data>
+  <data name="SummaryView_SameAsSource" xml:space="preserve">
+    <value>Ugyanaz, mint a forrás</value>
+  </data>
+  <data name="OptionsViewModel_ResetHandBrake" xml:space="preserve">
+    <value>Beállítások visszaállítása</value>
+  </data>
+  <data name="OptionsViewModel_ResetHandBrakeQuestion" xml:space="preserve">
+    <value>Biztosan vissza akarja állítani a HandBrake alapértelmezett beállításait?</value>
+  </data>
+  <data name="PaddingMode_Custom" xml:space="preserve">
+    <value>Egyéni (nem korlátozott)</value>
+  </data>
+  <data name="PaddingMode_Fill" xml:space="preserve">
+    <value>Szélesség és magasság</value>
+  </data>
+  <data name="PaddingMode_Height" xml:space="preserve">
+    <value>Magasság (szélesvásznú)</value>
+  </data>
+  <data name="PaddingMode_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="PaddingMode_Width" xml:space="preserve">
+    <value>Szélesség (oszlopos)</value>
+  </data>
+  <data name="PictureSettingsView_Padding" xml:space="preserve">
+    <value>Kitöltés:</value>
+  </data>
+  <data name="PictureSettingsView_PaddingColour" xml:space="preserve">
+    <value>Szín:</value>
+  </data>
+  <data name="PictureSettingsView_Borders" xml:space="preserve">
+    <value>Szegélyek:</value>
+  </data>
+  <data name="PictureSettingsView_ResAndScaling" xml:space="preserve">
+    <value>Felbontás és méretezés:</value>
+  </data>
+  <data name="PictureSettingsView_RotateAndCrop" xml:space="preserve">
+    <value>Tájolás és vágás:</value>
+  </data>
+  <data name="QueueView_FilterSettings" xml:space="preserve">
+    <value>Szűrők:</value>
+  </data>
+  <data name="SummaryView_Default" xml:space="preserve">
+    <value>Alapértelmezett</value>
+  </data>
+  <data name="SummaryView_Forced" xml:space="preserve">
+    <value>Kényszerített</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_1080p" xml:space="preserve">
+    <value>1080p HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_480p" xml:space="preserve">
+    <value>480p NTSC SD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_4K" xml:space="preserve">
+    <value>2160p 4K Ultra HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_576p" xml:space="preserve">
+    <value>576p PAL SD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_720p" xml:space="preserve">
+    <value>720p HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_8K" xml:space="preserve">
+    <value>4320p 8K Ultra HD</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="PictureSettingsView_MaxSize" xml:space="preserve">
+    <value>Maximális méret:</value>
+  </data>
+  <data name="PictureSettingsView_ResLimit" xml:space="preserve">
+    <value>Felbontási határérték:</value>
+  </data>
+  <data name="PictureSettingsResLimitModes_none" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="ManagePresetView_DeleteBuiltIn" xml:space="preserve">
+    <value>Beépített előbeállítások törlése</value>
+  </data>
+  <data name="ManagePresetView_Export" xml:space="preserve">
+    <value>Kiválasztott előbeállítás exportálása</value>
+  </data>
+  <data name="ManagePresetView_Import" xml:space="preserve">
+    <value>Előbeállítás(ok) importálása fájlból</value>
+  </data>
+  <data name="ManagePresetView_PresetInfo" xml:space="preserve">
+    <value>Előbeállítás információi:</value>
+  </data>
+  <data name="ManagePresetView_RestrictedPreset" xml:space="preserve">
+    <value>A beépített előbeállítások nem módosíthatók.</value>
+  </data>
+  <data name="ManagePresetView_SetDefault" xml:space="preserve">
+    <value>A kiválasztott előbeállítás alapértelmezettként való beállítása</value>
+  </data>
+  <data name="PresetManagerView_Delete" xml:space="preserve">
+    <value>Előbeállítás törlése</value>
+  </data>
+  <data name="OptionsView_NotSupported" xml:space="preserve">
+    <value>(Ez a rendszer nem támogatja)</value>
+  </data>
+  <data name="QueueView_Stop" xml:space="preserve">
+    <value>Állj</value>
+  </data>
+  <data name="String1" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="PresetService_CategoryAlreadyExists" xml:space="preserve">
+    <value>A megadott kategórianév már létezik. Kérjük, válasszon másik nevet.</value>
+  </data>
+  <data name="PresetService_CategoryNameEmpty" xml:space="preserve">
+    <value>A kategória neve üres volt. Kérjük, adjon meg egy nevet.</value>
+  </data>
+  <data name="TextEntryView_EnterName" xml:space="preserve">
+    <value>Írjon be egy nevet:</value>
+  </data>
+  <data name="ManagePresetView_NoPresetSelected" xml:space="preserve">
+    <value>Nincs előbeállítás kiválasztva.</value>
+  </data>
+  <data name="ManagePresetView_ExportUserPresets" xml:space="preserve">
+    <value>Minden felhasználói előbeállítás exportálása</value>
+  </data>
+  <data name="Options_LowDiskspaceLevelText" xml:space="preserve">
+    <value>Az alacsony lemezterületű riasztások szintje:</value>
+  </data>
+  <data name="OptionsView_SimultaneousHardwareLimitNotice" xml:space="preserve">
+    <value>Értesítés: Ez az egyidejű feladatok felső határa. Előfordulhat, hogy a hardveres korlátozások hatására a kódolás során csökken az egyidejű feladatok tényleges száma. A beállítás csak a következő várólista-köteg vagy alkalmazás újraindításakor lép érvénybe.</value>
+  </data>
+  <data name="Preset_NotAvailable" xml:space="preserve">
+    <value>(Nem elérhető)</value>
+  </data>
+  <data name="AddPresetView_IsDefault" xml:space="preserve">
+    <value>Alapértelmezett:</value>
+  </data>
+  <data name="No" xml:space="preserve">
+    <value>Nem</value>
+  </data>
+  <data name="Yes" xml:space="preserve">
+    <value>Igen</value>
+  </data>
+  <data name="StaticPreviewView_FineTuning" xml:space="preserve">
+    <value>Képbeállítások finomhangolása</value>
+  </data>
+  <data name="StaticPreviewView_ShowPictureSettingsAdjustment" xml:space="preserve">
+    <value>A vágásbeállítás vezérlőelemeinek megjelenítése.</value>
+  </data>
+  <data name="DarkTheme_dark" xml:space="preserve">
+    <value>Sötét használata</value>
+  </data>
+  <data name="DarkTheme_light" xml:space="preserve">
+    <value>Világos használata</value>
+  </data>
+  <data name="DarkTheme_system" xml:space="preserve">
+    <value>Rendszerbeállítás használata</value>
+  </data>
+  <data name="OptionsView_DarkThemeMode" xml:space="preserve">
+    <value>Téma:</value>
+  </data>
+  <data name="OptionsView_RequiresRestart" xml:space="preserve">
+    <value>(Újraindítást igényel)</value>
+  </data>
+  <data name="FiltersView_ChromaSmooth" xml:space="preserve">
+    <value>Színek simítása</value>
+  </data>
+  <data name="FiltersView_ColourSpace" xml:space="preserve">
+    <value>Színtér:</value>
+  </data>
+  <data name="SummaryView_Colourspace" xml:space="preserve">
+    <value>Színtér</value>
+  </data>
+  <data name="PictureSettingsView_SeePreview" xml:space="preserve">
+    <value>Előnézet megnyitása</value>
+  </data>
+  <data name="SummaryView_SourcePreview" xml:space="preserve">
+    <value>Forrás előnézet:</value>
+  </data>
+  <data name="QueueView_JobStatus" xml:space="preserve">
+    <value>Feladat állapota:</value>
+  </data>
+  <data name="QueueView_JobStatus_Cancelled" xml:space="preserve">
+    <value>Törölve</value>
+  </data>
+  <data name="QueueView_JobStatus_Complete" xml:space="preserve">
+    <value>Befejezve</value>
+  </data>
+  <data name="QueueView_JobStatus_InitFailed" xml:space="preserve">
+    <value>Érvénytelen beállítások. A részletekért ellenőrizze a naplót.</value>
+  </data>
+  <data name="QueueView_JobStatus_InvalidInput" xml:space="preserve">
+    <value>Érvénytelen bemenet. Ellenőrizze a naplót a részletekért.</value>
+  </data>
+  <data name="QueueView_JobStatus_NoErrorCode" xml:space="preserve">
+    <value>Állapot ismeretlen. A részletekért ellenőrizze a naplót.</value>
+  </data>
+  <data name="QueueView_JobStatus_ReadError" xml:space="preserve">
+    <value>Hibákat észleltek a forrás olvasása közben.</value>
+  </data>
+  <data name="QueueView_JobStatus_Unknown" xml:space="preserve">
+    <value>Ismeretlen hiba. A részletekért ellenőrizze a naplót.</value>
+  </data>
+  <data name="QueueView_JobStatus_WorkerCrash" xml:space="preserve">
+    <value>A feladat összeomlott. Nézze meg a naplót a részletekért.</value>
+  </data>
+  <data name="Startup_HbDllMissing" xml:space="preserve">
+    <value>Hiányzó "hb.dll" fájl. Kérjük, telepítse újra.</value>
+  </data>
+  <data name="OptionsView_SafeMode" xml:space="preserve">
+    <value>Figyelmeztetés: Ez a HandBrake "Biztonságos módú" buildje, amely nem támogatja a hardveres kódolókat. Ha szeretné használni a hardveres kódolótámogatást, kérjük, töltsön le egy nem "Biztonságos módú" buildet a weboldalról.</value>
+  </data>
+  <data name="PadColour_Black" xml:space="preserve">
+    <value>Fekete</value>
+  </data>
+  <data name="PadColour_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="PadColour_White" xml:space="preserve">
+    <value>Fehér</value>
+  </data>
+  <data name="PictureSettingsView_PaddingCustomColour" xml:space="preserve">
+    <value>RGB érték:</value>
+  </data>
+  <data name="SummaryView_Padded" xml:space="preserve">
+    <value>(párnázott)</value>
+  </data>
+  <data name="FiltersView_Flip" xml:space="preserve">
+    <value>Tükrözés:</value>
+  </data>
+  <data name="PictureSettingsView_SourceDimensions" xml:space="preserve">
+    <value>Forrás méretei:</value>
+  </data>
+  <data name="PictureSettingsViewModel_SourceInfo" xml:space="preserve">
+    <value>Tárhely mérete: {0}x{1}     Kijelző mérete: {2}x{3}      Képarány: {4}</value>
+  </data>
+  <data name="MainViewModel_FilePathSelectError" xml:space="preserve">
+    <value>A rendszer hibát észlelt a Fájlböngésző párbeszédpanelen. 
+
+- Kérjük, vegye figyelembe, hogy a hosszú fájlelérési utak nem támogatottak teljes mértékben. Kérjük, hogy a fájl elérési útjai legyenek 255 karakternél rövidebbek. 
+- Az ablak utoljára használt könyvtárát alaphelyzetbe állítottuk, hogy elkerülje a hibákat a következő alkalommal, amikor megpróbál beolvasni egy fájlt.</value>
+  </data>
+  <data name="PictureSettingsView_MaxHeight" xml:space="preserve">
+    <value>Maximális magasság:</value>
+  </data>
+  <data name="PictureSettingsView_MaxWidth" xml:space="preserve">
+    <value>Maximális szélesség:</value>
+  </data>
+  <data name="PictureSettingsViewModel_AspectRatioLabel" xml:space="preserve">
+    <value>Képarány: {0}</value>
+  </data>
+  <data name="SummaryView_MetadataPassthru" xml:space="preserve">
+    <value>Átviteli közös metaadatok</value>
+  </data>
+  <data name="OptionsViewModel_InvalidAutonamePath" xml:space="preserve">
+    <value>Az alapértelmezett automatikus név elérési útja nem volt érvényes. {0} nem lehet {1} előtt.</value>
+  </data>
+  <data name="FirstRun_EnableUpdateCheck" xml:space="preserve">
+    <value>Szeretné engedélyezni, hogy a HandBrake automatikusan ellenőrizze a frissítéseket?
+
+Bármikor megváltoztathatja választását a Beállítások -&gt; Általános -&gt; Frissítések keresése menüpont beállításainak megváltoztatásával</value>
+  </data>
+  <data name="FirstRun_EnableUpdateCheckHeader" xml:space="preserve">
+    <value>Ellenőrizzük a frissítéseket?</value>
+  </data>
+  <data name="OptionsViewModel_UpdateNotice" xml:space="preserve">
+    <value>- Make sure there are no pending encodes in the queue. 
+- Backup or make a note of any custom presets you have created as they may not be fully compatible with newer versions.</value>
+  </data>
+  <data name="Preset_Default" xml:space="preserve">
+    <value>(Alapértelmezett)</value>
+  </data>
+  <data name="PresetDisplayMode_Category" xml:space="preserve">
+    <value>Kategóriák</value>
+  </data>
+  <data name="PresetDisplayMode_Flat" xml:space="preserve">
+    <value>Lapos</value>
+  </data>
+  <data name="PresetDisplayMode_Partial" xml:space="preserve">
+    <value>Részben lapos</value>
+  </data>
+  <data name="OptionsView_PresetDisplayMode" xml:space="preserve">
+    <value>Válassza ki, hogyan jelenjenek meg az előbeállítások a menükben:</value>
+  </data>
+  <data name="QueueView_SelectedPresets" xml:space="preserve">
+    <value>Előbeállítás:</value>
+  </data>
+  <data name="LogViewModel_Complete" xml:space="preserve">
+    <value>[Kész]</value>
+  </data>
+  <data name="QueueViewModel_EditJob" xml:space="preserve">
+    <value>Szerkeszti a feladatot?</value>
+  </data>
+  <data name="QueueView_Length" xml:space="preserve">
+    <value>Kimenet hossza:</value>
+  </data>
+  <data name="QueueView_MoveToBottom" xml:space="preserve">
+    <value>Mozgatás az aljára</value>
+  </data>
+  <data name="QueueView_MoveToTop" xml:space="preserve">
+    <value>Mozgatás a tetejére</value>
+  </data>
+  <data name="QueueView_VideoOutputBitrate" xml:space="preserve">
+    <value>Kimeneti bitsebesség:</value>
+  </data>
+  <data name="QueueView_AverageEncodeSpeed" xml:space="preserve">
+    <value>Átlagos kódolási sebesség:</value>
+  </data>
+  <data name="QueueViewModel_DifferenceText" xml:space="preserve">
+    <value> a forrásfájl</value>
+  </data>
+  <data name="QueueViewModel_NotAvailable" xml:space="preserve">
+    <value>Nem elèrhető</value>
+  </data>
+  <data name="QueueView_SourceLength" xml:space="preserve">
+    <value>Forrás hossza:</value>
+  </data>
+  <data name="Options_Reset" xml:space="preserve">
+    <value>Visszaállítás</value>
+  </data>
+  <data name="OptionsViewModel_ResetHandBrakePresetsQuestion" xml:space="preserve">
+    <value>Biztos, hogy vissza szeretné állítani az összes beépített előbeállítást?</value>
+  </data>
+  <data name="OptionsView_ResetBuildInPresets" xml:space="preserve">
+    <value>Az összes beépített előbeállítás visszaállítása a HandBrake alapértelmezett értékére:</value>
+  </data>
+  <data name="OptionsView_ResetBuildInPresetsNotice" xml:space="preserve">
+    <value>(A felhasználói előbeállítások nem kerülnek visszaállításra)</value>
+  </data>
+  <data name="OptionsView_ResetSettingsToDefaults" xml:space="preserve">
+    <value>Állítsa vissza az összes HandBrake beállítást az alapértelmezettre:</value>
+  </data>
+  <data name="Options_BuiltInPresets" xml:space="preserve">
+    <value>Beépített előbeállítások</value>
+  </data>
+  <data name="Options_UserSettings" xml:space="preserve">
+    <value>Felhasználói beállítások</value>
+  </data>
+  <data name="PresetDisplayMode_FloatingPanel" xml:space="preserve">
+    <value>Lebegő fanézet</value>
+  </data>
+  <data name="QueueViewModel_PlayFileErrorSolution" xml:space="preserve">
+    <value>Győződjön meg arról, hogy megfelelő fájltársítások vannak beállítva a Windows rendszerben, hogy lehetővé tegye a fájl megnyitását egy támogatott videolejátszóval</value>
+  </data>
+  <data name="QueueViewModel_ImportFail" xml:space="preserve">
+    <value>Nem sikerült beolvasni a várólistafájlt.</value>
+  </data>
+  <data name="QueueViewModel_ImportFailSolution" xml:space="preserve">
+    <value>A fájl sérült lehet, vagy a HandBrake egy korábbi verziójából származhat. 
+Csak az aktuális verzióból származó várólista fájlok támogatottak.</value>
+  </data>
+  <data name="Notifications_EncodeDone" xml:space="preserve">
+    <value>A HandBrake kódolása kész!</value>
+  </data>
+  <data name="Notifications_QueueDone" xml:space="preserve">
+    <value>A HandBrake várólistája elkészült!</value>
+  </data>
+  <data name="OptionsView_NotificationRemovalSubText" xml:space="preserve">
+    <value>Ezzel a 'Ha kész' lapon a Windows tálcán megjelenő értesítéseket is letiltja. Kapcsolja be ezeket újra, ha újra aktiválni szeretné ezt a funkciót.</value>
+  </data>
+  <data name="OptionsView_NotificationRemovalText" xml:space="preserve">
+    <value>Távolítsa el a HandBrake-et a Windows értesítési vezérlőpultjáról.</value>
+  </data>
+  <data name="OptionsView_UninstallMessageBoxHeader" xml:space="preserve">
+    <value>Eltávolítva</value>
+  </data>
+  <data name="OptionsView_UninstallMessageBoxText" xml:space="preserve">
+    <value>Az értesítési beállításokat eltávolítottuk.</value>
+  </data>
+  <data name="OptionsView_UninstallToast" xml:space="preserve">
+    <value>Törlés és eltávolítás</value>
+  </data>
+  <data name="OptionsView_WindowsNotification" xml:space="preserve">
+    <value>Értesítés küldése a Windows tálcájára.</value>
+  </data>
+  <data name="OptionsView_WindowsNotificationsBanner" xml:space="preserve">
+    <value>Windows-értesítések</value>
+  </data>
+  <data name="Main_QueueMultiJobStatus" xml:space="preserve">
+    <value>{0} elvégzett feladat. {1}Most {2} feladaton dolgozik {3} feldolgozásra vár.</value>
+  </data>
+  <data name="MainView_AutonameRegenerate" xml:space="preserve">
+    <value>Újragenerálás (automatikus elnevezés)</value>
+  </data>
+  <data name="MainView_OpenDirectory" xml:space="preserve">
+    <value>Nyissa meg ezt a könyvtárat</value>
+  </data>
+  <data name="Shared_CollapseAll" xml:space="preserve">
+    <value>Összes becsukása</value>
+  </data>
+  <data name="Shared_ExpandAll" xml:space="preserve">
+    <value>Összes kibontása</value>
+  </data>
+  <data name="OptionsView_RightToleftMode" xml:space="preserve">
+    <value>Jobbról balra megjelenítési mód:</value>
+  </data>
+  <data name="RightToLeft_Off" xml:space="preserve">
+    <value>Ki</value>
+  </data>
+  <data name="RightToLeft_TextOnly" xml:space="preserve">
+    <value>Csak szöveg</value>
+  </data>
+  <data name="RightToLeft_WholeInterface" xml:space="preserve">
+    <value>Teljes felhasználói felület</value>
+  </data>
+  <data name="SourceSelection_NightlyUpdate" xml:space="preserve">
+    <value>A jelenlegi fejlesztői build, amelyet futtatsz, kezd elavulttá válni. Érdemes frissíteni!</value>
+  </data>
+  <data name="SourceSelection_NightlyUpdateUrl" xml:space="preserve">
+    <value>Letöltés a Githubon keresztül</value>
+  </data>
+  <data name="MainView_NightlyBuildsUpdate" xml:space="preserve">
+    <value>Fejlesztői buildek letöltése (HTTPS)</value>
+  </data>
+  <data name="OptionsView_EnableQuicksyncHyperEncode" xml:space="preserve">
+    <value>A QuickSync Deep Link Hyper Encode engedélyezése</value>
+  </data>
+  <data name="OptionsView_HyperEncodeDescription" xml:space="preserve">
+    <value>Több médiamotor használatát részesíti előnyben egyetlen kódolás felgyorsításához, ahol támogatott. Tiltsa le, ha több párhuzamos kódolást szeretne engedélyezni a médiamotorok között.</value>
+  </data>
+  <data name="MainView_OpenHandBrake" xml:space="preserve">
+    <value>HandBrake megnyitása</value>
+  </data>
+  <data name="Startup_UnableToStartInfo" xml:space="preserve">
+    <value>A hardveres kódolás támogatása le van tiltva, mivel ez az indítási problémák gyakori oka.
+- Próbálja meg újraindítani a HandBrake-et. 
+- Ha a probléma továbbra is fennáll, előfordulhat, hogy egy elavult (alaplapi vagy különálló) grafikus kártya-illesztőprogram okozza a problémát.
+
+A hardveres kódolás támogatása újra engedélyezhető a beállításokban.</value>
+  </data>
+  <data name="Startup_UnableToStart" xml:space="preserve">
+    <value>A HandBrake nem tudott elindulni.</value>
+  </data>
+  <data name="OptionsView_ResetSafeMode" xml:space="preserve">
+    <value>Csökkentett mód visszaállítása</value>
+  </data>
+  <data name="OptionsView_ResetSafeModeMessage" xml:space="preserve">
+    <value>Indítsa újra a HandBrake-et.</value>
+  </data>
+  <data name="Debug_QueueDataExport" xml:space="preserve">
+    <value>Várólista statisztikai adatok exportálása (csv)</value>
+  </data>
+  <data name="Debug_QueueExportDataDone" xml:space="preserve">
+    <value>Az exportálás kész!</value>
+  </data>
+  <data name="Debug_QueueSweep_NotSetup" xml:space="preserve">
+    <value>Először be kell vizsgálnia egy forrást, és be kell állítania egy kezdeti célkönyvtárat</value>
+  </data>
+  <data name="OptionsView_FileCollisionNotice" xml:space="preserve">
+    <value>Csak akkor, ha a fájl már létezik a lemezen.</value>
+  </data>
+  <data name="Info" xml:space="preserve">
+    <value>Infó</value>
+  </data>
+  <data name="SubtitleView_NoSubtitlesAdded" xml:space="preserve">
+    <value>Feliratsávok nem kerültek hozzáadásra. 
+
+Ennek oka lehet a kiválasztott konténer korlátai. További információért tekintse meg a felirat súgódokumentációját.</value>
+  </data>
+  <data name="DarkTheme_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="SourceSelection_UpdateNow" xml:space="preserve">
+    <value>Frissíts most!</value>
+  </data>
+  <data name="CropMode_Auto" xml:space="preserve">
+    <value>Automatikus</value>
+  </data>
+  <data name="CropMode_Loose" xml:space="preserve">
+    <value>Hagyományos</value>
+  </data>
+  <data name="CropMode_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="CropMode_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="OptionsView_EnableNvDecSupport" xml:space="preserve">
+    <value>Előnyben részesítse az Nvidia NVDec használatát a videó dekódolásához, ha az NVEnc kódolót használja, és a hardver használható.</value>
+  </data>
+  <data name="Options_Hardware" xml:space="preserve">
+    <value>Hardveres támogatás</value>
+  </data>
+  <data name="StaticPreviewViewModel_MediaError" xml:space="preserve">
+    <value>A rendszer nem tudta lejátszani ezt a fájlt.
+
+Felhívjuk figyelmét, hogy bizonyos kodekek, például az AV1 vagy a HEVC lejátszásához a Microsoft Store-ból származó Microsoft AV1 vagy HEVC kodek beépülő modulok szükségesek.
+Alternatív megoldásként jelölje be az alábbi "Külső lejátszó használata" jelölőnégyzetet.</value>
+  </data>
+  <data name="StaticPreviewView_ClosePlayer" xml:space="preserve">
+    <value>Lejátszó bezárása</value>
+  </data>
+  <data name="StaticPreviewView_Play" xml:space="preserve">
+    <value>Lejátszás</value>
+  </data>
+  <data name="StaticPreviewView_VideoPreview" xml:space="preserve">
+    <value>Videó előnézet</value>
+  </data>
+  <data name="StaticPreviewViewModel_WebmNotSupported" xml:space="preserve">
+    <value>A beépített előzetes verzió nem érhető el a WebM-tárolóhoz. Külső lejátszót kell használni.</value>
+  </data>
+  <data name="StaticPreview_EncodingPreview" xml:space="preserve">
+    <value>Kódolási előnézet ...</value>
+  </data>
+  <data name="StaticPreview_Previews" xml:space="preserve">
+    <value>Előnézetek:</value>
+  </data>
+  <data name="StaticPreview_Volume" xml:space="preserve">
+    <value>Hangerő: 0</value>
+  </data>
+  <data name="Reset" xml:space="preserve">
+    <value>Visszaállítás</value>
+  </data>
+  <data name="OptionsView_IsoDateFormat" xml:space="preserve">
+    <value>Használja az ISO dátumformátumokat (YYYY-MM-DD) a rendszer formátum helyett.</value>
+  </data>
+  <data name="QueueViewModel_ShortEncodeStatus" xml:space="preserve">
+    <value>Menet {0} of {1}, {2:00.00}%, {3:000.0} fps, átlag {4:000.0} fps, ETA: {5}</value>
+  </data>
+  <data name="QueueViewModel_ShortSubScanStatus" xml:space="preserve">
+    <value>Feliratok keresése {0:00.00}%, ETA: {1}</value>
+  </data>
+  <data name="QueueView_ExtendedQueueDisplay" xml:space="preserve">
+    <value>A várólista-info bővítése</value>
+  </data>
+  <data name="QueueView_MinimalQueueDisplay" xml:space="preserve">
+    <value>A várólista-információ minimalizálása</value>
+  </data>
+  <data name="QueueStats_ShortOutputStats" xml:space="preserve">
+    <value>Kimenet: {0}, átlag {1} fps</value>
+  </data>
+  <data name="PresetPane_Desc" xml:space="preserve">
+    <value>Előbeállítás leírása:</value>
+  </data>
+  <data name="PresetPane_HidePresetDesc" xml:space="preserve">
+    <value>Előbeállítás leírás elrejtése</value>
+  </data>
+  <data name="PresetPane_ShowPresetDesc" xml:space="preserve">
+    <value>Előbeállítás leírás megjelenítése</value>
+  </data>
+  <data name="TaskTrayStatusManyTitle" xml:space="preserve">
+    <value>{0}
+Kódolás {1} feladat</value>
+  </data>
+  <data name="StaticPreviewViewModel_MultipleEncodes" xml:space="preserve">
+    <value>Nem lehet kódolni az előnézetet. Az alkalmazás jelenleg egy másik fájl kódolásával van elfoglalva.
+
+Több egyidejű kódolás engedélyezéséhez kapcsolja be a "Folyamat elkülönítése" opciót az Eszközök menü -&gt; Beállítások -&gt; Speciális -&gt; Folyamat elkülönítése -&gt; "Minden egyes várólistás feladatot külön munkafolyamatban futtatni" menüpontban.</value>
+  </data>
+  <data name="AudioView_Quality" xml:space="preserve">
+    <value>Minőség</value>
+  </data>
+  <data name="AudioView_Source" xml:space="preserve">
+    <value>Forrás</value>
+  </data>
+  <data name="AboutView_Documentation" xml:space="preserve">
+    <value>Dokumentáció:</value>
+  </data>
+  <data name="AboutView_GithubTracker" xml:space="preserve">
+    <value>GitHub problémakövető:</value>
+  </data>
+  <data name="AboutView_Website" xml:space="preserve">
+    <value>Webhely:</value>
+  </data>
+  <data name="MainView_PresetClone" xml:space="preserve">
+    <value>Előbeállítás klónozása</value>
+  </data>
+  <data name="PresetPane_MoveDown" xml:space="preserve">
+    <value>Lejjebb</value>
+  </data>
+  <data name="PresetPane_MoveToBottom" xml:space="preserve">
+    <value>Feljebb</value>
+  </data>
+  <data name="PresetPane_MoveToTop" xml:space="preserve">
+    <value>A tetejére</value>
+  </data>
+  <data name="PresetPane_MoveUp" xml:space="preserve">
+    <value>Az aljáre</value>
+  </data>
+  <data name="QueueViewModel_StopButContinueJob" xml:space="preserve">
+    <value>Jelenleg is vannak folyamatban lévő feladatok. Szeretné befejezni a folyamatban lévő feladatokat, mielőtt leállítaná a várólistát?</value>
+  </data>
+  <data name="Options_AddExt" xml:space="preserve">
+    <value>Kiterjesztés hozzáadása</value>
+  </data>
+  <data name="Options_ExcludeExtensions" xml:space="preserve">
+    <value>Fájlkiterjesztések kizárása:</value>
+  </data>
+  <data name="Options_ExcludeExtensionsInfo" xml:space="preserve">
+    <value>A következő fájlkiterjesztéseket a rendszer figyelmen kívül hagyja a mappa vizsgálatakor. A lista nem különbözteti meg a kis- és nagybetűket. "." nem kötelező.</value>
+  </data>
+  <data name="Options_ExtensionExists" xml:space="preserve">
+    <value>Ez a fájlkiterjesztés már létezik a listában.</value>
+  </data>
+  <data name="Options_FileHandling" xml:space="preserve">
+    <value>Fájlkezelés (szkennelés)</value>
+  </data>
+  <data name="Options_RecursiveFolderScan" xml:space="preserve">
+    <value>Rekurzív módon vizsgálja meg a könyvtárakat a mappavizsgálati mód használatakor.</value>
+  </data>
+  <data name="AudioView_AudioQuality" xml:space="preserve">
+    <value>Hangsáv minősége</value>
+  </data>
+  <data name="AudioView_AudioTrackName" xml:space="preserve">
+    <value>Hangsáv neve</value>
+  </data>
+  <data name="AudioView_BitrateSelection" xml:space="preserve">
+    <value>Hangsáv bitsebessége</value>
+  </data>
+  <data name="AudioView_DeleteTrack" xml:space="preserve">
+    <value>Törölje ezt a hangsávot</value>
+  </data>
+  <data name="AudioView_QualityMode" xml:space="preserve">
+    <value>Audio kódoló minőségi mód</value>
+  </data>
+  <data name="QueueView_AdvancedQueueDisplay" xml:space="preserve">
+    <value>Speciális várólistanézet használata</value>
+  </data>
+  <data name="QueueView_SimpleQueueDisplay" xml:space="preserve">
+    <value>Egyszerű várólistanézet használata</value>
+  </data>
+  <data name="VideoView_LosslessEncodeOnly" xml:space="preserve">
+    <value>Csak veszteségmentes kódolás.</value>
+  </data>
+  <data name="MainView_HideClassicMenu" xml:space="preserve">
+    <value>Klasszikus menü elrejtése</value>
+  </data>
+  <data name="MainView_ShowClassicMenu" xml:space="preserve">
+    <value>Klasszikus menü megjelenítése</value>
+  </data>
+  <data name="OptionsViewVideo_UnsupportedIntelDriver" xml:space="preserve">
+    <value>(Figyelmeztetés: Nem támogatott illesztőprogram észlelhető! - Frissítés ajánlott)</value>
+  </data>
+  <data name="QueueSelectionView_RangeLimits" xml:space="preserve">
+    <value>Tartományi határok:</value>
+  </data>
+  <data name="QueueSelectionView_RangeLimitsDesc" xml:space="preserve">
+    <value>Korlátozza a várólistához hozzáadott címek hosszát.</value>
+  </data>
+  <data name="QueueSelectionView_RangeLimitsEnable" xml:space="preserve">
+    <value>Tartományi határok engedélyezése</value>
+  </data>
+  <data name="AddToQueue_RangeLimitError" xml:space="preserve">
+    <value>Egyes címeket nem lehetett hozzáadni a várólistához, mert a kiválasztott tartománykorlátokon kívül estek.</value>
+  </data>
+  <data name="QueueView_StartAtTime" xml:space="preserve">
+    <value>Indítás később</value>
+  </data>
+  <data name="QueueView_QueueStartTime" xml:space="preserve">
+    <value>A várólista automatikusan elindul:</value>
+  </data>
+  <data name="QueueView_EncodeShutdown" xml:space="preserve">
+    <value>Kódolás leállítása ...</value>
+  </data>
+  <data name="PictureSettingsView_AllowUpscaling" xml:space="preserve">
+    <value>Felskálázás engedélyezése</value>
+  </data>
+  <data name="PictureSettingsView_OptimalSize" xml:space="preserve">
+    <value>Optimális méret</value>
+  </data>
+  <data name="OptionsView_Available" xml:space="preserve">
+    <value>Elérhető ezen a rendszeren.</value>
+  </data>
+  <data name="OptionsView_NotAvailable" xml:space="preserve">
+    <value>Ezen a rendszeren nem érhető el.</value>
+  </data>
+  <data name="MainView_ScanningStatus" xml:space="preserve">
+    <value>Kérem várjon ...</value>
+  </data>
+  <data name="MainView_Cancel" xml:space="preserve">
+    <value>Mégse</value>
+  </data>
+  <data name="MainView_OpenLog" xml:space="preserve">
+    <value>Naplóablak megnyitása</value>
+  </data>
+  <data name="OptionsView_EnableNvencEncoding" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="OptionsView_EnableQuicksyncEncoding" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="OptionsView_EnableVceEncoding" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="OptionsView_ChoiceOfEncoderHint" xml:space="preserve">
+    <value/>
+  </data>
+  <data name="AnamorphicMode_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="AnamorphicMode_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="AnamorphicMode_Automatic" xml:space="preserve">
+    <value>Automatikus</value>
+  </data>
+  <data name="CombDetect_Off" xml:space="preserve">
+    <value>Ki</value>
+  </data>
+  <data name="CombDetect_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="CombDetect_Default" xml:space="preserve">
+    <value>Alapértelmezett</value>
+  </data>
+  <data name="DeinterlaceFilter_Off" xml:space="preserve">
+    <value>Ki</value>
+  </data>
+  <data name="Denoise_Off" xml:space="preserve">
+    <value>Ki</value>
+  </data>
+  <data name="Detelecine_Off" xml:space="preserve">
+    <value>Ki</value>
+  </data>
+  <data name="Detelecine_Default" xml:space="preserve">
+    <value>Alapértelmezett</value>
+  </data>
+  <data name="Detelecine_Custom" xml:space="preserve">
+    <value>Egyéni</value>
+  </data>
+  <data name="Sharpen_Off" xml:space="preserve">
+    <value>Ki</value>
+  </data>
+  <data name="Options_MaxTitleScanDuration" xml:space="preserve">
+    <value>A DVD és Blu-ray cím maximális időtartama másodpercben. A hosszabb címek kimaradnak:</value>
+  </data>
+  <data name="DefaultRangeMode_Chapters" xml:space="preserve">
+    <value>Fejezetek</value>
+  </data>
+  <data name="DefaultRangeMode_Seconds" xml:space="preserve">
+    <value>Másodperc</value>
+  </data>
+  <data name="DefaultRangeMode_Frames" xml:space="preserve">
+    <value>Keretek</value>
+  </data>
+  <data name="Options_RangeModeSelection" xml:space="preserve">
+    <value>A címek alapértelmezett tartománymódja:</value>
+  </data>
+  <data name="WhenDone_CustomAction" xml:space="preserve">
+    <value>Egyéni művelet</value>
+  </data>
+  <data name="OptionsView_CustomActionConfig" xml:space="preserve">
+    <value>'Egyéni művelet' konfiguráció:</value>
+  </data>
+  <data name="MainView_OpenAutonamePreferences" xml:space="preserve">
+    <value>Az Automatikus elnevezés beállításainak megnyitása</value>
+  </data>
+  <data name="Options_RunAction" xml:space="preserve">
+    <value>Szkript futtatása / Végrehajtható program:</value>
+  </data>
+  <data name="OptionsViewModel_PortableMode" xml:space="preserve">
+    <value>A HandBrake jelenleg hordozható módban van konfigurálva. A hordozható telepítés frissítéséhez töltse le a legújabb frissítést a webhelyről.</value>
+  </data>
+  <data name="MetaData_Add" xml:space="preserve">
+    <value>Sor hozzáadása</value>
+  </data>
+  <data name="MainView_DebugMenu" xml:space="preserve">
+    <value>Hibakeresés menü</value>
+  </data>
+  <data name="MainView_DebugExportData" xml:space="preserve">
+    <value>Hibakeresési fájl exportálása (JSON)</value>
+  </data>
+  <data name="MainView_DebugImportData" xml:space="preserve">
+    <value>Hibakeresési fájl importálása (JSON)</value>
+  </data>
+  <data name="MainView_DebugQualitySweep" xml:space="preserve">
+    <value>Hozzáadás a várólistához - Minőségi átfésülés</value>
+  </data>
+  <data name="LogView_ChooseLogFile" xml:space="preserve">
+    <value>Válasszon naplófájlt:</value>
+  </data>
+  <data name="LogView_AutoScrolling" xml:space="preserve">
+    <value>Automatikus görgetés</value>
+  </data>
+  <data name="LogLevel_Minimised" xml:space="preserve">
+    <value>Minimalizálva</value>
+  </data>
+  <data name="LogLevel_Standard" xml:space="preserve">
+    <value>Szabvány</value>
+  </data>
+  <data name="LogLevel_Extended" xml:space="preserve">
+    <value>Kiterjesztett</value>
+  </data>
+  <data name="QueueView_CancelDelayStart" xml:space="preserve">
+    <value>Késleltetés megszüntetése</value>
+  </data>
+  <data name="QueueView_StartQueueNow" xml:space="preserve">
+    <value>Várólista indítása (azonnal)</value>
+  </data>
+  <data name="AudioTrackNaming_None" xml:space="preserve">
+    <value>Nincs</value>
+  </data>
+  <data name="AudioTrackNaming_Unnamed" xml:space="preserve">
+    <value>Unnamed Only</value>
+  </data>
+  <data name="AudioTrackNaming_All" xml:space="preserve">
+    <value>All Tracks</value>
+  </data>
+  <data name="AudioDefaultsView_NamingBehaviour" xml:space="preserve">
+    <value>Track Naming Behaviour:</value>
+  </data>
+  <data name="AudioDefaultsView_AutoNaming" xml:space="preserve">
+    <value>Autonaming:</value>
+  </data>
+  <data name="AudioDefaultsView_PassthruTrackNames" xml:space="preserve">
+    <value>Passthru Track Names</value>
+  </data>
+  <data name="SubtitlesDefaultsView_PassthruTrackName" xml:space="preserve">
+    <value>Passthru Track Names</value>
+  </data>
+  <data name="VideoColourRange_SameAsSource" xml:space="preserve">
+    <value>Ugyanaz, mint a forrás</value>
+  </data>
+  <data name="VideoColourRange_Full" xml:space="preserve">
+    <value>Full</value>
+  </data>
+  <data name="VideoColourRange_Limited" xml:space="preserve">
+    <value>Limited</value>
+  </data>
+  <data name="DarkTheme_Modern" xml:space="preserve">
+    <value>Modern</value>
+  </data>
+  <data name="Options_BeforeUpdating" xml:space="preserve">
+    <value>Before Updating</value>
+  </data>
+  <data name="Options_UpdateNotComplete" xml:space="preserve">
+    <value>The update install was cancelled. </value>
+  </data>
+  <data name="AboutView_ReleaseNotes" xml:space="preserve">
+    <value>Release Notes</value>
+  </data>
+  <data name="Options_ReleaseNotesDesc" xml:space="preserve">
+    <value>You can find out about the latest changes to HandBrake at:</value>
+  </data>
+  <data name="PresetUiType_Menu" xml:space="preserve">
+    <value>Menu</value>
+  </data>
+  <data name="PresetUiType_Overlay" xml:space="preserve">
+    <value>Overlay</value>
+  </data>
+  <data name="OptionsView_PresetUiType" xml:space="preserve">
+    <value>Display toolbar preset popup as:</value>
+  </data>
+  <data name="QueueViewModel_CancelErrorWillBeCleared" xml:space="preserve">
+    <value>The queue currently has jobs which are in a Cancelled or Errored State. These will be cleared when the queue starts.  
+
+Do you wish to proceed?</value>
+  </data>
+  <data name="QueueView_ExportSelected" xml:space="preserve">
+    <value>Export Queue (Selected)</value>
+  </data>
+  <data name="VideoView_SameAsSource" xml:space="preserve">
+    <value>Ugyanaz, mint a forrás</value>
+  </data>
+</root>

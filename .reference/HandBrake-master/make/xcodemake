@@ -1,0 +1,231 @@
+#!/usr/bin/env bash
+#
+
+set -e
+
+## This script is initiated by either xcodebuild or Xcode.app.
+##
+## We must guarantee no jobserver is passed through since file-descriptors are
+## clobbered by Xcode. If this is not done then make allows unlimited jobs.
+##
+MAKEFLAGS=
+MFLAGS=
+
+## validate environment
+case "$EXTERNAL_DRIVER" in
+bootstrap) ;; ## bootstrapping from terminal
+terminal)  ;; ## building from terminal
+xcode)     ;; ## building from Xcode.app
+*)
+    echo "ERROR: unexpected value for EXTERNAL_DRIVER: $EXTERNAL_DRIVER"
+    exit 1
+    ;;
+esac
+
+## validate environment
+for name in EXTERNAL_BUILD EXTERNAL_JOBS EXTERNAL_SRC; do
+    eval v="\$$name"
+    if [ -z "$v" ]; then
+        echo "ERROR: missing value for $name"
+        exit 1
+    fi
+done
+
+## validate environment
+archcount=`echo $ARCHS | awk '{ print NF }'`
+if [ "$archcount" -ne 1 ]; then
+    echo "*********************************************************************"
+    echo "***"
+    echo "*** ERROR: multiple architectures: $ARCHS"
+    echo "***"
+    echo "*** This build system does not support more than one (1)"
+    echo "*** simultaneous architecture setting."
+    echo "***"
+    echo "*********************************************************************"
+    exit 1
+fi
+
+exit_post_log=0
+
+## compute goals; these correlate with TARGET_NAME and ACTION from Xcode
+spec="$TARGET_NAME:$ACTION"
+echo "target specification: $spec"
+case "$spec" in
+    external:clean)
+        if [ "$EXTERNAL_DRIVER" == "xcode" ]; then
+            ## driving build from Xcode.app do pristine clean
+            if [ -z "$EXTERNAL_BUILD" ]; then
+                echo "ERROR: unsafe rm -fr would result because EXTERNAL_BUILD is not defined"
+                exit 1
+            fi
+            if [ -d "$EXTERNAL_BUILD" ]; then
+                cmd="/bin/rm -fr $EXTERNAL_BUILD/*"
+                echo "$cmd"
+                $cmd
+                [ $? -ne 0 ] && exit 1
+                exit_post_log=1
+            else
+                echo "already clean"
+            fi
+        else
+            ## driving build from xcodebuild do xclean, preserving configuration
+            goals=xclean
+        fi
+        ;;
+    external:*)
+        if [ -z "$EXTERNAL_GOALS" ]; then
+            goals=build
+        else
+            goals="$EXTERNAL_GOALS"
+        fi
+        ;;
+    *)
+        echo "ERROR: unexpected env specification: $spec"
+        exit 1
+        ;;
+esac
+
+## compute if re/configure necessary
+if [ ! -f "$EXTERNAL_BUILD/GNUmakefile" ]; then
+    reconfigure="no configuration present"
+elif [ "$EXTERNAL_SRC/make/configure.py" -nt "$EXTERNAL_BUILD/GNUmakefile" ]; then
+    reconfigure="configure script was updated"
+elif [ "$EXTERNAL_DRIVER" == "bootstrap" ]; then
+    reconfigure="driver bootstrap"
+elif [[ "${PATH}" == "${DEVELOPER_BIN_DIR%/bin}"* ]] ||
+     [[ "${PATH}" == "${DT_TOOLCHAIN_DIR%/bin}"* ]]  ||
+     [[ "${PATH}" == "${PLATFORM_DIR%/bin}"* ]]      ||
+     [[ "${PATH}" == "${PLATFORM_DEVELOPER_BIN_DIR%/bin}"* ]] ||
+     [[ "${PATH}" == "${SYSTEM_DEVELOPER_BIN_DIR%/bin}"*   ]]; then
+    reconfigure="unclobber PATH"
+else
+    reconfigure=
+fi
+
+## perform re/configure
+if [ -n "$reconfigure" ]; then
+    echo "reconfiguring ($reconfigure)"
+
+    ## export rustc
+    export PATH="$HOME/.cargo/bin:$PATH"
+
+    ## respect PATH priority
+    OIFS="${IFS}"
+    IFS=':'
+    read -r -a PATH_ITEMS <<< "${PATH}"
+    IFS="${OIFS}"
+    PATH=""
+    APPLE_PATH=""
+    for ITEM in "${PATH_ITEMS[@]}"; do
+        if [[ "${ITEM}" == "${DEVELOPER_BIN_DIR%/bin}"* ]] ||
+           [[ "${ITEM}" == "${DT_TOOLCHAIN_DIR%/bin}"* ]]  ||
+           [[ "${ITEM}" == "${PLATFORM_DIR%/bin}"* ]]      ||
+           [[ "${ITEM}" == "${PLATFORM_DEVELOPER_BIN_DIR%/bin}"* ]] ||
+           [[ "${ITEM}" == "${SYSTEM_DEVELOPER_BIN_DIR%/bin}"*   ]]; then
+            APPLE_PATH="${APPLE_PATH}:${ITEM}"
+        else
+            PATH="${PATH}:${ITEM}"
+        fi
+    done
+    PATH="${PATH}${APPLE_PATH}"
+    export PATH="${PATH:1}"
+    echo "Unclobbering PATH:"
+    echo "    export PATH=\"${PATH}\""
+
+    if [ "$EXTERNAL_DRIVER" == "bootstrap" ]; then
+        driver="--xcode-driver=terminal"
+    else
+        driver="--xcode-driver=$EXTERNAL_DRIVER"
+    fi
+
+    ## determine which compiler to use based on Xcode environment (project).
+    case "$GCC_VERSION" in
+    com.apple.compilers.llvmgcc42)
+        gcc="--gcc=`$DEVELOPER_BIN_DIR/xcodebuild -find-executable llvm-gcc-4.2`"
+        ;;
+    com.apple.compilers.llvm.clang.1_0)
+        gcc="--gcc=`$DEVELOPER_BIN_DIR/xcodebuild -find-executable clang`"
+        ;;
+    *)
+        echo "*********************************************************************"
+        echo "***"
+        echo "*** ERROR: unexpected value for GCC_VERSION: $GCC_VERSION"
+        echo "***"
+        echo "*********************************************************************"
+        exit 1
+        ;;
+    esac
+
+    if [ -n "$ARCHS" ]; then
+        arch="--arch=$ARCHS"
+    else
+        arch=
+    fi
+
+    case "$CONFIGURATION" in
+    debug*)
+        debug="--debug=std --optimize=none"
+        ;;
+    release*|*)
+        debug=
+        ;;
+    esac
+
+    if [ -n "$SDKROOT" ]; then
+        sysroot="--sysroot=$SDKROOT"
+    else
+        sysroot=
+    fi
+
+    if [ -n "$MACOSX_DEPLOYMENT_TARGET" ]; then
+        minver="--minver=$MACOSX_DEPLOYMENT_TARGET"
+    else
+        minver=
+    fi
+
+    ## pickup user setting from Xcode IDE and avoid recursion
+    if [ -n "$EXTERNAL_CONFIGURE" ]; then
+        extconf="$EXTERNAL_CONFIGURE"
+    else
+        extconf=
+    fi
+    EXTERNAL_CONFIGURE=
+
+    ## invoke configure with (hidden) option which indicates conf performed by xcode
+    (set -ex; "$EXTERNAL_SRC/configure" --force \
+        $EXTERNAL_CONF_ARGS \
+        --build="$EXTERNAL_BUILD" \
+        $driver \
+        --xcode-symroot="$SYMROOT" \
+        --xcode-config="$EXTERNAL_XCCONFIG" \
+        $gcc $arch $debug $sysroot $minver $extconf)
+    [ $? -ne 0 ] && exit 1
+fi
+
+## log environment as provided by Xcode
+logdir="$EXTERNAL_BUILD/log"
+if [ ! -d "$logdir" ]; then
+    mkdir -p "$logdir"
+fi
+env | sort > "$logdir/xcodemake.env.txt"
+
+[ $exit_post_log -ne 0 ] && exit 0
+
+## safeguard against passing blank value which would result in unlimited jobs
+if [ -z "$EXTERNAL_JOBS" ]; then
+    jobs=
+elif [ "$EXTERNAL_JOBS" == "auto" ]; then
+    jobs=--jobs=`sysctl -n hw.activecpu`
+else
+    jobs=--jobs=$EXTERNAL_JOBS
+fi
+
+## when driving from terminal; ensure $SYMROOT/external/ exists relative to SYMROOT
+if [ "$EXTERNAL_DRIVER" == "terminal" -a ! -e "$SYMROOT/external" ]; then
+    ln -s "$EXTERNAL_BUILD" "$SYMROOT/external"
+fi
+
+## pull the trigger
+## must set XCODE.driver to prevent infinite recursion
+set -x
+exec make -C "$EXTERNAL_BUILD" XCODE.driver=xcodemake $jobs $goals $EXTERNAL_VARS

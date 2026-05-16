@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2018-2026 John Stebbins <your@email.com> -->
+<component type="console-application">
+  <id>fr.handbrake.HandBrakeCLI</id>
+  <update_contact>jstebbins.hb_AT_gmail.com</update_contact>
+  <developer_name>HandBrake Team</developer_name>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0</project_license>
+  <name>HandBrakeCLI</name>
+  <summary>Video Transcoder</summary>
+
+  <description>
+    <p>HandBrake is a tool for converting video from nearly any format to a selection of modern, widely supported codecs.</p>
+    <p>Reasons you'll love Handbrake:</p>
+    <ul>
+      <li>Convert video from nearly any format</li>
+      <li>Free and Open Source</li>
+      <li>Multi-Platform (Windows, Mac and Linux)</li>
+    </ul>
+  </description>
+
+  <url type="homepage">https://handbrake.fr/</url>
+  <url type="help">https://handbrake.fr/docs/</url>
+  <url type="bugtracker">https://github.com/HandBrake/HandBrake/issues</url>
+
+  <provides>
+    <binary>HandBrakeCLI</binary>
+    <mediatype>application/ogg</mediatype>
+    <mediatype>application/x-extension-mp4</mediatype>
+    <mediatype>application/x-flac</mediatype>
+    <mediatype>application/x-matroska</mediatype>
+    <mediatype>application/x-ogg</mediatype>
+    <mediatype>audio/ac3</mediatype>
+    <mediatype>audio/mp4</mediatype>
+    <mediatype>audio/mpeg</mediatype>
+    <mediatype>audio/ogg</mediatype>
+    <mediatype>audio/x-flac</mediatype>
+    <mediatype>audio/x-matroska</mediatype>
+    <mediatype>audio/x-mp2</mediatype>
+    <mediatype>audio/x-mp3</mediatype>
+    <mediatype>audio/x-mpeg</mediatype>
+    <mediatype>audio/x-vorbis</mediatype>
+    <mediatype>video/mp4</mediatype>
+    <mediatype>video/mp4v-es</mediatype>
+    <mediatype>video/mpeg</mediatype>
+    <mediatype>video/msvideo</mediatype>
+    <mediatype>video/quicktime</mediatype>
+    <mediatype>video/vnd.divx</mediatype>
+    <mediatype>video/x-avi</mediatype>
+    <mediatype>video/x-m4v</mediatype>
+    <mediatype>video/x-matroska</mediatype>
+    <mediatype>video/x-mpeg</mediatype>
+    <mediatype>video/x-ms-wmv</mediatype>
+    <mediatype>video/ogg</mediatype>
+    <mediatype>video/x-ogm+ogg</mediatype>
+    <mediatype>video/x-theora+ogg</mediatype>
+    <mediatype>x-content/video-dvd</mediatype>
+    <mediatype>x-content/video-vcd</mediatype>
+    <mediatype>x-content/video-svcd</mediatype>
+  </provides>
+
+  <releases>
+    RELEASE_TAG
+  </releases>
+
+  <content_rating type="oars-1.1"/>
+
+</component>
+

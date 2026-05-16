@@ -1,0 +1,29 @@
+$(eval $(call import.MODULE.defs,LIBGNURX,libgnurx))
+$(eval $(call import.CONTRIB.defs,LIBGNURX))
+
+LIBGNURX.FETCH.url     = https://github.com/HandBrake/HandBrake-contribs/releases/download/contribs/mingw-libgnurx-2.5.1-src.tar.gz
+LIBGNURX.FETCH.url    += https://sourceforge.net/projects/mingw/files/Other/UserContributed/regex/mingw-regex-2.5.1/mingw-libgnurx-2.5.1-src.tar.gz
+LIBGNURX.FETCH.sha256  = 7147b7f806ec3d007843b38e19f42a5b7c65894a57ffc297a76b0dcd5f675d76
+LIBGNURX.EXTRACT.tarbase = mingw-libgnurx-2.5.1
+
+LIBGNURX.CONFIGURE.deps   =
+LIBGNURX.CONFIGURE.shared =
+LIBGNURX.CONFIGURE.static =
+LIBGNURX.CONFIGURE.env   += AR="$(AR.exe)"
+LIBGNURX.CONFIGURE.bootstrap = autoreconf -fiv;
+
+LIBGNURX.GCC.args.extra += $(LIBGNURX.GCC.args.O.$(LIBGNURX.GCC.O))
+
+LIBGNURX.BUILD.ntargets = libregex.a-static
+
+define LIBGNURX.INSTALL
+    $(CP.exe) $(LIBGNURX.EXTRACT.dir/)libregex.a $(CONTRIB.build/)lib/
+    $(CP.exe) $(LIBGNURX.EXTRACT.dir/)regex.h $(CONTRIB.build/)include/
+    $(TOUCH.exe) $@
+endef
+
+define LIBGNURX.UNINSTALL
+    $(RM.exe) -f $(CONTRIB.build/)lib/libregex.a
+    $(RM.exe) -f $(CONTRIB.build/)include/regex.h
+    $(RM.exe) -f $(LIBGNURX.INSTALL.target)
+endef

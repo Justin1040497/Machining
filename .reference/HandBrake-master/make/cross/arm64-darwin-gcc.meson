@@ -1,0 +1,12 @@
+[binaries]
+c = 'clang'
+cpp = 'clang++'
+pkgconfig = 'pkg-config'
+pkg-config = 'pkg-config'
+cmake = 'cmake'
+
+[host_machine]
+system = 'darwin'
+cpu_family = 'aarch64'
+cpu = 'aarch64'
+endian = 'little'

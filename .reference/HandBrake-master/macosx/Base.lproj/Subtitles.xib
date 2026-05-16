@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="18122" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="18122"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="HBSubtitlesController">
+            <connections>
+                <outlet property="table" destination="0yM-wE-D2x" id="YbV-Eu-Sie"/>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView misplaced="YES" id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="902" height="176"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <popUpButton verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2Tb-KC-Ugi">
+                    <rect key="frame" x="16" y="140" width="90" height="22"/>
+                    <constraints>
+                        <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="82" id="LnC-EY-WyR"/>
+                    </constraints>
+                    <popUpButtonCell key="cell" type="push" title="Tracks" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" id="8ZD-D6-TLA">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu" size="11"/>
+                        <menu key="menu" id="Fr7-eG-NuL">
+                            <items>
+                                <menuItem title="Tracks" state="on" hidden="YES" id="TJO-RZ-jgb"/>
+                                <menuItem title="Add All Tracks" id="4PX-In-DpF">
+                                    <connections>
+                                        <action selector="addAll:" target="-2" id="fKo-J5-i2V"/>
+                                    </connections>
+                                </menuItem>
+                                <menuItem title="Add External Subtitles Track…" toolTip="Add new SRT/SSA subtitle to the list." id="HW0-PS-t0U">
+                                    <connections>
+                                        <action selector="browseImportExternalFile:" target="-2" id="dog-BP-my4"/>
+                                    </connections>
+                                </menuItem>
+                                <menuItem isSeparatorItem="YES" id="2hO-bG-5qB"/>
+                                <menuItem title="Remove All Tracks" id="mVi-zH-KUq">
+                                    <connections>
+                                        <action selector="removeAll:" target="-2" id="2Lg-Sg-OPL"/>
+                                    </connections>
+                                </menuItem>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <connections>
+                        <binding destination="-2" name="enabled" keyPath="self.subtitles" id="khN-Sn-dnI">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </popUpButton>
+                <button verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QsM-28-Pya">
+                    <rect key="frame" x="109" y="137" width="134" height="27"/>
+                    <string key="toolTip">Configure subtitle tracks Selection Behavior. These settings affect which tracks will be added to the subtitle tracks list, and the settings used for each track.</string>
+                    <buttonCell key="cell" type="push" title="Selection Behavior…" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="oxg-bs-1si">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="showSettingsSheet:" target="-2" id="IA5-Hf-clS"/>
+                        <binding destination="-2" name="enabled" keyPath="self.subtitles" id="dpe-kM-iMF">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </button>
+                <button toolTip="Reload the subtitles tracks list using the configured Selection Behavior." verticalHuggingPriority="750" misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Vxx-gk-9kY">
+                    <rect key="frame" x="239" y="137" width="64" height="27"/>
+                    <buttonCell key="cell" type="push" title="Reload" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="jG8-uo-1tv">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu" size="11"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="addTracksFromDefaults:" target="-2" id="MNV-gt-ylF"/>
+                        <binding destination="-2" name="enabled" keyPath="self.subtitles" id="CSa-3s-GD6">
+                            <dictionary key="options">
+                                <string key="NSValueTransformerName">NSIsNotNil</string>
+                            </dictionary>
+                        </binding>
+                    </connections>
+                </button>
+                <scrollView wantsLayer="YES" misplaced="YES" autohidesScrollers="YES" horizontalLineScroll="27" horizontalPageScroll="10" verticalLineScroll="27" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Syo-rH-vof">
+                    <rect key="frame" x="20" y="20" width="862" height="116"/>
+                    <string key="toolTip">Subtitle tracks list. Track selection behavior and settings are loaded from the selected preset, and may be configured using the subtitle Selection Behavior dialog.</string>
+                    <clipView key="contentView" id="ljc-nW-Cnc">
+                        <rect key="frame" x="1" y="1" width="860" height="114"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" tableStyle="plain" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" typeSelect="NO" rowHeight="25" rowSizeStyle="automatic" headerView="IiW-3a-Drv" viewBased="YES" id="0yM-wE-D2x">
+                                <rect key="frame" x="0.0" y="0.0" width="860" height="91"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <size key="intercellSpacing" width="3" height="2"/>
+                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                <tableColumns>
+                                    <tableColumn identifier="track" editable="NO" width="286" minWidth="40" maxWidth="1000" id="N3S-st-yGv">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Track">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" white="0.33333299" alpha="1" colorSpace="calibratedWhite"/>
+                                        </tableHeaderCell>
+                                        <popUpButtonCell key="dataCell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="border" imageScaling="proportionallyDown" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="kzn-6s-3Ka">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <menu key="menu" id="Umu-1b-U1Z">
+                                                <items>
+                                                    <menuItem title="Pop Up" id="cSW-OC-qKA"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="EZp-rc-7mo">
+                                                <rect key="frame" x="1" y="1" width="286" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <popUpButton toolTip="Subtitles language and type." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Tf3-cP-TGw">
+                                                        <rect key="frame" x="-1" y="1" width="288" height="22"/>
+                                                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="JWk-Ab-hdY">
+                                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                            <menu key="menu" id="0GR-vf-sZq">
+                                                                <items>
+                                                                    <menuItem title="Item 1" id="yDg-DK-z5D"/>
+                                                                    <menuItem title="Item 2" id="g4b-FM-qX4"/>
+                                                                    <menuItem title="Item 3" id="fAW-To-EeP"/>
+                                                                </items>
+                                                            </menu>
+                                                        </popUpButtonCell>
+                                                        <accessibility description="Selected track"/>
+                                                        <connections>
+                                                            <binding destination="EZp-rc-7mo" name="selectedIndex" keyPath="objectValue.sourceTrackIdx" previousBinding="LeD-lR-MOf" id="zso-1b-OrL"/>
+                                                            <binding destination="EZp-rc-7mo" name="content" keyPath="objectValue.sourceTracksArray" id="LeD-lR-MOf"/>
+                                                        </connections>
+                                                    </popUpButton>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="Tf3-cP-TGw" firstAttribute="leading" secondItem="EZp-rc-7mo" secondAttribute="leading" constant="3" id="SjK-h4-jBa"/>
+                                                    <constraint firstAttribute="trailing" secondItem="Tf3-cP-TGw" secondAttribute="trailing" constant="3" id="Z2W-qa-AON"/>
+                                                    <constraint firstItem="Tf3-cP-TGw" firstAttribute="centerY" secondItem="EZp-rc-7mo" secondAttribute="centerY" id="bNw-5g-dhI"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="forced" width="76" minWidth="70" maxWidth="3.4028229999999999e+38" id="klV-Gy-igk">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Forced Only">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <buttonCell key="dataCell" type="check" title="Check" bezelStyle="regularSquare" imagePosition="only" alignment="left" controlSize="small" continuous="YES" inset="2" id="JLr-Qi-X0X">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                        </buttonCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="zKg-by-KFV">
+                                                <rect key="frame" x="290" y="1" width="76" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <button toolTip="Forced Only. Use only subtitles marked as “forced” in the selected source track." translatesAutoresizingMaskIntoConstraints="NO" id="HC5-ql-Vcr">
+                                                        <rect key="frame" x="28" y="5" width="20" height="16"/>
+                                                        <buttonCell key="cell" type="check" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="SPR-9q-XBK">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <accessibility description="Forced subtitles only"/>
+                                                        <connections>
+                                                            <binding destination="zKg-by-KFV" name="value" keyPath="objectValue.forcedOnly" id="iFe-SC-lu3"/>
+                                                            <binding destination="zKg-by-KFV" name="enabled" keyPath="objectValue.isForcedSupported" id="7Gt-UF-Lwy"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="HC5-ql-Vcr" firstAttribute="centerY" secondItem="zKg-by-KFV" secondAttribute="centerY" id="Bnl-uV-Fds"/>
+                                                    <constraint firstItem="HC5-ql-Vcr" firstAttribute="leading" secondItem="zKg-by-KFV" secondAttribute="leading" constant="29" id="OGP-N0-fSq"/>
+                                                    <constraint firstItem="HC5-ql-Vcr" firstAttribute="centerX" secondItem="zKg-by-KFV" secondAttribute="centerX" id="mvF-fX-bf0"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="burned" width="64" minWidth="64" maxWidth="3.4028229999999999e+38" id="fIe-Fg-ufj">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Burned In">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <buttonCell key="dataCell" type="check" title="Check" bezelStyle="regularSquare" imagePosition="only" alignment="left" controlSize="small" continuous="YES" inset="2" id="R9w-Bn-CCt">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                        </buttonCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="gxH-yz-YRK">
+                                                <rect key="frame" x="369" y="1" width="64" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <button toolTip="Burned In. Make the selected subtitles permanent by overlaying them onto the video track." translatesAutoresizingMaskIntoConstraints="NO" id="zpm-9Z-Hsq">
+                                                        <rect key="frame" x="22" y="5" width="20" height="16"/>
+                                                        <buttonCell key="cell" type="check" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="s2E-1o-mGs">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <accessibility description="Burned In"/>
+                                                        <connections>
+                                                            <binding destination="gxH-yz-YRK" name="value" keyPath="objectValue.burnedIn" id="reR-Z6-yBf">
+                                                                <dictionary key="options">
+                                                                    <bool key="NSValidatesImmediately" value="YES"/>
+                                                                </dictionary>
+                                                            </binding>
+                                                            <binding destination="gxH-yz-YRK" name="enabled" keyPath="objectValue.canPassthru" id="xVE-oI-pP8"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="zpm-9Z-Hsq" firstAttribute="centerX" secondItem="gxH-yz-YRK" secondAttribute="centerX" id="Xbu-8p-kJ7"/>
+                                                    <constraint firstItem="zpm-9Z-Hsq" firstAttribute="centerY" secondItem="gxH-yz-YRK" secondAttribute="centerY" id="nLs-iU-WUw"/>
+                                                    <constraint firstItem="zpm-9Z-Hsq" firstAttribute="leading" secondItem="gxH-yz-YRK" secondAttribute="leading" constant="23" id="php-Zc-NnF"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="default" width="51" minWidth="51" maxWidth="3.4028229999999999e+38" id="fvq-pE-sOC">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="center" title="Default">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <buttonCell key="dataCell" type="check" title="Check" bezelStyle="regularSquare" imagePosition="only" alignment="left" controlSize="small" continuous="YES" inset="2" id="ooy-Sh-Edm">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                        </buttonCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="mQ6-s6-Zm2">
+                                                <rect key="frame" x="436" y="1" width="51" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <button toolTip="Default flag. Mark the selected subtitles track as the default to be displayed on playback." translatesAutoresizingMaskIntoConstraints="NO" id="mdO-Qu-3Pb">
+                                                        <rect key="frame" x="19" y="5" width="14" height="16"/>
+                                                        <buttonCell key="cell" type="check" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="kwl-qH-Dgo">
+                                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <accessibility description="Default"/>
+                                                        <connections>
+                                                            <binding destination="mQ6-s6-Zm2" name="enabled" keyPath="objectValue.canPassthru" id="VIq-6A-MlG"/>
+                                                            <binding destination="mQ6-s6-Zm2" name="value" keyPath="objectValue.def" id="6sg-s1-xTn"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="mdO-Qu-3Pb" firstAttribute="centerX" secondItem="mQ6-s6-Zm2" secondAttribute="centerX" id="hk9-EN-HLO"/>
+                                                    <constraint firstItem="mdO-Qu-3Pb" firstAttribute="centerY" secondItem="mQ6-s6-Zm2" secondAttribute="centerY" id="t3m-Ce-JH7"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="srt_lang" width="158.5" minWidth="10" maxWidth="3.4028229999999999e+38" id="9ka-9O-WDj">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Language">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <popUpButtonCell key="dataCell" type="bevel" title="Pop Up" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" continuous="YES" state="on" borderStyle="bezel" imageScaling="proportionallyDown" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="vHW-fn-RSG" id="2Qz-Lh-O8g">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <menu key="menu" id="UOP-xa-WpP">
+                                                <items>
+                                                    <menuItem title="Pop Up" state="on" id="vHW-fn-RSG"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="4bh-my-GeM">
+                                                <rect key="frame" x="490" y="1" width="159" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <popUpButton toolTip="Language of the selected SRT/SSA format source track. Not applicable to other formats." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Inz-O5-B8g">
+                                                        <rect key="frame" x="-1" y="1" width="161" height="22"/>
+                                                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="zIn-sc-xak">
+                                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                            <menu key="menu" id="YpS-Pf-abd">
+                                                                <items>
+                                                                    <menuItem title="Item 1" id="Rj8-KI-k4L"/>
+                                                                    <menuItem title="Item 2" id="HQq-Mp-4sI"/>
+                                                                    <menuItem title="Item 3" id="yEC-jb-q8b"/>
+                                                                </items>
+                                                            </menu>
+                                                        </popUpButtonCell>
+                                                        <accessibility description="SRT/SSA Language"/>
+                                                        <connections>
+                                                            <binding destination="4bh-my-GeM" name="enabled" keyPath="objectValue.isExternal" id="cQ5-cT-bqm"/>
+                                                            <binding destination="4bh-my-GeM" name="selectedValue" keyPath="objectValue.isoLanguage" previousBinding="OIo-fF-3vU" id="Ubv-kn-nf5">
+                                                                <dictionary key="options">
+                                                                    <string key="NSValueTransformerName">HBIsoLanguageTransformer</string>
+                                                                </dictionary>
+                                                            </binding>
+                                                            <binding destination="4bh-my-GeM" name="content" keyPath="objectValue.languages" id="OIo-fF-3vU"/>
+                                                        </connections>
+                                                    </popUpButton>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="Inz-O5-B8g" firstAttribute="centerY" secondItem="4bh-my-GeM" secondAttribute="centerY" id="3Cd-LX-xuq"/>
+                                                    <constraint firstItem="Inz-O5-B8g" firstAttribute="leading" secondItem="4bh-my-GeM" secondAttribute="leading" constant="3" id="CnV-f5-Gtx"/>
+                                                    <constraint firstAttribute="trailing" secondItem="Inz-O5-B8g" secondAttribute="trailing" constant="3" id="NhM-0h-zLT"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="srt_charcode" width="115" minWidth="10" maxWidth="3.4028229999999999e+38" id="1Qg-We-ltR">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Encoding">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <popUpButtonCell key="dataCell" type="bevel" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" continuous="YES" borderStyle="bezel" imageScaling="proportionallyDown" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="AdJ-Mv-JI2">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <menu key="menu" id="ABd-Ec-K2L"/>
+                                        </popUpButtonCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="ZBK-cc-m0z">
+                                                <rect key="frame" x="651.5" y="1" width="115" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <popUpButton toolTip="Character encoding/codeset of the selected SRT/SSA format source track. Not applicable to other formats." verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="QV0-kE-4yR">
+                                                        <rect key="frame" x="-1" y="1" width="117" height="22"/>
+                                                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="jFr-2c-3Vv">
+                                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                            <menu key="menu" id="u4x-JX-Hma">
+                                                                <items>
+                                                                    <menuItem title="Item 1" id="dap-ee-kor"/>
+                                                                    <menuItem title="Item 2" id="gHY-6m-ASb"/>
+                                                                    <menuItem title="Item 3" id="ThR-Cn-Vfr"/>
+                                                                </items>
+                                                            </menu>
+                                                        </popUpButtonCell>
+                                                        <accessibility description="SRT/SSA Character Encoding"/>
+                                                        <connections>
+                                                            <binding destination="ZBK-cc-m0z" name="selectedValue" keyPath="objectValue.charCode" previousBinding="NGt-sB-Sg2" id="eBc-20-eSF"/>
+                                                            <binding destination="ZBK-cc-m0z" name="content" keyPath="objectValue.encodings" id="NGt-sB-Sg2"/>
+                                                            <binding destination="ZBK-cc-m0z" name="enabled" keyPath="objectValue.isExternal" id="g9q-4R-uuX"/>
+                                                        </connections>
+                                                    </popUpButton>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstAttribute="trailing" secondItem="QV0-kE-4yR" secondAttribute="trailing" constant="3" id="56f-EX-8Xt"/>
+                                                    <constraint firstItem="QV0-kE-4yR" firstAttribute="centerY" secondItem="ZBK-cc-m0z" secondAttribute="centerY" id="VnC-oi-pgx"/>
+                                                    <constraint firstItem="QV0-kE-4yR" firstAttribute="leading" secondItem="ZBK-cc-m0z" secondAttribute="leading" constant="3" id="W3d-o2-suN"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="srt_offset" width="57.5" minWidth="10" maxWidth="3.4028229999999999e+38" id="Fgh-pZ-6uu">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Offset">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" continuous="YES" sendsActionOnEndEditing="YES" alignment="center" title="Text" id="QRj-KI-a03">
+                                            <font key="font" metaFont="menu" size="11"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView id="9tV-iL-oaF">
+                                                <rect key="frame" x="769.5" y="1" width="57" height="17"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <textField toolTip="Positive or negative offset in milliseconds (ms) for the selected SRT/SSA format source track. Not applicable to other formats." verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="aJi-zQ-0cg">
+                                                        <rect key="frame" x="0.0" y="-3" width="57" height="14"/>
+                                                        <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" alignment="center" title="0" id="hhH-c3-gD0">
+                                                            <numberFormatter key="formatter" formatterBehavior="default10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" maximumFractionDigits="3" id="Jui-oB-oVO"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                        <accessibility description="SRT/SSA Offset"/>
+                                                        <connections>
+                                                            <binding destination="9tV-iL-oaF" name="enabled" keyPath="objectValue.isExternal" id="ab2-et-mrD"/>
+                                                            <binding destination="9tV-iL-oaF" name="value" keyPath="objectValue.offset" id="NlM-1C-Udf">
+                                                                <dictionary key="options">
+                                                                    <integer key="NSNullPlaceholder" value="0"/>
+                                                                </dictionary>
+                                                            </binding>
+                                                        </connections>
+                                                    </textField>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="aJi-zQ-0cg" firstAttribute="centerX" secondItem="9tV-iL-oaF" secondAttribute="centerX" id="Dqo-dR-xOW"/>
+                                                    <constraint firstItem="aJi-zQ-0cg" firstAttribute="leading" secondItem="9tV-iL-oaF" secondAttribute="leading" constant="2" id="bUg-SG-Q9K"/>
+                                                    <constraint firstItem="aJi-zQ-0cg" firstAttribute="top" secondItem="9tV-iL-oaF" secondAttribute="top" constant="6" id="oXx-Vj-wkT"/>
+                                                </constraints>
+                                                <connections>
+                                                    <outlet property="textField" destination="aJi-zQ-0cg" id="WSP-oS-jCs"/>
+                                                </connections>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn width="28" minWidth="28" maxWidth="28" id="9QI-EX-yTT">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" alignment="left" title="Text Cell" id="gYk-0C-2tR">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView misplaced="YES" id="FiE-Us-vj1">
+                                                <rect key="frame" x="830" y="1" width="28" height="25"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="bFt-wX-C9J">
+                                                        <rect key="frame" x="-4" y="-2" width="37" height="27"/>
+                                                        <buttonCell key="cell" type="push" bezelStyle="rounded" image="NSActionTemplate" imagePosition="only" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="A3l-TZ-bBd">
+                                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                            <font key="font" metaFont="menu" size="11"/>
+                                                        </buttonCell>
+                                                        <connections>
+                                                            <action selector="showAdditionalSettingsPopOver:" target="-2" id="lYo-do-opD"/>
+                                                            <binding destination="FiE-Us-vj1" name="enabled" keyPath="objectValue.isEnabled" id="ptR-gm-qhm"/>
+                                                        </connections>
+                                                    </button>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="bFt-wX-C9J" firstAttribute="centerY" secondItem="FiE-Us-vj1" secondAttribute="centerY" id="HvX-qj-Lkx"/>
+                                                    <constraint firstItem="bFt-wX-C9J" firstAttribute="leading" secondItem="FiE-Us-vj1" secondAttribute="leading" constant="2" id="ec9-Mx-7wu"/>
+                                                    <constraint firstAttribute="trailing" secondItem="bFt-wX-C9J" secondAttribute="trailing" constant="2" id="lR2-PN-R4w"/>
+                                                </constraints>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                </tableColumns>
+                                <accessibility description="Subtitles tracks"/>
+                                <connections>
+                                    <binding destination="ssY-jQ-Nev" name="content" keyPath="arrangedObjects" id="Oj3-29-oCf"/>
+                                    <binding destination="-2" name="enabled" keyPath="self.subtitles" id="pmZ-qP-DnG">
+                                        <dictionary key="options">
+                                            <string key="NSValueTransformerName">NSIsNotNil</string>
+                                        </dictionary>
+                                    </binding>
+                                    <outlet property="delegate" destination="-2" id="qvK-X0-R9e"/>
+                                    <outlet property="menu" destination="KgC-dn-Hq2" id="Iff-7t-kdg"/>
+                                </connections>
+                            </tableView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="toe-s0-pVk">
+                        <rect key="frame" x="-100" y="-100" width="685" height="15"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="GfM-TU-Tmr">
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <tableHeaderView key="headerView" wantsLayer="YES" id="IiW-3a-Drv">
+                        <rect key="frame" x="0.0" y="0.0" width="860" height="23"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </tableHeaderView>
+                </scrollView>
+            </subviews>
+            <constraints>
+                <constraint firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="Vxx-gk-9kY" secondAttribute="trailing" constant="20" symbolic="YES" id="3J0-6k-cOB"/>
+                <constraint firstAttribute="trailing" secondItem="Syo-rH-vof" secondAttribute="trailing" constant="20" symbolic="YES" id="5IB-ap-YgJ"/>
+                <constraint firstItem="2Tb-KC-Ugi" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" symbolic="YES" id="9Vp-q0-po2"/>
+                <constraint firstItem="2Tb-KC-Ugi" firstAttribute="leading" secondItem="Syo-rH-vof" secondAttribute="leading" id="Fni-x3-tM1"/>
+                <constraint firstItem="QsM-28-Pya" firstAttribute="baseline" secondItem="Vxx-gk-9kY" secondAttribute="baseline" id="JZu-dS-kIW"/>
+                <constraint firstItem="QsM-28-Pya" firstAttribute="leading" secondItem="2Tb-KC-Ugi" secondAttribute="trailing" constant="13" id="Txa-IP-VtQ"/>
+                <constraint firstItem="Vxx-gk-9kY" firstAttribute="leading" secondItem="QsM-28-Pya" secondAttribute="trailing" constant="8" symbolic="YES" id="aW7-PU-5SX"/>
+                <constraint firstItem="2Tb-KC-Ugi" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="16" id="bkf-sN-APi"/>
+                <constraint firstItem="Syo-rH-vof" firstAttribute="top" secondItem="2Tb-KC-Ugi" secondAttribute="bottom" constant="10" id="cGP-id-a2G"/>
+                <constraint firstItem="2Tb-KC-Ugi" firstAttribute="baseline" secondItem="QsM-28-Pya" secondAttribute="baseline" id="jnV-Dq-iyH"/>
+                <constraint firstAttribute="bottom" secondItem="Syo-rH-vof" secondAttribute="bottom" constant="20" symbolic="YES" id="mQT-2H-f1T"/>
+            </constraints>
+            <point key="canvasLocation" x="230" y="122"/>
+        </customView>
+        <arrayController objectClassName="HBSubtitlesTrack" id="ssY-jQ-Nev">
+            <classReference key="objectClass" className="HBSubtitlesTrack"/>
+            <connections>
+                <binding destination="-2" name="contentArray" keyPath="self.subtitles.tracks" id="mlB-F3-p89"/>
+            </connections>
+        </arrayController>
+        <menu id="KgC-dn-Hq2">
+            <items>
+                <menuItem title="Add All Tracks" id="S2I-Jd-Lyg">
+                    <attributedString key="attributedTitle"/>
+                    <connections>
+                        <action selector="addAll:" target="-2" id="505-vt-RDf"/>
+                    </connections>
+                </menuItem>
+                <menuItem title="Add External Subtitles Track…" id="fXD-7h-jMl">
+                    <connections>
+                        <action selector="browseImportExternalFile:" target="-2" id="tEu-2l-wjN"/>
+                    </connections>
+                </menuItem>
+                <menuItem isSeparatorItem="YES" id="Pr7-iM-rgd"/>
+                <menuItem title="Remove All Tracks" id="R8a-qg-ASg">
+                    <connections>
+                        <action selector="removeAll:" target="-2" id="qSF-WG-802"/>
+                    </connections>
+                </menuItem>
+                <menuItem isSeparatorItem="YES" id="eER-z8-aB9"/>
+                <menuItem title="Selection Behavior…" id="pwm-PV-1x4">
+                    <connections>
+                        <action selector="showSettingsSheet:" target="-2" id="hjH-4w-HUH"/>
+                    </connections>
+                </menuItem>
+                <menuItem title="Reload" id="jcM-HL-QJ6">
+                    <connections>
+                        <action selector="addTracksFromDefaults:" target="-2" id="pW8-ZH-jPf"/>
+                    </connections>
+                </menuItem>
+            </items>
+            <point key="canvasLocation" x="-18" y="437"/>
+        </menu>
+    </objects>
+    <resources>
+        <image name="NSActionTemplate" width="15" height="15"/>
+    </resources>
+</document>

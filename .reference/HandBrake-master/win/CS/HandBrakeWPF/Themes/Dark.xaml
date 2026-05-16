@@ -1,0 +1,151 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        #252525 - Dark
+        #363636 - Mid 
+    
+        #414141 - Light
+        #606060 - Ultralight
+    -->
+
+    <SolidColorBrush x:Key="Ui.Dark" Color="#252525" />
+    <SolidColorBrush x:Key="Ui.Mid" Color="#363636" />
+    <SolidColorBrush x:Key="Ui.Light" Color="#464646" />
+    <SolidColorBrush x:Key="Ui.Light2" Color="#464646" />
+    <SolidColorBrush x:Key="Ui.Ultralight" Color="#606060" />
+    <SolidColorBrush x:Key="Ui.UltraLight2" Color="#acacac" />
+    <SolidColorBrush x:Key="Ui.ContrastLight" Color="#C0C0C0" />
+    <SolidColorBrush x:Key="Ui.WhiteSmoke" Color="WhiteSmoke" />
+    <SolidColorBrush x:Key="Ui.ListBoxSelect" Color="#606060" />
+    <SolidColorBrush x:Key="Ui.ToolbarHover" Color="#acacac" />
+
+    <SolidColorBrush x:Key="Ui.Blue" Color="#00579f" />
+    <SolidColorBrush x:Key="Ui.BlueBright" Color="#006cc5" />
+
+    <SolidColorBrush x:Key="Ui.Background" Color="#464646" />
+    <SolidColorBrush x:Key="Ui.BackgroundLight" Color="#C0C0C0" />
+    <SolidColorBrush x:Key="Ui.BackgroundDark" Color="Black" />
+
+
+    <!-- General -->
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#252525" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="White" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlTextBrushKey}" Color="White" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="WhiteSmoke" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.MenuTextBrushKey}" Color="WhiteSmoke" />
+    <SolidColorBrush x:Key="{x:Static SystemColors.ControlDarkBrushKey}" Color="WhiteSmoke" />
+
+    <!-- Listbox -->
+    <Style TargetType="ListBox">
+        <Setter Property="Background" Value="{DynamicResource Ui.Dark}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- Tooltip -->
+    <Style x:Key="{x:Type ToolTip}" TargetType="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource Ui.Mid}" />
+        <Setter Property="HasDropShadow" Value="True" />
+    </Style>
+
+    <!-- StatusBar -->
+    <Style TargetType="StatusBar">
+        <Setter Property="Background" Value="{DynamicResource Ui.Mid}" />
+        <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- Text Entry Controls -->
+    <Style TargetType="TextBox"  BasedOn="{StaticResource {x:Type TextBox}}">
+        <Setter Property="Background" Value="{DynamicResource Ui.Light}" />
+        <Setter Property="ContextMenu">
+            <Setter.Value>
+                <ContextMenu>
+                    <MenuItem Command="ApplicationCommands.Copy" />
+                    <MenuItem Command="ApplicationCommands.Cut" />
+                    <MenuItem Command="ApplicationCommands.Paste" />
+                </ContextMenu>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style x:Key="BaseTextBlockStyle" TargetType="TextBlock">
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <!-- Tab Control -->
+    <Style TargetType="{x:Type TabControl}">
+        <Setter Property="Background" Value="{DynamicResource Ui.Mid}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"/>
+    </Style>
+
+    <Style TargetType="TabItem">
+        <Setter Property="Background" Value="{DynamicResource Ui.Mid}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="TabItem">
+                    <Grid Name="Panel">
+                        <ContentPresenter x:Name="ContentSite" VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header" Margin="10,6"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Panel" Property="Background" Value="{DynamicResource Ui.Mid}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="False">
+                            <Setter TargetName="Panel" Property="Background" Value="{DynamicResource Ui.Dark}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- DataGrid -->
+    <Style TargetType="{x:Type DataGridColumnHeader}"  BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+        <Setter Property="Background" Value="{DynamicResource Ui.Dark}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource Ui.Ultralight}"/>
+        <Setter Property="Height" Value="28" />
+        <Setter Property="BorderThickness" Value="0,1,0,1"/>
+    </Style>
+
+    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+        <Setter Property="MinHeight" Value="22" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Foreground" Value="Black" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="False">
+                <Setter Property="Foreground" Value="White" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ComboBox-->
+    <Style TargetType="{x:Type ComboBox}" BasedOn="{StaticResource ComboBoxBaseStyle}">
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Margin" Value="0,2,0,2" />
+        <Setter Property="ToolTipService.ShowDuration" Value="20000" />
+    </Style>
+
+    <!-- Glyph -->
+    <SolidColorBrush x:Key="ButtonGlyphBrush" Color="WhiteSmoke"/>
+
+    <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Controls/ComboBoxDark.xaml" />
+        <ResourceDictionary Source="Controls/ButtonDark.xaml" />
+        <ResourceDictionary Source="Controls/ContextMenuDark.xaml" />
+        <ResourceDictionary Source="Controls/ToolbarDark.xaml" />
+        <ResourceDictionary Source="Controls/GroupBoxDark.xaml" />
+        <ResourceDictionary Source="Controls/TreeviewDark.xaml" />
+        <ResourceDictionary Source="Controls/ProgressBarBoth.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+
+</ResourceDictionary>

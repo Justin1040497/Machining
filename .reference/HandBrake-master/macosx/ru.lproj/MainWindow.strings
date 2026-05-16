@@ -1,0 +1,186 @@
+/* Class = "NSTabViewItem"; label = "Filters"; ObjectID = "0UB-bG-kwS"; */
+"0UB-bG-kwS.label" = "Фильтры";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Save New Preset…"; ObjectID = "2vD-zN-YMe"; */
+"2vD-zN-YMe.ibShadowedToolTip" = "Сохранить новый пресет...";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Title to scan."; ObjectID = "3w9-Iu-3u2"; */
+"3w9-Iu-3u2.ibShadowedToolTip" = "Раздел для сканирования.";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Recursively scan and open the content of every sub-folder."; ObjectID = "5hE-Ri-tcZ"; */
+"5hE-Ri-tcZ.ibShadowedToolTip" = "Искать и добавлять также файлы из вложенных папок";
+
+/* Class = "NSTextFieldCell"; title = "0"; ObjectID = "6E4-AG-PEh"; */
+"6E4-AG-PEh.title" = "0";
+
+/* Class = "NSWindow"; title = "HandBrake"; ObjectID = "21"; */
+"21.title" = "HandBrake";
+
+/* Class = "NSTabViewItem"; label = "Audio"; ObjectID = "1475"; */
+"1475.label" = "Аудио";
+
+/* Class = "NSTabViewItem"; label = "Video"; ObjectID = "1477"; */
+"1477.label" = "Видео";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "Source file"; ObjectID = "1538"; */
+"1538.ibExternalAccessibilityDescription" = "Исходный файл";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Source file name."; ObjectID = "1539"; */
+"1539.ibShadowedToolTip" = "Имя исходного файла.";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Title, or video clip, to encode. The longest title is selected by default.\n\nBlu-ray and DVD sources often have multiple titles, the longest of which is typically the main feature."; ObjectID = "1541"; */
+"1541.ibShadowedToolTip" = "Раздел в исходном файле или диске, предназначенный для кодирования. По умолчанию HandBrake выбирает самый длинный раздел, если их несколько.\n\nВидеофайлы обычно состоят из одного раздела, а Blu-ray и DVD часто содержат несколько. Как правило, раздел наибольшей длительности является основным содержимым диска.";
+
+/* Class = "NSPopUpButton"; ibExternalAccessibilityDescription = "Start Chapter"; ObjectID = "1545"; */
+"1545.ibExternalAccessibilityDescription" = "Начальная глава";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "First chapter to encode."; ObjectID = "1545"; */
+"1545.ibShadowedToolTip" = "Первая глава для кодирования.";
+
+/* Class = "NSPopUpButton"; ibExternalAccessibilityDescription = "End Chapter"; ObjectID = "1548"; */
+"1548.ibExternalAccessibilityDescription" = "Конечная глава";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Last chapter to encode."; ObjectID = "1548"; */
+"1548.ibShadowedToolTip" = "Последняя глава для кодирования.";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "Duration"; ObjectID = "1554"; */
+"1554.ibExternalAccessibilityDescription" = "Длительность";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Duration of the selected source range in Hours:Minutes:Seconds."; ObjectID = "1554"; */
+"1554.ibShadowedToolTip" = "Продолжительность выбранного промежутка в Часах:Минутах:Секундах.";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "Output filename"; ObjectID = "1561"; */
+"1561.ibExternalAccessibilityDescription" = "Выходное имя файла";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "File name. This is what your new video will be named."; ObjectID = "1561"; */
+"1561.ibShadowedToolTip" = "Имя файла. Именно так будет называться новое видео.";
+
+/* Class = "NSButton"; ibExternalAccessibilityDescription = "Browse Destination"; ObjectID = "1562"; */
+"1562.ibExternalAccessibilityDescription" = "Выбрать путь назначения";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Browse to select a new destination path for your encode."; ObjectID = "1562"; */
+"1562.ibShadowedToolTip" = "Выбрать новый путь назначения для вашего кодирования.";
+
+/* Class = "NSTabViewItem"; label = "Chapters"; ObjectID = "1989"; */
+"1989.label" = "Главы";
+
+/* Class = "NSTextFieldCell"; title = "Encoding Job 1: Test.mp4"; ObjectID = "4846"; */
+"4846.title" = "Задание кодирования 1: Test.mp4";
+
+/* Class = "NSTextFieldCell"; title = "Source:"; ObjectID = "4905"; */
+"4905.title" = "Исходный файл:";
+
+/* Class = "NSTextFieldCell"; title = "Title:"; ObjectID = "4907"; */
+"4907.title" = "Раздел:";
+
+/* Class = "NSTextFieldCell"; title = "Save As:"; ObjectID = "4913"; */
+"4913.title" = "Сохранить Как:";
+
+/* Class = "NSTextFieldCell"; title = "Duration:"; ObjectID = "4914"; */
+"4914.title" = "Длительность:";
+
+/* Class = "NSTextFieldCell"; title = "00:00:00"; ObjectID = "4915"; */
+"4915.title" = "00:00:00";
+
+/* Class = "NSButtonCell"; title = "Browse…"; ObjectID = "4920"; */
+"4920.title" = "Выбрать...";
+
+/* Class = "NSTextFieldCell"; title = "Preset:"; ObjectID = "4923"; */
+"4923.title" = "Пресет:";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Video angle to encode. Only applicable to multi-angle DVD and Blu-ray."; ObjectID = "5181"; */
+"5181.ibShadowedToolTip" = "Ракурс видео для кодирования. Применимо только для многоракурсных DVD и Blu-ray.";
+
+/* Class = "NSTextFieldCell"; title = "Angle:"; ObjectID = "5185"; */
+"5185.title" = "Ракурс:";
+
+/* Class = "NSTabViewItem"; label = "Subtitles"; ObjectID = "5194"; */
+"5194.label" = "Субтитры";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "Start time in seconds"; ObjectID = "5491"; */
+"5491.ibExternalAccessibilityDescription" = "Начальное время в секундах";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "First second to encode."; ObjectID = "5491"; */
+"5491.ibShadowedToolTip" = "Первая секунда для кодирования.";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "End time in seconds"; ObjectID = "5493"; */
+"5493.ibExternalAccessibilityDescription" = "Конечное время в секундах";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Last second to encode."; ObjectID = "5493"; */
+"5493.ibShadowedToolTip" = "Последняя секунда для кодирования.";
+
+/* Class = "NSTextFieldCell"; title = "–"; ObjectID = "5506"; */
+"5506.title" = "–";
+
+/* Class = "NSPopUpButton"; ibExternalAccessibilityDescription = "Range Selection"; ObjectID = "5513"; */
+"5513.ibExternalAccessibilityDescription" = "Выбор диапазона";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Source range selection. By default, all chapters are selected and the entire source is encoded."; ObjectID = "5513"; */
+"5513.ibShadowedToolTip" = "Выбор промежутка исходного файла. По умолчанию выбираются все главы и кодируется весь исходный файл.";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "Start time in frames"; ObjectID = "5521"; */
+"5521.ibExternalAccessibilityDescription" = "Начальное время в кадрах";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "First frame to encode."; ObjectID = "5521"; */
+"5521.ibShadowedToolTip" = "Первый кадр для кодирования.";
+
+/* Class = "NSTextField"; ibExternalAccessibilityDescription = "End time in frames"; ObjectID = "5523"; */
+"5523.ibExternalAccessibilityDescription" = "Конечное время в кадрах";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Last frame to encode."; ObjectID = "5523"; */
+"5523.ibShadowedToolTip" = "Последний кадр для кодирования.";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Reload the encoding settings for the currently selected preset. Modifications will be discarded."; ObjectID = "AhR-pK-Oz4"; */
+"AhR-pK-Oz4.ibShadowedToolTip" = "Перезагрузить настройки кодирования для выбранного в данный момент пресета. Изменения будут отменены.";
+
+/* Class = "CocoaBindingsConnection"; ibShadowedIsNilPlaceholder = " "; ObjectID = "aID-g7-zTF"; */
+"aID-g7-zTF.ibShadowedIsNilPlaceholder" = "";
+
+/* Class = "NSTabViewItem"; label = "Summary"; ObjectID = "BA0-eg-2Ka"; */
+"BA0-eg-2Ka.label" = "Сводка";
+
+/* Class = "NSPopUpButton"; ibExternalAccessibilityDescription = "Preset selection"; ObjectID = "bWH-Lp-mKY"; */
+"bWH-Lp-mKY.ibExternalAccessibilityDescription" = "Выбор пресета";
+
+/* Class = "NSButtonCell"; title = "Reload"; ObjectID = "cgS-BU-Nfd"; */
+"cgS-BU-Nfd.title" = "Перезагрузить";
+
+/* Class = "NSBox"; title = "Box"; ObjectID = "d0E-xw-bxh"; */
+"d0E-xw-bxh.title" = "Контейнер";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Scan only the specified title instead of all titles."; ObjectID = "DN4-48-aOI"; */
+"DN4-48-aOI.ibShadowedToolTip" = "Сканировать только определенный раздел вместо всех.";
+
+/* Class = "NSTabViewItem"; label = "Dimensions"; ObjectID = "eij-Sn-QmJ"; */
+"eij-Sn-QmJ.label" = "Размеры";
+
+/* Class = "NSButtonCell"; title = "Scan only title:"; ObjectID = "eQA-t2-FcV"; */
+"eQA-t2-FcV.title" = "Сканировать только раздел:";
+
+/* Class = "NSButtonCell"; title = "Recursively scan folders"; ObjectID = "Hwu-gp-tRZ"; */
+"Hwu-gp-tRZ.title" = "Добавлять файлы из вложенных папок";
+
+/* Class = "CocoaBindingsConnection"; ibShadowedIsNilPlaceholder = " "; ObjectID = "Iat-pL-ttI"; */
+"Iat-pL-ttI.ibShadowedIsNilPlaceholder" = "";
+
+/* Class = "NSButtonCell"; title = "Save New Preset…"; ObjectID = "IOU-3L-nvB"; */
+"IOU-3L-nvB.title" = "Сохранить новый пресет...";
+
+/* Class = "NSTextFieldCell"; title = "Range:"; ObjectID = "IxV-PW-oYh"; */
+"IxV-PW-oYh.title" = "Промежуток:";
+
+/* Class = "NSTextFieldCell"; title = "Progress"; ObjectID = "KUR-YZ-Da8"; */
+"KUR-YZ-Da8.title" = "В процессе";
+
+/* Class = "NSMenuItem"; title = "Selected Preset"; ObjectID = "OYP-3T-FnA"; */
+"OYP-3T-FnA.title" = "Выбранный пресет";
+
+/* Class = "NSPathControl"; ibExternalAccessibilityDescription = "Destination folder path"; ObjectID = "PJi-21-hie"; */
+"PJi-21-hie.ibExternalAccessibilityDescription" = "Папка пути назначения";
+
+/* Class = "NSTextFieldCell"; title = "To:"; ObjectID = "rfK-nQ-Aq2"; */
+"rfK-nQ-Aq2.title" = "К:";
+
+/* Class = "NSMenuItem"; title = "Reveal in Finder"; ObjectID = "rK6-EB-N9Z"; */
+"rK6-EB-N9Z.title" = "Отобразить в Finder";
+

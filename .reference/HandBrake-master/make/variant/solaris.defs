@@ -1,0 +1,11 @@
+TARGET.dylib.ext = .so
+
+GCC.args.dylib = -shared
+GCC.args.strip = -Wl,-s
+GCC.args.extra += -Wl,-z,rescan
+GCC.args.pic   = 1
+
+GCC.args.g.none = -g0
+GCC.args.g.min  = -g1
+GCC.args.g.std  = -g2
+GCC.args.g.max  = -g3

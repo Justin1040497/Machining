@@ -1,0 +1,646 @@
+/* Job statistics */
+" (%@ %% of the source file)" = " (%@ %% вихідного файлу)";
+
+/* Preview -> size info label */
+" Scaled To Screen" = "Масштабувати до екрану";
+
+/* No comment provided by engineer. */
+"- --:--" = "- --:--";
+
+/* No comment provided by engineer. */
+"--:--" = "--:--";
+
+/* Preview -> size info label */
+"(%.0f%% actual size)" = "(%.0f%% поточного розміру)";
+
+/* Preview -> size info label */
+"(Actual size)" = "(Фактичний розмір)";
+
+/* Main Window -> preset modified */
+"(Modified)" = "(Змінено)";
+
+/* Job statistics */
+"%@ fps" = "%@ fps";
+
+/* Queue status */
+"%lu encode pending" = "%lu перетворення в очікуванні";
+
+/* Queue status */
+"%lu encodes pending" = "%lu очікує перетворення";
+
+/* No comment provided by engineer. */
+"%lu jobs selected" = "%lu вибрано завдань";
+
+/* Add preset window -> picture setting */
+"480p NTSC SD" = "480p NTSC SD";
+
+/* Add preset window -> picture setting */
+"576p PAL SD" = "576p PAL SD";
+
+/* Add preset window -> picture setting */
+"720p HD" = "720p HD";
+
+/* Add preset window -> picture setting */
+"1080p HD" = "1080p HD";
+
+/* Add preset window -> picture setting */
+"1440p 2.5K Quad HD" = "1440p 2.5K Quad HD";
+
+/* Add preset window -> picture setting */
+"2160p 4K Ultra HD" = "2160p 4K Ultra HD";
+
+/* Add preset window -> picture setting */
+"4320p 8K Ultra HD" = "4320p 8K Ultra HD";
+
+/* Destination same as source alert -> message
+File already exists alert -> message */
+"A file already exists at the selected destination." = "Файл вже існує у вибраному місці призначення.";
+
+/* Queue Window Action Toolbar Item */
+"Action" = "Дія";
+
+/* Main Window Activity Toolbar Item */
+"Activity" = "Діяльність";
+
+/* Picture HUD -> scale button */
+"Actual Scale" = "Фактичний масштаб";
+
+/* Main Window Add Toolbar Item */
+"Add All Titles To Queue" = "Додати всі назви до черги";
+
+/* Queue undo action name */
+"Add Job To Queue" = "Додати завдання в чергу";
+
+/* Queue undo action name */
+"Add Jobs To Queue" = "Додати завдання до черги";
+
+/* Touch bar */
+"Add Preset" = "Додати шаблон";
+
+/* Touch bar */
+"Add Titles To Queue" = "Додати назви до черги";
+
+/* Main Window Add Toolbar Item */
+"Add Titles To Queue…" = "Додати назви до черги...";
+
+/* Main Window Add Toolbar Item
+Touch bar */
+"Add To Queue" = "Додати в чергу";
+
+/* Preferences Advanced Toolbar Item */
+"Advanced" = "Просунутий";
+
+/* Main Window -> Same as source destination open panel */
+"Allow" = "Дозволити";
+
+/* Preferences -> Output Name Token */
+"Angle" = "Кут.";
+
+/* HBLanguage -> Any language */
+"Any" = "Будь-який";
+
+/* Delete preset alert -> message */
+"Are you sure you want to permanently delete the selected preset?" = "Ви впевнені, що хочете назавжди видалити вибраний шаблон?";
+
+/* Delete preset alert -> message */
+"Are you sure you want to permanently delete the selected presets?" = "Ви впевнені, що хочете назавжди видалити вибрані шаблони?";
+
+/* Quit Alert -> message */
+"Are you sure you want to quit HandBrake?" = "Ви впевнені, що хочете завершити HandBrake?";
+
+/* Copy Protection Alert -> first button */
+"Attempt Scan Anyway" = "Все одно спробуйте відсканувати";
+
+/* Player HUD -> audio menu */
+"Audio" = "Аудіо";
+
+/* Job statistics */
+"Average speed:" = "Середня швидкість:";
+
+/* Preferences -> Output Name Token */
+"Bit Depth" = "Глибина біта";
+
+/* Copy Protection Alert -> second button
+Delete preset alert -> second button
+File already exists alert -> first button
+File already exists in queue alert -> first button
+Preview -> live preview alert alternate button
+Touch bar */
+"Cancel" = "Скасувати";
+
+/* Touch bar */
+"Cancel Encoding" = "Скасувати перетворення";
+
+/* Toolbar Open/Cancel Item
+Touch bar */
+"Cancel Scan" = "Скасувати сканування";
+
+/* Toolbar Open/Cancel Item */
+"Cancel Scanning Source" = "Скасувати вибір джерела сканування";
+
+/* HBRange -> display name
+Preferences -> Output Name Token */
+"Chapters" = "Розділи";
+
+/* Main Window -> Destination open panel */
+"Choose" = "Оберіть";
+
+/* Preferences -> Output Name Token */
+"Codec" = "Кодек";
+
+/* Queue Alert -> cancel rip first button */
+"Continue Encoding" = "Продовжити кодування";
+
+/* Copy Protection Alert -> message */
+"Copy-Protected sources are not supported." = "Джерела із захистом від копіювання не підтримуються.";
+
+/* Preferences -> Output Name Token */
+"Creation-Date" = "Дата створення";
+
+/* Preferences -> Output Name Token */
+"Creation-Time" = "Час створення";
+
+/* Touch bar */
+"Current Time" = "Поточний час";
+
+/* Add preset window -> picture setting */
+"Custom" = "Власний";
+
+/* Preferences -> Output Name Token */
+"Date" = "Дата";
+
+/* Delete preset alert -> first button */
+"Delete Preset" = "Видалити шаблон";
+
+/* Delete preset alert -> first button */
+"Delete Presets" = "Видалити шаблони";
+
+/* Queue Window Details Toolbar Item */
+"Details" = "Деталі";
+
+/* Queue Window When Done Toolbar Item */
+"Do Nothing" = "Нічого не робити";
+
+/* File already exists alert -> informative text
+File already exists in queue alert -> informative text */
+"Do you want to overwrite %@?" = "Ви хочете замінити %@?";
+
+/* Quit Alert -> second button */
+"Don't Quit" = "Не завершувати";
+
+/* Touch bar */
+"Done" = "Готово";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode canceled" = "Перетворення скасовано";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode complete" = "Перетворення завершено";
+
+/* HBQueueItemView -> Encode state accessibility label
+Queue done notification failed message */
+"Encode failed" = "Перетворення не вдалося";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode ready" = "Перетворення готове";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Encode working" = "Перетворення триває";
+
+/* Preferences -> Output Name Token */
+"Encoder" = "Перетворювач.";
+
+/* No comment provided by engineer. */
+"Encoding %lu Jobs" = "Перетворення %lu завдань";
+
+/* No comment provided by engineer. */
+"Encoding Job: %@" = "Перетворення завдання: %@.";
+
+/* Job statistics */
+"Ended at:" = "Закінчується на:";
+
+/* Export presets save panel title */
+"Export preset" = "Експорт шаблону";
+
+/* Export presets save panel title */
+"Export presets" = "Експорт шаблонів";
+
+/* Default name for a newly added excluded file extension */
+"extension" = "розширення";
+
+/* File already exists alert -> message */
+"File already exists." = "Файл вже існує.";
+
+/* Preferences Output File Name Toolbar Item */
+"File name" = "Ім'я файлу";
+
+/* HBRange -> display name */
+"Frames" = "Кадри";
+
+/* Preferences General Toolbar Item */
+"General" = "Загальні";
+
+/* Main Window -> title */
+"HandBrake" = "HandBrake";
+
+/* Preview -> live preview alert message */
+"HandBrake can't open the preview." = "HandBrake не може відкрити огляд.";
+
+/* Preview -> live preview alert informative text */
+"HandBrake can't playback this combination of video/audio/container format. Do you want to open it in an external player?" = "HandBrake не може відтворити це поєднання відео/аудіо/контейнерного формату. Ви хочете відкрити його у зовнішньому плеєрі?";
+
+/* Main Window -> Same as source destination open panel */
+"HandBrake does not have permission to write to this folder. To allow HandBrake to write to this folder, click \"Allow\"" = "HandBrake не має дозволу на запис до цієї теки. Щоб дозволити HandBrake запис до цієї теки, натисніть «Дозволити»";
+
+/* Preferences -> Output Name Token */
+"Height" = "Висота";
+
+/* Queue -> sidebar menu */
+"Hide Sidebar" = "Приховати бічну панель";
+
+/* Quit Alert -> informative text */
+"If you quit HandBrake your current encode will be reloaded into your queue at next launch. Do you want to quit anyway?" = "Якщо ви вийдете з HandBrake, ваше поточне перетворення буде додане у чергу при наступному запуску. Ви все одно хочете вийти?";
+
+/* Import preset open panel title */
+"Import presets" = "Імпорт шаблонів";
+
+/* Chapters import -> invalid CSV line count description */
+"Incorrect line count" = "Хибна кількість рядків";
+
+/* Chapters import -> invalid CSV description */
+"Invalid chapters CSV file" = "Хибний файл CSV з розділами";
+
+/* Queue Edit Alert -> stop and edit first button
+Queue Stop Alert -> stop and remove first button */
+"Keep Encoding" = "Продовжити перетворення";
+
+/* Touch bar */
+"Live Preview" = "Огляд наживо";
+
+/* Preferences -> Output Name Token */
+"Modification-Date" = "Дата зміни";
+
+/* Preferences -> Output Name Token */
+"Modification-Time" = "Час зміни";
+
+/* Queue undo action name */
+"Move Job in Queue" = "Додати завдання в чергу";
+
+/* Queue undo action name */
+"Move Jobs in Queue" = "Перемістити завдання в черзі";
+
+/* Add preset window -> My Presets */
+"My Presets" = "Мої шаблони";
+
+/* Queue status */
+"No encode pending" = "В очікуванні на перетворення нічого немає";
+
+/* Preview -> accessibility label */
+"No image" = "Немає зображення";
+
+/* No comment provided by engineer. */
+"No job selected" = "Жодне завдання не вибране";
+
+/* Main Window -> Info text */
+"No Valid Preset" = "Немає дійсного шаблону";
+
+/* Main Window -> Info text */
+"No Valid Source Found" = "Не знайдено жодного джерела";
+
+/* Add preset window -> picture setting */
+"None" = "Немає";
+
+/* Queue Done Alert -> shut down first button
+Queue Done Alert -> sleep first button */
+"OK" = "ОК";
+
+/* File already exists alert -> informative text */
+"One or more file already exists. Do you want to overwrite?" = "Один або більше файлів вже існує. Ви хочете перезаписати?";
+
+/* Preview -> live preview alert default button */
+"Open in external player" = "Відкрити у зовнішньому плеєрі";
+
+/* Main Window Open Toolbar Item
+Toolbar Open/Cancel Item
+Touch bar */
+"Open Source" = "Відкрити файл";
+
+/* File already exists alert -> second button
+File already exists in queue alert -> second button */
+"Overwrite" = "Перезаписати";
+
+/* Main Window Pause Toolbar Item
+Toolbar Pause Item */
+"Pause" = "Пауза";
+
+/* Queue -> pause/resume menu
+Toolbar Pause Item
+Touch bar */
+"Pause Encoding" = "Призупинити перетворення";
+
+/* Main Window Pause Toolbar Item
+Touch bar */
+"Pause/Resume Encoding" = "Призупинити/відновити перетворення";
+
+/* Job statistics */
+"Paused time:" = "Час зупинки:";
+
+/* Video -> Framerate */
+"Peak Framerate (VFR)" = "Пікова частота кадрів (VFR)";
+
+/* Queue Window Action Toolbar Item */
+"Perform tasks with the selected items" = "Виконати завдання з обраними елементами";
+
+/* Touch bar */
+"Play/Pause" = "Відтворення/Пауза";
+
+/* Add preset window -> name alert informative text
+Rename preset window -> name alert informative text */
+"Please enter a name." = "Будь ласка, введіть ім'я.";
+
+/* Copy Protection Alert -> informative text */
+"Please note that HandBrake does not support the removal of copy-protection from DVD Discs. You can if you wish use any other 3rd party software for this function. This warning will be shown only once each time HandBrake is run." = "Зверніть увагу, що HandBrake не підтримує зняття захисту від копіювання з DVD-дисків. За бажанням ви можете скористатися будь-яким іншим програмним забезпеченням сторонніх розробників для цієї функції. Це попередження буде показано лише один раз при кожному запуску HandBrake.";
+
+/* Queue Done Alert -> shut down second button
+Queue Done Alert -> sleep second button */
+"Preferences…" = "Налаштування...";
+
+/* Preferences -> Output Name Token */
+"Preset" = "Шаблон";
+
+/* Main Window Presets Toolbar Item */
+"Presets" = "Шаблони";
+
+/* Preview -> progress formatter title */
+"preview" = "огляд";
+
+/* Main Window Preview Toolbar Item
+Preview -> window title */
+"Preview" = "Огляд";
+
+/* Preview -> window title format */
+"Preview - %@ %@" = "Огляд - %1$@ %2$@";
+
+/* Preview -> accessibility label */
+"Preview Image, Size: %f x %f, Scale: %.0f%%" = "Огляд зображення, розмір: %1$f x %2$f, Масштаб: %3$.0f%%";
+
+/* Queue Window When Done Toolbar Item */
+"Put Computer to Sleep" = "Переведення комп'ютера в режим сну";
+
+/* Queue notification alert message */
+"Put down that cocktail…" = "Постав коктейль...";
+
+/* Preferences -> Output Name Token */
+"Quality Type" = "Тип якості";
+
+/* Preferences -> Output Name Token */
+"Quality/Bitrate" = "Якість/бітрейт";
+
+/* Main Window Presets Toolbar Item
+Preferences Queue Toolbar Item
+Queue window title */
+"Queue" = "Черга";
+
+/* Queue window title */
+"Queue (%@)" = "Черга. (%@)";
+
+/* Queue Window Quick Look Toolbar Item */
+"Quick Look" = "Швидкий перегляд";
+
+/* Quit Alert -> first button */
+"Quit" = "Вийти";
+
+/* Queue Window When Done Toolbar Item */
+"Quit HandBrake" = "Вийти з HandBrake";
+
+/* Touch bar */
+"Remaining Time" = "Час, що залишився";
+
+/* Queue Window Action Toolbar Item */
+"Remove All Jobs" = "Видалити всі завдання";
+
+/* Queue Window Action Toolbar Item */
+"Remove Completed Jobs" = "Прибрати завершені завдання";
+
+/* HBQueueItemView -> Remove button accessibility label */
+"Remove job" = "Видалити завдання";
+
+/* Queue undo action name */
+"Remove Job From Queue" = "Видалити завдання з черги";
+
+/* Queue undo action name */
+"Remove Jobs From Queue" = "Видалити завдання з черги";
+
+/* HBQueueItemView -> Encode state accessibility label */
+"Rescanning for editing" = "Сканування для редагування";
+
+/* Queue Window Action Toolbar Item */
+"Reset All Jobs" = "Скинути всі завдання";
+
+/* Queue Window Action Toolbar Item */
+"Reset Failed Jobs" = "Скинути невдалі завдання";
+
+/* Toolbar Pause Item */
+"Resume" = "Продовжити";
+
+/* Queue -> pause/resume men
+Toolbar Pause Item */
+"Resume Encoding" = "Відновити перетворення";
+
+/* HBQueueItemView -> Reveal button accessibility label */
+"Reveal destination in Finder" = "Відкрийте пункт призначення у Finder";
+
+/* Job statistics */
+"Run time:" = "Час запуску:";
+
+/* Export presets panel prompt */
+"Save" = "Зберегти";
+
+/* Picture HUD -> scale button
+Touch bar */
+"Scale To Screen" = "Масштабувати до екрану";
+
+/* HBRange -> display name */
+"Seconds" = "Секунди";
+
+/* Queue Window When Done Toolbar Item */
+"Select an action to run when the queue is done" = "Виберіть дію, яку потрібно виконати після завершення черги";
+
+/* Queue Alert -> cancel rip informative text */
+"Select Continue Encoding to dismiss this dialog without making changes." = "Виберіть Продовжити кодування, щоб закрити це діалогове вікно без внесення змін.";
+
+/* Preferences -> send to app destination open panel */
+"Select the desired external application" = "Виберіть потрібну зовнішню програму";
+
+/* Titles selection sheet -> informative text */
+"Select the titles to add to the queue using the %@ preset:" = "Виберіть заголовки, які потрібно додати до черги, за допомогою шаблону %@:";
+
+/* Notification -> Show in Finder */
+"Show" = "показати";
+
+/* Main Window Activity Toolbar Item
+Touch bar */
+"Show Activity Window" = "Показати вікно активності";
+
+/* Main Window Presets Toolbar Item */
+"Show Presets List" = "Показати перелік шаблонів";
+
+/* Main Window Preview Toolbar Item
+Touch bar */
+"Show Preview Window" = "Показати вікно огляду";
+
+/* Main Window Presets Toolbar Item */
+"Show Queue Window" = "Показати вікно черги";
+
+/* Queue -> sidebar menu */
+"Show Sidebar" = "Показати бічну панель";
+
+/* Queue Window When Done Toolbar Item */
+"Shut Down Computer" = "Вимкнути комп'ютер";
+
+/* Job statistics */
+"Size:" = "Розмір:";
+
+/* Queue Alert -> cancel rip second button */
+"Skip Current Job" = "Пропустити поточне завдання";
+
+/* Touch bar */
+"Slider" = "Повзунок";
+
+/* Preferences -> Output Name Token */
+"Source" = "Джерело";
+
+/* Main Window Start Toolbar Item
+Toolbar Start/Stop Item */
+"Start" = "Почати";
+
+/* Menu Start/Stop Item
+Queue -> start/stop menu
+Toolbar Start/Stop Item */
+"Start Encoding" = "Почати перетворення";
+
+/* Toolbar Start/Stop Item */
+"Start Queue" = "Стартова черга";
+
+/* Main Window Start Toolbar Item
+Touch bar */
+"Start/Stop Encoding" = "Почати/зупинити перетворення";
+
+/* Job statistics */
+"Started at:" = "Почати з:";
+
+/* Queue -> Stop action
+Toolbar Start/Stop Item */
+"Stop" = "Стоп";
+
+/* Queue -> Stop action */
+"Stop action." = "Зупинити дію.";
+
+/* Queue Alert -> cancel rip third button */
+"Stop After Current Job" = "Зупинитись після поточного завдання";
+
+/* Queue Alert -> cancel rip fourth button */
+"Stop All" = "Зупинити все";
+
+/* Queue -> start/stop menu
+Toolbar Start/Stop Item */
+"Stop Encoding" = "Зупинити перетворення";
+
+/* Queue Stop Alert -> stop and remove second button */
+"Stop Encoding and Delete" = "Зупинити перетворення та видалити";
+
+/* Queue Edit Alert -> stop and edit second button */
+"Stop Encoding and Edit" = "Зупинити перетворення та редагувати";
+
+/* Queue Edit Alert -> stop and edit message */
+"Stop This Encode and Edit It?" = "Зупинити перетворення та відредагувати його?";
+
+/* Queue Stop Alert -> stop and remove message */
+"Stop This Encode and Remove It?" = "Зупинити це перетворення і прибрати його?";
+
+/* Player HUD -> subtitles menu */
+"Subtitles" = "Субтитри";
+
+/* Queue Done Alert -> shut down message */
+"The computer will shut down after encoding is done." = "Після завершення перетворення комп'ютер вимкнеться.";
+
+/* Queue Done Alert -> sleep message */
+"The computer will sleep after encoding is done." = "Після завершення перетворення комп'ютер перейде в режим сну.";
+
+/* Chapters import -> invalid CSV recovery suggestion */
+"The CSV file is not a valid chapters CSV file." = "Файл CSV не є дійсним файлом CSV з розділами.";
+
+/* Destination same as source alert -> informative text */
+"The destination is the same as the source, you can not overwrite your source file!" = "Місце призначення те ж саме, що і джерело, ви не можете перезаписати вихідний файл!";
+
+/* Chapters import -> invalid CSV line count recovery suggestion */
+"The line count in the chapters CSV file does not match the number of chapters in the movie." = "Кількість рядків у CSV-файлі chapters не відповідає кількості розділів у фільмі.";
+
+/* Add preset window -> name alert message
+Rename preset window -> name alert message */
+"The preset name cannot be empty." = "Ім'я не може бути порожнім.";
+
+/* File already exists in queue alert -> message */
+"There is already a queue item for this destination." = "Для цього пункту призначення вже існує елемент черги.";
+
+/* Invalid destination alert -> informative text */
+"This is not a valid destination directory!" = "Це хибний каталог призначення!";
+
+/* Preferences -> Output Name Token */
+"Time" = "Час";
+
+/* Preferences -> Output Name Token */
+"Title" = "Назва";
+
+/* Queue Window Details Toolbar Item */
+"Toggle details sidebar" = "Переключити бічну панель деталей";
+
+/* HBLanguage -> Unknown language */
+"Unknown" = "Невідомо";
+
+/* Video -> Framerate */
+"Variable Framerate" = "Змінна частота кадрів";
+
+/* Invalid destination alert -> message */
+"Warning!" = "Обережно!";
+
+/* Queue Window When Done Toolbar Item */
+"When Done" = "Коли буде готово";
+
+/* Preferences -> Output Name Token */
+"Width" = "Ширина";
+
+/* No comment provided by engineer. */
+"Working" = "В процесі";
+
+/* Queue Alert -> cancel rip message */
+"You are currently encoding. What would you like to do?" = "Ви зараз перетворюєте. Що б ви хотіли зробити?";
+
+/* Delete preset alert -> informative text */
+"You can't undo this action." = "Ви не можете скасувати цю дію.";
+
+/* Queue Done Alert -> shut down informative text */
+"You have selected to shut down the computer after encoding. To turn off shut down, go to the HandBrake preferences." = "Ви вибрали вимкнення комп'ютера після перетворення. Щоб скасувати вимкнення, перейдіть до налаштувань HandBrake.";
+
+/* Queue Done Alert -> sleep informative text */
+"You have selected to sleep the computer after encoding. To turn off sleeping, go to the HandBrake preferences." = "Ви вибрали режим сну комп'ютера після перетворення. Щоб вимкнути сплячий режим, перейдіть до налаштувань HandBrake.";
+
+/* Queue -> disk almost full alert informative text */
+"You need to make more space available on your destination disk." = "Вам потрібно звільнити більше місця на диску призначення.";
+
+/* Queue -> disk almost full alert message */
+"Your destination disk is almost full." = "Диск призначення майже заповнено.";
+
+/* Queue done notification message */
+"Your encode %@ couldn't be completed." = "Ваше перетворення %@ не може бути завершене.";
+
+/* Queue done notification message */
+"Your encode %@ is done!" = "Ваше перетворення %@ завершене!";
+
+/* Queue Edit Alert -> stop and edit informative text
+Queue Stop Alert -> stop and remove informative text */
+"Your movie will be lost if you don't continue encoding." = "Ваш фільм буде втрачено, якщо ви не продовжите перетворення.";
+
+/* Queue done notification message */
+"Your queue is done!" = "Ваша черга закінчилася!";
+

@@ -1,0 +1,11 @@
+--- zimg-release-3.0.1/src/zimg/common/arm/cpuinfo_arm.cpp     2020-08-23 14:47:57.000000000 +0100
++++ zimg-release-3.0.1/src/zimg/common/arm/cpuinfo_arm.cpp   2021-06-10 21:23:09.000000000 +0100
+@@ -4,7 +4,7 @@
+   #define NOMINMAX
+   #define STRICT
+   #define WIN32_LEAN_AND_MEAN
+-  #include <Windows.h>
++  #include <windows.h>
+ #elif defined(__linux__)
+   #include <sys/auxv.h>
+   #include <asm/hwcap.h>

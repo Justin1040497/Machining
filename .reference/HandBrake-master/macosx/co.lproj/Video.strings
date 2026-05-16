@@ -1,0 +1,120 @@
+/* Class = "NSMenuItem"; title = "Limited"; ObjectID = "0jj-Au-RHD"; */
+"0jj-Au-RHD.title" = "Limitatu";
+
+/* Class = "CocoaBindingsConnection"; ibShadowedIsNilPlaceholder = "auto"; ObjectID = "4Hq-BG-Ulb"; */
+"4Hq-BG-Ulb.ibShadowedIsNilPlaceholder" = "autumaticu";
+
+/* Class = "NSButtonCell"; title = "Constant Framerate"; ObjectID = "6Dd-IP-Pwt"; */
+"6Dd-IP-Pwt.title" = "Frequenza di fiure custente";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Video encoder level. Sets and ensures compliance with the specified video compression standard level. Overrides all other settings."; ObjectID = "8CM-4G-oId"; */
+"8CM-4G-oId.ibShadowedToolTip" = "Livellu di cudificatore video. Definisce è assicureghja a cunfurmità cù u livellu classicu di cumpressione video specificatu. Supraneghja tutti l’altri parametri.";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Framerate (Frames Per Second). Number of pictures displayed during each second of video."; ObjectID = "9tc-EO-QMd"; */
+"9tc-EO-QMd.ibShadowedToolTip" = "Frequenza di fiure (Fiure à a Seconda). Numeru di fiure affissate durante ogni seconda di video.";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Average Bitrate varies quality to ensure the data rate remains relatively consistent throughout the video."; ObjectID = "A3o-Zx-OfM"; */
+"A3o-Zx-OfM.ibShadowedToolTip" = "« Flussu medianu » fà svarià a qualità per assicurassi chì u flussu di dati stà guasi custente a video sana.";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Multi-pass encoding analyzes the entire source video before encoding. The information gathered enables the encoder to make more informed decisions about quality and data rate in Average Bitrate mode."; ObjectID = "bnV-aE-FVh"; */
+"bnV-aE-FVh.ibShadowedToolTip" = "A cudificazione à parechji passi analisa a fonte video sana nanzu di cudificà. L’infurmazioni raccolti permettenu à u cudificatore d’accumudà di manera più precisa a qualità è u flussu di dati in u modu « Flussu medianu ».";
+
+/* Class = "NSTextFieldCell"; title = "0"; ObjectID = "bvD-W7-O0N"; */
+"bvD-W7-O0N.title" = "0";
+
+/* Class = "NSTextFieldCell"; title = "Unparse:"; ObjectID = "CLk-dp-1b7"; */
+"CLk-dp-1b7.title" = "Micca analizatu :";
+
+/* Class = "NSTextFieldCell"; title = "Encoder Options:"; ObjectID = "cRF-pz-1jt"; */
+"cRF-pz-1jt.title" = "Ozzioni di u cudificatore :";
+
+/* Class = "CocoaBindingsConnection"; ibShadowedIsNilPlaceholder = "auto"; ObjectID = "CRz-On-Jen"; */
+"CRz-On-Jen.ibShadowedIsNilPlaceholder" = "autumaticu";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Video encoder tune. Further adjusts encoder preset to optimize settings for specific scenarios."; ObjectID = "cXd-X7-OhB"; */
+"cXd-X7-OhB.ibShadowedToolTip" = "Rigatura di u cudificatore video. Adattazioni addiziunale di a prerigatura di u cudificatore per megliurà i parametri per scenarii specifichi.";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Displays all internal video encoder options."; ObjectID = "dwn-bf-Ua0"; */
+"dwn-bf-Ua0.ibShadowedToolTip" = "Affissa tutte l’ozzioni di u cudificatore internu.";
+
+/* Class = "NSButtonCell"; title = "Fast Decode"; ObjectID = "EcY-w1-bc8"; */
+"EcY-w1-bc8.title" = "Discudificazione rapida";
+
+/* Class = "NSTextFieldCell"; title = "Quality:"; ObjectID = "F3s-qR-qeE"; */
+"F3s-qR-qeE.title" = "Qualità :";
+
+/* Class = "NSMenuItem"; title = "Same As Source"; ObjectID = "F37-pp-Zet"; */
+"F37-pp-Zet.title" = "Listessa chì a fonte";
+
+/* Class = "NSSlider"; ibShadowedToolTip = "Video encoder preset. Adjusts encoder settings to balance compression efficiency and encoding speed. Slower encoder presets may use settings that are less compatible with certain devices.\n\nAdjust the slider to the right to increase compression efficiency at the expense of encoding speed, or to the left to increase encoding speed at the expense of compression efficiency."; ObjectID = "fue-2d-Bjn"; */
+"fue-2d-Bjn.ibShadowedToolTip" = "Prerigatura di u cudificatore video. Adatteghja i parametri di u cudificatore per bilancià trà a faccindaghjine di a cumpressione è a vitezza di cudificazione. E prerigature di cudificatore più lente ponu impiegà parametri chì sò menu cumpatibile cù certi apparechji.\n\nTrascinate u cursore versu à diritta per aumentà a faccindaghjine di a cumpressione à dannu di a vitezza di a cudificazione, o versu à manca per aumentà a vitezza di a cudificazione à dannu di a faccindaghjine di a cumpressione.";
+
+/* Class = "NSTextFieldCell"; title = "Tune:"; ObjectID = "fzT-im-zKN"; */
+"fzT-im-zKN.title" = "Rigatura :";
+
+/* Class = "NSSlider"; ibShadowedToolTip = "Constant Quality varies bitrate to ensure visual quality remains relatively consistent throughout the video.\n\nAdjust the quality slider to the right to increase quality or to the left to decrease quality, in small increments of plus or minus 1-2.\n\nRecommended values for the x264 and x265 encoders are RF 18-28. Higher quality settings may produce extremely large files.\n\nx264 is lossless at RF 0."; ObjectID = "GPu-Ht-bKg"; */
+"GPu-Ht-bKg.ibShadowedToolTip" = "« Qualità custente » fà svarià u flussu binariu per assicurassi chì a qualità visuale stà guasi custente a video sana.\n\nAccumudà u cursore di qualità à manu diritta per aumentà a qualità o à manu manca per diminuiscela, in chjuchi passi di più o menu 1-2.\n\nI valori ricumandati per i cudificatori x264 è x265 sò RF 18-28. I parametri di qualità più alti ponu pruduce schedarii assai vuluminosi.\n\nDefinita à RF 0, a cudificazione x264 hè senza perdita.";
+
+/* Class = "NSTextFieldCell"; title = "Profile:"; ObjectID = "Hho-GY-qOR"; */
+"Hho-GY-qOR.title" = "Prufilu :";
+
+/* Class = "NSTextFieldCell"; title = "Additional Options:"; ObjectID = "ja7-Zr-y1P"; */
+"ja7-Zr-y1P.title" = "Ozzioni addiziunale :";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Video encoder profile. Sets and ensures compliance with the specified video compression standard profile. Overrides all other settings."; ObjectID = "kh8-d2-hSD"; */
+"kh8-d2-hSD.ibShadowedToolTip" = "Prufilu di u cudificatore video. Definisce è assicureghja a cunfurmità cù u prufilu classicu di cumpressione video specificatu. Supraneghja tutti l’altri parametri.";
+
+/* Class = "NSTextFieldCell"; title = "Video Encoder:"; ObjectID = "Mrb-6Q-0YM"; */
+"Mrb-6Q-0YM.title" = "Cudificatore video :";
+
+/* Class = "NSButtonCell"; title = "Multi-pass encoding"; ObjectID = "nPA-nO-Eik"; */
+"nPA-nO-Eik.title" = "Cudificazione à parechji passi";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Turbo first pass speeds up the analysis pass of a multi-pass encode for a slight penalty to analysis."; ObjectID = "olm-zg-k9Y"; */
+"olm-zg-k9Y.ibShadowedToolTip" = "U primu passu in modu Turbo accelereghja u passu d’analisa d’una cudificazione à parechji passi per una chjuca carenza in l’analisa.";
+
+/* Class = "NSTextFieldCell"; title = "Preset:"; ObjectID = "QWu-rv-zfM"; */
+"QWu-rv-zfM.title" = "Prerigatura :";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Color Range. Determines the values of the reference black and white. Set to limited to maximize compatibility."; ObjectID = "R00-pj-eFX"; */
+"R00-pj-eFX.ibShadowedToolTip" = "Gamma di culore. Determineghja i valori di u neru è di u biancu di referenza. Definitu cum’è limitatu per aumentà a cumpatibilità.";
+
+/* Class = "NSMenu"; title = "OtherViews"; ObjectID = "r18-GT-7jT"; */
+"r18-GT-7jT.title" = "Altre viste";
+
+/* Class = "NSTextField"; ibShadowedToolTip = "Additional video encoder options. For advanced use only.\n\nSyntax: option-1=foo:opt2=bar,baz"; ObjectID = "rbo-w6-ENd"; */
+"rbo-w6-ENd.ibShadowedToolTip" = "Ozzioni addiziunale di u cudificatore video Solu per un impiegu espertu.\n\nSintassa : option-1=mamma:opt2=babbu,missiavu";
+
+/* Class = "NSTextFieldCell"; title = "RF:"; ObjectID = "rRB-9F-pHn"; */
+"rRB-9F-pHn.title" = "RF :";
+
+/* Class = "NSTextFieldCell"; title = "Framerate (FPS):"; ObjectID = "SJc-tv-AMH"; */
+"SJc-tv-AMH.title" = "Frequenza di fiure (FPS) :";
+
+/* Class = "NSTextFieldCell"; title = "Level:"; ObjectID = "sTM-lk-DBC"; */
+"sTM-lk-DBC.title" = "Livellu :";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Fast Decode uses settings that reduce CPU usage during playback of the encoded video. Useful for devices that struggle to play video without stuttering."; ObjectID = "stU-Fo-Avu"; */
+"stU-Fo-Avu.ibShadowedToolTip" = "A discudificazione rapida impiegheghja parametri chì riducenu l’adopru di a CPU durante a ripruduzzione di a video cudificata. Què hè ghjuvevule per l’apparechji chì strazianu per leghje video senza barbagliulà.";
+
+/* Class = "NSMenuItem"; title = "Full"; ObjectID = "TVE-3O-C2l"; */
+"TVE-3O-C2l.title" = "Cumpletu";
+
+/* Class = "NSButtonCell"; title = "Average Bitrate (kbps):"; ObjectID = "VQe-CK-YDR"; */
+"VQe-CK-YDR.title" = "Flussu medianu (kbps) :";
+
+/* Class = "NSButtonCell"; title = "Turbo analysis pass"; ObjectID = "vSc-VB-NEv"; */
+"vSc-VB-NEv.title" = "Passu d’analisa in modu Turbo";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Video encoder. Determines video type and settings used during encoding."; ObjectID = "xwK-Yu-a1e"; */
+"xwK-Yu-a1e.ibShadowedToolTip" = "Cudificatore video. Determineghja u tipu di a video è i parametri impiegati durante a cudificazione.";
+
+/* Class = "NSTextFieldCell"; title = "Color Range:"; ObjectID = "yBk-7V-j1G"; */
+"yBk-7V-j1G.title" = "Gamma di culore :";
+
+/* Class = "NSButtonCell"; title = "Constant Quality"; ObjectID = "ZjL-cY-O5f"; */
+"ZjL-cY-O5f.title" = "Qualità custente";
+
+/* Class = "NSButtonCell"; title = "Variable Framerate"; ObjectID = "zZo-75-1WG"; */
+"zZo-75-1WG.title" = "Frequenza di fiure variabile (VFR)";
+

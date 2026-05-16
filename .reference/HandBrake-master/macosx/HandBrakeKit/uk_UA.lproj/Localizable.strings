@@ -1,0 +1,438 @@
+/* Video description */
+" - fastdecode" = " - швидке перетворення";
+
+/* HBStateFormatter -> work time format */
+" (%.2f fps, avg %.2f fps, ETA %@)" = " (%1$.2f fps, avg %2$.2f fps, ETA %3$@)";
+
+/* HBStateFormatter -> work time format */
+" (%.2f fps, avg %.2f fps)" = " (%1$.2f fps, avg %2$.2f fps)";
+
+/* HBStateFormatter -> search time format
+HBStateFormatter -> work time format */
+" (ETA %@)" = " (ETA %@)";
+
+/* HBJob -> video short description framerate */
+" FPS CFR" = " FPS CFR";
+
+/* HBJob -> video short description framerate */
+" FPS PFR" = " FPS PFR";
+
+/* Title short description -> audio format */
+", %d audio tracks" = ", %d аудіо доріжок";
+
+/* Title short description -> subtitles format */
+", %d subtitles tracks" = ", %d доріжок субтитрів";
+
+/* Title short description -> audio format */
+", 1 audio track" = ", 1 аудіо доріжка";
+
+/* Title short description -> subtitles format */
+", 1 subtitles track" = ", 1 доріжка субтитрів";
+
+/* Format description */
+", Align A/V Start" = ", Вирівняти Початок A/V";
+
+/* HBPicture -> summary */
+", Border: %d/%d/%d/%d" = ", Межа: %1$d/%2$d/%3$d/%4$d";
+
+/* HBJob -> subtitles short description */
+", Burned" = ", Вшито";
+
+/* Format description */
+", Chapter Markers" = ", Відмітки Розділу";
+
+/* HBPicture -> summary */
+", Crop: %@ %d/%d/%d/%d" = ", Обітнути: %1$@ %2$d/%3$d/%4$d/%5$d";
+
+/* Format description */
+", iPod 5G Support" = ", Підтримка iPod 5G";
+
+/* Format description */
+", Web Optimized" = ", Оптимізовано для Вебу";
+
+/* HBStateFormatter -> work pass type format */
+"(subtitle scan)" = "(сканування субтитрів)";
+
+/* Title short description -> video format */
+"%.6g FPS" = "%.6g FPS";
+
+/* Audio description */
+"%@ ▸ Encoder: %@" = "%1$@ ▸ Перетворювач: %2$@";
+
+/* HBPicture -> short info */
+"%@Output: %dx%d" = "%1$@Вихід:%2$dx%3$d";
+
+/* HBPicture -> short info */
+"%@Output: %dx%d, Anamorphic: %dx%d Automatic" = "%1$@Вихід: %2$dx%3$d, Анаморфний:  %4$dx%5$d Автоматично";
+
+/* HBPicture -> short info */
+"%@Output: %dx%d, Anamorphic: %dx%d Custom" = "%1$@Вихід: %2$dx%3$d, Анаморфний: %4$dx%5$d Власний";
+
+/* HBPicture -> short non anamorphic info */
+"%dx%d" = "%1$dx%2$d";
+
+/* HBPicture -> short info */
+"%dx%d Storage, %dx%d Display" = "%1$dx%2$d Контейнер, %3$dx%4$d Відображення";
+
+/* HBJob -> audio short description */
+"+ %lu additional audio tracks" = "+ %lu додаткових аудіо доріжок";
+
+/* HBJob -> subtitles short description */
+"+ %lu additional subtitles tracks" = "+ %lu додаткових доріжок субтитрів";
+
+/* HBJob -> audio short description */
+"+ 1 additional audio track" = "+ 1 додаткова аудіо доріжка";
+
+/* HBJob -> subtitles short description */
+"+ 1 additional subtitles track" = "+ 1 додаткова доріжка субтитрів";
+
+/* Title description */
+"1 Foreign Language Search Pass - " = "1 Прохід Пошуку Іноземної Мови -";
+
+/* HBAudio -> Mixdown */
+"5.1 Channels" = "Канали 5.1";
+
+/* HBAudio -> Mixdown */
+"6.1 Channels" = "Канали 6.1";
+
+/* HBAudio -> Mixdown */
+"7.1 (5F/2R/LFE)" = "7.1 (5F/2R/LFE)";
+
+/* HBAudio -> Mixdown */
+"7.1 Channels" = "Канали 7.1";
+
+/* Audio description */
+"Audio:" = "Аудіо:";
+
+/* HBPicture -> summary */
+"Automatic" = "Автоматично";
+
+/* Video description */
+"Bitrate: %d kbps" = "Бітрейт: %d кбіт/с";
+
+/* Subtitles description */
+"Burned In" = "Вшита";
+
+/* HBFilters -> filter display name */
+"Bwdif" = "Bwdif";
+
+/* Title -> chapter name
+Title description */
+"Chapter %d" = "Розділ %d";
+
+/* HBJob -> chapters short description */
+"Chapter Markers" = "Відмітки Розділу";
+
+/* HBRange -> display name */
+"Chapters" = "Розділи";
+
+/* Title description */
+"Chapters %d through %d" = "Розділи з %1$d по %2$d";
+
+/* Filters description
+HBJob -> filters short description */
+"Chroma Smooth" = "Плавність кольору";
+
+/* Filters description
+HBJob -> filters short description */
+"Colorspace" = "Кольоровий простір";
+
+/* HBJob -> filters short description */
+"Comb Detect" = "Comb Detect";
+
+/* Video description */
+"Constant Quality: %.2f %s" = "Постійна Якість: %1$.2f %2$s";
+
+/* HBJob -> video short description framerate */
+"CRF" = "CRF";
+
+/* HBFilters -> custom display name
+HBPicture -> summary */
+"Custom" = "Власний";
+
+/* Filters description
+HBJob -> filters short description */
+"Deblock" = "Deblock";
+
+/* HBFilters -> filter display name */
+"Decomb" = "Decomb";
+
+/* HBFilters -> default display name
+Subtitles description */
+"Default" = "За замовчуванням";
+
+/* Video description */
+"default settings" = "налаштування за замовчуванням";
+
+/* HBFilters -> invalid filter custom settings error recovery suggestion */
+"Default: " = "За замовчуванням:";
+
+/* Filters description */
+"Denoise" = "Знешумлення";
+
+/* Destination description */
+"Destination:" = "Пункт Призначення:";
+
+/* Dimensions description
+HBJob -> filters short description */
+"Detelecine" = "Виправлення телекінопроєкції";
+
+/* Dimensions description */
+"Dimensions:" = "Розміри:";
+
+/* HBAudio -> Mixdown */
+"Dolby Pro Logic II" = "Dolby Pro Logic II";
+
+/* HBAudio -> Mixdown */
+"Dolby Surround" = "Dolby Surround";
+
+/* Audio description */
+"DRC: %.2f" = "DRC: %.2f";
+
+/* Video description */
+"Encoder: %@, " = "Перетворювач: %@,";
+
+/* HBStateFormatter -> work pass display name */
+"Encoding %@ " = "Кодування %@";
+
+/* Filters description */
+"Filters:" = "Фільтри:";
+
+/* Subtitles description */
+"Forced Only" = "Тільки Примусово";
+
+/* HBSubtitles -> search pass name */
+"Foreign Audio Search" = "Пошук Стороннього Аудіо";
+
+/* Format description */
+"Format:" = "Формат:";
+
+/* Video description */
+"Framerate: " = "Частота Кадрів:";
+
+/* HBRange -> display name */
+"Frames" = "Кадри";
+
+/* Title description */
+"Frames %d through %d" = "Кадри з %1$d до %2$d";
+
+/* Audio description */
+"Gain: %.2f" = "Gain: %.2f";
+
+/* Filters description
+HBJob -> filters short description */
+"Grayscale" = "Відтінки сірого";
+
+/* HBFilters -> filter display name */
+"HQDN3D" = "HQDN3D";
+
+/* HBFilters -> invalid Bwdif custom string description */
+"Invalid Bwdif custom settings." = "Хибні власні налаштування Bwdif.";
+
+/* HBFilters -> invalid chroma smooth custom string description */
+"Invalid chroma smooth custom settings." = "Хибні власні налаштування плавності кольору.";
+
+/* HBFilters -> invalid chroma smooth custom string description */
+"Invalid colorspace custom settings." = "Хибні власні налаштування простору кольорів.";
+
+/* HBFilters -> invalid comb detect custom string description */
+"Invalid custom comb detect settings." = "Хибні власні налаштування comb detect.";
+
+/* HBFilters -> invalid detelecine custom string description */
+"Invalid custom detelecine settings." = "Власні налаштування виправлення артефактів телекінопроєкції хибні.";
+
+/* HBFilters -> invalid denoise custom string description */
+"Invalid custom HQDN3D settings" = "Хибні власні налаштування HQDN3D";
+
+/* HBFilters -> invalid denoise custom string description */
+"Invalid custom NLMeans settings" = "Хибні власні налаштування NLMeans";
+
+/* HBFilters -> invalid deblock custom string description */
+"Invalid deblock custom settings." = "Хибні власні налаштування deblock.";
+
+/* HBFilters -> invalid Decomb custom string description */
+"Invalid Decomb custom settings." = "Хибні власні налаштування Decomb.";
+
+/* HBFilters -> invalid lapsharp custom string description */
+"Invalid lapsharp custom settings." = "Хибні власні налаштування lapsharp.";
+
+/* HBJob -> invalid name error description */
+"Invalid name" = "Хибне ім'я";
+
+/* HBJob -> invalid preset */
+"Invalid preset" = "Хибний шаблон";
+
+/* HBFilters -> invalid unsharp custom string description */
+"Invalid unsharp custom settings." = "Хибні власні налаштування мʼякості.";
+
+/* HBFilters -> invalid Yadif custom string description */
+"Invalid Yadif custom settings." = "Хибні власні налаштування Yadif.";
+
+/* HBFilters -> filter display name */
+"Lapsharp" = "Lapsharp";
+
+/* Video description */
+"Level: %@" = "Рівень: %@";
+
+/* Audio description */
+"Mixdown: %@, Samplerate: %@, Bitrate: %d kbps" = "Змішування: %1$@, Частота дискретизації: %2$@, Бітрейт: %3$d кбіт/с";
+
+/* HBAudio -> Mixdown */
+"Mono" = "Моно";
+
+/* HBAudio -> Mixdown */
+"Mono (Left Only)" = "Моно (тільки лівий канал)";
+
+/* HBAudio -> Mixdown */
+"Mono (Right Only)" = "Моно (тільки правий канал)";
+
+/* Title description */
+"Multi Passes" = "Багатопрохідні";
+
+/* Title description */
+"Multi Passes Turbo" = "Multi Passes Turbo";
+
+/* HBStateFormatter -> pass display name */
+"Muxing…" = "Мультиплексування...";
+
+/* HBFilters -> filter display name */
+"NLMeans" = "NLMeans";
+
+/* HBVideo -> tune */
+"none" = "нічого";
+
+/* HBAudio -> Mixdown
+HBAudio -> none track name
+HBJob -> filters short description
+HBSubtitles -> none track name */
+"None" = "Відсутня";
+
+/* HBFilters -> filter display name
+HBFilters -> off display name */
+"Off" = "Вимкнути";
+
+/* Video description */
+"Options: %@" = "Параметри: %@";
+
+/* HBStateFormatter -> work pass number format */
+"Pass %d %@ of %d, %.2f %%" = "Прохід %1$d%2$@ з %3$d, %4$.2f %%";
+
+/* HBStateFormatter -> work pass number format */
+"Pass %d of %d, %.2f %%" = "Прохід %1$d з %2$d, %3$.2f %%";
+
+/* HBStateFormatter -> work first pass number format */
+"Pass 1" = "Прохід 1";
+
+/* HBStateFormatter -> pass display name */
+"Paused" = "Призупинено";
+
+/* Video description */
+"Peak %@ (constant frame rate)" = "Пік %@ (постійна частота кадрів)";
+
+/* Video description */
+"Peak %@ (may be lower)" = "Пік %@ (може бути нижчим)";
+
+/* Preset description */
+"Preset:" = "Шаблон:";
+
+/* Video description */
+"Preset: %@" = "Шаблон: %@";
+
+/* Video description */
+"Profile: %@" = "Профіль: %@";
+
+/* Range description */
+"Range:" = "Діапазон:";
+
+/* HBVideo -> frame rates display name */
+"Same as source" = "Так як у джерелі";
+
+/* Video description */
+"Same as source (constant)" = "Так як в джерелі (постійна)";
+
+/* Video description */
+"Same as source (variable)" = "Так як в джерелі (змінна)";
+
+/* HBStateFormatter -> scan pass format */
+"Scanning title %d of %d, preview %d…" = "Сканування заголовку %1$dз %2$d, огляд %3$d...";
+
+/* HBStateFormatter -> scan pass format */
+"Scanning title %d of %d…" = "Сканування заголовку %1$dз %2$d...";
+
+/* HBStateFormatter -> search pass display name */
+"Searching for start point:  %.2f %%" = "Пошук початкової точки: %.2f%%";
+
+/* HBRange -> display name */
+"Seconds" = "Секунди";
+
+/* Title description */
+"Seconds %d through %d" = "З %1$d до %2$d секунди";
+
+/* Filters description */
+"Sharpen" = "Підвищення різкості:";
+
+/* Source description */
+"Source:" = "Джерело:";
+
+/* HBPicture -> short info */
+"Source: %dx%d, " = "Джерело: %1$dx%2$d, ";
+
+/* HBAudio -> Mixdown */
+"Stereo" = "Стерео";
+
+/* Subtitles description */
+"Subtitles:" = "Субтитри:";
+
+/* HBFilters -> invalid filter custom settings error recovery suggestion */
+"Syntax: " = "Синтаксис:";
+
+/* HBJob -> invalid name error recovery suggestion */
+"The file name can't be empty." = "Ім'я файлу не може бути порожнім.";
+
+/* HBJob -> invalid name error recovery suggestion */
+"The file name can't contain the / character." = "Ім'я файлу не може містити символ /.";
+
+/* Preset -> import error description */
+"The preset \"%@\" could not be imported." = "Шаблон \"%@\" неможливо імпортувати.";
+
+/* Job preset -> invalid preset recovery suggestion */
+"The preset is not a valid, try to select a different one." = "Хибний шаблон, спробуйте обрати інший.";
+
+/* Preset -> import error reason */
+"The selected preset is invalid." = "Обраний шаблон хибний.";
+
+/* Preset -> import error reason */
+"The selected preset was created with a newer version of HandBrake." = "Обраний шаблон створений у новішій версії HandBrake.";
+
+/* Title description */
+"Title %d, %@" = "Заголовок %1$d, %2$@";
+
+/* Title description */
+"Title %d, %@, %@" = "Заголовок %1$d, %2$@, %3$@";
+
+/* Audio track title description
+Subtitles track title description */
+"Title: %@" = "Заголовок: %@";
+
+/* Video description */
+"Tune: " = "Налаштування:";
+
+/* HBJob -> video short description encoder name
+Video description */
+"Unknown" = "Невідомо";
+
+/* HBFilters -> filter display name */
+"Unsharp" = "Нерізкий";
+
+/* HBJob -> video short description framerate */
+"VFR" = "VFR";
+
+/* Video description */
+"Video Options:" = "Параметри відео:";
+
+/* Video description */
+"Video:" = "Відео:";
+
+/* HBFilters -> filter display name */
+"Yadif" = "Yadif";
+

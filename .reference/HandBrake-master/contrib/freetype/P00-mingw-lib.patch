@@ -1,0 +1,15 @@
+diff -ur freetype-2.14.1.orig/include/freetype/config/public-macros.h freetype-2.14.1/include/freetype/config/public-macros.h
+--- freetype-2.14.1.orig/include/freetype/config/public-macros.h	2025-09-06 06:12:16.000000000 +0200
++++ freetype-2.14.1/include/freetype/config/public-macros.h	2025-09-08 21:32:38.077478424 +0200
+@@ -66,9 +66,9 @@
+ #if defined( _WIN32 ) || defined( __CYGWIN__ )
+ 
+ #if defined( FT2_BUILD_LIBRARY ) && defined( DLL_EXPORT )
+-#define FT_PUBLIC_FUNCTION_ATTRIBUTE  __declspec( dllexport )
++#define FT_PUBLIC_FUNCTION_ATTRIBUTE
+ #elif defined( DLL_IMPORT )
+-#define FT_PUBLIC_FUNCTION_ATTRIBUTE  __declspec( dllimport )
++#define FT_PUBLIC_FUNCTION_ATTRIBUTE
+ #endif
+ 
+   /* gcc, clang */

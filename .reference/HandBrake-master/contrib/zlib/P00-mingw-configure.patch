@@ -1,0 +1,107 @@
+diff -ruN zlib-1.3.2/configure zlib-1.3.2-patched/configure
+--- zlib-1.3.2/configure	2026-02-17 10:13:25.000000000 +0100
++++ zlib-1.3.2-patched/configure	2026-03-15 20:29:14.096254153 +0100
+@@ -30,15 +30,6 @@
+     SRCDIR="$SRCDIR/"
+ fi
+ 
+-# set command prefix for cross-compilation
+-if [ -n "${CHOST}" ]; then
+-    uname=${CHOST}
+-    mname=${CHOST}
+-    CROSS_PREFIX="${CHOST}-"
+-else
+-    mname=`(uname -a || echo unknown) 2>/dev/null`
+-fi
+-
+ # destination name for static library
+ STATICLIB=libz.a
+ 
+@@ -47,28 +38,6 @@
+ VER3=`echo ${VER}|sed -n -e 's/\([0-9]\{1,\}\(\\.[0-9]\{1,\}\)\{1,2\}\).*/\1/p'`
+ VER1=`echo ${VER}|sed -n -e 's/\([0-9]\{1,\}\)\\..*/\1/p'`
+ 
+-# establish commands for library building
+-if "${CROSS_PREFIX}ar" --version >/dev/null 2>/dev/null || test $? -lt 126; then
+-    AR=${AR-"${CROSS_PREFIX}ar"}
+-    test -n "${CROSS_PREFIX}" && echo Using ${AR} | tee -a configure.log
+-else
+-    AR=${AR-"ar"}
+-    test -n "${CROSS_PREFIX}" && echo Using ${AR} | tee -a configure.log
+-fi
+-ARFLAGS=${ARFLAGS-"rc"}
+-if "${CROSS_PREFIX}ranlib" --version >/dev/null 2>/dev/null || test $? -lt 126; then
+-    RANLIB=${RANLIB-"${CROSS_PREFIX}ranlib"}
+-    test -n "${CROSS_PREFIX}" && echo Using ${RANLIB} | tee -a configure.log
+-else
+-    RANLIB=${RANLIB-"ranlib"}
+-fi
+-if "${CROSS_PREFIX}nm" --version >/dev/null 2>/dev/null || test $? -lt 126; then
+-    NM=${NM-"${CROSS_PREFIX}nm"}
+-    test -n "${CROSS_PREFIX}" && echo Using ${NM} | tee -a configure.log
+-else
+-    NM=${NM-"nm"}
+-fi
+-
+ # set defaults before processing command line options
+ LDCONFIG=${LDCONFIG-"ldconfig"}
+ LDSHAREDLIBC="${LDSHAREDLIBC--lc}"
+@@ -288,57 +257,7 @@
+   if test -z "$uname"; then
+     uname=`(uname -s || echo unknown) 2>/dev/null`
+   fi
+-  case "$uname" in
+-  Linux* | linux* | *-linux* | GNU | GNU/* | solaris* | Haiku)
+-        case "$mname" in
+-        *sparc*)
+-            LDFLAGS="${LDFLAGS} -Wl,--no-warn-rwx-segments" ;;
+-        esac
+-        LDSHARED=${LDSHARED-"$cc -shared -Wl,-soname,libz.so.1,--version-script,${SRCDIR}zlib.map"} ;;
+-  *BSD | *bsd* | DragonFly)
+-        LDSHARED=${LDSHARED-"$cc -shared -Wl,-soname,libz.so.1,--version-script,${SRCDIR}zlib.map"}
+-        LDCONFIG="ldconfig -m" ;;
+-  CYGWIN* | Cygwin* | cygwin* | *-cygwin* | OS/2*)
+-        EXE='.exe' ;;
+-  MINGW* | mingw* | *-mingw*)
+-        rm -f $test.[co] $test $test$shared_ext
+-        echo "If this doesn't work for you, try win32/Makefile.gcc." | tee -a configure.log
+-        LDSHARED=${LDSHARED-"$cc -shared"}
+-        LDSHAREDLIBC=""
+-        EXE='.exe' ;;
+-  QNX*) # This is for QNX6. I suppose that the QNX rule below is for QNX2,QNX4
+-        # (alain.bonnefoy@icbt.com)
+-        LDSHARED=${LDSHARED-"$cc -shared -Wl,-hlibz.so.1"} ;;
+-  HP-UX*)
+-        LDSHARED=${LDSHARED-"$cc -shared $SFLAGS"}
+-        case `(uname -m || echo unknown) 2>/dev/null` in
+-        ia64)
+-            shared_ext='.so'
+-            SHAREDLIB='libz.so' ;;
+-        *)
+-            shared_ext='.sl'
+-            SHAREDLIB='libz.sl' ;;
+-        esac ;;
+-  AIX*)
+-        LDSHARED=${LDSHARED-"$cc -shared"}
+-        LDFLAGS="${LDFLAGS} -Wl,-brtl" ;;
+-  Darwin* | darwin* | *-darwin*)
+-        shared_ext='.dylib'
+-        SHAREDLIB=libz$shared_ext
+-        SHAREDLIBV=libz.$VER$shared_ext
+-        SHAREDLIBM=libz.$VER1$shared_ext
+-        LDSHARED=${LDSHARED-"$cc -dynamiclib -install_name $libdir/$SHAREDLIBM -compatibility_version $VER1 -current_version $VER3"}
+-        if "${CROSS_PREFIX}libtool" -V 2>&1 | grep Apple > /dev/null; then
+-            AR="${CROSS_PREFIX}libtool"
+-        elif libtool -V 2>&1 | grep Apple > /dev/null; then
+-            AR="libtool"
+-        else
+-            AR="/usr/bin/libtool"
+-        fi
+-        ARFLAGS="-o" ;;
+-  *)
+-        LDSHARED=${LDSHARED-"$cc -shared"} ;;
+-  esac
++LDSHARED=${LDSHARED-"$cc"}
+ else
+   # find system name and corresponding cc options
+   CC=${CC-cc}
