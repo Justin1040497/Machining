@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BUILD_DIR="${ROOT}/.build/ffmpeg-macos-arm64"
+BUILD_DIR="${ROOT}/build/ffmpeg-macos-arm64"
 SRC_DIR="${BUILD_DIR}/src"
 PREFIX="${BUILD_DIR}/dist"
 OUT_DIR="${ROOT}/third_party/ffmpeg/macos-arm64"
