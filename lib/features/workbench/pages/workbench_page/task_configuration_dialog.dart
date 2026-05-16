@@ -79,30 +79,24 @@ class _WorkbenchTaskConfigurationDialogState
       qualityIndex: 4,
       outputFormat: OutputFormat.mp4,
       videoCodec: VideoCodec.h264,
-      resolutionPreset: ResolutionPreset.original,
     ),
     _CompressionPreset(
       smartPreset: SmartCompressionPreset.chat,
       qualityIndex: 6,
       outputFormat: OutputFormat.mp4,
       videoCodec: VideoCodec.h264,
-      resolutionPreset: ResolutionPreset.p1080,
-      capResolutionToSource: true,
     ),
     _CompressionPreset(
       smartPreset: SmartCompressionPreset.clear,
       qualityIndex: 3,
       outputFormat: OutputFormat.mp4,
       videoCodec: VideoCodec.h264,
-      resolutionPreset: ResolutionPreset.original,
     ),
     _CompressionPreset(
       smartPreset: SmartCompressionPreset.compact,
       qualityIndex: 8,
       outputFormat: OutputFormat.mp4,
       videoCodec: VideoCodec.hevc,
-      resolutionPreset: ResolutionPreset.p720,
-      capResolutionToSource: true,
     ),
   ];
 
@@ -162,30 +156,6 @@ class _WorkbenchTaskConfigurationDialogState
     widget.onOutputFormatChanged(preset.outputFormat);
     widget.onVideoCodecChanged(preset.videoCodec);
     widget.onEncoderBackendChanged(EncoderBackend.auto);
-    widget.onResolutionPresetChanged(_resolvePresetResolution(preset));
-  }
-
-  ResolutionPreset _resolvePresetResolution(_CompressionPreset preset) {
-    if (!preset.capResolutionToSource) {
-      return preset.resolutionPreset;
-    }
-
-    final sourceHeight = widget.task.analysisResult?.videoHeight;
-    if (sourceHeight == null || sourceHeight <= 0) {
-      return preset.resolutionPreset;
-    }
-
-    final targetHeight = switch (preset.resolutionPreset) {
-      ResolutionPreset.p2160 => 2160,
-      ResolutionPreset.p1080 => 1080,
-      ResolutionPreset.p720 => 720,
-      ResolutionPreset.p480 => 480,
-      ResolutionPreset.original => sourceHeight,
-    };
-
-    return sourceHeight > targetHeight
-        ? preset.resolutionPreset
-        : ResolutionPreset.original;
   }
 
   void _markPresetEdited() {
@@ -308,7 +278,7 @@ class _WorkbenchTaskConfigurationDialogState
       task: widget.task,
       preset: preset.smartPreset,
       targetCodec: preset.videoCodec,
-      targetResolutionPreset: _resolvePresetResolution(preset),
+      targetResolutionPreset: widget.selectedResolutionPreset,
     );
     if (estimate == null) {
       return '-';
@@ -356,16 +326,12 @@ class _CompressionPreset {
     required this.qualityIndex,
     required this.outputFormat,
     required this.videoCodec,
-    required this.resolutionPreset,
-    this.capResolutionToSource = false,
   });
 
   final SmartCompressionPreset smartPreset;
   final int qualityIndex;
   final OutputFormat outputFormat;
   final VideoCodec videoCodec;
-  final ResolutionPreset resolutionPreset;
-  final bool capResolutionToSource;
 
   String get title => smartPreset.label;
 
@@ -844,7 +810,7 @@ class _DialogHeader extends StatelessWidget {
           width: 28,
           height: 28,
           child: IconButton(
-            tooltip: '在 Finder 中打开源文件',
+            tooltip: '打开源文件所在位置',
             onPressed: onOpenSource,
             padding: EdgeInsets.zero,
             icon: const Icon(

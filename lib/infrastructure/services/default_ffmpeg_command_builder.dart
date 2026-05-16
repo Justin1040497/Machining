@@ -41,11 +41,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     );
     final videoEncoder = resolveVideoEncoder(
       targetCodec: targetCodec,
-      backend: resolveBackendForRecommendation(
-        task: task,
-        targetCodec: targetCodec,
-        encoderCapabilities: encoderCapabilities,
-      ),
+      backend: task.config.encoderBackend,
       encoderCapabilities: encoderCapabilities,
     );
     ensureCompressionConfirmed(task, recommendation);
@@ -192,27 +188,6 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
         '当前 FFmpeg 不支持 ${error.backend.label} 编码器: ${error.encoderName}',
       );
     }
-  }
-
-  EncoderBackend resolveBackendForRecommendation({
-    required MediaTask task,
-    required VideoCodec targetCodec,
-    required FfmpegEncoderCapabilities encoderCapabilities,
-  }) {
-    if (task.config.encoderBackend != EncoderBackend.auto ||
-        task.purpose != TaskPurpose.compression) {
-      return task.config.encoderBackend;
-    }
-
-    final softwareBackend = softwareBackendFor(targetCodec);
-    if (encoderCapabilities.supportsEncoder(
-      targetCodec: targetCodec,
-      backend: softwareBackend,
-    )) {
-      return softwareBackend;
-    }
-
-    return EncoderBackend.auto;
   }
 
   EncoderBackend softwareBackendFor(VideoCodec targetCodec) {

@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Machining 与参考项目差异对比报告</title>
+  <style>
+    :root {
+      --paper: #f6f1e7;
+      --ink: #1f2523;
+      --muted: #65706b;
+      --line: #d9d0bf;
+      --panel: #fffaf0;
+      --panel-2: #eef3ef;
+      --coal: #242b29;
+      --green: #2d725f;
+      --blue: #315d79;
+      --amber: #a06121;
+      --red: #a23d33;
+      --shadow: 0 18px 48px rgba(31, 37, 35, 0.10);
+      color-scheme: light;
+      font-family: "Avenir Next", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+      background: var(--paper);
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        linear-gradient(90deg, rgba(31, 37, 35, 0.035) 1px, transparent 1px) 0 0 / 28px 28px,
+        linear-gradient(0deg, rgba(31, 37, 35, 0.025) 1px, transparent 1px) 0 0 / 28px 28px,
+        var(--paper);
+      line-height: 1.68;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      font-size: 0.92em;
+      background: rgba(36, 43, 41, 0.075);
+      border: 1px solid rgba(36, 43, 41, 0.10);
+      border-radius: 5px;
+      padding: 0.08rem 0.32rem;
+    }
+
+    .shell {
+      min-height: 100vh;
+    }
+
+    .hero {
+      color: #f7f0e5;
+      background:
+        linear-gradient(115deg, rgba(36, 43, 41, 0.98), rgba(32, 54, 49, 0.93) 55%, rgba(49, 93, 121, 0.90)),
+        repeating-linear-gradient(135deg, rgba(255,255,255,0.10) 0 1px, transparent 1px 12px);
+      border-bottom: 1px solid rgba(255,255,255,0.15);
+    }
+
+    .hero-inner {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 58px 0 42px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      gap: 10px;
+      align-items: center;
+      color: rgba(247, 240, 229, 0.72);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 34px;
+      height: 2px;
+      background: #e1b16a;
+    }
+
+    h1 {
+      max-width: 980px;
+      margin: 18px 0 16px;
+      font-family: Georgia, "Times New Roman", "Songti SC", serif;
+      font-size: clamp(2.3rem, 5vw, 5.4rem);
+      line-height: 0.98;
+      letter-spacing: 0;
+      font-weight: 700;
+    }
+
+    .hero p {
+      max-width: 890px;
+      margin: 0;
+      color: rgba(247, 240, 229, 0.82);
+      font-size: clamp(1rem, 1.6vw, 1.18rem);
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 34px;
+    }
+
+    .metric {
+      min-height: 118px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background: rgba(255,255,255,0.08);
+      backdrop-filter: blur(8px);
+      border-radius: 8px;
+      padding: 17px;
+    }
+
+    .metric b {
+      display: block;
+      font-family: Georgia, "Times New Roman", "Songti SC", serif;
+      font-size: 2.1rem;
+      line-height: 1;
+      color: #fff8eb;
+      letter-spacing: 0;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 10px;
+      color: rgba(247, 240, 229, 0.72);
+      font-size: 0.9rem;
+    }
+
+    .layout {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 250px minmax(0, 1fr);
+      gap: 28px;
+      padding: 34px 0 70px;
+    }
+
+    nav {
+      position: sticky;
+      top: 16px;
+      align-self: start;
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 240, 0.78);
+      box-shadow: var(--shadow);
+      border-radius: 8px;
+      padding: 12px;
+    }
+
+    nav a {
+      display: block;
+      border-radius: 6px;
+      padding: 9px 11px;
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.25;
+    }
+
+    nav a:hover {
+      color: var(--ink);
+      background: rgba(45, 114, 95, 0.10);
+    }
+
+    section {
+      scroll-margin-top: 20px;
+      margin-bottom: 28px;
+    }
+
+    .band {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 250, 240, 0.88);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .band-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 24px 26px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(90deg, rgba(45, 114, 95, 0.10), rgba(160, 97, 33, 0.08));
+    }
+
+    h2 {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", "Songti SC", serif;
+      font-size: clamp(1.55rem, 2.4vw, 2.2rem);
+      line-height: 1.08;
+      letter-spacing: 0;
+    }
+
+    h3 {
+      margin: 0 0 10px;
+      font-size: 1.05rem;
+      line-height: 1.3;
+      letter-spacing: 0;
+    }
+
+    .section-note {
+      max-width: 410px;
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .content {
+      padding: 24px 26px 28px;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 17px;
+    }
+
+    .card.alt {
+      background: var(--panel-2);
+    }
+
+    .label {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 0 9px;
+      margin-bottom: 10px;
+      background: rgba(49, 93, 121, 0.12);
+      color: var(--blue);
+      font-size: 0.76rem;
+      font-weight: 800;
+    }
+
+    .label.green {
+      background: rgba(45, 114, 95, 0.13);
+      color: var(--green);
+    }
+
+    .label.amber {
+      background: rgba(160, 97, 33, 0.13);
+      color: var(--amber);
+    }
+
+    .label.red {
+      background: rgba(162, 61, 51, 0.12);
+      color: var(--red);
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      overflow: hidden;
+      display: table;
+    }
+
+    th,
+    td {
+      border-bottom: 1px solid var(--line);
+      padding: 13px 14px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 0.94rem;
+    }
+
+    th {
+      color: var(--ink);
+      background: #e9dfcf;
+      font-size: 0.82rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+
+    li + li {
+      margin-top: 0.46rem;
+    }
+
+    .callout {
+      border-left: 5px solid var(--green);
+      background: rgba(45, 114, 95, 0.10);
+      padding: 16px 18px;
+      border-radius: 0 8px 8px 0;
+      margin: 0 0 18px;
+    }
+
+    .warning {
+      border-left-color: var(--amber);
+      background: rgba(160, 97, 33, 0.12);
+    }
+
+    .danger {
+      border-left-color: var(--red);
+      background: rgba(162, 61, 51, 0.10);
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 120px 1fr 40px;
+      gap: 12px;
+      align-items: center;
+      margin: 12px 0;
+      font-size: 0.9rem;
+    }
+
+    .bar {
+      height: 11px;
+      border-radius: 999px;
+      border: 1px solid rgba(31, 37, 35, 0.15);
+      background: #e0d7ca;
+      overflow: hidden;
+    }
+
+    .bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .timeline {
+      display: grid;
+      gap: 12px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 72px 1fr;
+      gap: 14px;
+      align-items: start;
+      border-top: 1px solid var(--line);
+      padding-top: 14px;
+    }
+
+    .step:first-child {
+      border-top: 0;
+      padding-top: 0;
+    }
+
+    .phase {
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 34px;
+      border-radius: 6px;
+      background: var(--coal);
+      color: #f7f0e5;
+      font-weight: 800;
+      font-size: 0.82rem;
+    }
+
+    .source-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .source-list li {
+      margin: 0;
+      padding: 9px 11px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: rgba(255, 250, 240, 0.62);
+      word-break: break-word;
+    }
+
+    footer {
+      width: min(1180px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 0 0 48px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      nav {
+        position: static;
+      }
+
+      .meta-grid,
+      .grid-2,
+      .grid-3 {
+        grid-template-columns: 1fr;
+      }
+
+      .band-header {
+        display: block;
+      }
+
+      .section-note {
+        margin-top: 10px;
+      }
+
+      table,
+      thead,
+      tbody,
+      th,
+      td,
+      tr {
+        display: block;
+      }
+
+      thead {
+        display: none;
+      }
+
+      tr {
+        border-bottom: 1px solid var(--line);
+      }
+
+      td {
+        border: 0;
+        padding: 10px 14px;
+      }
+
+      td::before {
+        content: attr(data-label);
+        display: block;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-bottom: 4px;
+      }
+    }
+
+    @media print {
+      body {
+        background: white;
+      }
+
+      .hero,
+      .band,
+      nav {
+        box-shadow: none;
+      }
+
+      nav {
+        display: none;
+      }
+
+      .layout {
+        display: block;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-inner">
+        <div class="eyebrow">Non-UI Architecture Review</div>
+        <h1>Machining 与参考项目差异对比报告</h1>
+        <p>分析对象为当前 Flutter/Dart 项目、<code>.reference/CompressGo-main</code> 与 <code>.reference/HandBrake-master</code>。本报告刻意排除视觉 UI 对比，只看架构、编码策略、协议遵守、工程化与可学习实践。</p>
+        <div class="meta-grid">
+          <div class="metric"><b>3</b><span>对比对象：Machining、CompressGo、HandBrake</span></div>
+          <div class="metric"><b>102</b><span>Machining 非 UI 相关文件口径</span></div>
+          <div class="metric"><b>58</b><span>当前项目测试用例数量</span></div>
+          <div class="metric"><b>5</b><span>建议优先迁移的实践方向</span></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <nav aria-label="报告目录">
+        <a href="#scope">范围与结论</a>
+        <a href="#shape">项目形态差异</a>
+        <a href="#architecture">架构与数据流</a>
+        <a href="#strategy">编码策略</a>
+        <a href="#protocol">协议遵守方式</a>
+        <a href="#risk">当前缺口</a>
+        <a href="#learn">值得学习</a>
+        <a href="#roadmap">迁移路线</a>
+        <a href="#evidence">证据清单</a>
+      </nav>
+
+      <div>
+        <section id="scope" class="band">
+          <div class="band-header">
+            <h2>范围与结论</h2>
+            <p class="section-note">`.reference` 不是一个单一项目，而是两个参照物：CompressGo 更像同阶段产品参照，HandBrake 是成熟工业级转码器参照。</p>
+          </div>
+          <div class="content">
+            <div class="callout">
+              <strong>总判断：</strong>Machining 的非 UI 代码最强的是分层清晰、领域模型明确、FFmpeg 命令与进程观测可测试；CompressGo 的优势是功能覆盖更宽、Tauri sidecar/事件协议更完整、硬件检测更贴近真实运行；HandBrake 的优势是把媒体处理沉淀成稳定内核、预设协议、状态协议、构建协议和许可证协议。
+            </div>
+            <div class="grid-3">
+              <div class="card">
+                <span class="label green">Machining</span>
+                <h3>更像“干净的产品内核”</h3>
+                <p class="muted">Dart 领域对象、仓储接口、服务接口、Drift 持久化、FFmpeg command plan 与队列执行器分开。适合继续演化，但功能和发布协议还偏 1.0。</p>
+              </div>
+              <div class="card">
+                <span class="label amber">CompressGo</span>
+                <h3>更像“快速集成型工具”</h3>
+                <p class="muted">Vue/Pinia 负责任务与设置，Rust Tauri command 直接操控 FFmpeg、事件和进程。功能广、反馈快，但边界比 Machining 松。</p>
+              </div>
+              <div class="card">
+                <span class="label">HandBrake</span>
+                <h3>更像“媒体处理平台”</h3>
+                <p class="muted">核心是 libhb，不依赖外部 FFmpeg CLI 协议；它有公共 C API、JSON job/preset、完整状态机、contrib 构建和跨平台发布体系。</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="shape" class="band">
+          <div class="band-header">
+            <h2>项目形态差异</h2>
+            <p class="section-note">统计只用于把规模放到同一坐标系，不代表质量高低。</p>
+          </div>
+          <div class="content">
+            <table>
+              <thead>
+                <tr>
+                  <th>维度</th>
+                  <th>Machining</th>
+                  <th>CompressGo</th>
+                  <th>HandBrake</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="维度">技术栈</td>
+                  <td data-label="Machining">Flutter / Dart / Riverpod / Drift / FFmpeg 外部进程</td>
+                  <td data-label="CompressGo">Vue 3 / Pinia / Tauri 2 / Rust / FFmpeg sidecar</td>
+                  <td data-label="HandBrake">C/C++ libhb 内核 + macOS/GTK/Windows 前端 + 自研构建系统</td>
+                </tr>
+                <tr>
+                  <td data-label="维度">非 UI 规模口径</td>
+                  <td data-label="Machining">102 个文件，约 17,140 行。包含 domain/application/infrastructure/provider/test/docs/tool/scripts。</td>
+                  <td data-label="CompressGo">39 个核心文件，约 15,528 行。包含 src-tauri、stores、composables、types、config。</td>
+                  <td data-label="HandBrake">373 个核心工程文件，约 148,234 行；其中 libhb 约 114,902 行。</td>
+                </tr>
+                <tr>
+                  <td data-label="维度">产品范围</td>
+                  <td data-label="Machining">当前聚焦视频压缩与格式转换：MP4/MOV/MKV，H.264/HEVC。</td>
+                  <td data-label="CompressGo">视频 + 图片压缩；更多格式、时间范围、bit depth、硬件检测、对比预览。</td>
+                  <td data-label="HandBrake">专业转码：扫描、标题、章节、字幕、音轨、滤镜、编码器、预设、队列、包分发。</td>
+                </tr>
+                <tr>
+                  <td data-label="维度">核心抽象</td>
+                  <td data-label="Machining"><code>MediaTask</code>、<code>VideoTaskConfig</code>、<code>FfmpegCommandPlan</code>、<code>FfmpegTaskQueueRunner</code></td>
+                  <td data-label="CompressGo"><code>CompressionTask</code>、<code>CompressionSettings</code>、Tauri command、事件名协议</td>
+                  <td data-label="HandBrake"><code>hb_handle_t</code>、<code>hb_job_t</code>、<code>hb_state_t</code>、preset JSON、libhb API</td>
+                </tr>
+                <tr>
+                  <td data-label="维度">测试与验证</td>
+                  <td data-label="Machining">测试覆盖命令构造、队列、FFprobe、进度、预览、估算、硬件能力解析。</td>
+                  <td data-label="CompressGo">仓库中未看到同等层级的自动化测试；更多依赖运行时手动验证。</td>
+                  <td data-label="HandBrake">有 CLI 测试入口、平台 CI workflow、contrib hash/patch 和构建矩阵。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="architecture" class="band">
+          <div class="band-header">
+            <h2>架构与数据流</h2>
+            <p class="section-note">这里对比的是业务和系统边界，不评价界面呈现。</p>
+          </div>
+          <div class="content">
+            <div class="grid-2">
+              <div class="card">
+                <span class="label green">Machining 当前做得好</span>
+                <ul>
+                  <li>采用近似 Clean Architecture 的分层：<code>domain</code> 保存实体/枚举/值对象，<code>application</code> 定义仓储和服务协议，<code>infrastructure</code> 放 Drift、FFmpeg、文件系统实现。</li>
+                  <li>FFmpeg 执行被拆成“构造命令”“启动进程”“观测进度”“队列调度”四段，单元测试可以替换每段依赖。</li>
+                  <li>任务状态持久化到 SQLite，任务恢复、源文件指纹、分析结果失效等流程比 CompressGo 更接近生产应用。</li>
+                  <li>命令构造支持单遍和目标体积两遍计划，<code>FfmpegCommandPlan.steps</code> 是一个很好的扩展点。</li>
+                </ul>
+              </div>
+              <div class="card alt">
+                <span class="label amber">CompressGo 的不同路线</span>
+                <ul>
+                  <li>它的任务与设置主要是前端内存状态：<code>useTaskStore</code>、<code>useTaskSettingsStore</code>、<code>useBatchProcessor</code>、<code>useTaskStateController</code>。</li>
+                  <li>Rust 后端不是严格分层服务，而是 Tauri command 直接完成路径解析、FFprobe、命令拼接、进程管理、事件发送。</li>
+                  <li>这种路线功能推进快，适合桌面工具早期验证；代价是 Rust 侧重复路径解析多、业务策略与系统调用耦合较重。</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <span class="label">HandBrake 的架构参照</span>
+              <p>HandBrake 的核心经验不是“多写代码”，而是把媒体处理抽象成稳定内核。<code>libhb</code> 对外暴露 <code>hb_scan</code>、<code>hb_add</code>、<code>hb_start</code>、<code>hb_pause</code>、<code>hb_resume</code>、<code>hb_get_state</code> 等 API；UI、CLI、平台前端围绕同一个 job/state/preset 协议工作。Machining 目前通过 FFmpeg CLI 组合命令，短期更轻；长期如果功能扩展到音轨、字幕、滤镜、批量预设，就需要像 HandBrake 一样把“任务协议”做成稳定的数据结构，而不是把更多参数塞进页面状态。</p>
+            </div>
+
+            <div class="timeline" style="margin-top:18px">
+              <div class="step">
+                <div class="phase">Machining</div>
+                <div>导入文件 → 生成 <code>MediaTask</code> → 读取源文件指纹 → FFprobe 分析 → 保存分析结果 → 命令计划 → 队列运行 → 进度观测 → 写回 SQLite。</div>
+              </div>
+              <div class="step">
+                <div class="phase">CompressGo</div>
+                <div>前端创建 <code>CompressionTask</code> → 选定 settings → <code>invoke('compress_video')</code> → Rust 启动 FFmpeg → 用 Tauri event 把命令/进度/完成/错误推回前端。</div>
+              </div>
+              <div class="step">
+                <div class="phase">HandBrake</div>
+                <div>扫描 source/title → 预设清洗/导入 → 生成 job dict → libhb 执行工作线程 → UI/CLI 定期读取 <code>hb_state_t</code> 或 JSON state。</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="strategy" class="band">
+          <div class="band-header">
+            <h2>编码策略</h2>
+            <p class="section-note">“编码策略”包含代码组织、类型建模、错误处理、测试和媒体编码参数策略。</p>
+          </div>
+          <div class="content">
+            <table>
+              <thead>
+                <tr>
+                  <th>策略维度</th>
+                  <th>Machining</th>
+                  <th>CompressGo</th>
+                  <th>HandBrake</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td data-label="策略维度">类型建模</td>
+                  <td data-label="Machining">强类型枚举和值对象：<code>VideoCodec</code>、<code>EncoderBackend</code>、<code>CompressionMode</code>、<code>MediaAnalysisResult</code>。优点是测试稳定；风险是枚举用 name 入库，重命名会破坏旧数据。</td>
+                  <td data-label="CompressGo">TypeScript 接口 + Rust serde 结构体，前后端通过字段名契约对齐。快，但缺少集中 schema/version 机制。</td>
+                  <td data-label="HandBrake">C struct + JSON dict + preset version。字段多但协议稳定，并显式提醒跨语言绑定同步。</td>
+                </tr>
+                <tr>
+                  <td data-label="策略维度">命令/参数构造</td>
+                  <td data-label="Machining">集中在 <code>DefaultFfmpegCommandBuilder</code>，支持输出路径去重、HEVC <code>hvc1</code> tag、<code>+faststart</code>、两遍压缩、硬件参数分支。</td>
+                  <td data-label="CompressGo">Rust command 内联拼接；支持更多编码器、bit depth、time range、音频 copy/WebM Opus、图片格式。</td>
+                  <td data-label="HandBrake">不直接拼 FFmpeg CLI，而是使用 libav/libx264/x265 等库能力与内部 job 结构，参数被编码为 preset/job 协议。</td>
+                </tr>
+                <tr>
+                  <td data-label="策略维度">硬件编码</td>
+                  <td data-label="Machining">解析 <code>ffmpeg -encoders</code> 中的 encoder 名称，再按平台优先级选择。轻量、可测，但可能把“列出支持”误判成“实际可用”。</td>
+                  <td data-label="CompressGo">会用测试视频做最小 1 帧编码检测，并缓存 <code>hardware_support.json</code>。这比只解析列表更接近真实运行。</td>
+                  <td data-label="HandBrake">编译期特性、运行期能力、平台 API 都纳入内核，支持 QSV/NVENC/AMF/VideoToolbox 等更细粒度矩阵。</td>
+                </tr>
+                <tr>
+                  <td data-label="策略维度">队列与进程</td>
+                  <td data-label="Machining">队列执行器维护前台任务和暂停执行上下文，状态写回仓储。macOS 的 SIGSTOP/SIGCONT 路线清晰；Windows 暂停恢复需要补强。</td>
+                  <td data-label="CompressGo">Rust 全局 HashMap 管理子进程，Unix 用 kill STOP/CONT，Windows 用 ToolHelp 枚举线程 suspend/resume。</td>
+                  <td data-label="HandBrake">libhb 内部线程、锁和状态结构管理，不依赖 OS 暂停外部进程；暂停时间会纳入 ETA 计算。</td>
+                </tr>
+                <tr>
+                  <td data-label="策略维度">测试策略</td>
+                  <td data-label="Machining">目前最扎实。命令参数、极限压缩确认、队列切换、多步骤 plan、进度解析、输出缺失等都有单测。</td>
+                  <td data-label="CompressGo">更多是运行时日志和事件调试，自动化测试薄弱。适合借功能，不适合照搬工程质量。</td>
+                  <td data-label="HandBrake">成熟项目的 CI、CLI 测试、构建矩阵和贡献流程完整，但成本也最高。</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section id="protocol" class="band">
+          <div class="band-header">
+            <h2>协议遵守方式</h2>
+            <p class="section-note">这里的“协议”按五类理解：FFmpeg/FFprobe、进程生命周期、数据/job、平台权限、许可证/分发。</p>
+          </div>
+          <div class="content">
+            <div class="grid-2">
+              <div class="card">
+                <span class="label green">Machining</span>
+                <h3>遵守方式</h3>
+                <ul>
+                  <li><strong>FFprobe 协议：</strong>使用 <code>-v error -print_format json -show_format -show_streams</code>，解析视频/音频流、容器码率、估算码率。</li>
+                  <li><strong>FFmpeg 进度协议：</strong>主任务使用 <code>-progress pipe:1</code>，观测 stdout 中的 <code>out_time_ms</code> 并按分析时长计算进度。</li>
+                  <li><strong>输出封装协议：</strong>MP4/MOV 自动加 <code>-movflags +faststart</code>，HEVC in MP4/MOV 加 <code>-tag:v hvc1</code>。</li>
+                  <li><strong>本地持久化协议：</strong>Drift schema 版本迁移、任务状态落库、分析结果和源文件指纹落库。</li>
+                  <li><strong>分发协议：</strong>有 FFmpeg/x264 GPL 路线文档、构建脚本和二进制不提交策略。</li>
+                </ul>
+              </div>
+              <div class="card alt">
+                <span class="label amber">CompressGo</span>
+                <h3>遵守方式</h3>
+                <ul>
+                  <li><strong>Tauri 权限协议：</strong><code>capabilities/default.json</code> 显式允许 sidecar <code>bin/ffmpeg</code> 与 <code>bin/ffprobe</code> 执行。</li>
+                  <li><strong>事件协议：</strong>按 taskId 生成 <code>compression-progress-*</code>、<code>compression-completed-*</code>、<code>compression-error-*</code> 等事件名。</li>
+                  <li><strong>硬件检测协议：</strong>除解析 <code>-encoders</code> 外，还执行最小编码测试并缓存结果。</li>
+                  <li><strong>平台协议：</strong>Windows 通过 Win32 ToolHelp 暂停/恢复进程线程，避免简单套用 Unix 信号。</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <span class="label">HandBrake</span>
+              <h3>更成熟的协议化</h3>
+              <p>HandBrake 的协议遵守方式是“内核化”：扫描、预设、job、state、进度、错误、构建依赖和许可证都被定义成可复用协议。<code>hb_state_t</code> 明确区分 <code>IDLE</code>、<code>SCANNING</code>、<code>WORKING</code>、<code>PAUSED</code>、<code>WORKDONE</code>、<code>MUXING</code>；<code>hb_state_to_dict</code> 把状态转换为 JSON；preset API 会导入、清洗、升级旧字段。它遵守的不是某个单点 CLI 参数，而是一整套跨前端、CLI、平台和发布流程的协议。</p>
+            </div>
+
+            <div class="callout warning" style="margin-top:18px">
+              <strong>对 Machining 的关键启发：</strong>目前最该补的不是重写为 HandBrake 式内核，而是把现有 FFmpeg 外部进程协议再收紧：实际硬件编码探测、跨平台暂停、结构化日志/事件、发布包许可证材料、schema 文档同步。
+            </div>
+          </div>
+        </section>
+
+        <section id="risk" class="band">
+          <div class="band-header">
+            <h2>当前缺口</h2>
+            <p class="section-note">下面是非 UI 维度里最值得尽快处理的差距。</p>
+          </div>
+          <div class="content">
+            <div class="grid-2">
+              <div class="card">
+                <span class="label red">协议风险</span>
+                <ul>
+                  <li><strong>Windows 暂停恢复：</strong>当前队列执行器直接使用 <code>ProcessSignal.sigstop</code>/<code>sigcont</code>，这更像 Unix/macOS 路线；CompressGo 已对 Windows 单独实现线程暂停恢复。</li>
+                  <li><strong>FFmpeg stdin/覆盖策略：</strong>主压缩命令依靠输出路径去重避免覆盖，但没有统一加 <code>-nostdin</code> 或 <code>-y</code>。若路径竞态或 FFmpeg 触发交互，存在挂起风险。</li>
+                  <li><strong>硬件能力误判：</strong>只解析 encoder 名称，不代表当前 GPU、驱动、像素格式、输入样本真的可编码。</li>
+                  <li><strong>macOS 打包行为不一致：</strong>README 说内置运行时是目标；Windows 缺二进制会 fatal，macOS build phase 缺二进制只是 warning 并跳过复制。</li>
+                </ul>
+              </div>
+              <div class="card">
+                <span class="label amber">工程风险</span>
+                <ul>
+                  <li><strong>文档漂移：</strong><code>docs/architecture/data-model-v1.0.md</code> 写 schema 版本 7，而代码 <code>AppDatabase.schemaVersion</code> 是 9。</li>
+                  <li><strong>许可证交付未闭环：</strong>已有 GPL 分发文档，但根目录缺 <code>LICENSE</code>、<code>THIRD_PARTY_NOTICES</code> 和包内许可证目录，这在文档里也被列为 1.1 待办。</li>
+                  <li><strong>枚举入库兼容性：</strong>Drift repository 用枚举 <code>name</code> 持久化，读取未知值直接抛错。后续改名或删除枚举会影响旧任务。</li>
+                  <li><strong>自动化发布验证不足：</strong>当前项目没有看到类似 HandBrake 的 GitHub workflow；分析与测试要求在文档中，但没有 CI 强制执行。</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="learn" class="band">
+          <div class="band-header">
+            <h2>值得学习</h2>
+            <p class="section-note">按迁移价值排序：先做低成本高收益，再考虑长期平台化。</p>
+          </div>
+          <div class="content">
+            <div class="grid-2">
+              <div class="card alt">
+                <span class="label amber">向 CompressGo 学</span>
+                <ul>
+                  <li><strong>实际硬件编码探测：</strong>引入最小样本编码测试和缓存，而不只信任 <code>-encoders</code> 输出。</li>
+                  <li><strong>Windows 进程控制：</strong>参考其 <code>windows-sys</code> ToolHelp 暂停/恢复思路，为 Machining 的 Windows 队列补平台分支。</li>
+                  <li><strong>事件化执行反馈：</strong>把命令、进度、完成、失败、取消结构化为统一事件或日志模型，后续 UI、CLI、测试都能复用。</li>
+                  <li><strong>功能参数广度：</strong>time range、bit depth、AV1/VP9/ProRes/WebM、图片压缩都可以作为 1.1+ 的功能候选，但要沿用 Machining 的分层方式实现。</li>
+                  <li><strong>批量参数快照：</strong>批量开始时缓存每个任务的生效配置，避免用户改右侧参数导致队列中任务语义漂移。</li>
+                </ul>
+              </div>
+              <div class="card alt">
+                <span class="label">向 HandBrake 学</span>
+                <ul>
+                  <li><strong>Job/Preset 协议：</strong>把压缩参数模板做成版本化 JSON，支持导入、清洗、迁移和默认预设。</li>
+                  <li><strong>状态协议：</strong>扩展当前任务状态，记录 pass、pass_count、ETA、rate_cur、rate_avg、muxing/finishing 等结构化字段。</li>
+                  <li><strong>扫描优先：</strong>先建立 source/title/stream 级扫描模型，再做高级音轨、字幕、章节、HDR、色彩、滤镜功能。</li>
+                  <li><strong>依赖和补丁治理：</strong>为 FFmpeg 构建保留 hash、配置、补丁、源码获取方式和包内 NOTICE，而不是只保留构建脚本。</li>
+                  <li><strong>跨平台 CI：</strong>将 analyze/test/build/runtime bundle check 纳入自动化，减少“本机可用、发布缺件”。</li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="card" style="margin-top:16px">
+              <span class="label green">Machining 不应丢掉的优势</span>
+              <p>Machining 现在的领域分层和测试结构比 CompressGo 更清爽，这一点不该为了追功能而牺牲。最好的学习方式是：功能广度学 CompressGo，协议严密性学 HandBrake，但代码组织继续沿用 Machining 的 domain/application/infrastructure 分界。</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="roadmap" class="band">
+          <div class="band-header">
+            <h2>迁移路线</h2>
+            <p class="section-note">建议按风险与收益分三批推进。</p>
+          </div>
+          <div class="content">
+            <div class="timeline">
+              <div class="step">
+                <div class="phase">P0</div>
+                <div>
+                  <h3>先补协议和发布底线</h3>
+                  <ul>
+                    <li>为 FFmpeg 主任务统一增加 <code>-nostdin</code>，明确是否使用 <code>-y</code>，并保留输出路径去重。</li>
+                    <li>修复 Windows 暂停/恢复：抽象 <code>ProcessController</code>，macOS/Linux 用 signal，Windows 用平台实现或降级为取消/重启提示。</li>
+                    <li>同步 schema 文档到版本 9，补枚举兼容策略。</li>
+                    <li>补根目录许可证和第三方 NOTICE，macOS Release 缺 FFmpeg 时改为失败或增加明确构建模式开关。</li>
+                    <li>加 CI：<code>flutter analyze</code>、<code>flutter test</code>、命令构造测试、打包 runtime 检查。</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="step">
+                <div class="phase">P1</div>
+                <div>
+                  <h3>增强媒体能力的可信度</h3>
+                  <ul>
+                    <li>参考 CompressGo，实现硬件编码真实探测和缓存。</li>
+                    <li>把 FFmpeg 日志升级为结构化执行记录：命令、步骤、stderr 摘要、退出码、输出文件大小、耗时。</li>
+                    <li>把 <code>CompressionAdvisor</code> 的策略结果保存为任务执行快照，便于复现和排错。</li>
+                    <li>建立 preset JSON v1，先覆盖当前 smart/target size/CRF/codec/resolution。</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="step">
+                <div class="phase">P2</div>
+                <div>
+                  <h3>再扩功能面</h3>
+                  <ul>
+                    <li>引入 time range、bit depth、更多容器/编码器、图片压缩，但每个能力都先加 command builder 测试。</li>
+                    <li>建立 HandBrake 式扫描模型：source → streams → chapters/audio/subtitle/crop/color 信息。</li>
+                    <li>抽象媒体处理 task type，为图片、视频、后续文件压缩共享队列和状态协议。</li>
+                    <li>建立发布检查清单：许可证、签名、公证、DMG、Windows runtime、另一台机器验证。</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="band">
+          <div class="band-header">
+            <h2>能力评分</h2>
+            <p class="section-note">主观评分，用于指出相对强弱。</p>
+          </div>
+          <div class="content">
+            <div class="grid-3">
+              <div class="card">
+                <h3>Machining</h3>
+                <div class="score-row"><span>分层</span><div class="bar"><span style="width:86%"></span></div><b>86</b></div>
+                <div class="score-row"><span>测试</span><div class="bar"><span style="width:82%"></span></div><b>82</b></div>
+                <div class="score-row"><span>协议</span><div class="bar"><span style="width:62%"></span></div><b>62</b></div>
+                <div class="score-row"><span>功能面</span><div class="bar"><span style="width:48%"></span></div><b>48</b></div>
+              </div>
+              <div class="card">
+                <h3>CompressGo</h3>
+                <div class="score-row"><span>分层</span><div class="bar"><span style="width:58%"></span></div><b>58</b></div>
+                <div class="score-row"><span>测试</span><div class="bar"><span style="width:32%"></span></div><b>32</b></div>
+                <div class="score-row"><span>协议</span><div class="bar"><span style="width:70%"></span></div><b>70</b></div>
+                <div class="score-row"><span>功能面</span><div class="bar"><span style="width:76%"></span></div><b>76</b></div>
+              </div>
+              <div class="card">
+                <h3>HandBrake</h3>
+                <div class="score-row"><span>分层</span><div class="bar"><span style="width:92%"></span></div><b>92</b></div>
+                <div class="score-row"><span>测试</span><div class="bar"><span style="width:78%"></span></div><b>78</b></div>
+                <div class="score-row"><span>协议</span><div class="bar"><span style="width:96%"></span></div><b>96</b></div>
+                <div class="score-row"><span>功能面</span><div class="bar"><span style="width:98%"></span></div><b>98</b></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="evidence" class="band">
+          <div class="band-header">
+            <h2>证据清单</h2>
+            <p class="section-note">本报告主要依据以下非 UI 文件与配置。</p>
+          </div>
+          <div class="content">
+            <div class="grid-3">
+              <div>
+                <h3>Machining</h3>
+                <ul class="source-list">
+                  <li><code>README.md</code></li>
+                  <li><code>pubspec.yaml</code></li>
+                  <li><code>docs/architecture/data-model-v1.0.md</code></li>
+                  <li><code>docs/develop/testing/test-plan-v1.0.md</code></li>
+                  <li><code>docs/reference/ffmpeg-license-and-distribution-v1.0.md</code></li>
+                  <li><code>lib/domain/entities/media_task.dart</code></li>
+                  <li><code>lib/infrastructure/services/default_ffmpeg_command_builder.dart</code></li>
+                  <li><code>lib/application/services/ffmpeg_task_queue_runner.dart</code></li>
+                  <li><code>lib/infrastructure/services/local_ffmpeg_process_observer.dart</code></li>
+                  <li><code>lib/infrastructure/services/local_ffmpeg_locator.dart</code></li>
+                  <li><code>lib/infrastructure/database/app_database.dart</code></li>
+                  <li><code>test/*_test.dart</code></li>
+                </ul>
+              </div>
+              <div>
+                <h3>CompressGo</h3>
+                <ul class="source-list">
+                  <li><code>.reference/CompressGo-main/README.md</code></li>
+                  <li><code>.reference/CompressGo-main/package.json</code></li>
+                  <li><code>.reference/CompressGo-main/src-tauri/Cargo.toml</code></li>
+                  <li><code>.reference/CompressGo-main/src-tauri/tauri.conf.json</code></li>
+                  <li><code>.reference/CompressGo-main/src-tauri/capabilities/default.json</code></li>
+                  <li><code>.reference/CompressGo-main/src-tauri/src/video/compression.rs</code></li>
+                  <li><code>.reference/CompressGo-main/src-tauri/src/video/utils.rs</code></li>
+                  <li><code>.reference/CompressGo-main/src-tauri/src/image/compression.rs</code></li>
+                  <li><code>.reference/CompressGo-main/src/stores/useTaskStore.ts</code></li>
+                  <li><code>.reference/CompressGo-main/src/composables/useBatchProcessor.ts</code></li>
+                </ul>
+              </div>
+              <div>
+                <h3>HandBrake</h3>
+                <ul class="source-list">
+                  <li><code>.reference/HandBrake-master/README.markdown</code></li>
+                  <li><code>.reference/HandBrake-master/SECURITY.md</code></li>
+                  <li><code>.reference/HandBrake-master/libhb/handbrake/handbrake.h</code></li>
+                  <li><code>.reference/HandBrake-master/libhb/handbrake/common.h</code></li>
+                  <li><code>.reference/HandBrake-master/libhb/hb.c</code></li>
+                  <li><code>.reference/HandBrake-master/libhb/hb_json.c</code></li>
+                  <li><code>.reference/HandBrake-master/libhb/handbrake/preset.h</code></li>
+                  <li><code>.reference/HandBrake-master/preset/preset_template.json</code></li>
+                  <li><code>.reference/HandBrake-master/contrib/ffmpeg/module.defs</code></li>
+                  <li><code>.reference/HandBrake-master/.github/workflows/*.yml</code></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer>
+      生成时间：2026-05-16。范围说明：本报告不比较 UI 视觉与交互布局，只分析非 UI 工程、媒体处理和协议遵守方式。
+    </footer>
+  </div>
+</body>
+</html>

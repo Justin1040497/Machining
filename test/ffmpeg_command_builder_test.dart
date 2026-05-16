@@ -324,7 +324,7 @@ void main() {
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
-    test('smart auto prefers software CRF when it is available', () {
+    test('smart auto prefers available hardware encoder', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         config: VideoTaskConfig.initial().copyWith(
@@ -345,9 +345,9 @@ void main() {
         ),
       );
 
-      expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
-      expect(plan.args, containsAllInOrder(['-crf', '28']));
-      expect(plan.args, isNot(contains('-b:v')));
+      expect(plan.args, containsAllInOrder(['-c:v', 'h264_videotoolbox']));
+      expect(plan.args, containsAllInOrder(['-b:v', '2064k']));
+      expect(plan.args, isNot(contains('-crf')));
     });
 
     test('configured hardware smart mode uses a capped bitrate', () {
@@ -410,7 +410,7 @@ void main() {
       },
     );
 
-    test('target size auto prefers software two-pass over hardware', () {
+    test('target size auto prefers available hardware encoder', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         sourceFileSize: 100000000,
@@ -435,12 +435,12 @@ void main() {
         ),
       );
 
-      expect(plan.steps, hasLength(2));
-      expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
-      expect(plan.args, isNot(contains('h264_videotoolbox')));
+      expect(plan.steps, hasLength(1));
+      expect(plan.args, containsAllInOrder(['-c:v', 'h264_videotoolbox']));
+      expect(plan.args, isNot(contains('libx264')));
     });
 
-    test('smart auto prefers HEVC software before Windows hardware', () {
+    test('smart auto prefers HEVC Windows hardware before software', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         config: VideoTaskConfig.initial().copyWith(
@@ -465,8 +465,8 @@ void main() {
         ),
       );
 
-      expect(plan.args, containsAllInOrder(['-c:v', 'libx265']));
-      expect(plan.args, containsAllInOrder(['-crf', '28']));
+      expect(plan.args, containsAllInOrder(['-c:v', 'hevc_qsv']));
+      expect(plan.args, containsAllInOrder(['-b:v', '2064k']));
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
