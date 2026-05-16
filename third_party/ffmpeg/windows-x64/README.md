@@ -28,5 +28,5 @@ At runtime the app resolves:
 <app exe directory>/ffmpeg/ffprobe.exe
 ```
 
-If these files are missing, the build continues with a warning and the app will
-fall back to custom paths or system `PATH`.
+If these files are missing, the Windows build fails so the release output does
+not accidentally omit the bundled runtime.

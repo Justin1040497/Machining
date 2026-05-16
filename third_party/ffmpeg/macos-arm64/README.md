@@ -21,4 +21,4 @@ machining.app/Contents/Resources/ffmpeg/
 ```
 
 Release builds that include these binaries must follow the GPL FFmpeg + x264
-distribution notes in `docs/reference/ffmpeg-license-and-distribution-v1.0.md`.
+distribution notes in `docs/reference/ffmpeg-license-distribution.md`.
