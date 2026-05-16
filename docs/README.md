@@ -266,6 +266,14 @@ build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 
 处理 FFmpeg 分发、许可证合规、第三方资料或项目对比时再阅读这个目录。
 
+根目录许可文件：
+
+- `LICENSE`
+- `COPYING`
+- `NOTICE`
+- `THIRD_PARTY_NOTICES.md`
+- `SOURCE_OFFER.md`
+
 ## 归档
 
 `archive/` 放历史更新记录和详细问题日志，不作为当前产品或架构事实的唯一依据。

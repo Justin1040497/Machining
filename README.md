@@ -5,7 +5,7 @@
 [![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目结构)
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#ffmpeg--ffprobe-运行时)
 [![Processing](https://img.shields.io/badge/processing-local%20only-2E7D32)](#功能)
-[![Runtime License](https://img.shields.io/badge/runtime%20license-GPLv3%2B-C62828)](#许可说明)
+[![License](https://img.shields.io/badge/license-GPLv3%2B-C62828)](#许可说明)
 
 Machining 是一个本地桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令，也能在本机处理视频文件。
 
@@ -336,6 +336,14 @@ lib/
 
 ## 许可说明
 
-项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPL 许可要求。FFmpeg、x264 等依赖归各自原项目维护，Machining 只调用并随应用分发相应运行时。
+Machining 项目整体按 `GPL-3.0-or-later` 分发。根目录包含 GPLv3 正文和发布所需的基础法律文件：
+
+- [LICENSE](/Users/leftzhou/工作区/Machining/LICENSE)：GNU General Public License v3 正文。
+- [COPYING](/Users/leftzhou/工作区/Machining/COPYING)：项目 GPLv3+ 分发入口说明。
+- [NOTICE](/Users/leftzhou/工作区/Machining/NOTICE)：项目版权、无担保和运行时声明。
+- [THIRD_PARTY_NOTICES.md](/Users/leftzhou/工作区/Machining/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
+- [SOURCE_OFFER.md](/Users/leftzhou/工作区/Machining/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
+
+项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264 等依赖归各自原项目维护，Machining 只调用并随应用分发相应运行时。
 
 详细说明见 [docs/reference/ffmpeg-license-distribution.md](/Users/leftzhou/工作区/Machining/docs/reference/ffmpeg-license-distribution.md)。
