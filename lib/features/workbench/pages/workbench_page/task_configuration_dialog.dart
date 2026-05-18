@@ -23,7 +23,6 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.selectedResolutionPreset,
     required this.selectedCompressionMode,
     required this.selectedSmartPreset,
-    required this.selectedTargetSizeBytes,
     required this.selectedTargetSizeRatio,
     required this.availableEncoderBackends,
     required this.onClose,
@@ -48,7 +47,6 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final ResolutionPreset selectedResolutionPreset;
   final CompressionMode selectedCompressionMode;
   final SmartCompressionPreset selectedSmartPreset;
-  final int? selectedTargetSizeBytes;
   final double selectedTargetSizeRatio;
   final List<EncoderBackend> availableEncoderBackends;
   final VoidCallback onClose;
@@ -178,7 +176,6 @@ class _WorkbenchTaskConfigurationDialogState
                   presetEdited: _presetEdited,
                   badgeText: _targetSizeBadgeText(),
                   selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
-                  selectedTargetSizeBytes: widget.selectedTargetSizeBytes,
                   estimatedSizeForPreset: _estimatedOutputSizeForPreset,
                   onModeChanged: (mode) {
                     setState(() {
@@ -233,17 +230,16 @@ class _WorkbenchTaskConfigurationDialogState
 
   String _targetSizeBadgeText() {
     final percent = (widget.selectedTargetSizeRatio * 100).round();
-    final targetSizeBytes = widget.selectedTargetSizeBytes;
-    if (targetSizeBytes == null || targetSizeBytes <= 0) {
-      return '压缩至 $percent%';
+    if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
+      return '文件已压缩，不保证更小';
     }
 
-    return '压缩至${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
+    return '压缩至 $percent%';
   }
 
   String _estimatedOutputSizeForPreset(_CompressionPreset preset) {
     if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
-      return '已压缩';
+      return '文件已压缩，不保证更小';
     }
 
     final estimate = const DefaultCompressionEstimator().estimateSmartPreset(
@@ -299,7 +295,6 @@ class _CompressionOptionsSection extends StatelessWidget {
     required this.presetEdited,
     required this.badgeText,
     required this.selectedTargetSizeRatio,
-    required this.selectedTargetSizeBytes,
     required this.estimatedSizeForPreset,
     required this.onModeChanged,
     required this.onPresetSelected,
@@ -313,7 +308,6 @@ class _CompressionOptionsSection extends StatelessWidget {
   final bool presetEdited;
   final String badgeText;
   final double selectedTargetSizeRatio;
-  final int? selectedTargetSizeBytes;
   final String Function(_CompressionPreset preset) estimatedSizeForPreset;
   final ValueChanged<CompressionMode> onModeChanged;
   final ValueChanged<_CompressionPreset> onPresetSelected;
@@ -343,7 +337,6 @@ class _CompressionOptionsSection extends StatelessWidget {
                   key: const ValueKey('custom-target-size'),
                   badgeText: badgeText,
                   selectedRatio: selectedTargetSizeRatio,
-                  selectedTargetSizeBytes: selectedTargetSizeBytes,
                   onChanged: onTargetSizeRatioChanged,
                 ),
         ),
@@ -357,13 +350,11 @@ class _TargetSizePanel extends StatelessWidget {
     super.key,
     required this.badgeText,
     required this.selectedRatio,
-    required this.selectedTargetSizeBytes,
     required this.onChanged,
   });
 
   final String badgeText;
   final double selectedRatio;
-  final int? selectedTargetSizeBytes;
   final ValueChanged<double> onChanged;
 
   @override
