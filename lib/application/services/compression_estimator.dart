@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:machining/application/services/source_compression_assessor.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
@@ -43,6 +44,10 @@ class DefaultCompressionEstimator implements CompressionEstimator {
     required VideoCodec targetCodec,
     required ResolutionPreset targetResolutionPreset,
   }) {
+    if (SourceCompressionAssessor.assess(task).alreadyCompressed) {
+      return null;
+    }
+
     final sourceSize = task.sourceFileFingerprint?.fileSize;
     final durationMs = task.analysisResult?.durationMs;
     if (sourceSize == null || sourceSize <= 0) {

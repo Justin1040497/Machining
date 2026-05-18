@@ -61,6 +61,42 @@ void main() {
       expect(recommendation.shouldWarnUser, isTrue);
     });
 
+    test('subtracts audio from container bitrate for compression state', () {
+      final advisor = DefaultCompressionAdvisor();
+      final task = videoTask(
+        MediaAnalysisResult(
+          videoHeight: 720,
+          containerBitrate: 1000000,
+          audioCodec: 'aac',
+          audioBitrate: 320000,
+        ),
+      );
+
+      final recommendation = advisor.recommend(task);
+
+      expect(recommendation.bitrate, 680000);
+      expect(recommendation.bitrateSource, CompressionBitrateSource.container);
+      expect(recommendation.sourceAlreadyCompressed, isTrue);
+      expect(recommendation.shouldWarnUser, isTrue);
+    });
+
+    test('uses codec-aware 4k threshold for compression state', () {
+      final advisor = DefaultCompressionAdvisor();
+      final task = videoTask(
+        MediaAnalysisResult(
+          videoHeight: 2160,
+          videoCodec: 'hevc',
+          videoBitrate: 3000000,
+        ),
+      );
+
+      final recommendation = advisor.recommend(task);
+
+      expect(recommendation.lowBitrateThreshold, 3240000);
+      expect(recommendation.sourceAlreadyCompressed, isTrue);
+      expect(recommendation.shouldWarnUser, isTrue);
+    });
+
     test(
       'returns target bitrate extreme compression after user confirmation',
       () {
@@ -84,6 +120,7 @@ void main() {
         expect(recommendation.targetAudioBitrate, 64000);
         expect(recommendation.targetVideoBitrate, 403500);
         expect(recommendation.shouldWarnUser, isFalse);
+        expect(recommendation.estimatedOutputSizeBytes, isNull);
       },
     );
 
@@ -162,10 +199,8 @@ void main() {
         expect(recommendation.targetTotalBitrate, lessThan(100000));
         expect(recommendation.targetVideoBitrate, lessThan(60000));
         expect(recommendation.targetAudioBitrate, 24000);
-        expect(
-          recommendation.estimatedOutputSizeBytes,
-          lessThan(11 * 1024 * 1024),
-        );
+        expect(recommendation.sourceAlreadyCompressed, isTrue);
+        expect(recommendation.estimatedOutputSizeBytes, isNull);
       },
     );
   });
