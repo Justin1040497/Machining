@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:machining/application/services/compression_advisor.dart';
+import 'package:machining/application/services/source_compression_assessor.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
@@ -24,13 +25,11 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
     MediaTask task, {
     bool allowExtremeCompression = false,
   }) {
-    final analysis = task.analysisResult;
-    final bitrate = analysis?.preferredBitrate;
-    final source = bitrateSource(analysis);
-    final threshold = lowBitrateThreshold(analysis);
-    final alreadyCompressed = bitrate != null && threshold != null
-        ? bitrate < threshold
-        : false;
+    final assessment = SourceCompressionAssessor.assess(task);
+    final bitrate = assessment.effectiveVideoBitrate;
+    final source = assessment.bitrateSource;
+    final threshold = assessment.lowBitrateThreshold;
+    final alreadyCompressed = assessment.alreadyCompressed;
 
     if (task.config.compressionMode == CompressionMode.targetSize) {
       final targetSizeRecommendation = buildTargetSizeRecommendation(
@@ -63,22 +62,23 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
       );
     }
 
-    final normalTargetAudioBitrate = calculateNormalTargetAudioBitrate(task);
-    final normalTargetTotalBitrate = calculateNormalEstimatedTargetTotalBitrate(
-      task: task,
-      sourceBitrate: bitrate,
-      targetAudioBitrate: normalTargetAudioBitrate,
-    );
-    final normalTargetVideoBitrate = calculateTargetVideoBitrate(
-      targetTotalBitrate: normalTargetTotalBitrate,
-      targetAudioBitrate: normalTargetAudioBitrate,
-    );
-    final normalEstimatedOutputSizeBytes = calculateEstimatedOutputSizeBytes(
-      task: task,
-      targetTotalBitrate: normalTargetTotalBitrate,
-    );
-
     if (!alreadyCompressed) {
+      final normalTargetAudioBitrate = calculateNormalTargetAudioBitrate(task);
+      final normalTargetTotalBitrate =
+          calculateNormalEstimatedTargetTotalBitrate(
+            task: task,
+            sourceBitrate: bitrate,
+            targetAudioBitrate: normalTargetAudioBitrate,
+          );
+      final normalTargetVideoBitrate = calculateTargetVideoBitrate(
+        targetTotalBitrate: normalTargetTotalBitrate,
+        targetAudioBitrate: normalTargetAudioBitrate,
+      );
+      final normalEstimatedOutputSizeBytes = calculateEstimatedOutputSizeBytes(
+        task: task,
+        targetTotalBitrate: normalTargetTotalBitrate,
+      );
+
       return CompressionRecommendation(
         profile: CompressionProfile.normal,
         sourceAlreadyCompressed: false,
@@ -113,10 +113,7 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
         targetTotalBitrate: targetTotalBitrate,
         targetVideoBitrate: targetVideoBitrate,
         targetAudioBitrate: targetAudioBitrate,
-        estimatedOutputSizeBytes: calculateEstimatedOutputSizeBytes(
-          task: task,
-          targetTotalBitrate: targetTotalBitrate,
-        ),
+        estimatedOutputSizeBytes: null,
         bitrate: bitrate,
         lowBitrateThreshold: threshold,
         bitrateSource: source,
@@ -140,10 +137,7 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
       targetTotalBitrate: targetTotalBitrate,
       targetVideoBitrate: targetVideoBitrate,
       targetAudioBitrate: targetAudioBitrate,
-      estimatedOutputSizeBytes: calculateEstimatedOutputSizeBytes(
-        task: task,
-        targetTotalBitrate: targetTotalBitrate,
-      ),
+      estimatedOutputSizeBytes: null,
       bitrate: bitrate,
       lowBitrateThreshold: threshold,
       bitrateSource: source,
@@ -193,10 +187,12 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
       targetTotalBitrate: targetTotalBitrate,
       targetVideoBitrate: targetVideoBitrate,
       targetAudioBitrate: targetAudioBitrate,
-      estimatedOutputSizeBytes: calculateEstimatedOutputSizeBytes(
-        task: task,
-        targetTotalBitrate: targetTotalBitrate,
-      ),
+      estimatedOutputSizeBytes: sourceAlreadyCompressed
+          ? null
+          : calculateEstimatedOutputSizeBytes(
+              task: task,
+              targetTotalBitrate: targetTotalBitrate,
+            ),
       bitrate: bitrate,
       lowBitrateThreshold: lowBitrateThreshold,
       bitrateSource: bitrateSource,
@@ -438,39 +434,10 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
   }
 
   CompressionBitrateSource bitrateSource(MediaAnalysisResult? analysis) {
-    if (analysis == null) {
-      return CompressionBitrateSource.unknown;
-    }
-
-    if (analysis.videoBitrate != null) {
-      return CompressionBitrateSource.videoStream;
-    }
-
-    if (analysis.containerBitrate != null) {
-      return CompressionBitrateSource.container;
-    }
-
-    if (analysis.estimatedBitrate != null) {
-      return CompressionBitrateSource.estimated;
-    }
-
-    return CompressionBitrateSource.unknown;
+    return SourceCompressionAssessor.bitrateSource(analysis);
   }
 
   int? lowBitrateThreshold(MediaAnalysisResult? analysis) {
-    final height = analysis?.videoHeight;
-    if (height == null || height <= 0) {
-      return null;
-    }
-
-    if (height >= 1080) {
-      return 1500000;
-    }
-
-    if (height >= 720) {
-      return 800000;
-    }
-
-    return 500000;
+    return SourceCompressionAssessor.lowBitrateThreshold(analysis);
   }
 }
