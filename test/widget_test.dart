@@ -36,7 +36,6 @@ void main() {
             selectedResolutionPreset: ResolutionPreset.original,
             selectedCompressionMode: CompressionMode.smart,
             selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeBytes: null,
             selectedTargetSizeRatio: 0.6,
             availableEncoderBackends: const [EncoderBackend.auto],
             onClose: () {},
@@ -88,7 +87,6 @@ void main() {
             selectedResolutionPreset: ResolutionPreset.original,
             selectedCompressionMode: CompressionMode.targetSize,
             selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeBytes: 60 * 1024 * 1024,
             selectedTargetSizeRatio: 0.6,
             availableEncoderBackends: const [EncoderBackend.auto],
             onClose: () {},
@@ -115,6 +113,104 @@ void main() {
     slider.onChanged?.call(8);
 
     expect(ratioChanges, [0.9]);
+  });
+
+  testWidgets('already compressed source shows no estimated size text', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: testTask(
+              analysisResult: MediaAnalysisResult(
+                durationMs: 60000,
+                videoWidth: 3840,
+                videoHeight: 2160,
+                videoCodec: 'hevc',
+                videoBitrate: 3000000,
+                audioBitrate: 128000,
+              ),
+            ),
+            thumbnail: null,
+            selectedQualityIndex: 4,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.smart,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.6,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.textContaining('约'), findsNothing);
+    expect(find.text('文件已压缩，不保证更小'), findsWidgets);
+  });
+
+  testWidgets('already compressed target size mode hides target bytes', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: testTask(
+              config: VideoTaskConfig.initial().copyWith(
+                compressionMode: CompressionMode.targetSize,
+                targetSizeRatio: 0.4,
+              ),
+              analysisResult: MediaAnalysisResult(
+                durationMs: 60000,
+                videoWidth: 3840,
+                videoHeight: 2160,
+                videoCodec: 'hevc',
+                videoBitrate: 3000000,
+                audioBitrate: 128000,
+              ),
+            ),
+            thumbnail: null,
+            selectedQualityIndex: 3,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.targetSize,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.4,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('文件已压缩，不保证更小'), findsOneWidget);
+    expect(find.textContaining('压缩至'), findsNothing);
   });
 
   testWidgets('missing source task action relinks instead of retrying', (
@@ -150,7 +246,11 @@ void main() {
   });
 }
 
-MediaTask testTask({VideoTaskConfig? config, TaskStatus? status}) {
+MediaTask testTask({
+  VideoTaskConfig? config,
+  TaskStatus? status,
+  MediaAnalysisResult? analysisResult,
+}) {
   return MediaTask(
     id: 'task-1',
     inputPath: '/videos/source.mp4',
@@ -166,13 +266,15 @@ MediaTask testTask({VideoTaskConfig? config, TaskStatus? status}) {
       fileSize: 100 * 1024 * 1024,
       lastModifiedAt: 1,
     ),
-    analysisResult: MediaAnalysisResult(
-      durationMs: 60000,
-      videoWidth: 3840,
-      videoHeight: 2160,
-      videoCodec: 'h264',
-      videoBitrate: 12000000,
-      audioBitrate: 128000,
-    ),
+    analysisResult:
+        analysisResult ??
+        MediaAnalysisResult(
+          durationMs: 60000,
+          videoWidth: 3840,
+          videoHeight: 2160,
+          videoCodec: 'h264',
+          videoBitrate: 12000000,
+          audioBitrate: 128000,
+        ),
   );
 }

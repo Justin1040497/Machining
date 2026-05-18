@@ -62,22 +62,23 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
       );
     }
 
-    final normalTargetAudioBitrate = calculateNormalTargetAudioBitrate(task);
-    final normalTargetTotalBitrate = calculateNormalEstimatedTargetTotalBitrate(
-      task: task,
-      sourceBitrate: bitrate,
-      targetAudioBitrate: normalTargetAudioBitrate,
-    );
-    final normalTargetVideoBitrate = calculateTargetVideoBitrate(
-      targetTotalBitrate: normalTargetTotalBitrate,
-      targetAudioBitrate: normalTargetAudioBitrate,
-    );
-    final normalEstimatedOutputSizeBytes = calculateEstimatedOutputSizeBytes(
-      task: task,
-      targetTotalBitrate: normalTargetTotalBitrate,
-    );
-
     if (!alreadyCompressed) {
+      final normalTargetAudioBitrate = calculateNormalTargetAudioBitrate(task);
+      final normalTargetTotalBitrate =
+          calculateNormalEstimatedTargetTotalBitrate(
+            task: task,
+            sourceBitrate: bitrate,
+            targetAudioBitrate: normalTargetAudioBitrate,
+          );
+      final normalTargetVideoBitrate = calculateTargetVideoBitrate(
+        targetTotalBitrate: normalTargetTotalBitrate,
+        targetAudioBitrate: normalTargetAudioBitrate,
+      );
+      final normalEstimatedOutputSizeBytes = calculateEstimatedOutputSizeBytes(
+        task: task,
+        targetTotalBitrate: normalTargetTotalBitrate,
+      );
+
       return CompressionRecommendation(
         profile: CompressionProfile.normal,
         sourceAlreadyCompressed: false,

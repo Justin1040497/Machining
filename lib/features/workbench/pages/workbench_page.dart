@@ -525,10 +525,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     var draftCompressionMode = selectedCompressionMode;
     var draftSmartPreset = selectedSmartPreset;
     var draftTargetSizeRatio = initialTargetSizeRatioForTask(task);
-    var draftTargetSizeBytes = targetSizeBytesForTargetRatio(
-      task,
-      draftTargetSizeRatio,
-    );
 
     Future<void> saveDraftAndClose(BuildContext dialogContext) async {
       final isTargetSize = draftCompressionMode == CompressionMode.targetSize;
@@ -603,7 +599,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               selectedResolutionPreset: draftResolutionPreset,
               selectedCompressionMode: draftCompressionMode,
               selectedSmartPreset: draftSmartPreset,
-              selectedTargetSizeBytes: draftTargetSizeBytes,
               selectedTargetSizeRatio: draftTargetSizeRatio,
               availableEncoderBackends: availableEncoderBackends(
                 videoCodec: draftVideoCodec,
@@ -624,10 +619,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                   draftTargetSizeRatio = normalizeTargetSizeRatio(
                     draftTargetSizeRatio,
                   );
-                  draftTargetSizeBytes = targetSizeBytesForTargetRatio(
-                    task,
-                    draftTargetSizeRatio,
-                  );
                 });
               },
               onSmartPresetChanged: (value) {
@@ -638,10 +629,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               onTargetSizeRatioChanged: (value) {
                 updateDialogState(() {
                   draftTargetSizeRatio = normalizeTargetSizeRatio(value);
-                  draftTargetSizeBytes = targetSizeBytesForTargetRatio(
-                    task,
-                    draftTargetSizeRatio,
-                  );
                   draftQualityIndex = qualityIndexForTargetSizeRatio(
                     draftTargetSizeRatio,
                   );
@@ -1756,6 +1743,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     if (task.config.compressionMode == CompressionMode.targetSize) {
       final targetSizeRatio = initialTargetSizeRatioForTask(task);
       final percent = (targetSizeRatio * 100).round();
+      if (isSourceAlreadyCompressed(task)) {
+        return '文件已压缩，不保证更小';
+      }
+
       final targetSizeBytes =
           task.config.targetSizeBytes ??
           targetSizeBytesForTargetRatio(task, targetSizeRatio);

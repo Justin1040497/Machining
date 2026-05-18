@@ -21,6 +21,47 @@ void main() {
               )
               .withSourceFileFingerprint(
                 const SourceFileFingerprint(
+                  fileSize: 90 * 1024 * 1024,
+                  lastModifiedAt: 1,
+                ),
+              )
+              .withAnalysisResult(
+                MediaAnalysisResult(
+                  durationMs: 1125000,
+                  videoWidth: 1920,
+                  videoHeight: 1080,
+                  videoCodec: 'h264',
+                  videoBitrate: 4000000,
+                  audioCodec: 'aac',
+                  audioBitrate: 118000,
+                ),
+              );
+
+      final estimate = estimator.estimateSmartPreset(
+        task: task,
+        preset: SmartCompressionPreset.compact,
+        targetCodec: VideoCodec.hevc,
+        targetResolutionPreset: ResolutionPreset.p720,
+      );
+
+      expect(estimate, isNotNull);
+      expect(estimate!.expectedBytes, greaterThan(8 * 1024 * 1024));
+      expect(estimate.expectedBytes, lessThan(18 * 1024 * 1024));
+      expect(estimate.lowerBytes, lessThan(estimate.expectedBytes));
+      expect(estimate.upperBytes, greaterThan(estimate.expectedBytes));
+    });
+
+    test('does not estimate output size for already compressed source', () {
+      const estimator = DefaultCompressionEstimator();
+      final task =
+          MediaTask.draft(
+                inputPath: '/videos/source.mp4',
+                fileName: 'source.mp4',
+                mediaKind: MediaKind.video,
+                sortOrder: 0,
+              )
+              .withSourceFileFingerprint(
+                const SourceFileFingerprint(
                   fileSize: 105 * 1024 * 1024,
                   lastModifiedAt: 1,
                 ),
@@ -44,11 +85,7 @@ void main() {
         targetResolutionPreset: ResolutionPreset.p720,
       );
 
-      expect(estimate, isNotNull);
-      expect(estimate!.expectedBytes, greaterThan(8 * 1024 * 1024));
-      expect(estimate.expectedBytes, lessThan(18 * 1024 * 1024));
-      expect(estimate.lowerBytes, lessThan(estimate.expectedBytes));
-      expect(estimate.upperBytes, greaterThan(estimate.expectedBytes));
+      expect(estimate, isNull);
     });
 
     test(

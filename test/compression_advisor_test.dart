@@ -120,6 +120,7 @@ void main() {
         expect(recommendation.targetAudioBitrate, 64000);
         expect(recommendation.targetVideoBitrate, 403500);
         expect(recommendation.shouldWarnUser, isFalse);
+        expect(recommendation.estimatedOutputSizeBytes, isNull);
       },
     );
 
