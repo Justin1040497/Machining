@@ -172,13 +172,12 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                                     newIndex: newIndex,
                                   );
                             },
-                            onOpenTask: (task) {
-                              unawaited(showTaskConfigurationDialog(task));
-                            },
+                            onOpenTask: openTask,
                             onStart: startOrResumeTask,
                             onPause: pauseTask,
                             onRemove: deleteTask,
                             onRetry: retryTask,
+                            onRelink: relinkMissingSource,
                             onContextMenu: (task, position) {
                               unawaited(showTaskContextMenu(task, position));
                             },
@@ -525,28 +524,25 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     var draftResolutionPreset = selectedResolutionPreset;
     var draftCompressionMode = selectedCompressionMode;
     var draftSmartPreset = selectedSmartPreset;
-    var draftTargetSizeBytes =
-        task.config.targetSizeBytes ??
-        targetSizeBytesForQualityOption(
-          task,
-          WorkbenchConstants.qualityOptions[draftQualityIndex],
-        );
+    var draftTargetSizeRatio = initialTargetSizeRatioForTask(task);
+    var draftTargetSizeBytes = targetSizeBytesForTargetRatio(
+      task,
+      draftTargetSizeRatio,
+    );
 
     Future<void> saveDraftAndClose(BuildContext dialogContext) async {
-      final qualityOption =
-          WorkbenchConstants.qualityOptions[draftQualityIndex];
       final isTargetSize = draftCompressionMode == CompressionMode.targetSize;
-      if (isTargetSize &&
-          (draftTargetSizeBytes == null || draftTargetSizeBytes! <= 0)) {
-        showWorkbenchSnackBar('请输入有效目标大小');
-        return;
-      }
-
-      final targetSizeRatio = targetSizeRatioForBytes(
-        task: task,
-        targetSizeBytes: draftTargetSizeBytes,
-        fallbackRatio: qualityOption.targetRatio,
+      final targetSizeRatio = normalizeTargetSizeRatio(draftTargetSizeRatio);
+      final qualityOption = isTargetSize
+          ? WorkbenchConstants.qualityOptions[qualityIndexForTargetSizeRatio(
+              targetSizeRatio,
+            )]
+          : WorkbenchConstants.qualityOptions[draftQualityIndex];
+      final targetSizeBytes = targetSizeBytesForTargetRatio(
+        task,
+        targetSizeRatio,
       );
+
       try {
         await updateSelectedTaskConfig(
           outputFormat: draftOutputFormat,
@@ -558,7 +554,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               ? CompressionMode.targetSize
               : CompressionMode.smart,
           smartPreset: isTargetSize ? null : draftSmartPreset,
-          targetSizeBytes: isTargetSize ? draftTargetSizeBytes : null,
+          targetSizeBytes: isTargetSize ? targetSizeBytes : null,
           targetSizeRatio: isTargetSize ? targetSizeRatio : null,
         );
 
@@ -567,7 +563,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         }
 
         setState(() {
-          selectedQualityIndex = draftQualityIndex;
+          selectedQualityIndex = isTargetSize
+              ? qualityIndexForTargetSizeRatio(targetSizeRatio)
+              : draftQualityIndex;
           selectedOutputFormat = draftOutputFormat;
           selectedVideoCodec = draftVideoCodec;
           selectedEncoderBackend = draftEncoderBackend;
@@ -606,6 +604,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               selectedCompressionMode: draftCompressionMode,
               selectedSmartPreset: draftSmartPreset,
               selectedTargetSizeBytes: draftTargetSizeBytes,
+              selectedTargetSizeRatio: draftTargetSizeRatio,
               availableEncoderBackends: availableEncoderBackends(
                 videoCodec: draftVideoCodec,
                 selectedBackend: draftEncoderBackend,
@@ -622,9 +621,12 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                   draftCompressionMode = value == CompressionMode.targetSize
                       ? CompressionMode.targetSize
                       : CompressionMode.smart;
-                  draftTargetSizeBytes ??= targetSizeBytesForQualityOption(
+                  draftTargetSizeRatio = normalizeTargetSizeRatio(
+                    draftTargetSizeRatio,
+                  );
+                  draftTargetSizeBytes = targetSizeBytesForTargetRatio(
                     task,
-                    WorkbenchConstants.qualityOptions[draftQualityIndex],
+                    draftTargetSizeRatio,
                   );
                 });
               },
@@ -633,9 +635,16 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                   draftSmartPreset = value;
                 });
               },
-              onTargetSizeBytesChanged: (value) {
+              onTargetSizeRatioChanged: (value) {
                 updateDialogState(() {
-                  draftTargetSizeBytes = value;
+                  draftTargetSizeRatio = normalizeTargetSizeRatio(value);
+                  draftTargetSizeBytes = targetSizeBytesForTargetRatio(
+                    task,
+                    draftTargetSizeRatio,
+                  );
+                  draftQualityIndex = qualityIndexForTargetSizeRatio(
+                    draftTargetSizeRatio,
+                  );
                 });
               },
               onQualityChanged: (index) {
@@ -676,6 +685,15 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         );
       },
     );
+  }
+
+  void openTask(MediaTask task) {
+    if (task.status == TaskStatus.missingSource) {
+      unawaited(relinkMissingSource(task));
+      return;
+    }
+
+    unawaited(showTaskConfigurationDialog(task));
   }
 
   Future<void> handlePrimaryQueueAction(bool hasRunningTask) async {
@@ -870,6 +888,18 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
+  Future<XFile?> openVideoFile() async {
+    try {
+      return await openFile(
+        acceptedTypeGroups: [WorkbenchConstants.videoTypeGroup],
+      );
+    } on ArgumentError {
+      return openFile();
+    } on UnimplementedError {
+      return openFile();
+    }
+  }
+
   Future<void> confirmClearTasks() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -918,6 +948,34 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
+  Future<void> relinkMissingSource(MediaTask task) async {
+    final file = await openVideoFile();
+    final newInputPath = file?.path.trim();
+    if (newInputPath == null || newInputPath.isEmpty) {
+      return;
+    }
+
+    try {
+      await ref
+          .read(mediaTaskListProvider.notifier)
+          .replaceMissingSource(taskId: task.id, newInputPath: newInputPath);
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        selectedTaskId = task.id;
+        syncedConfigTaskId = null;
+        syncedQualityTaskKey = null;
+        previewFrameResult = null;
+        selectedPreviewFrameIndex = 0;
+      });
+      showWorkbenchSnackBar('源文件已重新链接');
+    } on Object catch (error) {
+      showWorkbenchSnackBar(error.toString());
+    }
+  }
+
   Future<void> showTaskContextMenu(
     MediaTask task,
     Offset globalPosition,
@@ -930,16 +988,24 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         globalPosition.dx,
         globalPosition.dy,
       ),
-      items: const [
-        PopupMenuItem(
+      items: [
+        if (task.status == TaskStatus.missingSource)
+          const PopupMenuItem(
+            value: TaskContextMenuAction.relinkSource,
+            child: Text('重新链接源文件'),
+          ),
+        const PopupMenuItem(
           value: TaskContextMenuAction.revealInFileManager,
           child: Text('打开文件所在位置'),
         ),
-        PopupMenuItem(
+        const PopupMenuItem(
           value: TaskContextMenuAction.rename,
           child: Text('任务重命名'),
         ),
-        PopupMenuItem(value: TaskContextMenuAction.delete, child: Text('删除任务')),
+        const PopupMenuItem(
+          value: TaskContextMenuAction.delete,
+          child: Text('删除任务'),
+        ),
       ],
     );
 
@@ -950,6 +1016,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     switch (selectedAction) {
       case TaskContextMenuAction.revealInFileManager:
         await revealTaskInFileManager(task);
+      case TaskContextMenuAction.relinkSource:
+        await relinkMissingSource(task);
       case TaskContextMenuAction.rename:
         await renameTask(task);
       case TaskContextMenuAction.delete:
@@ -1553,20 +1621,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     required int? targetSizeBytes,
     required double? targetSizeRatio,
   }) {
-    final sourceSize = task.sourceFileFingerprint?.fileSize;
-    if (sourceSize != null &&
-        sourceSize > 0 &&
-        targetSizeBytes != null &&
-        targetSizeBytes > 0) {
-      return qualityIndexForTargetSizeRatio(targetSizeBytes / sourceSize);
-    }
-
-    return qualityIndexForTargetSizeRatio(targetSizeRatio);
+    return qualityIndexForTargetSizeRatio(
+      targetSizeRatioFromTask(
+        task: task,
+        targetSizeBytes: targetSizeBytes,
+        targetSizeRatio: targetSizeRatio,
+      ),
+    );
   }
 
   int qualityIndexForTargetSizeRatio(double? targetSizeRatio) {
     if (targetSizeRatio == null || targetSizeRatio <= 0) {
-      return 4;
+      return qualityIndexForTargetSizeRatio(
+        WorkbenchConstants.defaultTargetSizeRatio,
+      );
     }
 
     var nearestIndex = 0;
@@ -1585,6 +1653,54 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     return nearestIndex;
+  }
+
+  double initialTargetSizeRatioForTask(MediaTask task) {
+    return normalizeTargetSizeRatio(
+      targetSizeRatioFromTask(
+        task: task,
+        targetSizeBytes: task.config.targetSizeBytes,
+        targetSizeRatio: task.config.targetSizeRatio,
+      ),
+    );
+  }
+
+  double? targetSizeRatioFromTask({
+    required MediaTask task,
+    required int? targetSizeBytes,
+    required double? targetSizeRatio,
+  }) {
+    if (targetSizeRatio != null && targetSizeRatio > 0) {
+      return targetSizeRatio;
+    }
+
+    final sourceSize = task.sourceFileFingerprint?.fileSize;
+    if (sourceSize != null &&
+        sourceSize > 0 &&
+        targetSizeBytes != null &&
+        targetSizeBytes > 0) {
+      return targetSizeBytes / sourceSize;
+    }
+
+    return null;
+  }
+
+  double normalizeTargetSizeRatio(double? targetSizeRatio) {
+    if (targetSizeRatio == null || targetSizeRatio <= 0) {
+      return WorkbenchConstants.defaultTargetSizeRatio;
+    }
+
+    var nearestRatio = WorkbenchConstants.defaultTargetSizeRatio;
+    var nearestDistance = double.infinity;
+    for (final ratio in WorkbenchConstants.targetSizeRatios) {
+      final distance = (ratio - targetSizeRatio).abs();
+      if (distance < nearestDistance) {
+        nearestRatio = ratio;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearestRatio;
   }
 
   int qualityIndexForSmartPreset(SmartCompressionPreset preset) {
@@ -1610,30 +1726,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     return SmartCompressionPreset.balanced;
   }
 
-  int? targetSizeBytesForQualityOption(MediaTask task, QualityOption option) {
+  int? targetSizeBytesForTargetRatio(MediaTask task, double targetSizeRatio) {
     final sourceSize = task.sourceFileFingerprint?.fileSize;
     if (sourceSize == null || sourceSize <= 0) {
       return null;
     }
 
-    return (sourceSize * option.targetRatio).round();
-  }
-
-  double? targetSizeRatioForBytes({
-    required MediaTask task,
-    required int? targetSizeBytes,
-    required double fallbackRatio,
-  }) {
-    final sourceSize = task.sourceFileFingerprint?.fileSize;
-    if (sourceSize == null || sourceSize <= 0) {
-      return fallbackRatio;
-    }
-
-    if (targetSizeBytes == null || targetSizeBytes <= 0) {
-      return fallbackRatio;
-    }
-
-    return targetSizeBytes / sourceSize;
+    return (sourceSize * targetSizeRatio).round();
   }
 
   bool isSourceAlreadyCompressed(MediaTask task) {
@@ -1647,7 +1746,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     final targetRatio =
         task.config.compressionMode == CompressionMode.targetSize
-        ? task.config.targetSizeRatio ?? selectedQualityOption.targetRatio
+        ? normalizeTargetSizeRatio(task.config.targetSizeRatio)
         : selectedQualityOption.targetRatio;
 
     return (sourceBitrate * targetRatio).round();
@@ -1655,14 +1754,16 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   String formatCompressionMode(MediaTask task) {
     if (task.config.compressionMode == CompressionMode.targetSize) {
+      final targetSizeRatio = initialTargetSizeRatioForTask(task);
+      final percent = (targetSizeRatio * 100).round();
       final targetSizeBytes =
           task.config.targetSizeBytes ??
-          targetSizeBytesForQualityOption(task, selectedQualityOption);
+          targetSizeBytesForTargetRatio(task, targetSizeRatio);
       if (targetSizeBytes != null) {
-        return '目标体积 ${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
+        return '压缩至 $percent% / ${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
       }
 
-      return '目标体积';
+      return '压缩至 $percent%';
     }
 
     final smartPreset = task.config.smartPreset ?? selectedSmartPreset;

@@ -7,6 +7,7 @@ import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
+import 'package:machining/features/workbench/pages/workbench_page/constants.dart';
 import 'package:machining/features/workbench/pages/workbench_page/formatters.dart';
 import 'package:machining/features/workbench/pages/workbench_page/video_config_panel.dart';
 
@@ -23,13 +24,14 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.selectedCompressionMode,
     required this.selectedSmartPreset,
     required this.selectedTargetSizeBytes,
+    required this.selectedTargetSizeRatio,
     required this.availableEncoderBackends,
     required this.onClose,
     required this.onOpenSource,
     required this.onSave,
     required this.onCompressionModeChanged,
     required this.onSmartPresetChanged,
-    required this.onTargetSizeBytesChanged,
+    required this.onTargetSizeRatioChanged,
     required this.onQualityChanged,
     required this.onOutputFormatChanged,
     required this.onVideoCodecChanged,
@@ -47,13 +49,14 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final CompressionMode selectedCompressionMode;
   final SmartCompressionPreset selectedSmartPreset;
   final int? selectedTargetSizeBytes;
+  final double selectedTargetSizeRatio;
   final List<EncoderBackend> availableEncoderBackends;
   final VoidCallback onClose;
   final VoidCallback onOpenSource;
   final VoidCallback onSave;
   final ValueChanged<CompressionMode> onCompressionModeChanged;
   final ValueChanged<SmartCompressionPreset> onSmartPresetChanged;
-  final ValueChanged<int?> onTargetSizeBytesChanged;
+  final ValueChanged<double> onTargetSizeRatioChanged;
   final ValueChanged<int> onQualityChanged;
   final ValueChanged<OutputFormat> onOutputFormatChanged;
   final ValueChanged<VideoCodec> onVideoCodecChanged;
@@ -68,8 +71,6 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
 class _WorkbenchTaskConfigurationDialogState
     extends State<WorkbenchTaskConfigurationDialog> {
   late CompressionMode _mode;
-  late final TextEditingController _targetSizeController;
-  late final FocusNode _targetSizeFocusNode;
   String? _activePresetTitle;
   bool _presetEdited = false;
 
@@ -103,34 +104,12 @@ class _WorkbenchTaskConfigurationDialogState
   @override
   void initState() {
     super.initState();
-    _targetSizeController = TextEditingController(
-      text: _targetSizeInputText(widget.selectedTargetSizeBytes),
-    );
-    _targetSizeFocusNode = FocusNode();
     _mode = widget.selectedCompressionMode == CompressionMode.targetSize
         ? CompressionMode.targetSize
         : CompressionMode.smart;
     _activePresetTitle = _presetForSmartPreset(
       widget.selectedSmartPreset,
     ).title;
-  }
-
-  @override
-  void didUpdateWidget(covariant WorkbenchTaskConfigurationDialog oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.selectedTargetSizeBytes != widget.selectedTargetSizeBytes &&
-        !_targetSizeFocusNode.hasFocus) {
-      _targetSizeController.text = _targetSizeInputText(
-        widget.selectedTargetSizeBytes,
-      );
-    }
-  }
-
-  @override
-  void dispose() {
-    _targetSizeController.dispose();
-    _targetSizeFocusNode.dispose();
-    super.dispose();
   }
 
   _CompressionPreset _presetForSmartPreset(SmartCompressionPreset smartPreset) {
@@ -198,8 +177,8 @@ class _WorkbenchTaskConfigurationDialogState
                   activePresetTitle: _activePresetTitle,
                   presetEdited: _presetEdited,
                   badgeText: _targetSizeBadgeText(),
-                  targetSizeController: _targetSizeController,
-                  targetSizeFocusNode: _targetSizeFocusNode,
+                  selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
+                  selectedTargetSizeBytes: widget.selectedTargetSizeBytes,
                   estimatedSizeForPreset: _estimatedOutputSizeForPreset,
                   onModeChanged: (mode) {
                     setState(() {
@@ -208,11 +187,7 @@ class _WorkbenchTaskConfigurationDialogState
                     widget.onCompressionModeChanged(mode);
                   },
                   onPresetSelected: _applyPreset,
-                  onTargetSizeChanged: (value) {
-                    widget.onTargetSizeBytesChanged(
-                      _parseTargetSizeBytes(value),
-                    );
-                  },
+                  onTargetSizeRatioChanged: widget.onTargetSizeRatioChanged,
                 ),
                 const SizedBox(height: 14),
                 WorkbenchVideoConfigPanel(
@@ -257,23 +232,20 @@ class _WorkbenchTaskConfigurationDialogState
   }
 
   String _targetSizeBadgeText() {
+    final percent = (widget.selectedTargetSizeRatio * 100).round();
     final targetSizeBytes = widget.selectedTargetSizeBytes;
     if (targetSizeBytes == null || targetSizeBytes <= 0) {
-      return '目标体积 -';
+      return '压缩至 $percent%';
     }
 
-    final sourceSize = widget.task.sourceFileFingerprint?.fileSize;
-    if (sourceSize == null || sourceSize <= 0) {
-      return '目标 ${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
-    }
-
-    final compressionPercent = ((1 - targetSizeBytes / sourceSize) * 100)
-        .clamp(0, 99)
-        .round();
-    return '压缩 $compressionPercent% > ${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
+    return '压缩至${WorkbenchFormatters.formatBytes(targetSizeBytes)}';
   }
 
   String _estimatedOutputSizeForPreset(_CompressionPreset preset) {
+    if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
+      return '已压缩';
+    }
+
     final estimate = const DefaultCompressionEstimator().estimateSmartPreset(
       task: widget.task,
       preset: preset.smartPreset,
@@ -297,26 +269,6 @@ class _WorkbenchTaskConfigurationDialogState
     }
 
     return value.label.replaceAll('x', ' * ');
-  }
-
-  String _targetSizeInputText(int? bytes) {
-    if (bytes == null || bytes <= 0) {
-      return '';
-    }
-
-    final value = bytes / (1024 * 1024);
-    return value >= 10 && value.roundToDouble() == value
-        ? value.toStringAsFixed(0)
-        : value.toStringAsFixed(1);
-  }
-
-  int? _parseTargetSizeBytes(String value) {
-    final megabytes = double.tryParse(value.trim().replaceAll(',', '.'));
-    if (megabytes == null || megabytes <= 0) {
-      return null;
-    }
-
-    return (megabytes * 1024 * 1024).round();
   }
 }
 
@@ -346,12 +298,12 @@ class _CompressionOptionsSection extends StatelessWidget {
     required this.activePresetTitle,
     required this.presetEdited,
     required this.badgeText,
-    required this.targetSizeController,
-    required this.targetSizeFocusNode,
+    required this.selectedTargetSizeRatio,
+    required this.selectedTargetSizeBytes,
     required this.estimatedSizeForPreset,
     required this.onModeChanged,
     required this.onPresetSelected,
-    required this.onTargetSizeChanged,
+    required this.onTargetSizeRatioChanged,
   });
 
   final CompressionMode mode;
@@ -360,12 +312,12 @@ class _CompressionOptionsSection extends StatelessWidget {
   final String? activePresetTitle;
   final bool presetEdited;
   final String badgeText;
-  final TextEditingController targetSizeController;
-  final FocusNode targetSizeFocusNode;
+  final double selectedTargetSizeRatio;
+  final int? selectedTargetSizeBytes;
   final String Function(_CompressionPreset preset) estimatedSizeForPreset;
   final ValueChanged<CompressionMode> onModeChanged;
   final ValueChanged<_CompressionPreset> onPresetSelected;
-  final ValueChanged<String> onTargetSizeChanged;
+  final ValueChanged<double> onTargetSizeRatioChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -389,10 +341,10 @@ class _CompressionOptionsSection extends StatelessWidget {
                 )
               : _TargetSizePanel(
                   key: const ValueKey('custom-target-size'),
-                  controller: targetSizeController,
-                  focusNode: targetSizeFocusNode,
                   badgeText: badgeText,
-                  onChanged: onTargetSizeChanged,
+                  selectedRatio: selectedTargetSizeRatio,
+                  selectedTargetSizeBytes: selectedTargetSizeBytes,
+                  onChanged: onTargetSizeRatioChanged,
                 ),
         ),
       ],
@@ -403,22 +355,25 @@ class _CompressionOptionsSection extends StatelessWidget {
 class _TargetSizePanel extends StatelessWidget {
   const _TargetSizePanel({
     super.key,
-    required this.controller,
-    required this.focusNode,
     required this.badgeText,
+    required this.selectedRatio,
+    required this.selectedTargetSizeBytes,
     required this.onChanged,
   });
 
-  final TextEditingController controller;
-  final FocusNode focusNode;
   final String badgeText;
-  final ValueChanged<String> onChanged;
+  final double selectedRatio;
+  final int? selectedTargetSizeBytes;
+  final ValueChanged<double> onChanged;
 
   @override
   Widget build(BuildContext context) {
+    final ratios = WorkbenchConstants.targetSizeRatios;
+    final selectedIndex = _indexForRatio(selectedRatio);
+    final selectedPercent = (ratios[selectedIndex] * 100).round();
+
     return Container(
-      height: 72,
-      padding: const EdgeInsets.fromLTRB(10, 9, 10, 9),
+      padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -429,7 +384,7 @@ class _TargetSizePanel extends StatelessWidget {
           Row(
             children: [
               const Text(
-                '目标大小',
+                '目标体积',
                 style: TextStyle(
                   color: Color(0xFF111111),
                   fontSize: 12,
@@ -451,67 +406,83 @@ class _TargetSizePanel extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 9),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 28,
-                  child: TextField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    onChanged: onChanged,
-                    style: const TextStyle(
-                      color: Color(0xFF111111),
-                      fontSize: 13,
-                      height: 1,
-                      fontWeight: FontWeight.w600,
-                    ),
-                    decoration: InputDecoration(
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 9,
-                        vertical: 8,
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF7F7F7),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(color: Color(0xFFE1E1E1)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(color: Color(0xFFE1E1E1)),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(7),
-                        borderSide: const BorderSide(
-                          color: Color(0xFF6290FF),
-                          width: 1.2,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              const Text(
-                'MB',
-                style: TextStyle(
-                  color: Color(0xFF777777),
-                  fontSize: 12,
-                  height: 1,
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 34,
+            child: SliderTheme(
+              data: SliderTheme.of(context).copyWith(
+                trackHeight: 14,
+                activeTrackColor: const Color(0xFF6290FF),
+                inactiveTrackColor: const Color(0xFFEDEDED),
+                thumbColor: Colors.white,
+                overlayColor: const Color(0x1A6290FF),
+                activeTickMarkColor: Colors.white,
+                inactiveTickMarkColor: const Color(0xFFCFCFCF),
+                valueIndicatorColor: const Color(0xFF315FD4),
+                valueIndicatorTextStyle: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-            ],
+              child: Slider(
+                min: 0,
+                max: (ratios.length - 1).toDouble(),
+                divisions: ratios.length - 1,
+                value: selectedIndex.toDouble(),
+                label: '$selectedPercent%',
+                onChanged: (value) {
+                  final index = value.round().clamp(0, ratios.length - 1);
+                  onChanged(ratios[index]);
+                },
+              ),
+            ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (final ratio in ratios)
+                  Text(
+                    '${(ratio * 100).round()}%',
+                    style: TextStyle(
+                      color: ratio == ratios[selectedIndex]
+                          ? const Color(0xFF315FD4)
+                          : const Color(0xFF9A9A9A),
+                      fontSize: 8,
+                      height: 1,
+                      fontWeight: ratio == ratios[selectedIndex]
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
         ],
       ),
     );
+  }
+
+  int _indexForRatio(double ratio) {
+    var nearestIndex = 0;
+    var nearestDistance = double.infinity;
+    for (
+      var index = 0;
+      index < WorkbenchConstants.targetSizeRatios.length;
+      index += 1
+    ) {
+      final distance = (WorkbenchConstants.targetSizeRatios[index] - ratio)
+          .abs();
+      if (distance < nearestDistance) {
+        nearestIndex = index;
+        nearestDistance = distance;
+      }
+    }
+
+    return nearestIndex;
   }
 }
 

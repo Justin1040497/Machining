@@ -11,6 +11,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
   final VoidCallback? onStart;
   final VoidCallback? onPause;
   final VoidCallback? onRetry;
+  final VoidCallback? onRelink;
   final VoidCallback? onRemove;
   final GestureTapDownCallback? onSecondaryTapDown;
 
@@ -24,6 +25,7 @@ class WorkbenchTaskListItem extends StatelessWidget {
     this.onStart,
     this.onPause,
     this.onRetry,
+    this.onRelink,
     this.onRemove,
     this.onSecondaryTapDown,
   });
@@ -149,6 +151,11 @@ class WorkbenchTaskListItem extends StatelessWidget {
         tooltip: '继续任务',
         icon: Icons.play_arrow_rounded,
         onPressed: onStart,
+      ),
+      TaskStatus.missingSource => TaskAction(
+        tooltip: '重新链接源文件',
+        icon: Icons.link_rounded,
+        onPressed: onRelink,
       ),
       _ => TaskAction(
         tooltip: '重试任务',

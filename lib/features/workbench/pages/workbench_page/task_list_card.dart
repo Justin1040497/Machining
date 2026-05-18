@@ -18,6 +18,7 @@ class WorkbenchTaskListCard extends StatelessWidget {
     required this.onPause,
     required this.onRemove,
     required this.onRetry,
+    required this.onRelink,
     required this.onContextMenu,
   });
 
@@ -30,6 +31,7 @@ class WorkbenchTaskListCard extends StatelessWidget {
   final ValueChanged<MediaTask> onPause;
   final ValueChanged<MediaTask> onRemove;
   final ValueChanged<MediaTask> onRetry;
+  final ValueChanged<MediaTask> onRelink;
   final WorkbenchTaskPositionCallback onContextMenu;
 
   @override
@@ -79,6 +81,7 @@ class WorkbenchTaskListCard extends StatelessWidget {
             onPause: () => onPause(task),
             onRemove: () => onRemove(task),
             onRetry: () => onRetry(task),
+            onRelink: () => onRelink(task),
             onSecondaryTapDown: (details) {
               onContextMenu(task, details.globalPosition);
             },
