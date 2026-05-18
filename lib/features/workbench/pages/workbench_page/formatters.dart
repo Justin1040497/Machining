@@ -1,4 +1,5 @@
 import 'package:machining/domain/entities/media_task.dart';
+import 'package:machining/application/services/source_compression_assessor.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
@@ -104,29 +105,11 @@ abstract final class WorkbenchFormatters {
   }
 
   static bool isSourceAlreadyCompressed(MediaTask task) {
-    final analysis = task.analysisResult;
-    final bitrate = analysis?.preferredBitrate;
-    final threshold = lowBitrateThreshold(analysis);
-    if (bitrate == null || threshold == null) {
-      return false;
-    }
-
-    return bitrate < threshold;
+    return SourceCompressionAssessor.assess(task).alreadyCompressed;
   }
 
   static int? lowBitrateThreshold(MediaAnalysisResult? analysis) {
-    final height = analysis?.videoHeight;
-    if (height == null || height <= 0) {
-      return null;
-    }
-
-    if (height >= 1080) {
-      return 1500000;
-    }
-    if (height >= 720) {
-      return 800000;
-    }
-    return 500000;
+    return SourceCompressionAssessor.lowBitrateThreshold(analysis);
   }
 
   static String formatBytes(int? bytes) {

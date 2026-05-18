@@ -35,9 +35,13 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     for (final task in tasks) {
       final exists = await sourceFileChecker.exists(task.inputPath);
 
-      if (!exists && task.status != TaskStatus.missingSource) {
-        checkedTasks.add(task.markMissingSource());
-        hasChanged = true;
+      if (!exists) {
+        if (task.status == TaskStatus.missingSource) {
+          checkedTasks.add(task);
+        } else {
+          checkedTasks.add(task.markMissingSource());
+          hasChanged = true;
+        }
         continue;
       }
 
@@ -151,6 +155,10 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final task = findTaskById(tasks, taskId);
     final mediaKind = resolver.resolve(newInputPath);
     ensureSupportedMediaKind(mediaKind);
+    if (!await ref.read(sourceFileCheckerProvider).exists(newInputPath)) {
+      throw StateError('源文件不存在: $newInputPath');
+    }
+
     final fingerprint = await fingerprintReader.read(newInputPath);
 
     final updatedTask = task

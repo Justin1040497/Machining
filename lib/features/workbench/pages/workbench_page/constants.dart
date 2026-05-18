@@ -29,4 +29,18 @@ abstract final class WorkbenchConstants {
     QualityOption(label: '极小体积', crf: 31, targetRatio: 0.15),
     QualityOption(label: '最低体积', crf: 32, targetRatio: 0.10),
   ];
+
+  static const targetSizeRatios = [
+    0.10,
+    0.20,
+    0.30,
+    0.40,
+    0.50,
+    0.60,
+    0.70,
+    0.80,
+    0.90,
+  ];
+
+  static const defaultTargetSizeRatio = 0.60;
 }
