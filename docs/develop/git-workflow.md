@@ -200,7 +200,7 @@ git switch -c feature/example-name
 开发完成后本地检查：
 
 ```bash
-dart format --set-exit-if-changed .
+git ls-files '*.dart' | xargs dart format --set-exit-if-changed
 flutter analyze
 flutter test
 ```
@@ -244,10 +244,12 @@ git push -u origin feature/example-name
 必跑命令：
 
 ```bash
-dart format --set-exit-if-changed .
+git ls-files '*.dart' | xargs dart format --set-exit-if-changed
 flutter analyze
 flutter test
 ```
+
+格式检查只对当前分支中 Git 跟踪的 Dart 文件执行，避免仓库下被忽略的 `worktrees/` 目录被误格式化。
 
 合并方式建议优先使用 Squash Merge，让 `main` 历史保持清晰。
 

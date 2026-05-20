@@ -30,19 +30,31 @@ flutter test test/ffmpeg_command_builder_test.dart
 
 ```text
 test/
+  app_settings_dialog_test.dart
+  app_settings_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
+  drift_app_settings_repository_test.dart
   ffmpeg_command_builder_test.dart
   ffmpeg_encoder_capabilities_test.dart
   ffmpeg_process_observer_test.dart
   ffmpeg_task_queue_runner_test.dart
   ffprobe_media_analyzer_test.dart
+  media_task_notifier_test.dart
   preview_frame_generator_test.dart
   video_thumbnail_generator_test.dart
+  workbench_bottom_bar_test.dart
   widget_test.dart
 ```
 
 ## 自动化测试覆盖范围
+
+### 应用设置
+
+- 应用设置初始默认值、复制更新和可空路径清除。
+- Drift `settings` 行和领域模型之间的映射。
+- 应用设置弹窗的紧凑态、高级态和保存行为。
+- 底部栏设置入口和新任务默认配置应用。
 
 ### 压缩策略和体积预估
 

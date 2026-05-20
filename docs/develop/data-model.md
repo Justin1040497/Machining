@@ -14,7 +14,7 @@ Machining 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `9`，数据库文件名为 `machining.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `10`，数据库文件名为 `machining.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -34,7 +34,7 @@ lib/infrastructure/database/app_database.dart
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频和封装信息 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置和默认压缩偏好 |
-| `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，目前主要是默认视频编码 |
+| `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认智能压缩方案 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 

@@ -97,7 +97,7 @@ docs/
 `app` 保存应用外壳：
 
 - `MachiningApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
-- `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，`/settings` 仍是设置页占位。
+- `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，应用设置通过工作台弹窗打开。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
 ### domain
