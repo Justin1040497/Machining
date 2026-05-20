@@ -125,7 +125,7 @@ Windows 常用命令：
 
 ```powershell
 flutter run -d windows
-flutter build windows --release
+PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
 ```
 
 ## 核心依赖位置
