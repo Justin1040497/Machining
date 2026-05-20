@@ -6,6 +6,9 @@ class SettingsRows extends Table {
       text().named('default_output_directory').nullable()();
   TextColumn get lastSelectedOutputDirectory =>
       text().named('last_selected_output_directory').nullable()();
+  BoolColumn get saveOutputToSourceDirectory => boolean()
+      .named('save_output_to_source_directory')
+      .withDefault(const Constant(true))();
   TextColumn get customFfmpegPath =>
       text().named('custom_ffmpeg_path').nullable()();
   TextColumn get customFfprobePath =>
@@ -18,6 +21,12 @@ class SettingsRows extends Table {
   TextColumn get defaultOutputVideoCodec => text()
       .named('default_output_video_codec')
       .withDefault(const Constant('h264'))();
+  TextColumn get defaultCompressionSmartPreset => text()
+      .named('default_compression_smart_preset')
+      .withDefault(const Constant('balanced'))();
+  TextColumn get defaultOutputFileNameTemplate => text()
+      .named('default_output_file_name_template')
+      .withDefault(const Constant('datetimeOriginalCodec'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

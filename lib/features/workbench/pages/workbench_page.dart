@@ -5,6 +5,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:machining/domain/entities/app_settings.dart';
 import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
 import 'package:machining/application/services/preview_frame_generator.dart';
 import 'package:machining/application/services/video_thumbnail_generator.dart';
@@ -16,6 +17,7 @@ import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/domain/enums/video_codec.dart';
+import 'package:machining/features/workbench/pages/workbench_page/app_settings_dialog.dart';
 import 'package:machining/features/workbench/pages/workbench_page/bottom_bar.dart';
 import 'package:machining/features/workbench/pages/workbench_page/constants.dart';
 import 'package:machining/features/workbench/pages/workbench_page/drop_overlay.dart';
@@ -26,6 +28,7 @@ import 'package:machining/features/workbench/pages/workbench_page/task_configura
 import 'package:machining/features/workbench/pages/workbench_page/task_list_card.dart';
 import 'package:machining/features/workbench/pages/workbench_page/top_bar.dart';
 import 'package:machining/features/workbench/providers/media_task_notifier.dart';
+import 'package:machining/infrastructure/providers/drift_provider.dart';
 import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
 import 'package:path/path.dart' as path;
 
@@ -52,6 +55,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool saveToSourceDirectory = true;
   bool exportDirectoryDragging = false;
   bool workbenchImportDragging = false;
+  bool appSettingsDialogOpen = false;
   bool queueActionInFlight = false;
   bool previewGenerating = false;
   double previewCompareRatio = 0.5;
@@ -97,7 +101,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     return Scaffold(
       body: DropTarget(
+        enable: !appSettingsDialogOpen,
         onDragEntered: (_) {
+          if (appSettingsDialogOpen) {
+            return;
+          }
           if (!workbenchImportDragging) {
             setState(() {
               workbenchImportDragging = true;
@@ -105,13 +113,16 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           }
         },
         onDragExited: (_) {
+          if (appSettingsDialogOpen) {
+            return;
+          }
           if (workbenchImportDragging) {
             setState(() {
               workbenchImportDragging = false;
             });
           }
         },
-        onDragDone: handleWorkbenchDrop,
+        onDragDone: handleWorkbenchImportDrop,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -191,10 +202,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                             queueActionInFlight: queueActionInFlight,
                             onAddTask: pickAndAddTasks,
                             onOpenSettings: () {
-                              showWorkbenchDialog(
-                                title: '设置',
-                                message: '设置窗口内容待接入',
-                              );
+                              unawaited(showAppSettingsDialog());
                             },
                             onClearTasks: confirmClearTasks,
                             onPrimaryQueuePressed: () {
@@ -493,6 +501,87 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
+  Future<void> showAppSettingsDialog() async {
+    final settingsRepository = ref.read(appSettingsRepositoryProvider);
+
+    try {
+      final settings = await settingsRepository.loadSettings();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        appSettingsDialogOpen = true;
+        workbenchImportDragging = false;
+      });
+
+      try {
+        await showDialog<void>(
+          context: context,
+          builder: (dialogContext) {
+            return WorkbenchAppSettingsDialog(
+              initialSettings: settings,
+              fallbackDefaultDirectory: defaultExportPath,
+              onClose: () => Navigator.of(dialogContext).pop(),
+              onPickOutputDirectory: pickAppSettingsDirectory,
+              onPickFfmpegPath: pickAppSettingsExecutable,
+              onPickFfprobePath: pickAppSettingsExecutable,
+              onSave: (updatedSettings) async {
+                try {
+                  await saveAppSettings(updatedSettings);
+                  if (dialogContext.mounted) {
+                    Navigator.of(dialogContext).pop();
+                  }
+                  showWorkbenchSnackBar('设置已保存');
+                } on Object catch (error) {
+                  showWorkbenchSnackBar(error.toString());
+                }
+              },
+            );
+          },
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            appSettingsDialogOpen = false;
+            workbenchImportDragging = false;
+          });
+        }
+      }
+    } on Object catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      showWorkbenchSnackBar('设置打开失败: $error');
+    }
+  }
+
+  Future<String?> pickAppSettingsDirectory() {
+    return getDirectoryPath(confirmButtonText: '选择导出文件夹');
+  }
+
+  Future<String?> pickAppSettingsExecutable() async {
+    final file = await openFile();
+    return file?.path;
+  }
+
+  Future<void> saveAppSettings(AppSettings settings) async {
+    final locator = ref.read(ffmpegLocatorProvider);
+    final ffmpegPath = settings.customFfmpegPath?.trim();
+    final ffprobePath = settings.customFfprobePath?.trim();
+
+    if (ffmpegPath != null && ffmpegPath.isNotEmpty) {
+      await locator.validateCustomFfmpegPath(ffmpegPath);
+    }
+    if (ffprobePath != null && ffprobePath.isNotEmpty) {
+      await locator.validateCustomFfprobePath(ffprobePath);
+    }
+
+    await ref.read(appSettingsRepositoryProvider).saveSettings(settings);
+    ref.invalidate(ffmpegRuntimeProvider);
+  }
+
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     setState(() {
       selectedTaskId = task.id;
@@ -736,7 +825,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  Future<void> handleWorkbenchDrop(DropDoneDetails details) async {
+  Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
+    if (appSettingsDialogOpen) {
+      return;
+    }
+
     if (mounted) {
       setState(() {
         workbenchImportDragging = false;

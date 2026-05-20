@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:machining/application/repositories/app_settings_repository.dart';
 import 'package:machining/domain/entities/app_settings.dart';
+import 'package:machining/domain/enums/default_output_file_name_template.dart';
+import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/app_compression_settings.dart';
 import 'package:machining/infrastructure/database/app_database.dart';
@@ -47,12 +49,21 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             lastSelectedOutputDirectory: Value(
               settings.lastSelectedOutputDirectory,
             ),
+            saveOutputToSourceDirectory: Value(
+              settings.saveOutputToSourceDirectory,
+            ),
             customFfmpegPath: Value(settings.customFfmpegPath),
             customFfprobePath: Value(settings.customFfprobePath),
             showRawLog: Value(settings.showRawLog),
             showAdvancedOptions: Value(settings.showAdvancedOptions),
             defaultOutputVideoCodec: Value(
               settings.defaultOutputVideoCodec.name,
+            ),
+            defaultCompressionSmartPreset: Value(
+              settings.defaultSmartPreset.name,
+            ),
+            defaultOutputFileNameTemplate: Value(
+              settings.defaultOutputFileNameTemplate.name,
             ),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
@@ -67,6 +78,7 @@ extension SettingsRowMapper on SettingsRow {
     return AppSettings(
       defaultOutputDirectory: defaultOutputDirectory,
       lastSelectedOutputDirectory: lastSelectedOutputDirectory,
+      saveOutputToSourceDirectory: saveOutputToSourceDirectory,
       customFfmpegPath: customFfmpegPath,
       customFfprobePath: customFfprobePath,
       showRawLog: showRawLog,
@@ -76,6 +88,14 @@ extension SettingsRowMapper on SettingsRow {
           VideoCodec.values,
           defaultOutputVideoCodec,
         ),
+        defaultSmartPreset: enumValueByNameInSettings(
+          SmartCompressionPreset.values,
+          defaultCompressionSmartPreset,
+        ),
+      ),
+      defaultOutputFileNameTemplate: enumValueByNameInSettings(
+        DefaultOutputFileNameTemplate.values,
+        defaultOutputFileNameTemplate,
       ),
     );
   }
