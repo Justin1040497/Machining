@@ -14,7 +14,7 @@ GNU General Public License v3.0 or later
 SPDX-License-Identifier: GPL-3.0-or-later
 ```
 
-See LICENSE and COPYING in this repository.
+See the root LICENSE file and legal/COPYING in this repository.
 
 ## Media Runtime
 
@@ -39,7 +39,7 @@ and distributes the runtime binaries when they are included in release packages.
 
 x264 is a GPL-licensed H.264 encoder. Because Machining distributes an FFmpeg
 runtime with x264 enabled, Machining release packages should follow the GPLv3+
-source and license delivery path documented in SOURCE_OFFER.md.
+source and license delivery path documented in legal/SOURCE_OFFER.md.
 
 ## Flutter and Dart
 
@@ -84,4 +84,3 @@ dependencies may change when packages are upgraded.
 
 Application icons and other assets in this repository are part of Machining
 unless a more specific license notice appears next to the asset.
-

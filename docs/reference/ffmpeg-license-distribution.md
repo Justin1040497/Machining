@@ -22,14 +22,15 @@ Machining v1.3.0+1 采用 `GPL-3.0-or-later` 作为项目整体开源许可证�
 
 `--enable-nonfree` 未启用。
 
-根目录已经补齐基础许可文件：
+仓库已经补齐基础许可资料。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
 
 ```text
 LICENSE
-COPYING
 NOTICE
-THIRD_PARTY_NOTICES.md
-SOURCE_OFFER.md
+legal/COPYING
+legal/THIRD_PARTY_NOTICES.md
+legal/SOURCE_OFFER.md
+legal/third-party/
 ```
 
 ## 仓库策略
@@ -72,7 +73,7 @@ OK: libx264 encoder is available
 
 ## 发布要求
 
-如果公开分发包含 FFmpeg + x264 的 app，需要至少准备：
+公开分发包含 FFmpeg + x264 的 app 时，发布包会包含：
 
 - Machining 源码
 - FFmpeg 和 x264 的源码获取方式
@@ -80,16 +81,28 @@ OK: libx264 encoder is available
 - GPLv3 许可证文本
 - FFmpeg / x264 的版权说明
 - 用户能够替换或重新构建运行时的说明
-- 发布包内许可证目录，至少包含 `LICENSE`、`COPYING`、`NOTICE`、`THIRD_PARTY_NOTICES.md`、`SOURCE_OFFER.md` 和 FFmpeg 构建元数据
+- 发布包内许可证目录，包含 `LICENSE`、`NOTICE`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 FFmpeg 构建元数据
+
+macOS Release app 会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+
+```text
+Machining.app/Contents/Resources/legal/
+```
+
+DMG 分发包包含该 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。
+
+Windows Release 产物会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+
+```text
+Machining.exe directory/legal/
+```
 
 ## v1.3 状态
 
-当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、智能压缩工作流、根目录 GPLv3+ 许可证文件、第三方声明和源码分发说明。但尚未完成正式公开发布所需的签名、公证、DMG、安装包和许可证文件随包打包。因此 v1.3.0+1 可以作为本地使用和内部验证版本，正式公开发布前仍需要补齐下方发布合规事项。
+当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、智能压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
 
-## 发布合规待办
+## 发布检查
 
-- 增加 Release 包内许可证目录
-- 形成 DMG 分发结构
 - 在每个公开 Release 页面同时提供源码包或清晰源码链接
-- 发布前复核 `THIRD_PARTY_NOTICES.md` 中的直接依赖和传递依赖许可证
+- 发布前复核 `legal/THIRD_PARTY_NOTICES.md` 中的直接依赖和传递依赖许可证
 - 验证另一台 Mac 上的运行和 Gatekeeper 行为

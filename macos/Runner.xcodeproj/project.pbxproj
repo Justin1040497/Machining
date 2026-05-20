@@ -241,6 +241,7 @@
 				33CC110E2044A8840003C045 /* Bundle Framework */,
 				3399D490228B24CF009A79C7 /* ShellScript */,
 				A0FF00012026050600000001 /* Bundle FFmpeg Runtime */,
+				A0FF00022026052000000001 /* Bundle Legal Materials */,
 				EF40530F8DFD6F5F1F65CCF6 /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
@@ -427,6 +428,30 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "set -eu\n\nSRC=\"${PROJECT_DIR}/../third_party/ffmpeg/macos-arm64\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ffmpeg\"\n\nif [ ! -x \"$SRC/ffmpeg\" ] || [ ! -x \"$SRC/ffprobe\" ]; then\n  echo \"warning: Bundled FFmpeg binaries not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nmkdir -p \"$DST\"\ninstall -m 755 \"$SRC/ffmpeg\" \"$DST/ffmpeg\"\ninstall -m 755 \"$SRC/ffprobe\" \"$DST/ffprobe\"\n";
+		};
+		A0FF00022026052000000001 /* Bundle Legal Materials */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(PROJECT_DIR)/../LICENSE",
+				"$(PROJECT_DIR)/../NOTICE",
+				"$(PROJECT_DIR)/../legal",
+			);
+			name = "Bundle Legal Materials";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/LICENSE",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/NOTICE",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/COPYING",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "set -eu\n\nROOT=\"${PROJECT_DIR}/..\"\nSRC=\"${ROOT}/legal\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/legal\"\n\nif [ ! -d \"$SRC\" ]; then\n  echo \"error: Legal materials directory not found: $SRC\" >&2\n  exit 1\nfi\n\nrm -rf \"$DST\"\nmkdir -p \"$DST\"\nditto \"$SRC\" \"$DST\"\ninstall -m 644 \"$ROOT/LICENSE\" \"$DST/LICENSE\"\ninstall -m 644 \"$ROOT/NOTICE\" \"$DST/NOTICE\"\n";
 		};
 		EF40530F8DFD6F5F1F65CCF6 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;

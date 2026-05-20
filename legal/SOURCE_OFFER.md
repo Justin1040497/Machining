@@ -63,6 +63,6 @@ locations, PATH, or user-configured custom paths, depending on platform and app
 settings. Users should be able to replace or rebuild the FFmpeg / FFprobe
 runtime with a GPL-compatible build.
 
-For release packaging, include this file, LICENSE, COPYING, NOTICE,
-THIRD_PARTY_NOTICES.md, and the relevant FFmpeg build metadata.
-
+Release packaging includes this legal directory, the root LICENSE and NOTICE
+files, and the relevant FFmpeg build metadata so recipients receive the license
+terms and source availability information with the binary package.

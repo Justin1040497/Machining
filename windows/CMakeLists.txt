@@ -101,6 +101,22 @@ else()
   message(FATAL_ERROR "Bundled Windows FFmpeg binaries not found in ${BUNDLED_FFMPEG_WINDOWS_DIR}. Place ffmpeg.exe and ffprobe.exe there before building.")
 endif()
 
+# Bundle legal materials next to the executable so release packages include
+# license text, third-party notices, and source availability information.
+set(LEGAL_MATERIALS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../legal")
+if(EXISTS "${LEGAL_MATERIALS_DIR}")
+  install(DIRECTORY "${LEGAL_MATERIALS_DIR}/"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/legal"
+    COMPONENT Runtime)
+  install(FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../NOTICE"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/legal"
+    COMPONENT Runtime)
+else()
+  message(FATAL_ERROR "Legal materials directory not found in ${LEGAL_MATERIALS_DIR}.")
+endif()
+
 # Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
