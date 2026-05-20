@@ -76,8 +76,8 @@
 
 目标：让内置 FFmpeg / FFprobe 的构建、分发和许可证说明具备可发布的规范性。
 
-- 整理 `LICENSE` 和第三方许可证说明。
-- 补充 FFmpeg / x264 版本、构建参数和源码获取说明。
-- 明确 GPL 路线下的发布包要求。
-- 规范 Release 包内许可证文件放置位置。
-- 更新 `docs/reference/` 中的 FFmpeg 许可与分发参考文档。
+- 已整理 `LICENSE`、`NOTICE` 和 `legal/` 下的第三方许可证说明。
+- 已补充 FFmpeg / x264 版本、构建参数和源码获取说明。
+- 已明确 GPL 路线下的发布包要求。
+- 已规范 Release 包内许可证文件放置位置。
+- 已更新 `docs/reference/` 中的 FFmpeg 许可与分发参考文档。

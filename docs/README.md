@@ -197,24 +197,26 @@ third_party/ffmpeg/macos-arm64/ffprobe
 flutter run -d macos
 ```
 
-Release 构建：
+Release DMG 构建：
 
 ```bash
-flutter build macos --release
+scripts/build_dmg_macos.sh
 ```
 
 Release 产物：
 
 ```text
 build/macos/Build/Products/Release/Machining.app
+build/macos/Build/Products/Release/Machining.dmg
 ```
 
-验证 app 内置 FFmpeg：
+验证 app 内置 FFmpeg 和法律资料：
 
 ```bash
 APP="build/macos/Build/Products/Release/Machining.app"
 "$APP/Contents/Resources/ffmpeg/ffmpeg" -hide_banner -version
 "$APP/Contents/Resources/ffmpeg/ffprobe" -hide_banner -version
+test -f "$APP/Contents/Resources/legal/COPYING"
 ```
 
 ### Windows
@@ -266,13 +268,14 @@ build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 
 处理 FFmpeg 分发、许可证合规、第三方资料或项目对比时再阅读这个目录。
 
-根目录许可文件：
+许可与分发资料：
 
 - `LICENSE`
-- `COPYING`
 - `NOTICE`
-- `THIRD_PARTY_NOTICES.md`
-- `SOURCE_OFFER.md`
+- `legal/COPYING`
+- `legal/THIRD_PARTY_NOTICES.md`
+- `legal/SOURCE_OFFER.md`
+- `legal/third-party/`
 
 ## 归档
 

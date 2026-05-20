@@ -182,24 +182,30 @@ third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
 ```
 
-Release 构建：
+Release DMG 构建：
 
 ```bash
-flutter build macos --release
+scripts/build_dmg_macos.sh
 ```
 
-Release app 位置：
+脚本会检查并准备内置 FFmpeg / FFprobe，调用 `pubspec.yaml` 中的
+`dmg` 打包依赖，并验证 DMG、内置运行时和包内法律资料。默认生成未签名、
+未公证的本地测试 DMG；需要签名或公证时，可把 `dmg` 参数直接传给脚本。
+
+Release app 和 DMG 位置：
 
 ```text
 build/macos/Build/Products/Release/Machining.app
+build/macos/Build/Products/Release/Machining.dmg
 ```
 
-验证 app 内置 FFmpeg：
+验证 app 内置 FFmpeg 和法律资料：
 
 ```bash
 APP="build/macos/Build/Products/Release/Machining.app"
 "$APP/Contents/Resources/ffmpeg/ffmpeg" -hide_banner -version
 "$APP/Contents/Resources/ffmpeg/ffprobe" -hide_banner -version
+test -f "$APP/Contents/Resources/legal/COPYING"
 ```
 
 ### Windows
@@ -336,13 +342,14 @@ lib/
 
 ## 许可说明
 
-Machining 项目整体按 `GPL-3.0-or-later` 分发。根目录包含 GPLv3 正文和发布所需的基础法律文件：
+Machining 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
 
 - [LICENSE](/Users/leftzhou/工作区/Machining/LICENSE)：GNU General Public License v3 正文。
-- [COPYING](/Users/leftzhou/工作区/Machining/COPYING)：项目 GPLv3+ 分发入口说明。
 - [NOTICE](/Users/leftzhou/工作区/Machining/NOTICE)：项目版权、无担保和运行时声明。
-- [THIRD_PARTY_NOTICES.md](/Users/leftzhou/工作区/Machining/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
-- [SOURCE_OFFER.md](/Users/leftzhou/工作区/Machining/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
+- [legal/COPYING](/Users/leftzhou/工作区/Machining/legal/COPYING)：项目 GPLv3+ 分发入口说明。
+- [legal/THIRD_PARTY_NOTICES.md](/Users/leftzhou/工作区/Machining/legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
+- [legal/SOURCE_OFFER.md](/Users/leftzhou/工作区/Machining/legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
+- [legal/third-party/](/Users/leftzhou/工作区/Machining/legal/third-party)：第三方运行时和依赖资料。
 
 项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264 等依赖归各自原项目维护，Machining 只调用并随应用分发相应运行时。
 

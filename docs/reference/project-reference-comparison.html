@@ -764,7 +764,7 @@
                 <span class="label amber">工程风险</span>
                 <ul>
                   <li><strong>文档漂移：</strong><code>docs/architecture/data-model-v1.0.md</code> 写 schema 版本 7，而代码 <code>AppDatabase.schemaVersion</code> 是 9。</li>
-                  <li><strong>许可证交付未闭环：</strong>已有 GPL 分发文档，但根目录缺 <code>LICENSE</code>、<code>THIRD_PARTY_NOTICES</code> 和包内许可证目录，这在文档里也被列为 1.1 待办。</li>
+                  <li><strong>许可证交付已闭环：</strong>项目保留根目录 <code>LICENSE</code> 和 <code>NOTICE</code>，并将第三方声明、源码获取说明和运行时资料集中到 <code>legal/</code>；macOS 和 Windows 发布包都会携带包内许可证目录。</li>
                   <li><strong>枚举入库兼容性：</strong>Drift repository 用枚举 <code>name</code> 持久化，读取未知值直接抛错。后续改名或删除枚举会影响旧任务。</li>
                   <li><strong>自动化发布验证不足：</strong>当前项目没有看到类似 HandBrake 的 GitHub workflow；分析与测试要求在文档中，但没有 CI 强制执行。</li>
                 </ul>

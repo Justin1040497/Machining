@@ -118,7 +118,7 @@ flutter pub get
 flutter analyze
 flutter test
 flutter run -d macos
-flutter build macos --release
+scripts/build_dmg_macos.sh
 ```
 
 Windows 常用命令：
@@ -202,10 +202,16 @@ ffmpeg-build-info.txt
 README.md
 ```
 
-构建脚本：
+运行时构建脚本：
 
 ```text
 scripts/build_ffmpeg_macos_arm64.sh
+```
+
+DMG 打包脚本：
+
+```text
+scripts/build_dmg_macos.sh
 ```
 
 Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复制到：
@@ -214,7 +220,13 @@ Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复�
 Machining.app/Contents/Resources/ffmpeg/
 ```
 
-当前 macOS build phase 在二进制缺失时会输出 warning 并跳过复制；发布前必须额外验证 Release app 中确实存在 `ffmpeg` 和 `ffprobe`。
+Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+
+```text
+Machining.app/Contents/Resources/legal/
+```
+
+当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe` 和法律资料。
 
 ### Windows
 
