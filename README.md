@@ -1,6 +1,6 @@
 # Machining
 
-[![Version](https://img.shields.io/badge/version-v1.3.0%2B1-111111)](#当前版本)
+[![Version](https://img.shields.io/badge/version-v1.5.0%2B1-111111)](#当前版本)
 [![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon%20%7C%20Windows%20x64-000000)](#平台范围)
 [![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目结构)
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#ffmpeg--ffprobe-运行时)
@@ -9,25 +9,23 @@
 
 Machining 是一个本地桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令，也能在本机处理视频文件。
 
-当前版本聚焦视频压缩工作流：导入本地视频，分析源文件信息，选择智能压缩预设或目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
+当前版本聚焦视频压缩和应用级默认设置：导入本地视频，分析源文件信息，选择智能压缩预设或目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
 
 ## 当前版本
 
 当前项目版本为：
 
 ```text
-v1.3.0+1
+v1.5.0+1
 ```
 
-v1.3 的主要内容：
+v1.5 的主要内容：
 
-- 智能压缩预设：均衡推荐、微信发送、清晰优先、体积优先。
-- 目标体积压缩：根据视频时长和目标大小计算码率，软件编码下支持目标体积两遍压缩。
-- 压缩结果预估：展示预计输出大小、目标视频码率和目标音频码率。
-- 任务配置弹窗重构：集中配置输出格式、编码、分辨率、压缩模式和输出文件名。
-- 主界面模块拆分：顶部栏、底部栏、任务列表、预览区、文件信息、导出路径和视频配置面板独立维护。
-- 跨平台打开文件所在位置：macOS Finder、Windows Explorer、Linux 文件管理器。
-- 默认编码后端恢复为自动选择，并根据 FFmpeg 能力检测优先使用可用 GPU 编码器。
+- 应用设置弹窗：集中配置默认压缩方案、默认导出位置、默认文件名和自定义 FFmpeg / FFprobe 路径。
+- 新任务默认值：新导入任务会使用应用设置中的默认输出目录、智能压缩预设、输出编码和文件名模板。
+- 目标体积交互优化：目标体积模式改为比例滑杆，并补充缺失源文件重新指定流程。
+- 发布资料完善：补充 GPLv3+、第三方声明、源码获取说明和 DMG 打包验证脚本。
+- 版本文档对齐：同步 README、文档中心、路线图、许可证分发说明和更新日志。
 
 完整变更记录见 [docs/archive/changelog.md](/Users/leftzhou/工作区/Machining/docs/archive/changelog.md)。
 
@@ -58,7 +56,7 @@ v1.3 的主要内容：
 - 压缩完成后显示输出路径，并打开文件所在位置。
 - 内置或自动查找 FFmpeg / FFprobe，并检测当前运行时可用的硬件编码器。
 
-当前版本只支持视频任务。图片、音频和更多文件处理能力可以作为后续版本方向，但不属于 v1.3 已完成范围。
+当前版本只支持视频任务。图片、音频和更多文件处理能力可以作为后续版本方向，但不属于 v1.5 已完成范围。
 
 ## 怎么用
 
@@ -143,6 +141,7 @@ flutter test test/ffmpeg_command_builder_test.dart
 
 当前测试重点：
 
+- 应用设置弹窗、默认值和 Drift 持久化映射。
 - 压缩建议和输出体积估算。
 - FFmpeg 命令构造。
 - FFmpeg 编码器能力检测。

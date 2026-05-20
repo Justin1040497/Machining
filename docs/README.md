@@ -53,7 +53,7 @@ docs/
 
 Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频分析、预览、压缩和格式输出能力封装成图形界面，让用户不需要手写 FFmpeg 命令也能处理本地视频。
 
-当前项目版本为 `v1.3.0+1`，当前产品范围以视频压缩、智能压缩预设、目标体积压缩、输出预估和本地任务队列为主。
+当前项目版本为 `v1.5.0+1`，当前产品范围以视频压缩、智能压缩预设、目标体积压缩、输出预估、应用默认设置和本地任务队列为主。
 
 产品原则：
 
@@ -122,15 +122,20 @@ Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频�
 
 ```text
 test/
+  app_settings_dialog_test.dart
+  app_settings_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
+  drift_app_settings_repository_test.dart
   ffmpeg_command_builder_test.dart
   ffmpeg_encoder_capabilities_test.dart
   ffmpeg_process_observer_test.dart
   ffmpeg_task_queue_runner_test.dart
   ffprobe_media_analyzer_test.dart
+  media_task_notifier_test.dart
   preview_frame_generator_test.dart
   video_thumbnail_generator_test.dart
+  workbench_bottom_bar_test.dart
   widget_test.dart
 ```
 
