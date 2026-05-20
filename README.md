@@ -219,13 +219,14 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 Release 构建：
 
 ```powershell
-flutter build windows --release
+PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
 ```
 
 Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
+build/windows/x64/runner/Machining-v<version>-windows-x64.zip
 ```
 
 Windows CMake 会把运行时复制到：

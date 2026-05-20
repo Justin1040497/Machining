@@ -1,0 +1,142 @@
+param(
+  [switch]$SkipPubGet,
+  [switch]$SkipZip,
+  [string]$BuildName = "",
+  [string]$BuildNumber = "",
+  [Parameter(ValueFromRemainingArguments = $true)]
+  [string[]]$ExtraFlutterArgs
+)
+
+$ErrorActionPreference = "Stop"
+
+function Require-Command {
+  param([string]$Name)
+
+  if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+    throw "Missing required command: $Name"
+  }
+}
+
+function Require-File {
+  param([string]$Path)
+
+  if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
+    throw "Required file was not found: $Path"
+  }
+}
+
+function Require-Directory {
+  param([string]$Path)
+
+  if (-not (Test-Path -LiteralPath $Path -PathType Container)) {
+    throw "Required directory was not found: $Path"
+  }
+}
+
+function Invoke-Checked {
+  param(
+    [string]$FilePath,
+    [string[]]$Arguments
+  )
+
+  & $FilePath @Arguments
+  if ($LASTEXITCODE -ne 0) {
+    throw "Command failed with exit code ${LASTEXITCODE}: $FilePath $($Arguments -join ' ')"
+  }
+}
+
+if ($env:OS -ne "Windows_NT") {
+  throw "This script only builds the Windows package. Run it on Windows."
+}
+
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$ReleaseDir = Join-Path $Root "build\windows\x64\runner\Release"
+$ZipDir = Join-Path $Root "build\windows\x64\runner"
+$FfmpegDir = Join-Path $Root "third_party\ffmpeg\windows-x64"
+$LegalDir = Join-Path $Root "legal"
+$PubspecPath = Join-Path $Root "pubspec.yaml"
+
+Require-Command "flutter"
+Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
+Require-File (Join-Path $FfmpegDir "ffprobe.exe")
+Require-Directory $LegalDir
+Require-File (Join-Path $Root "LICENSE")
+Require-File (Join-Path $Root "NOTICE")
+
+Push-Location $Root
+try {
+  if (-not $SkipPubGet) {
+    Write-Host "Resolving Flutter dependencies..."
+    Invoke-Checked "flutter" @("pub", "get")
+  }
+
+  $BuildArgs = @("build", "windows", "--release")
+  if ($BuildName -ne "") {
+    $BuildArgs += @("--build-name", $BuildName)
+  }
+  if ($BuildNumber -ne "") {
+    $BuildArgs += @("--build-number", $BuildNumber)
+  }
+  if ($ExtraFlutterArgs) {
+    $BuildArgs += $ExtraFlutterArgs
+  }
+
+  Write-Host "Building Windows release with: flutter $($BuildArgs -join ' ')"
+  Invoke-Checked "flutter" $BuildArgs
+
+  Require-Directory $ReleaseDir
+  Require-File (Join-Path $ReleaseDir "machining.exe")
+  Require-File (Join-Path $ReleaseDir "flutter_windows.dll")
+  Require-Directory (Join-Path $ReleaseDir "data")
+  Require-File (Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe")
+  Require-File (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe")
+  Require-File (Join-Path $ReleaseDir "legal\COPYING")
+  Require-File (Join-Path $ReleaseDir "legal\LICENSE")
+  Require-File (Join-Path $ReleaseDir "legal\NOTICE")
+
+  $VcRuntimeFiles = @(
+    "msvcp140.dll",
+    "vcruntime140.dll",
+    "vcruntime140_1.dll"
+  )
+  $MissingVcRuntimeFiles = @(
+    $VcRuntimeFiles | Where-Object {
+      -not (Test-Path -LiteralPath (Join-Path $ReleaseDir $_) -PathType Leaf)
+    }
+  )
+  if ($MissingVcRuntimeFiles.Count -gt 0) {
+    Write-Warning "Visual C++ runtime DLLs are not bundled next to the executable: $($MissingVcRuntimeFiles -join ', ')"
+    Write-Warning "For zip distribution, install the Visual C++ Redistributable on target machines or copy these DLLs into the Release directory before publishing."
+  }
+
+  Write-Host "Validating bundled FFmpeg runtime..."
+  & (Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe") -hide_banner -version | Select-Object -First 1
+  & (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") -hide_banner -version | Select-Object -First 1
+
+  if (-not $SkipZip) {
+    Require-Command "Compress-Archive"
+
+    $Pubspec = Get-Content -LiteralPath $PubspecPath -Raw
+    $VersionMatch = [regex]::Match($Pubspec, "(?m)^version:\s*([^\s]+)")
+    $Version = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value } else { "unknown" }
+    $ZipPath = Join-Path $ZipDir "Machining-v$Version-windows-x64.zip"
+
+    if (Test-Path -LiteralPath $ZipPath) {
+      Remove-Item -LiteralPath $ZipPath -Force
+    }
+
+    Write-Host "Creating zip package: $ZipPath"
+    Compress-Archive -Path (Join-Path $ReleaseDir "*") -DestinationPath $ZipPath -CompressionLevel Optimal
+    Require-File $ZipPath
+  }
+
+  Write-Host ""
+  Write-Host "Windows release package is ready:"
+  Write-Host $ReleaseDir
+  if (-not $SkipZip) {
+    Write-Host $ZipPath
+  }
+}
+finally {
+  Pop-Location
+}

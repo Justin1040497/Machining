@@ -184,8 +184,9 @@ test/
 
 ### Windows 构建验证
 
-- `flutter build windows --release` 成功。
+- `PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1` 成功。
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
+- 生成 `build/windows/x64/runner/Machining-v<version>-windows-x64.zip`。
 - Windows app 可以启动、导入、压缩和打开输出位置。
 - GPU 编码器不可用时可以回退到软件编码。
 
