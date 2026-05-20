@@ -1,9 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:machining/domain/entities/app_settings.dart';
 import 'package:machining/domain/entities/media_task.dart';
+import 'package:machining/domain/enums/default_output_file_name_template.dart';
 import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/task_status.dart';
+import 'package:machining/domain/enums/video_codec.dart';
+import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
 import 'package:machining/infrastructure/providers/drift_provider.dart';
 import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
@@ -98,17 +102,25 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final resolver = ref.read(mediaKindResolverProvider);
     final fingerprintReader = ref.read(sourceFileFingerprintReaderProvider);
+    final settingsRepository = ref.read(appSettingsRepositoryProvider);
     final tasks = state.requireValue;
     final mediaKind = resolver.resolve(inputPath);
     ensureSupportedMediaKind(mediaKind);
     final fingerprint = await fingerprintReader.read(inputPath);
+    final fileName = path.basename(inputPath);
+    final settings = await settingsRepository.loadSettings();
+    final initialConfig = buildInitialConfigFromSettings(
+      sourceFileName: fileName,
+      settings: settings,
+    );
 
     final task =
         MediaTask.draft(
               inputPath: inputPath,
-              fileName: path.basename(inputPath),
+              fileName: fileName,
               mediaKind: mediaKind,
               sortOrder: nextSortOrder(tasks),
+              config: initialConfig,
             )
             .withSourceFileFingerprint(fingerprint)
             .copyWith(status: TaskStatus.analyzing);
@@ -467,5 +479,57 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
   Future<void> syncFfmpegQueueStatus() async {
     await ref.read(ffmpegTaskQueueRunnerProvider).refreshStatus();
+  }
+}
+
+VideoTaskConfig buildInitialConfigFromSettings({
+  required String sourceFileName,
+  required AppSettings settings,
+}) {
+  final outputDirectory = settings.saveOutputToSourceDirectory
+      ? ''
+      : settings.defaultOutputDirectory ?? '';
+
+  return VideoTaskConfig.initial().copyWith(
+    outputDirectory: outputDirectory,
+    videoCodec: settings.defaultOutputVideoCodec,
+    smartPreset: settings.defaultSmartPreset,
+    outputFileName: buildDefaultOutputFileName(
+      sourceFileName: sourceFileName,
+      codec: settings.defaultOutputVideoCodec,
+      template: settings.defaultOutputFileNameTemplate,
+      now: DateTime.now(),
+    ),
+  );
+}
+
+String buildDefaultOutputFileName({
+  required String sourceFileName,
+  required VideoCodec codec,
+  required DefaultOutputFileNameTemplate template,
+  required DateTime now,
+}) {
+  switch (template) {
+    case DefaultOutputFileNameTemplate.datetimeOriginalCodec:
+      final timestamp = [
+        now.year.toString().padLeft(4, '0'),
+        now.month.toString().padLeft(2, '0'),
+        now.day.toString().padLeft(2, '0'),
+        now.hour.toString().padLeft(2, '0'),
+        now.minute.toString().padLeft(2, '0'),
+      ].join();
+      final baseName = path.basenameWithoutExtension(sourceFileName).trim();
+      return '${timestamp}_${baseName}_${codecFileNameToken(codec)}';
+  }
+}
+
+String codecFileNameToken(VideoCodec codec) {
+  switch (codec) {
+    case VideoCodec.source:
+      return 'source';
+    case VideoCodec.h264:
+      return 'h264';
+    case VideoCodec.hevc:
+      return 'hevc';
   }
 }

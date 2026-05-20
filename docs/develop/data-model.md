@@ -151,11 +151,14 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 | `id` | integer | 否 | 无 | 固定值 | 当前全局设置固定为 `1` |
 | `default_output_directory` | text | 是 | `null` | `defaultOutputDirectory` | 默认输出目录，当前作为设置模型保留 |
 | `last_selected_output_directory` | text | 是 | `null` | `lastSelectedOutputDirectory` | 最近一次选择的输出目录 |
+| `save_output_to_source_directory` | boolean | 否 | `true` | `saveOutputToSourceDirectory` | 默认导出时是否保存到源文件旁 |
 | `custom_ffmpeg_path` | text | 是 | `null` | `customFfmpegPath` | 用户指定的 FFmpeg 可执行文件路径 |
 | `custom_ffprobe_path` | text | 是 | `null` | `customFfprobePath` | 用户指定的 FFprobe 可执行文件路径 |
 | `show_raw_log` | boolean | 否 | `false` | `showRawLog` | 是否显示原始日志 |
 | `show_advanced_options` | boolean | 否 | `false` | `showAdvancedOptions` | 是否展示高级选项 |
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
+| `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认智能压缩方案 |
+| `default_output_file_name_template` | text | 否 | `datetimeOriginalCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -242,6 +245,7 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 | 7 | 给 `tasks` 增加 `compression_crf` 和 `output_file_name` |
 | 8 | 给 `tasks` 增加 `compression_mode` 和 `target_size_ratio` |
 | 9 | 给 `tasks` 增加 `smart_preset` 和 `target_size_bytes` |
+| 10 | 给 `settings` 增加保存到源文件旁、默认智能压缩方案和默认导出文件名模板 |
 
 ## 修改数据模型的约束
 

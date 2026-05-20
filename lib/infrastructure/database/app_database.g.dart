@@ -40,6 +40,21 @@ class $SettingsRowsTable extends SettingsRows
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _saveOutputToSourceDirectoryMeta =
+      const VerificationMeta('saveOutputToSourceDirectory');
+  @override
+  late final GeneratedColumn<bool> saveOutputToSourceDirectory =
+      GeneratedColumn<bool>(
+        'save_output_to_source_directory',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("save_output_to_source_directory" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
   static const VerificationMeta _customFfmpegPathMeta = const VerificationMeta(
     'customFfmpegPath',
   );
@@ -104,6 +119,30 @@ class $SettingsRowsTable extends SettingsRows
         requiredDuringInsert: false,
         defaultValue: const Constant('h264'),
       );
+  static const VerificationMeta _defaultCompressionSmartPresetMeta =
+      const VerificationMeta('defaultCompressionSmartPreset');
+  @override
+  late final GeneratedColumn<String> defaultCompressionSmartPreset =
+      GeneratedColumn<String>(
+        'default_compression_smart_preset',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('balanced'),
+      );
+  static const VerificationMeta _defaultOutputFileNameTemplateMeta =
+      const VerificationMeta('defaultOutputFileNameTemplate');
+  @override
+  late final GeneratedColumn<String> defaultOutputFileNameTemplate =
+      GeneratedColumn<String>(
+        'default_output_file_name_template',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('datetimeOriginalCodec'),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -131,11 +170,14 @@ class $SettingsRowsTable extends SettingsRows
     id,
     defaultOutputDirectory,
     lastSelectedOutputDirectory,
+    saveOutputToSourceDirectory,
     customFfmpegPath,
     customFfprobePath,
     showRawLog,
     showAdvancedOptions,
     defaultOutputVideoCodec,
+    defaultCompressionSmartPreset,
+    defaultOutputFileNameTemplate,
     createdAt,
     updatedAt,
   ];
@@ -169,6 +211,15 @@ class $SettingsRowsTable extends SettingsRows
         lastSelectedOutputDirectory.isAcceptableOrUnknown(
           data['last_selected_output_directory']!,
           _lastSelectedOutputDirectoryMeta,
+        ),
+      );
+    }
+    if (data.containsKey('save_output_to_source_directory')) {
+      context.handle(
+        _saveOutputToSourceDirectoryMeta,
+        saveOutputToSourceDirectory.isAcceptableOrUnknown(
+          data['save_output_to_source_directory']!,
+          _saveOutputToSourceDirectoryMeta,
         ),
       );
     }
@@ -217,6 +268,24 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('default_compression_smart_preset')) {
+      context.handle(
+        _defaultCompressionSmartPresetMeta,
+        defaultCompressionSmartPreset.isAcceptableOrUnknown(
+          data['default_compression_smart_preset']!,
+          _defaultCompressionSmartPresetMeta,
+        ),
+      );
+    }
+    if (data.containsKey('default_output_file_name_template')) {
+      context.handle(
+        _defaultOutputFileNameTemplateMeta,
+        defaultOutputFileNameTemplate.isAcceptableOrUnknown(
+          data['default_output_file_name_template']!,
+          _defaultOutputFileNameTemplateMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -254,6 +323,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}last_selected_output_directory'],
       ),
+      saveOutputToSourceDirectory: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}save_output_to_source_directory'],
+      )!,
       customFfmpegPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}custom_ffmpeg_path'],
@@ -273,6 +346,14 @@ class $SettingsRowsTable extends SettingsRows
       defaultOutputVideoCodec: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}default_output_video_codec'],
+      )!,
+      defaultCompressionSmartPreset: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_compression_smart_preset'],
+      )!,
+      defaultOutputFileNameTemplate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_output_file_name_template'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -295,22 +376,28 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final int id;
   final String? defaultOutputDirectory;
   final String? lastSelectedOutputDirectory;
+  final bool saveOutputToSourceDirectory;
   final String? customFfmpegPath;
   final String? customFfprobePath;
   final bool showRawLog;
   final bool showAdvancedOptions;
   final String defaultOutputVideoCodec;
+  final String defaultCompressionSmartPreset;
+  final String defaultOutputFileNameTemplate;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
     required this.id,
     this.defaultOutputDirectory,
     this.lastSelectedOutputDirectory,
+    required this.saveOutputToSourceDirectory,
     this.customFfmpegPath,
     this.customFfprobePath,
     required this.showRawLog,
     required this.showAdvancedOptions,
     required this.defaultOutputVideoCodec,
+    required this.defaultCompressionSmartPreset,
+    required this.defaultOutputFileNameTemplate,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -328,6 +415,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         lastSelectedOutputDirectory,
       );
     }
+    map['save_output_to_source_directory'] = Variable<bool>(
+      saveOutputToSourceDirectory,
+    );
     if (!nullToAbsent || customFfmpegPath != null) {
       map['custom_ffmpeg_path'] = Variable<String>(customFfmpegPath);
     }
@@ -338,6 +428,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['show_advanced_options'] = Variable<bool>(showAdvancedOptions);
     map['default_output_video_codec'] = Variable<String>(
       defaultOutputVideoCodec,
+    );
+    map['default_compression_smart_preset'] = Variable<String>(
+      defaultCompressionSmartPreset,
+    );
+    map['default_output_file_name_template'] = Variable<String>(
+      defaultOutputFileNameTemplate,
     );
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
@@ -354,6 +450,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           lastSelectedOutputDirectory == null && nullToAbsent
           ? const Value.absent()
           : Value(lastSelectedOutputDirectory),
+      saveOutputToSourceDirectory: Value(saveOutputToSourceDirectory),
       customFfmpegPath: customFfmpegPath == null && nullToAbsent
           ? const Value.absent()
           : Value(customFfmpegPath),
@@ -363,6 +460,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       showRawLog: Value(showRawLog),
       showAdvancedOptions: Value(showAdvancedOptions),
       defaultOutputVideoCodec: Value(defaultOutputVideoCodec),
+      defaultCompressionSmartPreset: Value(defaultCompressionSmartPreset),
+      defaultOutputFileNameTemplate: Value(defaultOutputFileNameTemplate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -381,6 +480,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       lastSelectedOutputDirectory: serializer.fromJson<String?>(
         json['lastSelectedOutputDirectory'],
       ),
+      saveOutputToSourceDirectory: serializer.fromJson<bool>(
+        json['saveOutputToSourceDirectory'],
+      ),
       customFfmpegPath: serializer.fromJson<String?>(json['customFfmpegPath']),
       customFfprobePath: serializer.fromJson<String?>(
         json['customFfprobePath'],
@@ -391,6 +493,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       ),
       defaultOutputVideoCodec: serializer.fromJson<String>(
         json['defaultOutputVideoCodec'],
+      ),
+      defaultCompressionSmartPreset: serializer.fromJson<String>(
+        json['defaultCompressionSmartPreset'],
+      ),
+      defaultOutputFileNameTemplate: serializer.fromJson<String>(
+        json['defaultOutputFileNameTemplate'],
       ),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
@@ -407,12 +515,21 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'lastSelectedOutputDirectory': serializer.toJson<String?>(
         lastSelectedOutputDirectory,
       ),
+      'saveOutputToSourceDirectory': serializer.toJson<bool>(
+        saveOutputToSourceDirectory,
+      ),
       'customFfmpegPath': serializer.toJson<String?>(customFfmpegPath),
       'customFfprobePath': serializer.toJson<String?>(customFfprobePath),
       'showRawLog': serializer.toJson<bool>(showRawLog),
       'showAdvancedOptions': serializer.toJson<bool>(showAdvancedOptions),
       'defaultOutputVideoCodec': serializer.toJson<String>(
         defaultOutputVideoCodec,
+      ),
+      'defaultCompressionSmartPreset': serializer.toJson<String>(
+        defaultCompressionSmartPreset,
+      ),
+      'defaultOutputFileNameTemplate': serializer.toJson<String>(
+        defaultOutputFileNameTemplate,
       ),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
@@ -423,11 +540,14 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     int? id,
     Value<String?> defaultOutputDirectory = const Value.absent(),
     Value<String?> lastSelectedOutputDirectory = const Value.absent(),
+    bool? saveOutputToSourceDirectory,
     Value<String?> customFfmpegPath = const Value.absent(),
     Value<String?> customFfprobePath = const Value.absent(),
     bool? showRawLog,
     bool? showAdvancedOptions,
     String? defaultOutputVideoCodec,
+    String? defaultCompressionSmartPreset,
+    String? defaultOutputFileNameTemplate,
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -438,6 +558,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     lastSelectedOutputDirectory: lastSelectedOutputDirectory.present
         ? lastSelectedOutputDirectory.value
         : this.lastSelectedOutputDirectory,
+    saveOutputToSourceDirectory:
+        saveOutputToSourceDirectory ?? this.saveOutputToSourceDirectory,
     customFfmpegPath: customFfmpegPath.present
         ? customFfmpegPath.value
         : this.customFfmpegPath,
@@ -448,6 +570,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     showAdvancedOptions: showAdvancedOptions ?? this.showAdvancedOptions,
     defaultOutputVideoCodec:
         defaultOutputVideoCodec ?? this.defaultOutputVideoCodec,
+    defaultCompressionSmartPreset:
+        defaultCompressionSmartPreset ?? this.defaultCompressionSmartPreset,
+    defaultOutputFileNameTemplate:
+        defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -460,6 +586,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       lastSelectedOutputDirectory: data.lastSelectedOutputDirectory.present
           ? data.lastSelectedOutputDirectory.value
           : this.lastSelectedOutputDirectory,
+      saveOutputToSourceDirectory: data.saveOutputToSourceDirectory.present
+          ? data.saveOutputToSourceDirectory.value
+          : this.saveOutputToSourceDirectory,
       customFfmpegPath: data.customFfmpegPath.present
           ? data.customFfmpegPath.value
           : this.customFfmpegPath,
@@ -475,6 +604,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultOutputVideoCodec: data.defaultOutputVideoCodec.present
           ? data.defaultOutputVideoCodec.value
           : this.defaultOutputVideoCodec,
+      defaultCompressionSmartPreset: data.defaultCompressionSmartPreset.present
+          ? data.defaultCompressionSmartPreset.value
+          : this.defaultCompressionSmartPreset,
+      defaultOutputFileNameTemplate: data.defaultOutputFileNameTemplate.present
+          ? data.defaultOutputFileNameTemplate.value
+          : this.defaultOutputFileNameTemplate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -486,11 +621,18 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('id: $id, ')
           ..write('defaultOutputDirectory: $defaultOutputDirectory, ')
           ..write('lastSelectedOutputDirectory: $lastSelectedOutputDirectory, ')
+          ..write('saveOutputToSourceDirectory: $saveOutputToSourceDirectory, ')
           ..write('customFfmpegPath: $customFfmpegPath, ')
           ..write('customFfprobePath: $customFfprobePath, ')
           ..write('showRawLog: $showRawLog, ')
           ..write('showAdvancedOptions: $showAdvancedOptions, ')
           ..write('defaultOutputVideoCodec: $defaultOutputVideoCodec, ')
+          ..write(
+            'defaultCompressionSmartPreset: $defaultCompressionSmartPreset, ',
+          )
+          ..write(
+            'defaultOutputFileNameTemplate: $defaultOutputFileNameTemplate, ',
+          )
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -502,11 +644,14 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     id,
     defaultOutputDirectory,
     lastSelectedOutputDirectory,
+    saveOutputToSourceDirectory,
     customFfmpegPath,
     customFfprobePath,
     showRawLog,
     showAdvancedOptions,
     defaultOutputVideoCodec,
+    defaultCompressionSmartPreset,
+    defaultOutputFileNameTemplate,
     createdAt,
     updatedAt,
   );
@@ -518,11 +663,17 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.defaultOutputDirectory == this.defaultOutputDirectory &&
           other.lastSelectedOutputDirectory ==
               this.lastSelectedOutputDirectory &&
+          other.saveOutputToSourceDirectory ==
+              this.saveOutputToSourceDirectory &&
           other.customFfmpegPath == this.customFfmpegPath &&
           other.customFfprobePath == this.customFfprobePath &&
           other.showRawLog == this.showRawLog &&
           other.showAdvancedOptions == this.showAdvancedOptions &&
           other.defaultOutputVideoCodec == this.defaultOutputVideoCodec &&
+          other.defaultCompressionSmartPreset ==
+              this.defaultCompressionSmartPreset &&
+          other.defaultOutputFileNameTemplate ==
+              this.defaultOutputFileNameTemplate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -531,22 +682,28 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<int> id;
   final Value<String?> defaultOutputDirectory;
   final Value<String?> lastSelectedOutputDirectory;
+  final Value<bool> saveOutputToSourceDirectory;
   final Value<String?> customFfmpegPath;
   final Value<String?> customFfprobePath;
   final Value<bool> showRawLog;
   final Value<bool> showAdvancedOptions;
   final Value<String> defaultOutputVideoCodec;
+  final Value<String> defaultCompressionSmartPreset;
+  final Value<String> defaultOutputFileNameTemplate;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
     this.id = const Value.absent(),
     this.defaultOutputDirectory = const Value.absent(),
     this.lastSelectedOutputDirectory = const Value.absent(),
+    this.saveOutputToSourceDirectory = const Value.absent(),
     this.customFfmpegPath = const Value.absent(),
     this.customFfprobePath = const Value.absent(),
     this.showRawLog = const Value.absent(),
     this.showAdvancedOptions = const Value.absent(),
     this.defaultOutputVideoCodec = const Value.absent(),
+    this.defaultCompressionSmartPreset = const Value.absent(),
+    this.defaultOutputFileNameTemplate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -554,11 +711,14 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.id = const Value.absent(),
     this.defaultOutputDirectory = const Value.absent(),
     this.lastSelectedOutputDirectory = const Value.absent(),
+    this.saveOutputToSourceDirectory = const Value.absent(),
     this.customFfmpegPath = const Value.absent(),
     this.customFfprobePath = const Value.absent(),
     this.showRawLog = const Value.absent(),
     this.showAdvancedOptions = const Value.absent(),
     this.defaultOutputVideoCodec = const Value.absent(),
+    this.defaultCompressionSmartPreset = const Value.absent(),
+    this.defaultOutputFileNameTemplate = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -567,11 +727,14 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<int>? id,
     Expression<String>? defaultOutputDirectory,
     Expression<String>? lastSelectedOutputDirectory,
+    Expression<bool>? saveOutputToSourceDirectory,
     Expression<String>? customFfmpegPath,
     Expression<String>? customFfprobePath,
     Expression<bool>? showRawLog,
     Expression<bool>? showAdvancedOptions,
     Expression<String>? defaultOutputVideoCodec,
+    Expression<String>? defaultCompressionSmartPreset,
+    Expression<String>? defaultOutputFileNameTemplate,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -581,6 +744,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'default_output_directory': defaultOutputDirectory,
       if (lastSelectedOutputDirectory != null)
         'last_selected_output_directory': lastSelectedOutputDirectory,
+      if (saveOutputToSourceDirectory != null)
+        'save_output_to_source_directory': saveOutputToSourceDirectory,
       if (customFfmpegPath != null) 'custom_ffmpeg_path': customFfmpegPath,
       if (customFfprobePath != null) 'custom_ffprobe_path': customFfprobePath,
       if (showRawLog != null) 'show_raw_log': showRawLog,
@@ -588,6 +753,10 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'show_advanced_options': showAdvancedOptions,
       if (defaultOutputVideoCodec != null)
         'default_output_video_codec': defaultOutputVideoCodec,
+      if (defaultCompressionSmartPreset != null)
+        'default_compression_smart_preset': defaultCompressionSmartPreset,
+      if (defaultOutputFileNameTemplate != null)
+        'default_output_file_name_template': defaultOutputFileNameTemplate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -597,11 +766,14 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<int>? id,
     Value<String?>? defaultOutputDirectory,
     Value<String?>? lastSelectedOutputDirectory,
+    Value<bool>? saveOutputToSourceDirectory,
     Value<String?>? customFfmpegPath,
     Value<String?>? customFfprobePath,
     Value<bool>? showRawLog,
     Value<bool>? showAdvancedOptions,
     Value<String>? defaultOutputVideoCodec,
+    Value<String>? defaultCompressionSmartPreset,
+    Value<String>? defaultOutputFileNameTemplate,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -611,12 +783,18 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           defaultOutputDirectory ?? this.defaultOutputDirectory,
       lastSelectedOutputDirectory:
           lastSelectedOutputDirectory ?? this.lastSelectedOutputDirectory,
+      saveOutputToSourceDirectory:
+          saveOutputToSourceDirectory ?? this.saveOutputToSourceDirectory,
       customFfmpegPath: customFfmpegPath ?? this.customFfmpegPath,
       customFfprobePath: customFfprobePath ?? this.customFfprobePath,
       showRawLog: showRawLog ?? this.showRawLog,
       showAdvancedOptions: showAdvancedOptions ?? this.showAdvancedOptions,
       defaultOutputVideoCodec:
           defaultOutputVideoCodec ?? this.defaultOutputVideoCodec,
+      defaultCompressionSmartPreset:
+          defaultCompressionSmartPreset ?? this.defaultCompressionSmartPreset,
+      defaultOutputFileNameTemplate:
+          defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -638,6 +816,11 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         lastSelectedOutputDirectory.value,
       );
     }
+    if (saveOutputToSourceDirectory.present) {
+      map['save_output_to_source_directory'] = Variable<bool>(
+        saveOutputToSourceDirectory.value,
+      );
+    }
     if (customFfmpegPath.present) {
       map['custom_ffmpeg_path'] = Variable<String>(customFfmpegPath.value);
     }
@@ -655,6 +838,16 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         defaultOutputVideoCodec.value,
       );
     }
+    if (defaultCompressionSmartPreset.present) {
+      map['default_compression_smart_preset'] = Variable<String>(
+        defaultCompressionSmartPreset.value,
+      );
+    }
+    if (defaultOutputFileNameTemplate.present) {
+      map['default_output_file_name_template'] = Variable<String>(
+        defaultOutputFileNameTemplate.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -670,11 +863,18 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('id: $id, ')
           ..write('defaultOutputDirectory: $defaultOutputDirectory, ')
           ..write('lastSelectedOutputDirectory: $lastSelectedOutputDirectory, ')
+          ..write('saveOutputToSourceDirectory: $saveOutputToSourceDirectory, ')
           ..write('customFfmpegPath: $customFfmpegPath, ')
           ..write('customFfprobePath: $customFfprobePath, ')
           ..write('showRawLog: $showRawLog, ')
           ..write('showAdvancedOptions: $showAdvancedOptions, ')
           ..write('defaultOutputVideoCodec: $defaultOutputVideoCodec, ')
+          ..write(
+            'defaultCompressionSmartPreset: $defaultCompressionSmartPreset, ',
+          )
+          ..write(
+            'defaultOutputFileNameTemplate: $defaultOutputFileNameTemplate, ',
+          )
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -3053,11 +3253,14 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<int> id,
       Value<String?> defaultOutputDirectory,
       Value<String?> lastSelectedOutputDirectory,
+      Value<bool> saveOutputToSourceDirectory,
       Value<String?> customFfmpegPath,
       Value<String?> customFfprobePath,
       Value<bool> showRawLog,
       Value<bool> showAdvancedOptions,
       Value<String> defaultOutputVideoCodec,
+      Value<String> defaultCompressionSmartPreset,
+      Value<String> defaultOutputFileNameTemplate,
       required int createdAt,
       required int updatedAt,
     });
@@ -3066,11 +3269,14 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String?> defaultOutputDirectory,
       Value<String?> lastSelectedOutputDirectory,
+      Value<bool> saveOutputToSourceDirectory,
       Value<String?> customFfmpegPath,
       Value<String?> customFfprobePath,
       Value<bool> showRawLog,
       Value<bool> showAdvancedOptions,
       Value<String> defaultOutputVideoCodec,
+      Value<String> defaultCompressionSmartPreset,
+      Value<String> defaultOutputFileNameTemplate,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -3099,6 +3305,11 @@ class $$SettingsRowsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<bool> get saveOutputToSourceDirectory => $composableBuilder(
+    column: $table.saveOutputToSourceDirectory,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get customFfmpegPath => $composableBuilder(
     column: $table.customFfmpegPath,
     builder: (column) => ColumnFilters(column),
@@ -3121,6 +3332,16 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get defaultOutputVideoCodec => $composableBuilder(
     column: $table.defaultOutputVideoCodec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultCompressionSmartPreset => $composableBuilder(
+    column: $table.defaultCompressionSmartPreset,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultOutputFileNameTemplate => $composableBuilder(
+    column: $table.defaultOutputFileNameTemplate,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3159,6 +3380,11 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get saveOutputToSourceDirectory => $composableBuilder(
+    column: $table.saveOutputToSourceDirectory,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get customFfmpegPath => $composableBuilder(
     column: $table.customFfmpegPath,
     builder: (column) => ColumnOrderings(column),
@@ -3183,6 +3409,18 @@ class $$SettingsRowsTableOrderingComposer
     column: $table.defaultOutputVideoCodec,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get defaultCompressionSmartPreset =>
+      $composableBuilder(
+        column: $table.defaultCompressionSmartPreset,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<String> get defaultOutputFileNameTemplate =>
+      $composableBuilder(
+        column: $table.defaultOutputFileNameTemplate,
+        builder: (column) => ColumnOrderings(column),
+      );
 
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
@@ -3217,6 +3455,11 @@ class $$SettingsRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get saveOutputToSourceDirectory => $composableBuilder(
+    column: $table.saveOutputToSourceDirectory,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get customFfmpegPath => $composableBuilder(
     column: $table.customFfmpegPath,
     builder: (column) => column,
@@ -3241,6 +3484,18 @@ class $$SettingsRowsTableAnnotationComposer
     column: $table.defaultOutputVideoCodec,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get defaultCompressionSmartPreset =>
+      $composableBuilder(
+        column: $table.defaultCompressionSmartPreset,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<String> get defaultOutputFileNameTemplate =>
+      $composableBuilder(
+        column: $table.defaultOutputFileNameTemplate,
+        builder: (column) => column,
+      );
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3284,22 +3539,30 @@ class $$SettingsRowsTableTableManager
                 Value<String?> defaultOutputDirectory = const Value.absent(),
                 Value<String?> lastSelectedOutputDirectory =
                     const Value.absent(),
+                Value<bool> saveOutputToSourceDirectory = const Value.absent(),
                 Value<String?> customFfmpegPath = const Value.absent(),
                 Value<String?> customFfprobePath = const Value.absent(),
                 Value<bool> showRawLog = const Value.absent(),
                 Value<bool> showAdvancedOptions = const Value.absent(),
                 Value<String> defaultOutputVideoCodec = const Value.absent(),
+                Value<String> defaultCompressionSmartPreset =
+                    const Value.absent(),
+                Value<String> defaultOutputFileNameTemplate =
+                    const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
                 id: id,
                 defaultOutputDirectory: defaultOutputDirectory,
                 lastSelectedOutputDirectory: lastSelectedOutputDirectory,
+                saveOutputToSourceDirectory: saveOutputToSourceDirectory,
                 customFfmpegPath: customFfmpegPath,
                 customFfprobePath: customFfprobePath,
                 showRawLog: showRawLog,
                 showAdvancedOptions: showAdvancedOptions,
                 defaultOutputVideoCodec: defaultOutputVideoCodec,
+                defaultCompressionSmartPreset: defaultCompressionSmartPreset,
+                defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -3309,22 +3572,30 @@ class $$SettingsRowsTableTableManager
                 Value<String?> defaultOutputDirectory = const Value.absent(),
                 Value<String?> lastSelectedOutputDirectory =
                     const Value.absent(),
+                Value<bool> saveOutputToSourceDirectory = const Value.absent(),
                 Value<String?> customFfmpegPath = const Value.absent(),
                 Value<String?> customFfprobePath = const Value.absent(),
                 Value<bool> showRawLog = const Value.absent(),
                 Value<bool> showAdvancedOptions = const Value.absent(),
                 Value<String> defaultOutputVideoCodec = const Value.absent(),
+                Value<String> defaultCompressionSmartPreset =
+                    const Value.absent(),
+                Value<String> defaultOutputFileNameTemplate =
+                    const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
                 id: id,
                 defaultOutputDirectory: defaultOutputDirectory,
                 lastSelectedOutputDirectory: lastSelectedOutputDirectory,
+                saveOutputToSourceDirectory: saveOutputToSourceDirectory,
                 customFfmpegPath: customFfmpegPath,
                 customFfprobePath: customFfprobePath,
                 showRawLog: showRawLog,
                 showAdvancedOptions: showAdvancedOptions,
                 defaultOutputVideoCodec: defaultOutputVideoCodec,
+                defaultCompressionSmartPreset: defaultCompressionSmartPreset,
+                defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

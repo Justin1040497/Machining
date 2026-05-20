@@ -16,7 +16,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration {
@@ -64,6 +64,20 @@ class AppDatabase extends _$AppDatabase {
         if (from < 9) {
           await migrator.addColumn(taskRows, taskRows.smartPreset);
           await migrator.addColumn(taskRows, taskRows.targetSizeBytes);
+        }
+        if (from < 10) {
+          await migrator.addColumn(
+            settingsRows,
+            settingsRows.saveOutputToSourceDirectory,
+          );
+          await migrator.addColumn(
+            settingsRows,
+            settingsRows.defaultCompressionSmartPreset,
+          );
+          await migrator.addColumn(
+            settingsRows,
+            settingsRows.defaultOutputFileNameTemplate,
+          );
         }
       },
     );

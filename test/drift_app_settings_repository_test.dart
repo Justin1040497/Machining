@@ -1,0 +1,37 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:machining/domain/enums/default_output_file_name_template.dart';
+import 'package:machining/domain/enums/smart_compression_preset.dart';
+import 'package:machining/domain/enums/video_codec.dart';
+import 'package:machining/infrastructure/database/app_database.dart';
+import 'package:machining/infrastructure/repositories/drift_app_settings_repository.dart';
+
+void main() {
+  test('settings row maps persisted app defaults to domain', () {
+    final row = SettingsRow(
+      id: 1,
+      defaultOutputDirectory: '/Users/leftzhou/Desktop',
+      lastSelectedOutputDirectory: null,
+      saveOutputToSourceDirectory: false,
+      customFfmpegPath: '/opt/homebrew/bin/ffmpeg',
+      customFfprobePath: '/opt/homebrew/bin/ffprobe',
+      showRawLog: false,
+      showAdvancedOptions: false,
+      defaultOutputVideoCodec: 'hevc',
+      defaultCompressionSmartPreset: 'chat',
+      defaultOutputFileNameTemplate: 'datetimeOriginalCodec',
+      createdAt: 1,
+      updatedAt: 2,
+    );
+
+    final settings = row.toDomain();
+
+    expect(settings.defaultOutputDirectory, '/Users/leftzhou/Desktop');
+    expect(settings.saveOutputToSourceDirectory, isFalse);
+    expect(settings.defaultOutputVideoCodec, VideoCodec.hevc);
+    expect(settings.defaultSmartPreset, SmartCompressionPreset.chat);
+    expect(
+      settings.defaultOutputFileNameTemplate,
+      DefaultOutputFileNameTemplate.datetimeOriginalCodec,
+    );
+  });
+}
