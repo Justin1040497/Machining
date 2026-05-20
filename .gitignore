@@ -54,3 +54,5 @@ third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
 
 /.reference/
+
+/worktrees/
