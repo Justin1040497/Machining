@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
+import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:path/path.dart' as path;
 
 class ImportFailureDialog extends StatelessWidget {
@@ -16,18 +17,49 @@ class ImportFailureDialog extends StatelessWidget {
         })
         .join('\n\n');
 
-    return AlertDialog(
-      title: const Text('导入失败日志'),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560, maxHeight: 360),
-        child: SingleChildScrollView(child: SelectableText(logText)),
+    return WorkbenchDialogFrame(
+      maxWidth: 560,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const WorkbenchDialogTitle('导入失败日志'),
+          const SizedBox(height: 14),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 360),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F7F7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE4E4E4)),
+              ),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  logText,
+                  style: const TextStyle(
+                    color: Color(0xFF555555),
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              WorkbenchDialogActionButton(
+                label: '知道了',
+                backgroundColor: const Color(0xFF6290FF),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ],
+          ),
+        ],
       ),
-      actions: [
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('知道了'),
-        ),
-      ],
     );
   }
 }

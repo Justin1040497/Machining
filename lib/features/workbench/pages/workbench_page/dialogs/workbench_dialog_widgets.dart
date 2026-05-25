@@ -1,5 +1,68 @@
 import 'package:flutter/material.dart';
 
+class WorkbenchDialogFrame extends StatelessWidget {
+  const WorkbenchDialogFrame({
+    super.key,
+    required this.child,
+    this.maxWidth = 410,
+    this.padding = const EdgeInsets.fromLTRB(24, 22, 24, 21),
+  });
+
+  final Widget child;
+  final double maxWidth;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: Padding(padding: padding, child: child),
+      ),
+    );
+  }
+}
+
+class WorkbenchDialogTitle extends StatelessWidget {
+  const WorkbenchDialogTitle(this.title, {super.key});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      title,
+      style: const TextStyle(
+        color: Color(0xFF111111),
+        fontSize: 18,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class WorkbenchDialogBodyText extends StatelessWidget {
+  const WorkbenchDialogBodyText(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: Color(0xFF555555),
+        fontSize: 13,
+        height: 1.55,
+        fontWeight: FontWeight.w400,
+      ),
+    );
+  }
+}
+
 class WorkbenchDialogBackHeader extends StatelessWidget {
   const WorkbenchDialogBackHeader({
     super.key,
