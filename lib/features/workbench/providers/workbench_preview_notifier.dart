@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:machining/application/services/execution/preview_frame_generator.dart';
 import 'package:machining/application/use_cases/media_tasks/generate_preview_frames_use_case.dart';
 import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/execution_provider.dart';
+import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
 
 const Object _previewStateValueNotProvided = Object();
 

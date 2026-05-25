@@ -16,8 +16,8 @@ import 'package:machining/application/use_cases/media_tasks/start_or_resume_medi
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:machining/infrastructure/providers/file_service_provider.dart';
-import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/execution_provider.dart';
+import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
 import 'package:machining/infrastructure/providers/repository_provider.dart';
 
 /// 工作台任务列表状态

@@ -31,7 +31,9 @@ import 'package:machining/features/workbench/pages/workbench_page/top_bar.dart';
 import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:machining/features/workbench/providers/media_task_notifier.dart';
 import 'package:machining/features/workbench/providers/workbench_preview_notifier.dart';
-import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/execution_provider.dart';
+import 'package:machining/infrastructure/providers/ffmpeg_planning_provider.dart';
+import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
 import 'package:machining/infrastructure/providers/repository_provider.dart';
 import 'package:path/path.dart' as path;
 

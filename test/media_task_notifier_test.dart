@@ -15,8 +15,8 @@ import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/features/workbench/providers/media_task_notifier.dart';
-import 'package:machining/infrastructure/providers/file_service_provider.dart';
-import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/execution_provider.dart';
+import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
 import 'package:machining/infrastructure/providers/repository_provider.dart';
 
 void main() {

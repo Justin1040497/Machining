@@ -12,7 +12,8 @@ import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/features/workbench/providers/workbench_preview_notifier.dart';
-import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/execution_provider.dart';
+import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
 
 void main() {
   group('WorkbenchPreviewNotifier', () {
