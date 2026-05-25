@@ -3,8 +3,8 @@ import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/features/workbench/pages/workbench_page/config_dropdown.dart';
 import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:machining/features/workbench/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchVideoConfigPanel extends StatelessWidget {
   const WorkbenchVideoConfigPanel({
@@ -53,7 +53,7 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          WorkbenchConfigDropdown<OutputFormat>(
+          ConfigDropdown<OutputFormat>(
             label: '视频格式',
             trailingText: selectedOutputFormat.label,
             value: selectedOutputFormat,
@@ -70,7 +70,7 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
             },
           ),
           SizedBox(height: itemSpacing),
-          WorkbenchConfigDropdown<VideoCodec>(
+          ConfigDropdown<VideoCodec>(
             label: '视频编码',
             trailingText: selectedVideoCodec == VideoCodec.hevc
                 ? 'HEVC'
@@ -90,7 +90,7 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
           ),
           if (showEncoderBackend) ...[
             SizedBox(height: itemSpacing),
-            WorkbenchConfigDropdown<EncoderBackend>(
+            ConfigDropdown<EncoderBackend>(
               label: '编码器',
               trailingText: selectedEncoderBackend.label,
               value: selectedEncoderBackend,
@@ -108,7 +108,7 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
             ),
           ],
           SizedBox(height: itemSpacing),
-          WorkbenchConfigDropdown<ResolutionPreset>(
+          ConfigDropdown<ResolutionPreset>(
             label: '分辨率',
             trailingText: selectedResolutionPreset.label,
             value: selectedResolutionPreset,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/features/workbench/widgets/workbench_task_list_item.dart';
+import 'package:machining/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 typedef WorkbenchTaskPositionCallback =
     void Function(MediaTask task, Offset position);
@@ -71,10 +71,9 @@ class WorkbenchTaskListCard extends StatelessWidget {
         return Padding(
           key: ValueKey(task.id),
           padding: EdgeInsets.only(bottom: index == tasks.length - 1 ? 0 : 13),
-          child: WorkbenchTaskListItem(
+          child: MediaTaskListTile(
             task: task,
             selected: selectedTask?.id == task.id,
-            reorderIndex: index,
             thumbnail: thumbnailForTask(task),
             onTap: () => onOpenTask(task),
             onStart: () => onStart(task),

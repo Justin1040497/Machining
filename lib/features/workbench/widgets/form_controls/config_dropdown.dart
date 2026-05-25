@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-class WorkbenchConfigDropdown<T> extends StatelessWidget {
-  const WorkbenchConfigDropdown({
+class ConfigDropdown<T> extends StatelessWidget {
+  const ConfigDropdown({
     super.key,
     required this.label,
     required this.trailingText,

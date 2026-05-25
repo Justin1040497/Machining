@@ -1,276 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:machining/application/services/ffmpeg_planning/compression_estimator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/features/workbench/pages/workbench_page/constants.dart';
-import 'package:machining/features/workbench/pages/workbench_page/formatters.dart';
-import 'package:machining/features/workbench/pages/workbench_page/video_config_panel.dart';
+import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
 
-class WorkbenchTaskConfigurationDialog extends StatefulWidget {
-  const WorkbenchTaskConfigurationDialog({
-    super.key,
-    required this.task,
-    required this.thumbnail,
-    required this.selectedQualityIndex,
-    required this.selectedOutputFormat,
-    required this.selectedVideoCodec,
-    required this.selectedEncoderBackend,
-    required this.selectedResolutionPreset,
-    required this.selectedCompressionMode,
-    required this.selectedSmartPreset,
-    required this.selectedTargetSizeRatio,
-    required this.availableEncoderBackends,
-    required this.onClose,
-    required this.onOpenSource,
-    required this.onSave,
-    required this.onCompressionModeChanged,
-    required this.onSmartPresetChanged,
-    required this.onTargetSizeRatioChanged,
-    required this.onQualityChanged,
-    required this.onOutputFormatChanged,
-    required this.onVideoCodecChanged,
-    required this.onEncoderBackendChanged,
-    required this.onResolutionPresetChanged,
-  });
-
-  final MediaTask task;
-  final ImageProvider? thumbnail;
-  final int selectedQualityIndex;
-  final OutputFormat selectedOutputFormat;
-  final VideoCodec selectedVideoCodec;
-  final EncoderBackend selectedEncoderBackend;
-  final ResolutionPreset selectedResolutionPreset;
-  final CompressionMode selectedCompressionMode;
-  final SmartCompressionPreset selectedSmartPreset;
-  final double selectedTargetSizeRatio;
-  final List<EncoderBackend> availableEncoderBackends;
-  final VoidCallback onClose;
-  final VoidCallback onOpenSource;
-  final VoidCallback onSave;
-  final ValueChanged<CompressionMode> onCompressionModeChanged;
-  final ValueChanged<SmartCompressionPreset> onSmartPresetChanged;
-  final ValueChanged<double> onTargetSizeRatioChanged;
-  final ValueChanged<int> onQualityChanged;
-  final ValueChanged<OutputFormat> onOutputFormatChanged;
-  final ValueChanged<VideoCodec> onVideoCodecChanged;
-  final ValueChanged<EncoderBackend> onEncoderBackendChanged;
-  final ValueChanged<ResolutionPreset> onResolutionPresetChanged;
-
-  @override
-  State<WorkbenchTaskConfigurationDialog> createState() =>
-      _WorkbenchTaskConfigurationDialogState();
-}
-
-class _WorkbenchTaskConfigurationDialogState
-    extends State<WorkbenchTaskConfigurationDialog> {
-  late CompressionMode _mode;
-  String? _activePresetTitle;
-  bool _presetEdited = false;
-
-  static const _recommendedPresets = [
-    _CompressionPreset(
-      smartPreset: SmartCompressionPreset.balanced,
-      qualityIndex: 4,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.h264,
-    ),
-    _CompressionPreset(
-      smartPreset: SmartCompressionPreset.chat,
-      qualityIndex: 6,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.h264,
-    ),
-    _CompressionPreset(
-      smartPreset: SmartCompressionPreset.clear,
-      qualityIndex: 3,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.h264,
-    ),
-    _CompressionPreset(
-      smartPreset: SmartCompressionPreset.compact,
-      qualityIndex: 8,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.hevc,
-    ),
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _mode = widget.selectedCompressionMode == CompressionMode.targetSize
-        ? CompressionMode.targetSize
-        : CompressionMode.preset;
-    _activePresetTitle = _presetForSmartPreset(
-      widget.selectedSmartPreset,
-    ).title;
-  }
-
-  _CompressionPreset _presetForSmartPreset(SmartCompressionPreset smartPreset) {
-    for (final preset in _recommendedPresets) {
-      if (preset.smartPreset == smartPreset) {
-        return preset;
-      }
-    }
-
-    return _recommendedPresets.first;
-  }
-
-  void _applyPreset(_CompressionPreset preset) {
-    setState(() {
-      _mode = CompressionMode.preset;
-      _activePresetTitle = preset.title;
-      _presetEdited = false;
-    });
-
-    widget.onCompressionModeChanged(CompressionMode.preset);
-    widget.onSmartPresetChanged(preset.smartPreset);
-    widget.onQualityChanged(preset.qualityIndex);
-    widget.onOutputFormatChanged(preset.outputFormat);
-    widget.onVideoCodecChanged(preset.videoCodec);
-    widget.onEncoderBackendChanged(EncoderBackend.auto);
-  }
-
-  void _markPresetEdited() {
-    if (_mode == CompressionMode.targetSize || _activePresetTitle == null) {
-      return;
-    }
-
-    setState(() {
-      _presetEdited = true;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Dialog(
-      backgroundColor: Colors.white,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 410),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 22, 25, 21),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _DialogHeader(
-                  title: '任务详情设置',
-                  onClose: widget.onClose,
-                  onOpenSource: widget.onOpenSource,
-                ),
-                const SizedBox(height: 18),
-                _SourceSummary(task: widget.task, thumbnail: widget.thumbnail),
-                const SizedBox(height: 14),
-                _CompressionOptionsSection(
-                  mode: _mode,
-                  presets: _recommendedPresets,
-                  selectedQualityIndex: widget.selectedQualityIndex,
-                  activePresetTitle: _activePresetTitle,
-                  presetEdited: _presetEdited,
-                  badgeText: _targetSizeBadgeText(),
-                  selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
-                  estimatedSizeForPreset: _estimatedOutputSizeForPreset,
-                  onModeChanged: (mode) {
-                    setState(() {
-                      _mode = mode;
-                    });
-                    widget.onCompressionModeChanged(mode);
-                  },
-                  onPresetSelected: _applyPreset,
-                  onTargetSizeRatioChanged: widget.onTargetSizeRatioChanged,
-                ),
-                const SizedBox(height: 14),
-                WorkbenchVideoConfigPanel(
-                  selectedOutputFormat: widget.selectedOutputFormat,
-                  selectedVideoCodec: widget.selectedVideoCodec,
-                  selectedEncoderBackend: widget.selectedEncoderBackend,
-                  selectedResolutionPreset: widget.selectedResolutionPreset,
-                  availableEncoderBackends: widget.availableEncoderBackends,
-                  onOutputFormatChanged: (value) {
-                    _markPresetEdited();
-                    widget.onOutputFormatChanged(value);
-                  },
-                  onVideoCodecChanged: (value) {
-                    _markPresetEdited();
-                    widget.onVideoCodecChanged(value);
-                  },
-                  onEncoderBackendChanged: (value) {
-                    _markPresetEdited();
-                    widget.onEncoderBackendChanged(value);
-                  },
-                  onResolutionPresetChanged: (value) {
-                    _markPresetEdited();
-                    widget.onResolutionPresetChanged(value);
-                  },
-                  showEncoderBackend: false,
-                  padding: EdgeInsets.zero,
-                  itemSpacing: 8,
-                  dropdownHeight: 34,
-                  showTrailingText: false,
-                  resolutionLabelBuilder: _resolutionLabel,
-                  labelFontSize: 12,
-                  valueFontSize: 12,
-                ),
-                const SizedBox(height: 22),
-                _DialogActions(onCancel: widget.onClose, onSave: widget.onSave),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _targetSizeBadgeText() {
-    final percent = (widget.selectedTargetSizeRatio * 100).round();
-    if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
-      return '文件已压缩，不保证更小';
-    }
-
-    return '压缩至 $percent%';
-  }
-
-  String _estimatedOutputSizeForPreset(_CompressionPreset preset) {
-    if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
-      return '文件已压缩，不保证更小';
-    }
-
-    final estimate = const DefaultCompressionEstimator().estimateSmartPreset(
-      task: widget.task,
-      preset: preset.smartPreset,
-      targetCodec: preset.videoCodec,
-      targetResolutionPreset: widget.selectedResolutionPreset,
-    );
-    if (estimate == null) {
-      return '-';
-    }
-
-    return '约 ${WorkbenchFormatters.formatBytes(estimate.expectedBytes)}';
-  }
-
-  String _resolutionLabel(ResolutionPreset value) {
-    if (value == ResolutionPreset.original) {
-      final width = widget.task.analysisResult?.videoWidth;
-      final height = widget.task.analysisResult?.videoHeight;
-      if (width != null && height != null) {
-        return '$width * $height';
-      }
-    }
-
-    return value.label.replaceAll('x', ' * ');
-  }
-}
-
-class _CompressionPreset {
-  const _CompressionPreset({
+class WorkbenchCompressionPreset {
+  const WorkbenchCompressionPreset({
     required this.smartPreset,
     required this.qualityIndex,
     required this.outputFormat,
@@ -287,8 +26,9 @@ class _CompressionPreset {
   String get subtitle => smartPreset.subtitle;
 }
 
-class _CompressionOptionsSection extends StatelessWidget {
-  const _CompressionOptionsSection({
+class WorkbenchCompressionOptionsSection extends StatelessWidget {
+  const WorkbenchCompressionOptionsSection({
+    super.key,
     required this.mode,
     required this.presets,
     required this.selectedQualityIndex,
@@ -303,15 +43,16 @@ class _CompressionOptionsSection extends StatelessWidget {
   });
 
   final CompressionMode mode;
-  final List<_CompressionPreset> presets;
+  final List<WorkbenchCompressionPreset> presets;
   final int selectedQualityIndex;
   final String? activePresetTitle;
   final bool presetEdited;
   final String badgeText;
   final double selectedTargetSizeRatio;
-  final String Function(_CompressionPreset preset) estimatedSizeForPreset;
+  final String Function(WorkbenchCompressionPreset preset)
+  estimatedSizeForPreset;
   final ValueChanged<CompressionMode> onModeChanged;
-  final ValueChanged<_CompressionPreset> onPresetSelected;
+  final ValueChanged<WorkbenchCompressionPreset> onPresetSelected;
   final ValueChanged<double> onTargetSizeRatioChanged;
 
   @override
@@ -341,6 +82,61 @@ class _CompressionOptionsSection extends StatelessWidget {
                   onChanged: onTargetSizeRatioChanged,
                 ),
         ),
+      ],
+    );
+  }
+}
+
+class WorkbenchSourceSummary extends StatelessWidget {
+  const WorkbenchSourceSummary({
+    super.key,
+    required this.task,
+    required this.thumbnail,
+  });
+
+  final MediaTask task;
+  final ImageProvider? thumbnail;
+
+  @override
+  Widget build(BuildContext context) {
+    final analysis = task.analysisResult;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: DefaultTextStyle(
+            style: const TextStyle(
+              color: Color(0xFF9A9A9A),
+              fontSize: 11,
+              height: 1.95,
+              fontWeight: FontWeight.w400,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '原视频大小: ${WorkbenchFormatters.formatBytes(task.sourceFileFingerprint?.fileSize)}',
+                ),
+                Text('分辨率: ${WorkbenchFormatters.formatResolution(analysis)}'),
+                Wrap(
+                  spacing: 24,
+                  runSpacing: 0,
+                  children: [
+                    Text(
+                      '视频格式: ${WorkbenchFormatters.formatContainer(analysis?.containerFormat)}',
+                    ),
+                    Text(
+                      '视频时长: ${WorkbenchFormatters.formatDuration(analysis?.durationMs)}',
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        _TaskThumbnail(thumbnail: thumbnail),
       ],
     );
   }
@@ -574,12 +370,13 @@ class _RecommendedPresetRow extends StatelessWidget {
     required this.onSelected,
   });
 
-  final List<_CompressionPreset> presets;
+  final List<WorkbenchCompressionPreset> presets;
   final int selectedQualityIndex;
   final String? activePresetTitle;
   final bool presetEdited;
-  final String Function(_CompressionPreset preset) estimatedSizeForPreset;
-  final ValueChanged<_CompressionPreset> onSelected;
+  final String Function(WorkbenchCompressionPreset preset)
+  estimatedSizeForPreset;
+  final ValueChanged<WorkbenchCompressionPreset> onSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -615,7 +412,7 @@ class _RecommendedPresetCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _CompressionPreset preset;
+  final WorkbenchCompressionPreset preset;
   final bool selected;
   final bool edited;
   final String estimatedSize;
@@ -727,118 +524,6 @@ class _RecommendedPresetCard extends StatelessWidget {
   }
 }
 
-class _DialogHeader extends StatelessWidget {
-  const _DialogHeader({
-    required this.title,
-    required this.onClose,
-    required this.onOpenSource,
-  });
-
-  final String title;
-  final VoidCallback onClose;
-  final VoidCallback onOpenSource;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Transform.translate(
-          offset: const Offset(-10, 0),
-          child: SizedBox(
-            width: 28,
-            height: 28,
-            child: IconButton(
-              tooltip: '关闭',
-              onPressed: onClose,
-              padding: EdgeInsets.zero,
-              icon: const Icon(
-                Icons.keyboard_arrow_left_rounded,
-                color: Colors.black,
-                size: 24,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 1),
-        Text(
-          title,
-          style: const TextStyle(
-            color: Color(0xFF111111),
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        const Spacer(),
-        SizedBox(
-          width: 28,
-          height: 28,
-          child: IconButton(
-            tooltip: '打开源文件所在位置',
-            onPressed: onOpenSource,
-            padding: EdgeInsets.zero,
-            icon: const Icon(
-              Icons.open_in_new_rounded,
-              color: Colors.black,
-              size: 16,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _SourceSummary extends StatelessWidget {
-  const _SourceSummary({required this.task, required this.thumbnail});
-
-  final MediaTask task;
-  final ImageProvider? thumbnail;
-
-  @override
-  Widget build(BuildContext context) {
-    final analysis = task.analysisResult;
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: DefaultTextStyle(
-            style: const TextStyle(
-              color: Color(0xFF9A9A9A),
-              fontSize: 11,
-              height: 1.95,
-              fontWeight: FontWeight.w400,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '原视频大小: ${WorkbenchFormatters.formatBytes(task.sourceFileFingerprint?.fileSize)}',
-                ),
-                Text('分辨率: ${WorkbenchFormatters.formatResolution(analysis)}'),
-                Wrap(
-                  spacing: 24,
-                  runSpacing: 0,
-                  children: [
-                    Text(
-                      '视频格式: ${WorkbenchFormatters.formatContainer(analysis?.containerFormat)}',
-                    ),
-                    Text(
-                      '视频时长: ${WorkbenchFormatters.formatDuration(analysis?.durationMs)}',
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        _TaskThumbnail(thumbnail: thumbnail),
-      ],
-    );
-  }
-}
-
 class _TaskThumbnail extends StatelessWidget {
   const _TaskThumbnail({required this.thumbnail});
 
@@ -864,64 +549,6 @@ class _TaskThumbnail extends StatelessWidget {
               size: 22,
             )
           : null,
-    );
-  }
-}
-
-class _DialogActions extends StatelessWidget {
-  const _DialogActions({required this.onCancel, required this.onSave});
-
-  final VoidCallback onCancel;
-  final VoidCallback onSave;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        _DialogActionButton(
-          label: '取消',
-          backgroundColor: const Color(0xFFB8B8B8),
-          onPressed: onCancel,
-        ),
-        const SizedBox(width: 16),
-        _DialogActionButton(
-          label: '保存',
-          backgroundColor: const Color(0xFF6290FF),
-          onPressed: onSave,
-        ),
-      ],
-    );
-  }
-}
-
-class _DialogActionButton extends StatelessWidget {
-  const _DialogActionButton({
-    required this.label,
-    required this.backgroundColor,
-    required this.onPressed,
-  });
-
-  final String label;
-  final Color backgroundColor;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 75,
-      height: 28,
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          backgroundColor: backgroundColor,
-          foregroundColor: Colors.white,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
-        ),
-        child: Text(label),
-      ),
     );
   }
 }

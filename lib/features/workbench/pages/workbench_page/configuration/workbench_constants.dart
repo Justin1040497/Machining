@@ -1,5 +1,5 @@
 import 'package:file_selector/file_selector.dart';
-import 'package:machining/features/workbench/pages/workbench_page/models.dart';
+import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 
 abstract final class WorkbenchConstants {
   static const double appTopBarHeight = 52;

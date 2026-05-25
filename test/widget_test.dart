@@ -13,8 +13,8 @@ import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/features/workbench/pages/workbench_page/task_configuration_dialog.dart';
-import 'package:machining/features/workbench/widgets/workbench_task_list_item.dart';
+import 'package:machining/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
+import 'package:machining/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 void main() {
   testWidgets('recommended presets do not change resolution automatically', (
@@ -222,7 +222,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: WorkbenchTaskListItem(
+          body: MediaTaskListTile(
             task: testTask(status: TaskStatus.missingSource),
             onRelink: () {
               relinkCount += 1;
@@ -244,12 +244,137 @@ void main() {
     expect(relinkCount, 1);
     expect(retryCount, 0);
   });
+
+  testWidgets('analyzed pending task starts instead of retrying', (
+    tester,
+  ) async {
+    var startCount = 0;
+    var retryCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: testTask(status: TaskStatus.pending),
+            onStart: () {
+              startCount += 1;
+            },
+            onRetry: () {
+              retryCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.play_circle_fill_rounded), findsOneWidget);
+    expect(find.byTooltip('开始压缩'), findsOneWidget);
+    expect(find.byTooltip('重试任务'), findsNothing);
+
+    await tester.tap(find.byTooltip('开始压缩'));
+    await tester.pump();
+
+    expect(startCount, 1);
+    expect(retryCount, 0);
+  });
+
+  testWidgets('pending task without analysis has no primary action', (
+    tester,
+  ) async {
+    var startCount = 0;
+    var retryCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: testTask(
+              status: TaskStatus.pending,
+              hasAnalysisResult: false,
+            ),
+            onStart: () {
+              startCount += 1;
+            },
+            onRetry: () {
+              retryCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('开始压缩'), findsNothing);
+    expect(find.byTooltip('重试任务'), findsNothing);
+
+    expect(startCount, 0);
+    expect(retryCount, 0);
+  });
+
+  testWidgets('paused task continues with a different icon than start', (
+    tester,
+  ) async {
+    var startCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: testTask(status: TaskStatus.paused),
+            onStart: () {
+              startCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+    expect(find.byIcon(Icons.play_circle_fill_rounded), findsNothing);
+    expect(find.byTooltip('继续任务'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('继续任务'));
+    await tester.pump();
+
+    expect(startCount, 1);
+  });
+
+  testWidgets('failed task retries instead of starting', (tester) async {
+    var startCount = 0;
+    var retryCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: testTask(status: TaskStatus.failed),
+            onStart: () {
+              startCount += 1;
+            },
+            onRetry: () {
+              retryCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.refresh_rounded), findsOneWidget);
+    expect(find.byTooltip('重试任务'), findsOneWidget);
+    expect(find.byTooltip('开始压缩'), findsNothing);
+
+    await tester.tap(find.byTooltip('重试任务'));
+    await tester.pump();
+
+    expect(startCount, 0);
+    expect(retryCount, 1);
+  });
 }
 
 MediaTask testTask({
   VideoTaskConfig? config,
   TaskStatus? status,
   MediaAnalysisResult? analysisResult,
+  bool hasAnalysisResult = true,
 }) {
   return MediaTask(
     id: 'task-1',
@@ -266,15 +391,16 @@ MediaTask testTask({
       fileSize: 100 * 1024 * 1024,
       lastModifiedAt: 1,
     ),
-    analysisResult:
-        analysisResult ??
-        MediaAnalysisResult(
-          durationMs: 60000,
-          videoWidth: 3840,
-          videoHeight: 2160,
-          videoCodec: 'h264',
-          videoBitrate: 12000000,
-          audioBitrate: 128000,
-        ),
+    analysisResult: hasAnalysisResult
+        ? analysisResult ??
+              MediaAnalysisResult(
+                durationMs: 60000,
+                videoWidth: 3840,
+                videoHeight: 2160,
+                videoCodec: 'h264',
+                videoBitrate: 12000000,
+                audioBitrate: 128000,
+              )
+        : null,
   );
 }

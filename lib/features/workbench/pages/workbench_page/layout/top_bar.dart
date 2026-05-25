@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:machining/features/workbench/pages/workbench_page/constants.dart';
+import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 
 class WorkbenchTopBar extends StatelessWidget {
   const WorkbenchTopBar({super.key});
