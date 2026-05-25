@@ -40,6 +40,8 @@ legal/third-party/
 ```text
 third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/windows-x64/ffmpeg.exe
+third_party/ffmpeg/windows-x64/ffprobe.exe
 ```
 
 提交以下说明和元数据：
@@ -47,6 +49,7 @@ third_party/ffmpeg/macos-arm64/ffprobe
 ```text
 third_party/ffmpeg/macos-arm64/README.md
 third_party/ffmpeg/macos-arm64/ffmpeg-build-info.txt
+third_party/ffmpeg/windows-x64/README.md
 scripts/build_ffmpeg_macos_arm64.sh
 ```
 
@@ -99,7 +102,7 @@ Machining.exe directory/legal/
 
 ## v1.5 状态
 
-当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、智能压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
+当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
 
 ## 发布检查
 

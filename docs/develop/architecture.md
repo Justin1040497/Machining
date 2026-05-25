@@ -22,7 +22,7 @@ features -> application -> domain
 ```mermaid
 flowchart LR
   UI["features/workbench\n页面、弹窗、任务列表、用户操作"]
-  APP["application\n服务接口、队列、命令构造、分析和预览抽象"]
+  APP["application\nUse Cases、仓储接口和服务抽象"]
   DOMAIN["domain\n实体、枚举、值对象和业务状态"]
   INFRA["infrastructure\nDrift、FFmpeg、FFprobe、文件系统和进程实现"]
 
@@ -35,9 +35,9 @@ flowchart LR
 依赖方向约束：
 
 - `domain` 不依赖 Flutter、Drift、FFmpeg 或文件系统。
-- `application` 定义服务抽象、仓储接口和核心流程，可以依赖 `domain`。
+- `application` 定义 Use Cases、服务抽象、仓储接口和核心流程，可以依赖 `domain`。
 - `infrastructure` 实现数据库、文件系统、FFmpeg / FFprobe 和平台差异，可以依赖 `application` 抽象和 `domain`。
-- `features` 是 UI 和页面状态协调层，通过 Riverpod 读取仓储和服务。
+- `features` 是 UI 和页面状态协调层，通过 Riverpod notifier 调用 application 用例，不直接拼装数据库或 FFmpeg 实现。
 - `app` 只负责应用入口、主题和路由，不承载业务规则。
 
 ## 为什么使用这个架构
@@ -63,16 +63,28 @@ lib/
   application/
     repositories/
     services/
+      input_runtime/
+      ffmpeg_planning/
+      execution/
+    use_cases/
+      app_settings/
+      media_tasks/
   infrastructure/
     database/
     providers/
     repositories/
     services/
+      input_runtime/
+      ffmpeg_planning/
+      execution/
   features/
     workbench/
       pages/
+        workbench_page/
       providers/
       widgets/
+        form_controls/
+        media_task_list/
 ```
 
 平台与工程目录：
@@ -109,48 +121,67 @@ docs/
 - `VideoTaskConfig`：单个视频任务的输出和压缩配置。
 - `MediaAnalysisResult`：FFprobe 分析结果。
 - `SourceFileFingerprint`：源文件快速指纹，用于检测源文件是否被替换或移动。
-- 枚举：任务状态、输出格式、视频编码、编码器后端、分辨率预设、压缩模式、智能压缩预设、媒体类型、任务用途等。
+- 枚举：任务状态、输出格式、视频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设（代码名 `SmartCompressionPreset`）、媒体类型、任务用途等。
 
 `MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult` 等方法，避免 UI 或仓储直接拼装状态。
 
 ### application
 
-`application` 保存服务接口和核心业务流程：
+`application` 保存仓储接口、服务抽象和用例。它描述“这个应用能做什么”和“什么时候调用哪些能力”，但不直接依赖 Drift、文件系统或 Flutter Widget。
 
-- `FfmpegCommandBuilder`：根据任务配置生成 FFmpeg 参数。
-- `FfmpegTaskQueueRunner`：串行执行任务，处理启动、暂停、继续、取消和队列连续执行。
-- `FfmpegProcessObserver`：解析 FFmpeg 输出并更新进度。
-- `MediaAnalyzer`：分析媒体信息。
-- `PreviewFrameGenerator`：生成压缩前后预览帧。
-- `CompressionAdvisor` 和 `CompressionEstimator`：给出压缩策略和体积预估。
-- `FfmpegEncoderCapabilities`：解析和判断当前 FFmpeg 支持的软件 / 硬件编码器。
-- `FfmpegLocator`：描述 FFmpeg / FFprobe 运行时解析接口。
-- `SourceFileChecker`、`SourceFileFingerprintReader`、`MediaKindResolver`：把文件系统和扩展名识别能力抽象出来。
-- Repository 接口：隔离业务层和 Drift 数据库实现。
+仓储抽象：
+
+- `MediaTaskRepository`：任务列表、任务状态、排序、保存、删除和清空的持久化接口。
+- `AppSettingsRepository`：应用设置读取和保存接口。
+
+Use Cases：
+
+- `LoadAppSettingsUseCase`、`SaveAppSettingsUseCase`：读取、校验并保存应用设置。
+- `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
+- `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
+- `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
+- `ReplaceMissingSourceUseCase`：为丢失源文件任务重新指定本地文件。
+- `RetryMediaTaskUseCase`：失败任务重试前检查源文件，并决定是否重新分析。
+- `ReorderMediaTasksUseCase`：保存任务列表排序。
+- `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`：进入队列执行、单任务开始 / 继续和暂停。
+- `ClearMediaTasksUseCase`、`DeleteMediaTaskUseCase`：删除任务前先处理正在执行的 FFmpeg 进程。
+- `GeneratePreviewFramesUseCase`：为工作台预览调用运行时解析和预览帧生成服务。
+
+服务抽象按阶段分组：
+
+- `services/input_runtime/`：`MediaAnalyzer`、`SourceFileChecker`、`MediaKindResolver`、`SourceFileFingerprintReader`、`FfmpegLocator`、`FfmpegRuntime`、`FfmpegEncoderCapabilities`。
+- `services/ffmpeg_planning/`：`CompressionAdvisor`、`CompressionEstimator`、`FfmpegCommandBuilder` 和默认压缩建议实现。
+- `services/execution/`：`FfmpegTaskQueueRunner`、`FfmpegProcessStarter`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
 
 ### infrastructure
 
-`infrastructure` 保存本地实现：
+`infrastructure` 保存 application 抽象的本地实现：
 
-- Drift + SQLite 数据库。
-- Riverpod provider 组装数据库、仓储和服务实现。
-- FFmpeg / FFprobe 定位和自定义路径校验。
-- FFmpeg 编码器能力检测。
-- FFprobe 媒体分析实现，解析 JSON 输出。
-- 压缩建议默认实现。
-- FFmpeg 命令构造默认实现。
-- FFmpeg 进程启动和进度观测。
-- 本地缩略图、预览帧和源文件指纹读取。
-- macOS、Windows、Linux 文件管理器打开方式和平台差异处理。
+- `database/`：Drift + SQLite 表、迁移、数据库连接和持久化兼容常量。
+- `providers/`：Riverpod 依赖装配入口，按数据库、仓储、输入运行时、FFmpeg 规划和执行拆分。
+- `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
+- `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
+- `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
+- `services/execution/`：本地 FFmpeg 进程启动、进度观测、预览帧生成和视频缩略图生成。
+
+持久化兼容层集中在：
+
+- `PersistenceCompatibility`：保存当前持久化值和历史兼容值。
+- `CompressionModeMapper`：把旧数据库中的 `smart`、`quality` 映射为当前领域中的 `CompressionMode.preset`，避免旧值泄漏到业务层。
 
 ### features/workbench
 
 `features/workbench` 是当前主要 UI 功能区：
 
-- 工作台页面。
-- 顶部栏、底部栏、任务列表、预览区、文件信息、导出路径、质量和视频配置面板。
-- 任务配置弹窗。
-- `MediaTaskListNotifier` 协调 UI 操作、任务持久化、源文件检查、后台分析和队列状态刷新。
+- `pages/workbench_page.dart`：工作台入口页面，负责组装页面状态和弹窗流程。
+- `pages/workbench_page/layout/`：顶部栏、底部栏、任务列表容器和工作台外壳。
+- `pages/workbench_page/dialogs/`：任务配置、应用设置、完成、失败、清空、重命名、压缩确认等工作台弹窗。
+- `pages/workbench_page/overlays/`：拖拽覆盖层和右上角通知浮层。
+- `pages/workbench_page/configuration/`：工作台常量、格式化、轻量模型和 UI 判断策略。
+- `widgets/form_controls/`：可复用表单控件，例如路径输入和配置下拉。
+- `widgets/media_task_list/`：任务列表项、状态徽标、操作按钮和缩略图组件。
+- `MediaTaskListNotifier`：任务管理和任务状态管理入口，通过 media task use cases 进入 application。
+- `WorkbenchPreviewNotifier`：预览状态入口，通过 `GeneratePreviewFramesUseCase` 进入 application。
 
 工作台当前支持：
 
@@ -174,11 +205,23 @@ Machining 使用 Riverpod 作为依赖注入和状态管理工具。
 | `appDatabaseProvider` | `Provider<AppDatabase>` | 提供全局唯一数据库实例，容器释放时关闭 |
 | `mediaTaskRepositoryProvider` | `Provider<MediaTaskRepository>` | 提供 Drift 任务仓储 |
 | `appSettingsRepositoryProvider` | `Provider<AppSettingsRepository>` | 提供 Drift 设置仓储 |
+| `mediaKindResolverProvider` | `Provider<MediaKindResolver>` | 提供扩展名媒体类型识别实现 |
+| `sourceFileCheckerProvider` | `Provider<SourceFileChecker>` | 提供本地源文件存在检查 |
+| `sourceFileFingerprintReaderProvider` | `Provider<SourceFileFingerprintReader>` | 提供本地源文件指纹读取 |
+| `ffmpegLocatorProvider` | `Provider<FfmpegLocator>` | 提供 FFmpeg / FFprobe 路径解析和自定义路径校验 |
+| `mediaAnalyzerProvider` | `Provider<MediaAnalyzer>` | 提供 FFprobe 媒体分析实现 |
 | `ffmpegRuntimeProvider` | `AsyncNotifierProvider` | 解析并缓存 FFmpeg / FFprobe 运行时和编码器能力 |
+| `compressionAdvisorProvider` | `Provider<CompressionAdvisor>` | 提供压缩策略建议 |
+| `ffmpegCommandBuilderProvider` | `Provider<FfmpegCommandBuilder>` | 提供 FFmpeg 命令规划服务 |
+| `previewFrameGeneratorProvider` | `Provider<PreviewFrameGenerator>` | 提供压缩前后预览帧生成服务 |
+| `videoThumbnailGeneratorProvider` | `Provider<VideoThumbnailGenerator>` | 提供视频缩略图生成服务 |
+| `ffmpegProcessStarterProvider` | `Provider<FfmpegProcessStarter>` | 提供 FFmpeg 进程启动实现 |
+| `ffmpegProcessObserverProvider` | `Provider<FfmpegProcessObserver>` | 提供 FFmpeg 进度和退出结果观测实现 |
 | `ffmpegTaskQueueRunnerProvider` | `Provider<FfmpegTaskQueueRunner>` | 维持同一个队列执行器实例 |
-| `mediaTaskListProvider` | `AsyncNotifierProvider` | 工作台任务列表、导入、分析、刷新和任务操作 |
+| `mediaTaskListProvider` | `AsyncNotifierProvider` | 工作台任务列表、导入、分析、刷新和任务操作入口 |
+| `workbenchPreviewProvider` | `NotifierProvider` | 工作台预览帧生成、对比比例和选中帧状态入口 |
 
-服务实现通常通过 provider 暴露抽象接口，例如 UI 只读取 `mediaTaskRepositoryProvider`、`ffmpegTaskQueueRunnerProvider`、`previewFrameGeneratorProvider`，不直接创建 Drift 或 FFmpeg 实现。
+服务实现通过 provider 暴露 application 抽象接口，UI 只调用 notifier 或用例，不直接创建 Drift、FFmpeg 进程或文件系统实现。
 
 ## 主要流程
 
@@ -191,9 +234,9 @@ main()
   -> GoRouter("/")
   -> WorkbenchPage
   -> mediaTaskListProvider.build()
-  -> loadAllTasks()
-  -> 检查源文件和指纹
-  -> 必要时后台分析
+  -> ReconcileMediaTasksUseCase
+  -> 检查源文件、指纹和缺失分析结果
+  -> 必要时调用 AnalyzeMediaTaskUseCase 后台分析
   -> 刷新 FFmpeg 队列状态
 ```
 
@@ -203,11 +246,14 @@ main()
 
 ```text
 文件选择 / 拖拽
+  -> ImportMediaTaskUseCase
   -> MediaKindResolver 按扩展名识别类型
   -> 当前只允许 video
   -> SourceFileFingerprintReader 读取文件大小和修改时间
+  -> AppSettingsRepository 读取新任务默认配置
   -> MediaTask.draft()
   -> 保存 analyzing 任务
+  -> AnalyzeMediaTaskUseCase
   -> FfprobeMediaAnalyzer.analyze()
   -> 写入 MediaAnalysisResult
   -> 状态回到 pending
@@ -228,7 +274,14 @@ main()
 
 ### FFmpeg 命令构造
 
-`DefaultFfmpegCommandBuilder` 只负责构造计划，不启动进程。
+`DefaultFfmpegCommandBuilder` 只负责构造计划，不启动进程。较细的命令规划逻辑拆在同目录 helper 中：
+
+- `ffmpeg_output_path_builder.dart`：解析输出目录、输出文件名和路径冲突。
+- `ffmpeg_encoder_resolver.dart`：根据平台能力和用户配置解析最终编码器。
+- `ffmpeg_video_argument_builder.dart`：生成视频编码、码率、分辨率和质量参数。
+- `ffmpeg_command_step_builder.dart`：生成单步、两遍压缩和预览片段步骤。
+- `ffmpeg_command_log_hint_builder.dart`：生成策略摘要。
+- `ffmpeg_command_formatters.dart`：集中格式化命令日志和参数片段。
 
 命令计划包含：
 
@@ -250,7 +303,7 @@ main()
 
 ### 队列执行
 
-`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。它保存内存中的 `_executions` 和 `_foregroundTaskId`，同时把任务状态写回仓储。
+`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。UI 不直接调用它的细节方法，而是通过 `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`DeleteMediaTaskUseCase` 和 `ClearMediaTasksUseCase` 进入执行流程。队列执行器保存内存中的 `_executions` 和 `_foregroundTaskId`，同时把任务状态写回仓储。
 
 状态模型：
 
@@ -366,19 +419,25 @@ Drift 数据库只保存可恢复的业务状态：
 当前自动化测试主要覆盖 application 和 infrastructure 服务：
 
 ```text
+test/app_settings_use_cases_test.dart
 test/compression_advisor_test.dart
 test/compression_estimator_test.dart
+test/compression_mode_mapper_test.dart
 test/ffmpeg_command_builder_test.dart
 test/ffmpeg_encoder_capabilities_test.dart
 test/ffmpeg_process_observer_test.dart
 test/ffmpeg_task_queue_runner_test.dart
 test/ffprobe_media_analyzer_test.dart
+test/generate_preview_frames_use_case_test.dart
+test/media_task_execution_use_cases_test.dart
 test/preview_frame_generator_test.dart
 test/video_thumbnail_generator_test.dart
 test/widget_test.dart
+test/workbench_dialog_style_test.dart
+test/workbench_preview_notifier_test.dart
 ```
 
-新增架构能力时，优先给 application 服务或 infrastructure 实现补单元测试；UI 层只保留基础 Widget 构建和关键交互测试。
+新增架构能力时，优先给 application use case、application 服务或 infrastructure 实现补单元测试；UI 层保留基础 Widget 构建、关键交互和风格一致性测试。
 
 ## 当前架构文档
 

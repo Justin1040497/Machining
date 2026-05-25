@@ -14,7 +14,7 @@ Machining 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `10`，数据库文件名为 `machining.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `11`，数据库文件名为 `machining.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -34,16 +34,17 @@ lib/infrastructure/database/app_database.dart
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频和封装信息 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置和默认压缩偏好 |
-| `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认智能压缩方案 |
+| `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 
 ```text
 lib/infrastructure/repositories/drift_media_task_repository.dart
 lib/infrastructure/repositories/drift_app_settings_repository.dart
+lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 ```
 
-枚举字段使用 Dart enum 的 `.name` 持久化，例如 `TaskStatus.pending` 存为 `pending`。新增、删除或重命名枚举值会直接影响历史数据读取，必须配套迁移或兼容映射。
+枚举字段通常使用 Dart enum 的 `.name` 持久化，例如 `TaskStatus.pending` 存为 `pending`。新增、删除或重命名枚举值会直接影响历史数据读取，必须配套迁移或兼容映射。当前 `CompressionMode` 已使用 `CompressionModeMapper` 和 `PersistenceCompatibility` 集中处理历史值兼容。
 
 ## `tasks` 表
 
@@ -84,9 +85,9 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 | `encoder_backend` | text | 否 | 无 | `encoderBackend` | 编码器实现：`auto`、`libx264`、`libx265`、`videotoolbox`、`nvenc`、`qsv`、`amf` |
 | `resolution_preset` | text | 否 | 无 | `resolutionPreset` | 输出分辨率：原始、2160p、1080p、720p、480p |
 | `output_directory` | text | 否 | 无 | `outputDirectory` | 输出目录；空字符串表示跟随源文件目录 |
-| `compression_crf` | integer | 否 | `28` | `compressionCrf` | 质量优先和普通压缩的 CRF 基准值 |
-| `compression_mode` | text | 否 | `smart` | `compressionMode` | 压缩控制方式：`smart`、`quality`、`targetSize` |
-| `smart_preset` | text | 是 | `null` | `smartPreset` | 智能推荐预设：`balanced`、`chat`、`clear`、`compact` |
+| `compression_crf` | integer | 否 | `28` | `compressionCrf` | 推荐方案和普通压缩的 CRF 基准值 |
+| `compression_mode` | text | 否 | `preset` | `compressionMode` | 压缩控制方式：当前写入 `preset`、`targetSize`；历史值 `smart`、`quality` 会映射为 `preset` |
+| `smart_preset` | text | 是 | `null` | `smartPreset` | 推荐方案预设：`balanced`、`chat`、`clear`、`compact` |
 | `target_size_bytes` | integer | 是 | `null` | `targetSizeBytes` | 目标体积模式的目标字节数，当前核心字段 |
 | `target_size_ratio` | real | 是 | `null` | `targetSizeRatio` | 旧版本兼容字段；没有 `target_size_bytes` 时可按源文件大小换算 |
 | `output_file_name` | text | 否 | `''` | `outputFileName` | 用户自定义输出文件名；空字符串时自动生成 |
@@ -101,8 +102,8 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 | 分辨率 | `original` |
 | 输出目录 | 空字符串，表示源文件目录 |
 | CRF | `28` |
-| 压缩模式 | `smart` |
-| 智能预设 | `balanced` |
+| 压缩模式 | `preset` |
+| 推荐方案预设 | `balanced` |
 | 目标体积 | `null` |
 | 自定义文件名 | 空字符串 |
 
@@ -157,7 +158,7 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 | `show_raw_log` | boolean | 否 | `false` | `showRawLog` | 是否显示原始日志 |
 | `show_advanced_options` | boolean | 否 | `false` | `showAdvancedOptions` | 是否展示高级选项 |
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
-| `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认智能压缩方案 |
+| `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
 | `default_output_file_name_template` | text | 否 | `datetimeOriginalCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
@@ -196,26 +197,33 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 
 | 存储值 | 含义 | 数据要求 |
 | --- | --- | --- |
-| `smart` | 智能推荐 | 使用 `smart_preset`，结合 FFprobe 分析结果估算目标码率和体积 |
-| `quality` | 质量优先 | 以 `compression_crf` 为核心，不承诺输出体积 |
+| `preset` | 推荐方案 | 使用 `smart_preset` 和 `compression_crf`，结合 FFprobe 分析结果估算码率和体积，不强承诺输出大小 |
 | `targetSize` | 目标体积 | 优先使用 `target_size_bytes`，需要有效时长；软件编码下使用两遍压缩 |
+
+历史兼容值：
+
+| 历史存储值 | 当前映射 | 说明 |
+| --- | --- | --- |
+| `smart` | `preset` | 旧“智能推荐”命名，v11 迁移会更新数据库存量记录 |
+| `quality` | `preset` | 旧“质量优先”命名，当前不再作为独立压缩模式 |
 
 ## 主要数据流
 
 ### 导入和分析
 
 1. UI 通过文件选择或拖拽拿到本地路径。
-2. `MediaTaskListNotifier.createDraftFromPath()` 识别 `MediaKind`，当前只允许 `video`。
-3. 读取 `SourceFileFingerprint`。
-4. 创建 `MediaTask.draft()`，写入 `analyzing` 状态并保存到 `tasks`。
-5. 后台调用 FFprobe 分析。
-6. 成功后写入 `MediaAnalysisResult`，状态从 `analyzing` 回到 `pending`。
-7. 失败后写入 `analysis_error_message`，任务状态变为 `failed`。
+2. `MediaTaskListNotifier.createDraftFromPath()` 调用 `ImportMediaTaskUseCase`。
+3. `ImportMediaTaskUseCase` 识别 `MediaKind`，当前只允许 `video`，并读取 `SourceFileFingerprint`。
+4. 用应用设置生成新任务默认配置，创建 `MediaTask.draft()`。
+5. 写入 `analyzing` 状态并保存到 `tasks`。
+6. 后台调用 `AnalyzeMediaTaskUseCase` 和 FFprobe 分析。
+7. 成功后写入 `MediaAnalysisResult`，状态从 `analyzing` 回到 `pending`。
+8. 失败后写入 `analysis_error_message`，任务状态变为 `failed`。
 
 ### 应用启动恢复
 
-1. `MediaTaskListNotifier.build()` 读取全部任务。
-2. 对每个任务检查源文件是否存在。
+1. `MediaTaskListNotifier.build()` 调用 `ReconcileMediaTasksUseCase`。
+2. `ReconcileMediaTasksUseCase` 读取全部任务并检查源文件是否存在。
 3. 源文件不存在时标记 `missingSource`。
 4. 源文件存在但指纹变化时，更新指纹、清空分析结果、重新分析。
 5. 缺少分析结果的任务会排入后台分析。
@@ -245,12 +253,13 @@ lib/infrastructure/repositories/drift_app_settings_repository.dart
 | 7 | 给 `tasks` 增加 `compression_crf` 和 `output_file_name` |
 | 8 | 给 `tasks` 增加 `compression_mode` 和 `target_size_ratio` |
 | 9 | 给 `tasks` 增加 `smart_preset` 和 `target_size_bytes` |
-| 10 | 给 `settings` 增加保存到源文件旁、默认智能压缩方案和默认导出文件名模板 |
+| 10 | 给 `settings` 增加保存到源文件旁、默认推荐方案和默认导出文件名模板 |
+| 11 | 将 `tasks.compression_mode` 中的历史值 `smart`、`quality` 归一化为 `preset` |
 
 ## 修改数据模型的约束
 
 - 新增非空列必须提供 Drift 默认值，或写清楚迁移填充值。
-- 枚举持久化值不能随意重命名；确实要重命名时，需要在仓储映射或迁移里兼容旧值。
+- 枚举持久化值不能随意重命名；确实要重命名时，需要在仓储映射、兼容常量或迁移里兼容旧值。
 - 任务状态要能在应用重启后被重新校正；不能假设内存里的 FFmpeg 进程仍存在。
 - 源文件、预览帧、日志和输出文件路径都是本地路径，跨机器或用户移动文件后可能失效。
 - `target_size_ratio` 是兼容字段，新功能应优先读写 `target_size_bytes`。
