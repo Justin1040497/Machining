@@ -6,9 +6,10 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
-import 'package:machining/application/services/preview_frame_generator.dart';
-import 'package:machining/application/services/video_thumbnail_generator.dart';
+import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:machining/application/services/execution/video_thumbnail_generator.dart';
+import 'package:machining/application/use_cases/app_settings/load_app_settings_use_case.dart';
+import 'package:machining/application/use_cases/app_settings/save_app_settings_use_case.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
@@ -27,9 +28,11 @@ import 'package:machining/features/workbench/pages/workbench_page/models.dart';
 import 'package:machining/features/workbench/pages/workbench_page/task_configuration_dialog.dart';
 import 'package:machining/features/workbench/pages/workbench_page/task_list_card.dart';
 import 'package:machining/features/workbench/pages/workbench_page/top_bar.dart';
+import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:machining/features/workbench/providers/media_task_notifier.dart';
-import 'package:machining/infrastructure/providers/drift_provider.dart';
+import 'package:machining/features/workbench/providers/workbench_preview_notifier.dart';
 import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/repository_provider.dart';
 import 'package:path/path.dart' as path;
 
 const Object _configValueNotProvided = Object();
@@ -47,7 +50,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   VideoCodec selectedVideoCodec = VideoCodec.h264;
   EncoderBackend selectedEncoderBackend = EncoderBackend.auto;
   ResolutionPreset selectedResolutionPreset = ResolutionPreset.original;
-  CompressionMode selectedCompressionMode = CompressionMode.smart;
+  CompressionMode selectedCompressionMode = CompressionMode.preset;
   SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced;
   String? selectedTaskId;
   String? syncedConfigTaskId;
@@ -57,10 +60,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool workbenchImportDragging = false;
   bool appSettingsDialogOpen = false;
   bool queueActionInFlight = false;
-  bool previewGenerating = false;
-  double previewCompareRatio = 0.5;
-  int selectedPreviewFrameIndex = 0;
-  PreviewFrameResult? previewFrameResult;
   final Map<String, String> thumbnailPathByKey = {};
   final Set<String> thumbnailGenerationKeys = {};
   final Set<String> thumbnailFailureKeys = {};
@@ -95,6 +94,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     ) {
       notifyAnalysisErrors(next.asData?.value);
       notifyCompletedTasks(previous?.asData?.value, next.asData?.value);
+    });
+    ref.listen<WorkbenchPreviewState>(workbenchPreviewProvider, (
+      previous,
+      next,
+    ) {
+      final message = next.errorMessage;
+      if (message == null || message == previous?.errorMessage) {
+        return;
+      }
+
+      showWorkbenchSnackBar(message);
     });
 
     final taskList = ref.watch(mediaTaskListProvider);
@@ -502,10 +512,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> showAppSettingsDialog() async {
-    final settingsRepository = ref.read(appSettingsRepositoryProvider);
-
     try {
-      final settings = await settingsRepository.loadSettings();
+      final settings = await LoadAppSettingsUseCase(
+        repository: ref.read(appSettingsRepositoryProvider),
+      ).call();
       if (!mounted) {
         return;
       }
@@ -567,18 +577,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> saveAppSettings(AppSettings settings) async {
-    final locator = ref.read(ffmpegLocatorProvider);
-    final ffmpegPath = settings.customFfmpegPath?.trim();
-    final ffprobePath = settings.customFfprobePath?.trim();
-
-    if (ffmpegPath != null && ffmpegPath.isNotEmpty) {
-      await locator.validateCustomFfmpegPath(ffmpegPath);
-    }
-    if (ffprobePath != null && ffprobePath.isNotEmpty) {
-      await locator.validateCustomFfprobePath(ffprobePath);
-    }
-
-    await ref.read(appSettingsRepositoryProvider).saveSettings(settings);
+    await SaveAppSettingsUseCase(
+      repository: ref.read(appSettingsRepositoryProvider),
+      ffmpegLocator: ref.read(ffmpegLocatorProvider),
+    ).call(settings);
     ref.invalidate(ffmpegRuntimeProvider);
   }
 
@@ -602,9 +604,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       selectedQualityIndex = initialQualityIndexForTask(task);
       syncedConfigTaskId = task.id;
       syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
-      previewFrameResult = null;
-      selectedPreviewFrameIndex = 0;
     });
+    resetPreviewState();
 
     var draftQualityIndex = selectedQualityIndex;
     var draftOutputFormat = selectedOutputFormat;
@@ -637,7 +638,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           compressionCrf: qualityOption.crf,
           compressionMode: isTargetSize
               ? CompressionMode.targetSize
-              : CompressionMode.smart,
+              : CompressionMode.preset,
           smartPreset: isTargetSize ? null : draftSmartPreset,
           targetSizeBytes: isTargetSize ? targetSizeBytes : null,
           targetSizeRatio: isTargetSize ? targetSizeRatio : null,
@@ -657,7 +658,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           selectedResolutionPreset = draftResolutionPreset;
           selectedCompressionMode = isTargetSize
               ? CompressionMode.targetSize
-              : CompressionMode.smart;
+              : CompressionMode.preset;
           selectedSmartPreset = draftSmartPreset;
         });
 
@@ -704,7 +705,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                 updateDialogState(() {
                   draftCompressionMode = value == CompressionMode.targetSize
                       ? CompressionMode.targetSize
-                      : CompressionMode.smart;
+                      : CompressionMode.preset;
                   draftTargetSizeRatio = normalizeTargetSizeRatio(
                     draftTargetSizeRatio,
                   );
@@ -816,9 +817,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           selectedTaskId = createdTasks.first.id;
           syncedConfigTaskId = null;
           syncedQualityTaskKey = null;
-          previewFrameResult = null;
-          selectedPreviewFrameIndex = 0;
         });
+        resetPreviewState();
       }
     } on Object catch (error) {
       showWorkbenchSnackBar(error.toString());
@@ -883,9 +883,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         selectedTaskId = createdTasks.first.id;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
-        previewFrameResult = null;
-        selectedPreviewFrameIndex = 0;
       });
+      resetPreviewState();
     }
 
     showDroppedImportSnackBar(
@@ -1010,9 +1009,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       selectedTaskId = null;
       syncedConfigTaskId = null;
       syncedQualityTaskKey = null;
-      previewFrameResult = null;
-      selectedPreviewFrameIndex = 0;
     });
+    resetPreviewState();
   }
 
   Future<void> deleteTask(MediaTask task) async {
@@ -1022,9 +1020,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         selectedTaskId = null;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
-        previewFrameResult = null;
-        selectedPreviewFrameIndex = 0;
       });
+      resetPreviewState();
     }
   }
 
@@ -1047,9 +1044,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         selectedTaskId = task.id;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
-        previewFrameResult = null;
-        selectedPreviewFrameIndex = 0;
       });
+      resetPreviewState();
       showWorkbenchSnackBar('源文件已重新链接');
     } on Object catch (error) {
       showWorkbenchSnackBar(error.toString());
@@ -1332,7 +1328,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       resolutionPreset: ResolutionPreset.original,
       outputDirectory: '',
       compressionCrf: WorkbenchConstants.qualityOptions[nextQualityIndex].crf,
-      compressionMode: CompressionMode.smart,
+      compressionMode: CompressionMode.preset,
       smartPreset: smartPresetForQualityIndex(nextQualityIndex),
       targetSizeBytes: null,
       targetSizeRatio: null,
@@ -1354,9 +1350,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       outputFileNameController.clear();
       syncedConfigTaskId = task.id;
       syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
-      previewFrameResult = null;
-      selectedPreviewFrameIndex = 0;
     });
+    resetPreviewState();
 
     final updatedTask = task.copyWith(config: initialConfig);
     await ref.read(mediaTaskListProvider.notifier).saveTask(updatedTask);
@@ -1369,6 +1364,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     return resolveSelectedTask(taskList.requireValue);
+  }
+
+  void resetPreviewState() {
+    ref.read(workbenchPreviewProvider.notifier).reset();
   }
 
   Future<void> updateSelectedTaskConfig({
@@ -1406,10 +1405,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
 
     await ref.read(mediaTaskListProvider.notifier).saveTask(updatedTask);
-    setState(() {
-      previewFrameResult = null;
-      selectedPreviewFrameIndex = 0;
-    });
+    resetPreviewState();
   }
 
   void showWorkbenchSnackBar(String message, {SnackBarAction? action}) {
@@ -1479,53 +1475,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return;
     }
 
-    if (task.analysisResult?.durationMs == null) {
-      showWorkbenchSnackBar('媒体分析完成后才能生成预览');
-      return;
-    }
-
-    final runtime = await ref.read(ffmpegRuntimeProvider.future);
-    if (runtime.ffmpeg == null) {
-      showWorkbenchSnackBar('FFmpeg 不可用，无法生成预览');
-      return;
-    }
-
-    setState(() {
-      previewGenerating = true;
-    });
-
-    try {
-      final result = await ref
-          .read(previewFrameGeneratorProvider)
-          .generate(
-            PreviewFrameRequest(
-              ffmpegPath: runtime.ffmpeg!.path,
-              task: task,
-              allowExtremeCompression:
-                  isSourceAlreadyCompressed(task) &&
-                  selectedQualityOption.isLowestVolume,
-              encoderCapabilities: runtime.encoderCapabilities,
-            ),
-          );
-
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        previewFrameResult = result;
-        selectedPreviewFrameIndex = 0;
-        previewCompareRatio = 0.5;
-      });
-    } on Object catch (error) {
-      showWorkbenchSnackBar(error.toString());
-    } finally {
-      if (mounted) {
-        setState(() {
-          previewGenerating = false;
-        });
-      }
-    }
+    await ref
+        .read(workbenchPreviewProvider.notifier)
+        .generate(
+          task: task,
+          allowExtremeCompression:
+              isSourceAlreadyCompressed(task) &&
+              selectedQualityOption.isLowestVolume,
+        );
   }
 
   WorkbenchFileInfoData buildFileInfoData(MediaTask task) {

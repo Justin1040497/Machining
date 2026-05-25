@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/compression_estimator.dart';
+import 'package:machining/application/services/ffmpeg_planning/compression_estimator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';

@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1240 920" width="1240" height="920">
+<style>
+text { font-family: 'Helvetica Neue', Helvetica, Arial, 'PingFang SC', 'Microsoft YaHei', 'Microsoft JhengHei', SimHei, sans-serif; letter-spacing: 0; } .title { font-size: 22px; font-weight: 700; fill: #111827; } .subtitle { font-size: 12px; fill: #6b7280; } .label { font-size: 14px; fill: #111827; } .small { font-size: 12px; fill: #6b7280; } .tiny { font-size: 10px; fill: #6b7280; font-weight: 600; }
+</style>
+<defs>
+<marker id="arrow-blue" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#2563eb"/>
+</marker>
+<marker id="arrow-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#16a34a"/>
+</marker>
+<marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#ea580c"/>
+</marker>
+<marker id="arrow-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#7c3aed"/>
+</marker>
+<marker id="arrow-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#6b7280"/>
+</marker>
+<marker id="arrow-red" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#dc2626"/>
+</marker>
+<marker id="arrow-black" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+<polygon points="0 0, 10 3.5, 0 7" fill="#111827"/>
+</marker>
+<marker id="open-gray" markerWidth="12" markerHeight="10" refX="10" refY="5" orient="auto">
+<path d="M 1 1 L 10 5 L 1 9" fill="none" stroke="#6b7280" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+</marker>
+<marker id="hollow-triangle" markerWidth="14" markerHeight="12" refX="12" refY="6" orient="auto">
+<path d="M 1 1 L 12 6 L 1 11 Z" fill="#ffffff" stroke="#6b7280" stroke-width="1.5" stroke-linejoin="round"/>
+</marker>
+<marker id="diamond-fill" markerWidth="14" markerHeight="14" refX="2" refY="7" orient="auto">
+<path d="M 7 1 L 13 7 L 7 13 L 1 7 Z" fill="#111827" stroke="#111827" stroke-width="1.4"/>
+</marker>
+<marker id="diamond-hollow" markerWidth="14" markerHeight="14" refX="2" refY="7" orient="auto">
+<path d="M 7 1 L 13 7 L 7 13 L 1 7 Z" fill="#ffffff" stroke="#6b7280" stroke-width="1.4"/>
+</marker>
+</defs>
+<rect width="1240" height="920" fill="#ffffff"/>
+<text x="40" y="42" text-anchor="start" font-size="22" font-weight="700" fill="#111827" style="" class="title">Start Compression Sequence</text>
+<text x="40" y="64" text-anchor="start" font-size="12" font-weight="400" fill="#6b7280" style="">Time-ordered path from UI command to FFmpeg completion and task refresh</text>
+<rect x="18" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="80.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">User</text>
+<line x1="80" y1="138" x2="80" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="158" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="220.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">UI</text>
+<line x1="220" y1="138" x2="220" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="328" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="390.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">Notifier</text>
+<line x1="390" y1="138" x2="390" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="488" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="550.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">Repo</text>
+<line x1="550" y1="138" x2="550" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="648" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="710.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">Runtime</text>
+<line x1="710" y1="138" x2="710" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="808" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="870.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">Queue</text>
+<line x1="870" y1="138" x2="870" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="968" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1030.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">Builder</text>
+<line x1="1030" y1="138" x2="1030" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="1108" y="96" width="124" height="42" rx="8" ry="8" fill="#ffffff" stroke="#d1d5db" stroke-width="1.5"/>
+<text x="1170.0" y="122.0" text-anchor="middle" font-size="14" font-weight="700" fill="#111827" style="">FFmpeg</text>
+<line x1="1170" y1="138" x2="1170" y2="886" stroke="#d1d5db" stroke-width="1.2" stroke-dasharray="5,5"/>
+<rect x="385" y="150" width="10" height="620" fill="#eff6ff" stroke="#bfdbfe" stroke-width="1"/>
+<rect x="865" y="210" width="10" height="520" fill="#fff7ed" stroke="#bfdbfe" stroke-width="1"/>
+<rect x="1165" y="470" width="10" height="150" fill="#faf5ff" stroke="#bfdbfe" stroke-width="1"/>
+<path d="M 80,160 L 220,160" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="108.8" y="133.0" width="82.4" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="150.0" y="147" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">click Start</text>
+<path d="M 220,208 L 390,208" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="238.2" y="181.0" width="133.6" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="305.0" y="195" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">startExecutionQueue</text>
+<path d="M 390,256 L 870,256" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="601.6" y="229.0" width="56.8" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="630.0" y="243" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">start()</text>
+<path d="M 870,304 L 550,304" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" stroke-dasharray="5,3"/>
+<rect x="672.0" y="277.0" width="76.0" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="710.0" y="291" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">load tasks</text>
+<path d="M 870,352 L 710,352" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-orange)"/>
+<rect x="745.6" y="325.0" width="88.8" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="790.0" y="339" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">read runtime</text>
+<path d="M 870,400 L 1030,400" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-orange)"/>
+<rect x="912.0" y="373.0" width="76.0" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="950.0" y="387" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">build plan</text>
+<path d="M 1030,448 L 870,448" fill="none" stroke="#6b7280" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-gray)" stroke-dasharray="4,3"/>
+<rect x="905.6" y="421.0" width="88.8" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="950.0" y="435" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">args + steps</text>
+<path d="M 870,496 L 550,496" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" stroke-dasharray="5,3"/>
+<rect x="668.8" y="469.0" width="82.4" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="710.0" y="483" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">markRunning</text>
+<path d="M 870,544 L 1170,544" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="972.4" y="517.0" width="95.2" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1020.0" y="531" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">start process</text>
+<path d="M 1170,592 L 870,592" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="966.0" y="565.0" width="108.0" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1020.0" y="579" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">progress events</text>
+<path d="M 870,640 L 550,640" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" stroke-dasharray="5,3"/>
+<rect x="662.4" y="613.0" width="95.2" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="710.0" y="627" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">save progress</text>
+<path d="M 1170,688 L 870,688" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)"/>
+<rect x="978.8" y="661.0" width="82.4" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="1020.0" y="675" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">exit status</text>
+<path d="M 870,736 L 550,736" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" stroke-dasharray="5,3"/>
+<rect x="636.8" y="709.0" width="146.4" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="710.0" y="723" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">mark completed/failed</text>
+<path d="M 870,784 L 870,784" fill="none" stroke="#ea580c" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-orange)"/>
+<rect x="809.6" y="757.0" width="120.8" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="870.0" y="771" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">continueAfterTask</text>
+<path d="M 870,690 C 940,658 940,722 870,716" fill="none" stroke="#ea580c" stroke-width="1.8" marker-end="url(#arrow-orange)"/>
+<rect x="895.6" y="673.0" width="88.8" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="940" y="687" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">next pending</text>
+<path d="M 390,848 L 550,848" fill="none" stroke="#16a34a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" stroke-dasharray="5,3"/>
+<rect x="425.6" y="821.0" width="88.8" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="470.0" y="835" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">poll refresh</text>
+<path d="M 390,896 L 220,896" fill="none" stroke="#2563eb" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)"/>
+<rect x="257.4" y="869.0" width="95.2" height="18" rx="4" fill="#ffffff" opacity="0.95"/>
+<text x="305.0" y="883" text-anchor="middle" font-size="11" font-weight="400" fill="#6b7280" style="">new task list</text>
+<g transform="translate(44,804)">
+<rect x="-12" y="-18" width="260" height="86" rx="8" fill="#ffffff" stroke="#e5e7eb"/>
+<text x="0" y="-2" text-anchor="start" font-size="12" font-weight="700" fill="#111827" style="">Legend</text>
+<line x1="0" y1="18" x2="32" y2="18" stroke="#2563eb" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+<text x="42" y="22" text-anchor="start" font-size="11" font-weight="400" fill="#6b7280" style="">UI/message</text>
+<line x1="0" y1="36" x2="32" y2="36" stroke="#ea580c" stroke-width="1.8" marker-end="url(#arrow-orange)"/>
+<text x="42" y="40" text-anchor="start" font-size="11" font-weight="400" fill="#6b7280" style="">Runtime control</text>
+<line x1="0" y1="54" x2="32" y2="54" stroke="#16a34a" stroke-width="1.8" marker-end="url(#arrow-green)" stroke-dasharray="5,3"/>
+<text x="42" y="58" text-anchor="start" font-size="11" font-weight="400" fill="#6b7280" style="">Repository write/read</text>
+<line x1="0" y1="72" x2="32" y2="72" stroke="#7c3aed" stroke-width="1.8" marker-end="url(#arrow-purple)"/>
+<text x="42" y="76" text-anchor="start" font-size="11" font-weight="400" fill="#6b7280" style="">Local process</text>
+</g>
+</svg>

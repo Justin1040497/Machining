@@ -1,17 +1,24 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:machining/domain/entities/app_settings.dart';
+import 'package:machining/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/analyze_media_task_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/delete_media_task_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/import_media_task_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:machining/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/reorder_media_tasks_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/replace_missing_source_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/retry_media_task_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
+import 'package:machining/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
 import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
-import 'package:machining/infrastructure/providers/drift_provider.dart';
+import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:machining/infrastructure/providers/file_service_provider.dart';
 import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
-import 'package:path/path.dart' as path;
+import 'package:machining/infrastructure/providers/repository_provider.dart';
 
 /// 工作台任务列表状态
 final mediaTaskListProvider =
@@ -31,71 +38,19 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final repository = ref.watch(mediaTaskRepositoryProvider);
     final sourceFileChecker = ref.watch(sourceFileCheckerProvider);
     final fingerprintReader = ref.watch(sourceFileFingerprintReaderProvider);
-    final tasks = await repository.loadAllTasks();
-    final checkedTasks = <MediaTask>[];
-    final needAnalysisTaskIds = <String>[];
-    var hasChanged = false;
 
-    for (final task in tasks) {
-      final exists = await sourceFileChecker.exists(task.inputPath);
+    final result = await ReconcileMediaTasksUseCase(
+      repository: repository,
+      sourceFileChecker: sourceFileChecker,
+      fingerprintReader: fingerprintReader,
+    ).call();
 
-      if (!exists) {
-        if (task.status == TaskStatus.missingSource) {
-          checkedTasks.add(task);
-        } else {
-          checkedTasks.add(task.markMissingSource());
-          hasChanged = true;
-        }
-        continue;
-      }
-
-      if (exists && task.status == TaskStatus.missingSource) {
-        final fingerprint = await fingerprintReader.read(task.inputPath);
-        final updatedTask = task
-            .markPendingForRetry()
-            .withSourceFileFingerprint(fingerprint)
-            .copyWith(status: TaskStatus.analyzing);
-        checkedTasks.add(updatedTask);
-        needAnalysisTaskIds.add(updatedTask.id);
-        hasChanged = true;
-        continue;
-      }
-
-      final fingerprint = await fingerprintReader.read(task.inputPath);
-      if (!fingerprint.isSameAs(task.sourceFileFingerprint)) {
-        final updatedTask = task
-            .withSourceFileFingerprint(fingerprint)
-            .clearAnalysis()
-            .copyWith(status: TaskStatus.analyzing);
-        checkedTasks.add(updatedTask);
-        needAnalysisTaskIds.add(updatedTask.id);
-        hasChanged = true;
-        continue;
-      }
-
-      if (task.analysisResult == null) {
-        final updatedTask = task.status == TaskStatus.pending
-            ? task.copyWith(status: TaskStatus.analyzing)
-            : task;
-        checkedTasks.add(updatedTask);
-        needAnalysisTaskIds.add(updatedTask.id);
-        hasChanged = hasChanged || updatedTask.status != task.status;
-        continue;
-      }
-
-      checkedTasks.add(task);
-    }
-
-    if (hasChanged) {
-      await repository.replaceAllTasks(checkedTasks);
-    }
-
-    if (needAnalysisTaskIds.isNotEmpty) {
-      unawaited(analyzeTasksInBackground(needAnalysisTaskIds));
+    if (result.taskIdsNeedingAnalysis.isNotEmpty) {
+      unawaited(analyzeTasksInBackground(result.taskIdsNeedingAnalysis));
     }
 
     unawaited(syncFfmpegQueueStatus());
-    return checkedTasks;
+    return result.tasks;
   }
 
   Future<MediaTask> createDraftFromPath(String inputPath) async {
@@ -104,28 +59,14 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final fingerprintReader = ref.read(sourceFileFingerprintReaderProvider);
     final settingsRepository = ref.read(appSettingsRepositoryProvider);
     final tasks = state.requireValue;
-    final mediaKind = resolver.resolve(inputPath);
-    ensureSupportedMediaKind(mediaKind);
-    final fingerprint = await fingerprintReader.read(inputPath);
-    final fileName = path.basename(inputPath);
-    final settings = await settingsRepository.loadSettings();
-    final initialConfig = buildInitialConfigFromSettings(
-      sourceFileName: fileName,
-      settings: settings,
-    );
+    final task = await ImportMediaTaskUseCase(
+      repository: repository,
+      mediaKindResolver: resolver,
+      fingerprintReader: fingerprintReader,
+      settingsRepository: settingsRepository,
+      now: DateTime.now,
+    ).call(inputPath);
 
-    final task =
-        MediaTask.draft(
-              inputPath: inputPath,
-              fileName: fileName,
-              mediaKind: mediaKind,
-              sortOrder: nextSortOrder(tasks),
-              config: initialConfig,
-            )
-            .withSourceFileFingerprint(fingerprint)
-            .copyWith(status: TaskStatus.analyzing);
-
-    await repository.saveTask(task);
     state = AsyncData([...tasks, task]);
     unawaited(syncFfmpegQueueStatus());
     unawaited(analyzeTaskById(task.id));
@@ -152,7 +93,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final tasks = state.requireValue;
 
     await repository.saveTask(task);
-    state = AsyncData(replaceTask(tasks, task));
+    state = AsyncData(replaceMediaTask(tasks, task));
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -162,27 +103,17 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   }) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final resolver = ref.read(mediaKindResolverProvider);
+    final sourceFileChecker = ref.read(sourceFileCheckerProvider);
     final fingerprintReader = ref.read(sourceFileFingerprintReaderProvider);
     final tasks = state.requireValue;
-    final task = findTaskById(tasks, taskId);
-    final mediaKind = resolver.resolve(newInputPath);
-    ensureSupportedMediaKind(mediaKind);
-    if (!await ref.read(sourceFileCheckerProvider).exists(newInputPath)) {
-      throw StateError('源文件不存在: $newInputPath');
-    }
+    final updatedTask = await ReplaceMissingSourceUseCase(
+      repository: repository,
+      mediaKindResolver: resolver,
+      sourceFileChecker: sourceFileChecker,
+      fingerprintReader: fingerprintReader,
+    ).call(taskId: taskId, newInputPath: newInputPath);
 
-    final fingerprint = await fingerprintReader.read(newInputPath);
-
-    final updatedTask = task
-        .replaceInputFile(
-          newInputPath: newInputPath,
-          newFileName: path.basename(newInputPath),
-          newMediaKind: mediaKind,
-        )
-        .withSourceFileFingerprint(fingerprint);
-
-    await repository.saveTask(updatedTask);
-    state = AsyncData(replaceTask(tasks, updatedTask));
+    state = AsyncData(replaceMediaTask(tasks, updatedTask));
     unawaited(syncFfmpegQueueStatus());
     unawaited(analyzeTaskById(updatedTask.id));
   }
@@ -190,14 +121,12 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<void> deleteTaskById(String taskId) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final tasks = state.requireValue;
-    final task = findTaskById(tasks, taskId);
+    final tasks = await DeleteMediaTaskUseCase(
+      repository: repository,
+      queueRunner: queueRunner,
+    ).call(taskId);
 
-    if (task.status == TaskStatus.running || task.status == TaskStatus.paused) {
-      await queueRunner.cancelTask(taskId);
-    }
-    await repository.deleteTaskById(taskId);
-    state = AsyncData(tasks.where((task) => task.id != taskId).toList());
+    state = AsyncData(tasks);
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -206,37 +135,28 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final sourceFileChecker = ref.read(sourceFileCheckerProvider);
     final fingerprintReader = ref.read(sourceFileFingerprintReaderProvider);
     final tasks = state.requireValue;
-    final task = findTaskById(tasks, taskId);
+    final result = await RetryMediaTaskUseCase(
+      repository: repository,
+      sourceFileChecker: sourceFileChecker,
+      fingerprintReader: fingerprintReader,
+    ).call(taskId);
 
-    if (!await sourceFileChecker.exists(task.inputPath)) {
-      final updatedTask = task.markMissingSource();
-      await repository.saveTask(updatedTask);
-      state = AsyncData(replaceTask(tasks, updatedTask));
-      unawaited(syncFfmpegQueueStatus());
-      return;
-    }
-
-    final fingerprint = await fingerprintReader.read(task.inputPath);
-    final analyzingTask = task
-        .markPendingForRetry()
-        .clearError()
-        .withSourceFileFingerprint(fingerprint)
-        .clearAnalysis()
-        .copyWith(status: TaskStatus.analyzing);
-
-    await repository.saveTask(analyzingTask);
-    state = AsyncData(replaceTask(tasks, analyzingTask));
+    state = AsyncData(replaceMediaTask(tasks, result.task));
     unawaited(syncFfmpegQueueStatus());
-    unawaited(analyzeTaskById(taskId));
+    if (result.shouldAnalyze) {
+      unawaited(analyzeTaskById(taskId));
+    }
   }
 
   Future<void> clearTasks() async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    final tasks = await ClearMediaTasksUseCase(
+      repository: repository,
+      queueRunner: queueRunner,
+    ).call();
 
-    await queueRunner.cancelAllExecutions();
-    await repository.replaceAllTasks([]);
-    state = const AsyncData([]);
+    state = AsyncData(tasks);
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -244,9 +164,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     bool allowExtremeCompression = false,
   }) async {
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final result = await queueRunner.start(
-      allowExtremeCompression: allowExtremeCompression,
-    );
+    final result = await StartExecutionQueueUseCase(
+      queueRunner: queueRunner,
+    ).call(allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
     if (result.outcome == FfmpegQueueStartOutcome.started ||
@@ -263,10 +183,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     bool allowExtremeCompression = false,
   }) async {
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final result = await queueRunner.startOrResumeTask(
-      taskId,
-      allowExtremeCompression: allowExtremeCompression,
-    );
+    final result = await StartOrResumeMediaTaskUseCase(
+      queueRunner: queueRunner,
+    ).call(taskId, allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
     if (result.outcome == FfmpegQueueStartOutcome.started ||
@@ -280,7 +199,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
   Future<FfmpegQueueStartResult> pauseTaskById(String taskId) async {
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final result = await queueRunner.pauseTask(taskId);
+    final result = await PauseMediaTaskExecutionUseCase(
+      queueRunner: queueRunner,
+    ).call(taskId);
 
     await refreshTasksFromRepository();
     if (result.outcome == FfmpegQueueStartOutcome.paused) {
@@ -327,73 +248,12 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     required int newIndex,
   }) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
-    final tasks = [...state.requireValue];
-
-    if (oldIndex < 0 || oldIndex >= tasks.length) {
-      return;
-    }
-
-    if (tasks[oldIndex].status == TaskStatus.running) {
-      return;
-    }
-
-    var targetIndex = newIndex;
-    if (targetIndex > oldIndex) {
-      targetIndex -= 1;
-    }
-    targetIndex = targetIndex.clamp(0, tasks.length - 1);
-    if (oldIndex == targetIndex) {
-      return;
-    }
-
-    final movedTask = tasks.removeAt(oldIndex);
-    tasks.insert(targetIndex, movedTask);
-
-    final reorderedTasks = <MediaTask>[];
-    for (var index = 0; index < tasks.length; index += 1) {
-      reorderedTasks.add(tasks[index].copyWith(sortOrder: index));
-    }
+    final reorderedTasks = await ReorderMediaTasksUseCase(
+      repository: repository,
+    ).call(oldIndex: oldIndex, newIndex: newIndex);
 
     state = AsyncData(reorderedTasks);
-    await repository.replaceAllTasks(reorderedTasks);
     unawaited(syncFfmpegQueueStatus());
-  }
-
-  int nextSortOrder(List<MediaTask> tasks) {
-    if (tasks.isEmpty) {
-      return 0;
-    }
-
-    return tasks
-            .map((task) => task.sortOrder)
-            .reduce((value, element) => value > element ? value : element) +
-        1;
-  }
-
-  MediaTask findTaskById(List<MediaTask> tasks, String taskId) {
-    for (final task in tasks) {
-      if (task.id == taskId) {
-        return task;
-      }
-    }
-
-    throw StateError('找不到任务: $taskId');
-  }
-
-  List<MediaTask> replaceTask(List<MediaTask> tasks, MediaTask updatedTask) {
-    return tasks.map((task) {
-      if (task.id == updatedTask.id) {
-        return updatedTask;
-      }
-
-      return task;
-    }).toList();
-  }
-
-  void ensureSupportedMediaKind(MediaKind mediaKind) {
-    if (mediaKind != MediaKind.video) {
-      throw StateError('当前版本暂时只支持视频文件');
-    }
   }
 
   Future<void> analyzeTasksInBackground(List<String> taskIds) async {
@@ -406,130 +266,22 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final analyzer = ref.read(mediaAnalyzerProvider);
     final sourceFileChecker = ref.read(sourceFileCheckerProvider);
-    var runtime = await ref.read(ffmpegRuntimeProvider.future);
-    if (!runtime.canAnalyze || runtime.ffprobe == null) {
-      runtime = await ref.refresh(ffmpegRuntimeProvider.future);
-    }
 
-    if (!runtime.canAnalyze || runtime.ffprobe == null) {
-      await markAnalysisUnavailable(taskId, 'FFprobe 不可用，无法分析媒体信息');
-      return;
-    }
+    final updatedTask = await AnalyzeMediaTaskUseCase(
+      repository: repository,
+      analyzer: analyzer,
+      sourceFileChecker: sourceFileChecker,
+      readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
+      refreshRuntime: () => ref.refresh(ffmpegRuntimeProvider.future),
+    ).call(taskId);
 
-    if (!state.hasValue) {
-      return;
+    if (updatedTask != null && state.hasValue) {
+      state = AsyncData(replaceMediaTask(state.requireValue, updatedTask));
     }
-
-    var tasks = state.requireValue;
-    var task = findTaskById(tasks, taskId);
-    if (task.analysisResult == null && task.status == TaskStatus.pending) {
-      task = task.copyWith(status: TaskStatus.analyzing);
-      await repository.saveTask(task);
-      state = AsyncData(replaceTask(tasks, task));
-      tasks = state.requireValue;
-    }
-
-    if (!await sourceFileChecker.exists(task.inputPath)) {
-      final updatedTask = task.markMissingSource();
-      await repository.saveTask(updatedTask);
-      state = AsyncData(replaceTask(tasks, updatedTask));
-      unawaited(syncFfmpegQueueStatus());
-      return;
-    }
-
-    try {
-      final result = await analyzer.analyze(
-        ffprobePath: runtime.ffprobe!.path,
-        inputPath: task.inputPath,
-      );
-      final latestTask = findTaskById(state.requireValue, taskId);
-      final updatedTask = latestTask
-          .withAnalysisResult(result)
-          .copyWith(
-            status: latestTask.status == TaskStatus.analyzing
-                ? TaskStatus.pending
-                : latestTask.status,
-          );
-      await repository.saveTask(updatedTask);
-      state = AsyncData(replaceTask(state.requireValue, updatedTask));
-      unawaited(syncFfmpegQueueStatus());
-    } on Object catch (error) {
-      final latestTask = findTaskById(state.requireValue, taskId);
-      final updatedTask = latestTask
-          .withAnalysisError(error.toString())
-          .markFailed('媒体分析失败: $error');
-      await repository.saveTask(updatedTask);
-      state = AsyncData(replaceTask(state.requireValue, updatedTask));
-      unawaited(syncFfmpegQueueStatus());
-    }
-  }
-
-  Future<void> markAnalysisUnavailable(String taskId, String message) async {
-    final repository = ref.read(mediaTaskRepositoryProvider);
-    if (!state.hasValue) {
-      return;
-    }
-
-    final task = findTaskById(state.requireValue, taskId);
-    final updatedTask = task.withAnalysisError(message).markFailed(message);
-    await repository.saveTask(updatedTask);
-    state = AsyncData(replaceTask(state.requireValue, updatedTask));
     unawaited(syncFfmpegQueueStatus());
   }
 
   Future<void> syncFfmpegQueueStatus() async {
     await ref.read(ffmpegTaskQueueRunnerProvider).refreshStatus();
-  }
-}
-
-VideoTaskConfig buildInitialConfigFromSettings({
-  required String sourceFileName,
-  required AppSettings settings,
-}) {
-  final outputDirectory = settings.saveOutputToSourceDirectory
-      ? ''
-      : settings.defaultOutputDirectory ?? '';
-
-  return VideoTaskConfig.initial().copyWith(
-    outputDirectory: outputDirectory,
-    videoCodec: settings.defaultOutputVideoCodec,
-    smartPreset: settings.defaultSmartPreset,
-    outputFileName: buildDefaultOutputFileName(
-      sourceFileName: sourceFileName,
-      codec: settings.defaultOutputVideoCodec,
-      template: settings.defaultOutputFileNameTemplate,
-      now: DateTime.now(),
-    ),
-  );
-}
-
-String buildDefaultOutputFileName({
-  required String sourceFileName,
-  required VideoCodec codec,
-  required DefaultOutputFileNameTemplate template,
-  required DateTime now,
-}) {
-  switch (template) {
-    case DefaultOutputFileNameTemplate.datetimeOriginalCodec:
-      final timestamp = [
-        now.year.toString().padLeft(4, '0'),
-        now.month.toString().padLeft(2, '0'),
-        now.day.toString().padLeft(2, '0'),
-        now.hour.toString().padLeft(2, '0'),
-        now.minute.toString().padLeft(2, '0'),
-      ].join();
-      final baseName = path.basenameWithoutExtension(sourceFileName).trim();
-      return '${timestamp}_${baseName}_${codecFileNameToken(codec)}';
-  }
-}
-
-String codecFileNameToken(VideoCodec codec) {
-  switch (codec) {
-    case VideoCodec.source:
-      return 'source';
-    case VideoCodec.h264:
-      return 'h264';
-    case VideoCodec.hevc:
-      return 'hevc';
   }
 }

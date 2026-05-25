@@ -4,6 +4,7 @@ import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/features/workbench/pages/workbench_page/config_dropdown.dart';
+import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
 
 class WorkbenchVideoConfigPanel extends StatelessWidget {
   const WorkbenchVideoConfigPanel({

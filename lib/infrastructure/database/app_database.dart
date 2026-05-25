@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
+import 'package:machining/infrastructure/database/persistence_compatibility.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
@@ -16,7 +17,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -77,6 +78,15 @@ class AppDatabase extends _$AppDatabase {
           await migrator.addColumn(
             settingsRows,
             settingsRows.defaultOutputFileNameTemplate,
+          );
+        }
+        if (from < 11) {
+          await customStatement(
+            "UPDATE tasks SET compression_mode = '${PersistenceCompatibility.compressionModePreset}' "
+            "WHERE compression_mode IN ("
+            "'${PersistenceCompatibility.legacyCompressionModeSmart}', "
+            "'${PersistenceCompatibility.legacyCompressionModeQuality}'"
+            ")",
           );
         }
       },

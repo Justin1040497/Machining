@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:machining/application/repositories/app_settings_repository.dart';
 import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
-import 'package:machining/application/services/source_file_checker.dart';
-import 'package:machining/application/services/source_file_fingerprint_reader.dart';
+import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:machining/application/services/input_runtime/source_file_checker.dart';
+import 'package:machining/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:machining/domain/entities/app_settings.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/media_kind.dart';
@@ -15,8 +15,9 @@ import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/features/workbench/providers/media_task_notifier.dart';
-import 'package:machining/infrastructure/providers/drift_provider.dart';
+import 'package:machining/infrastructure/providers/file_service_provider.dart';
 import 'package:machining/infrastructure/providers/ffmpeg_provider.dart';
+import 'package:machining/infrastructure/providers/repository_provider.dart';
 
 void main() {
   group('MediaTaskListNotifier', () {

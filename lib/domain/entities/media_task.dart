@@ -379,7 +379,7 @@ class MediaTask {
     required MediaKind newMediaKind,
   }) {
     if (newMediaKind != mediaKind) {
-      throw StateError('重新指定的文件类型必须是 ${mediaKind.label}');
+      throw StateError('重新指定的文件类型必须是 ${mediaKind.name}');
     }
 
     return MediaTask(

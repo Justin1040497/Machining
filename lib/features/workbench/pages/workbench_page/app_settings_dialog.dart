@@ -7,6 +7,7 @@ import 'package:machining/domain/enums/default_output_file_name_template.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/features/workbench/pages/workbench_page/config_dropdown.dart';
+import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
 
 typedef AppSettingsSaveCallback = Future<void> Function(AppSettings settings);
 typedef AppSettingsPathPicker = Future<String?> Function();

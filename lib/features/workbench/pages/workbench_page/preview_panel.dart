@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:machining/application/services/preview_frame_generator.dart';
+import 'package:machining/application/services/execution/preview_frame_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 
 class WorkbenchPreviewPanel extends StatelessWidget {

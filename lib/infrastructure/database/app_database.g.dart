@@ -1241,7 +1241,7 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('smart'),
+    defaultValue: const Constant('preset'),
   );
   static const VerificationMeta _smartPresetMeta = const VerificationMeta(
     'smartPreset',

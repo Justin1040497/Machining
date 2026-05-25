@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:machining/application/services/compression_estimator.dart';
+import 'package:machining/application/services/ffmpeg_planning/compression_estimator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
@@ -10,6 +10,7 @@ import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/features/workbench/pages/workbench_page/constants.dart';
 import 'package:machining/features/workbench/pages/workbench_page/formatters.dart';
 import 'package:machining/features/workbench/pages/workbench_page/video_config_panel.dart';
+import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
 
 class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   const WorkbenchTaskConfigurationDialog({
@@ -104,7 +105,7 @@ class _WorkbenchTaskConfigurationDialogState
     super.initState();
     _mode = widget.selectedCompressionMode == CompressionMode.targetSize
         ? CompressionMode.targetSize
-        : CompressionMode.smart;
+        : CompressionMode.preset;
     _activePresetTitle = _presetForSmartPreset(
       widget.selectedSmartPreset,
     ).title;
@@ -122,12 +123,12 @@ class _WorkbenchTaskConfigurationDialogState
 
   void _applyPreset(_CompressionPreset preset) {
     setState(() {
-      _mode = CompressionMode.smart;
+      _mode = CompressionMode.preset;
       _activePresetTitle = preset.title;
       _presetEdited = false;
     });
 
-    widget.onCompressionModeChanged(CompressionMode.smart);
+    widget.onCompressionModeChanged(CompressionMode.preset);
     widget.onSmartPresetChanged(preset.smartPreset);
     widget.onQualityChanged(preset.qualityIndex);
     widget.onOutputFormatChanged(preset.outputFormat);
@@ -497,7 +498,7 @@ class _CompressionModeSwitch extends StatelessWidget {
           _CompressionModeSegment(
             label: '推荐方案选项',
             selected: mode != CompressionMode.targetSize,
-            onTap: () => onChanged(CompressionMode.smart),
+            onTap: () => onChanged(CompressionMode.preset),
           ),
           _CompressionModeSegment(
             label: '自定义目标体积',

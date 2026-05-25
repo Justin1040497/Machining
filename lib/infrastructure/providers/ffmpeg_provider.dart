@@ -1,25 +1,27 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:machining/application/services/compression_advisor.dart';
-import 'package:machining/application/services/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/ffmpeg_locator.dart';
-import 'package:machining/application/services/ffmpeg_process_observer.dart';
-import 'package:machining/application/services/ffmpeg_process_starter.dart';
-import 'package:machining/application/services/ffmpeg_task_queue_runner.dart';
-import 'package:machining/application/services/media_analyzer.dart';
-import 'package:machining/application/services/preview_frame_generator.dart';
-import 'package:machining/application/services/video_thumbnail_generator.dart';
+import 'package:machining/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_planning/default_compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
+import 'package:machining/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:machining/application/services/execution/preview_frame_generator.dart';
+import 'package:machining/application/services/execution/video_thumbnail_generator.dart';
+import 'package:machining/application/services/input_runtime/ffmpeg_locator.dart';
+import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:machining/application/services/input_runtime/media_analyzer.dart';
 import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/infrastructure/providers/drift_provider.dart';
-import 'package:machining/infrastructure/services/default_compression_advisor.dart';
-import 'package:machining/infrastructure/services/default_ffmpeg_command_builder.dart';
-import 'package:machining/infrastructure/services/ffprobe_media_analyzer.dart';
-import 'package:machining/infrastructure/services/local_ffmpeg_locator.dart';
-import 'package:machining/infrastructure/services/local_ffmpeg_process_observer.dart';
-import 'package:machining/infrastructure/services/local_ffmpeg_process_starter.dart';
-import 'package:machining/infrastructure/services/local_preview_frame_generator.dart';
-import 'package:machining/infrastructure/services/local_video_thumbnail_generator.dart';
+import 'package:machining/infrastructure/providers/file_service_provider.dart';
+import 'package:machining/infrastructure/providers/repository_provider.dart';
+import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
+import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_starter.dart';
+import 'package:machining/infrastructure/services/execution/local_preview_frame_generator.dart';
+import 'package:machining/infrastructure/services/execution/local_video_thumbnail_generator.dart';
+import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:machining/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
+import 'package:machining/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
 import 'package:path/path.dart' as path;
 
 /// FFmpeg / FFprobe 路径解析服务
@@ -32,7 +34,7 @@ final mediaAnalyzerProvider = Provider<MediaAnalyzer>((ref) {
   return FfprobeMediaAnalyzer();
 });
 
-/// FFmpeg 命令构造服务，只生成参数计划，不启动进程
+/// 压缩策略建议服务，决定压缩画像、码率和 CRF 等参数
 final compressionAdvisorProvider = Provider<CompressionAdvisor>((ref) {
   return DefaultCompressionAdvisor();
 });

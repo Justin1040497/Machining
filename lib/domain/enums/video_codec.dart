@@ -5,16 +5,5 @@ enum VideoCodec {
   /// 不强制指定目标编码，默认跟随 FFprobe 识别到的源视频编码
   source,
   h264,
-  hevc;
-
-  String get label {
-    switch (this) {
-      case VideoCodec.source:
-        return "跟随源文件";
-      case VideoCodec.h264:
-        return "H.264";
-      case VideoCodec.hevc:
-        return "H.265 / HEVC";
-    }
-  }
+  hevc,
 }

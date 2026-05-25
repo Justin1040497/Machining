@@ -1,15 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_planning/default_compression_advisor.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
+import 'package:machining/domain/services/source_compression_assessor.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/default_compression_advisor.dart';
 
 void main() {
   group('DefaultCompressionAdvisor', () {
@@ -133,7 +134,7 @@ void main() {
           audioBitrate: 317000,
         ),
         config: VideoTaskConfig.initial().copyWith(
-          compressionMode: CompressionMode.smart,
+          compressionMode: CompressionMode.preset,
           smartPreset: SmartCompressionPreset.compact,
           videoCodec: VideoCodec.hevc,
           resolutionPreset: ResolutionPreset.p720,

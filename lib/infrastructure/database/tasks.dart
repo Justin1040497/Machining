@@ -53,7 +53,7 @@ class TaskRows extends Table {
   IntColumn get compressionCrf =>
       integer().named('compression_crf').withDefault(const Constant(28))();
   TextColumn get compressionMode =>
-      text().named('compression_mode').withDefault(const Constant('smart'))();
+      text().named('compression_mode').withDefault(const Constant('preset'))();
   TextColumn get smartPreset => text().named('smart_preset').nullable()();
   IntColumn get targetSizeBytes =>
       integer().named('target_size_bytes').nullable()();
