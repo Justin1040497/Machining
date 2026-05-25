@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
+import 'package:machining/domain/enums/output_format.dart';
+import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
@@ -168,6 +170,54 @@ abstract final class WorkbenchQualityPolicy {
     }
 
     return (sourceSize * targetSizeRatio).round();
+  }
+}
+
+abstract final class WorkbenchTaskAdjustmentPolicy {
+  static bool isAdjustedFromSource({
+    required MediaTask task,
+    required OutputFormat outputFormat,
+    required VideoCodec videoCodec,
+    required ResolutionPreset resolutionPreset,
+  }) {
+    return outputFormatChanged(task, outputFormat) ||
+        videoCodecChanged(task, videoCodec) ||
+        resolutionChanged(task, resolutionPreset);
+  }
+
+  static bool outputFormatChanged(MediaTask task, OutputFormat outputFormat) {
+    return outputFormat != WorkbenchFormatters.inferInitialOutputFormat(task);
+  }
+
+  static bool videoCodecChanged(MediaTask task, VideoCodec videoCodec) {
+    if (videoCodec == VideoCodec.source) {
+      return false;
+    }
+
+    return videoCodec != WorkbenchFormatters.inferInitialVideoCodec(task);
+  }
+
+  static bool resolutionChanged(MediaTask task, ResolutionPreset preset) {
+    if (preset == ResolutionPreset.original) {
+      return false;
+    }
+
+    final sourceHeight = task.analysisResult?.videoHeight;
+    if (sourceHeight == null || sourceHeight <= 0) {
+      return true;
+    }
+
+    return _heightForPreset(preset) != sourceHeight;
+  }
+
+  static int? _heightForPreset(ResolutionPreset preset) {
+    return switch (preset) {
+      ResolutionPreset.original => null,
+      ResolutionPreset.p2160 => 2160,
+      ResolutionPreset.p1080 => 1080,
+      ResolutionPreset.p720 => 720,
+      ResolutionPreset.p480 => 480,
+    };
   }
 }
 

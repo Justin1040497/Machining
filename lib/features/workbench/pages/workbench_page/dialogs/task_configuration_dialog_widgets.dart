@@ -33,8 +33,6 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
     required this.presets,
     required this.selectedQualityIndex,
     required this.activePresetTitle,
-    required this.presetEdited,
-    required this.badgeText,
     required this.selectedTargetSizeRatio,
     required this.estimatedSizeForPreset,
     required this.onModeChanged,
@@ -46,8 +44,6 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
   final List<WorkbenchCompressionPreset> presets;
   final int selectedQualityIndex;
   final String? activePresetTitle;
-  final bool presetEdited;
-  final String badgeText;
   final double selectedTargetSizeRatio;
   final String Function(WorkbenchCompressionPreset preset)
   estimatedSizeForPreset;
@@ -71,13 +67,11 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
                   presets: presets,
                   selectedQualityIndex: selectedQualityIndex,
                   activePresetTitle: activePresetTitle,
-                  presetEdited: presetEdited,
                   estimatedSizeForPreset: estimatedSizeForPreset,
                   onSelected: onPresetSelected,
                 )
               : _TargetSizePanel(
                   key: const ValueKey('custom-target-size'),
-                  badgeText: badgeText,
                   selectedRatio: selectedTargetSizeRatio,
                   onChanged: onTargetSizeRatioChanged,
                 ),
@@ -145,12 +139,10 @@ class WorkbenchSourceSummary extends StatelessWidget {
 class _TargetSizePanel extends StatelessWidget {
   const _TargetSizePanel({
     super.key,
-    required this.badgeText,
     required this.selectedRatio,
     required this.onChanged,
   });
 
-  final String badgeText;
   final double selectedRatio;
   final ValueChanged<double> onChanged;
 
@@ -178,18 +170,6 @@ class _TargetSizePanel extends StatelessWidget {
                   fontSize: 12,
                   height: 1,
                   fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                badgeText,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF8C8C8C),
-                  fontSize: 10,
-                  height: 1,
-                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -365,7 +345,6 @@ class _RecommendedPresetRow extends StatelessWidget {
     required this.presets,
     required this.selectedQualityIndex,
     required this.activePresetTitle,
-    required this.presetEdited,
     required this.estimatedSizeForPreset,
     required this.onSelected,
   });
@@ -373,7 +352,6 @@ class _RecommendedPresetRow extends StatelessWidget {
   final List<WorkbenchCompressionPreset> presets;
   final int selectedQualityIndex;
   final String? activePresetTitle;
-  final bool presetEdited;
   final String Function(WorkbenchCompressionPreset preset)
   estimatedSizeForPreset;
   final ValueChanged<WorkbenchCompressionPreset> onSelected;
@@ -392,7 +370,6 @@ class _RecommendedPresetRow extends StatelessWidget {
               selected: hasActivePreset
                   ? presets[index].title == activePresetTitle
                   : presets[index].qualityIndex == selectedQualityIndex,
-              edited: presets[index].title == activePresetTitle && presetEdited,
               estimatedSize: estimatedSizeForPreset(presets[index]),
               onTap: () => onSelected(presets[index]),
             ),
@@ -407,14 +384,12 @@ class _RecommendedPresetCard extends StatelessWidget {
   const _RecommendedPresetCard({
     required this.preset,
     required this.selected,
-    required this.edited,
     required this.estimatedSize,
     required this.onTap,
   });
 
   final WorkbenchCompressionPreset preset;
   final bool selected;
-  final bool edited;
   final String estimatedSize;
   final VoidCallback onTap;
 
@@ -495,28 +470,78 @@ class _RecommendedPresetCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  if (edited)
-                    Container(
-                      height: 14,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: const Color(0x176290FF),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        '已调',
-                        style: TextStyle(
-                          color: Color(0xFF6290FF),
-                          fontSize: 8,
-                          height: 1,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class WorkbenchTaskConfigurationStatusBadges extends StatelessWidget {
+  const WorkbenchTaskConfigurationStatusBadges({
+    super.key,
+    required this.modified,
+    required this.compressed,
+  });
+
+  final bool modified;
+  final bool compressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 6,
+      runSpacing: 4,
+      children: [
+        if (modified)
+          const _StatusBadge(
+            label: '已修改',
+            color: Color(0xFF6290FF),
+            backgroundColor: Color(0x176290FF),
+          ),
+        if (compressed)
+          const _StatusBadge(
+            label: '已压缩',
+            color: Color(0xFF873300),
+            backgroundColor: Color(0xFFFBE4D6),
+          ),
+      ],
+    );
+  }
+}
+
+class _StatusBadge extends StatelessWidget {
+  const _StatusBadge({
+    required this.label,
+    required this.color,
+    required this.backgroundColor,
+  });
+
+  final String label;
+  final Color color;
+  final Color backgroundColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return UnconstrainedBox(
+      child: Container(
+        height: 18,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(4),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 9,
+            height: 1,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),

@@ -229,7 +229,6 @@ class _WorkbenchTaskConfigurationDialogState
     extends State<WorkbenchTaskConfigurationDialog> {
   late CompressionMode _mode;
   String? _activePresetTitle;
-  bool _presetEdited = false;
 
   static const _recommendedPresets = [
     WorkbenchCompressionPreset(
@@ -285,7 +284,6 @@ class _WorkbenchTaskConfigurationDialogState
     setState(() {
       _mode = CompressionMode.preset;
       _activePresetTitle = preset.title;
-      _presetEdited = false;
     });
 
     widget.onCompressionModeChanged(CompressionMode.preset);
@@ -296,18 +294,18 @@ class _WorkbenchTaskConfigurationDialogState
     widget.onEncoderBackendChanged(EncoderBackend.auto);
   }
 
-  void _markPresetEdited() {
-    if (_mode == CompressionMode.targetSize || _activePresetTitle == null) {
-      return;
-    }
-
-    setState(() {
-      _presetEdited = true;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final modified = WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
+      task: widget.task,
+      outputFormat: widget.selectedOutputFormat,
+      videoCodec: widget.selectedVideoCodec,
+      resolutionPreset: widget.selectedResolutionPreset,
+    );
+    final compressed = WorkbenchFormatters.isSourceAlreadyCompressed(
+      widget.task,
+    );
+
     return Dialog(
       backgroundColor: Colors.white,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
@@ -350,8 +348,6 @@ class _WorkbenchTaskConfigurationDialogState
                   presets: _recommendedPresets,
                   selectedQualityIndex: widget.selectedQualityIndex,
                   activePresetTitle: _activePresetTitle,
-                  presetEdited: _presetEdited,
-                  badgeText: _targetSizeBadgeText(),
                   selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
                   estimatedSizeForPreset: _estimatedOutputSizeForPreset,
                   onModeChanged: (mode) {
@@ -370,22 +366,10 @@ class _WorkbenchTaskConfigurationDialogState
                   selectedEncoderBackend: widget.selectedEncoderBackend,
                   selectedResolutionPreset: widget.selectedResolutionPreset,
                   availableEncoderBackends: widget.availableEncoderBackends,
-                  onOutputFormatChanged: (value) {
-                    _markPresetEdited();
-                    widget.onOutputFormatChanged(value);
-                  },
-                  onVideoCodecChanged: (value) {
-                    _markPresetEdited();
-                    widget.onVideoCodecChanged(value);
-                  },
-                  onEncoderBackendChanged: (value) {
-                    _markPresetEdited();
-                    widget.onEncoderBackendChanged(value);
-                  },
-                  onResolutionPresetChanged: (value) {
-                    _markPresetEdited();
-                    widget.onResolutionPresetChanged(value);
-                  },
+                  onOutputFormatChanged: widget.onOutputFormatChanged,
+                  onVideoCodecChanged: widget.onVideoCodecChanged,
+                  onEncoderBackendChanged: widget.onEncoderBackendChanged,
+                  onResolutionPresetChanged: widget.onResolutionPresetChanged,
                   showEncoderBackend: false,
                   padding: EdgeInsets.zero,
                   itemSpacing: 8,
@@ -397,6 +381,10 @@ class _WorkbenchTaskConfigurationDialogState
                 ),
                 const SizedBox(height: 22),
                 WorkbenchDialogActions(
+                  leading: WorkbenchTaskConfigurationStatusBadges(
+                    modified: modified,
+                    compressed: compressed,
+                  ),
                   onCancel: widget.onClose,
                   onSave: widget.onSave,
                 ),
@@ -408,18 +396,9 @@ class _WorkbenchTaskConfigurationDialogState
     );
   }
 
-  String _targetSizeBadgeText() {
-    final percent = (widget.selectedTargetSizeRatio * 100).round();
-    if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
-      return '文件已压缩，不保证更小';
-    }
-
-    return '压缩至 $percent%';
-  }
-
   String _estimatedOutputSizeForPreset(WorkbenchCompressionPreset preset) {
     if (WorkbenchFormatters.isSourceAlreadyCompressed(widget.task)) {
-      return '文件已压缩，不保证更小';
+      return '';
     }
 
     final estimate = const DefaultCompressionEstimator().estimateSmartPreset(

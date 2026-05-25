@@ -14,6 +14,7 @@ import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
+import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:machining/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 void main() {
@@ -64,6 +65,73 @@ void main() {
       SmartCompressionPreset.compact,
     ]);
     expect(resolutionChanges, isEmpty);
+  });
+
+  testWidgets('source matching config does not mark preset modified', (
+    tester,
+  ) async {
+    await _pumpTaskConfigurationDialog(tester);
+
+    expect(find.text('已修改'), findsNothing);
+    expect(find.text('修改'), findsNothing);
+    expect(find.text('已调'), findsNothing);
+  });
+
+  testWidgets('matching explicit resolution does not mark preset modified', (
+    tester,
+  ) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      task: testTask(
+        analysisResult: MediaAnalysisResult(
+          durationMs: 60000,
+          videoWidth: 1920,
+          videoHeight: 1080,
+          videoCodec: 'h264',
+          videoBitrate: 8000000,
+          audioBitrate: 128000,
+        ),
+      ),
+      selectedResolutionPreset: ResolutionPreset.p1080,
+    );
+
+    expect(find.text('已修改'), findsNothing);
+  });
+
+  testWidgets('different resolution marks preset modified', (tester) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      selectedResolutionPreset: ResolutionPreset.p1080,
+    );
+
+    expect(find.text('已修改'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(WorkbenchDialogActions),
+        matching: find.text('已修改'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('修改'), findsNothing);
+  });
+
+  testWidgets('different video codec marks preset modified', (tester) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      selectedVideoCodec: VideoCodec.hevc,
+    );
+
+    expect(find.text('已修改'), findsOneWidget);
+  });
+
+  testWidgets('different output format marks preset modified', (tester) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      task: testTask(fileName: 'source.mov'),
+      selectedOutputFormat: OutputFormat.mp4,
+    );
+
+    expect(find.text('已修改'), findsOneWidget);
   });
 
   testWidgets('target size mode uses segmented ratio slider', (tester) async {
@@ -159,7 +227,15 @@ void main() {
     );
 
     expect(find.textContaining('约'), findsNothing);
-    expect(find.text('文件已压缩，不保证更小'), findsWidgets);
+    expect(find.text('文件已压缩，不保证更小'), findsNothing);
+    expect(find.text('已压缩'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(WorkbenchDialogActions),
+        matching: find.text('已压缩'),
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('already compressed target size mode hides target bytes', (
@@ -209,7 +285,8 @@ void main() {
       ),
     );
 
-    expect(find.text('文件已压缩，不保证更小'), findsOneWidget);
+    expect(find.text('文件已压缩，不保证更小'), findsNothing);
+    expect(find.text('已压缩'), findsOneWidget);
     expect(find.textContaining('压缩至'), findsNothing);
   });
 
@@ -370,7 +447,53 @@ void main() {
   });
 }
 
+Future<void> _pumpTaskConfigurationDialog(
+  WidgetTester tester, {
+  MediaTask? task,
+  int selectedQualityIndex = 4,
+  OutputFormat selectedOutputFormat = OutputFormat.mp4,
+  VideoCodec selectedVideoCodec = VideoCodec.h264,
+  EncoderBackend selectedEncoderBackend = EncoderBackend.auto,
+  ResolutionPreset selectedResolutionPreset = ResolutionPreset.original,
+  CompressionMode selectedCompressionMode = CompressionMode.preset,
+  SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced,
+  double selectedTargetSizeRatio = 0.6,
+  List<EncoderBackend> availableEncoderBackends = const [EncoderBackend.auto],
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: WorkbenchTaskConfigurationDialog(
+          task: task ?? testTask(),
+          thumbnail: null,
+          selectedQualityIndex: selectedQualityIndex,
+          selectedOutputFormat: selectedOutputFormat,
+          selectedVideoCodec: selectedVideoCodec,
+          selectedEncoderBackend: selectedEncoderBackend,
+          selectedResolutionPreset: selectedResolutionPreset,
+          selectedCompressionMode: selectedCompressionMode,
+          selectedSmartPreset: selectedSmartPreset,
+          selectedTargetSizeRatio: selectedTargetSizeRatio,
+          availableEncoderBackends: availableEncoderBackends,
+          onClose: () {},
+          onOpenSource: () {},
+          onSave: () {},
+          onCompressionModeChanged: (_) {},
+          onSmartPresetChanged: (_) {},
+          onTargetSizeRatioChanged: (_) {},
+          onQualityChanged: (_) {},
+          onOutputFormatChanged: (_) {},
+          onVideoCodecChanged: (_) {},
+          onEncoderBackendChanged: (_) {},
+          onResolutionPresetChanged: (_) {},
+        ),
+      ),
+    ),
+  );
+}
+
 MediaTask testTask({
+  String fileName = 'source.mp4',
   VideoTaskConfig? config,
   TaskStatus? status,
   MediaAnalysisResult? analysisResult,
@@ -378,8 +501,8 @@ MediaTask testTask({
 }) {
   return MediaTask(
     id: 'task-1',
-    inputPath: '/videos/source.mp4',
-    fileName: 'source.mp4',
+    inputPath: '/videos/$fileName',
+    fileName: fileName,
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
     status: status ?? TaskStatus.pending,

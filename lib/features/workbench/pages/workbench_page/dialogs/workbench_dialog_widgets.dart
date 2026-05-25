@@ -53,16 +53,23 @@ class WorkbenchDialogActions extends StatelessWidget {
     super.key,
     required this.onCancel,
     required this.onSave,
+    this.leading,
   });
 
   final VoidCallback onCancel;
   final VoidCallback onSave;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: leading ?? const SizedBox.shrink(),
+          ),
+        ),
         WorkbenchDialogActionButton(
           label: '取消',
           backgroundColor: const Color(0xFFB8B8B8),
