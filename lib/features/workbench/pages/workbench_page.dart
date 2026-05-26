@@ -297,6 +297,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                   Navigator.of(context).pop();
                   unawaited(revealPathInFileManager(outputPath));
                 },
+          onRestart: () {
+            Navigator.of(context).pop();
+            unawaited(retryTask(task));
+          },
         );
       },
     );

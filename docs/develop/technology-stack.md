@@ -304,6 +304,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 压缩建议 | `DefaultCompressionAdvisor` |
 | FFmpeg 命令构造 | `DefaultFfmpegCommandBuilder` 和 `services/ffmpeg_planning/` 下的命令规划 helper |
 | 队列执行 | `DefaultFfmpegTaskQueueRunner` |
+| 进程控制 | `FfmpegProcessController`；macOS / Linux 使用 signal，Windows 使用 runner method channel 调用原生线程挂起 / 恢复 |
 | 进度观测 | `LocalFfmpegProcessObserver` |
 | 预览帧生成 | `LocalPreviewFrameGenerator` |
 | 缩略图生成 | `LocalVideoThumbnailGenerator` |

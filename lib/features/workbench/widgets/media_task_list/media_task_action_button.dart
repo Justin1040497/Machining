@@ -52,6 +52,11 @@ class MediaTaskActionButton extends StatelessWidget {
         icon: Icons.play_arrow_rounded,
         onPressed: onStart,
       ),
+      TaskStatus.completed => MediaTaskListAction(
+        tooltip: '重来',
+        icon: Icons.replay_rounded,
+        onPressed: onRetry,
+      ),
       TaskStatus.failed || TaskStatus.cancelled => MediaTaskListAction(
         tooltip: '重试任务',
         icon: Icons.refresh_rounded,
