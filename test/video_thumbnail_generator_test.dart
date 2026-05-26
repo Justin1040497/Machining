@@ -2,14 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/video_thumbnail_generator.dart';
+import 'package:machining/application/services/execution/video_thumbnail_generator.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/task_purpose.dart';
 import 'package:machining/domain/enums/task_status.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/local_video_thumbnail_generator.dart';
+import 'package:machining/infrastructure/services/execution/local_video_thumbnail_generator.dart';
 import 'package:path/path.dart' as path;
 
 void main() {

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
+import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 
 void main() {

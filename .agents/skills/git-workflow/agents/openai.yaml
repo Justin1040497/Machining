@@ -1,0 +1,7 @@
+interface:
+  display_name: "Machining Git Workflow"
+  short_description: "Branch, commit, worktree, PR, and release rules"
+  default_prompt: "Use $git-workflow to choose the right branch, worktree, commit, PR, or release workflow for this Machining change."
+
+policy:
+  allow_implicit_invocation: true

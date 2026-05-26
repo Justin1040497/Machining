@@ -215,6 +215,53 @@ git push -u origin feature/example-name
 
 然后创建 PR / MR，合并目标为 `main`。
 
+## 并行开发与 worktree
+
+当当前分支已有未完成改动，但需要同时处理另一个任务、临时修复或代码评审时，优先使用 `git worktree` 保留两个独立工作目录，避免把不同任务混在同一个工作树里。
+
+适用场景：
+
+- 当前分支存在未提交改动，但需要从 `main` 开新分支。
+- 需要同时维护两个分支的工作现场。
+- 需要临时处理 `hotfix/*`、评审分支或实验性分支。
+- 不希望使用 `git stash` 隐藏当前上下文。
+
+Machining 统一把本地 worktree 放在仓库根目录的 `worktrees/` 下：
+
+```text
+worktrees/<task-name>
+```
+
+`worktrees/` 已加入 `.gitignore`，用于避免本地并行工作目录被误提交。
+
+从最新远端 `main` 创建新的 worktree 分支：
+
+```bash
+git fetch origin
+git worktree add worktrees/example-task -b feature/example-task origin/main
+```
+
+打开已有分支到新的 worktree：
+
+```bash
+git worktree add worktrees/example-task feature/example-task
+```
+
+查看和清理 worktree：
+
+```bash
+git worktree list
+git worktree remove worktrees/example-task
+git worktree prune
+```
+
+注意事项：
+
+- 不要把 worktree 建在被 Git 跟踪的源码目录内。
+- 删除 worktree 前确认其中没有未提交改动。
+- 不要从父工作区执行会遍历忽略目录的全量格式化或清理命令。
+- 如果只是短暂保存当前未提交改动，`git stash` 仍然可用；如果要并行推进两个任务，优先使用 `git worktree`。
+
 ## 提交信息约定
 
 推荐使用接近 Conventional Commits 的提交前缀：

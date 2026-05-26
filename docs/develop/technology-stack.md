@@ -26,16 +26,17 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | --- | --- | --- | --- |
 | 桌面客户端 | Flutter Desktop | 已使用 | 当前主应用框架 |
 | 客户端语言 | Dart 3.11 约束 | 已使用 | `pubspec.yaml` 中 `environment.sdk: ^3.11.0` |
-| 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier 管理数据库、FFmpeg 运行时和工作台任务列表 |
+| 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 10 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 11 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取时长、编码、码率、分辨率、音频和封装信息 |
 | 媒体处理 | FFmpeg | 已使用 | 生成预览帧、缩略图、压缩和转封装 |
 | 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频扩展名会进入任务流程，图片和音频当前识别后拒绝处理 |
 | 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
+| UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + Xcode build phase | 已使用 | Release app 可复制 macOS arm64 FFmpeg 运行时 |
@@ -58,6 +59,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `args` | `^2.7.0` | 命令参数工具依赖，目前保留在项目依赖中 |
 | `file_selector` | `^1.1.0` | 桌面文件选择 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
+| `flutter_animate` | `^4.5.2` | 声明式 UI 动画，当前用于工作台通知浮层 |
 | `cupertino_icons` | `^1.0.8` | Flutter 默认图标依赖 |
 
 开发依赖：
@@ -80,8 +82,21 @@ lib/
   app/
   domain/
   application/
+    repositories/
+    services/input_runtime/
+    services/ffmpeg_planning/
+    services/execution/
+    use_cases/app_settings/
+    use_cases/media_tasks/
   infrastructure/
+    database/
+    providers/
+    repositories/
+    services/input_runtime/
+    services/ffmpeg_planning/
+    services/execution/
   features/
+    workbench/
 ```
 
 各层职责详见 `docs/develop/architecture.md`。
@@ -149,7 +164,7 @@ docs/reference/ffmpeg-license-distribution.md
 运行时定位逻辑由 `LocalFfmpegLocator` 实现：
 
 ```text
-lib/infrastructure/services/local_ffmpeg_locator.dart
+lib/infrastructure/services/input_runtime/local_ffmpeg_locator.dart
 ```
 
 解析顺序：
@@ -264,7 +279,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 ## 媒体类型边界
 
-`ExtensionMediaKindResolver` 目前按扩展名识别媒体类型：
+`FileExtensionMediaKindResolver` 目前按扩展名识别媒体类型：
 
 | 类型 | 扩展名 |
 | --- | --- |
@@ -278,14 +293,16 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 | 功能 | 主要代码 |
 | --- | --- |
-| 工作台 UI | `lib/features/workbench/pages/workbench_page.dart` 和同级拆分组件 |
-| 任务列表状态 | `lib/features/workbench/providers/media_task_notifier.dart` |
+| 工作台 UI | `lib/features/workbench/pages/workbench_page.dart` 和 `lib/features/workbench/pages/workbench_page/` 下的布局、弹窗、覆盖层与配置组件 |
+| 任务列表状态入口 | `lib/features/workbench/providers/media_task_notifier.dart`，通过 media task use cases 进入 application |
+| 预览状态入口 | `lib/features/workbench/providers/workbench_preview_notifier.dart`，通过 `GeneratePreviewFramesUseCase` 进入 application |
 | 任务仓储 | `lib/application/repositories/media_task_repository.dart`、`lib/infrastructure/repositories/drift_media_task_repository.dart` |
 | 设置仓储 | `lib/application/repositories/app_settings_repository.dart`、`lib/infrastructure/repositories/drift_app_settings_repository.dart` |
-| 媒体类型识别 | `ExtensionMediaKindResolver` |
+| 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart` |
+| 媒体类型识别 | `FileExtensionMediaKindResolver` |
 | FFprobe 分析 | `FfprobeMediaAnalyzer` |
 | 压缩建议 | `DefaultCompressionAdvisor` |
-| FFmpeg 命令构造 | `DefaultFfmpegCommandBuilder` |
+| FFmpeg 命令构造 | `DefaultFfmpegCommandBuilder` 和 `services/ffmpeg_planning/` 下的命令规划 helper |
 | 队列执行 | `DefaultFfmpegTaskQueueRunner` |
 | 进度观测 | `LocalFfmpegProcessObserver` |
 | 预览帧生成 | `LocalPreviewFrameGenerator` |
@@ -309,7 +326,10 @@ flutter test
 - FFmpeg 进度观测。
 - FFprobe 分析结果解析。
 - 预览帧和缩略图生成。
-- Widget 基础构建。
+- Application use cases。
+- 持久化兼容映射。
+- 工作台预览状态和弹窗风格。
+- Widget 基础构建和关键交互。
 
 完整测试范围见：
 
@@ -322,7 +342,7 @@ docs/develop/test-plan.md
 - 当前产品实现以本地视频压缩为主，不上传文件，也不依赖云端服务。
 - 当前 UI 只允许视频任务；`image`、`audio` 枚举是预留模型，不代表已支持处理。
 - Linux 和 Web 目录不是当前发布目标；涉及平台行为时不要默认它们已经可用。
-- 设置页路由存在，但内容仍是占位。
+- 应用设置通过工作台弹窗打开，不保留未完成设置页占位路由。
 - FFmpeg 二进制通常不应提交到 Git；本地和发布构建需要按 `third_party/ffmpeg/*/README.md` 准备运行时。
 - 内置 FFmpeg + x264 的发布路线需要遵守 GPL 相关分发要求，见 `docs/reference/ffmpeg-license-distribution.md`。
 

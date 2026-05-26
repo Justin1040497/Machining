@@ -9,7 +9,7 @@
 
 Machining 是一个本地桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令，也能在本机处理视频文件。
 
-当前版本聚焦视频压缩和应用级默认设置：导入本地视频，分析源文件信息，选择智能压缩预设或目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
+当前版本聚焦视频压缩、应用级默认设置和本地任务队列：导入本地视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
 
 ## 当前版本
 
@@ -22,12 +22,20 @@ v1.5.0+1
 v1.5 的主要内容：
 
 - 应用设置弹窗：集中配置默认压缩方案、默认导出位置、默认文件名和自定义 FFmpeg / FFprobe 路径。
-- 新任务默认值：新导入任务会使用应用设置中的默认输出目录、智能压缩预设、输出编码和文件名模板。
+- 新任务默认值：新导入任务会使用应用设置中的默认输出目录、推荐方案预设、输出编码和文件名模板。
 - 目标体积交互优化：目标体积模式改为比例滑杆，并补充缺失源文件重新指定流程。
 - 发布资料完善：补充 GPLv3+、第三方声明、源码获取说明和 DMG 打包验证脚本。
 - 版本文档对齐：同步 README、文档中心、路线图、许可证分发说明和更新日志。
 
-完整变更记录见 [docs/archive/changelog.md](/Users/leftzhou/工作区/Machining/docs/archive/changelog.md)。
+当前 `chore/codebase-refactor` 分支的主要整理：
+
+- Application 层按 Use Cases 和服务抽象重新组织，工作台状态入口通过用例进入任务、设置和预览流程。
+- Infrastructure 层拆分 provider、仓储实现、持久化兼容层，以及 Input / Runtime、FFmpeg Planning、Execution 三组服务实现。
+- features/workbench 重新整理页面、弹窗、布局、覆盖层和可复用表单 / 任务列表组件。
+- 压缩模式精简为“推荐方案”和“自定义目标体积”，旧数据中的 `smart`、`quality` 会通过兼容映射迁移到 `preset`。
+- 右上角通知加入 `flutter_animate` 进入 / 退出动画，工作台确认、失败、重命名、清空等弹窗统一为同一套视觉框架。
+
+完整变更记录见 [docs/archive/changelog.md](docs/archive/changelog.md)。
 
 ## 平台范围
 
@@ -48,7 +56,7 @@ v1.5 的主要内容：
 - 配置目标视频编码：跟随源文件、H.264、H.265 / HEVC。
 - 配置编码后端：自动选择、libx264、libx265、VideoToolbox、NVIDIA NVENC、Intel Quick Sync、AMD AMF。
 - 配置输出分辨率：保持原始、2160p、1080p、720p、480p。
-- 使用智能压缩、质量优先或目标体积模式。
+- 使用推荐方案或自定义目标体积模式。
 - 自定义输出目录和输出文件名。
 - 串行执行任务队列，支持开始、暂停、继续、取消、删除、重试和重命名。
 - 应用重启后从本地 SQLite 恢复任务和设置。
@@ -63,10 +71,9 @@ v1.5 的主要内容：
 1. 打开 Machining。
 2. 将视频文件拖入窗口，或使用导入按钮选择本地视频。
 3. 在任务列表中选择视频，查看源文件信息、缩略图和预览。
-4. 打开任务详情设置，选择压缩模式：
-   - 智能推荐：选择均衡推荐、微信发送、清晰优先或体积优先。
-   - 目标体积：输入希望输出文件接近的大小。
-   - 质量优先：通过质量档位控制压缩强度。
+4. 打开任务详情设置，选择压缩方式：
+   - 推荐方案选项：选择均衡推荐、微信发送、清晰优先或体积优先。
+   - 自定义目标体积：通过比例滑杆选择希望接近的输出体积。
 5. 按需调整输出格式、视频编码、分辨率、输出目录和输出文件名。
 6. 点击开始处理，任务进入本地 FFmpeg 队列。
 7. 处理完成后，在完成弹窗或任务信息中打开输出文件所在位置。
@@ -141,15 +148,18 @@ flutter test test/ffmpeg_command_builder_test.dart
 
 当前测试重点：
 
+- Application Use Cases 和任务执行入口。
 - 应用设置弹窗、默认值和 Drift 持久化映射。
+- 压缩模式持久化兼容映射。
 - 压缩建议和输出体积估算。
 - FFmpeg 命令构造。
 - FFmpeg 编码器能力检测。
 - FFmpeg 进程观测和任务队列执行。
 - FFprobe 媒体分析。
 - 预览帧和缩略图生成。
+- 工作台预览状态、任务配置交互和统一弹窗风格。
 
-真实 FFmpeg / FFprobe 验证需要平台运行时文件。更完整的测试说明见 [docs/develop/test-plan.md](/Users/leftzhou/工作区/Machining/docs/develop/test-plan.md)。
+真实 FFmpeg / FFprobe 验证需要平台运行时文件。更完整的测试说明见 [docs/develop/test-plan.md](docs/develop/test-plan.md)。
 
 ## 怎么构建
 
@@ -306,9 +316,9 @@ NVIDIA NVENC -> Intel Quick Sync -> AMD AMF -> libx264 / libx265
 lib/
   app/                 应用入口、路由和全局配置
   domain/              实体、枚举和值对象
-  application/         仓储接口、媒体分析、命令构造、队列执行等服务抽象
-  infrastructure/      Drift 数据库、FFmpeg / FFprobe、本地文件和进程实现
-  features/workbench/  工作台页面、任务列表、配置弹窗和状态协调
+  application/         仓储接口、Use Cases、输入运行时、命令规划和执行服务抽象
+  infrastructure/      Drift 数据库、provider 装配、仓储实现、FFmpeg / FFprobe、本地文件和进程实现
+  features/workbench/  工作台页面、状态入口、弹窗、覆盖层、表单控件和任务列表组件
 ```
 
 核心流程：
@@ -325,32 +335,32 @@ lib/
   -> 完成后记录输出路径或失败信息
 ```
 
-更多架构说明见 [docs/develop/architecture.md](/Users/leftzhou/工作区/Machining/docs/develop/architecture.md)。
+更多架构说明见 [docs/develop/architecture.md](docs/develop/architecture.md)。
 
 ## 文档
 
-文档入口在 [docs/README.md](/Users/leftzhou/工作区/Machining/docs/README.md)。
+文档入口在 [docs/README.md](docs/README.md)。
 
 常用文档：
 
-- [docs/product/roadmap.md](/Users/leftzhou/工作区/Machining/docs/product/roadmap.md)：产品路线图和下一阶段规划。
-- [docs/develop/architecture.md](/Users/leftzhou/工作区/Machining/docs/develop/architecture.md)：项目架构和模块边界。
-- [docs/develop/technology-stack.md](/Users/leftzhou/工作区/Machining/docs/develop/technology-stack.md)：技术栈、依赖和平台范围。
-- [docs/develop/data-model.md](/Users/leftzhou/工作区/Machining/docs/develop/data-model.md)：数据库 schema、任务模型和设置模型。
-- [docs/develop/test-plan.md](/Users/leftzhou/工作区/Machining/docs/develop/test-plan.md)：自动化测试和手动验证计划。
-- [docs/reference/ffmpeg-license-distribution.md](/Users/leftzhou/工作区/Machining/docs/reference/ffmpeg-license-distribution.md)：FFmpeg、x264、GPL 路线和分发参考。
+- [docs/product/roadmap.md](docs/product/roadmap.md)：产品路线图和下一阶段规划。
+- [docs/develop/architecture.md](docs/develop/architecture.md)：项目架构和模块边界。
+- [docs/develop/technology-stack.md](docs/develop/technology-stack.md)：技术栈、依赖和平台范围。
+- [docs/develop/data-model.md](docs/develop/data-model.md)：数据库 schema、任务模型和设置模型。
+- [docs/develop/test-plan.md](docs/develop/test-plan.md)：自动化测试和手动验证计划。
+- [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)：FFmpeg、x264、GPL 路线和分发参考。
 
 ## 许可说明
 
 Machining 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
 
-- [LICENSE](/Users/leftzhou/工作区/Machining/LICENSE)：GNU General Public License v3 正文。
-- [NOTICE](/Users/leftzhou/工作区/Machining/NOTICE)：项目版权、无担保和运行时声明。
-- [legal/COPYING](/Users/leftzhou/工作区/Machining/legal/COPYING)：项目 GPLv3+ 分发入口说明。
-- [legal/THIRD_PARTY_NOTICES.md](/Users/leftzhou/工作区/Machining/legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
-- [legal/SOURCE_OFFER.md](/Users/leftzhou/工作区/Machining/legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
-- [legal/third-party/](/Users/leftzhou/工作区/Machining/legal/third-party)：第三方运行时和依赖资料。
+- [LICENSE](LICENSE)：GNU General Public License v3 正文。
+- [NOTICE](NOTICE)：项目版权、无担保和运行时声明。
+- [legal/COPYING](legal/COPYING)：项目 GPLv3+ 分发入口说明。
+- [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
+- [legal/SOURCE_OFFER.md](legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
+- [legal/third-party/](legal/third-party)：第三方运行时和依赖资料。
 
 项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264 等依赖归各自原项目维护，Machining 只调用并随应用分发相应运行时。
 
-详细说明见 [docs/reference/ffmpeg-license-distribution.md](/Users/leftzhou/工作区/Machining/docs/reference/ffmpeg-license-distribution.md)。
+详细说明见 [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)。

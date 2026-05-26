@@ -30,7 +30,7 @@ class VideoTaskConfig {
   /// 压缩控制方式
   final CompressionMode compressionMode;
 
-  /// 智能推荐方案；只在智能推荐模式下使用
+  /// 推荐方案；只在推荐预设模式下使用
   final SmartCompressionPreset? smartPreset;
 
   /// 目标体积字节数；只在指定目标体积模式下使用
@@ -65,7 +65,7 @@ class VideoTaskConfig {
       resolutionPreset: ResolutionPreset.original,
       outputDirectory: '',
       compressionCrf: 28,
-      compressionMode: CompressionMode.smart,
+      compressionMode: CompressionMode.preset,
       smartPreset: SmartCompressionPreset.balanced,
       targetSizeBytes: null,
       targetSizeRatio: null,

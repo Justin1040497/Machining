@@ -1,9 +1,10 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:machining/application/services/compression_advisor.dart';
-import 'package:machining/application/services/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/ffmpeg_process_observer.dart';
+import 'package:machining/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_planning/default_compression_advisor.dart';
+import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:machining/domain/entities/app_settings.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
@@ -11,12 +12,11 @@ import 'package:machining/domain/enums/media_kind.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/default_ffmpeg_command_builder.dart';
-import 'package:machining/infrastructure/services/default_compression_advisor.dart';
-import 'package:machining/infrastructure/services/ffprobe_media_analyzer.dart';
-import 'package:machining/infrastructure/services/local_ffmpeg_locator.dart';
-import 'package:machining/infrastructure/services/local_ffmpeg_process_observer.dart';
-import 'package:machining/infrastructure/services/local_ffmpeg_process_starter.dart';
+import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
+import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_starter.dart';
+import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:machining/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
+import 'package:machining/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
 import 'package:path/path.dart' as path;
 
 Future<void> main(List<String> args) async {
@@ -293,13 +293,21 @@ class MachiningCli {
     return [
       '压缩预览:',
       '源视频编码: $sourceCodec',
-      '目标视频编码: ${targetCodec.label}',
+      '目标视频编码: ${formatVideoCodec(targetCodec)}',
       '源视频大小: ${formatBytes(sourceSizeBytes)}',
       '源视频码率: ${formatBitrate(recommendation.bitrate)}',
       '原分辨率: $sourceResolution',
       '目标分辨率: $targetResolution',
       ...formatCompressionModePreview(recommendation),
     ].join('\n');
+  }
+
+  String formatVideoCodec(VideoCodec codec) {
+    return switch (codec) {
+      VideoCodec.source => '跟随源文件',
+      VideoCodec.h264 => 'H.264',
+      VideoCodec.hevc => 'H.265 / HEVC',
+    };
   }
 
   List<String> formatCompressionModePreview(

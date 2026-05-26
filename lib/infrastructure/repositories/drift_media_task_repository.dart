@@ -3,7 +3,6 @@ import 'package:machining/application/repositories/media_task_repository.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
 import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/output_format.dart';
 import 'package:machining/domain/enums/resolution_preset.dart';
 import 'package:machining/domain/enums/smart_compression_preset.dart';
@@ -14,6 +13,7 @@ import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
 import 'package:machining/infrastructure/database/app_database.dart';
+import 'package:machining/infrastructure/repositories/mappers/compression_mode_mapper.dart';
 
 /// 用 Drift + SQLite 实现任务列表的读取、保存和删除
 class DriftMediaTaskRepository implements MediaTaskRepository {
@@ -106,7 +106,9 @@ extension MediaTaskMapper on MediaTask {
       resolutionPreset: Value(config.resolutionPreset.name),
       outputDirectory: Value(config.outputDirectory),
       compressionCrf: Value(config.compressionCrf),
-      compressionMode: Value(config.compressionMode.name),
+      compressionMode: Value(
+        CompressionModeMapper.toStorage(config.compressionMode),
+      ),
       smartPreset: Value(config.smartPreset?.name),
       targetSizeBytes: Value(config.targetSizeBytes),
       targetSizeRatio: Value(config.targetSizeRatio),
@@ -139,10 +141,7 @@ extension TaskRowMapper on TaskRow {
         ),
         outputDirectory: outputDirectory,
         compressionCrf: compressionCrf,
-        compressionMode: enumValueByName(
-          CompressionMode.values,
-          compressionMode,
-        ),
+        compressionMode: CompressionModeMapper.fromStorage(compressionMode),
         smartPreset: nullableEnumValueByName(
           SmartCompressionPreset.values,
           smartPreset,

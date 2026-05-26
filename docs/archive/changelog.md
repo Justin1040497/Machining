@@ -18,6 +18,25 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-26 / unreleased / 分层重构和工作台交互整理
+
+- added
+  - 新增 Application Use Cases，覆盖应用设置、任务导入、分析、恢复、重试、排序、队列启动、单任务开始 / 暂停 / 继续、删除、清空和预览帧生成。
+  - 新增持久化兼容层和 `CompressionModeMapper`，把历史 `smart`、`quality` 压缩模式映射到当前 `preset`。
+  - 新增 `flutter_animate` 依赖，用于工作台右上角通知的进入和退出动画。
+  - 新增工作台统一弹窗基础组件和弹窗风格测试。
+- changed
+  - Application 服务按 `input_runtime`、`ffmpeg_planning`、`execution` 分组，UI 状态入口通过 Use Cases 进入业务流程。
+  - Infrastructure provider 按数据库、仓储、输入运行时、FFmpeg 规划和执行拆分。
+  - FFmpeg 命令构造拆分为输出路径、编码器解析、视频参数、命令步骤、日志提示和格式化 helper。
+  - features/workbench 拆分为页面入口、layout、dialogs、overlays、configuration、form controls 和 media task list 组件。
+  - 压缩模式文案调整为“推荐方案选项”和“自定义目标体积”，数据库当前写入值调整为 `preset` / `targetSize`。
+  - 任务配置弹窗中的“已修改”“已压缩”移到底部按钮同排左侧显示。
+- fixed
+  - 修正未实质改变配置时仍显示“已修改”的判断。
+  - 统一压缩确认、导入失败、清空任务和重命名弹窗的视觉风格，移除生产代码中的默认 `AlertDialog`。
+  - 移除已废弃的项目参考对比 HTML 文档引用。
+
 ## 2026-05-20 / v1.5.0+1 / 应用设置和发布准备
 
 - added

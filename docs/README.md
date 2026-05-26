@@ -10,9 +10,10 @@
 - macOS 和 Windows 应用如何构建；
 - 外部参考、更新日志和详细问题日志放在哪里。
 
-阅读文档时优先区分当前事实和历史记录：
+阅读文档时优先区分当前事实、实现计划和历史记录：
 
 - 当前事实放在 `product/`、`develop/`、`reference/`。
+- `plans/` 保存当时的实现计划，用于追溯任务背景；如果和当前代码或 `develop/` 冲突，以当前代码和 `develop/` 为准。
 - 历史记录放在 `archive/`，可能不再代表最新实现。
 
 ## 文档地图
@@ -24,6 +25,10 @@ docs/
   product/
     roadmap.md                      产品路线图和下一阶段规划
 
+  plans/
+    2026-05-19-app-settings-dialog.md
+                                     历史实现计划，可能已被当前代码和 develop 文档更新
+
   develop/
     architecture.md                 项目架构、核心模块和架构优势
     technology-stack.md             技术栈、依赖、开发环境和平台范围
@@ -32,8 +37,9 @@ docs/
 
   reference/
     ffmpeg-license-distribution.md  FFmpeg、x264、GPL 路线和分发参考
-    reports/
-      project-reference-comparison.html
+
+  diagrams/
+    generated/                      架构图、数据流图、ER 图和流程图生成产物
 
   archive/
     changelog.md                    面向版本的更新日志
@@ -53,7 +59,7 @@ docs/
 
 Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频分析、预览、压缩和格式输出能力封装成图形界面，让用户不需要手写 FFmpeg 命令也能处理本地视频。
 
-当前项目版本为 `v1.5.0+1`，当前产品范围以视频压缩、智能压缩预设、目标体积压缩、输出预估、应用默认设置和本地任务队列为主。
+当前项目版本为 `v1.5.0+1`，当前产品范围以视频压缩、推荐方案预设、自定义目标体积压缩、输出预估、应用默认设置和本地任务队列为主。
 
 产品原则：
 
@@ -75,12 +81,14 @@ Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频�
 - 使用 FFprobe 分析媒体信息。
 - 通过 FFmpeg 服务生成缩略图和预览相关素材。
 - 配置输出格式、视频编码、编码器后端、分辨率、输出目录和输出文件名。
-- 使用清晰优先、均衡推荐、微信发送、体积优先等智能压缩预设。
-- 使用目标体积模式，根据码率估算进行压缩。
+- 使用清晰优先、均衡推荐、微信发送、体积优先等推荐方案预设。
+- 使用自定义目标体积模式，通过比例滑杆选择目标体积。
 - 检测 macOS VideoToolbox 和 Windows 硬件编码后端。
 - 管理任务队列的开始、暂停、继续、取消、删除、重试和重命名。
 - 完成后显示输出路径，并打开 Finder、Explorer 或 Linux 文件管理器。
 - 支持 macOS Apple Silicon 和 Windows x64 的 FFmpeg / FFprobe 运行时打包路径。
+- 通过统一工作台弹窗框架展示确认、失败、重命名、清空和完成信息。
+- 通过右上角工作台通知展示导入、分析、失败等轻量反馈。
 
 主要用户交互：
 
@@ -89,8 +97,8 @@ Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频�
 | 导入文件 | 创建任务并显示在任务列表 | 校验文件、保存任务、触发媒体分析 |
 | 选择任务 | 打开任务配置弹窗 | 编辑压缩模式、预设、编码、分辨率和输出配置 |
 | 开始处理 | 任务进入 FFmpeg 队列 | 构建命令、启动进程、监听进度 |
-| 暂停 | 停止当前运行任务 | 终止 FFmpeg 进程并保存暂停状态 |
-| 继续 | 任务重新进入队列 | 重新构建命令并继续处理 |
+| 暂停 | 挂起当前运行任务 | 挂起前台 FFmpeg 进程并保存暂停状态 |
+| 继续 | 任务继续执行 | 恢复已挂起进程，或重新进入可执行队列 |
 | 取消 | 停止当前执行 | 终止进程并保留任务以便重试 |
 | 重命名 | 更新任务显示名 | 只修改任务记录，不修改源文件 |
 | 删除 | 从列表移除任务 | 删除本地任务记录 |
@@ -124,18 +132,24 @@ Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频�
 test/
   app_settings_dialog_test.dart
   app_settings_test.dart
+  app_settings_use_cases_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
+  compression_mode_mapper_test.dart
   drift_app_settings_repository_test.dart
   ffmpeg_command_builder_test.dart
   ffmpeg_encoder_capabilities_test.dart
   ffmpeg_process_observer_test.dart
   ffmpeg_task_queue_runner_test.dart
   ffprobe_media_analyzer_test.dart
+  generate_preview_frames_use_case_test.dart
+  media_task_execution_use_cases_test.dart
   media_task_notifier_test.dart
   preview_frame_generator_test.dart
   video_thumbnail_generator_test.dart
   workbench_bottom_bar_test.dart
+  workbench_dialog_style_test.dart
+  workbench_preview_notifier_test.dart
   widget_test.dart
 ```
 
@@ -265,14 +279,13 @@ build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 
 ## 参考资料
 
-`reference/` 只放外部参考、许可证依据和外部项目对比报告，不记录当前产品范围、实现规划或开发任务。
+`reference/` 只放外部参考和许可证依据，不记录当前产品范围、实现规划或开发任务。
 
 当前参考文档：
 
 - `reference/ffmpeg-license-distribution.md`
-- `reference/reports/project-reference-comparison.html`
 
-处理 FFmpeg 分发、许可证合规、第三方资料或项目对比时再阅读这个目录。
+处理 FFmpeg 分发、许可证合规或第三方资料时再阅读这个目录。
 
 许可与分发资料：
 

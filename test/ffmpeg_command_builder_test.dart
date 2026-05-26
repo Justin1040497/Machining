@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/ffmpeg_encoder_capabilities.dart';
+import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:machining/domain/entities/media_task.dart';
 import 'package:machining/domain/enums/compression_mode.dart';
 import 'package:machining/domain/enums/encoder_backend.dart';
@@ -14,7 +14,7 @@ import 'package:machining/domain/enums/video_codec.dart';
 import 'package:machining/domain/value_objects/media_analysis_result.dart';
 import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
 import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/default_ffmpeg_command_builder.dart';
+import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 
 void main() {
   group('DefaultFfmpegCommandBuilder', () {

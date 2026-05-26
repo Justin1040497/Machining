@@ -1,5 +1,7 @@
 # App Settings Dialog Implementation Plan
 
+> Status: historical implementation plan. The app settings feature has since landed, and later refactors moved providers, services, workbench dialogs, and compression-mode naming. Use `docs/develop/architecture.md`, `docs/develop/data-model.md`, and the current source tree as the source of truth before copying paths or code from this plan.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Build the application settings dialog from the two v2.0.0 prototype images, restore the bottom-left settings entry, and make the compact dialog expand in-place into the advanced dialog.
