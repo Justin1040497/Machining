@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/infrastructure/database/app_database.dart';
-import 'package:machining/infrastructure/repositories/drift_app_settings_repository.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/infrastructure/database/app_database.dart';
+import 'package:framelean/infrastructure/repositories/drift_app_settings_repository.dart';
 
 void main() {
   test('settings row maps persisted app defaults to domain', () {

@@ -2,18 +2,18 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/execution/preview_frame_generator.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/features/workbench/providers/workbench_preview_notifier.dart';
-import 'package:machining/infrastructure/providers/execution_provider.dart';
-import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
+import 'package:framelean/application/services/execution/preview_frame_generator.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/features/workbench/providers/workbench_preview_notifier.dart';
+import 'package:framelean/infrastructure/providers/execution_provider.dart';
+import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 
 void main() {
   group('WorkbenchPreviewNotifier', () {

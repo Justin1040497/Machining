@@ -1,11 +1,11 @@
 ---
 name: git-workflow
-description: Use when working in the Machining repository on Git branch selection, commit messages, staging scope, worktree use, pull/rebase decisions, PR preparation, release tags, or deciding whether changes belong in feature, fix, chore, docs, release, or hotfix branches. Always read docs/develop/git-workflow.md first and protect unrelated user changes.
+description: Use when working in the FrameLean repository on Git branch selection, commit messages, staging scope, worktree use, pull/rebase decisions, PR preparation, release tags, or deciding whether changes belong in feature, fix, chore, docs, release, or hotfix branches. Always read docs/develop/git-workflow.md first and protect unrelated user changes.
 ---
 
-# Machining Git Workflow
+# FrameLean Git Workflow
 
-Use this skill for Git operations and Git guidance in the Machining repository.
+Use this skill for Git operations and Git guidance in the FrameLean repository.
 
 ## First Checks
 

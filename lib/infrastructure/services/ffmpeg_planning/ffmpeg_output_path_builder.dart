@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:path/path.dart' as path;
 
 class FfmpegOutputPathBuilder {

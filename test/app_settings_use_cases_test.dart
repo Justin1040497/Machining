@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/repositories/app_settings_repository.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_locator.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:machining/application/use_cases/app_settings/save_app_settings_use_case.dart';
-import 'package:machining/domain/entities/app_settings.dart';
+import 'package:framelean/application/repositories/app_settings_repository.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
+import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 
 void main() {
   group('app settings use cases', () {

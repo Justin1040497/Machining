@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_starter.dart';
-import 'package:machining/domain/entities/media_task.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/domain/entities/media_task.dart';
 
 class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
   final bool Function(String outputPath) outputPathExists;

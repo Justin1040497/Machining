@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:machining/features/workbench/pages/workbench_page/overlays/workbench_notice.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice.dart';
 
 class WorkbenchNoticeController {
   static const _animationDuration = Duration(milliseconds: 220);

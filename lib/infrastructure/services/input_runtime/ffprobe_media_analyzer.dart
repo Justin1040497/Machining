@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:machining/application/services/input_runtime/media_analyzer.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 
 /// 使用 FFprobe 分析媒体文件基础信息
 class FfprobeMediaAnalyzer implements MediaAnalyzer {

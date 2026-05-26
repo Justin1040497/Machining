@@ -2,7 +2,7 @@
 
 ## 文档目的
 
-这份文档记录 Machining 项目的 Git 分支结构、日常开发流程、发布流程和合并要求。
+这份文档记录 FrameLean 项目的 Git 分支结构、日常开发流程、发布流程和合并要求。
 
 目标是让项目避免直接在 `main` 上提交开发改动，同时保持流程足够轻量，适合当前 Flutter 桌面应用的迭代节奏。
 
@@ -41,7 +41,7 @@ hotfix/*
 - 只通过 PR / MR 接收 `feature/*`、`fix/*`、`chore/*`、`docs/*`、`release/*` 或 `hotfix/*` 的合并。
 - 正式发布版本从 `main` 打 tag。
 
-Machining 当前不设置长期 `develop` 分支。当前更适合采用轻量的主干开发流程：
+FrameLean 当前不设置长期 `develop` 分支。当前更适合采用轻量的主干开发流程：
 
 ```text
 短分支 -> PR / MR -> main -> tag release
@@ -226,7 +226,7 @@ git push -u origin feature/example-name
 - 需要临时处理 `hotfix/*`、评审分支或实验性分支。
 - 不希望使用 `git stash` 隐藏当前上下文。
 
-Machining 统一把本地 worktree 放在仓库根目录的 `worktrees/` 下：
+FrameLean 统一把本地 worktree 放在仓库根目录的 `worktrees/` 下：
 
 ```text
 worktrees/<task-name>

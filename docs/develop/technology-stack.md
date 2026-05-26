@@ -2,7 +2,7 @@
 
 ## 文档目的
 
-这份文档记录 Machining 当前使用的开发环境、框架、核心依赖、运行时和技术边界。
+这份文档记录 FrameLean 当前使用的开发环境、框架、核心依赖、运行时和技术边界。
 
 它同时面向开发者和 AI：
 
@@ -232,13 +232,13 @@ scripts/build_dmg_macos.sh
 Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复制到：
 
 ```text
-Machining.app/Contents/Resources/ffmpeg/
+FrameLean.app/Contents/Resources/ffmpeg/
 ```
 
 Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
 
 ```text
-Machining.app/Contents/Resources/legal/
+FrameLean.app/Contents/Resources/legal/
 ```
 
 当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe` 和法律资料。
@@ -262,7 +262,7 @@ README.md
 `windows/CMakeLists.txt` 会把这两个文件安装到：
 
 ```text
-<machining.exe 所在目录>/ffmpeg/
+<FrameLean.exe 所在目录>/ffmpeg/
 ```
 
 Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。
@@ -271,9 +271,9 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 | 数据 | 位置 / 机制 | 说明 |
 | --- | --- | --- |
-| 任务与设置 | 应用支持目录下的 `machining.sqlite` | Drift + SQLite 管理 |
-| FFmpeg 执行日志 | 系统临时目录 `machining/ffmpeg-logs` | 每次执行创建独立日志文件 |
-| 预览帧 | 系统临时目录 `machining/previews/<taskId>` | 参数指纹变化后重新生成 |
+| 任务与设置 | 应用支持目录下的 `framelean.sqlite` | Drift + SQLite 管理 |
+| FFmpeg 执行日志 | 系统临时目录 `framelean/ffmpeg-logs` | 每次执行创建独立日志文件 |
+| 预览帧 | 系统临时目录 `framelean/previews/<taskId>` | 参数指纹变化后重新生成 |
 | 两遍压缩 pass log | 输出目录附近的隐藏前缀文件 | 任务完成或取消后 best-effort 清理 |
 | 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `-1`、`-2` 等后缀 |
 

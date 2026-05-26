@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 
 class AppSettingsSectionLabel extends StatelessWidget {
   const AppSettingsSectionLabel(this.label, {super.key});

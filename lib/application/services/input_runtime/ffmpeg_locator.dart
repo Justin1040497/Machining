@@ -1,4 +1,4 @@
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 
 /// 用户主动设置的工具路径无效
 class InvalidFfmpegToolPathException implements Exception {

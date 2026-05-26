@@ -1,15 +1,15 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/execution/preview_frame_generator.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/application/use_cases/media_tasks/generate_preview_frames_use_case.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
+import 'package:framelean/application/services/execution/preview_frame_generator.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/use_cases/media_tasks/generate_preview_frames_use_case.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
 
 void main() {
   group('GeneratePreviewFramesUseCase', () {

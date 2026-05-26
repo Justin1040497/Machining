@@ -1,24 +1,24 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:machining/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/analyze_media_task_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/delete_media_task_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/import_media_task_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
-import 'package:machining/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/reorder_media_tasks_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/replace_missing_source_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/retry_media_task_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:machining/infrastructure/providers/execution_provider.dart';
-import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
-import 'package:machining/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/analyze_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/import_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/reorder_media_tasks_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/replace_missing_source_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/retry_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/infrastructure/providers/execution_provider.dart';
+import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
+import 'package:framelean/infrastructure/providers/repository_provider.dart';
 
 /// 工作台任务列表状态
 final mediaTaskListProvider =

@@ -1,9 +1,9 @@
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:path/path.dart' as path;
 
 MediaTask findMediaTaskById(List<MediaTask> tasks, String taskId) {

@@ -1,4 +1,4 @@
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 
 /// FFmpeg 二进制来源
 enum FfmpegBinarySource {

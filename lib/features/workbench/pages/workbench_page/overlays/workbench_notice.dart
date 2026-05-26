@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 
 class WorkbenchNotice extends StatelessWidget {
   const WorkbenchNotice({

@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:machining/application/services/input_runtime/source_file_fingerprint_reader.dart';
-import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
+import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 
 /// 使用本地文件系统读取源文件大小和最后修改时间
 class LocalSourceFileFingerprintReader implements SourceFileFingerprintReader {

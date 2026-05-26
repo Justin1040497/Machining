@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 
 Future<TaskContextMenuAction?> showWorkbenchTaskContextMenu({
   required BuildContext context,

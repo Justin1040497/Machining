@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:path/path.dart' as path;
 
 abstract final class WorkbenchFilePicker {

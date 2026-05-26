@@ -1,11 +1,11 @@
-import 'package:machining/infrastructure/database/settings.dart';
-import 'package:machining/infrastructure/database/tasks.dart';
+import 'package:framelean/infrastructure/database/settings.dart';
+import 'package:framelean/infrastructure/database/tasks.dart';
 import 'package:path/path.dart';
 import 'dart:io';
 
 import 'package:drift/native.dart';
 import 'package:drift/drift.dart';
-import 'package:machining/infrastructure/database/persistence_compatibility.dart';
+import 'package:framelean/infrastructure/database/persistence_compatibility.dart';
 import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
@@ -101,7 +101,7 @@ QueryExecutor openConnection() {
     final directory = await getApplicationSupportDirectory();
 
     /// 拼接系统目录和数据库文件名
-    final databasePath = join(directory.path, 'machining.sqlite');
+    final databasePath = join(directory.path, 'framelean.sqlite');
     final file = File(databasePath);
 
     /// 返回一个数据库 如果没有则创建一个

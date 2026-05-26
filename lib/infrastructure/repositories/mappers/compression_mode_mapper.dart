@@ -1,5 +1,5 @@
-import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/infrastructure/database/persistence_compatibility.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/infrastructure/database/persistence_compatibility.dart';
 
 /// Maps persisted compression-mode strings to the current domain vocabulary.
 abstract final class CompressionModeMapper {

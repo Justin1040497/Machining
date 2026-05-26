@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/app_settings_dialog.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_settings_dialog.dart';
 
 void main() {
   testWidgets('settings dialog starts in compact source-directory state', (

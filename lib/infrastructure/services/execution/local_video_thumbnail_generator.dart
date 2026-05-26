@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:machining/application/services/execution/video_thumbnail_generator.dart';
+import 'package:framelean/application/services/execution/video_thumbnail_generator.dart';
 import 'package:path/path.dart' as path;
 
 class VideoThumbnailProbeResult {

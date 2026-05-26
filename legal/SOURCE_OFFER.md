@@ -1,26 +1,26 @@
 # Source Code and Build Information
 
-Machining is distributed under the GNU General Public License, version 3 or
+FrameLean is distributed under the GNU General Public License, version 3 or
 any later version published by the Free Software Foundation.
 
 ## Corresponding Source
 
-The corresponding source for Machining includes:
+The corresponding source for FrameLean includes:
 
-- Machining application source code.
+- FrameLean application source code.
 - Build scripts and packaging metadata in this repository.
 - FFmpeg runtime build scripts and metadata in `scripts/` and
   `third_party/ffmpeg/`.
 - Documentation needed to rebuild or replace the bundled FFmpeg / FFprobe
   runtime.
 
-When a binary build of Machining is publicly distributed, the corresponding
+When a binary build of FrameLean is publicly distributed, the corresponding
 source should be made available from the same release location, or from a
 clearly linked public source repository, for as long as required by GPLv3.
 
 ## FFmpeg Runtime
 
-Current Machining builds target FFmpeg 7.1.1 with x264/libx264 enabled.
+Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264 enabled.
 
 The macOS arm64 build script is:
 
@@ -48,7 +48,7 @@ The documented FFmpeg configure flags include:
 
 ## Upstream Source Locations
 
-- Machining source: publish this repository or a source archive for each binary
+- FrameLean source: publish this repository or a source archive for each binary
   release.
 - FFmpeg source: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
 - x264 source: <https://code.videolan.org/videolan/x264>
@@ -58,7 +58,7 @@ runtime build metadata before distributing that release.
 
 ## User Replacement and Rebuild
 
-Machining resolves FFmpeg / FFprobe from bundled runtime locations, known system
+FrameLean resolves FFmpeg / FFprobe from bundled runtime locations, known system
 locations, PATH, or user-configured custom paths, depending on platform and app
 settings. Users should be able to replace or rebuild the FFmpeg / FFprobe
 runtime with a GPL-compatible build.

@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_starter.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/application/services/input_runtime/source_file_checker.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/task_status.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_status.dart';
 import 'package:path/path.dart' as path;
 
 enum FfmpegQueueStatus { idle, ready, running }

@@ -1,6 +1,6 @@
 # Agent Instructions
 
-This file is the shared project entry point for AI coding agents working in the Machining repository.
+This file is the shared project entry point for AI coding agents working in the FrameLean repository.
 
 ## Source of Truth
 

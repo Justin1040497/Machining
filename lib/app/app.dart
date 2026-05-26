@@ -3,13 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'app_router.dart';
 
-class MachiningApp extends ConsumerWidget {
-  const MachiningApp({super.key});
+class FrameLeanApp extends ConsumerWidget {
+  const FrameLeanApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: "Machining",
+      title: "FrameLean",
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
       theme: ThemeData(

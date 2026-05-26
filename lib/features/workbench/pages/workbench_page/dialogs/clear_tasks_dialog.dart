@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 
 class ClearTasksDialog extends StatelessWidget {
   const ClearTasksDialog({super.key});

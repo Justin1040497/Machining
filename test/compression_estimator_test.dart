@@ -1,12 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/ffmpeg_planning/compression_estimator.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/application/services/ffmpeg_planning/compression_estimator.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 
 void main() {
   group('DefaultCompressionEstimator', () {

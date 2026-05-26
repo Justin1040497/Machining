@@ -1,5 +1,5 @@
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/video_codec.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
 
 class FfmpegEncoderCapabilities {
   static const softwareOnly = FfmpegEncoderCapabilities(

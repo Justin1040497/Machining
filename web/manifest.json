@@ -1,11 +1,11 @@
 {
-    "name": "machining",
-    "short_name": "machining",
+    "name": "FrameLean",
+    "short_name": "帧轻",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "A local desktop video compression app.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

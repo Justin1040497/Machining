@@ -1,10 +1,10 @@
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/application/services/input_runtime/media_analyzer.dart';
-import 'package:machining/application/services/input_runtime/source_file_checker.dart';
-import 'package:machining/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/task_status.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
+import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
+import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_status.dart';
 
 class AnalyzeMediaTaskUseCase {
   final MediaTaskRepository repository;

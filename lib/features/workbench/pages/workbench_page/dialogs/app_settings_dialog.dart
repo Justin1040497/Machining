@@ -2,15 +2,15 @@ import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/app_settings_dialog_widgets.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
-import 'package:machining/features/workbench/widgets/form_controls/config_dropdown.dart';
-import 'package:machining/features/workbench/widgets/form_controls/path_field.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_settings_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/features/workbench/widgets/form_controls/path_field.dart';
 
 typedef AppSettingsSaveCallback = Future<void> Function(AppSettings settings);
 typedef AppSettingsPathPicker = Future<String?> Function();

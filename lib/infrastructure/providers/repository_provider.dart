@@ -1,9 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:machining/application/repositories/app_settings_repository.dart';
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/infrastructure/providers/database_provider.dart';
-import 'package:machining/infrastructure/repositories/drift_app_settings_repository.dart';
-import 'package:machining/infrastructure/repositories/drift_media_task_repository.dart';
+import 'package:framelean/application/repositories/app_settings_repository.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/infrastructure/providers/database_provider.dart';
+import 'package:framelean/infrastructure/repositories/drift_app_settings_repository.dart';
+import 'package:framelean/infrastructure/repositories/drift_media_task_repository.dart';
 
 /// 应用设置数据库操作管理状态
 /// 这里最好暴露抽象类给外面

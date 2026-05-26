@@ -1,23 +1,23 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/repositories/app_settings_repository.dart';
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:machining/application/services/input_runtime/source_file_checker.dart';
-import 'package:machining/application/services/input_runtime/source_file_fingerprint_reader.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/features/workbench/providers/media_task_notifier.dart';
-import 'package:machining/infrastructure/providers/execution_provider.dart';
-import 'package:machining/infrastructure/providers/input_runtime_provider.dart';
-import 'package:machining/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/application/repositories/app_settings_repository.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
+import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
+import 'package:framelean/infrastructure/providers/execution_provider.dart';
+import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
+import 'package:framelean/infrastructure/providers/repository_provider.dart';
 
 void main() {
   group('MediaTaskListNotifier', () {

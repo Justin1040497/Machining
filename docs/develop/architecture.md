@@ -1,14 +1,14 @@
-# Machining 架构说明
+# FrameLean 架构说明
 
 ## 文档目的
 
-这个文件记录 Machining 当前项目架构、核心模块解析，以及为什么采用这种架构。
+这个文件记录 FrameLean 当前项目架构、核心模块解析，以及为什么采用这种架构。
 
 这里描述的是当前代码事实，不记录产品规划或历史开发日志。测试和构建说明看 `docs/develop/test-plan.md`，文档总入口看 `docs/README.md`。
 
 ## 架构总览
 
-Machining 是一个本地视频压缩桌面应用。当前主路径是：用户导入本地视频，应用使用 FFprobe 分析媒体信息，按任务配置构造 FFmpeg 命令，在本机执行压缩或转封装，并把任务状态持久化到本地 SQLite。
+FrameLean 是一个本地视频压缩桌面应用。当前主路径是：用户导入本地视频，应用使用 FFprobe 分析媒体信息，按任务配置构造 FFmpeg 命令，在本机执行压缩或转封装，并把任务状态持久化到本地 SQLite。
 
 项目采用接近 Clean Architecture 的分层方式：
 
@@ -108,7 +108,7 @@ docs/
 
 `app` 保存应用外壳：
 
-- `MachiningApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
+- `FrameLeanApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
 - `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，应用设置通过工作台弹窗打开。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
@@ -196,7 +196,7 @@ Use Cases：
 
 ## Riverpod 组装方式
 
-Machining 使用 Riverpod 作为依赖注入和状态管理工具。
+FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。
 
 核心 provider：
 
@@ -230,7 +230,7 @@ Machining 使用 Riverpod 作为依赖注入和状态管理工具。
 ```text
 main()
   -> ProviderScope
-  -> MachiningApp
+  -> FrameLeanApp
   -> GoRouter("/")
   -> WorkbenchPage
   -> mediaTaskListProvider.build()
@@ -270,7 +270,7 @@ main()
 1. 根据任务、配置、分析结果、压缩建议和编码器能力生成 `PreviewFrameFingerprint`。
 2. 默认在视频 5%、27.5%、50%、72.5%、95% 位置取样。
 3. 每个点先抽原始帧，再生成 1 秒压缩片段，然后从压缩片段抽对比帧。
-4. 预览目录位于系统临时目录 `machining/previews/<taskId>`。
+4. 预览目录位于系统临时目录 `framelean/previews/<taskId>`。
 
 ### FFmpeg 命令构造
 
@@ -359,7 +359,7 @@ start / startOrResumeTask
 日志路径由 provider 中的 `createFfmpegExecutionLogFilePath()` 生成：
 
 ```text
-<system temp>/machining/ffmpeg-logs/<timestamp>_<taskId>_<safeFileName>.log
+<system temp>/framelean/ffmpeg-logs/<timestamp>_<taskId>_<safeFileName>.log
 ```
 
 ## FFmpeg 运行时边界

@@ -1,19 +1,19 @@
 import 'package:drift/drift.dart';
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/database/app_database.dart';
-import 'package:machining/infrastructure/repositories/mappers/compression_mode_mapper.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/infrastructure/database/app_database.dart';
+import 'package:framelean/infrastructure/repositories/mappers/compression_mode_mapper.dart';
 
 /// 用 Drift + SQLite 实现任务列表的读取、保存和删除
 class DriftMediaTaskRepository implements MediaTaskRepository {

@@ -1,17 +1,17 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/execution/preview_frame_generator.dart';
-import 'package:machining/application/services/ffmpeg_planning/default_compression_advisor.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/execution/local_preview_frame_generator.dart';
-import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/execution/preview_frame_generator.dart';
+import 'package:framelean/application/services/ffmpeg_planning/default_compression_advisor.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/infrastructure/services/execution/local_preview_frame_generator.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
@@ -20,7 +20,7 @@ void main() {
 
     setUp(() async {
       tempDirectory = await Directory.systemTemp.createTemp(
-        'machining_preview_test_',
+        'framelean_preview_test_',
       );
     });
 

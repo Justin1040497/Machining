@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
 
 void main() {
   test('initial settings expose application defaults', () {

@@ -2,17 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_starter.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:machining/application/services/input_runtime/source_file_checker.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/task_status.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_status.dart';
 
 void main() {
   group('DefaultFfmpegTaskQueueRunner', () {
@@ -340,7 +340,7 @@ class QueueHarness {
       processObserver: this.processObserver,
       createLogFilePath: (task, plan) async {
         return File(
-          '${Directory.systemTemp.path}/machining-test-${task.id}.log',
+          '${Directory.systemTemp.path}/framelean-test-${task.id}.log',
         ).path;
       },
       continuousExecutionEnabled: continuousExecutionEnabled,

@@ -1,39 +1,14 @@
-# Machining
+# FrameLean（帧轻）
 
-[![Version](https://img.shields.io/badge/version-v1.5.0%2B1-111111)](#当前版本)
 [![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon%20%7C%20Windows%20x64-000000)](#平台范围)
 [![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目结构)
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#ffmpeg--ffprobe-运行时)
 [![Processing](https://img.shields.io/badge/processing-local%20only-2E7D32)](#功能)
 [![License](https://img.shields.io/badge/license-GPLv3%2B-C62828)](#许可说明)
 
-Machining 是一个本地桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令，也能在本机处理视频文件。
+FrameLean（帧轻）是一个本地桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令，也能在本机处理视频文件。
 
-当前版本聚焦视频压缩、应用级默认设置和本地任务队列：导入本地视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
-
-## 当前版本
-
-当前项目版本为：
-
-```text
-v1.5.0+1
-```
-
-v1.5 的主要内容：
-
-- 应用设置弹窗：集中配置默认压缩方案、默认导出位置、默认文件名和自定义 FFmpeg / FFprobe 路径。
-- 新任务默认值：新导入任务会使用应用设置中的默认输出目录、推荐方案预设、输出编码和文件名模板。
-- 目标体积交互优化：目标体积模式改为比例滑杆，并补充缺失源文件重新指定流程。
-- 发布资料完善：补充 GPLv3+、第三方声明、源码获取说明和 DMG 打包验证脚本。
-- 版本文档对齐：同步 README、文档中心、路线图、许可证分发说明和更新日志。
-
-当前 `chore/codebase-refactor` 分支的主要整理：
-
-- Application 层按 Use Cases 和服务抽象重新组织，工作台状态入口通过用例进入任务、设置和预览流程。
-- Infrastructure 层拆分 provider、仓储实现、持久化兼容层，以及 Input / Runtime、FFmpeg Planning、Execution 三组服务实现。
-- features/workbench 重新整理页面、弹窗、布局、覆盖层和可复用表单 / 任务列表组件。
-- 压缩模式精简为“推荐方案”和“自定义目标体积”，旧数据中的 `smart`、`quality` 会通过兼容映射迁移到 `preset`。
-- 右上角通知加入 `flutter_animate` 进入 / 退出动画，工作台确认、失败、重命名、清空等弹窗统一为同一套视觉框架。
+FrameLean 聚焦视频压缩、应用级默认设置和本地任务队列：导入本地视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
 
 完整变更记录见 [docs/archive/changelog.md](docs/archive/changelog.md)。
 
@@ -64,11 +39,11 @@ v1.5 的主要内容：
 - 压缩完成后显示输出路径，并打开文件所在位置。
 - 内置或自动查找 FFmpeg / FFprobe，并检测当前运行时可用的硬件编码器。
 
-当前版本只支持视频任务。图片、音频和更多文件处理能力可以作为后续版本方向，但不属于 v1.5 已完成范围。
+当前只支持视频任务。图片、音频和更多文件处理能力可以作为后续方向。
 
 ## 怎么用
 
-1. 打开 Machining。
+1. 打开 FrameLean。
 2. 将视频文件拖入窗口，或使用导入按钮选择本地视频。
 3. 在任务列表中选择视频，查看源文件信息、缩略图和预览。
 4. 打开任务详情设置，选择压缩方式：
@@ -122,8 +97,8 @@ dart run build_runner build --delete-conflicting-outputs
 命令行压缩验证入口：
 
 ```bash
-dart run tool/machining_cli.dart compress ~/Movies/demo.mp4
-dart run tool/machining_cli.dart compress ~/Movies/demo.mp4 --codec h265 --resolution 1080p
+dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4
+dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4 --codec h265 --resolution 1080p
 ```
 
 ## 测试
@@ -204,14 +179,14 @@ scripts/build_dmg_macos.sh
 Release app 和 DMG 位置：
 
 ```text
-build/macos/Build/Products/Release/Machining.app
-build/macos/Build/Products/Release/Machining.dmg
+build/macos/Build/Products/Release/FrameLean.app
+build/macos/Build/Products/Release/FrameLean.dmg
 ```
 
 验证 app 内置 FFmpeg 和法律资料：
 
 ```bash
-APP="build/macos/Build/Products/Release/Machining.app"
+APP="build/macos/Build/Products/Release/FrameLean.app"
 "$APP/Contents/Resources/ffmpeg/ffmpeg" -hide_banner -version
 "$APP/Contents/Resources/ffmpeg/ffprobe" -hide_banner -version
 test -f "$APP/Contents/Resources/legal/COPYING"
@@ -236,7 +211,7 @@ Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/Machining-v<version>-windows-x64.zip
+build/windows/x64/runner/FrameLean-v1.0.0-windows-x64.zip
 ```
 
 Windows CMake 会把运行时复制到：
@@ -256,7 +231,7 @@ build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 
 ## FFmpeg / FFprobe 运行时
 
-Machining 解析运行时时的优先级：
+FrameLean 解析运行时时的优先级：
 
 1. 用户自定义路径。
 2. 应用包内置路径。
@@ -277,18 +252,18 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 macOS Release app 内的运行时位置：
 
 ```text
-Machining.app/Contents/Resources/ffmpeg/
+FrameLean.app/Contents/Resources/ffmpeg/
 ```
 
 Windows Release 目录内的运行时位置：
 
 ```text
-machining.exe 同级目录/ffmpeg/
+FrameLean.exe 同级目录/ffmpeg/
 ```
 
 ## GPU 编码加速
 
-Machining 会执行：
+FrameLean 会执行：
 
 ```bash
 ffmpeg -hide_banner -encoders
@@ -352,7 +327,7 @@ lib/
 
 ## 许可说明
 
-Machining 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
+FrameLean 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
 
 - [LICENSE](LICENSE)：GNU General Public License v3 正文。
 - [NOTICE](NOTICE)：项目版权、无担保和运行时声明。
@@ -361,6 +336,6 @@ Machining 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发�
 - [legal/SOURCE_OFFER.md](legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
 - [legal/third-party/](legal/third-party)：第三方运行时和依赖资料。
 
-项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264 等依赖归各自原项目维护，Machining 只调用并随应用分发相应运行时。
+项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264 等依赖归各自原项目维护，FrameLean 只调用并随应用分发相应运行时。
 
 详细说明见 [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)。

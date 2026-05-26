@@ -1,20 +1,20 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/domain/value_objects/source_file_fingerprint.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 
 void main() {
   group('DefaultFfmpegCommandBuilder', () {

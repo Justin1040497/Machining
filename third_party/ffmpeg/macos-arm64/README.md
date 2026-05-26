@@ -17,7 +17,7 @@ scripts/build_ffmpeg_macos_arm64.sh
 The macOS Runner target copies these files into:
 
 ```text
-machining.app/Contents/Resources/ffmpeg/
+FrameLean.app/Contents/Resources/ffmpeg/
 ```
 
 Release builds that include these binaries must follow the GPL FFmpeg + x264

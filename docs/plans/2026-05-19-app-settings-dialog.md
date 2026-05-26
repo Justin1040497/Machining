@@ -53,10 +53,10 @@ Create `test/app_settings_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
 
 void main() {
   test('initial settings expose prototype defaults', () {
@@ -124,8 +124,8 @@ enum DefaultOutputFileNameTemplate {
 Update `lib/domain/value_objects/app_compression_settings.dart`:
 
 ```dart
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
 
 class AppCompressionSettings {
   final VideoCodec defaultOutputVideoCodec;
@@ -159,10 +159,10 @@ class AppCompressionSettings {
 Update `lib/domain/entities/app_settings.dart` with a sentinel-based `copyWith` so nullable fields can be cleared:
 
 ```dart
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/app_compression_settings.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/app_compression_settings.dart';
 
 const Object _notProvided = Object();
 
@@ -301,11 +301,11 @@ Create `test/drift_app_settings_repository_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/infrastructure/database/app_database.dart';
-import 'package:machining/infrastructure/repositories/drift_app_settings_repository.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/infrastructure/database/app_database.dart';
+import 'package:framelean/infrastructure/repositories/drift_app_settings_repository.dart';
 
 void main() {
   test('settings row maps persisted prototype defaults to domain', () {
@@ -385,8 +385,8 @@ if (from < 10) {
 Update `lib/infrastructure/repositories/drift_app_settings_repository.dart` imports:
 
 ```dart
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
 ```
 
 Add fields to `SettingsRowsCompanion` in `saveSettings`:
@@ -466,11 +466,11 @@ git commit -m "feat: persist app settings dialog defaults"
 Add imports to `test/media_task_notifier_test.dart`:
 
 ```dart
-import 'package:machining/application/repositories/app_settings_repository.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
+import 'package:framelean/application/repositories/app_settings_repository.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
 ```
 
 Add this test inside the group:
@@ -586,10 +586,10 @@ Expected: FAIL because `createDraftFromPath` still uses `VideoTaskConfig.initial
 In `lib/features/workbench/providers/media_task_notifier.dart`, add imports:
 
 ```dart
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
 ```
 
 Inside `createDraftFromPath`, load settings before creating the draft:
@@ -690,9 +690,9 @@ Create `test/app_settings_dialog_test.dart`:
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/features/workbench/pages/workbench_page/app_settings_dialog.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/app_settings_dialog.dart';
 
 void main() {
   testWidgets('settings dialog starts in compact prototype state', (
@@ -1061,8 +1061,8 @@ Add to `test/app_settings_dialog_test.dart` or a new `test/workbench_bottom_bar_
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/features/workbench/pages/workbench_page/bottom_bar.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/bottom_bar.dart';
 
 void main() {
   testWidgets('bottom bar exposes settings gear', (tester) async {
@@ -1133,8 +1133,8 @@ _DockIconButton(
 Add imports:
 
 ```dart
-import 'package:machining/features/workbench/pages/workbench_page/app_settings_dialog.dart';
-import 'package:machining/infrastructure/providers/drift_provider.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/app_settings_dialog.dart';
+import 'package:framelean/infrastructure/providers/drift_provider.dart';
 ```
 
 Replace the placeholder at `lib/features/workbench/pages/workbench_page.dart:193-198`:
@@ -1210,7 +1210,7 @@ Future<void> saveAppSettings(AppSettings updatedSettings) async {
 Also import `AppSettings`:
 
 ```dart
-import 'package:machining/domain/entities/app_settings.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 ```
 
 **Step 5: Run tests to verify they pass**

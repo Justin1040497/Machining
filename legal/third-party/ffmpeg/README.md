@@ -1,6 +1,6 @@
 # FFmpeg / FFprobe
 
-Machining release packages can include FFmpeg and FFprobe runtime binaries.
+FrameLean release packages can include FFmpeg and FFprobe runtime binaries.
 The current documented runtime is FFmpeg 7.1.1 built with GPL components,
 including x264 / libx264.
 
