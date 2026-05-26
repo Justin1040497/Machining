@@ -27,6 +27,48 @@ release/*
 hotfix/*
 ```
 
+## 分支创建失败诊断
+
+创建分支前可以先校验分支名格式：
+
+```bash
+git check-ref-format --branch fix/example-name
+```
+
+如果 `git switch -c <branch>` 或 `git branch <branch>` 报 `cannot lock ref`，不要直接判断为分支名冲突。先区分两类问题：
+
+### 真实 ref 命名冲突
+
+Git 分支在 `.git/refs/heads/` 下以路径形式保存，因此下面两种情况会冲突：
+
+- 已有 `fix` 分支，再创建 `fix/example-name`。
+- 已有 `fix/example-name` 分支，再创建 `fix`。
+
+诊断命令：
+
+```bash
+git branch --list fix
+git branch --list 'fix/*'
+git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin
+```
+
+只有确认存在文件型分支和目录型分支互相占用时，才按命名冲突处理，并改用不会占用相同 ref 路径的分支名。
+
+### 环境或沙盒写入失败
+
+如果没有发现上述命名冲突，但错误信息包含下面关键词，优先按环境或沙盒写 `.git` 失败处理：
+
+```text
+unable to create directory
+Permission denied
+Operation not permitted
+couldn't create
+cannot lock ref
+.git/refs/heads/
+```
+
+这种情况不要反复更换分支名。应该说明分支名有效且未发现 ref 冲突，然后用允许写入 `.git` 的方式重试创建分支。
+
 ## 长期分支
 
 ### `main`
@@ -203,6 +245,34 @@ git switch -c feature/example-name
 git ls-files '*.dart' | xargs dart format --set-exit-if-changed
 flutter analyze
 flutter test
+```
+
+提交前更新变更记录：
+
+- 每次提交前都要在 `docs/archive/changelog.md` 记录本次修改的概要。
+- changelog 记录面向发布、维护和回溯的简洁摘要，不粘贴完整开发日志。
+- 如果本次修改属于 bug 修复，还要在 `docs/archive/logs/` 新建一篇详细修复日志。
+- bug 修复包括 `fix/*`、`hotfix/*` 分支，`fix:` 类型提交，或以修复异常、回归、平台兼容、数据错误、构建失败为主要目的的改动。
+- 变更记录文件要和对应代码或文档改动放在同一次提交中，不要补记到无关提交。
+
+changelog 使用现有格式：
+
+```text
+YYYY-MM-DD / vX.Y.Z / Summary
+- added
+  - 新增内容
+- changed
+  - 更新内容
+- fixed
+  - 修复内容
+- verified
+  - 验证内容
+```
+
+bug 修复日志命名格式：
+
+```text
+docs/archive/logs/YYYY-MM-DD-<bug-slug>.md
 ```
 
 提交并推送分支：

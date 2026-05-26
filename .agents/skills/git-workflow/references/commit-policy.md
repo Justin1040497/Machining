@@ -37,6 +37,8 @@ test: cover task queue pause behavior
 - Keep pure formatting separate when it touches many files.
 - Do not mix generated files with manual source edits unless generation is the point of the commit.
 - Do not include unrelated user edits in the same commit.
+- Include the matching changelog entry in the same commit as the change.
+- For bug fixes, include the matching archive log in the same commit as the fix.
 
 ## Commit Body
 

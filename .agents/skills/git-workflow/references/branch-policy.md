@@ -24,6 +24,16 @@ short-lived branch -> PR / MR -> main -> release tag
 - Keep the branch name about the change, not the tool or agent.
 - If work expands from docs into tracked structure or code changes, re-evaluate the branch type.
 
+## Before Creating Branches
+
+Validate the proposed branch name before creating it:
+
+```bash
+git check-ref-format --branch <branch-name>
+```
+
+If `git switch -c <branch-name>` or `git branch <branch-name>` fails with `cannot lock ref`, do not assume the branch name collided. Follow `branch-creation-troubleshooting.md` to distinguish a real ref path conflict from sandbox or permission failure.
+
 ## Examples
 
 ```text
