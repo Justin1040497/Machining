@@ -56,3 +56,15 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 /.reference/
 
 /worktrees/
+
+# Local agent runtime data. Shared agent instructions under .agents/skills/
+# are committed, but local caches and logs are not.
+/.agents/cache/
+/.agents/logs/
+/.agents/tmp/
+/.codex/cache/
+/.codex/logs/
+/.codex/tmp/
+/.claude/cache/
+/.claude/logs/
+/.claude/tmp/
