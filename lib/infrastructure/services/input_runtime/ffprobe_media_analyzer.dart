@@ -20,15 +20,12 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       throw StateError('源文件不存在: $inputPath');
     }
 
-    final result = await Process.run(ffprobePath, [
-      '-v',
-      'error',
-      '-print_format',
-      'json',
-      '-show_format',
-      '-show_streams',
-      inputPath,
-    ]).timeout(timeout);
+    final result = await Process.run(
+      ffprobePath,
+      buildArguments(inputPath),
+      stdoutEncoding: utf8,
+      stderrEncoding: utf8,
+    ).timeout(timeout);
 
     if (result.exitCode != 0) {
       throw StateError('FFprobe 分析失败: ${result.stderr}');
@@ -42,6 +39,20 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     final fileSize = await file.length();
 
     return parseResult(json, fileSize: fileSize);
+  }
+
+  List<String> buildArguments(String inputPath) {
+    return [
+      '-v',
+      'error',
+      '-print_format',
+      'json',
+      '-show_entries',
+      'format=duration,bit_rate,format_name:'
+          'stream=codec_type,codec_name,width,height,bit_rate,duration,'
+          'channels,sample_rate',
+      inputPath,
+    ];
   }
 
   MediaAnalysisResult parseResult(Map<String, dynamic> json, {int? fileSize}) {

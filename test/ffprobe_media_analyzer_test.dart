@@ -3,6 +3,20 @@ import 'package:framelean/infrastructure/services/input_runtime/ffprobe_media_an
 
 void main() {
   group('FfprobeMediaAnalyzer', () {
+    test('asks ffprobe for only fields needed by the analyzer', () {
+      final analyzer = FfprobeMediaAnalyzer();
+      const inputPath = r'C:\Users\left\Videos\第二节课实操-口播.mp4';
+
+      final arguments = analyzer.buildArguments(inputPath);
+
+      expect(arguments, contains('-show_entries'));
+      expect(arguments, isNot(contains('-show_format')));
+      expect(arguments, isNot(contains('-show_streams')));
+      expect(arguments.join(' '), contains('format=duration,bit_rate'));
+      expect(arguments.join(' '), contains('stream=codec_type,codec_name'));
+      expect(arguments.last, inputPath);
+    });
+
     test('parses direct and estimated bitrate fields', () {
       final analyzer = FfprobeMediaAnalyzer();
 
