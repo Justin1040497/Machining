@@ -1,13 +1,13 @@
-import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/domain/enums/default_output_file_name_template.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/enums/video_codec.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
 
 extension WorkbenchCompressionModeLabel on CompressionMode {
   String get label {

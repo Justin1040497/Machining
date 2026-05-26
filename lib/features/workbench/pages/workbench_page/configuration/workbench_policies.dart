@@ -1,14 +1,14 @@
 import 'dart:io';
 
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 
 abstract final class WorkbenchQualityPolicy {
   static int initialQualityIndexForTask(MediaTask task) {

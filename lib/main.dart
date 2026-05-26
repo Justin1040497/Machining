@@ -5,5 +5,5 @@ import 'app/app.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(ProviderScope(child: MachiningApp()));
+  runApp(ProviderScope(child: FrameLeanApp()));
 }

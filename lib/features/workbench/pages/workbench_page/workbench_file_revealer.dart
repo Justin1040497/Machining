@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:machining/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/media_task.dart';
 import 'package:path/path.dart' as path;
 
 class WorkbenchFileRevealResult {

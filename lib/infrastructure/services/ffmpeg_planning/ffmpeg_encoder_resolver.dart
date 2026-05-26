@@ -1,10 +1,10 @@
-import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 
 class FfmpegEncoderResolver {
   const FfmpegEncoderResolver();

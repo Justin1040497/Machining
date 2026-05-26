@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:machining/application/services/ffmpeg_planning/compression_advisor.dart';
-import 'package:machining/application/services/execution/preview_frame_generator.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:framelean/application/services/execution/preview_frame_generator.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 import 'package:path/path.dart' as path;
 
 class PreviewFrameCommandResult {
@@ -255,7 +255,7 @@ class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
 
   static Directory defaultPreviewDirectoryFactory(MediaTask task) {
     return Directory(
-      path.join(Directory.systemTemp.path, 'machining', 'previews', task.id),
+      path.join(Directory.systemTemp.path, 'framelean', 'previews', task.id),
     );
   }
 

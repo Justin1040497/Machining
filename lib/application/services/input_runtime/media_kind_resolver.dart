@@ -1,4 +1,4 @@
-import 'package:machining/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
 
 /// 根据文件路径识别媒体类型
 abstract class MediaKindResolver {

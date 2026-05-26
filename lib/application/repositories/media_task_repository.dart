@@ -1,4 +1,4 @@
-import 'package:machining/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/media_task.dart';
 
 /// 任务存储抽象
 abstract class MediaTaskRepository {

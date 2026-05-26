@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 
 void main() {
   testWidgets('confirmation dialogs use workbench dialog styling', (

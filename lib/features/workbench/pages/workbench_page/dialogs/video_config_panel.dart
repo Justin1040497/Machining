@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
-import 'package:machining/features/workbench/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchVideoConfigPanel extends StatelessWidget {
   const WorkbenchVideoConfigPanel({

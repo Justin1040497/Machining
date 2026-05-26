@@ -1,13 +1,13 @@
 # Third-Party Notices
 
-This file summarizes major third-party components used by Machining. It is not
+This file summarizes major third-party components used by FrameLean. It is not
 a substitute for each upstream project's own license text. Release packages
 should include the upstream license files or clear links to the corresponding
 source archives.
 
 ## Project License
 
-Machining application source code is distributed under:
+FrameLean application source code is distributed under:
 
 ```text
 GNU General Public License v3.0 or later
@@ -22,28 +22,28 @@ See the root LICENSE file and legal/COPYING in this repository.
 
 - Upstream: <https://ffmpeg.org/>
 - Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
-- Current Machining configuration: GPLv3-or-later route, because the runtime is
+- Current FrameLean configuration: GPLv3-or-later route, because the runtime is
   built with `--enable-gpl`, `--enable-version3`, and `--enable-libx264`.
 - Nonfree configuration: `--enable-nonfree` must not be enabled for distributed
   builds.
 - Local build reference: `scripts/build_ffmpeg_macos_arm64.sh`
 
-FFmpeg and FFprobe are maintained by the FFmpeg project. Machining only invokes
+FFmpeg and FFprobe are maintained by the FFmpeg project. FrameLean only invokes
 and distributes the runtime binaries when they are included in release packages.
 
 ### x264 / libx264
 
 - Upstream: <https://www.videolan.org/developers/x264.html>
 - Source: <https://code.videolan.org/videolan/x264>
-- Used by Machining through the FFmpeg runtime via `--enable-libx264`.
+- Used by FrameLean through the FFmpeg runtime via `--enable-libx264`.
 
-x264 is a GPL-licensed H.264 encoder. Because Machining distributes an FFmpeg
-runtime with x264 enabled, Machining release packages should follow the GPLv3+
+x264 is a GPL-licensed H.264 encoder. Because FrameLean distributes an FFmpeg
+runtime with x264 enabled, FrameLean release packages should follow the GPLv3+
 source and license delivery path documented in legal/SOURCE_OFFER.md.
 
 ## Flutter and Dart
 
-Machining is built with Flutter and Dart. Flutter, Dart, and many official
+FrameLean is built with Flutter and Dart. Flutter, Dart, and many official
 Dart packages are distributed under BSD-style licenses. Release packages should
 preserve the license notices shipped by the Flutter SDK and Dart packages.
 
@@ -82,5 +82,5 @@ dependencies may change when packages are upgraded.
 
 ## Assets
 
-Application icons and other assets in this repository are part of Machining
+Application icons and other assets in this repository are part of FrameLean
 unless a more specific license notice appears next to the asset.

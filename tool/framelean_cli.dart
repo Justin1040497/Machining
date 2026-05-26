@@ -1,27 +1,27 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:machining/application/services/ffmpeg_planning/compression_advisor.dart';
-import 'package:machining/application/services/ffmpeg_planning/default_compression_advisor.dart';
-import 'package:machining/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:machining/domain/entities/app_settings.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
-import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
-import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_starter.dart';
-import 'package:machining/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
-import 'package:machining/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
-import 'package:machining/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
+import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:framelean/application/services/ffmpeg_planning/default_compression_advisor.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
+import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_starter.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:framelean/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
+import 'package:framelean/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
 import 'package:path/path.dart' as path;
 
 Future<void> main(List<String> args) async {
   final compressionAdvisor = DefaultCompressionAdvisor();
-  final cli = MachiningCli(
+  final cli = FrameLeanCli(
     locator: LocalFfmpegLocator(),
     analyzer: FfprobeMediaAnalyzer(),
     compressionAdvisor: compressionAdvisor,
@@ -35,7 +35,7 @@ Future<void> main(List<String> args) async {
   exitCode = await cli.run(args);
 }
 
-class MachiningCli {
+class FrameLeanCli {
   final LocalFfmpegLocator locator;
   final FfprobeMediaAnalyzer analyzer;
   final DefaultCompressionAdvisor compressionAdvisor;
@@ -43,7 +43,7 @@ class MachiningCli {
   final LocalFfmpegProcessStarter processStarter;
   final LocalFfmpegProcessObserver processObserver;
 
-  const MachiningCli({
+  const FrameLeanCli({
     required this.locator,
     required this.analyzer,
     required this.compressionAdvisor,
@@ -125,7 +125,7 @@ class MachiningCli {
       return 66;
     }
 
-    stdout.writeln('Machining CLI');
+    stdout.writeln('FrameLean CLI');
     stdout.writeln('输入文件: ${path.absolute(inputPath)}');
 
     final runtime = await locator.resolve();
@@ -246,17 +246,17 @@ class MachiningCli {
   void printUsage() {
     stdout.writeln('用法:');
     stdout.writeln(
-      '  dart run tool/machining_cli.dart compress <input-video> '
+      '  dart run tool/framelean_cli.dart compress <input-video> '
       '[--codec source|h264|h265|hevc] '
       '[--resolution original|2160p|1080p|720p|480p]',
     );
     stdout.writeln('');
     stdout.writeln('示例:');
     stdout.writeln(
-      '  dart run tool/machining_cli.dart compress ~/Movies/demo.mp4',
+      '  dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4',
     );
     stdout.writeln(
-      '  dart run tool/machining_cli.dart compress ~/Movies/demo.mp4 '
+      '  dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4 '
       '--codec h265 --resolution 1080p',
     );
   }
@@ -376,7 +376,7 @@ class MachiningCli {
 
   Future<File> createLogFile(MediaTask task) async {
     final logsDirectory = Directory(
-      path.join(Directory.systemTemp.path, 'machining', 'cli-ffmpeg-logs'),
+      path.join(Directory.systemTemp.path, 'framelean', 'cli-ffmpeg-logs'),
     );
     await logsDirectory.create(recursive: true);
 

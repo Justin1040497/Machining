@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
+import 'package:framelean/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
 
 void main() {
   group('FfprobeMediaAnalyzer', () {

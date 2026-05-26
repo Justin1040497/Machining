@@ -1,6 +1,6 @@
 # Legal Materials
 
-This directory is the canonical home for Machining's release legal materials.
+This directory is the canonical home for FrameLean's release legal materials.
 The repository root keeps LICENSE and NOTICE as standard discovery entry
 points, and release packages include those two files together with this
 directory.
@@ -19,7 +19,7 @@ Binary release packages carry these materials:
 macOS release builds copy this directory into:
 
 ```text
-Machining.app/Contents/Resources/legal/
+FrameLean.app/Contents/Resources/legal/
 ```
 
 DMG packages contain the app bundle, so the legal materials are distributed
@@ -28,7 +28,7 @@ inside the DMG with the application.
 Windows release builds copy this directory into:
 
 ```text
-Machining.exe directory/legal/
+FrameLean.exe directory/legal/
 ```
 
 ## Maintenance

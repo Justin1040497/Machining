@@ -1,4 +1,4 @@
-import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 
 class StartOrResumeMediaTaskUseCase {
   final FfmpegTaskQueueRunner queueRunner;

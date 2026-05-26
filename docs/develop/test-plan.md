@@ -2,7 +2,7 @@
 
 ## 测试目标
 
-这份计划记录 Machining 当前项目需要验证的范围。它面向当前代码，不绑定旧版本号。
+这份计划记录 FrameLean 当前项目需要验证的范围。它面向当前代码，不绑定旧版本号。
 
 测试目标：
 
@@ -212,7 +212,7 @@ test/
 ### macOS 构建验证
 
 - `flutter build macos --release` 成功。
-- `Machining.app` 中存在内置 FFmpeg / FFprobe。
+- `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
 - 运行 Release app 后任务使用 app 包内 FFmpeg。
 - 在另一台 Apple Silicon Mac 上验证启动、导入、压缩和打开输出位置。
 
@@ -220,7 +220,7 @@ test/
 
 - `PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1` 成功。
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
-- 生成 `build/windows/x64/runner/Machining-v<version>-windows-x64.zip`。
+- 生成 `build/windows/x64/runner/FrameLean-v1.0.0-windows-x64.zip`。
 - Windows app 可以启动、导入、压缩和打开输出位置。
 - GPU 编码器不可用时可以回退到软件编码。
 
@@ -229,7 +229,7 @@ test/
 macOS：
 
 ```bash
-APP="build/macos/Build/Products/Release/Machining.app"
+APP="build/macos/Build/Products/Release/FrameLean.app"
 "$APP/Contents/Resources/ffmpeg/ffmpeg" -hide_banner -encoders
 "$APP/Contents/Resources/ffmpeg/ffprobe" -hide_banner -version
 ```
@@ -244,6 +244,6 @@ build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 运行任务后查看 macOS 日志中的 FFmpeg 路径：
 
 ```bash
-LOG_DIR="$(getconf DARWIN_USER_TEMP_DIR)machining/ffmpeg-logs"
+LOG_DIR="$(getconf DARWIN_USER_TEMP_DIR)framelean/ffmpeg-logs"
 grep -h '^ffmpegPath:' "$LOG_DIR"/*.log | tail -1
 ```

@@ -2,7 +2,7 @@
 
 ## 当前选择
 
-Machining v1.5.0+1 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
+FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
 
 当前构建脚本启用：
 
@@ -78,7 +78,7 @@ OK: libx264 encoder is available
 
 公开分发包含 FFmpeg + x264 的 app 时，发布包会包含：
 
-- Machining 源码
+- FrameLean 源码
 - FFmpeg 和 x264 的源码获取方式
 - FFmpeg 构建脚本和配置参数
 - GPLv3 许可证文本
@@ -89,7 +89,7 @@ OK: libx264 encoder is available
 macOS Release app 会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
 
 ```text
-Machining.app/Contents/Resources/legal/
+FrameLean.app/Contents/Resources/legal/
 ```
 
 DMG 分发包包含该 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。
@@ -97,10 +97,10 @@ DMG 分发包包含该 app bundle，因此许可证、第三方声明和源码�
 Windows Release 产物会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
 
 ```text
-Machining.exe directory/legal/
+FrameLean.exe directory/legal/
 ```
 
-## v1.5 状态
+## 当前状态
 
 当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
 

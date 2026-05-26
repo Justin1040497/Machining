@@ -1,6 +1,6 @@
 # 更新日志
 
-主要记录 Machining 的变化。
+主要记录 FrameLean 的变化。更名前的历史内容保留在带旧产品版本号的条目中。
 
 历史开发过程、阶段性实现细节和临时决策放在 `docs/archive/logs/`；这里记录每次更新的概要
 
@@ -18,7 +18,18 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
-## 2026-05-26 / unreleased / 分层重构和工作台交互整理
+## 2026-05-26 / v1.0.0 / 产品更名和版本号重制
+
+- added
+  - 重置产品显示名为 FrameLean，中文名为帧轻。
+  - 重置内部 Dart 包名为 `framelean`，版本为 `1.0.0+1`，发布 tag 目标为 `v1.0.0`。
+  - 重置 macOS Bundle ID 为 `com.justin.framelean`，发布产物为 `FrameLean.app` 和 `FrameLean.dmg`。
+  - 重置 Windows 产物为 `FrameLean.exe` 和 `FrameLean-v1.0.0-windows-x64.zip`。
+- changed
+  - 将产品、构建脚本、平台元数据、法律资料和当前文档统一到 FrameLean 命名。
+  - 整理当前功能基础，保留视频压缩、应用设置、本地任务队列、分层重构和发布资料。
+
+## 2026-05-26 / Machining v1.5.0+1 后未发布 / 分层重构和工作台交互整理
 
 - added
   - 新增 Application Use Cases，覆盖应用设置、任务导入、分析、恢复、重试、排序、队列启动、单任务开始 / 暂停 / 继续、删除、清空和预览帧生成。
@@ -37,7 +48,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 统一压缩确认、导入失败、清空任务和重命名弹窗的视觉风格，移除生产代码中的默认 `AlertDialog`。
   - 移除已废弃的项目参考对比 HTML 文档引用。
 
-## 2026-05-20 / v1.5.0+1 / 应用设置和发布准备
+## 2026-05-20 / Machining v1.5.0+1 / 应用设置和发布准备
 
 - added
   - 新增应用设置弹窗，支持默认压缩方案、默认导出地址、默认导出文件名、自定义 FFmpeg / FFprobe 路径和高级设置。
@@ -54,7 +65,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 排除 `worktrees/` 目录，避免其他工作树影响当前分支的静态分析结果。
   - 移除设置页占位路由，避免发布版本暴露未完成页面。
 
-## 2026-05-15 / v1.3.0+1 / 重构了大量代码 修复了很多已知问题
+## 2026-05-15 / Machining v1.3.0+1 / 重构了大量代码 修复了很多已知问题
 
 - added
   - 添加应用图标资源，并更新 macOS / Windows 图标配置。
@@ -71,7 +82,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 修复默认压缩会改变视频分辨率的问题，推荐预设不再自动调整分辨率。
   - 修复默认 CPU / GPU 编码选择失效的问题，默认编码后端恢复为自动选择。
 
-## 2026-05-14 / v1.2.0+1 / 主界面重构
+## 2026-05-14 / Machining v1.2.0+1 / 主界面重构
 
 - added
   - 新增视频缩略图生成能力，并接入任务列表和配置相关界面。
@@ -82,7 +93,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 整理文档目录结构，拆分产品、架构、开发、功能、参考资料和历史归档。
   - 将历史开发日志迁移到 `docs/archive/logs/`。
 
-## 2026-05-07 / v1.1.0+1 / Windows兼容
+## 2026-05-07 / Machining v1.1.0+1 / Windows兼容
 
 - added
   - 增加 Windows 运行时打包和基础兼容支持。
@@ -93,10 +104,10 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 更新 Windows 入口、窗口行为和运行时资源配置。
   - 更新 README 和 Windows 运行时打包说明。
 
-## 2026-05-06 / v1.0.0+1 / 初始化项目
+## 2026-05-06 / Machining v1.0.0+1 / 初始化项目
 
 - added
-  - 初始化 Machining v1.0 核心功能和 Flutter 桌面应用基础结构。
+  - 初始化 Machining v1.0.0 核心功能和 Flutter 桌面应用基础结构。
   - 实现本地媒体任务、应用设置、任务队列和 SQLite 持久化。
   - 接入 FFprobe 媒体分析、预览帧生成、FFmpeg 压缩命令构建和进程观测。
   - 支持 H.264 / HEVC、输出格式、分辨率、任务状态和压缩配置等核心模型。

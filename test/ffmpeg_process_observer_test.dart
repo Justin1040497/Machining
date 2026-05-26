@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:machining/application/services/execution/ffmpeg_process_starter.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
 
 void main() {
   group('LocalFfmpegProcessObserver', () {
@@ -109,7 +109,7 @@ void main() {
 
 Future<File> createTempLogFile() async {
   return File(
-    '${Directory.systemTemp.path}/machining-observer-test-${DateTime.now().microsecondsSinceEpoch}.log',
+    '${Directory.systemTemp.path}/framelean-observer-test-${DateTime.now().microsecondsSinceEpoch}.log',
   ).create();
 }
 

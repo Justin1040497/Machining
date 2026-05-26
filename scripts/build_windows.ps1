@@ -85,7 +85,7 @@ try {
   Invoke-Checked "flutter" $BuildArgs
 
   Require-Directory $ReleaseDir
-  Require-File (Join-Path $ReleaseDir "machining.exe")
+  Require-File (Join-Path $ReleaseDir "FrameLean.exe")
   Require-File (Join-Path $ReleaseDir "flutter_windows.dll")
   Require-Directory (Join-Path $ReleaseDir "data")
   Require-File (Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe")
@@ -118,8 +118,8 @@ try {
 
     $Pubspec = Get-Content -LiteralPath $PubspecPath -Raw
     $VersionMatch = [regex]::Match($Pubspec, "(?m)^version:\s*([^\s]+)")
-    $Version = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value } else { "unknown" }
-    $ZipPath = Join-Path $ZipDir "Machining-v$Version-windows-x64.zip"
+    $Version = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value.Split("+")[0] } else { "unknown" }
+    $ZipPath = Join-Path $ZipDir "FrameLean-v$Version-windows-x64.zip"
 
     if (Test-Path -LiteralPath $ZipPath) {
       Remove-Item -LiteralPath $ZipPath -Force

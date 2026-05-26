@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:machining/application/services/ffmpeg_planning/compression_estimator.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/domain/enums/encoder_backend.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
-import 'package:machining/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/application/services/ffmpeg_planning/compression_estimator.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
 
 @immutable
 class WorkbenchTaskConfigurationDraft {

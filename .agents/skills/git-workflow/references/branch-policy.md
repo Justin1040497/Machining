@@ -1,6 +1,6 @@
 # Branch Policy
 
-Machining uses a lightweight trunk-based workflow:
+FrameLean uses a lightweight trunk-based workflow:
 
 ```text
 short-lived branch -> PR / MR -> main -> release tag

@@ -2,19 +2,19 @@
 
 ## 文档目的
 
-这份文档记录 Machining 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
+这份文档记录 FrameLean 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
 
 当前版本只持久化本地任务列表和应用设置；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
 
 ## 数据库总览
 
-Machining 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
+FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 
 ```text
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `11`，数据库文件名为 `machining.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `11`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 

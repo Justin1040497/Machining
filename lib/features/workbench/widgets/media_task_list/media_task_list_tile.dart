@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/features/workbench/widgets/media_task_list/media_task_action_button.dart';
-import 'package:machining/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
-import 'package:machining/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;

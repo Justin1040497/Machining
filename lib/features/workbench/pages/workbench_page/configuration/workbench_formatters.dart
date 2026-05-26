@@ -1,9 +1,9 @@
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/output_format.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/services/source_compression_assessor.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
-import 'package:machining/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/services/source_compression_assessor.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:path/path.dart' as path;
 
 abstract final class WorkbenchFormatters {

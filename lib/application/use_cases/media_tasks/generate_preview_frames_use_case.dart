@@ -1,6 +1,6 @@
-import 'package:machining/application/services/execution/preview_frame_generator.dart';
-import 'package:machining/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:machining/domain/entities/media_task.dart';
+import 'package:framelean/application/services/execution/preview_frame_generator.dart';
+import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/domain/entities/media_task.dart';
 
 class GeneratePreviewFramesException implements Exception {
   final String message;

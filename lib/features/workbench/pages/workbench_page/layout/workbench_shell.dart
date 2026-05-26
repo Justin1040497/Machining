@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
-import 'package:machining/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
-import 'package:machining/features/workbench/pages/workbench_page/layout/task_list_card.dart';
-import 'package:machining/features/workbench/pages/workbench_page/layout/top_bar.dart';
-import 'package:machining/features/workbench/pages/workbench_page/overlays/drop_overlay.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/overlays/drop_overlay.dart';
 
 class WorkbenchShell extends StatelessWidget {
   const WorkbenchShell({

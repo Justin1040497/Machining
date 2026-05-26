@@ -1,8 +1,8 @@
-# Machining 文档中心
+# FrameLean（帧轻）文档中心
 
 ## 文档目的
 
-这里是 Machining 的唯一文档入口，用于让开发者和 AI 快速了解：
+这里是 FrameLean 的唯一文档入口，用于让开发者和 AI 快速了解：
 
 - 产品是什么、给谁用、当前具备什么能力；
 - 当前项目架构、核心模块和技术边界；
@@ -57,9 +57,9 @@ docs/
 
 ## 产品
 
-Machining 是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频分析、预览、压缩和格式输出能力封装成图形界面，让用户不需要手写 FFmpeg 命令也能处理本地视频。
+FrameLean（帧轻）是一个本地桌面视频压缩应用。它把常用 FFmpeg 视频分析、预览、压缩和格式输出能力封装成图形界面，让用户不需要手写 FFmpeg 命令也能处理本地视频。
 
-当前项目版本为 `v1.5.0+1`，当前产品范围以视频压缩、推荐方案预设、自定义目标体积压缩、输出预估、应用默认设置和本地任务队列为主。
+当前产品范围以视频压缩、推荐方案预设、自定义目标体积压缩、输出预估、应用默认设置和本地任务队列为主。
 
 产品原则：
 
@@ -225,14 +225,14 @@ scripts/build_dmg_macos.sh
 Release 产物：
 
 ```text
-build/macos/Build/Products/Release/Machining.app
-build/macos/Build/Products/Release/Machining.dmg
+build/macos/Build/Products/Release/FrameLean.app
+build/macos/Build/Products/Release/FrameLean.dmg
 ```
 
 验证 app 内置 FFmpeg 和法律资料：
 
 ```bash
-APP="build/macos/Build/Products/Release/Machining.app"
+APP="build/macos/Build/Products/Release/FrameLean.app"
 "$APP/Contents/Resources/ffmpeg/ffmpeg" -hide_banner -version
 "$APP/Contents/Resources/ffmpeg/ffprobe" -hide_banner -version
 test -f "$APP/Contents/Resources/legal/COPYING"
@@ -265,7 +265,7 @@ Release 产物：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/Machining-v<version>-windows-x64.zip
+build/windows/x64/runner/FrameLean-v1.0.0-windows-x64.zip
 ```
 
 Windows 打包脚本会调用 `flutter build windows --release`，再验证 Release 目录、内置 FFmpeg / FFprobe 和法律资料，并默认生成 zip 包。Windows CMake 配置会把 FFmpeg / FFprobe 复制到 Release 目录的 `ffmpeg/` 下。如果运行时文件缺失，构建应失败，避免产出不完整安装包。

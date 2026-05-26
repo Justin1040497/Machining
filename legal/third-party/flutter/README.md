@@ -1,6 +1,6 @@
 # Flutter and Dart
 
-Machining is built with Flutter, Dart, and Dart packages from pub.dev.
+FrameLean is built with Flutter, Dart, and Dart packages from pub.dev.
 Flutter, Dart, and many official Dart packages use BSD-style licenses.
 
 Direct runtime and development dependencies are summarized in

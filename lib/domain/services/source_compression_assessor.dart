@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 
 enum CompressionBitrateSource { videoStream, container, estimated, unknown }
 

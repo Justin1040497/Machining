@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 
 void main() {
   testWidgets('bottom bar exposes settings gear', (tester) async {

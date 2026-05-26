@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/resolution_preset.dart';
-import 'package:machining/domain/enums/smart_compression_preset.dart';
-import 'package:machining/domain/enums/video_codec.dart';
-import 'package:machining/domain/services/source_compression_assessor.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
+import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/services/source_compression_assessor.dart';
 
 enum EstimateConfidence { low, medium, high }
 

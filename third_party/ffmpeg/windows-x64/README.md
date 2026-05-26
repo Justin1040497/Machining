@@ -18,7 +18,7 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 The Windows CMake install step copies these files into:
 
 ```text
-machining.exe directory/ffmpeg/
+FrameLean.exe directory/ffmpeg/
 ```
 
 At runtime the app resolves:

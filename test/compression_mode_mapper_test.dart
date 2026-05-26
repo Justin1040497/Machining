@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/domain/enums/compression_mode.dart';
-import 'package:machining/infrastructure/repositories/mappers/compression_mode_mapper.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/infrastructure/repositories/mappers/compression_mode_mapper.dart';
 
 void main() {
   group('CompressionModeMapper', () {

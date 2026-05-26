@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_PATH="${ROOT}/build/macos/Build/Products/Release/Machining.app"
-DMG_PATH="${ROOT}/build/macos/Build/Products/Release/Machining.dmg"
+APP_PATH="${ROOT}/build/macos/Build/Products/Release/FrameLean.app"
+DMG_PATH="${ROOT}/build/macos/Build/Products/Release/FrameLean.dmg"
 FFMPEG_DIR="${ROOT}/third_party/ffmpeg/macos-arm64"
 LEGAL_DIR="${ROOT}/legal"
 

@@ -1,16 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:machining/application/repositories/media_task_repository.dart';
-import 'package:machining/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:machining/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/delete_media_task_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
-import 'package:machining/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
-import 'package:machining/domain/entities/media_task.dart';
-import 'package:machining/domain/enums/media_kind.dart';
-import 'package:machining/domain/enums/task_purpose.dart';
-import 'package:machining/domain/enums/task_status.dart';
-import 'package:machining/domain/value_objects/video_task_config.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/video_task_config.dart';
 
 void main() {
   group('media task execution use cases', () {

@@ -1,5 +1,5 @@
 import 'package:go_router/go_router.dart';
-import 'package:machining/features/workbench/pages/workbench_page.dart';
+import 'package:framelean/features/workbench/pages/workbench_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: "/",
