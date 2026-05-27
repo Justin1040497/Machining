@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:desktop_drop/desktop_drop.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -60,7 +59,10 @@ class WorkbenchShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final titleBarHeight = Platform.isMacOS
+    final reserveTopNoticeArea =
+        defaultTargetPlatform == TargetPlatform.macOS ||
+        defaultTargetPlatform == TargetPlatform.windows;
+    final topInset = reserveTopNoticeArea
         ? WorkbenchConstants.appTopBarHeight
         : 0.0;
 
@@ -101,13 +103,29 @@ class WorkbenchShell extends StatelessWidget {
                   decoration: const BoxDecoration(color: Color(0xFFF3F3F3)),
                   child: Stack(
                     children: [
-                      if (Platform.isMacOS)
+                      if (defaultTargetPlatform == TargetPlatform.macOS)
                         const Align(
                           alignment: Alignment.topCenter,
                           child: WorkbenchTopBar(),
                         ),
+                      if (defaultTargetPlatform == TargetPlatform.windows)
+                        const Positioned(
+                          key: Key('windows-notice-safe-area'),
+                          left: 0,
+                          top: 0,
+                          right: 0,
+                          height: WorkbenchConstants.appTopBarHeight,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border(
+                                bottom: BorderSide(color: Color(0xFFE6E6E6)),
+                              ),
+                            ),
+                          ),
+                        ),
                       Positioned.fill(
-                        top: titleBarHeight,
+                        top: topInset,
                         bottom: 48,
                         child: WorkbenchTaskListCard(
                           taskList: taskList,

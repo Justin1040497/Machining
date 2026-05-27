@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
@@ -95,6 +96,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
   final FfmpegProcessStarter processStarter;
+  final FfmpegProcessController processController;
   final FfmpegProcessObserver processObserver;
   final bool continuousExecutionEnabled;
   final Future<DateTime> Function() now;
@@ -112,6 +114,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required this.readRuntime,
     required this.commandBuilder,
     required this.processStarter,
+    required this.processController,
     required this.processObserver,
     required this.createLogFilePath,
     this.continuousExecutionEnabled = true,
@@ -245,8 +248,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     final execution = _executions.remove(taskId);
     execution?.state = TaskExecutionState.finishing;
-    execution?.startedProcess.process.kill();
     if (execution != null) {
+      await processController.terminate(execution.startedProcess);
       await cleanupPlanFiles(execution.plan);
     }
 
@@ -266,9 +269,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   @override
   Future<void> cancelAllExecutions() async {
-    for (final execution in _executions.values) {
+    for (final execution in [..._executions.values]) {
       execution.state = TaskExecutionState.finishing;
-      execution.startedProcess.process.kill();
+      await processController.terminate(execution.startedProcess);
       await cleanupPlanFiles(execution.plan);
     }
 
@@ -498,7 +501,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    execution.startedProcess.process.kill(ProcessSignal.sigcont);
+    await processController.resume(execution.startedProcess);
     execution.state = TaskExecutionState.running;
     final resumedTask = task.markResumed();
     await repository.saveTask(resumedTask);
@@ -524,7 +527,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return null;
     }
 
-    execution.startedProcess.process.kill(ProcessSignal.sigstop);
+    await processController.pause(execution.startedProcess);
     execution.state = TaskExecutionState.paused;
     _foregroundTaskId = null;
 
@@ -544,7 +547,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     FfmpegProcessObservation observation,
   ) async {
     final execution = _executions[taskId];
-    if (execution == null || execution.state == TaskExecutionState.paused) {
+    if (execution == null) {
       return;
     }
 

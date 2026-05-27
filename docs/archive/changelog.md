@@ -20,6 +20,23 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-27 / v1.0.0 后未发布 / Windows 暂停恢复和任务重来修复
+
+- added
+  - 新增 FFmpeg 进程控制抽象，由 application 层定义暂停、继续和终止能力，infrastructure 层负责具体平台实现。
+  - 新增 Windows runner 原生进程控制通道，通过线程挂起和恢复支持 Windows 上的 FFmpeg 真暂停 / 继续。
+  - 已完成任务新增“重来”入口，任务列表和完成弹窗都可以从源文件检查和媒体分析重新开始。
+- changed
+  - 队列执行器不再直接依赖 `ProcessSignal`，暂停、继续和取消统一通过 `FfmpegProcessController` 调用。
+  - Windows 工作台顶部新增通知安全区，顶部通知会显示在安全区内，避免遮挡任务列表第一项操作按钮。
+- fixed
+  - 修复 Windows 点击暂停后再继续时进度条卡住、任务不再完成的问题。
+  - 修复任务完成后缺少清晰“重来”操作的问题。
+  - 修复单任务列表场景下顶部通知遮挡第一项右侧按钮的问题。
+- verified
+  - 通过 `flutter analyze`。
+  - 通过 `flutter test`。
+
 ## 2026-05-26 / v1.0.0 / 桌面视频压缩发布
 
 - added

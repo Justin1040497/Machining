@@ -26,9 +26,12 @@ class WorkbenchNotice extends StatelessWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final compact = screenWidth < 520;
     final horizontalMargin = compact ? 18.0 : 22.0;
+    final top = defaultTargetPlatform == TargetPlatform.windows
+        ? 14.0
+        : WorkbenchConstants.appTopBarHeight + 16;
 
     return Positioned(
-      top: WorkbenchConstants.appTopBarHeight + 16,
+      top: top,
       left: compact ? horizontalMargin : null,
       right: horizontalMargin,
       child: SafeArea(

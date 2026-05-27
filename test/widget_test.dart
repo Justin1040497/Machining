@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -13,8 +15,10 @@ import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 void main() {
@@ -444,6 +448,75 @@ void main() {
 
     expect(startCount, 0);
     expect(retryCount, 1);
+  });
+
+  testWidgets('completed task shows restart action', (tester) async {
+    var retryCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: testTask(status: TaskStatus.completed),
+            onRetry: () {
+              retryCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.replay_rounded), findsOneWidget);
+    expect(find.byTooltip('重来'), findsOneWidget);
+    expect(find.byTooltip('重试任务'), findsNothing);
+
+    await tester.tap(find.byTooltip('重来'));
+    await tester.pump();
+
+    expect(retryCount, 1);
+  });
+
+  testWidgets('windows shell reserves a top notice safe area', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: WorkbenchShell(
+              taskList: AsyncData([testTask()]),
+              selectedTask: null,
+              importEnabled: true,
+              importDragging: false,
+              hasRunningTask: false,
+              queueActionInFlight: false,
+              thumbnailForTask: (_) => null,
+              onImportDraggingChanged: (_) {},
+              onImportDrop: (_) {},
+              onReorder: (_, _) {},
+              onOpenTask: (_) {},
+              onStart: (_) {},
+              onPause: (_) {},
+              onRemove: (_) {},
+              onRetry: (_) {},
+              onRelink: (_) {},
+              onContextMenu: (_, _) {},
+              onAddTask: () {},
+              onOpenSettings: () {},
+              onClearTasks: () {},
+              onPrimaryQueuePressed: () {},
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byKey(const Key('windows-notice-safe-area')), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.byType(MediaTaskListTile)).dy,
+        greaterThanOrEqualTo(WorkbenchConstants.appTopBarHeight + 30),
+      );
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
 

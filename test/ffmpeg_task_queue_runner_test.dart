@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
+import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
@@ -60,9 +61,7 @@ void main() {
           harness.repository.taskById('second').status,
           TaskStatus.running,
         );
-        expect(harness.processStarter.processFor('first').signals, [
-          ProcessSignal.sigstop,
-        ]);
+        expect(harness.processController.pauseCalls, ['first']);
         expect(harness.processStarter.starts, hasLength(2));
       },
     );
@@ -83,13 +82,8 @@ void main() {
         expect(harness.runner.foregroundTaskId, 'first');
         expect(harness.repository.taskById('first').status, TaskStatus.running);
         expect(harness.repository.taskById('second').status, TaskStatus.paused);
-        expect(harness.processStarter.processFor('first').signals, [
-          ProcessSignal.sigstop,
-          ProcessSignal.sigcont,
-        ]);
-        expect(harness.processStarter.processFor('second').signals, [
-          ProcessSignal.sigstop,
-        ]);
+        expect(harness.processController.pauseCalls, ['first', 'second']);
+        expect(harness.processController.resumeCalls, ['first']);
       },
     );
 
@@ -111,9 +105,7 @@ void main() {
           TaskStatus.running,
         );
         expect(harness.runner.foregroundTaskId, 'second');
-        expect(harness.processStarter.processFor('first').signals, [
-          ProcessSignal.sigstop,
-        ]);
+        expect(harness.processController.pauseCalls, ['first']);
       },
     );
 
@@ -138,10 +130,8 @@ void main() {
           harness.repository.taskById('second').status,
           TaskStatus.running,
         );
-        expect(harness.processStarter.processFor('first').signals, [
-          ProcessSignal.sigstop,
-          ProcessSignal.sigterm,
-        ]);
+        expect(harness.processController.pauseCalls, ['first']);
+        expect(harness.processController.terminateCalls, ['first']);
       },
     );
 
@@ -158,13 +148,8 @@ void main() {
 
         expect(harness.runner.foregroundTaskId, isNull);
         expect(harness.runner.queueStatus, FfmpegQueueStatus.idle);
-        expect(harness.processStarter.processFor('first').signals, [
-          ProcessSignal.sigstop,
-          ProcessSignal.sigterm,
-        ]);
-        expect(harness.processStarter.processFor('second').signals, [
-          ProcessSignal.sigterm,
-        ]);
+        expect(harness.processController.pauseCalls, ['first']);
+        expect(harness.processController.terminateCalls, ['first', 'second']);
       },
     );
 
@@ -173,6 +158,26 @@ void main() {
       final harness = QueueHarness(tasks: [task]);
 
       await harness.runner.start();
+      harness.processObserver.complete(
+        'first',
+        const FfmpegProcessObservation.completed(),
+      );
+      await pumpEventQueue();
+
+      expect(harness.repository.taskById('first').status, TaskStatus.completed);
+      expect(harness.runner.foregroundTaskId, isNull);
+      expect(harness.runner.queueStatus, FfmpegQueueStatus.idle);
+    });
+
+    test('background observation completion is handled while paused', () async {
+      final task = videoTask(id: 'first', sortOrder: 0);
+      final harness = QueueHarness(
+        tasks: [task],
+        continuousExecutionEnabled: false,
+      );
+
+      await harness.runner.start();
+      await harness.runner.pauseTask('first');
       harness.processObserver.complete(
         'first',
         const FfmpegProcessObservation.completed(),
@@ -308,6 +313,7 @@ void main() {
 class QueueHarness {
   final FakeMediaTaskRepository repository;
   final FakeProcessStarter processStarter;
+  final FakeProcessController processController;
   final FakeProcessObserver processObserver;
   late final DefaultFfmpegTaskQueueRunner runner;
 
@@ -323,10 +329,12 @@ class QueueHarness {
     ),
     FakeCommandBuilder? commandBuilder,
     FakeProcessStarter? processStarter,
+    FakeProcessController? processController,
     FakeProcessObserver? processObserver,
     bool continuousExecutionEnabled = true,
   }) : repository = FakeMediaTaskRepository(tasks),
        processStarter = processStarter ?? FakeProcessStarter(),
+       processController = processController ?? FakeProcessController(),
        processObserver = processObserver ?? FakeProcessObserver() {
     runner = DefaultFfmpegTaskQueueRunner(
       repository: repository,
@@ -337,6 +345,7 @@ class QueueHarness {
       readRuntime: () async => runtime,
       commandBuilder: commandBuilder ?? FakeCommandBuilder(),
       processStarter: this.processStarter,
+      processController: this.processController,
       processObserver: this.processObserver,
       createLogFilePath: (task, plan) async {
         return File(
@@ -346,6 +355,27 @@ class QueueHarness {
       continuousExecutionEnabled: continuousExecutionEnabled,
       now: () async => DateTime.fromMillisecondsSinceEpoch(1000),
     );
+  }
+}
+
+class FakeProcessController implements FfmpegProcessController {
+  final List<String> pauseCalls = [];
+  final List<String> resumeCalls = [];
+  final List<String> terminateCalls = [];
+
+  @override
+  Future<void> pause(StartedFfmpegProcess startedProcess) async {
+    pauseCalls.add((startedProcess.process as FakeProcess).taskId);
+  }
+
+  @override
+  Future<void> resume(StartedFfmpegProcess startedProcess) async {
+    resumeCalls.add((startedProcess.process as FakeProcess).taskId);
+  }
+
+  @override
+  Future<void> terminate(StartedFfmpegProcess startedProcess) async {
+    terminateCalls.add((startedProcess.process as FakeProcess).taskId);
   }
 }
 
@@ -525,7 +555,7 @@ class FakeProcessStarter implements FfmpegProcessStarter {
     final inputIndex = args.indexOf('-i');
     final inputPath = inputIndex == -1 ? '' : args[inputIndex + 1];
     final taskId = inputPath.split('/').last.split('.').first;
-    final process = FakeProcess();
+    final process = FakeProcess(taskId);
     starts.add(
       FakeProcessStart(
         taskId: taskId,
@@ -544,7 +574,10 @@ class FakeProcessStarter implements FfmpegProcessStarter {
 }
 
 class FakeProcess implements Process {
+  final String taskId;
   final List<ProcessSignal> signals = [];
+
+  FakeProcess(this.taskId);
 
   @override
   Future<int> get exitCode => Completer<int>().future;

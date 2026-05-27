@@ -151,7 +151,7 @@ Use Cases：
 
 - `services/input_runtime/`：`MediaAnalyzer`、`SourceFileChecker`、`MediaKindResolver`、`SourceFileFingerprintReader`、`FfmpegLocator`、`FfmpegRuntime`、`FfmpegEncoderCapabilities`。
 - `services/ffmpeg_planning/`：`CompressionAdvisor`、`CompressionEstimator`、`FfmpegCommandBuilder` 和默认压缩建议实现。
-- `services/execution/`：`FfmpegTaskQueueRunner`、`FfmpegProcessStarter`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
+- `services/execution/`：`FfmpegTaskQueueRunner`、`FfmpegProcessStarter`、`FfmpegProcessController`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
 
 ### infrastructure
 
@@ -162,7 +162,7 @@ Use Cases：
 - `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
-- `services/execution/`：本地 FFmpeg 进程启动、进度观测、预览帧生成和视频缩略图生成。
+- `services/execution/`：本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
 
 持久化兼容层集中在：
 
@@ -324,6 +324,7 @@ start / startOrResumeTask
   -> 创建执行日志文件
   -> markRunning()
   -> LocalFfmpegProcessStarter.start()
+  -> FfmpegProcessController 负责暂停、继续和终止
   -> LocalFfmpegProcessObserver.observe()
   -> 根据退出结果 markCompleted() 或 markFailed()
   -> 清理两遍压缩临时文件
@@ -332,13 +333,16 @@ start / startOrResumeTask
 
 暂停和恢复：
 
-- 暂停当前前台任务时，当前实现直接向进程发送 `ProcessSignal.sigstop`，并把任务标记为 `paused`。
-- 恢复暂停任务时发送 `ProcessSignal.sigcont`，并标记为 `running`。
+- 暂停当前前台任务时，队列执行器通过 `FfmpegProcessController.pause()` 控制底层进程，并把任务标记为 `paused`。
+- 恢复暂停任务时调用 `FfmpegProcessController.resume()`，并标记为 `running`。
+- macOS / Linux 当前使用 `ProcessSignal.sigstop` 和 `ProcessSignal.sigcont` 实现。
+- Windows 通过 runner method channel 调用原生线程挂起 / 恢复能力，避免把 Unix signal 语义套到 Windows 进程上。
 - 切换到另一个任务前，会先挂起当前前台任务。
+- 如果后台观测在任务处于 `paused` 状态时收到进程终态，队列仍会完成收尾，避免任务卡在暂停状态。
 
 取消：
 
-- 取消单任务会 kill 对应进程，移除内存执行记录，清理计划临时文件，并标记为 `cancelled`。
+- 取消单任务会通过 `FfmpegProcessController.terminate()` 终止对应进程，移除内存执行记录，清理计划临时文件，并标记为 `cancelled`。
 - 清空任务会调用 `cancelAllExecutions()`，再用仓储清空 `tasks`。
 
 连续执行：

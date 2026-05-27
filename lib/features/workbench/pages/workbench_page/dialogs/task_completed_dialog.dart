@@ -8,12 +8,14 @@ class TaskCompletedDialog extends StatelessWidget {
     required this.outputPath,
     required this.onClose,
     required this.onReveal,
+    required this.onRestart,
   });
 
   final String fileName;
   final String? outputPath;
   final VoidCallback onClose;
   final VoidCallback? onReveal;
+  final VoidCallback onRestart;
 
   @override
   Widget build(BuildContext context) {
@@ -125,6 +127,12 @@ class TaskCompletedDialog extends StatelessWidget {
                     ),
                     const SizedBox(width: 12),
                   ],
+                  WorkbenchDialogActionButton(
+                    label: '重来',
+                    backgroundColor: const Color(0xFF6F7C91),
+                    onPressed: onRestart,
+                  ),
+                  const SizedBox(width: 12),
                   WorkbenchDialogActionButton(
                     label: '知道了',
                     backgroundColor: const Color(0xFFB8B8B8),
