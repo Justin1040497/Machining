@@ -80,6 +80,18 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  fonts:
+    - family: AlibabaPuHuiTi
+      fonts:
+        - asset: assets/fonts/alibaba_puhuiti/AlibabaPuHuiTi-3-55-Regular.ttf
+          weight: 400
+        - asset: assets/fonts/alibaba_puhuiti/AlibabaPuHuiTi-3-65-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/alibaba_puhuiti/AlibabaPuHuiTi-3-75-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/alibaba_puhuiti/AlibabaPuHuiTi-3-85-Bold.ttf
+          weight: 700
+
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

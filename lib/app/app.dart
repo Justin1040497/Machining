@@ -14,6 +14,7 @@ class FrameLeanApp extends ConsumerWidget {
       routerConfig: appRouter,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
+        fontFamily: 'AlibabaPuHuiTi',
         textTheme: TextTheme(
           bodyMedium: TextStyle(fontSize: 14),
           bodySmall: TextStyle(fontSize: 13.2),
