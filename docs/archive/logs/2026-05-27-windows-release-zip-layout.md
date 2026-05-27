@@ -12,6 +12,8 @@ GitHub Actions 生成的 Windows 发布包下载后，在 Windows 测试中显�
 
 Windows 打包脚本不再直接使用 `Compress-Archive -Path Release\*`。脚本现在逐个文件写入 zip，并将 entry name 统一转换为 `/` 分隔的标准 zip 路径。打包后会校验 zip 中不能存在反斜杠条目，并必须包含 `ffmpeg/ffmpeg.exe`、`ffmpeg/ffprobe.exe`、`FrameLean.exe`、`data/app.so` 和法律资料。
 
+GitHub Actions 首次验证暴露出 Windows runner 的 PowerShell 没有自动加载 `System.IO.Compression.ZipArchiveMode` 所在程序集，因此脚本也显式加载 `System.IO.Compression` 和 `System.IO.Compression.FileSystem`。
+
 ## Modified Files
 
 - `scripts/build_windows.ps1`
@@ -20,6 +22,7 @@ Windows 打包脚本不再直接使用 `Compress-Archive -Path Release\*`。脚�
 ## Validation
 
 - `unzip -l /Users/leftzhou/Downloads/FrameLean-v1.0.0-windows-x64.zip`
+- GitHub Actions 日志：`Unable to find type [System.IO.Compression.ZipArchiveMode]`
 - `git diff --check`
 
 ## Notes
