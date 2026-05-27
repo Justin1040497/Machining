@@ -16,6 +16,26 @@ class WorkbenchFileRevealResult {
   bool get succeeded => message == null;
 }
 
+class WorkbenchFileRevealTarget {
+  const WorkbenchFileRevealTarget({
+    required this.path,
+    required this.isDirectory,
+  });
+
+  final String path;
+  final bool isDirectory;
+}
+
+class WorkbenchFileManagerCommand {
+  const WorkbenchFileManagerCommand({
+    required this.executable,
+    required this.arguments,
+  });
+
+  final String executable;
+  final List<String> arguments;
+}
+
 abstract final class WorkbenchFileRevealer {
   static Future<WorkbenchFileRevealResult> revealTask(MediaTask task) {
     final targetPath = task.outputPath?.trim().isNotEmpty == true
@@ -31,11 +51,14 @@ abstract final class WorkbenchFileRevealer {
     }
 
     try {
-      final result = await runRevealInFileManager(trimmedPath);
+      final target = resolveRevealTarget(trimmedPath);
+      if (target == null) {
+        return WorkbenchFileRevealResult.failure('文件位置不存在: $trimmedPath');
+      }
+
+      final result = await runRevealInFileManager(target);
       if (result.exitCode != 0) {
-        return WorkbenchFileRevealResult.failure(
-          '打开文件所在位置失败: ${result.stderr}',
-        );
+        return WorkbenchFileRevealResult.failure(failureMessageFor(result));
       }
     } on Object catch (error) {
       return WorkbenchFileRevealResult.failure('打开文件所在位置失败: $error');
@@ -44,19 +67,97 @@ abstract final class WorkbenchFileRevealer {
     return const WorkbenchFileRevealResult.success();
   }
 
-  static Future<ProcessResult> runRevealInFileManager(String targetPath) {
-    if (Platform.isMacOS) {
-      return Process.run('open', ['-R', targetPath]);
+  static WorkbenchFileRevealTarget? resolveRevealTarget(String targetPath) {
+    final targetType = FileSystemEntity.typeSync(targetPath);
+    if (targetType == FileSystemEntityType.directory) {
+      return WorkbenchFileRevealTarget(path: targetPath, isDirectory: true);
+    }
+
+    if (targetType != FileSystemEntityType.notFound) {
+      return WorkbenchFileRevealTarget(path: targetPath, isDirectory: false);
+    }
+
+    final parentPath = path.dirname(targetPath);
+    if (parentPath == targetPath || parentPath.trim().isEmpty) {
+      return null;
+    }
+
+    final parentType = FileSystemEntity.typeSync(parentPath);
+    if (parentType == FileSystemEntityType.directory) {
+      return WorkbenchFileRevealTarget(path: parentPath, isDirectory: true);
+    }
+
+    return null;
+  }
+
+  static Future<ProcessResult> runRevealInFileManager(
+    WorkbenchFileRevealTarget target,
+  ) async {
+    final command = buildRevealCommand(
+      targetPath: target.path,
+      targetIsDirectory: target.isDirectory,
+    );
+    if (command == null) {
+      return Future.value(ProcessResult(0, 1, '', '当前系统暂不支持打开文件所在位置'));
     }
 
     if (Platform.isWindows) {
-      return Process.run('explorer', ['/select,$targetPath']);
+      await Process.start(
+        command.executable,
+        command.arguments,
+        mode: ProcessStartMode.detached,
+      );
+      return ProcessResult(0, 0, '', '');
     }
 
-    if (Platform.isLinux) {
-      return Process.run('xdg-open', [path.dirname(targetPath)]);
+    return Process.run(command.executable, command.arguments);
+  }
+
+  static WorkbenchFileManagerCommand? buildRevealCommand({
+    required String targetPath,
+    required bool targetIsDirectory,
+    String? operatingSystem,
+  }) {
+    final currentOperatingSystem = operatingSystem ?? Platform.operatingSystem;
+
+    if (currentOperatingSystem == 'macos') {
+      return WorkbenchFileManagerCommand(
+        executable: 'open',
+        arguments: targetIsDirectory ? [targetPath] : ['-R', targetPath],
+      );
     }
 
-    return Future.value(ProcessResult(0, 1, '', '当前系统暂不支持打开文件所在位置'));
+    if (currentOperatingSystem == 'windows') {
+      return WorkbenchFileManagerCommand(
+        executable: 'explorer.exe',
+        arguments: targetIsDirectory ? [targetPath] : ['/select,', targetPath],
+      );
+    }
+
+    if (currentOperatingSystem == 'linux') {
+      final linuxPathContext = path.Context(style: path.Style.posix);
+      return WorkbenchFileManagerCommand(
+        executable: 'xdg-open',
+        arguments: [
+          targetIsDirectory ? targetPath : linuxPathContext.dirname(targetPath),
+        ],
+      );
+    }
+
+    return null;
+  }
+
+  static String failureMessageFor(ProcessResult result) {
+    final stderr = result.stderr.toString().trim();
+    if (stderr.isNotEmpty) {
+      return '打开文件所在位置失败: $stderr';
+    }
+
+    final stdout = result.stdout.toString().trim();
+    if (stdout.isNotEmpty) {
+      return '打开文件所在位置失败: $stdout';
+    }
+
+    return '打开文件所在位置失败: 退出码 ${result.exitCode}';
   }
 }
