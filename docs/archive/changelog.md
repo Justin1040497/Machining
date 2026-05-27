@@ -20,6 +20,17 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-27 / v1.0.0 后未发布 / Windows 发布包 zip 布局修复
+
+- fixed
+  - 修复 Windows 发布 zip 内部条目使用反斜杠路径，可能导致解压后 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe` 不在应用可识别目录的问题。
+- changed
+  - Windows 打包脚本改为逐文件写入 zip，并强制使用标准 `/` 路径分隔符。
+  - 打包完成后校验 zip 内必须包含 `ffmpeg/ffmpeg.exe`、`ffmpeg/ffprobe.exe` 和核心运行文件，避免再次发布缺少运行时布局的包。
+- verified
+  - 通过 `unzip -l /Users/leftzhou/Downloads/FrameLean-v1.0.0-windows-x64.zip` 复现旧包中存在 `ffmpeg\ffmpeg.exe` 条目。
+  - 通过 `git diff --check`。
+
 ## 2026-05-27 / v1.0.0 后未发布 / FFmpeg 参数优化
 
 - added
