@@ -20,6 +20,16 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-28 / v1.0.0 后未发布 / 全局应用字体
+
+- changed
+  - 将应用全局字体切换为 Alibaba PuHuiTi，并接入 Regular、Medium、SemiBold 和 Bold 四个字重资源。
+- verified
+  - 通过 `flutter pub get`。
+  - 通过 `dart format --set-exit-if-changed lib/app/app.dart`。
+  - 通过 `flutter analyze`。
+  - 通过 `flutter test`。
+
 ## 2026-05-28 / v1.0.0 后未发布 / 项目级 workflow skill
 
 - added
