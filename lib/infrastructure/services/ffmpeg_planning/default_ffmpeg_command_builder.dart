@@ -68,6 +68,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       recommendation: recommendation,
       targetCodec: targetCodec,
       videoEncoder: videoEncoder,
+      encoderCapabilities: encoderCapabilities,
       outputPath: outputPath,
     );
     final args = steps.last.args;
@@ -119,12 +120,15 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       FfmpegCommandFormatters.formatSeconds(durationSeconds),
       '-i',
       task.inputPath,
+      ...argumentBuilder.buildOutputStreamSelectionArgs(),
       ...argumentBuilder.buildPurposeArgs(task, recommendation, videoEncoder),
-      ...argumentBuilder.buildResolutionArgs(task.config.resolutionPreset),
+      ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
       ...argumentBuilder.buildCommonOutputArgs(
-        task.config.outputFormat,
+        task,
         recommendation,
         targetCodec,
+        videoEncoder,
+        encoderCapabilities,
       ),
       outputPath,
     ];

@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `11`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `12`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -127,6 +127,18 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_video_height` | integer | 是 | `null` | `videoHeight` | 视频高度 |
 | `analysis_video_codec` | text | 是 | `null` | `videoCodec` | FFprobe 读取的视频编码名 |
 | `analysis_audio_codec` | text | 是 | `null` | `audioCodec` | FFprobe 读取的音频编码名 |
+| `analysis_video_pixel_format` | text | 是 | `null` | `videoPixelFormat` | 视频像素格式，例如 `yuv420p`、`p010le` |
+| `analysis_video_bit_depth` | integer | 是 | `null` | `videoBitDepth` | 视频位深，优先读取 `bits_per_raw_sample`，缺失时从像素格式推断 |
+| `analysis_color_range` | text | 是 | `null` | `colorRange` | 视频色彩范围，例如 `tv`、`pc` |
+| `analysis_color_space` | text | 是 | `null` | `colorSpace` | 视频色彩矩阵 / colorspace，例如 `bt709`、`bt2020nc` |
+| `analysis_color_transfer` | text | 是 | `null` | `colorTransfer` | 视频传递曲线，例如 `bt709`、`smpte2084`、`arib-std-b67` |
+| `analysis_color_primaries` | text | 是 | `null` | `colorPrimaries` | 视频色彩原色，例如 `bt709`、`bt2020` |
+| `analysis_average_frame_rate` | text | 是 | `null` | `averageFrameRate` | FFprobe `avg_frame_rate` 原始值 |
+| `analysis_real_frame_rate` | text | 是 | `null` | `realFrameRate` | FFprobe `r_frame_rate` 原始值 |
+| `analysis_sample_aspect_ratio` | text | 是 | `null` | `sampleAspectRatio` | 视频像素宽高比 |
+| `analysis_display_aspect_ratio` | text | 是 | `null` | `displayAspectRatio` | 视频显示宽高比 |
+| `analysis_video_rotation_degrees` | integer | 是 | `null` | `videoRotationDegrees` | FFprobe tags 或 side data 中的旋转角度 |
+| `analysis_field_order` | text | 是 | `null` | `fieldOrder` | 扫描方式 / 场序信息 |
 | `analysis_video_bitrate` | integer | 是 | `null` | `videoBitrate` | 视频流码率，单位 bps |
 | `analysis_audio_bitrate` | integer | 是 | `null` | `audioBitrate` | 音频流码率，单位 bps |
 | `analysis_container_bitrate` | integer | 是 | `null` | `containerBitrate` | 容器总码率，单位 bps |
@@ -134,6 +146,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_container_format` | text | 是 | `null` | `containerFormat` | 容器格式，例如 `mov,mp4,m4a,3gp,3g2,mj2` |
 | `analysis_audio_channels` | integer | 是 | `null` | `audioChannels` | 音频声道数 |
 | `analysis_audio_sample_rate` | integer | 是 | `null` | `audioSampleRate` | 音频采样率 |
+| `analysis_audio_channel_layout` | text | 是 | `null` | `audioChannelLayout` | 音频声道布局，例如 `mono`、`stereo`、`5.1(side)` |
 | `analysis_updated_at` | integer | 是 | `null` | `analysisUpdatedAt` | 分析结果写入时间，毫秒时间戳 |
 | `analysis_error_message` | text | 是 | `null` | `analysisErrorMessage` | 分析失败或 FFprobe 不可用时的错误信息 |
 
@@ -255,6 +268,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 9 | 给 `tasks` 增加 `smart_preset` 和 `target_size_bytes` |
 | 10 | 给 `settings` 增加保存到源文件旁、默认推荐方案和默认导出文件名模板 |
 | 11 | 将 `tasks.compression_mode` 中的历史值 `smart`、`quality` 归一化为 `preset` |
+| 12 | 给 `tasks` 增加 FFprobe 色彩、像素格式、帧率、宽高比、旋转、场序和音频声道布局字段 |
 
 ## 修改数据模型的约束
 

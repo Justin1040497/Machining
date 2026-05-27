@@ -50,7 +50,11 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       '-show_entries',
       'format=duration,bit_rate,format_name:'
           'stream=codec_type,codec_name,width,height,bit_rate,duration,'
-          'channels,sample_rate',
+          'pix_fmt,bits_per_raw_sample,color_range,color_space,'
+          'color_transfer,color_primaries,avg_frame_rate,r_frame_rate,'
+          'sample_aspect_ratio,display_aspect_ratio,field_order,'
+          'channels,channel_layout,sample_rate:'
+          'stream_tags=rotate:stream_side_data=rotation',
       inputPath,
     ];
   }
@@ -78,6 +82,18 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       videoHeight: parseInt(videoStream['height']),
       videoCodec: parseString(videoStream['codec_name']),
       audioCodec: parseString(audioStream?['codec_name']),
+      videoPixelFormat: parseString(videoStream['pix_fmt']),
+      videoBitDepth: parseVideoBitDepth(videoStream),
+      colorRange: parseString(videoStream['color_range']),
+      colorSpace: parseString(videoStream['color_space']),
+      colorTransfer: parseString(videoStream['color_transfer']),
+      colorPrimaries: parseString(videoStream['color_primaries']),
+      averageFrameRate: parseString(videoStream['avg_frame_rate']),
+      realFrameRate: parseString(videoStream['r_frame_rate']),
+      sampleAspectRatio: parseString(videoStream['sample_aspect_ratio']),
+      displayAspectRatio: parseString(videoStream['display_aspect_ratio']),
+      videoRotationDegrees: parseVideoRotationDegrees(videoStream),
+      fieldOrder: parseString(videoStream['field_order']),
       videoBitrate: parseInt(videoStream['bit_rate']),
       audioBitrate: parseInt(audioStream?['bit_rate']),
       containerBitrate: format is Map<String, dynamic>
@@ -92,6 +108,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
           : null,
       audioChannels: parseInt(audioStream?['channels']),
       audioSampleRate: parseInt(audioStream?['sample_rate']),
+      audioChannelLayout: parseString(audioStream?['channel_layout']),
     );
   }
 
@@ -169,5 +186,50 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     }
 
     return text;
+  }
+
+  int? parseVideoBitDepth(Map<String, dynamic> videoStream) {
+    final directValue = parseInt(videoStream['bits_per_raw_sample']);
+    if (directValue != null && directValue > 0) {
+      return directValue;
+    }
+
+    final pixelFormat = parseString(videoStream['pix_fmt'])?.toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return null;
+    }
+
+    final match = RegExp(r'(\d+)(?:le|be)?$').firstMatch(pixelFormat);
+    if (match != null) {
+      return int.tryParse(match.group(1)!);
+    }
+
+    return 8;
+  }
+
+  int? parseVideoRotationDegrees(Map<String, dynamic> videoStream) {
+    final tags = videoStream['tags'];
+    if (tags is Map<String, dynamic>) {
+      final tagRotation = parseDouble(tags['rotate']);
+      if (tagRotation != null) {
+        return tagRotation.round();
+      }
+    }
+
+    final sideDataList = videoStream['side_data_list'];
+    if (sideDataList is List) {
+      for (final sideData in sideDataList) {
+        if (sideData is! Map<String, dynamic>) {
+          continue;
+        }
+
+        final rotation = parseDouble(sideData['rotation']);
+        if (rotation != null) {
+          return rotation.round();
+        }
+      }
+    }
+
+    return null;
   }
 }

@@ -20,6 +20,18 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-27 / v1.0.0 后未发布 / FFmpeg 参数优化
+
+- added
+  - FFprobe 分析新增像素格式、位深、色彩范围、色彩矩阵、传递曲线、色彩原色、帧率、宽高比、旋转、场序和音频声道布局字段。
+  - FFmpeg 命令构造新增显式视频 / 音频流映射、BT.709 SDR 输出色彩标签、Lanczos 缩放、SAR 归一化、音频声道 / 采样率输出和 AudioToolbox AAC 优先策略。
+- changed
+  - 压缩输出默认通过滤镜链统一到 `yuv420p`、limited range、BT.709，并避免分辨率预设把小尺寸源视频向上放大。
+  - VideoToolbox HDR 源素材优先使用 `scale_vt` 转为 SDR BT.709 输出。
+  - Drift `tasks` schema 升级到 12，用于持久化新增 FFprobe 分析字段。
+- verified
+  - 通过 `flutter test test/ffprobe_media_analyzer_test.dart test/ffmpeg_encoder_capabilities_test.dart test/ffmpeg_command_builder_test.dart`。
+
 ## 2026-05-27 / v1.0.0 后未发布 / Windows 桌面兼容修复
 
 - added

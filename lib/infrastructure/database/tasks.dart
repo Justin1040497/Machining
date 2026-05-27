@@ -27,6 +27,30 @@ class TaskRows extends Table {
       text().named('analysis_video_codec').nullable()();
   TextColumn get analysisAudioCodec =>
       text().named('analysis_audio_codec').nullable()();
+  TextColumn get analysisVideoPixelFormat =>
+      text().named('analysis_video_pixel_format').nullable()();
+  IntColumn get analysisVideoBitDepth =>
+      integer().named('analysis_video_bit_depth').nullable()();
+  TextColumn get analysisColorRange =>
+      text().named('analysis_color_range').nullable()();
+  TextColumn get analysisColorSpace =>
+      text().named('analysis_color_space').nullable()();
+  TextColumn get analysisColorTransfer =>
+      text().named('analysis_color_transfer').nullable()();
+  TextColumn get analysisColorPrimaries =>
+      text().named('analysis_color_primaries').nullable()();
+  TextColumn get analysisAverageFrameRate =>
+      text().named('analysis_average_frame_rate').nullable()();
+  TextColumn get analysisRealFrameRate =>
+      text().named('analysis_real_frame_rate').nullable()();
+  TextColumn get analysisSampleAspectRatio =>
+      text().named('analysis_sample_aspect_ratio').nullable()();
+  TextColumn get analysisDisplayAspectRatio =>
+      text().named('analysis_display_aspect_ratio').nullable()();
+  IntColumn get analysisVideoRotationDegrees =>
+      integer().named('analysis_video_rotation_degrees').nullable()();
+  TextColumn get analysisFieldOrder =>
+      text().named('analysis_field_order').nullable()();
   IntColumn get analysisVideoBitrate =>
       integer().named('analysis_video_bitrate').nullable()();
   IntColumn get analysisAudioBitrate =>
@@ -41,6 +65,8 @@ class TaskRows extends Table {
       integer().named('analysis_audio_channels').nullable()();
   IntColumn get analysisAudioSampleRate =>
       integer().named('analysis_audio_sample_rate').nullable()();
+  TextColumn get analysisAudioChannelLayout =>
+      text().named('analysis_audio_channel_layout').nullable()();
   IntColumn get analysisUpdatedAt =>
       integer().named('analysis_updated_at').nullable()();
   TextColumn get analysisErrorMessage =>

@@ -22,6 +22,7 @@ class FfmpegCommandStepBuilder {
     required CompressionRecommendation recommendation,
     required VideoCodec targetCodec,
     required String videoEncoder,
+    required FfmpegEncoderCapabilities encoderCapabilities,
     required String outputPath,
   }) {
     if (shouldUseTwoPassTargetSize(
@@ -34,6 +35,7 @@ class FfmpegCommandStepBuilder {
         recommendation: recommendation,
         targetCodec: targetCodec,
         videoEncoder: videoEncoder,
+        encoderCapabilities: encoderCapabilities,
         outputPath: outputPath,
       );
     }
@@ -43,6 +45,7 @@ class FfmpegCommandStepBuilder {
       recommendation: recommendation,
       targetCodec: targetCodec,
       videoEncoder: videoEncoder,
+      encoderCapabilities: encoderCapabilities,
       outputPath: outputPath,
     );
     return [
@@ -55,18 +58,22 @@ class FfmpegCommandStepBuilder {
     required CompressionRecommendation recommendation,
     required VideoCodec targetCodec,
     required String videoEncoder,
+    required FfmpegEncoderCapabilities encoderCapabilities,
     required String outputPath,
   }) {
     return [
       '-hide_banner',
       '-i',
       task.inputPath,
+      ...argumentBuilder.buildOutputStreamSelectionArgs(),
       ...argumentBuilder.buildPurposeArgs(task, recommendation, videoEncoder),
-      ...argumentBuilder.buildResolutionArgs(task.config.resolutionPreset),
+      ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
       ...argumentBuilder.buildCommonOutputArgs(
-        task.config.outputFormat,
+        task,
         recommendation,
         targetCodec,
+        videoEncoder,
+        encoderCapabilities,
       ),
       '-progress',
       'pipe:1',
@@ -89,6 +96,7 @@ class FfmpegCommandStepBuilder {
     required CompressionRecommendation recommendation,
     required VideoCodec targetCodec,
     required String videoEncoder,
+    required FfmpegEncoderCapabilities encoderCapabilities,
     required String outputPath,
   }) {
     final passLogFile = passLogFilePrefix(outputPath);
@@ -97,13 +105,14 @@ class FfmpegCommandStepBuilder {
       '-y',
       '-i',
       task.inputPath,
+      ...argumentBuilder.buildVideoOnlyStreamSelectionArgs(),
       ...buildTwoPassVideoArgs(
         recommendation,
         videoEncoder,
         passNumber: 1,
         passLogFile: passLogFile,
       ),
-      ...argumentBuilder.buildResolutionArgs(task.config.resolutionPreset),
+      ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
       '-progress',
       'pipe:1',
       '-an',
@@ -115,17 +124,20 @@ class FfmpegCommandStepBuilder {
       '-hide_banner',
       '-i',
       task.inputPath,
+      ...argumentBuilder.buildOutputStreamSelectionArgs(),
       ...buildTwoPassVideoArgs(
         recommendation,
         videoEncoder,
         passNumber: 2,
         passLogFile: passLogFile,
       ),
-      ...argumentBuilder.buildResolutionArgs(task.config.resolutionPreset),
+      ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
       ...argumentBuilder.buildCommonOutputArgs(
-        task.config.outputFormat,
+        task,
         recommendation,
         targetCodec,
+        videoEncoder,
+        encoderCapabilities,
       ),
       '-progress',
       'pipe:1',

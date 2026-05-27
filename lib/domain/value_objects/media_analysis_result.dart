@@ -11,6 +11,26 @@ class MediaAnalysisResult {
   final String? videoCodec;
   final String? audioCodec;
 
+  /// 视频像素格式和位深，例如 yuv420p、p010le、10
+  final String? videoPixelFormat;
+  final int? videoBitDepth;
+
+  /// 视频色彩信息
+  final String? colorRange;
+  final String? colorSpace;
+  final String? colorTransfer;
+  final String? colorPrimaries;
+
+  /// 帧率和显示比例信息
+  final String? averageFrameRate;
+  final String? realFrameRate;
+  final String? sampleAspectRatio;
+  final String? displayAspectRatio;
+
+  /// 视频方向和扫描方式
+  final int? videoRotationDegrees;
+  final String? fieldOrder;
+
   /// 视频流码率，优先从 videoStream.bit_rate 读取，单位 bps
   final int? videoBitrate;
 
@@ -32,12 +52,27 @@ class MediaAnalysisResult {
   /// 音频采样率 44100 48000
   final int? audioSampleRate;
 
+  /// 音频声道布局，例如 mono、stereo、5.1(side)
+  final String? audioChannelLayout;
+
   MediaAnalysisResult({
     this.durationMs,
     this.videoWidth,
     this.videoHeight,
     this.videoCodec,
     this.audioCodec,
+    this.videoPixelFormat,
+    this.videoBitDepth,
+    this.colorRange,
+    this.colorSpace,
+    this.colorTransfer,
+    this.colorPrimaries,
+    this.averageFrameRate,
+    this.realFrameRate,
+    this.sampleAspectRatio,
+    this.displayAspectRatio,
+    this.videoRotationDegrees,
+    this.fieldOrder,
     this.videoBitrate,
     this.audioBitrate,
     this.containerBitrate,
@@ -45,6 +80,7 @@ class MediaAnalysisResult {
     this.containerFormat,
     this.audioChannels,
     this.audioSampleRate,
+    this.audioChannelLayout,
   });
 
   MediaAnalysisResult copyWith({
@@ -53,6 +89,18 @@ class MediaAnalysisResult {
     int? videoHeight,
     String? videoCodec,
     String? audioCodec,
+    String? videoPixelFormat,
+    int? videoBitDepth,
+    String? colorRange,
+    String? colorSpace,
+    String? colorTransfer,
+    String? colorPrimaries,
+    String? averageFrameRate,
+    String? realFrameRate,
+    String? sampleAspectRatio,
+    String? displayAspectRatio,
+    int? videoRotationDegrees,
+    String? fieldOrder,
     int? videoBitrate,
     int? audioBitrate,
     int? containerBitrate,
@@ -60,6 +108,7 @@ class MediaAnalysisResult {
     String? containerFormat,
     int? audioChannels,
     int? audioSampleRate,
+    String? audioChannelLayout,
   }) {
     return MediaAnalysisResult(
       durationMs: durationMs ?? this.durationMs,
@@ -67,6 +116,18 @@ class MediaAnalysisResult {
       videoHeight: videoHeight ?? this.videoHeight,
       videoCodec: videoCodec ?? this.videoCodec,
       audioCodec: audioCodec ?? this.audioCodec,
+      videoPixelFormat: videoPixelFormat ?? this.videoPixelFormat,
+      videoBitDepth: videoBitDepth ?? this.videoBitDepth,
+      colorRange: colorRange ?? this.colorRange,
+      colorSpace: colorSpace ?? this.colorSpace,
+      colorTransfer: colorTransfer ?? this.colorTransfer,
+      colorPrimaries: colorPrimaries ?? this.colorPrimaries,
+      averageFrameRate: averageFrameRate ?? this.averageFrameRate,
+      realFrameRate: realFrameRate ?? this.realFrameRate,
+      sampleAspectRatio: sampleAspectRatio ?? this.sampleAspectRatio,
+      displayAspectRatio: displayAspectRatio ?? this.displayAspectRatio,
+      videoRotationDegrees: videoRotationDegrees ?? this.videoRotationDegrees,
+      fieldOrder: fieldOrder ?? this.fieldOrder,
       videoBitrate: videoBitrate ?? this.videoBitrate,
       audioBitrate: audioBitrate ?? this.audioBitrate,
       containerBitrate: containerBitrate ?? this.containerBitrate,
@@ -74,6 +135,7 @@ class MediaAnalysisResult {
       containerFormat: containerFormat ?? this.containerFormat,
       audioChannels: audioChannels ?? this.audioChannels,
       audioSampleRate: audioSampleRate ?? this.audioSampleRate,
+      audioChannelLayout: audioChannelLayout ?? this.audioChannelLayout,
     );
   }
 
@@ -83,4 +145,15 @@ class MediaAnalysisResult {
   /// 3. fileSize * 8 / durationSeconds
   int? get preferredBitrate =>
       videoBitrate ?? containerBitrate ?? estimatedBitrate;
+
+  bool get isHdr {
+    final transfer = colorTransfer?.trim().toLowerCase();
+    final space = colorSpace?.trim().toLowerCase();
+    final primaries = colorPrimaries?.trim().toLowerCase();
+    return transfer == 'smpte2084' ||
+        transfer == 'arib-std-b67' ||
+        space == 'bt2020nc' ||
+        space == 'bt2020ncl' ||
+        primaries == 'bt2020';
+  }
 }

@@ -37,14 +37,37 @@ void main() {
         '-hide_banner',
         '-i',
         '/videos/source.mov',
+        '-map',
+        '0:v:0',
+        '-map',
+        '0:a?',
+        '-map_metadata',
+        '0',
+        '-map_chapters',
+        '0',
         '-c:v',
         'libx264',
         '-preset',
         'slow',
         '-crf',
         '28',
+        '-vf',
+        'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos:'
+            'in_range=auto:out_range=tv:'
+            'in_color_matrix=auto:out_color_matrix=bt709,'
+            'format=yuv420p,setsar=1',
         '-pix_fmt',
         'yuv420p',
+        '-color_range',
+        'tv',
+        '-colorspace',
+        'bt709',
+        '-color_trc',
+        'bt709',
+        '-color_primaries',
+        'bt709',
+        '-profile:v',
+        'high',
         '-c:a',
         'aac',
         '-b:a',
@@ -76,7 +99,7 @@ void main() {
       expect(plan.args, containsAllInOrder(['-maxrate', '404k']));
       expect(plan.args, containsAllInOrder(['-bufsize', '807k']));
       expect(plan.args, containsAllInOrder(['-b:a', '64k']));
-      expect(plan.args, isNot(contains('-vf')));
+      expect(plan.args, contains('-vf'));
       expect(plan.logHint, contains('目标分辨率 保持原始'));
     });
 
@@ -159,7 +182,54 @@ void main() {
       expect(plan.args, containsAllInOrder(['-b:v', '51k']));
       expect(plan.args, containsAllInOrder(['-pass', '2']));
       expect(plan.args, containsAllInOrder(['-b:a', '24k']));
+      expect(plan.args, containsAllInOrder(['-ac', '1']));
       expect(plan.args, isNot(contains('500k')));
+    });
+
+    test('preserves compatible audio shape when source audio is known', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 3000000,
+          audioCodec: 'aac',
+          audioBitrate: 192000,
+          audioChannels: 6,
+          audioSampleRate: 44100,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, containsAllInOrder(['-c:a', 'aac']));
+      expect(plan.args, containsAllInOrder(['-ac', '2']));
+      expect(plan.args, containsAllInOrder(['-ar', '44100']));
+    });
+
+    test('uses AudioToolbox AAC when the runtime exposes it', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 3000000,
+          audioCodec: 'aac',
+          audioBitrate: 192000,
+          audioChannels: 2,
+          audioSampleRate: 48000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'aac', 'aac_at'},
+          autoBackendPriority: [],
+        ),
+      );
+
+      expect(plan.args, containsAllInOrder(['-c:a', 'aac_at']));
+      expect(plan.args, containsAllInOrder(['-aac_at_mode', 'cvbr']));
+      expect(plan.args, containsAllInOrder(['-aac_at_quality', '2']));
     });
 
     test('requires confirmation before building low bitrate compression', () {
@@ -255,7 +325,57 @@ void main() {
 
       final plan = builder.build(task);
 
-      expect(plan.args, containsAllInOrder(['-vf', 'scale=-2:720']));
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-vf',
+          'scale=-2:trunc(min(720\\,ih)/2)*2:flags=lanczos:'
+              'in_range=auto:out_range=tv:'
+              'in_color_matrix=auto:out_color_matrix=bt709,'
+              'format=yuv420p,setsar=1',
+        ]),
+      );
+    });
+
+    test('uses VideoToolbox HDR to SDR scale filter for HDR sources', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/hdr.mov',
+        fileName: 'hdr.mov',
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.hevc,
+          encoderBackend: EncoderBackend.videotoolbox,
+          resolutionPreset: ResolutionPreset.p1080,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 2160,
+          videoCodec: 'hevc',
+          videoBitrate: 30000000,
+          colorSpace: 'bt2020nc',
+          colorTransfer: 'smpte2084',
+          colorPrimaries: 'bt2020',
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'hevc_videotoolbox'},
+          autoBackendPriority: [EncoderBackend.videotoolbox],
+        ),
+      );
+
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-vf',
+          'scale_vt=w=-2:h=trunc(min(1080\\,ih)/2)*2:'
+              'color_matrix=bt709:color_primaries=bt709:'
+              'color_transfer=bt709,format=yuv420p,setsar=1',
+        ]),
+      );
+      expect(plan.args, containsAllInOrder(['-color_trc', 'bt709']));
+      expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
     test('builds preview segment without progress output', () {

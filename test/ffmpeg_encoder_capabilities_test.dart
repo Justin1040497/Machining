@@ -10,6 +10,8 @@ void main() {
  V....D libx264              libx264 H.264 / AVC / MPEG-4 AVC / MPEG-4 part 10
  V..... h264_videotoolbox    VideoToolbox H.264 Encoder
  V..... hevc_videotoolbox    VideoToolbox H.265 Encoder
+ A....D aac                  AAC (Advanced Audio Coding)
+ A..... aac_at               aac (AudioToolbox) (codec aac)
 ''',
         autoBackendPriority: const [EncoderBackend.videotoolbox],
       );
@@ -18,6 +20,8 @@ void main() {
       expect(capabilities.encoderNames, isNot(contains('libx265')));
       expect(capabilities.encoderNames, contains('h264_videotoolbox'));
       expect(capabilities.encoderNames, contains('hevc_videotoolbox'));
+      expect(capabilities.supportsAudioEncoder('aac'), isTrue);
+      expect(capabilities.supportsAudioEncoder('aac_at'), isTrue);
     });
   });
 }

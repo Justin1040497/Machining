@@ -1068,6 +1068,137 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _analysisVideoPixelFormatMeta =
+      const VerificationMeta('analysisVideoPixelFormat');
+  @override
+  late final GeneratedColumn<String> analysisVideoPixelFormat =
+      GeneratedColumn<String>(
+        'analysis_video_pixel_format',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisVideoBitDepthMeta =
+      const VerificationMeta('analysisVideoBitDepth');
+  @override
+  late final GeneratedColumn<int> analysisVideoBitDepth = GeneratedColumn<int>(
+    'analysis_video_bit_depth',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisColorRangeMeta =
+      const VerificationMeta('analysisColorRange');
+  @override
+  late final GeneratedColumn<String> analysisColorRange =
+      GeneratedColumn<String>(
+        'analysis_color_range',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisColorSpaceMeta =
+      const VerificationMeta('analysisColorSpace');
+  @override
+  late final GeneratedColumn<String> analysisColorSpace =
+      GeneratedColumn<String>(
+        'analysis_color_space',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisColorTransferMeta =
+      const VerificationMeta('analysisColorTransfer');
+  @override
+  late final GeneratedColumn<String> analysisColorTransfer =
+      GeneratedColumn<String>(
+        'analysis_color_transfer',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisColorPrimariesMeta =
+      const VerificationMeta('analysisColorPrimaries');
+  @override
+  late final GeneratedColumn<String> analysisColorPrimaries =
+      GeneratedColumn<String>(
+        'analysis_color_primaries',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisAverageFrameRateMeta =
+      const VerificationMeta('analysisAverageFrameRate');
+  @override
+  late final GeneratedColumn<String> analysisAverageFrameRate =
+      GeneratedColumn<String>(
+        'analysis_average_frame_rate',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisRealFrameRateMeta =
+      const VerificationMeta('analysisRealFrameRate');
+  @override
+  late final GeneratedColumn<String> analysisRealFrameRate =
+      GeneratedColumn<String>(
+        'analysis_real_frame_rate',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisSampleAspectRatioMeta =
+      const VerificationMeta('analysisSampleAspectRatio');
+  @override
+  late final GeneratedColumn<String> analysisSampleAspectRatio =
+      GeneratedColumn<String>(
+        'analysis_sample_aspect_ratio',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisDisplayAspectRatioMeta =
+      const VerificationMeta('analysisDisplayAspectRatio');
+  @override
+  late final GeneratedColumn<String> analysisDisplayAspectRatio =
+      GeneratedColumn<String>(
+        'analysis_display_aspect_ratio',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisVideoRotationDegreesMeta =
+      const VerificationMeta('analysisVideoRotationDegrees');
+  @override
+  late final GeneratedColumn<int> analysisVideoRotationDegrees =
+      GeneratedColumn<int>(
+        'analysis_video_rotation_degrees',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisFieldOrderMeta =
+      const VerificationMeta('analysisFieldOrder');
+  @override
+  late final GeneratedColumn<String> analysisFieldOrder =
+      GeneratedColumn<String>(
+        'analysis_field_order',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _analysisVideoBitrateMeta =
       const VerificationMeta('analysisVideoBitrate');
   @override
@@ -1140,6 +1271,17 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         aliasedName,
         true,
         type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisAudioChannelLayoutMeta =
+      const VerificationMeta('analysisAudioChannelLayout');
+  @override
+  late final GeneratedColumn<String> analysisAudioChannelLayout =
+      GeneratedColumn<String>(
+        'analysis_audio_channel_layout',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
   static const VerificationMeta _analysisUpdatedAtMeta = const VerificationMeta(
@@ -1351,6 +1493,18 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     analysisVideoHeight,
     analysisVideoCodec,
     analysisAudioCodec,
+    analysisVideoPixelFormat,
+    analysisVideoBitDepth,
+    analysisColorRange,
+    analysisColorSpace,
+    analysisColorTransfer,
+    analysisColorPrimaries,
+    analysisAverageFrameRate,
+    analysisRealFrameRate,
+    analysisSampleAspectRatio,
+    analysisDisplayAspectRatio,
+    analysisVideoRotationDegrees,
+    analysisFieldOrder,
     analysisVideoBitrate,
     analysisAudioBitrate,
     analysisContainerBitrate,
@@ -1358,6 +1512,7 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     analysisContainerFormat,
     analysisAudioChannels,
     analysisAudioSampleRate,
+    analysisAudioChannelLayout,
     analysisUpdatedAt,
     analysisErrorMessage,
     outputFormat,
@@ -1523,6 +1678,114 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('analysis_video_pixel_format')) {
+      context.handle(
+        _analysisVideoPixelFormatMeta,
+        analysisVideoPixelFormat.isAcceptableOrUnknown(
+          data['analysis_video_pixel_format']!,
+          _analysisVideoPixelFormatMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_video_bit_depth')) {
+      context.handle(
+        _analysisVideoBitDepthMeta,
+        analysisVideoBitDepth.isAcceptableOrUnknown(
+          data['analysis_video_bit_depth']!,
+          _analysisVideoBitDepthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_color_range')) {
+      context.handle(
+        _analysisColorRangeMeta,
+        analysisColorRange.isAcceptableOrUnknown(
+          data['analysis_color_range']!,
+          _analysisColorRangeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_color_space')) {
+      context.handle(
+        _analysisColorSpaceMeta,
+        analysisColorSpace.isAcceptableOrUnknown(
+          data['analysis_color_space']!,
+          _analysisColorSpaceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_color_transfer')) {
+      context.handle(
+        _analysisColorTransferMeta,
+        analysisColorTransfer.isAcceptableOrUnknown(
+          data['analysis_color_transfer']!,
+          _analysisColorTransferMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_color_primaries')) {
+      context.handle(
+        _analysisColorPrimariesMeta,
+        analysisColorPrimaries.isAcceptableOrUnknown(
+          data['analysis_color_primaries']!,
+          _analysisColorPrimariesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_average_frame_rate')) {
+      context.handle(
+        _analysisAverageFrameRateMeta,
+        analysisAverageFrameRate.isAcceptableOrUnknown(
+          data['analysis_average_frame_rate']!,
+          _analysisAverageFrameRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_real_frame_rate')) {
+      context.handle(
+        _analysisRealFrameRateMeta,
+        analysisRealFrameRate.isAcceptableOrUnknown(
+          data['analysis_real_frame_rate']!,
+          _analysisRealFrameRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_sample_aspect_ratio')) {
+      context.handle(
+        _analysisSampleAspectRatioMeta,
+        analysisSampleAspectRatio.isAcceptableOrUnknown(
+          data['analysis_sample_aspect_ratio']!,
+          _analysisSampleAspectRatioMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_display_aspect_ratio')) {
+      context.handle(
+        _analysisDisplayAspectRatioMeta,
+        analysisDisplayAspectRatio.isAcceptableOrUnknown(
+          data['analysis_display_aspect_ratio']!,
+          _analysisDisplayAspectRatioMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_video_rotation_degrees')) {
+      context.handle(
+        _analysisVideoRotationDegreesMeta,
+        analysisVideoRotationDegrees.isAcceptableOrUnknown(
+          data['analysis_video_rotation_degrees']!,
+          _analysisVideoRotationDegreesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_field_order')) {
+      context.handle(
+        _analysisFieldOrderMeta,
+        analysisFieldOrder.isAcceptableOrUnknown(
+          data['analysis_field_order']!,
+          _analysisFieldOrderMeta,
+        ),
+      );
+    }
     if (data.containsKey('analysis_video_bitrate')) {
       context.handle(
         _analysisVideoBitrateMeta,
@@ -1583,6 +1846,15 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         analysisAudioSampleRate.isAcceptableOrUnknown(
           data['analysis_audio_sample_rate']!,
           _analysisAudioSampleRateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_audio_channel_layout')) {
+      context.handle(
+        _analysisAudioChannelLayoutMeta,
+        analysisAudioChannelLayout.isAcceptableOrUnknown(
+          data['analysis_audio_channel_layout']!,
+          _analysisAudioChannelLayoutMeta,
         ),
       );
     }
@@ -1816,6 +2088,54 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}analysis_audio_codec'],
       ),
+      analysisVideoPixelFormat: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_video_pixel_format'],
+      ),
+      analysisVideoBitDepth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_video_bit_depth'],
+      ),
+      analysisColorRange: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_color_range'],
+      ),
+      analysisColorSpace: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_color_space'],
+      ),
+      analysisColorTransfer: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_color_transfer'],
+      ),
+      analysisColorPrimaries: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_color_primaries'],
+      ),
+      analysisAverageFrameRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_average_frame_rate'],
+      ),
+      analysisRealFrameRate: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_real_frame_rate'],
+      ),
+      analysisSampleAspectRatio: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_sample_aspect_ratio'],
+      ),
+      analysisDisplayAspectRatio: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_display_aspect_ratio'],
+      ),
+      analysisVideoRotationDegrees: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_video_rotation_degrees'],
+      ),
+      analysisFieldOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_field_order'],
+      ),
       analysisVideoBitrate: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}analysis_video_bitrate'],
@@ -1843,6 +2163,10 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
       analysisAudioSampleRate: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}analysis_audio_sample_rate'],
+      ),
+      analysisAudioChannelLayout: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_audio_channel_layout'],
       ),
       analysisUpdatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -1940,6 +2264,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final int? analysisVideoHeight;
   final String? analysisVideoCodec;
   final String? analysisAudioCodec;
+  final String? analysisVideoPixelFormat;
+  final int? analysisVideoBitDepth;
+  final String? analysisColorRange;
+  final String? analysisColorSpace;
+  final String? analysisColorTransfer;
+  final String? analysisColorPrimaries;
+  final String? analysisAverageFrameRate;
+  final String? analysisRealFrameRate;
+  final String? analysisSampleAspectRatio;
+  final String? analysisDisplayAspectRatio;
+  final int? analysisVideoRotationDegrees;
+  final String? analysisFieldOrder;
   final int? analysisVideoBitrate;
   final int? analysisAudioBitrate;
   final int? analysisContainerBitrate;
@@ -1947,6 +2283,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String? analysisContainerFormat;
   final int? analysisAudioChannels;
   final int? analysisAudioSampleRate;
+  final String? analysisAudioChannelLayout;
   final int? analysisUpdatedAt;
   final String? analysisErrorMessage;
   final String outputFormat;
@@ -1982,6 +2319,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.analysisVideoHeight,
     this.analysisVideoCodec,
     this.analysisAudioCodec,
+    this.analysisVideoPixelFormat,
+    this.analysisVideoBitDepth,
+    this.analysisColorRange,
+    this.analysisColorSpace,
+    this.analysisColorTransfer,
+    this.analysisColorPrimaries,
+    this.analysisAverageFrameRate,
+    this.analysisRealFrameRate,
+    this.analysisSampleAspectRatio,
+    this.analysisDisplayAspectRatio,
+    this.analysisVideoRotationDegrees,
+    this.analysisFieldOrder,
     this.analysisVideoBitrate,
     this.analysisAudioBitrate,
     this.analysisContainerBitrate,
@@ -1989,6 +2338,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.analysisContainerFormat,
     this.analysisAudioChannels,
     this.analysisAudioSampleRate,
+    this.analysisAudioChannelLayout,
     this.analysisUpdatedAt,
     this.analysisErrorMessage,
     required this.outputFormat,
@@ -2045,6 +2395,54 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     if (!nullToAbsent || analysisAudioCodec != null) {
       map['analysis_audio_codec'] = Variable<String>(analysisAudioCodec);
     }
+    if (!nullToAbsent || analysisVideoPixelFormat != null) {
+      map['analysis_video_pixel_format'] = Variable<String>(
+        analysisVideoPixelFormat,
+      );
+    }
+    if (!nullToAbsent || analysisVideoBitDepth != null) {
+      map['analysis_video_bit_depth'] = Variable<int>(analysisVideoBitDepth);
+    }
+    if (!nullToAbsent || analysisColorRange != null) {
+      map['analysis_color_range'] = Variable<String>(analysisColorRange);
+    }
+    if (!nullToAbsent || analysisColorSpace != null) {
+      map['analysis_color_space'] = Variable<String>(analysisColorSpace);
+    }
+    if (!nullToAbsent || analysisColorTransfer != null) {
+      map['analysis_color_transfer'] = Variable<String>(analysisColorTransfer);
+    }
+    if (!nullToAbsent || analysisColorPrimaries != null) {
+      map['analysis_color_primaries'] = Variable<String>(
+        analysisColorPrimaries,
+      );
+    }
+    if (!nullToAbsent || analysisAverageFrameRate != null) {
+      map['analysis_average_frame_rate'] = Variable<String>(
+        analysisAverageFrameRate,
+      );
+    }
+    if (!nullToAbsent || analysisRealFrameRate != null) {
+      map['analysis_real_frame_rate'] = Variable<String>(analysisRealFrameRate);
+    }
+    if (!nullToAbsent || analysisSampleAspectRatio != null) {
+      map['analysis_sample_aspect_ratio'] = Variable<String>(
+        analysisSampleAspectRatio,
+      );
+    }
+    if (!nullToAbsent || analysisDisplayAspectRatio != null) {
+      map['analysis_display_aspect_ratio'] = Variable<String>(
+        analysisDisplayAspectRatio,
+      );
+    }
+    if (!nullToAbsent || analysisVideoRotationDegrees != null) {
+      map['analysis_video_rotation_degrees'] = Variable<int>(
+        analysisVideoRotationDegrees,
+      );
+    }
+    if (!nullToAbsent || analysisFieldOrder != null) {
+      map['analysis_field_order'] = Variable<String>(analysisFieldOrder);
+    }
     if (!nullToAbsent || analysisVideoBitrate != null) {
       map['analysis_video_bitrate'] = Variable<int>(analysisVideoBitrate);
     }
@@ -2072,6 +2470,11 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     if (!nullToAbsent || analysisAudioSampleRate != null) {
       map['analysis_audio_sample_rate'] = Variable<int>(
         analysisAudioSampleRate,
+      );
+    }
+    if (!nullToAbsent || analysisAudioChannelLayout != null) {
+      map['analysis_audio_channel_layout'] = Variable<String>(
+        analysisAudioChannelLayout,
       );
     }
     if (!nullToAbsent || analysisUpdatedAt != null) {
@@ -2147,6 +2550,45 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioCodec: analysisAudioCodec == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisAudioCodec),
+      analysisVideoPixelFormat: analysisVideoPixelFormat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisVideoPixelFormat),
+      analysisVideoBitDepth: analysisVideoBitDepth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisVideoBitDepth),
+      analysisColorRange: analysisColorRange == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisColorRange),
+      analysisColorSpace: analysisColorSpace == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisColorSpace),
+      analysisColorTransfer: analysisColorTransfer == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisColorTransfer),
+      analysisColorPrimaries: analysisColorPrimaries == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisColorPrimaries),
+      analysisAverageFrameRate: analysisAverageFrameRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisAverageFrameRate),
+      analysisRealFrameRate: analysisRealFrameRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisRealFrameRate),
+      analysisSampleAspectRatio:
+          analysisSampleAspectRatio == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisSampleAspectRatio),
+      analysisDisplayAspectRatio:
+          analysisDisplayAspectRatio == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisDisplayAspectRatio),
+      analysisVideoRotationDegrees:
+          analysisVideoRotationDegrees == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisVideoRotationDegrees),
+      analysisFieldOrder: analysisFieldOrder == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisFieldOrder),
       analysisVideoBitrate: analysisVideoBitrate == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisVideoBitrate),
@@ -2168,6 +2610,10 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioSampleRate: analysisAudioSampleRate == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisAudioSampleRate),
+      analysisAudioChannelLayout:
+          analysisAudioChannelLayout == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisAudioChannelLayout),
       analysisUpdatedAt: analysisUpdatedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisUpdatedAt),
@@ -2235,6 +2681,42 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioCodec: serializer.fromJson<String?>(
         json['analysisAudioCodec'],
       ),
+      analysisVideoPixelFormat: serializer.fromJson<String?>(
+        json['analysisVideoPixelFormat'],
+      ),
+      analysisVideoBitDepth: serializer.fromJson<int?>(
+        json['analysisVideoBitDepth'],
+      ),
+      analysisColorRange: serializer.fromJson<String?>(
+        json['analysisColorRange'],
+      ),
+      analysisColorSpace: serializer.fromJson<String?>(
+        json['analysisColorSpace'],
+      ),
+      analysisColorTransfer: serializer.fromJson<String?>(
+        json['analysisColorTransfer'],
+      ),
+      analysisColorPrimaries: serializer.fromJson<String?>(
+        json['analysisColorPrimaries'],
+      ),
+      analysisAverageFrameRate: serializer.fromJson<String?>(
+        json['analysisAverageFrameRate'],
+      ),
+      analysisRealFrameRate: serializer.fromJson<String?>(
+        json['analysisRealFrameRate'],
+      ),
+      analysisSampleAspectRatio: serializer.fromJson<String?>(
+        json['analysisSampleAspectRatio'],
+      ),
+      analysisDisplayAspectRatio: serializer.fromJson<String?>(
+        json['analysisDisplayAspectRatio'],
+      ),
+      analysisVideoRotationDegrees: serializer.fromJson<int?>(
+        json['analysisVideoRotationDegrees'],
+      ),
+      analysisFieldOrder: serializer.fromJson<String?>(
+        json['analysisFieldOrder'],
+      ),
       analysisVideoBitrate: serializer.fromJson<int?>(
         json['analysisVideoBitrate'],
       ),
@@ -2255,6 +2737,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       ),
       analysisAudioSampleRate: serializer.fromJson<int?>(
         json['analysisAudioSampleRate'],
+      ),
+      analysisAudioChannelLayout: serializer.fromJson<String?>(
+        json['analysisAudioChannelLayout'],
       ),
       analysisUpdatedAt: serializer.fromJson<int?>(json['analysisUpdatedAt']),
       analysisErrorMessage: serializer.fromJson<String?>(
@@ -2298,6 +2783,34 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'analysisVideoHeight': serializer.toJson<int?>(analysisVideoHeight),
       'analysisVideoCodec': serializer.toJson<String?>(analysisVideoCodec),
       'analysisAudioCodec': serializer.toJson<String?>(analysisAudioCodec),
+      'analysisVideoPixelFormat': serializer.toJson<String?>(
+        analysisVideoPixelFormat,
+      ),
+      'analysisVideoBitDepth': serializer.toJson<int?>(analysisVideoBitDepth),
+      'analysisColorRange': serializer.toJson<String?>(analysisColorRange),
+      'analysisColorSpace': serializer.toJson<String?>(analysisColorSpace),
+      'analysisColorTransfer': serializer.toJson<String?>(
+        analysisColorTransfer,
+      ),
+      'analysisColorPrimaries': serializer.toJson<String?>(
+        analysisColorPrimaries,
+      ),
+      'analysisAverageFrameRate': serializer.toJson<String?>(
+        analysisAverageFrameRate,
+      ),
+      'analysisRealFrameRate': serializer.toJson<String?>(
+        analysisRealFrameRate,
+      ),
+      'analysisSampleAspectRatio': serializer.toJson<String?>(
+        analysisSampleAspectRatio,
+      ),
+      'analysisDisplayAspectRatio': serializer.toJson<String?>(
+        analysisDisplayAspectRatio,
+      ),
+      'analysisVideoRotationDegrees': serializer.toJson<int?>(
+        analysisVideoRotationDegrees,
+      ),
+      'analysisFieldOrder': serializer.toJson<String?>(analysisFieldOrder),
       'analysisVideoBitrate': serializer.toJson<int?>(analysisVideoBitrate),
       'analysisAudioBitrate': serializer.toJson<int?>(analysisAudioBitrate),
       'analysisContainerBitrate': serializer.toJson<int?>(
@@ -2312,6 +2825,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'analysisAudioChannels': serializer.toJson<int?>(analysisAudioChannels),
       'analysisAudioSampleRate': serializer.toJson<int?>(
         analysisAudioSampleRate,
+      ),
+      'analysisAudioChannelLayout': serializer.toJson<String?>(
+        analysisAudioChannelLayout,
       ),
       'analysisUpdatedAt': serializer.toJson<int?>(analysisUpdatedAt),
       'analysisErrorMessage': serializer.toJson<String?>(analysisErrorMessage),
@@ -2351,6 +2867,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<int?> analysisVideoHeight = const Value.absent(),
     Value<String?> analysisVideoCodec = const Value.absent(),
     Value<String?> analysisAudioCodec = const Value.absent(),
+    Value<String?> analysisVideoPixelFormat = const Value.absent(),
+    Value<int?> analysisVideoBitDepth = const Value.absent(),
+    Value<String?> analysisColorRange = const Value.absent(),
+    Value<String?> analysisColorSpace = const Value.absent(),
+    Value<String?> analysisColorTransfer = const Value.absent(),
+    Value<String?> analysisColorPrimaries = const Value.absent(),
+    Value<String?> analysisAverageFrameRate = const Value.absent(),
+    Value<String?> analysisRealFrameRate = const Value.absent(),
+    Value<String?> analysisSampleAspectRatio = const Value.absent(),
+    Value<String?> analysisDisplayAspectRatio = const Value.absent(),
+    Value<int?> analysisVideoRotationDegrees = const Value.absent(),
+    Value<String?> analysisFieldOrder = const Value.absent(),
     Value<int?> analysisVideoBitrate = const Value.absent(),
     Value<int?> analysisAudioBitrate = const Value.absent(),
     Value<int?> analysisContainerBitrate = const Value.absent(),
@@ -2358,6 +2886,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<String?> analysisContainerFormat = const Value.absent(),
     Value<int?> analysisAudioChannels = const Value.absent(),
     Value<int?> analysisAudioSampleRate = const Value.absent(),
+    Value<String?> analysisAudioChannelLayout = const Value.absent(),
     Value<int?> analysisUpdatedAt = const Value.absent(),
     Value<String?> analysisErrorMessage = const Value.absent(),
     String? outputFormat,
@@ -2407,6 +2936,42 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioCodec: analysisAudioCodec.present
         ? analysisAudioCodec.value
         : this.analysisAudioCodec,
+    analysisVideoPixelFormat: analysisVideoPixelFormat.present
+        ? analysisVideoPixelFormat.value
+        : this.analysisVideoPixelFormat,
+    analysisVideoBitDepth: analysisVideoBitDepth.present
+        ? analysisVideoBitDepth.value
+        : this.analysisVideoBitDepth,
+    analysisColorRange: analysisColorRange.present
+        ? analysisColorRange.value
+        : this.analysisColorRange,
+    analysisColorSpace: analysisColorSpace.present
+        ? analysisColorSpace.value
+        : this.analysisColorSpace,
+    analysisColorTransfer: analysisColorTransfer.present
+        ? analysisColorTransfer.value
+        : this.analysisColorTransfer,
+    analysisColorPrimaries: analysisColorPrimaries.present
+        ? analysisColorPrimaries.value
+        : this.analysisColorPrimaries,
+    analysisAverageFrameRate: analysisAverageFrameRate.present
+        ? analysisAverageFrameRate.value
+        : this.analysisAverageFrameRate,
+    analysisRealFrameRate: analysisRealFrameRate.present
+        ? analysisRealFrameRate.value
+        : this.analysisRealFrameRate,
+    analysisSampleAspectRatio: analysisSampleAspectRatio.present
+        ? analysisSampleAspectRatio.value
+        : this.analysisSampleAspectRatio,
+    analysisDisplayAspectRatio: analysisDisplayAspectRatio.present
+        ? analysisDisplayAspectRatio.value
+        : this.analysisDisplayAspectRatio,
+    analysisVideoRotationDegrees: analysisVideoRotationDegrees.present
+        ? analysisVideoRotationDegrees.value
+        : this.analysisVideoRotationDegrees,
+    analysisFieldOrder: analysisFieldOrder.present
+        ? analysisFieldOrder.value
+        : this.analysisFieldOrder,
     analysisVideoBitrate: analysisVideoBitrate.present
         ? analysisVideoBitrate.value
         : this.analysisVideoBitrate,
@@ -2428,6 +2993,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioSampleRate: analysisAudioSampleRate.present
         ? analysisAudioSampleRate.value
         : this.analysisAudioSampleRate,
+    analysisAudioChannelLayout: analysisAudioChannelLayout.present
+        ? analysisAudioChannelLayout.value
+        : this.analysisAudioChannelLayout,
     analysisUpdatedAt: analysisUpdatedAt.present
         ? analysisUpdatedAt.value
         : this.analysisUpdatedAt,
@@ -2491,6 +3059,42 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioCodec: data.analysisAudioCodec.present
           ? data.analysisAudioCodec.value
           : this.analysisAudioCodec,
+      analysisVideoPixelFormat: data.analysisVideoPixelFormat.present
+          ? data.analysisVideoPixelFormat.value
+          : this.analysisVideoPixelFormat,
+      analysisVideoBitDepth: data.analysisVideoBitDepth.present
+          ? data.analysisVideoBitDepth.value
+          : this.analysisVideoBitDepth,
+      analysisColorRange: data.analysisColorRange.present
+          ? data.analysisColorRange.value
+          : this.analysisColorRange,
+      analysisColorSpace: data.analysisColorSpace.present
+          ? data.analysisColorSpace.value
+          : this.analysisColorSpace,
+      analysisColorTransfer: data.analysisColorTransfer.present
+          ? data.analysisColorTransfer.value
+          : this.analysisColorTransfer,
+      analysisColorPrimaries: data.analysisColorPrimaries.present
+          ? data.analysisColorPrimaries.value
+          : this.analysisColorPrimaries,
+      analysisAverageFrameRate: data.analysisAverageFrameRate.present
+          ? data.analysisAverageFrameRate.value
+          : this.analysisAverageFrameRate,
+      analysisRealFrameRate: data.analysisRealFrameRate.present
+          ? data.analysisRealFrameRate.value
+          : this.analysisRealFrameRate,
+      analysisSampleAspectRatio: data.analysisSampleAspectRatio.present
+          ? data.analysisSampleAspectRatio.value
+          : this.analysisSampleAspectRatio,
+      analysisDisplayAspectRatio: data.analysisDisplayAspectRatio.present
+          ? data.analysisDisplayAspectRatio.value
+          : this.analysisDisplayAspectRatio,
+      analysisVideoRotationDegrees: data.analysisVideoRotationDegrees.present
+          ? data.analysisVideoRotationDegrees.value
+          : this.analysisVideoRotationDegrees,
+      analysisFieldOrder: data.analysisFieldOrder.present
+          ? data.analysisFieldOrder.value
+          : this.analysisFieldOrder,
       analysisVideoBitrate: data.analysisVideoBitrate.present
           ? data.analysisVideoBitrate.value
           : this.analysisVideoBitrate,
@@ -2512,6 +3116,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioSampleRate: data.analysisAudioSampleRate.present
           ? data.analysisAudioSampleRate.value
           : this.analysisAudioSampleRate,
+      analysisAudioChannelLayout: data.analysisAudioChannelLayout.present
+          ? data.analysisAudioChannelLayout.value
+          : this.analysisAudioChannelLayout,
       analysisUpdatedAt: data.analysisUpdatedAt.present
           ? data.analysisUpdatedAt.value
           : this.analysisUpdatedAt,
@@ -2580,6 +3187,20 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('analysisVideoHeight: $analysisVideoHeight, ')
           ..write('analysisVideoCodec: $analysisVideoCodec, ')
           ..write('analysisAudioCodec: $analysisAudioCodec, ')
+          ..write('analysisVideoPixelFormat: $analysisVideoPixelFormat, ')
+          ..write('analysisVideoBitDepth: $analysisVideoBitDepth, ')
+          ..write('analysisColorRange: $analysisColorRange, ')
+          ..write('analysisColorSpace: $analysisColorSpace, ')
+          ..write('analysisColorTransfer: $analysisColorTransfer, ')
+          ..write('analysisColorPrimaries: $analysisColorPrimaries, ')
+          ..write('analysisAverageFrameRate: $analysisAverageFrameRate, ')
+          ..write('analysisRealFrameRate: $analysisRealFrameRate, ')
+          ..write('analysisSampleAspectRatio: $analysisSampleAspectRatio, ')
+          ..write('analysisDisplayAspectRatio: $analysisDisplayAspectRatio, ')
+          ..write(
+            'analysisVideoRotationDegrees: $analysisVideoRotationDegrees, ',
+          )
+          ..write('analysisFieldOrder: $analysisFieldOrder, ')
           ..write('analysisVideoBitrate: $analysisVideoBitrate, ')
           ..write('analysisAudioBitrate: $analysisAudioBitrate, ')
           ..write('analysisContainerBitrate: $analysisContainerBitrate, ')
@@ -2587,6 +3208,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('analysisContainerFormat: $analysisContainerFormat, ')
           ..write('analysisAudioChannels: $analysisAudioChannels, ')
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
+          ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
           ..write('analysisUpdatedAt: $analysisUpdatedAt, ')
           ..write('analysisErrorMessage: $analysisErrorMessage, ')
           ..write('outputFormat: $outputFormat, ')
@@ -2627,6 +3249,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisVideoHeight,
     analysisVideoCodec,
     analysisAudioCodec,
+    analysisVideoPixelFormat,
+    analysisVideoBitDepth,
+    analysisColorRange,
+    analysisColorSpace,
+    analysisColorTransfer,
+    analysisColorPrimaries,
+    analysisAverageFrameRate,
+    analysisRealFrameRate,
+    analysisSampleAspectRatio,
+    analysisDisplayAspectRatio,
+    analysisVideoRotationDegrees,
+    analysisFieldOrder,
     analysisVideoBitrate,
     analysisAudioBitrate,
     analysisContainerBitrate,
@@ -2634,6 +3268,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisContainerFormat,
     analysisAudioChannels,
     analysisAudioSampleRate,
+    analysisAudioChannelLayout,
     analysisUpdatedAt,
     analysisErrorMessage,
     outputFormat,
@@ -2673,6 +3308,19 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.analysisVideoHeight == this.analysisVideoHeight &&
           other.analysisVideoCodec == this.analysisVideoCodec &&
           other.analysisAudioCodec == this.analysisAudioCodec &&
+          other.analysisVideoPixelFormat == this.analysisVideoPixelFormat &&
+          other.analysisVideoBitDepth == this.analysisVideoBitDepth &&
+          other.analysisColorRange == this.analysisColorRange &&
+          other.analysisColorSpace == this.analysisColorSpace &&
+          other.analysisColorTransfer == this.analysisColorTransfer &&
+          other.analysisColorPrimaries == this.analysisColorPrimaries &&
+          other.analysisAverageFrameRate == this.analysisAverageFrameRate &&
+          other.analysisRealFrameRate == this.analysisRealFrameRate &&
+          other.analysisSampleAspectRatio == this.analysisSampleAspectRatio &&
+          other.analysisDisplayAspectRatio == this.analysisDisplayAspectRatio &&
+          other.analysisVideoRotationDegrees ==
+              this.analysisVideoRotationDegrees &&
+          other.analysisFieldOrder == this.analysisFieldOrder &&
           other.analysisVideoBitrate == this.analysisVideoBitrate &&
           other.analysisAudioBitrate == this.analysisAudioBitrate &&
           other.analysisContainerBitrate == this.analysisContainerBitrate &&
@@ -2680,6 +3328,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.analysisContainerFormat == this.analysisContainerFormat &&
           other.analysisAudioChannels == this.analysisAudioChannels &&
           other.analysisAudioSampleRate == this.analysisAudioSampleRate &&
+          other.analysisAudioChannelLayout == this.analysisAudioChannelLayout &&
           other.analysisUpdatedAt == this.analysisUpdatedAt &&
           other.analysisErrorMessage == this.analysisErrorMessage &&
           other.outputFormat == this.outputFormat &&
@@ -2717,6 +3366,18 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<int?> analysisVideoHeight;
   final Value<String?> analysisVideoCodec;
   final Value<String?> analysisAudioCodec;
+  final Value<String?> analysisVideoPixelFormat;
+  final Value<int?> analysisVideoBitDepth;
+  final Value<String?> analysisColorRange;
+  final Value<String?> analysisColorSpace;
+  final Value<String?> analysisColorTransfer;
+  final Value<String?> analysisColorPrimaries;
+  final Value<String?> analysisAverageFrameRate;
+  final Value<String?> analysisRealFrameRate;
+  final Value<String?> analysisSampleAspectRatio;
+  final Value<String?> analysisDisplayAspectRatio;
+  final Value<int?> analysisVideoRotationDegrees;
+  final Value<String?> analysisFieldOrder;
   final Value<int?> analysisVideoBitrate;
   final Value<int?> analysisAudioBitrate;
   final Value<int?> analysisContainerBitrate;
@@ -2724,6 +3385,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<String?> analysisContainerFormat;
   final Value<int?> analysisAudioChannels;
   final Value<int?> analysisAudioSampleRate;
+  final Value<String?> analysisAudioChannelLayout;
   final Value<int?> analysisUpdatedAt;
   final Value<String?> analysisErrorMessage;
   final Value<String> outputFormat;
@@ -2760,6 +3422,18 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisVideoHeight = const Value.absent(),
     this.analysisVideoCodec = const Value.absent(),
     this.analysisAudioCodec = const Value.absent(),
+    this.analysisVideoPixelFormat = const Value.absent(),
+    this.analysisVideoBitDepth = const Value.absent(),
+    this.analysisColorRange = const Value.absent(),
+    this.analysisColorSpace = const Value.absent(),
+    this.analysisColorTransfer = const Value.absent(),
+    this.analysisColorPrimaries = const Value.absent(),
+    this.analysisAverageFrameRate = const Value.absent(),
+    this.analysisRealFrameRate = const Value.absent(),
+    this.analysisSampleAspectRatio = const Value.absent(),
+    this.analysisDisplayAspectRatio = const Value.absent(),
+    this.analysisVideoRotationDegrees = const Value.absent(),
+    this.analysisFieldOrder = const Value.absent(),
     this.analysisVideoBitrate = const Value.absent(),
     this.analysisAudioBitrate = const Value.absent(),
     this.analysisContainerBitrate = const Value.absent(),
@@ -2767,6 +3441,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisContainerFormat = const Value.absent(),
     this.analysisAudioChannels = const Value.absent(),
     this.analysisAudioSampleRate = const Value.absent(),
+    this.analysisAudioChannelLayout = const Value.absent(),
     this.analysisUpdatedAt = const Value.absent(),
     this.analysisErrorMessage = const Value.absent(),
     this.outputFormat = const Value.absent(),
@@ -2804,6 +3479,18 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisVideoHeight = const Value.absent(),
     this.analysisVideoCodec = const Value.absent(),
     this.analysisAudioCodec = const Value.absent(),
+    this.analysisVideoPixelFormat = const Value.absent(),
+    this.analysisVideoBitDepth = const Value.absent(),
+    this.analysisColorRange = const Value.absent(),
+    this.analysisColorSpace = const Value.absent(),
+    this.analysisColorTransfer = const Value.absent(),
+    this.analysisColorPrimaries = const Value.absent(),
+    this.analysisAverageFrameRate = const Value.absent(),
+    this.analysisRealFrameRate = const Value.absent(),
+    this.analysisSampleAspectRatio = const Value.absent(),
+    this.analysisDisplayAspectRatio = const Value.absent(),
+    this.analysisVideoRotationDegrees = const Value.absent(),
+    this.analysisFieldOrder = const Value.absent(),
     this.analysisVideoBitrate = const Value.absent(),
     this.analysisAudioBitrate = const Value.absent(),
     this.analysisContainerBitrate = const Value.absent(),
@@ -2811,6 +3498,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisContainerFormat = const Value.absent(),
     this.analysisAudioChannels = const Value.absent(),
     this.analysisAudioSampleRate = const Value.absent(),
+    this.analysisAudioChannelLayout = const Value.absent(),
     this.analysisUpdatedAt = const Value.absent(),
     this.analysisErrorMessage = const Value.absent(),
     required String outputFormat,
@@ -2859,6 +3547,18 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<int>? analysisVideoHeight,
     Expression<String>? analysisVideoCodec,
     Expression<String>? analysisAudioCodec,
+    Expression<String>? analysisVideoPixelFormat,
+    Expression<int>? analysisVideoBitDepth,
+    Expression<String>? analysisColorRange,
+    Expression<String>? analysisColorSpace,
+    Expression<String>? analysisColorTransfer,
+    Expression<String>? analysisColorPrimaries,
+    Expression<String>? analysisAverageFrameRate,
+    Expression<String>? analysisRealFrameRate,
+    Expression<String>? analysisSampleAspectRatio,
+    Expression<String>? analysisDisplayAspectRatio,
+    Expression<int>? analysisVideoRotationDegrees,
+    Expression<String>? analysisFieldOrder,
     Expression<int>? analysisVideoBitrate,
     Expression<int>? analysisAudioBitrate,
     Expression<int>? analysisContainerBitrate,
@@ -2866,6 +3566,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? analysisContainerFormat,
     Expression<int>? analysisAudioChannels,
     Expression<int>? analysisAudioSampleRate,
+    Expression<String>? analysisAudioChannelLayout,
     Expression<int>? analysisUpdatedAt,
     Expression<String>? analysisErrorMessage,
     Expression<String>? outputFormat,
@@ -2909,6 +3610,30 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         'analysis_video_codec': analysisVideoCodec,
       if (analysisAudioCodec != null)
         'analysis_audio_codec': analysisAudioCodec,
+      if (analysisVideoPixelFormat != null)
+        'analysis_video_pixel_format': analysisVideoPixelFormat,
+      if (analysisVideoBitDepth != null)
+        'analysis_video_bit_depth': analysisVideoBitDepth,
+      if (analysisColorRange != null)
+        'analysis_color_range': analysisColorRange,
+      if (analysisColorSpace != null)
+        'analysis_color_space': analysisColorSpace,
+      if (analysisColorTransfer != null)
+        'analysis_color_transfer': analysisColorTransfer,
+      if (analysisColorPrimaries != null)
+        'analysis_color_primaries': analysisColorPrimaries,
+      if (analysisAverageFrameRate != null)
+        'analysis_average_frame_rate': analysisAverageFrameRate,
+      if (analysisRealFrameRate != null)
+        'analysis_real_frame_rate': analysisRealFrameRate,
+      if (analysisSampleAspectRatio != null)
+        'analysis_sample_aspect_ratio': analysisSampleAspectRatio,
+      if (analysisDisplayAspectRatio != null)
+        'analysis_display_aspect_ratio': analysisDisplayAspectRatio,
+      if (analysisVideoRotationDegrees != null)
+        'analysis_video_rotation_degrees': analysisVideoRotationDegrees,
+      if (analysisFieldOrder != null)
+        'analysis_field_order': analysisFieldOrder,
       if (analysisVideoBitrate != null)
         'analysis_video_bitrate': analysisVideoBitrate,
       if (analysisAudioBitrate != null)
@@ -2923,6 +3648,8 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         'analysis_audio_channels': analysisAudioChannels,
       if (analysisAudioSampleRate != null)
         'analysis_audio_sample_rate': analysisAudioSampleRate,
+      if (analysisAudioChannelLayout != null)
+        'analysis_audio_channel_layout': analysisAudioChannelLayout,
       if (analysisUpdatedAt != null) 'analysis_updated_at': analysisUpdatedAt,
       if (analysisErrorMessage != null)
         'analysis_error_message': analysisErrorMessage,
@@ -2963,6 +3690,18 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<int?>? analysisVideoHeight,
     Value<String?>? analysisVideoCodec,
     Value<String?>? analysisAudioCodec,
+    Value<String?>? analysisVideoPixelFormat,
+    Value<int?>? analysisVideoBitDepth,
+    Value<String?>? analysisColorRange,
+    Value<String?>? analysisColorSpace,
+    Value<String?>? analysisColorTransfer,
+    Value<String?>? analysisColorPrimaries,
+    Value<String?>? analysisAverageFrameRate,
+    Value<String?>? analysisRealFrameRate,
+    Value<String?>? analysisSampleAspectRatio,
+    Value<String?>? analysisDisplayAspectRatio,
+    Value<int?>? analysisVideoRotationDegrees,
+    Value<String?>? analysisFieldOrder,
     Value<int?>? analysisVideoBitrate,
     Value<int?>? analysisAudioBitrate,
     Value<int?>? analysisContainerBitrate,
@@ -2970,6 +3709,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<String?>? analysisContainerFormat,
     Value<int?>? analysisAudioChannels,
     Value<int?>? analysisAudioSampleRate,
+    Value<String?>? analysisAudioChannelLayout,
     Value<int?>? analysisUpdatedAt,
     Value<String?>? analysisErrorMessage,
     Value<String>? outputFormat,
@@ -3007,6 +3747,27 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       analysisVideoHeight: analysisVideoHeight ?? this.analysisVideoHeight,
       analysisVideoCodec: analysisVideoCodec ?? this.analysisVideoCodec,
       analysisAudioCodec: analysisAudioCodec ?? this.analysisAudioCodec,
+      analysisVideoPixelFormat:
+          analysisVideoPixelFormat ?? this.analysisVideoPixelFormat,
+      analysisVideoBitDepth:
+          analysisVideoBitDepth ?? this.analysisVideoBitDepth,
+      analysisColorRange: analysisColorRange ?? this.analysisColorRange,
+      analysisColorSpace: analysisColorSpace ?? this.analysisColorSpace,
+      analysisColorTransfer:
+          analysisColorTransfer ?? this.analysisColorTransfer,
+      analysisColorPrimaries:
+          analysisColorPrimaries ?? this.analysisColorPrimaries,
+      analysisAverageFrameRate:
+          analysisAverageFrameRate ?? this.analysisAverageFrameRate,
+      analysisRealFrameRate:
+          analysisRealFrameRate ?? this.analysisRealFrameRate,
+      analysisSampleAspectRatio:
+          analysisSampleAspectRatio ?? this.analysisSampleAspectRatio,
+      analysisDisplayAspectRatio:
+          analysisDisplayAspectRatio ?? this.analysisDisplayAspectRatio,
+      analysisVideoRotationDegrees:
+          analysisVideoRotationDegrees ?? this.analysisVideoRotationDegrees,
+      analysisFieldOrder: analysisFieldOrder ?? this.analysisFieldOrder,
       analysisVideoBitrate: analysisVideoBitrate ?? this.analysisVideoBitrate,
       analysisAudioBitrate: analysisAudioBitrate ?? this.analysisAudioBitrate,
       analysisContainerBitrate:
@@ -3019,6 +3780,8 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           analysisAudioChannels ?? this.analysisAudioChannels,
       analysisAudioSampleRate:
           analysisAudioSampleRate ?? this.analysisAudioSampleRate,
+      analysisAudioChannelLayout:
+          analysisAudioChannelLayout ?? this.analysisAudioChannelLayout,
       analysisUpdatedAt: analysisUpdatedAt ?? this.analysisUpdatedAt,
       analysisErrorMessage: analysisErrorMessage ?? this.analysisErrorMessage,
       outputFormat: outputFormat ?? this.outputFormat,
@@ -3096,6 +3859,60 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     if (analysisAudioCodec.present) {
       map['analysis_audio_codec'] = Variable<String>(analysisAudioCodec.value);
     }
+    if (analysisVideoPixelFormat.present) {
+      map['analysis_video_pixel_format'] = Variable<String>(
+        analysisVideoPixelFormat.value,
+      );
+    }
+    if (analysisVideoBitDepth.present) {
+      map['analysis_video_bit_depth'] = Variable<int>(
+        analysisVideoBitDepth.value,
+      );
+    }
+    if (analysisColorRange.present) {
+      map['analysis_color_range'] = Variable<String>(analysisColorRange.value);
+    }
+    if (analysisColorSpace.present) {
+      map['analysis_color_space'] = Variable<String>(analysisColorSpace.value);
+    }
+    if (analysisColorTransfer.present) {
+      map['analysis_color_transfer'] = Variable<String>(
+        analysisColorTransfer.value,
+      );
+    }
+    if (analysisColorPrimaries.present) {
+      map['analysis_color_primaries'] = Variable<String>(
+        analysisColorPrimaries.value,
+      );
+    }
+    if (analysisAverageFrameRate.present) {
+      map['analysis_average_frame_rate'] = Variable<String>(
+        analysisAverageFrameRate.value,
+      );
+    }
+    if (analysisRealFrameRate.present) {
+      map['analysis_real_frame_rate'] = Variable<String>(
+        analysisRealFrameRate.value,
+      );
+    }
+    if (analysisSampleAspectRatio.present) {
+      map['analysis_sample_aspect_ratio'] = Variable<String>(
+        analysisSampleAspectRatio.value,
+      );
+    }
+    if (analysisDisplayAspectRatio.present) {
+      map['analysis_display_aspect_ratio'] = Variable<String>(
+        analysisDisplayAspectRatio.value,
+      );
+    }
+    if (analysisVideoRotationDegrees.present) {
+      map['analysis_video_rotation_degrees'] = Variable<int>(
+        analysisVideoRotationDegrees.value,
+      );
+    }
+    if (analysisFieldOrder.present) {
+      map['analysis_field_order'] = Variable<String>(analysisFieldOrder.value);
+    }
     if (analysisVideoBitrate.present) {
       map['analysis_video_bitrate'] = Variable<int>(analysisVideoBitrate.value);
     }
@@ -3125,6 +3942,11 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     if (analysisAudioSampleRate.present) {
       map['analysis_audio_sample_rate'] = Variable<int>(
         analysisAudioSampleRate.value,
+      );
+    }
+    if (analysisAudioChannelLayout.present) {
+      map['analysis_audio_channel_layout'] = Variable<String>(
+        analysisAudioChannelLayout.value,
       );
     }
     if (analysisUpdatedAt.present) {
@@ -3206,6 +4028,20 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('analysisVideoHeight: $analysisVideoHeight, ')
           ..write('analysisVideoCodec: $analysisVideoCodec, ')
           ..write('analysisAudioCodec: $analysisAudioCodec, ')
+          ..write('analysisVideoPixelFormat: $analysisVideoPixelFormat, ')
+          ..write('analysisVideoBitDepth: $analysisVideoBitDepth, ')
+          ..write('analysisColorRange: $analysisColorRange, ')
+          ..write('analysisColorSpace: $analysisColorSpace, ')
+          ..write('analysisColorTransfer: $analysisColorTransfer, ')
+          ..write('analysisColorPrimaries: $analysisColorPrimaries, ')
+          ..write('analysisAverageFrameRate: $analysisAverageFrameRate, ')
+          ..write('analysisRealFrameRate: $analysisRealFrameRate, ')
+          ..write('analysisSampleAspectRatio: $analysisSampleAspectRatio, ')
+          ..write('analysisDisplayAspectRatio: $analysisDisplayAspectRatio, ')
+          ..write(
+            'analysisVideoRotationDegrees: $analysisVideoRotationDegrees, ',
+          )
+          ..write('analysisFieldOrder: $analysisFieldOrder, ')
           ..write('analysisVideoBitrate: $analysisVideoBitrate, ')
           ..write('analysisAudioBitrate: $analysisAudioBitrate, ')
           ..write('analysisContainerBitrate: $analysisContainerBitrate, ')
@@ -3213,6 +4049,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('analysisContainerFormat: $analysisContainerFormat, ')
           ..write('analysisAudioChannels: $analysisAudioChannels, ')
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
+          ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
           ..write('analysisUpdatedAt: $analysisUpdatedAt, ')
           ..write('analysisErrorMessage: $analysisErrorMessage, ')
           ..write('outputFormat: $outputFormat, ')
@@ -3643,6 +4480,18 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<int?> analysisVideoHeight,
       Value<String?> analysisVideoCodec,
       Value<String?> analysisAudioCodec,
+      Value<String?> analysisVideoPixelFormat,
+      Value<int?> analysisVideoBitDepth,
+      Value<String?> analysisColorRange,
+      Value<String?> analysisColorSpace,
+      Value<String?> analysisColorTransfer,
+      Value<String?> analysisColorPrimaries,
+      Value<String?> analysisAverageFrameRate,
+      Value<String?> analysisRealFrameRate,
+      Value<String?> analysisSampleAspectRatio,
+      Value<String?> analysisDisplayAspectRatio,
+      Value<int?> analysisVideoRotationDegrees,
+      Value<String?> analysisFieldOrder,
       Value<int?> analysisVideoBitrate,
       Value<int?> analysisAudioBitrate,
       Value<int?> analysisContainerBitrate,
@@ -3650,6 +4499,7 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<String?> analysisContainerFormat,
       Value<int?> analysisAudioChannels,
       Value<int?> analysisAudioSampleRate,
+      Value<String?> analysisAudioChannelLayout,
       Value<int?> analysisUpdatedAt,
       Value<String?> analysisErrorMessage,
       required String outputFormat,
@@ -3688,6 +4538,18 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<int?> analysisVideoHeight,
       Value<String?> analysisVideoCodec,
       Value<String?> analysisAudioCodec,
+      Value<String?> analysisVideoPixelFormat,
+      Value<int?> analysisVideoBitDepth,
+      Value<String?> analysisColorRange,
+      Value<String?> analysisColorSpace,
+      Value<String?> analysisColorTransfer,
+      Value<String?> analysisColorPrimaries,
+      Value<String?> analysisAverageFrameRate,
+      Value<String?> analysisRealFrameRate,
+      Value<String?> analysisSampleAspectRatio,
+      Value<String?> analysisDisplayAspectRatio,
+      Value<int?> analysisVideoRotationDegrees,
+      Value<String?> analysisFieldOrder,
       Value<int?> analysisVideoBitrate,
       Value<int?> analysisAudioBitrate,
       Value<int?> analysisContainerBitrate,
@@ -3695,6 +4557,7 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<String?> analysisContainerFormat,
       Value<int?> analysisAudioChannels,
       Value<int?> analysisAudioSampleRate,
+      Value<String?> analysisAudioChannelLayout,
       Value<int?> analysisUpdatedAt,
       Value<String?> analysisErrorMessage,
       Value<String> outputFormat,
@@ -3809,6 +4672,66 @@ class $$TaskRowsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get analysisVideoPixelFormat => $composableBuilder(
+    column: $table.analysisVideoPixelFormat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisVideoBitDepth => $composableBuilder(
+    column: $table.analysisVideoBitDepth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisColorRange => $composableBuilder(
+    column: $table.analysisColorRange,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisColorSpace => $composableBuilder(
+    column: $table.analysisColorSpace,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisColorTransfer => $composableBuilder(
+    column: $table.analysisColorTransfer,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisColorPrimaries => $composableBuilder(
+    column: $table.analysisColorPrimaries,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisAverageFrameRate => $composableBuilder(
+    column: $table.analysisAverageFrameRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisRealFrameRate => $composableBuilder(
+    column: $table.analysisRealFrameRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisSampleAspectRatio => $composableBuilder(
+    column: $table.analysisSampleAspectRatio,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisDisplayAspectRatio => $composableBuilder(
+    column: $table.analysisDisplayAspectRatio,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisVideoRotationDegrees => $composableBuilder(
+    column: $table.analysisVideoRotationDegrees,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisFieldOrder => $composableBuilder(
+    column: $table.analysisFieldOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<int> get analysisVideoBitrate => $composableBuilder(
     column: $table.analysisVideoBitrate,
     builder: (column) => ColumnFilters(column),
@@ -3841,6 +4764,11 @@ class $$TaskRowsTableFilterComposer
 
   ColumnFilters<int> get analysisAudioSampleRate => $composableBuilder(
     column: $table.analysisAudioSampleRate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisAudioChannelLayout => $composableBuilder(
+    column: $table.analysisAudioChannelLayout,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4024,6 +4952,66 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get analysisVideoPixelFormat => $composableBuilder(
+    column: $table.analysisVideoPixelFormat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisVideoBitDepth => $composableBuilder(
+    column: $table.analysisVideoBitDepth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisColorRange => $composableBuilder(
+    column: $table.analysisColorRange,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisColorSpace => $composableBuilder(
+    column: $table.analysisColorSpace,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisColorTransfer => $composableBuilder(
+    column: $table.analysisColorTransfer,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisColorPrimaries => $composableBuilder(
+    column: $table.analysisColorPrimaries,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisAverageFrameRate => $composableBuilder(
+    column: $table.analysisAverageFrameRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisRealFrameRate => $composableBuilder(
+    column: $table.analysisRealFrameRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisSampleAspectRatio => $composableBuilder(
+    column: $table.analysisSampleAspectRatio,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisDisplayAspectRatio => $composableBuilder(
+    column: $table.analysisDisplayAspectRatio,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisVideoRotationDegrees => $composableBuilder(
+    column: $table.analysisVideoRotationDegrees,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisFieldOrder => $composableBuilder(
+    column: $table.analysisFieldOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get analysisVideoBitrate => $composableBuilder(
     column: $table.analysisVideoBitrate,
     builder: (column) => ColumnOrderings(column),
@@ -4056,6 +5044,11 @@ class $$TaskRowsTableOrderingComposer
 
   ColumnOrderings<int> get analysisAudioSampleRate => $composableBuilder(
     column: $table.analysisAudioSampleRate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisAudioChannelLayout => $composableBuilder(
+    column: $table.analysisAudioChannelLayout,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -4223,6 +5216,66 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get analysisVideoPixelFormat => $composableBuilder(
+    column: $table.analysisVideoPixelFormat,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisVideoBitDepth => $composableBuilder(
+    column: $table.analysisVideoBitDepth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisColorRange => $composableBuilder(
+    column: $table.analysisColorRange,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisColorSpace => $composableBuilder(
+    column: $table.analysisColorSpace,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisColorTransfer => $composableBuilder(
+    column: $table.analysisColorTransfer,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisColorPrimaries => $composableBuilder(
+    column: $table.analysisColorPrimaries,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisAverageFrameRate => $composableBuilder(
+    column: $table.analysisAverageFrameRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisRealFrameRate => $composableBuilder(
+    column: $table.analysisRealFrameRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisSampleAspectRatio => $composableBuilder(
+    column: $table.analysisSampleAspectRatio,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisDisplayAspectRatio => $composableBuilder(
+    column: $table.analysisDisplayAspectRatio,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisVideoRotationDegrees => $composableBuilder(
+    column: $table.analysisVideoRotationDegrees,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisFieldOrder => $composableBuilder(
+    column: $table.analysisFieldOrder,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get analysisVideoBitrate => $composableBuilder(
     column: $table.analysisVideoBitrate,
     builder: (column) => column,
@@ -4255,6 +5308,11 @@ class $$TaskRowsTableAnnotationComposer
 
   GeneratedColumn<int> get analysisAudioSampleRate => $composableBuilder(
     column: $table.analysisAudioSampleRate,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisAudioChannelLayout => $composableBuilder(
+    column: $table.analysisAudioChannelLayout,
     builder: (column) => column,
   );
 
@@ -4383,6 +5441,19 @@ class $$TaskRowsTableTableManager
                 Value<int?> analysisVideoHeight = const Value.absent(),
                 Value<String?> analysisVideoCodec = const Value.absent(),
                 Value<String?> analysisAudioCodec = const Value.absent(),
+                Value<String?> analysisVideoPixelFormat = const Value.absent(),
+                Value<int?> analysisVideoBitDepth = const Value.absent(),
+                Value<String?> analysisColorRange = const Value.absent(),
+                Value<String?> analysisColorSpace = const Value.absent(),
+                Value<String?> analysisColorTransfer = const Value.absent(),
+                Value<String?> analysisColorPrimaries = const Value.absent(),
+                Value<String?> analysisAverageFrameRate = const Value.absent(),
+                Value<String?> analysisRealFrameRate = const Value.absent(),
+                Value<String?> analysisSampleAspectRatio = const Value.absent(),
+                Value<String?> analysisDisplayAspectRatio =
+                    const Value.absent(),
+                Value<int?> analysisVideoRotationDegrees = const Value.absent(),
+                Value<String?> analysisFieldOrder = const Value.absent(),
                 Value<int?> analysisVideoBitrate = const Value.absent(),
                 Value<int?> analysisAudioBitrate = const Value.absent(),
                 Value<int?> analysisContainerBitrate = const Value.absent(),
@@ -4390,6 +5461,8 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisContainerFormat = const Value.absent(),
                 Value<int?> analysisAudioChannels = const Value.absent(),
                 Value<int?> analysisAudioSampleRate = const Value.absent(),
+                Value<String?> analysisAudioChannelLayout =
+                    const Value.absent(),
                 Value<int?> analysisUpdatedAt = const Value.absent(),
                 Value<String?> analysisErrorMessage = const Value.absent(),
                 Value<String> outputFormat = const Value.absent(),
@@ -4426,6 +5499,18 @@ class $$TaskRowsTableTableManager
                 analysisVideoHeight: analysisVideoHeight,
                 analysisVideoCodec: analysisVideoCodec,
                 analysisAudioCodec: analysisAudioCodec,
+                analysisVideoPixelFormat: analysisVideoPixelFormat,
+                analysisVideoBitDepth: analysisVideoBitDepth,
+                analysisColorRange: analysisColorRange,
+                analysisColorSpace: analysisColorSpace,
+                analysisColorTransfer: analysisColorTransfer,
+                analysisColorPrimaries: analysisColorPrimaries,
+                analysisAverageFrameRate: analysisAverageFrameRate,
+                analysisRealFrameRate: analysisRealFrameRate,
+                analysisSampleAspectRatio: analysisSampleAspectRatio,
+                analysisDisplayAspectRatio: analysisDisplayAspectRatio,
+                analysisVideoRotationDegrees: analysisVideoRotationDegrees,
+                analysisFieldOrder: analysisFieldOrder,
                 analysisVideoBitrate: analysisVideoBitrate,
                 analysisAudioBitrate: analysisAudioBitrate,
                 analysisContainerBitrate: analysisContainerBitrate,
@@ -4433,6 +5518,7 @@ class $$TaskRowsTableTableManager
                 analysisContainerFormat: analysisContainerFormat,
                 analysisAudioChannels: analysisAudioChannels,
                 analysisAudioSampleRate: analysisAudioSampleRate,
+                analysisAudioChannelLayout: analysisAudioChannelLayout,
                 analysisUpdatedAt: analysisUpdatedAt,
                 analysisErrorMessage: analysisErrorMessage,
                 outputFormat: outputFormat,
@@ -4471,6 +5557,19 @@ class $$TaskRowsTableTableManager
                 Value<int?> analysisVideoHeight = const Value.absent(),
                 Value<String?> analysisVideoCodec = const Value.absent(),
                 Value<String?> analysisAudioCodec = const Value.absent(),
+                Value<String?> analysisVideoPixelFormat = const Value.absent(),
+                Value<int?> analysisVideoBitDepth = const Value.absent(),
+                Value<String?> analysisColorRange = const Value.absent(),
+                Value<String?> analysisColorSpace = const Value.absent(),
+                Value<String?> analysisColorTransfer = const Value.absent(),
+                Value<String?> analysisColorPrimaries = const Value.absent(),
+                Value<String?> analysisAverageFrameRate = const Value.absent(),
+                Value<String?> analysisRealFrameRate = const Value.absent(),
+                Value<String?> analysisSampleAspectRatio = const Value.absent(),
+                Value<String?> analysisDisplayAspectRatio =
+                    const Value.absent(),
+                Value<int?> analysisVideoRotationDegrees = const Value.absent(),
+                Value<String?> analysisFieldOrder = const Value.absent(),
                 Value<int?> analysisVideoBitrate = const Value.absent(),
                 Value<int?> analysisAudioBitrate = const Value.absent(),
                 Value<int?> analysisContainerBitrate = const Value.absent(),
@@ -4478,6 +5577,8 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisContainerFormat = const Value.absent(),
                 Value<int?> analysisAudioChannels = const Value.absent(),
                 Value<int?> analysisAudioSampleRate = const Value.absent(),
+                Value<String?> analysisAudioChannelLayout =
+                    const Value.absent(),
                 Value<int?> analysisUpdatedAt = const Value.absent(),
                 Value<String?> analysisErrorMessage = const Value.absent(),
                 required String outputFormat,
@@ -4514,6 +5615,18 @@ class $$TaskRowsTableTableManager
                 analysisVideoHeight: analysisVideoHeight,
                 analysisVideoCodec: analysisVideoCodec,
                 analysisAudioCodec: analysisAudioCodec,
+                analysisVideoPixelFormat: analysisVideoPixelFormat,
+                analysisVideoBitDepth: analysisVideoBitDepth,
+                analysisColorRange: analysisColorRange,
+                analysisColorSpace: analysisColorSpace,
+                analysisColorTransfer: analysisColorTransfer,
+                analysisColorPrimaries: analysisColorPrimaries,
+                analysisAverageFrameRate: analysisAverageFrameRate,
+                analysisRealFrameRate: analysisRealFrameRate,
+                analysisSampleAspectRatio: analysisSampleAspectRatio,
+                analysisDisplayAspectRatio: analysisDisplayAspectRatio,
+                analysisVideoRotationDegrees: analysisVideoRotationDegrees,
+                analysisFieldOrder: analysisFieldOrder,
                 analysisVideoBitrate: analysisVideoBitrate,
                 analysisAudioBitrate: analysisAudioBitrate,
                 analysisContainerBitrate: analysisContainerBitrate,
@@ -4521,6 +5634,7 @@ class $$TaskRowsTableTableManager
                 analysisContainerFormat: analysisContainerFormat,
                 analysisAudioChannels: analysisAudioChannels,
                 analysisAudioSampleRate: analysisAudioSampleRate,
+                analysisAudioChannelLayout: analysisAudioChannelLayout,
                 analysisUpdatedAt: analysisUpdatedAt,
                 analysisErrorMessage: analysisErrorMessage,
                 outputFormat: outputFormat,
