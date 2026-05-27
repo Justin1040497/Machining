@@ -91,6 +91,18 @@ extension MediaTaskMapper on MediaTask {
       analysisVideoHeight: Value(analysisResult?.videoHeight),
       analysisVideoCodec: Value(analysisResult?.videoCodec),
       analysisAudioCodec: Value(analysisResult?.audioCodec),
+      analysisVideoPixelFormat: Value(analysisResult?.videoPixelFormat),
+      analysisVideoBitDepth: Value(analysisResult?.videoBitDepth),
+      analysisColorRange: Value(analysisResult?.colorRange),
+      analysisColorSpace: Value(analysisResult?.colorSpace),
+      analysisColorTransfer: Value(analysisResult?.colorTransfer),
+      analysisColorPrimaries: Value(analysisResult?.colorPrimaries),
+      analysisAverageFrameRate: Value(analysisResult?.averageFrameRate),
+      analysisRealFrameRate: Value(analysisResult?.realFrameRate),
+      analysisSampleAspectRatio: Value(analysisResult?.sampleAspectRatio),
+      analysisDisplayAspectRatio: Value(analysisResult?.displayAspectRatio),
+      analysisVideoRotationDegrees: Value(analysisResult?.videoRotationDegrees),
+      analysisFieldOrder: Value(analysisResult?.fieldOrder),
       analysisVideoBitrate: Value(analysisResult?.videoBitrate),
       analysisAudioBitrate: Value(analysisResult?.audioBitrate),
       analysisContainerBitrate: Value(analysisResult?.containerBitrate),
@@ -98,6 +110,7 @@ extension MediaTaskMapper on MediaTask {
       analysisContainerFormat: Value(analysisResult?.containerFormat),
       analysisAudioChannels: Value(analysisResult?.audioChannels),
       analysisAudioSampleRate: Value(analysisResult?.audioSampleRate),
+      analysisAudioChannelLayout: Value(analysisResult?.audioChannelLayout),
       analysisUpdatedAt: Value(analysisUpdatedAt),
       analysisErrorMessage: Value(analysisErrorMessage),
       outputFormat: Value(config.outputFormat.name),
@@ -183,13 +196,26 @@ extension TaskRowMapper on TaskRow {
         analysisVideoHeight != null ||
         analysisVideoCodec != null ||
         analysisAudioCodec != null ||
+        analysisVideoPixelFormat != null ||
+        analysisVideoBitDepth != null ||
+        analysisColorRange != null ||
+        analysisColorSpace != null ||
+        analysisColorTransfer != null ||
+        analysisColorPrimaries != null ||
+        analysisAverageFrameRate != null ||
+        analysisRealFrameRate != null ||
+        analysisSampleAspectRatio != null ||
+        analysisDisplayAspectRatio != null ||
+        analysisVideoRotationDegrees != null ||
+        analysisFieldOrder != null ||
         analysisVideoBitrate != null ||
         analysisAudioBitrate != null ||
         analysisContainerBitrate != null ||
         analysisEstimatedBitrate != null ||
         analysisContainerFormat != null ||
         analysisAudioChannels != null ||
-        analysisAudioSampleRate != null;
+        analysisAudioSampleRate != null ||
+        analysisAudioChannelLayout != null;
 
     if (!hasAnalysis) {
       return null;
@@ -201,6 +227,18 @@ extension TaskRowMapper on TaskRow {
       videoHeight: analysisVideoHeight,
       videoCodec: analysisVideoCodec,
       audioCodec: analysisAudioCodec,
+      videoPixelFormat: analysisVideoPixelFormat,
+      videoBitDepth: analysisVideoBitDepth,
+      colorRange: analysisColorRange,
+      colorSpace: analysisColorSpace,
+      colorTransfer: analysisColorTransfer,
+      colorPrimaries: analysisColorPrimaries,
+      averageFrameRate: analysisAverageFrameRate,
+      realFrameRate: analysisRealFrameRate,
+      sampleAspectRatio: analysisSampleAspectRatio,
+      displayAspectRatio: analysisDisplayAspectRatio,
+      videoRotationDegrees: analysisVideoRotationDegrees,
+      fieldOrder: analysisFieldOrder,
       videoBitrate: analysisVideoBitrate,
       audioBitrate: analysisAudioBitrate,
       containerBitrate: analysisContainerBitrate,
@@ -208,6 +246,7 @@ extension TaskRowMapper on TaskRow {
       containerFormat: analysisContainerFormat,
       audioChannels: analysisAudioChannels,
       audioSampleRate: analysisAudioSampleRate,
+      audioChannelLayout: analysisAudioChannelLayout,
     );
   }
 }

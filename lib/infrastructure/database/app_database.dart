@@ -17,7 +17,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -87,6 +87,33 @@ class AppDatabase extends _$AppDatabase {
             "'${PersistenceCompatibility.legacyCompressionModeSmart}', "
             "'${PersistenceCompatibility.legacyCompressionModeQuality}'"
             ")",
+          );
+        }
+        if (from < 12) {
+          await migrator.addColumn(taskRows, taskRows.analysisVideoPixelFormat);
+          await migrator.addColumn(taskRows, taskRows.analysisVideoBitDepth);
+          await migrator.addColumn(taskRows, taskRows.analysisColorRange);
+          await migrator.addColumn(taskRows, taskRows.analysisColorSpace);
+          await migrator.addColumn(taskRows, taskRows.analysisColorTransfer);
+          await migrator.addColumn(taskRows, taskRows.analysisColorPrimaries);
+          await migrator.addColumn(taskRows, taskRows.analysisAverageFrameRate);
+          await migrator.addColumn(taskRows, taskRows.analysisRealFrameRate);
+          await migrator.addColumn(
+            taskRows,
+            taskRows.analysisSampleAspectRatio,
+          );
+          await migrator.addColumn(
+            taskRows,
+            taskRows.analysisDisplayAspectRatio,
+          );
+          await migrator.addColumn(
+            taskRows,
+            taskRows.analysisVideoRotationDegrees,
+          );
+          await migrator.addColumn(taskRows, taskRows.analysisFieldOrder);
+          await migrator.addColumn(
+            taskRows,
+            taskRows.analysisAudioChannelLayout,
           );
         }
       },

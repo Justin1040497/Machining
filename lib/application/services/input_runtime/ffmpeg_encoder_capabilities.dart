@@ -3,7 +3,7 @@ import 'package:framelean/domain/enums/video_codec.dart';
 
 class FfmpegEncoderCapabilities {
   static const softwareOnly = FfmpegEncoderCapabilities(
-    encoderNames: {'libx264', 'libx265'},
+    encoderNames: {'libx264', 'libx265', 'aac'},
     autoBackendPriority: [],
   );
 
@@ -40,6 +40,12 @@ class FfmpegEncoderCapabilities {
       }
     }
 
+    for (final encoderName in knownAudioEncoderNames) {
+      if (encoderOutputContainsName(output, encoderName)) {
+        names.add(encoderName);
+      }
+    }
+
     return FfmpegEncoderCapabilities(
       encoderNames: names,
       autoBackendPriority: autoBackendPriority,
@@ -55,6 +61,8 @@ class FfmpegEncoderCapabilities {
 
   static const knownSoftwareEncoderNames = <String>{'libx264', 'libx265'};
 
+  static const knownAudioEncoderNames = <String>{'aac', 'aac_at'};
+
   static const knownHardwareEncoderNames = <String>{
     'h264_videotoolbox',
     'hevc_videotoolbox',
@@ -69,15 +77,21 @@ class FfmpegEncoderCapabilities {
   static const knownEncoderNames = <String>{
     ...knownSoftwareEncoderNames,
     ...knownHardwareEncoderNames,
+    ...knownAudioEncoderNames,
   };
 
   factory FfmpegEncoderCapabilities.assumeBundledFallback({
     required List<EncoderBackend> autoBackendPriority,
   }) {
     return FfmpegEncoderCapabilities(
-      encoderNames: const {'libx264'},
+      encoderNames: const {'libx264', 'aac'},
       autoBackendPriority: autoBackendPriority,
     );
+  }
+
+  bool supportsAudioEncoder(String encoderName) {
+    return knownAudioEncoderNames.contains(encoderName) &&
+        encoderNames.contains(encoderName);
   }
 
   String resolveEncoderName({

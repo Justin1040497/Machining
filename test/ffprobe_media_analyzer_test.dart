@@ -14,6 +14,10 @@ void main() {
       expect(arguments, isNot(contains('-show_streams')));
       expect(arguments.join(' '), contains('format=duration,bit_rate'));
       expect(arguments.join(' '), contains('stream=codec_type,codec_name'));
+      expect(arguments.join(' '), contains('pix_fmt'));
+      expect(arguments.join(' '), contains('color_transfer'));
+      expect(arguments.join(' '), contains('avg_frame_rate'));
+      expect(arguments.join(' '), contains('stream_tags=rotate'));
       expect(arguments.last, inputPath);
     });
 
@@ -29,13 +33,46 @@ void main() {
             'width': 1920,
             'height': 1080,
             'bit_rate': '900000',
+            'pix_fmt': 'yuv420p10le',
+            'color_range': 'tv',
+            'color_space': 'bt709',
+            'color_transfer': 'bt709',
+            'color_primaries': 'bt709',
+            'avg_frame_rate': '30000/1001',
+            'r_frame_rate': '30000/1001',
+            'sample_aspect_ratio': '1:1',
+            'display_aspect_ratio': '16:9',
+            'field_order': 'progressive',
+            'tags': {'rotate': '90'},
           },
-          {'codec_type': 'audio', 'codec_name': 'aac', 'bit_rate': '128000'},
+          {
+            'codec_type': 'audio',
+            'codec_name': 'aac',
+            'bit_rate': '128000',
+            'channels': 2,
+            'channel_layout': 'stereo',
+            'sample_rate': '48000',
+          },
         ],
       }, fileSize: 1000000);
 
       expect(result.videoBitrate, 900000);
       expect(result.audioBitrate, 128000);
+      expect(result.videoPixelFormat, 'yuv420p10le');
+      expect(result.videoBitDepth, 10);
+      expect(result.colorRange, 'tv');
+      expect(result.colorSpace, 'bt709');
+      expect(result.colorTransfer, 'bt709');
+      expect(result.colorPrimaries, 'bt709');
+      expect(result.averageFrameRate, '30000/1001');
+      expect(result.realFrameRate, '30000/1001');
+      expect(result.sampleAspectRatio, '1:1');
+      expect(result.displayAspectRatio, '16:9');
+      expect(result.videoRotationDegrees, 90);
+      expect(result.fieldOrder, 'progressive');
+      expect(result.audioChannels, 2);
+      expect(result.audioSampleRate, 48000);
+      expect(result.audioChannelLayout, 'stereo');
       expect(result.containerBitrate, 1200000);
       expect(result.estimatedBitrate, 800000);
       expect(result.preferredBitrate, 900000);
@@ -60,6 +97,33 @@ void main() {
       expect(result.containerBitrate, isNull);
       expect(result.estimatedBitrate, 800000);
       expect(result.preferredBitrate, 800000);
+    });
+
+    test('detects HDR metadata from video stream color fields', () {
+      final analyzer = FfprobeMediaAnalyzer();
+
+      final result = analyzer.parseResult({
+        'format': {'duration': '5.0'},
+        'streams': [
+          {
+            'codec_type': 'video',
+            'codec_name': 'hevc',
+            'width': 3840,
+            'height': 2160,
+            'pix_fmt': 'p010le',
+            'color_space': 'bt2020nc',
+            'color_transfer': 'smpte2084',
+            'color_primaries': 'bt2020',
+            'side_data_list': [
+              {'rotation': -90},
+            ],
+          },
+        ],
+      });
+
+      expect(result.videoBitDepth, 10);
+      expect(result.videoRotationDegrees, -90);
+      expect(result.isHdr, isTrue);
     });
   });
 }
