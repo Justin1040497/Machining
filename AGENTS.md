@@ -4,9 +4,11 @@ This file is the shared project entry point for AI coding agents working in the 
 
 ## Source of Truth
 
+- Full project execution workflow rules live in `docs/develop/project-workflow.md`.
 - Git branch, commit, worktree, PR, and release rules live in `docs/develop/git-workflow.md`.
-- Agent-specific Git workflow guidance lives in `.agents/skills/git-workflow/SKILL.md`.
-- If these files disagree, follow `docs/develop/git-workflow.md` first and update the stale agent guidance.
+- Agent-specific project workflow guidance lives in `.agents/skills/framelean-workflow/SKILL.md`.
+- If workflow docs and the current project implementation disagree, prefer the real project state only when implementation has clearly moved beyond stale docs; then update the stale docs.
+- If Git-specific files disagree, follow `docs/develop/git-workflow.md` first and update stale agent guidance.
 
 ## Tool Compatibility
 
@@ -23,6 +25,14 @@ This file is the shared project entry point for AI coding agents working in the 
 - Use `worktrees/` for local Git worktrees; this directory is intentionally ignored.
 - Do not stage, commit, revert, delete, or format unrelated user changes without explicit permission.
 - Before opening or preparing a merge, run the checks required by the touched files. For Dart/Flutter changes, use the commands documented in `docs/develop/git-workflow.md`.
+
+## Project Workflow
+
+- Discuss requirements, alternatives, risks, and boundaries before implementation.
+- Inspect both project docs and actual code before proposing or changing behavior.
+- For non-trivial code changes, design tests before implementation.
+- Keep implementation scoped to the confirmed requirement and current architecture.
+- Validate changes, update docs, and prepare commit / PR copy according to `docs/develop/project-workflow.md`.
 
 ## Documentation
 

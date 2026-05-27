@@ -20,6 +20,18 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-28 / v1.0.0 后未发布 / 项目级 workflow skill
+
+- added
+  - 新增 `docs/develop/project-workflow.md`，记录需求讨论、分支准备、测试设计、实现、验证、文档同步和 PR 准备的完整项目执行流程。
+  - 新增 `.agents/skills/framelean-workflow/` 项目级 skill，覆盖需求澄清、项目实况核对、分支 / worktree、测试设计、实现、审查验证、文档和 PR 准备。
+- changed
+  - 将原 Git-only skill 的分支、worktree、commit、release 和 PR 规则迁移进 `framelean-workflow`，并删除旧 `.agents/skills/git-workflow/` 入口。
+  - 更新 `AGENTS.md`、`CLAUDE.md` 和文档入口，使项目 workflow 规则指向新的 `framelean-workflow` 和 `project-workflow.md`。
+- verified
+  - 通过旧 skill 路径引用扫描、尾随空白检查和 `git diff --check`。
+  - 通过远端 `origin/main` 同步检查，确认当前分支未落后。
+
 ## 2026-05-27 / v1.0.0 后未发布 / Windows 发布包 zip 布局修复
 
 - fixed
