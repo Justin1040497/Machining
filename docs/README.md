@@ -31,6 +31,8 @@ docs/
 
   develop/
     architecture.md                 项目架构、核心模块和架构优势
+    project-workflow.md             需求讨论、分支、测试、实现、验证、文档和 PR 准备流程
+    git-workflow.md                 Git 分支、worktree、提交、PR、发布和 tag 规则
     technology-stack.md             技术栈、依赖、开发环境和平台范围
     data-model.md                   数据库 schema、任务模型和设置模型
     test-plan.md                    当前自动化测试和手动验证计划
@@ -113,6 +115,8 @@ FrameLean（帧轻）是一个本地桌面视频压缩应用。它把常用 FFmp
 当前技术文档：
 
 - `develop/architecture.md`
+- `develop/project-workflow.md`
+- `develop/git-workflow.md`
 - `develop/technology-stack.md`
 - `develop/data-model.md`
 - `develop/test-plan.md`
@@ -120,9 +124,11 @@ FrameLean（帧轻）是一个本地桌面视频压缩应用。它把常用 FFmp
 建议阅读顺序：
 
 1. 涉及产品范围时读 `product/roadmap.md`。
-2. 修改模块边界前读 `develop/architecture.md`。
-3. 修改任务、设置、数据库或持久化行为前读 `develop/data-model.md`。
-4. 新增或调整测试前读 `develop/test-plan.md`。
+2. 处理非平凡需求、bug、架构或产品方向前读 `develop/project-workflow.md`。
+3. 涉及分支、worktree、提交、PR 或发布时读 `develop/git-workflow.md`。
+4. 修改模块边界前读 `develop/architecture.md`。
+5. 修改任务、设置、数据库或持久化行为前读 `develop/data-model.md`。
+6. 新增或调整测试前读 `develop/test-plan.md`。
 
 ## 测试
 

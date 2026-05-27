@@ -1,0 +1,7 @@
+interface:
+  display_name: "FrameLean Workflow"
+  short_description: "Project workflow from intake to PR prep"
+  default_prompt: "Use $framelean-workflow to guide this FrameLean change from requirement discussion through branch, tests, implementation, validation, docs, and PR preparation."
+
+policy:
+  allow_implicit_invocation: true
