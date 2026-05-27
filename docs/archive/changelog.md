@@ -20,7 +20,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
-## 2026-05-27 / v1.0.0 后未发布 / Windows 暂停恢复和任务重来修复
+## 2026-05-27 / v1.0.0 后未发布 / Windows 桌面兼容修复
 
 - added
   - 新增 FFmpeg 进程控制抽象，由 application 层定义暂停、继续和终止能力，infrastructure 层负责具体平台实现。
@@ -33,9 +33,11 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 修复 Windows 点击暂停后再继续时进度条卡住、任务不再完成的问题。
   - 修复任务完成后缺少清晰“重来”操作的问题。
   - 修复单任务列表场景下顶部通知遮挡第一项右侧按钮的问题。
+  - 修复 Windows 打开文件所在位置时，包含空格或中文的路径可能被 Explorer 解析失败的问题。
 - verified
   - 通过 `flutter analyze`。
   - 通过 `flutter test`。
+  - 通过 `flutter test test/workbench_file_revealer_test.dart`。
 
 ## 2026-05-26 / v1.0.0 / 桌面视频压缩发布
 
