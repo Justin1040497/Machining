@@ -45,6 +45,75 @@ function Invoke-Checked {
   }
 }
 
+function New-ReleaseZip {
+  param(
+    [string]$SourceDirectory,
+    [string]$DestinationPath
+  )
+
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+  if (Test-Path -LiteralPath $DestinationPath) {
+    Remove-Item -LiteralPath $DestinationPath -Force
+  }
+
+  $SourceRoot = (Resolve-Path -LiteralPath $SourceDirectory).Path.TrimEnd([char[]]@("\", "/"))
+  $Archive = [System.IO.Compression.ZipFile]::Open(
+    $DestinationPath,
+    [System.IO.Compression.ZipArchiveMode]::Create
+  )
+
+  try {
+    Get-ChildItem -LiteralPath $SourceRoot -Recurse -File | ForEach-Object {
+      $RelativePath = $_.FullName.Substring($SourceRoot.Length).TrimStart([char[]]@("\", "/"))
+      $EntryName = $RelativePath.Replace("\", "/")
+      [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+        $Archive,
+        $_.FullName,
+        $EntryName,
+        [System.IO.Compression.CompressionLevel]::Optimal
+      ) | Out-Null
+    }
+  }
+  finally {
+    $Archive.Dispose()
+  }
+}
+
+function Assert-ZipLayout {
+  param([string]$Path)
+
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+
+  $Archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+  try {
+    $Entries = @($Archive.Entries | ForEach-Object { $_.FullName })
+    $BackslashEntries = @($Entries | Where-Object { $_.Contains("\") })
+    if ($BackslashEntries.Count -gt 0) {
+      throw "Zip entries must use forward slashes. Invalid entries: $($BackslashEntries -join ', ')"
+    }
+
+    $RequiredEntries = @(
+      "FrameLean.exe",
+      "flutter_windows.dll",
+      "data/app.so",
+      "ffmpeg/ffmpeg.exe",
+      "ffmpeg/ffprobe.exe",
+      "legal/LICENSE",
+      "legal/NOTICE"
+    )
+
+    foreach ($Entry in $RequiredEntries) {
+      if ($Entries -notcontains $Entry) {
+        throw "Required zip entry was not found: $Entry"
+      }
+    }
+  }
+  finally {
+    $Archive.Dispose()
+  }
+}
+
 if ($env:OS -ne "Windows_NT") {
   throw "This script only builds the Windows package. Run it on Windows."
 }
@@ -114,20 +183,15 @@ try {
   & (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") -hide_banner -version | Select-Object -First 1
 
   if (-not $SkipZip) {
-    Require-Command "Compress-Archive"
-
     $Pubspec = Get-Content -LiteralPath $PubspecPath -Raw
     $VersionMatch = [regex]::Match($Pubspec, "(?m)^version:\s*([^\s]+)")
     $Version = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value.Split("+")[0] } else { "unknown" }
     $ZipPath = Join-Path $ZipDir "FrameLean-v$Version-windows-x64.zip"
 
-    if (Test-Path -LiteralPath $ZipPath) {
-      Remove-Item -LiteralPath $ZipPath -Force
-    }
-
     Write-Host "Creating zip package: $ZipPath"
-    Compress-Archive -Path (Join-Path $ReleaseDir "*") -DestinationPath $ZipPath -CompressionLevel Optimal
+    New-ReleaseZip -SourceDirectory $ReleaseDir -DestinationPath $ZipPath
     Require-File $ZipPath
+    Assert-ZipLayout -Path $ZipPath
   }
 
   Write-Host ""
