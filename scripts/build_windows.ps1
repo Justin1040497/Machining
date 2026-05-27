@@ -45,13 +45,18 @@ function Invoke-Checked {
   }
 }
 
+function Import-ZipAssemblies {
+  Add-Type -AssemblyName System.IO.Compression
+  Add-Type -AssemblyName System.IO.Compression.FileSystem
+}
+
 function New-ReleaseZip {
   param(
     [string]$SourceDirectory,
     [string]$DestinationPath
   )
 
-  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  Import-ZipAssemblies
 
   if (Test-Path -LiteralPath $DestinationPath) {
     Remove-Item -LiteralPath $DestinationPath -Force
@@ -83,7 +88,7 @@ function New-ReleaseZip {
 function Assert-ZipLayout {
   param([string]$Path)
 
-  Add-Type -AssemblyName System.IO.Compression.FileSystem
+  Import-ZipAssemblies
 
   $Archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
   try {
