@@ -143,6 +143,16 @@ flutter run -d windows
 PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
 ```
 
+GitHub Actions Windows 打包：
+
+```text
+.github/workflows/build-windows.yml
+```
+
+该 workflow 会在 Windows runner 上下载 `deps-ffmpeg-windows-x64-20260430`
+Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
+`scripts\build_windows.ps1` 生成 Windows x64 发布包。
+
 ## 核心依赖位置
 
 Flutter 和 Dart 依赖声明位于：

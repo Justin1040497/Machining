@@ -1,0 +1,120 @@
+name: Build Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      ffmpeg_release_tag:
+        description: "Release tag containing the Windows FFmpeg runtime asset"
+        required: false
+        default: deps-ffmpeg-windows-x64-20260430
+      ffmpeg_asset_name:
+        description: "Windows FFmpeg runtime zip asset name"
+        required: false
+        default: framelean-ffmpeg-windows-x64-20260430-gyan.zip
+      ffmpeg_asset_sha256:
+        description: "Expected SHA-256 for the Windows FFmpeg runtime zip"
+        required: false
+        default: a63bd38cd16fd4700a23e2d837a7739db19f74364e7e045145c92c1532bb8cb0
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  FFMPEG_RELEASE_TAG: ${{ github.event.inputs.ffmpeg_release_tag || 'deps-ffmpeg-windows-x64-20260430' }}
+  FFMPEG_ASSET_NAME: ${{ github.event.inputs.ffmpeg_asset_name || 'framelean-ffmpeg-windows-x64-20260430-gyan.zip' }}
+  FFMPEG_ASSET_SHA256: ${{ github.event.inputs.ffmpeg_asset_sha256 || 'a63bd38cd16fd4700a23e2d837a7739db19f74364e7e045145c92c1532bb8cb0' }}
+
+jobs:
+  build-windows:
+    name: Build Windows release package
+    runs-on: windows-2022
+
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Restore Windows FFmpeg runtime
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runtimeDir = "third_party\ffmpeg\windows-x64"
+          $downloadDir = Join-Path $env:RUNNER_TEMP "framelean-ffmpeg-download"
+          $extractDir = Join-Path $env:RUNNER_TEMP "framelean-ffmpeg-extract"
+          $assetPath = Join-Path $downloadDir $env:FFMPEG_ASSET_NAME
+
+          New-Item -ItemType Directory -Force -Path $runtimeDir, $downloadDir, $extractDir | Out-Null
+
+          if (Test-Path -LiteralPath $assetPath) {
+            Remove-Item -LiteralPath $assetPath -Force
+          }
+
+          gh release download $env:FFMPEG_RELEASE_TAG `
+            --repo $env:GITHUB_REPOSITORY `
+            --pattern $env:FFMPEG_ASSET_NAME `
+            --dir $downloadDir
+
+          if (-not (Test-Path -LiteralPath $assetPath -PathType Leaf)) {
+            throw "Downloaded FFmpeg runtime asset was not found: $assetPath"
+          }
+
+          $actualHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $assetPath).Hash.ToLowerInvariant()
+          $expectedHash = $env:FFMPEG_ASSET_SHA256.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "FFmpeg runtime asset SHA-256 mismatch. Expected $expectedHash, got $actualHash."
+          }
+
+          Remove-Item -LiteralPath $extractDir -Recurse -Force
+          New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
+          Expand-Archive -LiteralPath $assetPath -DestinationPath $extractDir -Force
+
+          $ffmpeg = Get-ChildItem -LiteralPath $extractDir -Recurse -Filter "ffmpeg.exe" | Select-Object -First 1
+          $ffprobe = Get-ChildItem -LiteralPath $extractDir -Recurse -Filter "ffprobe.exe" | Select-Object -First 1
+
+          if (-not $ffmpeg) {
+            throw "ffmpeg.exe was not found inside $assetPath"
+          }
+          if (-not $ffprobe) {
+            throw "ffprobe.exe was not found inside $assetPath"
+          }
+
+          Copy-Item -LiteralPath $ffmpeg.FullName -Destination (Join-Path $runtimeDir "ffmpeg.exe") -Force
+          Copy-Item -LiteralPath $ffprobe.FullName -Destination (Join-Path $runtimeDir "ffprobe.exe") -Force
+
+          & (Join-Path $runtimeDir "ffmpeg.exe") -hide_banner -version | Select-Object -First 1
+          & (Join-Path $runtimeDir "ffprobe.exe") -hide_banner -version | Select-Object -First 1
+
+      - name: Show Flutter environment
+        run: flutter doctor -v
+
+      - name: Build Windows package
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+
+      - name: Upload Windows package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrameLean-windows-x64
+          path: build/windows/x64/runner/FrameLean-v*-windows-x64.zip
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach Windows package to tag release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/windows/x64/runner/FrameLean-v*-windows-x64.zip

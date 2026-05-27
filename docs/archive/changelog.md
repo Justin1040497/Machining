@@ -20,6 +20,16 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-27 / v1.0.0 后未发布 / Windows GitHub Actions 打包
+
+- added
+  - 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\build_windows.ps1` 生成发布 zip。
+- changed
+  - Windows FFmpeg 依赖 zip 和校验文件现在作为本地 / Release 资源处理，避免误提交到源码仓库。
+- verified
+  - 通过 workflow YAML 解析检查。
+  - 通过 `git diff --check`。
+
 ## 2026-05-27 / v1.0.0 后未发布 / Windows 桌面兼容修复
 
 - added

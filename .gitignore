@@ -52,6 +52,8 @@ third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
 third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
+third_party/ffmpeg/windows-x64/*.zip
+third_party/ffmpeg/windows-x64/*.sha256.txt
 
 /.reference/
 
