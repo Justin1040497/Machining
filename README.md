@@ -211,7 +211,7 @@ Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/FrameLean-v1.0.0-windows-x64.zip
+build/windows/x64/runner/FrameLean-v1.1.0-windows-x64.zip
 ```
 
 Windows CMake 会把运行时复制到：

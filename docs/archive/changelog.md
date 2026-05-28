@@ -20,81 +20,44 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
-## 2026-05-28 / v1.0.0 后未发布 / 全局应用字体
+## 2026-05-27 / v1.1.0
 
-- changed
-  - 将应用全局字体切换为 Alibaba PuHuiTi，并接入 Regular、Medium、SemiBold 和 Bold 四个字重资源。
-- verified
-  - 通过 `flutter pub get`。
-  - 通过 `dart format --set-exit-if-changed lib/app/app.dart`。
-  - 通过 `flutter analyze`。
-  - 通过 `flutter test`。
-
-## 2026-05-28 / v1.0.0 后未发布 / 项目级 workflow skill
+### 今天主要完成 Windows 桌面兼容修复、FFmpeg 输出参数优化、Windows 发布包自动化和 zip 布局修复，并将全局字体、项目级 workflow 和 `v1.1.0` 发布准备纳入本次发布。
 
 - added
-  - 新增 `docs/develop/project-workflow.md`，记录需求讨论、分支准备、测试设计、实现、验证、文档同步和 PR 准备的完整项目执行流程。
-  - 新增 `.agents/skills/framelean-workflow/` 项目级 skill，覆盖需求澄清、项目实况核对、分支 / worktree、测试设计、实现、审查验证、文档和 PR 准备。
-- changed
-  - 将原 Git-only skill 的分支、worktree、commit、release 和 PR 规则迁移进 `framelean-workflow`，并删除旧 `.agents/skills/git-workflow/` 入口。
-  - 更新 `AGENTS.md`、`CLAUDE.md` 和文档入口，使项目 workflow 规则指向新的 `framelean-workflow` 和 `project-workflow.md`。
-- verified
-  - 通过旧 skill 路径引用扫描、尾随空白检查和 `git diff --check`。
-  - 通过远端 `origin/main` 同步检查，确认当前分支未落后。
-
-## 2026-05-27 / v1.0.0 后未发布 / Windows 发布包 zip 布局修复
-
-- fixed
-  - 修复 Windows 发布 zip 内部条目使用反斜杠路径，可能导致解压后 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe` 不在应用可识别目录的问题。
-- changed
-  - Windows 打包脚本改为逐文件写入 zip，并强制使用标准 `/` 路径分隔符。
-  - 打包完成后校验 zip 内必须包含 `ffmpeg/ffmpeg.exe`、`ffmpeg/ffprobe.exe` 和核心运行文件，避免再次发布缺少运行时布局的包。
-  - 打包脚本显式加载 `System.IO.Compression` 和 `System.IO.Compression.FileSystem`，兼容 GitHub Actions Windows runner 的 PowerShell 环境。
-- verified
-  - 通过 `unzip -l /Users/leftzhou/Downloads/FrameLean-v1.0.0-windows-x64.zip` 复现旧包中存在 `ffmpeg\ffmpeg.exe` 条目。
-  - 通过 GitHub Actions 日志确认旧脚本缺少 `System.IO.Compression` 类型加载。
-  - 通过 `git diff --check`。
-
-## 2026-05-27 / v1.0.0 后未发布 / FFmpeg 参数优化
-
-- added
-  - FFprobe 分析新增像素格式、位深、色彩范围、色彩矩阵、传递曲线、色彩原色、帧率、宽高比、旋转、场序和音频声道布局字段。
-  - FFmpeg 命令构造新增显式视频 / 音频流映射、BT.709 SDR 输出色彩标签、Lanczos 缩放、SAR 归一化、音频声道 / 采样率输出和 AudioToolbox AAC 优先策略。
-- changed
-  - 压缩输出默认通过滤镜链统一到 `yuv420p`、limited range、BT.709，并避免分辨率预设把小尺寸源视频向上放大。
-  - VideoToolbox HDR 源素材优先使用 `scale_vt` 转为 SDR BT.709 输出。
-  - Drift `tasks` schema 升级到 12，用于持久化新增 FFprobe 分析字段。
-- verified
-  - 通过 `flutter test test/ffprobe_media_analyzer_test.dart test/ffmpeg_encoder_capabilities_test.dart test/ffmpeg_command_builder_test.dart`。
-
-## 2026-05-27 / v1.0.0 后未发布 / Windows GitHub Actions 打包
-
-- added
-  - 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\build_windows.ps1` 生成发布 zip。
-- changed
-  - Windows FFmpeg 依赖 zip 和校验文件现在作为本地 / Release 资源处理，避免误提交到源码仓库。
-- verified
-  - 通过 workflow YAML 解析检查。
-  - 通过 `git diff --check`。
-
-## 2026-05-27 / v1.0.0 后未发布 / Windows 桌面兼容修复
-
-- added
+  - 新增 FFprobe 分析字段，覆盖像素格式、位深、色彩范围、色彩矩阵、传递曲线、色彩原色、帧率、宽高比、旋转、场序和音频声道布局。
+  - 新增 FFmpeg 命令构造能力，包含显式视频 / 音频流映射、BT.709 SDR 输出色彩标签、Lanczos 缩放、SAR 归一化、音频声道 / 采样率输出和 AudioToolbox AAC 优先策略。
   - 新增 FFmpeg 进程控制抽象，由 application 层定义暂停、继续和终止能力，infrastructure 层负责具体平台实现。
   - 新增 Windows runner 原生进程控制通道，通过线程挂起和恢复支持 Windows 上的 FFmpeg 真暂停 / 继续。
   - 已完成任务新增“重来”入口，任务列表和完成弹窗都可以从源文件检查和媒体分析重新开始。
+  - 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\build_windows.ps1` 生成发布 zip。
+  - 新增 `docs/develop/project-workflow.md` 和 `.agents/skills/framelean-workflow/`，记录 FrameLean 项目级需求、分支、测试、实现、验证和 PR 准备流程。
 - changed
+  - 将应用版本升级为 `v1.1.0`，同步发布文档、路线图、Windows 产物示例路径和 Windows 版本 fallback。
+  - 将应用全局字体切换为 Alibaba PuHuiTi，并接入 Regular、Medium、SemiBold 和 Bold 四个字重资源。
+  - 压缩输出默认通过滤镜链统一到 `yuv420p`、limited range、BT.709，并避免分辨率预设把小尺寸源视频向上放大。
+  - VideoToolbox HDR 源素材优先使用 `scale_vt` 转为 SDR BT.709 输出。
+  - Drift `tasks` schema 升级到 12，用于持久化新增 FFprobe 分析字段。
   - 队列执行器不再直接依赖 `ProcessSignal`，暂停、继续和取消统一通过 `FfmpegProcessController` 调用。
   - Windows 工作台顶部新增通知安全区，顶部通知会显示在安全区内，避免遮挡任务列表第一项操作按钮。
+  - Windows 打包脚本改为逐文件写入 zip，并强制使用标准 `/` 路径分隔符；打包完成后校验关键运行时和核心文件布局。
+  - Windows FFmpeg 依赖 zip 和校验文件现在作为本地 / Release 资源处理，避免误提交到源码仓库。
+  - 项目 agent 规则从 Git-only skill 迁移到 `framelean-workflow`，并更新 `AGENTS.md`、`CLAUDE.md` 和文档入口。
 - fixed
   - 修复 Windows 点击暂停后再继续时进度条卡住、任务不再完成的问题。
   - 修复任务完成后缺少清晰“重来”操作的问题。
   - 修复单任务列表场景下顶部通知遮挡第一项右侧按钮的问题。
   - 修复 Windows 打开文件所在位置时，包含空格或中文的路径可能被 Explorer 解析失败的问题。
+  - 修复 Windows 发布 zip 内部条目使用反斜杠路径，可能导致解压后 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe` 不在应用可识别目录的问题。
 - verified
+  - 通过 `flutter pub get`。
   - 通过 `flutter analyze`。
   - 通过 `flutter test`。
   - 通过 `flutter test test/workbench_file_revealer_test.dart`。
+  - 通过 `flutter test test/ffprobe_media_analyzer_test.dart test/ffmpeg_encoder_capabilities_test.dart test/ffmpeg_command_builder_test.dart`。
+  - 通过 workflow YAML 解析检查、旧 skill 路径引用扫描、尾随空白检查和 `git diff --check`。
+  - 通过 `unzip -l /Users/leftzhou/Downloads/FrameLean-v1.0.0-windows-x64.zip` 复现旧包中存在 `ffmpeg\ffmpeg.exe` 条目。
+  - 通过 GitHub Actions 日志确认旧脚本缺少 `System.IO.Compression` 类型加载。
 
 ## 2026-05-26 / v1.0.0 / 桌面视频压缩发布
 

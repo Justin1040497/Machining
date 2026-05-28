@@ -271,7 +271,7 @@ Release 产物：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/FrameLean-v1.0.0-windows-x64.zip
+build/windows/x64/runner/FrameLean-v1.1.0-windows-x64.zip
 ```
 
 Windows 打包脚本会调用 `flutter build windows --release`，再验证 Release 目录、内置 FFmpeg / FFprobe 和法律资料，并默认生成 zip 包。Windows CMake 配置会把 FFmpeg / FFprobe 复制到 Release 目录的 `ffmpeg/` 下。如果运行时文件缺失，构建应失败，避免产出不完整安装包。
