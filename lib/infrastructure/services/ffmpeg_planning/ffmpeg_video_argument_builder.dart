@@ -1,4 +1,5 @@
 import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/output_format.dart';
@@ -24,17 +25,34 @@ class FfmpegVideoArgumentBuilder {
     };
   }
 
-  List<String> buildOutputStreamSelectionArgs() {
-    return const [
+  List<String> buildOutputStreamSelectionArgs(MediaTask task) {
+    return [
       '-map',
       '0:v:0',
-      '-map',
-      '0:a?',
+      ...buildAudioStreamSelectionArgs(task),
       '-map_metadata',
-      '0',
+      '0:g',
       '-map_chapters',
       '0',
     ];
+  }
+
+  List<String> buildAudioStreamSelectionArgs(MediaTask task) {
+    final analysis = task.analysisResult;
+    if (analysis == null) {
+      return const ['-map', '0:a:0?'];
+    }
+
+    final audioStreamIndex = analysis.audioStreamIndex;
+    if (audioStreamIndex != null && audioStreamIndex >= 0) {
+      return ['-map', '0:$audioStreamIndex?'];
+    }
+
+    if (MediaCodecNormalizer.isUsableAudioForTranscode(analysis.audioCodec)) {
+      return const ['-map', '0:a:0?'];
+    }
+
+    return const [];
   }
 
   List<String> buildVideoOnlyStreamSelectionArgs() {
@@ -276,9 +294,6 @@ class FfmpegVideoArgumentBuilder {
       return const ['-an'];
     }
 
-    final audioEncoder = encoderCapabilities.supportsAudioEncoder('aac_at')
-        ? 'aac_at'
-        : 'aac';
     final audioBitrate = recommendation.targetAudioBitrate == null
         ? '128k'
         : FfmpegCommandFormatters.formatBitrate(
@@ -289,17 +304,11 @@ class FfmpegVideoArgumentBuilder {
 
     return [
       '-c:a',
-      audioEncoder,
+      'aac',
       '-b:a',
       audioBitrate,
       if (channels != null) ...['-ac', channels.toString()],
       if (sampleRate != null) ...['-ar', sampleRate.toString()],
-      if (audioEncoder == 'aac_at') ...[
-        '-aac_at_mode',
-        'cvbr',
-        '-aac_at_quality',
-        '2',
-      ],
     ];
   }
 

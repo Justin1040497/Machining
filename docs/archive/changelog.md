@@ -26,12 +26,20 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - Windows 启动窗口改为按主屏幕工作区居中显示。
   - Windows 管理员模式启动时显示拖拽限制提示，并提供“普通模式重启”操作。
   - 压缩完成弹窗简化为小型结果弹窗，只展示压缩前后体积、单行可复制导出路径、取消和打开文件存放位置。
+  - FFprobe 分析结果新增可转码主音频流索引，FFmpeg 命令从映射所有音频流改为映射单个可用音频流。
+  - 自动编码后端在 Apple HDR / HVC1 / 10-bit MOV 等高风险源上优先使用可用的软件编码；显式选择 VideoToolbox 时仍尊重用户选择。
+  - 音频输出默认使用 FFmpeg 原生 `aac`，不再默认优先 `aac_at`。
 - fixed
   - 修复 macOS / Windows 大小写不敏感文件系统上，大写 `.MOV` 源文件可能因输出路径只差大小写而触发 FFmpeg 原地覆盖失败的问题。
   - FFmpeg 执行失败时保留 stderr 尾部错误信息，避免只显示退出码导致 MOV 压缩失败原因不可见。
+  - 修复 iPhone MOV 中 Apple Positional Audio / APAC 被 `-map 0:a?` 一起映射后，FFmpeg 因 `none` 音频流无解码器而失败的问题。
+  - 修复执行日志写入任务实体后又被任务状态保存覆盖，导致失败后日志窗口为空的问题；日志窗口现在读取临时 FFmpeg 日志文件。
 - verified
+  - 通过 `dart run build_runner build --delete-conflicting-outputs`。
+  - 通过 `git ls-files '*.dart' | xargs dart format --set-exit-if-changed`。
   - 通过 `flutter analyze`。
   - 通过 `flutter test`。
+  - 通过 `flutter test test/ffmpeg_command_builder_test.dart test/ffprobe_media_analyzer_test.dart test/ffmpeg_task_queue_runner_test.dart test/ffmpeg_process_observer_test.dart test/widget_test.dart`。
   - 通过 `flutter test test/file_extension_media_kind_resolver_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_process_observer_test.dart`。
   - 通过 `flutter test test/widget_test.dart`。
 

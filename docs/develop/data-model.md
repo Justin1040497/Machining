@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `12`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `13`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -147,6 +147,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_audio_channels` | integer | 是 | `null` | `audioChannels` | 音频声道数 |
 | `analysis_audio_sample_rate` | integer | 是 | `null` | `audioSampleRate` | 音频采样率 |
 | `analysis_audio_channel_layout` | text | 是 | `null` | `audioChannelLayout` | 音频声道布局，例如 `mono`、`stereo`、`5.1(side)` |
+| `analysis_audio_stream_index` | integer | 是 | `null` | `audioStreamIndex` | FFprobe 选出的可转码主音频流全局索引，用于 FFmpeg 精确 `-map 0:<index>?`，避免把 iPhone APAC / `none` 音频流一起映射进输出 |
 | `analysis_updated_at` | integer | 是 | `null` | `analysisUpdatedAt` | 分析结果写入时间，毫秒时间戳 |
 | `analysis_error_message` | text | 是 | `null` | `analysisErrorMessage` | 分析失败或 FFprobe 不可用时的错误信息 |
 

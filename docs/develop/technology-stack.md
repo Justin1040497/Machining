@@ -194,7 +194,7 @@ ffmpeg -hide_banner -encoders
 
 | 平台 | 自动优先级 |
 | --- | --- |
-| macOS | VideoToolbox，然后回退到 `libx264` / `libx265` |
+| macOS | 默认 VideoToolbox，然后回退到 `libx264` / `libx265`；Apple HDR / HVC1 / 10-bit MOV 等高风险源会优先走可用的软件编码 |
 | Windows | NVENC、Quick Sync、AMF，然后回退到 `libx264` / `libx265` |
 | Linux | 当前没有额外硬件优先级，默认软件编码 |
 

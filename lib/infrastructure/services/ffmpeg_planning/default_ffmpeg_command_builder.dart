@@ -57,7 +57,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       task,
       allowExtremeCompression: allowExtremeCompression,
     );
-    final videoEncoder = encoderResolver.resolveVideoEncoder(
+    final videoEncoder = encoderResolver.resolveVideoEncoderForTask(
+      task: task,
       targetCodec: targetCodec,
       backend: task.config.encoderBackend,
       encoderCapabilities: encoderCapabilities,
@@ -101,7 +102,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     encoderResolver.ensureSupportedTask(task, encoderCapabilities);
 
     final targetCodec = encoderResolver.resolveTargetVideoCodec(task);
-    final videoEncoder = encoderResolver.resolveVideoEncoder(
+    final videoEncoder = encoderResolver.resolveVideoEncoderForTask(
+      task: task,
       targetCodec: targetCodec,
       backend: task.config.encoderBackend,
       encoderCapabilities: encoderCapabilities,
@@ -120,7 +122,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       FfmpegCommandFormatters.formatSeconds(durationSeconds),
       '-i',
       task.inputPath,
-      ...argumentBuilder.buildOutputStreamSelectionArgs(),
+      ...argumentBuilder.buildOutputStreamSelectionArgs(task),
       ...argumentBuilder.buildPurposeArgs(task, recommendation, videoEncoder),
       ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
       ...argumentBuilder.buildCommonOutputArgs(

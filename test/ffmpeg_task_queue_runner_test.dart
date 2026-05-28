@@ -307,6 +307,26 @@ void main() {
       expect(result.outcome, FfmpegQueueStartOutcome.started);
       expect(commandBuilder.allowExtremeCompressionValues, [true]);
     });
+
+    test('start failure writes diagnostic footer to execution log', () async {
+      final task = videoTask(id: 'start-fails', sortOrder: 0);
+      final harness = QueueHarness(
+        tasks: [task],
+        processStarter: FakeProcessStarter(error: StateError('boom')),
+      );
+
+      final result = await harness.runner.start();
+      final logContent = await harness.logFileFor(task.id).readAsString();
+
+      expect(result.outcome, FfmpegQueueStartOutcome.processStartFailed);
+      expect(
+        harness.repository.taskById('start-fails').status,
+        TaskStatus.failed,
+      );
+      expect(logContent, contains('任务失败'));
+      expect(logContent, contains('FFmpeg 启动失败'));
+      expect(logContent, contains('boom'));
+    });
   });
 }
 
@@ -315,6 +335,7 @@ class QueueHarness {
   final FakeProcessStarter processStarter;
   final FakeProcessController processController;
   final FakeProcessObserver processObserver;
+  final Directory logDirectory;
   late final DefaultFfmpegTaskQueueRunner runner;
 
   QueueHarness({
@@ -335,7 +356,10 @@ class QueueHarness {
   }) : repository = FakeMediaTaskRepository(tasks),
        processStarter = processStarter ?? FakeProcessStarter(),
        processController = processController ?? FakeProcessController(),
-       processObserver = processObserver ?? FakeProcessObserver() {
+       processObserver = processObserver ?? FakeProcessObserver(),
+       logDirectory = Directory.systemTemp.createTempSync(
+         'framelean-queue-test-',
+       ) {
     runner = DefaultFfmpegTaskQueueRunner(
       repository: repository,
       sourceFileChecker: FakeSourceFileChecker(
@@ -348,13 +372,15 @@ class QueueHarness {
       processController: this.processController,
       processObserver: this.processObserver,
       createLogFilePath: (task, plan) async {
-        return File(
-          '${Directory.systemTemp.path}/framelean-test-${task.id}.log',
-        ).path;
+        return logFileFor(task.id).path;
       },
       continuousExecutionEnabled: continuousExecutionEnabled,
       now: () async => DateTime.fromMillisecondsSinceEpoch(1000),
     );
+  }
+
+  File logFileFor(String taskId) {
+    return File('${logDirectory.path}/$taskId.log');
   }
 }
 

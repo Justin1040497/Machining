@@ -1,4 +1,5 @@
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -18,7 +19,8 @@ class FfmpegEncoderResolver {
     }
 
     resolveTargetVideoCodec(task);
-    resolveVideoEncoder(
+    resolveVideoEncoderForTask(
+      task: task,
       targetCodec: resolveTargetVideoCodec(task),
       backend: task.config.encoderBackend,
       encoderCapabilities: encoderCapabilities,
@@ -31,20 +33,38 @@ class FfmpegEncoderResolver {
       return configuredCodec;
     }
 
-    final sourceCodec = task.analysisResult?.videoCodec?.trim().toLowerCase();
-    if (sourceCodec == null || sourceCodec.isEmpty) {
+    final sourceCodec = MediaCodecNormalizer.normalize(
+      task.analysisResult?.videoCodec,
+    );
+    if (sourceCodec == null) {
       throw const FfmpegCommandBuildException('无法识别源视频编码，不能默认保留原编码');
     }
 
-    if (sourceCodec == 'h264' || sourceCodec == 'avc1') {
-      return VideoCodec.h264;
-    }
-
-    if (sourceCodec == 'hevc' || sourceCodec == 'h265') {
-      return VideoCodec.hevc;
+    final targetCodec = MediaCodecNormalizer.videoCodecForSource(sourceCodec);
+    if (targetCodec != null) {
+      return targetCodec;
     }
 
     throw FfmpegCommandBuildException('暂不支持保留源视频编码: $sourceCodec');
+  }
+
+  String resolveVideoEncoderForTask({
+    required MediaTask task,
+    required VideoCodec targetCodec,
+    required EncoderBackend backend,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
+  }) {
+    return resolveVideoEncoder(
+      targetCodec: targetCodec,
+      backend: resolveEffectiveBackend(
+        task: task,
+        targetCodec: targetCodec,
+        backend: backend,
+        encoderCapabilities: encoderCapabilities,
+      ),
+      encoderCapabilities: encoderCapabilities,
+    );
   }
 
   String resolveVideoEncoder({
@@ -80,5 +100,38 @@ class FfmpegEncoderResolver {
       VideoCodec.hevc => EncoderBackend.libx265,
       VideoCodec.source => throw const SourceCodecNotResolvedException(),
     };
+  }
+
+  EncoderBackend resolveEffectiveBackend({
+    required MediaTask task,
+    required VideoCodec targetCodec,
+    required EncoderBackend backend,
+    required FfmpegEncoderCapabilities encoderCapabilities,
+  }) {
+    if (backend != EncoderBackend.auto ||
+        !isHighRiskAppleHdrSource(task) ||
+        !encoderCapabilities.supportsEncoder(
+          targetCodec: targetCodec,
+          backend: softwareBackendFor(targetCodec),
+        )) {
+      return backend;
+    }
+
+    return softwareBackendFor(targetCodec);
+  }
+
+  bool isHighRiskAppleHdrSource(MediaTask task) {
+    final analysis = task.analysisResult;
+    if (analysis == null || !analysis.isHdr) {
+      return false;
+    }
+
+    final container = analysis.containerFormat?.toLowerCase() ?? '';
+    final sourceCodec = analysis.videoCodec;
+    final bitDepth = analysis.videoBitDepth ?? 8;
+
+    return container.contains('mov') &&
+        MediaCodecNormalizer.isHevc(sourceCodec) &&
+        bitDepth >= 10;
   }
 }

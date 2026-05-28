@@ -404,7 +404,7 @@ Drift 数据库只保存可恢复的业务状态：
 
 | 平台 | 当前状态 | 说明 |
 | --- | --- | --- |
-| macOS Apple Silicon | 主要验证平台 | 可内置 macOS arm64 FFmpeg，支持 VideoToolbox 自动优先级 |
+| macOS Apple Silicon | 主要验证平台 | 可内置 macOS arm64 FFmpeg，支持 VideoToolbox 自动优先级；高风险 Apple HDR / HVC1 / 10-bit MOV 会优先走可用软件编码 |
 | Windows x64 | 主要验证平台 | Release 构建要求内置 `ffmpeg.exe` / `ffprobe.exe`，支持 NVENC / QSV / AMF 自动优先级 |
 | Linux | 工程目录存在 | 本地工具路径解析有 Linux 分支，但不是当前发布目标 |
 | Web | 工程目录存在 | FFmpeg 本地进程路线不适用于 Web，当前不支持发布 |

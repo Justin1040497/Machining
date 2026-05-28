@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
@@ -214,11 +215,8 @@ class DefaultCompressionEstimator implements CompressionEstimator {
     required String? sourceCodec,
     required VideoCodec targetCodec,
   }) {
-    final normalizedSource = sourceCodec?.trim().toLowerCase();
-    final sourceIsHevc =
-        normalizedSource == 'hevc' || normalizedSource == 'h265';
-    final sourceIsH264 =
-        normalizedSource == 'h264' || normalizedSource == 'avc1';
+    final sourceIsHevc = MediaCodecNormalizer.isHevc(sourceCodec);
+    final sourceIsH264 = MediaCodecNormalizer.isH264(sourceCodec);
 
     return switch (targetCodec) {
       VideoCodec.hevc when sourceIsH264 => 0.65,

@@ -555,6 +555,7 @@ void main() {
               onRemove: (_) {},
               onRetry: (_) {},
               onRelink: (_) {},
+              onShowLog: (_) {},
               onContextMenu: (_, _) {},
               onAddTask: () {},
               onOpenSettings: () {},

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 
@@ -49,7 +50,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       'json',
       '-show_entries',
       'format=duration,bit_rate,format_name:'
-          'stream=codec_type,codec_name,width,height,bit_rate,duration,'
+          'stream=index,codec_type,codec_name,width,height,bit_rate,duration,'
           'pix_fmt,bits_per_raw_sample,color_range,color_space,'
           'color_transfer,color_primaries,avg_frame_rate,r_frame_rate,'
           'sample_aspect_ratio,display_aspect_ratio,field_order,'
@@ -68,7 +69,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     }
 
     final videoStream = findStream(streams, 'video');
-    final audioStream = findStream(streams, 'audio');
+    final audioStream = findUsableAudioStream(streams);
 
     if (videoStream == null) {
       throw StateError('媒体文件没有视频流');
@@ -109,12 +110,29 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       audioChannels: parseInt(audioStream?['channels']),
       audioSampleRate: parseInt(audioStream?['sample_rate']),
       audioChannelLayout: parseString(audioStream?['channel_layout']),
+      audioStreamIndex: parseInt(audioStream?['index']),
     );
   }
 
   Map<String, dynamic>? findStream(List<dynamic> streams, String codecType) {
     for (final stream in streams) {
       if (stream is Map<String, dynamic> && stream['codec_type'] == codecType) {
+        return stream;
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic>? findUsableAudioStream(List<dynamic> streams) {
+    for (final stream in streams) {
+      if (stream is! Map<String, dynamic> || stream['codec_type'] != 'audio') {
+        continue;
+      }
+
+      if (MediaCodecNormalizer.isUsableAudioForTranscode(
+        parseString(stream['codec_name']),
+      )) {
         return stream;
       }
     }

@@ -13,7 +13,10 @@ void main() {
       expect(arguments, isNot(contains('-show_format')));
       expect(arguments, isNot(contains('-show_streams')));
       expect(arguments.join(' '), contains('format=duration,bit_rate'));
-      expect(arguments.join(' '), contains('stream=codec_type,codec_name'));
+      expect(
+        arguments.join(' '),
+        contains('stream=index,codec_type,codec_name'),
+      );
       expect(arguments.join(' '), contains('pix_fmt'));
       expect(arguments.join(' '), contains('color_transfer'));
       expect(arguments.join(' '), contains('avg_frame_rate'));
@@ -46,6 +49,7 @@ void main() {
             'tags': {'rotate': '90'},
           },
           {
+            'index': 1,
             'codec_type': 'audio',
             'codec_name': 'aac',
             'bit_rate': '128000',
@@ -73,9 +77,41 @@ void main() {
       expect(result.audioChannels, 2);
       expect(result.audioSampleRate, 48000);
       expect(result.audioChannelLayout, 'stereo');
+      expect(result.audioStreamIndex, 1);
       expect(result.containerBitrate, 1200000);
       expect(result.estimatedBitrate, 800000);
       expect(result.preferredBitrate, 900000);
+    });
+
+    test('selects the first usable audio stream and ignores APAC', () {
+      final analyzer = FfprobeMediaAnalyzer();
+
+      final result = analyzer.parseResult({
+        'format': {'duration': '10.0'},
+        'streams': [
+          {
+            'index': 0,
+            'codec_type': 'video',
+            'codec_name': 'hvc1',
+            'width': 3840,
+            'height': 2160,
+          },
+          {'index': 2, 'codec_type': 'audio', 'codec_name': 'none'},
+          {
+            'index': 1,
+            'codec_type': 'audio',
+            'codec_name': 'aac',
+            'bit_rate': '192000',
+            'channels': 2,
+            'sample_rate': '48000',
+          },
+        ],
+      });
+
+      expect(result.videoCodec, 'hvc1');
+      expect(result.audioCodec, 'aac');
+      expect(result.audioBitrate, 192000);
+      expect(result.audioStreamIndex, 1);
     });
 
     test('uses estimated bitrate when direct bitrate fields are missing', () {

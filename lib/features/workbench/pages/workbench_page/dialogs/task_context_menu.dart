@@ -31,6 +31,10 @@ Future<TaskContextMenuAction?> showWorkbenchTaskContextMenu({
         child: Text('任务重命名'),
       ),
       const PopupMenuItem(
+        value: TaskContextMenuAction.showLog,
+        child: Text('查看日志'),
+      ),
+      const PopupMenuItem(
         value: TaskContextMenuAction.delete,
         child: Text('删除任务'),
       ),

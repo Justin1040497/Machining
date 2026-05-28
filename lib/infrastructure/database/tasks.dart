@@ -67,6 +67,8 @@ class TaskRows extends Table {
       integer().named('analysis_audio_sample_rate').nullable()();
   TextColumn get analysisAudioChannelLayout =>
       text().named('analysis_audio_channel_layout').nullable()();
+  IntColumn get analysisAudioStreamIndex =>
+      integer().named('analysis_audio_stream_index').nullable()();
   IntColumn get analysisUpdatedAt =>
       integer().named('analysis_updated_at').nullable()();
   TextColumn get analysisErrorMessage =>
