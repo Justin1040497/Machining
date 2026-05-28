@@ -12,6 +12,14 @@ FrameLean 聚焦视频压缩、应用级默认设置和本地任务队列：导�
 
 完整变更记录见 [docs/archive/changelog.md](docs/archive/changelog.md)。
 
+## 产品截图
+
+![FrameLean 产品截图：本地视频压缩工作台](https://www.helloimg.com/i/2026/05/28/6a17cc2de7f8e.png)
+
+![FrameLean 产品截图：任务压缩配置](https://www.helloimg.com/i/2026/05/28/6a17cc2cd489c.png)
+
+![FrameLean 产品截图：任务处理结果](https://www.helloimg.com/i/2026/05/28/6a17cc2c76374.png)
+
 ## 平台范围
 
 当前主要支持和验证的平台：
