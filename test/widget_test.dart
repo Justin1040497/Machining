@@ -16,6 +16,8 @@ import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
@@ -474,6 +476,60 @@ void main() {
     await tester.pump();
 
     expect(retryCount, 1);
+  });
+
+  testWidgets('completed dialog focuses on size and output path', (
+    tester,
+  ) async {
+    final outputPath =
+        '/exports/a/very/long/path/that/should/scroll/in/a/single/line/result.mp4';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: TaskCompletedDialog(
+            outputPath: outputPath,
+            sourceFileSize: 100 * 1024 * 1024,
+            outputFileSize: 25 * 1024 * 1024,
+            onClose: () {},
+            onReveal: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('压缩完成'), findsOneWidget);
+    expect(find.text('压缩前'), findsOneWidget);
+    expect(find.text('100MB'), findsOneWidget);
+    expect(find.text('压缩后'), findsOneWidget);
+    expect(find.text('25MB'), findsOneWidget);
+    expect(find.text('导出位置'), findsOneWidget);
+    expect(find.text(outputPath), findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('打开文件存放位置'), findsOneWidget);
+    expect(find.text('重来'), findsNothing);
+    expect(find.text('知道了'), findsNothing);
+
+    final pathScroll = tester.widget<SingleChildScrollView>(
+      find.ancestor(
+        of: find.text(outputPath),
+        matching: find.byType(SingleChildScrollView),
+      ),
+    );
+    expect(pathScroll.scrollDirection, Axis.horizontal);
+  });
+
+  testWidgets('restart unelevated dialog warns about active tasks', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: Scaffold(body: RestartUnelevatedDialog())),
+    );
+
+    expect(find.text('普通模式重启'), findsOneWidget);
+    expect(find.textContaining('中断正在执行的任务'), findsOneWidget);
+    expect(find.text('取消'), findsOneWidget);
+    expect(find.text('重启'), findsOneWidget);
   });
 
   testWidgets('windows shell reserves a top notice safe area', (tester) async {

@@ -24,7 +24,8 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 - changed
   - Windows 启动窗口改为按主屏幕工作区居中显示。
-  - Windows 管理员模式启动时显示拖拽限制提示，引导用户使用添加按钮或普通模式启动。
+  - Windows 管理员模式启动时显示拖拽限制提示，并提供“普通模式重启”操作。
+  - 压缩完成弹窗简化为小型结果弹窗，只展示压缩前后体积、单行可复制导出路径、取消和打开文件存放位置。
 - fixed
   - 修复 macOS / Windows 大小写不敏感文件系统上，大写 `.MOV` 源文件可能因输出路径只差大小写而触发 FFmpeg 原地覆盖失败的问题。
   - FFmpeg 执行失败时保留 stderr 尾部错误信息，避免只显示退出码导致 MOV 压缩失败原因不可见。
@@ -32,6 +33,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - 通过 `flutter analyze`。
   - 通过 `flutter test`。
   - 通过 `flutter test test/file_extension_media_kind_resolver_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_process_observer_test.dart`。
+  - 通过 `flutter test test/widget_test.dart`。
 
 ## 2026-05-27 / v1.1.0
 
