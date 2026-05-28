@@ -46,7 +46,7 @@ class AppSettings {
     VideoCodec? defaultOutputVideoCodec,
     SmartCompressionPreset? defaultSmartPreset,
     this.defaultOutputFileNameTemplate =
-        DefaultOutputFileNameTemplate.datetimeOriginalCodec,
+        DefaultOutputFileNameTemplate.sourceFileNameCodec,
   }) : compressionSettings =
            compressionSettings ??
            AppCompressionSettings(
@@ -70,7 +70,7 @@ class AppSettings {
       showAdvancedOptions: false,
       compressionSettings: AppCompressionSettings.initial(),
       defaultOutputFileNameTemplate:
-          DefaultOutputFileNameTemplate.datetimeOriginalCodec,
+          DefaultOutputFileNameTemplate.sourceFileNameCodec,
     );
   }
 
