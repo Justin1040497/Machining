@@ -55,6 +55,9 @@ class MediaAnalysisResult {
   /// 音频声道布局，例如 mono、stereo、5.1(side)
   final String? audioChannelLayout;
 
+  /// 可转码主音频流在 FFprobe `streams` 中的全局索引。
+  final int? audioStreamIndex;
+
   MediaAnalysisResult({
     this.durationMs,
     this.videoWidth,
@@ -81,6 +84,7 @@ class MediaAnalysisResult {
     this.audioChannels,
     this.audioSampleRate,
     this.audioChannelLayout,
+    this.audioStreamIndex,
   });
 
   MediaAnalysisResult copyWith({
@@ -109,6 +113,7 @@ class MediaAnalysisResult {
     int? audioChannels,
     int? audioSampleRate,
     String? audioChannelLayout,
+    int? audioStreamIndex,
   }) {
     return MediaAnalysisResult(
       durationMs: durationMs ?? this.durationMs,
@@ -136,6 +141,7 @@ class MediaAnalysisResult {
       audioChannels: audioChannels ?? this.audioChannels,
       audioSampleRate: audioSampleRate ?? this.audioSampleRate,
       audioChannelLayout: audioChannelLayout ?? this.audioChannelLayout,
+      audioStreamIndex: audioStreamIndex ?? this.audioStreamIndex,
     );
   }
 

@@ -28,6 +28,8 @@ void main() {
         analysisResult: MediaAnalysisResult(
           videoHeight: 1080,
           videoBitrate: 3000000,
+          audioCodec: 'aac',
+          audioStreamIndex: 1,
         ),
       );
 
@@ -41,9 +43,9 @@ void main() {
         '-map',
         '0:v:0',
         '-map',
-        '0:a?',
+        '0:1?',
         '-map_metadata',
-        '0',
+        '0:g',
         '-map_chapters',
         '0',
         '-c:v',
@@ -207,7 +209,7 @@ void main() {
       expect(plan.args, containsAllInOrder(['-ar', '44100']));
     });
 
-    test('uses AudioToolbox AAC when the runtime exposes it', () {
+    test('uses native AAC even when the runtime exposes AudioToolbox AAC', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         analysisResult: MediaAnalysisResult(
@@ -228,9 +230,10 @@ void main() {
         ),
       );
 
-      expect(plan.args, containsAllInOrder(['-c:a', 'aac_at']));
-      expect(plan.args, containsAllInOrder(['-aac_at_mode', 'cvbr']));
-      expect(plan.args, containsAllInOrder(['-aac_at_quality', '2']));
+      expect(plan.args, containsAllInOrder(['-c:a', 'aac']));
+      expect(plan.args, isNot(contains('aac_at')));
+      expect(plan.args, isNot(contains('-aac_at_mode')));
+      expect(plan.args, isNot(contains('-aac_at_quality')));
     });
 
     test('requires confirmation before building low bitrate compression', () {
@@ -452,6 +455,54 @@ void main() {
       expect(plan.logHint, contains('HEVC'));
     });
 
+    test('treats hvc1 source codec as HEVC when codec is source', () {
+      // iPhone .MOV files report codec_name as 'hvc1' via ffprobe
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/IMG_8079.MOV',
+        fileName: 'IMG_8079.MOV',
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.source,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoCodec: 'hvc1',
+          videoHeight: 1080,
+          videoBitrate: 10000000,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, containsAllInOrder(['-c:v', 'libx265']));
+      expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
+      expect(plan.logHint, contains('HEVC'));
+    });
+
+    test('maps only the primary usable audio stream for iPhone MOV', () {
+      // iPhone .MOV files may contain Apple Positional Audio as an audio stream
+      // with codec_name=none. Mapping all audio streams makes FFmpeg try to
+      // decode that unsupported stream, so command construction maps the
+      // FFprobe-selected usable audio stream by global stream index.
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/IMG_8079.MOV',
+        fileName: 'IMG_8079.MOV',
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 10000000,
+          audioCodec: 'aac',
+          audioStreamIndex: 1,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, containsAllInOrder(['-map', '0:v:0']));
+      expect(plan.args, containsAllInOrder(['-map', '0:1?']));
+      expect(plan.args, isNot(contains('0:a?')));
+      expect(plan.args, containsAllInOrder(['-map_metadata', '0:g']));
+    });
+
     test('uses explicit HEVC codec even when source is H.264', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
@@ -495,6 +546,54 @@ void main() {
       expect(plan.args, containsAllInOrder(['-c:v', 'h264_videotoolbox']));
       expect(plan.args, containsAllInOrder(['-b:v', '2064k']));
       expect(plan.args, isNot(contains('-crf')));
+    });
+
+    test('smart auto uses software for high-risk iPhone HDR MOV', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/IMG_8079.MOV',
+        fileName: 'IMG_8079.MOV',
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          encoderBackend: EncoderBackend.auto,
+          resolutionPreset: ResolutionPreset.p1080,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoCodec: 'hvc1',
+          videoHeight: 2160,
+          videoBitrate: 30000000,
+          videoBitDepth: 10,
+          colorSpace: 'bt2020nc',
+          colorTransfer: 'smpte2084',
+          colorPrimaries: 'bt2020',
+          containerFormat: 'mov,mp4,m4a,3gp,3g2,mj2',
+          audioCodec: 'aac',
+          audioStreamIndex: 1,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'h264_videotoolbox', 'aac'},
+          autoBackendPriority: [EncoderBackend.videotoolbox],
+        ),
+      );
+
+      expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
+      expect(plan.args, isNot(contains('h264_videotoolbox')));
+      expect(plan.args, containsAllInOrder(['-map', '0:1?']));
+      expect(plan.args, containsAllInOrder(['-c:a', 'aac']));
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-vf',
+          'scale=-2:trunc(min(1080\\,ih)/2)*2:flags=lanczos:'
+              'in_range=auto:out_range=tv:'
+              'in_color_matrix=auto:out_color_matrix=bt709,'
+              'format=yuv420p,setsar=1',
+        ]),
+      );
     });
 
     test('configured hardware smart mode uses a capped bitrate', () {

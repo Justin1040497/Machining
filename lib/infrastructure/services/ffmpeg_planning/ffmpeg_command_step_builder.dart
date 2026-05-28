@@ -65,7 +65,7 @@ class FfmpegCommandStepBuilder {
       '-hide_banner',
       '-i',
       task.inputPath,
-      ...argumentBuilder.buildOutputStreamSelectionArgs(),
+      ...argumentBuilder.buildOutputStreamSelectionArgs(task),
       ...argumentBuilder.buildPurposeArgs(task, recommendation, videoEncoder),
       ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
       ...argumentBuilder.buildCommonOutputArgs(
@@ -124,7 +124,7 @@ class FfmpegCommandStepBuilder {
       '-hide_banner',
       '-i',
       task.inputPath,
-      ...argumentBuilder.buildOutputStreamSelectionArgs(),
+      ...argumentBuilder.buildOutputStreamSelectionArgs(task),
       ...buildTwoPassVideoArgs(
         recommendation,
         videoEncoder,

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
+import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
@@ -330,8 +331,8 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
       return configuredCodec;
     }
 
-    final sourceCodec = task.analysisResult?.videoCodec?.trim().toLowerCase();
-    if (sourceCodec == 'hevc' || sourceCodec == 'h265') {
+    final sourceCodec = task.analysisResult?.videoCodec;
+    if (MediaCodecNormalizer.isHevc(sourceCodec)) {
       return VideoCodec.hevc;
     }
 
