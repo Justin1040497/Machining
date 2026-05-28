@@ -18,7 +18,7 @@ void main() {
       showAdvancedOptions: false,
       defaultOutputVideoCodec: 'hevc',
       defaultCompressionSmartPreset: 'chat',
-      defaultOutputFileNameTemplate: 'datetimeOriginalCodec',
+      defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -31,7 +31,7 @@ void main() {
     expect(settings.defaultSmartPreset, SmartCompressionPreset.chat);
     expect(
       settings.defaultOutputFileNameTemplate,
-      DefaultOutputFileNameTemplate.datetimeOriginalCodec,
+      DefaultOutputFileNameTemplate.sourceFileNameCodec,
     );
   });
 }

@@ -26,7 +26,7 @@ class SettingsRows extends Table {
       .withDefault(const Constant('balanced'))();
   TextColumn get defaultOutputFileNameTemplate => text()
       .named('default_output_file_name_template')
-      .withDefault(const Constant('datetimeOriginalCodec'))();
+      .withDefault(const Constant('sourceFileNameCodec'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

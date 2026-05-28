@@ -13,7 +13,7 @@ void main() {
     expect(settings.saveOutputToSourceDirectory, isTrue);
     expect(
       settings.defaultOutputFileNameTemplate,
-      DefaultOutputFileNameTemplate.datetimeOriginalCodec,
+      DefaultOutputFileNameTemplate.sourceFileNameCodec,
     );
   });
 

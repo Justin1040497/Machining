@@ -141,7 +141,7 @@ class $SettingsRowsTable extends SettingsRows
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('datetimeOriginalCodec'),
+        defaultValue: const Constant('sourceFileNameCodec'),
       );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',

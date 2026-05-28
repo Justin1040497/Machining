@@ -81,17 +81,25 @@ String buildDefaultOutputFileName({
   required DefaultOutputFileNameTemplate template,
   required DateTime now,
 }) {
+  final baseName = path.basenameWithoutExtension(sourceFileName).trim();
+  final codecToken = codecFileNameToken(codec);
+  final dateStr = [
+    now.year.toString().padLeft(4, '0'),
+    now.month.toString().padLeft(2, '0'),
+    now.day.toString().padLeft(2, '0'),
+  ].join();
+
   switch (template) {
-    case DefaultOutputFileNameTemplate.datetimeOriginalCodec:
-      final timestamp = [
-        now.year.toString().padLeft(4, '0'),
-        now.month.toString().padLeft(2, '0'),
-        now.day.toString().padLeft(2, '0'),
-        now.hour.toString().padLeft(2, '0'),
-        now.minute.toString().padLeft(2, '0'),
-      ].join();
-      final baseName = path.basenameWithoutExtension(sourceFileName).trim();
-      return '${timestamp}_${baseName}_${codecFileNameToken(codec)}';
+    case DefaultOutputFileNameTemplate.sourceFileNameCodec:
+      return '$baseName-$codecToken';
+    case DefaultOutputFileNameTemplate.sourceFileNameDateCodec:
+      return '$baseName-$dateStr-$codecToken';
+    case DefaultOutputFileNameTemplate.sourceFileNameCompression:
+      return '$baseName-Compression';
+    case DefaultOutputFileNameTemplate.sourceFileNameCompressed:
+      return '$baseName-已压缩';
+    case DefaultOutputFileNameTemplate.sourceFileNameOnly:
+      return baseName;
   }
 }
 

@@ -24,8 +24,16 @@ extension WorkbenchDefaultOutputFileNameTemplateLabel
     on DefaultOutputFileNameTemplate {
   String get label {
     switch (this) {
-      case DefaultOutputFileNameTemplate.datetimeOriginalCodec:
-        return '日期时间_原文件名_编码名称';
+      case DefaultOutputFileNameTemplate.sourceFileNameCodec:
+        return '源文件名-压缩编码格式';
+      case DefaultOutputFileNameTemplate.sourceFileNameDateCodec:
+        return '源文件名-日期-压缩编码格式';
+      case DefaultOutputFileNameTemplate.sourceFileNameCompression:
+        return '源文件名-Compression';
+      case DefaultOutputFileNameTemplate.sourceFileNameCompressed:
+        return '源文件名-已压缩';
+      case DefaultOutputFileNameTemplate.sourceFileNameOnly:
+        return '源文件名';
     }
   }
 }
