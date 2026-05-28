@@ -122,6 +122,22 @@ ProcessControlResult TerminateProcessByPid(DWORD pid) {
   return {true, ""};
 }
 
+bool IsCurrentProcessElevated() {
+  HANDLE token = nullptr;
+  if (!OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &token)) {
+    return false;
+  }
+
+  TOKEN_ELEVATION elevation;
+  DWORD returned_size = 0;
+  const BOOL succeeded =
+      GetTokenInformation(token, TokenElevation, &elevation,
+                          sizeof(elevation), &returned_size);
+  CloseHandle(token);
+
+  return succeeded && elevation.TokenIsElevated != 0;
+}
+
 void CompleteProcessControlCall(
     const ProcessControlResult& control_result,
     std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
@@ -144,13 +160,18 @@ void RegisterProcessControlChannel(flutter::BinaryMessenger* messenger) {
   channel->SetMethodCallHandler(
       [](const flutter::MethodCall<flutter::EncodableValue>& call,
          std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        const std::string& method = call.method_name();
+        if (method == "isElevated") {
+          result->Success(flutter::EncodableValue(IsCurrentProcessElevated()));
+          return;
+        }
+
         DWORD pid = 0;
         if (!ReadPid(call.arguments(), &pid)) {
           result->Error("invalid_arguments", "A positive pid argument is required");
           return;
         }
 
-        const std::string& method = call.method_name();
         if (method == "pause") {
           CompleteProcessControlCall(
               SuspendOrResumeProcessThreads(pid, true), std::move(result));

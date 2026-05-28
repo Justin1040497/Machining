@@ -84,6 +84,44 @@ void main() {
       expect(result.message, 'FFmpeg 退出码: 1');
     });
 
+    test('includes stderr tail when exitCode is not zero', () async {
+      final observer = LocalFfmpegProcessObserver(
+        outputPathExists: (_) => true,
+      );
+      final logFile = await createTempLogFile();
+      final process = FakeProcess(
+        exitCodeValue: 1,
+        stderrText: [
+          'line 1',
+          'line 2',
+          'line 3',
+          'line 4',
+          'line 5',
+          'line 6',
+          'line 7',
+          'line 8',
+          'line 9',
+          'Conversion failed!',
+        ].join('\n'),
+      );
+
+      final result = await observer.observe(
+        startedProcess: StartedFfmpegProcess(
+          process: process,
+          logFile: logFile,
+        ),
+        task: videoTaskWithDuration(durationMs: 10000),
+        outputPath: '/videos/output.mp4',
+        onProgress: (_) async {},
+      );
+
+      expect(result.status, FfmpegProcessObservationStatus.failed);
+      expect(result.message, isNot(contains('line 1')));
+      expect(result.message, contains('line 3'));
+      expect(result.message, contains('Conversion failed!'));
+      expect(await logFile.readAsString(), contains('line 1'));
+    });
+
     test('fails when output file is missing', () async {
       final observer = LocalFfmpegProcessObserver(
         outputPathExists: (_) => false,

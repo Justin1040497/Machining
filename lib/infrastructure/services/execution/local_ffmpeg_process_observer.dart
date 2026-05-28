@@ -7,6 +7,8 @@ import 'package:framelean/application/services/execution/ffmpeg_process_starter.
 import 'package:framelean/domain/entities/media_task.dart';
 
 class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
+  static const int stderrTailLineLimit = 8;
+
   final bool Function(String outputPath) outputPathExists;
 
   LocalFfmpegProcessObserver({
@@ -22,6 +24,7 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     required Future<void> Function(double progress) onProgress,
   }) async {
     final stderrSink = startedProcess.logFile.openWrite(mode: FileMode.append);
+    final stderrTail = <String>[];
     Object? streamError;
 
     final stdoutDone = observeStdout(
@@ -33,6 +36,7 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     final stderrDone = observeStderr(
       startedProcess.process.stderr,
       stderrSink,
+      onLine: (line) => recordStderrTail(stderrTail, line),
       onError: (error) => streamError ??= error,
     );
 
@@ -46,7 +50,9 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     }
 
     if (exitCode != 0) {
-      return FfmpegProcessObservation.failed('FFmpeg 退出码: $exitCode');
+      return FfmpegProcessObservation.failed(
+        buildExitFailureMessage(exitCode, stderrTail),
+      );
     }
 
     if (outputPath != null && !outputPathExists(outputPath)) {
@@ -85,16 +91,38 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
   Future<void> observeStderr(
     Stream<List<int>> stderr,
     IOSink stderrSink, {
+    required void Function(String line) onLine,
     required void Function(Object error) onError,
   }) async {
     try {
       await for (final line
           in stderr.transform(utf8.decoder).transform(const LineSplitter())) {
         stderrSink.writeln(line);
+        onLine(line);
       }
     } on Object catch (error) {
       onError(error);
     }
+  }
+
+  void recordStderrTail(List<String> stderrTail, String line) {
+    final trimmedLine = line.trim();
+    if (trimmedLine.isEmpty) {
+      return;
+    }
+
+    stderrTail.add(trimmedLine);
+    if (stderrTail.length > stderrTailLineLimit) {
+      stderrTail.removeAt(0);
+    }
+  }
+
+  String buildExitFailureMessage(int exitCode, List<String> stderrTail) {
+    if (stderrTail.isEmpty) {
+      return 'FFmpeg 退出码: $exitCode';
+    }
+
+    return 'FFmpeg 退出码: $exitCode\n${stderrTail.join('\n')}';
   }
 
   int? parseOutTimeMicroseconds(String line) {

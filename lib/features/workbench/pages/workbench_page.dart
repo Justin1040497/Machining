@@ -32,6 +32,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_file
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
@@ -66,6 +67,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       WorkbenchNoticeController();
   final Set<String> notifiedAnalysisErrorKeys = {};
   final Set<String> notifiedCompletedTaskKeys = {};
+  bool windowsPrivilegeNoticeShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+  }
 
   @override
   void dispose() {
@@ -135,6 +143,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         },
       ),
     );
+  }
+
+  Future<void> showWindowsAdministratorDragNoticeIfNeeded() async {
+    final isElevated = await WorkbenchWindowsPrivilege.isRunningElevated();
+    if (!isElevated || !mounted || windowsPrivilegeNoticeShown) {
+      return;
+    }
+
+    windowsPrivilegeNoticeShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      showWorkbenchSnackBar('管理员模式下 Windows 可能阻止拖入文件，请使用添加按钮或以普通模式启动');
+    });
   }
 
   MediaTask? resolveSelectedTask(List<MediaTask> tasks) {

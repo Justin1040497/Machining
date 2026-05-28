@@ -8,10 +8,16 @@ import 'package:path/path.dart' as path;
 
 class FfmpegOutputPathBuilder {
   final bool Function(String outputPath) outputPathExists;
+  final bool caseInsensitiveFileSystem;
 
-  FfmpegOutputPathBuilder({bool Function(String outputPath)? pathExists})
-    : outputPathExists =
-          pathExists ?? ((outputPath) => File(outputPath).existsSync());
+  FfmpegOutputPathBuilder({
+    bool Function(String outputPath)? pathExists,
+    bool? caseInsensitiveFileSystem,
+  }) : caseInsensitiveFileSystem =
+           caseInsensitiveFileSystem ??
+           (Platform.isMacOS || Platform.isWindows),
+       outputPathExists =
+           pathExists ?? ((outputPath) => File(outputPath).existsSync());
 
   String buildOutputPath(MediaTask task) {
     final inputDirectory = path.dirname(task.inputPath);
@@ -68,8 +74,18 @@ class FfmpegOutputPathBuilder {
   }
 
   bool isSamePath(String first, String second) {
-    return path.normalize(path.absolute(first)) ==
-        path.normalize(path.absolute(second));
+    final normalizedFirst = normalizeForComparison(first);
+    final normalizedSecond = normalizeForComparison(second);
+    return normalizedFirst == normalizedSecond;
+  }
+
+  String normalizeForComparison(String targetPath) {
+    final normalized = path.normalize(path.absolute(targetPath));
+    if (!caseInsensitiveFileSystem) {
+      return normalized;
+    }
+
+    return normalized.toLowerCase();
   }
 
   String extensionFor(OutputFormat outputFormat) {

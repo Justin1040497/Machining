@@ -20,6 +20,19 @@ YYYY-MM-DD / vX.Y.Z / Summary
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-28 / v1.1.0 后 / Windows 和 MOV 兼容修复
+
+- changed
+  - Windows 启动窗口改为按主屏幕工作区居中显示。
+  - Windows 管理员模式启动时显示拖拽限制提示，引导用户使用添加按钮或普通模式启动。
+- fixed
+  - 修复 macOS / Windows 大小写不敏感文件系统上，大写 `.MOV` 源文件可能因输出路径只差大小写而触发 FFmpeg 原地覆盖失败的问题。
+  - FFmpeg 执行失败时保留 stderr 尾部错误信息，避免只显示退出码导致 MOV 压缩失败原因不可见。
+- verified
+  - 通过 `flutter analyze`。
+  - 通过 `flutter test`。
+  - 通过 `flutter test test/file_extension_media_kind_resolver_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_process_observer_test.dart`。
+
 ## 2026-05-27 / v1.1.0
 
 ### 今天主要完成 Windows 桌面兼容修复、FFmpeg 输出参数优化、Windows 发布包自动化和 zip 布局修复，并将全局字体、项目级 workflow 和 `v1.1.0` 发布准备纳入本次发布。
