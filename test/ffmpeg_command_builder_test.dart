@@ -15,6 +15,7 @@ import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
+import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_output_path_builder.dart';
 
 void main() {
   group('DefaultFfmpegCommandBuilder', () {
@@ -297,6 +298,32 @@ void main() {
       expect(plan.outputPath, '/exports/final-cut.mkv');
       expect(plan.args.last, '/exports/final-cut.mkv');
     });
+
+    test(
+      'adds numeric suffix when MOV output differs from source only by case',
+      () {
+        final builder = DefaultFfmpegCommandBuilder(
+          outputPathBuilder: FfmpegOutputPathBuilder(
+            pathExists: (_) => false,
+            caseInsensitiveFileSystem: true,
+          ),
+        );
+        final task = videoTask(
+          inputPath: '/videos/clip.MOV',
+          fileName: 'clip.MOV',
+          config: VideoTaskConfig.initial().copyWith(
+            outputFormat: OutputFormat.mov,
+            outputFileName: 'clip.MOV',
+            videoCodec: VideoCodec.h264,
+          ),
+        );
+
+        final plan = builder.build(task);
+
+        expect(plan.outputPath, '/videos/clip-1.mov');
+        expect(plan.args.last, '/videos/clip-1.mov');
+      },
+    );
 
     test('adds numeric suffix when output path already exists', () {
       final existingPaths = {

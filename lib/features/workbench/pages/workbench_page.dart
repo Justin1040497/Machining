@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_se
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
@@ -32,10 +34,10 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_file
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
-import 'package:path/path.dart' as path;
 
 const Object _configValueNotProvided = Object();
 
@@ -66,6 +68,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       WorkbenchNoticeController();
   final Set<String> notifiedAnalysisErrorKeys = {};
   final Set<String> notifiedCompletedTaskKeys = {};
+  bool windowsPrivilegeNoticeShown = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+  }
 
   @override
   void dispose() {
@@ -135,6 +144,64 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         },
       ),
     );
+  }
+
+  Future<void> showWindowsAdministratorDragNoticeIfNeeded() async {
+    final isElevated = await WorkbenchWindowsPrivilege.isRunningElevated();
+    if (!isElevated || !mounted || windowsPrivilegeNoticeShown) {
+      return;
+    }
+
+    windowsPrivilegeNoticeShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+
+      showWorkbenchSnackBar(
+        '管理员模式下 Windows 可能阻止拖入文件',
+        action: SnackBarAction(
+          label: '普通模式重启',
+          onPressed: () => unawaited(restartInNormalMode()),
+        ),
+      );
+    });
+  }
+
+  Future<void> restartInNormalMode() async {
+    final taskList = ref.read(mediaTaskListProvider);
+    final tasks = taskList.hasValue ? taskList.requireValue : null;
+    final hasActiveTask =
+        tasks?.any(
+          (task) =>
+              task.status == TaskStatus.running ||
+              task.status == TaskStatus.paused,
+        ) ??
+        false;
+
+    if (hasActiveTask) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => const RestartUnelevatedDialog(),
+      );
+      if (confirmed != true) {
+        return;
+      }
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    try {
+      await WorkbenchWindowsPrivilege.restartUnelevated();
+    } on Object catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      showWorkbenchSnackBar(error.toString());
+    }
   }
 
   MediaTask? resolveSelectedTask(List<MediaTask> tasks) {
@@ -281,15 +348,18 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     final outputPath = task.outputPath?.trim();
+    final outputFileSize = await readOutputFileSize(outputPath);
+    if (!mounted) {
+      return;
+    }
 
     await showDialog<void>(
       context: context,
       builder: (context) {
         return TaskCompletedDialog(
-          fileName: outputPath == null || outputPath.isEmpty
-              ? task.fileName
-              : path.basename(outputPath),
           outputPath: outputPath,
+          sourceFileSize: task.sourceFileFingerprint?.fileSize,
+          outputFileSize: outputFileSize,
           onClose: () => Navigator.of(context).pop(),
           onReveal: outputPath == null || outputPath.isEmpty
               ? null
@@ -297,13 +367,26 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                   Navigator.of(context).pop();
                   unawaited(revealPathInFileManager(outputPath));
                 },
-          onRestart: () {
-            Navigator.of(context).pop();
-            unawaited(retryTask(task));
-          },
         );
       },
     );
+  }
+
+  Future<int?> readOutputFileSize(String? outputPath) async {
+    if (outputPath == null || outputPath.isEmpty) {
+      return null;
+    }
+
+    try {
+      final outputFile = File(outputPath);
+      if (!await outputFile.exists()) {
+        return null;
+      }
+
+      return outputFile.length();
+    } on Object {
+      return null;
+    }
   }
 
   ImageProvider? thumbnailForTask(MediaTask task) {
