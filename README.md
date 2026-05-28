@@ -181,14 +181,15 @@ scripts/build_dmg_macos.sh
 ```
 
 脚本会检查并准备内置 FFmpeg / FFprobe，调用 `pubspec.yaml` 中的
-`dmg` 打包依赖，并验证 DMG、内置运行时和包内法律资料。默认生成未签名、
-未公证的本地测试 DMG；需要签名或公证时，可把 `dmg` 参数直接传给脚本。
+`dmg` 打包依赖，并验证 DMG、内置运行时和包内法律资料。DMG 文件名会读取
+`pubspec.yaml` 的语义化版本，不包含 `+build` 后缀。默认生成未签名、未公证
+的本地测试 DMG；需要签名或公证时，可把 `dmg` 参数直接传给脚本。
 
 Release app 和 DMG 位置：
 
 ```text
 build/macos/Build/Products/Release/FrameLean.app
-build/macos/Build/Products/Release/FrameLean.dmg
+build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg
 ```
 
 验证 app 内置 FFmpeg 和法律资料：
@@ -219,7 +220,7 @@ Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/FrameLean-v1.1.0-windows-x64.zip
+build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip
 ```
 
 Windows CMake 会把运行时复制到：
@@ -228,7 +229,9 @@ Windows CMake 会把运行时复制到：
 build/windows/x64/runner/Release/ffmpeg/
 ```
 
-如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，Windows Release 构建会失败，避免产出缺少内置运行时的发布包。
+Windows zip 文件名会读取 `pubspec.yaml` 的语义化版本，解压后顶层目录应为
+`FrameLean-v1.1.5-windows-x64/`。如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，
+Windows Release 构建会失败，避免产出缺少内置运行时的发布包。
 
 验证 app 内置 FFmpeg：
 

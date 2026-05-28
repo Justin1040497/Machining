@@ -31,15 +31,24 @@ docs/archive/logs/YYYY-MM-DD-<bug-slug>.md
 Use the existing changelog shape:
 
 ```text
-YYYY-MM-DD / vX.Y.Z / Summary
-- added
-  - New capability or user-visible addition.
-- changed
-  - Behavior, architecture, workflow, or maintenance change.
-- fixed
-  - Bug fix or corrected behavior.
-- verified
-  - Checks, tests, builds, or manual validation performed.
+YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
+One-line summary of what changed that day.
+
+### Added
+
+- New capability or user-visible addition.
+
+### Changed
+
+- Behavior, architecture, workflow, or maintenance change.
+
+### Fixed
+
+- Bug fix or corrected behavior.
+
+### Verified
+
+- Checks, tests, builds, or manual validation performed.
 ```
 
 ## Sync Before Final Recommendation
