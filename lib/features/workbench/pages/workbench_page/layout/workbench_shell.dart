@@ -28,6 +28,7 @@ class WorkbenchShell extends StatelessWidget {
     required this.onRemove,
     required this.onRetry,
     required this.onRelink,
+    required this.onShowLog,
     required this.onContextMenu,
     required this.onAddTask,
     required this.onOpenSettings,
@@ -51,6 +52,7 @@ class WorkbenchShell extends StatelessWidget {
   final ValueChanged<MediaTask> onRemove;
   final ValueChanged<MediaTask> onRetry;
   final ValueChanged<MediaTask> onRelink;
+  final ValueChanged<MediaTask> onShowLog;
   final WorkbenchTaskPositionCallback onContextMenu;
   final VoidCallback onAddTask;
   final VoidCallback onOpenSettings;
@@ -138,6 +140,7 @@ class WorkbenchShell extends StatelessWidget {
                           onRemove: onRemove,
                           onRetry: onRetry,
                           onRelink: onRelink,
+                          onShowLog: onShowLog,
                           onContextMenu: onContextMenu,
                         ),
                       ),

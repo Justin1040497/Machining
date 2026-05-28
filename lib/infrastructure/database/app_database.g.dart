@@ -1284,6 +1284,17 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _analysisAudioStreamIndexMeta =
+      const VerificationMeta('analysisAudioStreamIndex');
+  @override
+  late final GeneratedColumn<int> analysisAudioStreamIndex =
+      GeneratedColumn<int>(
+        'analysis_audio_stream_index',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _analysisUpdatedAtMeta = const VerificationMeta(
     'analysisUpdatedAt',
   );
@@ -1513,6 +1524,7 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     analysisAudioChannels,
     analysisAudioSampleRate,
     analysisAudioChannelLayout,
+    analysisAudioStreamIndex,
     analysisUpdatedAt,
     analysisErrorMessage,
     outputFormat,
@@ -1858,6 +1870,15 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('analysis_audio_stream_index')) {
+      context.handle(
+        _analysisAudioStreamIndexMeta,
+        analysisAudioStreamIndex.isAcceptableOrUnknown(
+          data['analysis_audio_stream_index']!,
+          _analysisAudioStreamIndexMeta,
+        ),
+      );
+    }
     if (data.containsKey('analysis_updated_at')) {
       context.handle(
         _analysisUpdatedAtMeta,
@@ -2168,6 +2189,10 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}analysis_audio_channel_layout'],
       ),
+      analysisAudioStreamIndex: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_audio_stream_index'],
+      ),
       analysisUpdatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}analysis_updated_at'],
@@ -2284,6 +2309,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final int? analysisAudioChannels;
   final int? analysisAudioSampleRate;
   final String? analysisAudioChannelLayout;
+  final int? analysisAudioStreamIndex;
   final int? analysisUpdatedAt;
   final String? analysisErrorMessage;
   final String outputFormat;
@@ -2339,6 +2365,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.analysisAudioChannels,
     this.analysisAudioSampleRate,
     this.analysisAudioChannelLayout,
+    this.analysisAudioStreamIndex,
     this.analysisUpdatedAt,
     this.analysisErrorMessage,
     required this.outputFormat,
@@ -2475,6 +2502,11 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     if (!nullToAbsent || analysisAudioChannelLayout != null) {
       map['analysis_audio_channel_layout'] = Variable<String>(
         analysisAudioChannelLayout,
+      );
+    }
+    if (!nullToAbsent || analysisAudioStreamIndex != null) {
+      map['analysis_audio_stream_index'] = Variable<int>(
+        analysisAudioStreamIndex,
       );
     }
     if (!nullToAbsent || analysisUpdatedAt != null) {
@@ -2614,6 +2646,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           analysisAudioChannelLayout == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisAudioChannelLayout),
+      analysisAudioStreamIndex: analysisAudioStreamIndex == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisAudioStreamIndex),
       analysisUpdatedAt: analysisUpdatedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisUpdatedAt),
@@ -2741,6 +2776,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioChannelLayout: serializer.fromJson<String?>(
         json['analysisAudioChannelLayout'],
       ),
+      analysisAudioStreamIndex: serializer.fromJson<int?>(
+        json['analysisAudioStreamIndex'],
+      ),
       analysisUpdatedAt: serializer.fromJson<int?>(json['analysisUpdatedAt']),
       analysisErrorMessage: serializer.fromJson<String?>(
         json['analysisErrorMessage'],
@@ -2829,6 +2867,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'analysisAudioChannelLayout': serializer.toJson<String?>(
         analysisAudioChannelLayout,
       ),
+      'analysisAudioStreamIndex': serializer.toJson<int?>(
+        analysisAudioStreamIndex,
+      ),
       'analysisUpdatedAt': serializer.toJson<int?>(analysisUpdatedAt),
       'analysisErrorMessage': serializer.toJson<String?>(analysisErrorMessage),
       'outputFormat': serializer.toJson<String>(outputFormat),
@@ -2887,6 +2928,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<int?> analysisAudioChannels = const Value.absent(),
     Value<int?> analysisAudioSampleRate = const Value.absent(),
     Value<String?> analysisAudioChannelLayout = const Value.absent(),
+    Value<int?> analysisAudioStreamIndex = const Value.absent(),
     Value<int?> analysisUpdatedAt = const Value.absent(),
     Value<String?> analysisErrorMessage = const Value.absent(),
     String? outputFormat,
@@ -2996,6 +3038,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioChannelLayout: analysisAudioChannelLayout.present
         ? analysisAudioChannelLayout.value
         : this.analysisAudioChannelLayout,
+    analysisAudioStreamIndex: analysisAudioStreamIndex.present
+        ? analysisAudioStreamIndex.value
+        : this.analysisAudioStreamIndex,
     analysisUpdatedAt: analysisUpdatedAt.present
         ? analysisUpdatedAt.value
         : this.analysisUpdatedAt,
@@ -3119,6 +3164,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioChannelLayout: data.analysisAudioChannelLayout.present
           ? data.analysisAudioChannelLayout.value
           : this.analysisAudioChannelLayout,
+      analysisAudioStreamIndex: data.analysisAudioStreamIndex.present
+          ? data.analysisAudioStreamIndex.value
+          : this.analysisAudioStreamIndex,
       analysisUpdatedAt: data.analysisUpdatedAt.present
           ? data.analysisUpdatedAt.value
           : this.analysisUpdatedAt,
@@ -3209,6 +3257,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('analysisAudioChannels: $analysisAudioChannels, ')
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
           ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
+          ..write('analysisAudioStreamIndex: $analysisAudioStreamIndex, ')
           ..write('analysisUpdatedAt: $analysisUpdatedAt, ')
           ..write('analysisErrorMessage: $analysisErrorMessage, ')
           ..write('outputFormat: $outputFormat, ')
@@ -3269,6 +3318,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioChannels,
     analysisAudioSampleRate,
     analysisAudioChannelLayout,
+    analysisAudioStreamIndex,
     analysisUpdatedAt,
     analysisErrorMessage,
     outputFormat,
@@ -3329,6 +3379,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.analysisAudioChannels == this.analysisAudioChannels &&
           other.analysisAudioSampleRate == this.analysisAudioSampleRate &&
           other.analysisAudioChannelLayout == this.analysisAudioChannelLayout &&
+          other.analysisAudioStreamIndex == this.analysisAudioStreamIndex &&
           other.analysisUpdatedAt == this.analysisUpdatedAt &&
           other.analysisErrorMessage == this.analysisErrorMessage &&
           other.outputFormat == this.outputFormat &&
@@ -3386,6 +3437,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<int?> analysisAudioChannels;
   final Value<int?> analysisAudioSampleRate;
   final Value<String?> analysisAudioChannelLayout;
+  final Value<int?> analysisAudioStreamIndex;
   final Value<int?> analysisUpdatedAt;
   final Value<String?> analysisErrorMessage;
   final Value<String> outputFormat;
@@ -3442,6 +3494,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisAudioChannels = const Value.absent(),
     this.analysisAudioSampleRate = const Value.absent(),
     this.analysisAudioChannelLayout = const Value.absent(),
+    this.analysisAudioStreamIndex = const Value.absent(),
     this.analysisUpdatedAt = const Value.absent(),
     this.analysisErrorMessage = const Value.absent(),
     this.outputFormat = const Value.absent(),
@@ -3499,6 +3552,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisAudioChannels = const Value.absent(),
     this.analysisAudioSampleRate = const Value.absent(),
     this.analysisAudioChannelLayout = const Value.absent(),
+    this.analysisAudioStreamIndex = const Value.absent(),
     this.analysisUpdatedAt = const Value.absent(),
     this.analysisErrorMessage = const Value.absent(),
     required String outputFormat,
@@ -3567,6 +3621,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<int>? analysisAudioChannels,
     Expression<int>? analysisAudioSampleRate,
     Expression<String>? analysisAudioChannelLayout,
+    Expression<int>? analysisAudioStreamIndex,
     Expression<int>? analysisUpdatedAt,
     Expression<String>? analysisErrorMessage,
     Expression<String>? outputFormat,
@@ -3650,6 +3705,8 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         'analysis_audio_sample_rate': analysisAudioSampleRate,
       if (analysisAudioChannelLayout != null)
         'analysis_audio_channel_layout': analysisAudioChannelLayout,
+      if (analysisAudioStreamIndex != null)
+        'analysis_audio_stream_index': analysisAudioStreamIndex,
       if (analysisUpdatedAt != null) 'analysis_updated_at': analysisUpdatedAt,
       if (analysisErrorMessage != null)
         'analysis_error_message': analysisErrorMessage,
@@ -3710,6 +3767,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<int?>? analysisAudioChannels,
     Value<int?>? analysisAudioSampleRate,
     Value<String?>? analysisAudioChannelLayout,
+    Value<int?>? analysisAudioStreamIndex,
     Value<int?>? analysisUpdatedAt,
     Value<String?>? analysisErrorMessage,
     Value<String>? outputFormat,
@@ -3782,6 +3840,8 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           analysisAudioSampleRate ?? this.analysisAudioSampleRate,
       analysisAudioChannelLayout:
           analysisAudioChannelLayout ?? this.analysisAudioChannelLayout,
+      analysisAudioStreamIndex:
+          analysisAudioStreamIndex ?? this.analysisAudioStreamIndex,
       analysisUpdatedAt: analysisUpdatedAt ?? this.analysisUpdatedAt,
       analysisErrorMessage: analysisErrorMessage ?? this.analysisErrorMessage,
       outputFormat: outputFormat ?? this.outputFormat,
@@ -3949,6 +4009,11 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         analysisAudioChannelLayout.value,
       );
     }
+    if (analysisAudioStreamIndex.present) {
+      map['analysis_audio_stream_index'] = Variable<int>(
+        analysisAudioStreamIndex.value,
+      );
+    }
     if (analysisUpdatedAt.present) {
       map['analysis_updated_at'] = Variable<int>(analysisUpdatedAt.value);
     }
@@ -4050,6 +4115,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('analysisAudioChannels: $analysisAudioChannels, ')
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
           ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
+          ..write('analysisAudioStreamIndex: $analysisAudioStreamIndex, ')
           ..write('analysisUpdatedAt: $analysisUpdatedAt, ')
           ..write('analysisErrorMessage: $analysisErrorMessage, ')
           ..write('outputFormat: $outputFormat, ')
@@ -4500,6 +4566,7 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<int?> analysisAudioChannels,
       Value<int?> analysisAudioSampleRate,
       Value<String?> analysisAudioChannelLayout,
+      Value<int?> analysisAudioStreamIndex,
       Value<int?> analysisUpdatedAt,
       Value<String?> analysisErrorMessage,
       required String outputFormat,
@@ -4558,6 +4625,7 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<int?> analysisAudioChannels,
       Value<int?> analysisAudioSampleRate,
       Value<String?> analysisAudioChannelLayout,
+      Value<int?> analysisAudioStreamIndex,
       Value<int?> analysisUpdatedAt,
       Value<String?> analysisErrorMessage,
       Value<String> outputFormat,
@@ -4769,6 +4837,11 @@ class $$TaskRowsTableFilterComposer
 
   ColumnFilters<String> get analysisAudioChannelLayout => $composableBuilder(
     column: $table.analysisAudioChannelLayout,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisAudioStreamIndex => $composableBuilder(
+    column: $table.analysisAudioStreamIndex,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5052,6 +5125,11 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get analysisAudioStreamIndex => $composableBuilder(
+    column: $table.analysisAudioStreamIndex,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get analysisUpdatedAt => $composableBuilder(
     column: $table.analysisUpdatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -5316,6 +5394,11 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get analysisAudioStreamIndex => $composableBuilder(
+    column: $table.analysisAudioStreamIndex,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get analysisUpdatedAt => $composableBuilder(
     column: $table.analysisUpdatedAt,
     builder: (column) => column,
@@ -5463,6 +5546,7 @@ class $$TaskRowsTableTableManager
                 Value<int?> analysisAudioSampleRate = const Value.absent(),
                 Value<String?> analysisAudioChannelLayout =
                     const Value.absent(),
+                Value<int?> analysisAudioStreamIndex = const Value.absent(),
                 Value<int?> analysisUpdatedAt = const Value.absent(),
                 Value<String?> analysisErrorMessage = const Value.absent(),
                 Value<String> outputFormat = const Value.absent(),
@@ -5519,6 +5603,7 @@ class $$TaskRowsTableTableManager
                 analysisAudioChannels: analysisAudioChannels,
                 analysisAudioSampleRate: analysisAudioSampleRate,
                 analysisAudioChannelLayout: analysisAudioChannelLayout,
+                analysisAudioStreamIndex: analysisAudioStreamIndex,
                 analysisUpdatedAt: analysisUpdatedAt,
                 analysisErrorMessage: analysisErrorMessage,
                 outputFormat: outputFormat,
@@ -5579,6 +5664,7 @@ class $$TaskRowsTableTableManager
                 Value<int?> analysisAudioSampleRate = const Value.absent(),
                 Value<String?> analysisAudioChannelLayout =
                     const Value.absent(),
+                Value<int?> analysisAudioStreamIndex = const Value.absent(),
                 Value<int?> analysisUpdatedAt = const Value.absent(),
                 Value<String?> analysisErrorMessage = const Value.absent(),
                 required String outputFormat,
@@ -5635,6 +5721,7 @@ class $$TaskRowsTableTableManager
                 analysisAudioChannels: analysisAudioChannels,
                 analysisAudioSampleRate: analysisAudioSampleRate,
                 analysisAudioChannelLayout: analysisAudioChannelLayout,
+                analysisAudioStreamIndex: analysisAudioStreamIndex,
                 analysisUpdatedAt: analysisUpdatedAt,
                 analysisErrorMessage: analysisErrorMessage,
                 outputFormat: outputFormat,

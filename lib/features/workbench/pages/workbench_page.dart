@@ -27,6 +27,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restar
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice_controller.dart';
@@ -36,6 +37,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_impo
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
+import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 
@@ -131,6 +133,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         onRemove: deleteTask,
         onRetry: retryTask,
         onRelink: relinkMissingSource,
+        onShowLog: showTaskLog,
         onContextMenu: (task, position) {
           unawaited(showTaskContextMenu(task, position));
         },
@@ -781,6 +784,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         await relinkMissingSource(task);
       case TaskContextMenuAction.rename:
         await renameTask(task);
+      case TaskContextMenuAction.showLog:
+        await showTaskLog(task);
       case TaskContextMenuAction.delete:
         await deleteTask(task);
     }
@@ -819,6 +824,18 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref
         .read(mediaTaskListProvider.notifier)
         .saveTask(task.copyWith(fileName: trimmedName));
+  }
+
+  Future<void> showTaskLog(MediaTask task) async {
+    if (!mounted) {
+      return;
+    }
+
+    await TaskLogDialog.show(
+      context,
+      task,
+      logStore: ref.read(executionLogStoreProvider),
+    );
   }
 
   Future<void> retryTask(MediaTask task) async {

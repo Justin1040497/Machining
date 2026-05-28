@@ -257,6 +257,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       _foregroundTaskId = null;
     }
 
+    await appendExecutionLogFooter(
+      execution?.logFile,
+      success: false,
+      message: '任务已取消',
+    );
+
     final cancelledTask = task.markCancelled();
     await repository.saveTask(cancelledTask);
     await continueAfterTask();
@@ -400,6 +406,11 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         logFile: logFile,
       );
     } on Object catch (error) {
+      await appendExecutionLogFooter(
+        logFile,
+        success: false,
+        message: 'FFmpeg 启动失败: $error',
+      );
       final failedTask = runningTask.markFailed('FFmpeg 启动失败: $error');
       await repository.saveTask(failedTask);
       await continueAfterTask();
@@ -584,6 +595,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           _foregroundTaskId = null;
         }
         await cleanupPlanFiles(execution.plan);
+
+        await appendExecutionLogFooter(
+          execution.logFile,
+          success: false,
+          message: 'FFmpeg 启动失败: $error',
+        );
+
         final failedTask = task.markFailed(
           'FFmpeg 启动失败: $error',
           failedAt: (await now()).millisecondsSinceEpoch,
@@ -601,11 +619,31 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
-      final completedTask = task.markCompleted(
-        completedAt: (await now()).millisecondsSinceEpoch,
+      final completedAt = (await now()).millisecondsSinceEpoch;
+      final completedTask = task.markCompleted(completedAt: completedAt);
+      final outputSize = task.outputPath != null
+          ? await _getFileSize(task.outputPath!)
+          : null;
+      final durationMs = task.startedAt != null
+          ? completedAt - task.startedAt!
+          : null;
+
+      await appendExecutionLogFooter(
+        execution.logFile,
+        success: true,
+        outputPath: task.outputPath,
+        outputSize: outputSize,
+        durationMs: durationMs,
       );
+
       await repository.saveTask(completedTask);
     } else {
+      await appendExecutionLogFooter(
+        execution.logFile,
+        success: false,
+        message: observation.message ?? 'FFmpeg 执行失败',
+      );
+
       final failedTask = task.markFailed(
         observation.message ?? 'FFmpeg 执行失败',
         failedAt: (await now()).millisecondsSinceEpoch,
@@ -615,6 +653,89 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     await cleanupPlanFiles(execution.plan);
     await continueAfterTask();
+  }
+
+  Future<int?> _getFileSize(String filePath) async {
+    try {
+      final file = File(filePath);
+      if (await file.exists()) {
+        return await file.length();
+      }
+    } catch (_) {
+      // Ignore errors
+    }
+    return null;
+  }
+
+  Future<void> appendExecutionLogFooter(
+    File? logFile, {
+    required bool success,
+    String? message,
+    String? outputPath,
+    int? outputSize,
+    int? durationMs,
+  }) async {
+    if (logFile == null) {
+      return;
+    }
+
+    try {
+      final sink = logFile.openWrite(mode: FileMode.append);
+      sink.writeln();
+      sink.writeln('=' * 80);
+      sink.writeln(success ? '任务完成' : '任务失败');
+      if (message != null && message.trim().isNotEmpty) {
+        sink.writeln(message);
+      }
+      if (outputPath != null) {
+        sink.writeln('输出路径: $outputPath');
+      }
+      if (outputSize != null) {
+        sink.writeln('输出大小: ${formatLogBytes(outputSize)}');
+      }
+      if (durationMs != null) {
+        sink.writeln('耗时: ${formatLogDuration(durationMs)}');
+      }
+      sink.writeln('=' * 80);
+      await sink.close();
+    } on Object {
+      // Logging is diagnostic only; execution state should not depend on it.
+    }
+  }
+
+  String formatLogBytes(int bytes) {
+    const units = ['B', 'KB', 'MB', 'GB'];
+    var value = bytes.toDouble();
+    var unitIndex = 0;
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+
+    if (unitIndex == 0) {
+      return '${value.round()}${units[unitIndex]}';
+    }
+    final text = value >= 10
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
+    return '$text${units[unitIndex]}';
+  }
+
+  String formatLogDuration(int milliseconds) {
+    final seconds = milliseconds ~/ 1000;
+    if (seconds < 60) {
+      return '$seconds秒';
+    }
+
+    final minutes = seconds ~/ 60;
+    final remainingSeconds = seconds % 60;
+    if (minutes < 60) {
+      return '$minutes分$remainingSeconds秒';
+    }
+
+    final hours = minutes ~/ 60;
+    final remainingMinutes = minutes % 60;
+    return '$hours小时$remainingMinutes分$remainingSeconds秒';
   }
 
   Future<void> cleanupPlanFiles(FfmpegCommandPlan plan) async {

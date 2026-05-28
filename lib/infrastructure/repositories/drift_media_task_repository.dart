@@ -111,6 +111,7 @@ extension MediaTaskMapper on MediaTask {
       analysisAudioChannels: Value(analysisResult?.audioChannels),
       analysisAudioSampleRate: Value(analysisResult?.audioSampleRate),
       analysisAudioChannelLayout: Value(analysisResult?.audioChannelLayout),
+      analysisAudioStreamIndex: Value(analysisResult?.audioStreamIndex),
       analysisUpdatedAt: Value(analysisUpdatedAt),
       analysisErrorMessage: Value(analysisErrorMessage),
       outputFormat: Value(config.outputFormat.name),
@@ -215,7 +216,8 @@ extension TaskRowMapper on TaskRow {
         analysisContainerFormat != null ||
         analysisAudioChannels != null ||
         analysisAudioSampleRate != null ||
-        analysisAudioChannelLayout != null;
+        analysisAudioChannelLayout != null ||
+        analysisAudioStreamIndex != null;
 
     if (!hasAnalysis) {
       return null;
@@ -247,6 +249,7 @@ extension TaskRowMapper on TaskRow {
       audioChannels: analysisAudioChannels,
       audioSampleRate: analysisAudioSampleRate,
       audioChannelLayout: analysisAudioChannelLayout,
+      audioStreamIndex: analysisAudioStreamIndex,
     );
   }
 }

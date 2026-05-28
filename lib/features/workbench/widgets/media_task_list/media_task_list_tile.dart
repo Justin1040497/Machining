@@ -14,6 +14,7 @@ class MediaTaskListTile extends StatelessWidget {
   final VoidCallback? onPause;
   final VoidCallback? onRetry;
   final VoidCallback? onRelink;
+  final VoidCallback? onShowLog;
   final VoidCallback? onRemove;
   final GestureTapDownCallback? onSecondaryTapDown;
 
@@ -27,12 +28,20 @@ class MediaTaskListTile extends StatelessWidget {
     this.onPause,
     this.onRetry,
     this.onRelink,
+    this.onShowLog,
     this.onRemove,
     this.onSecondaryTapDown,
   });
 
   bool get hasProgressBackground =>
       task.status == TaskStatus.running && task.progress > 0;
+
+  bool _shouldShowLogButton() {
+    return task.status == TaskStatus.running ||
+        task.status == TaskStatus.completed ||
+        task.status == TaskStatus.failed ||
+        task.status == TaskStatus.paused;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +88,13 @@ class MediaTaskListTile extends StatelessWidget {
                     onRetry: onRetry,
                     onRelink: onRelink,
                   ),
+                  const SizedBox(width: 4),
+                  if (_shouldShowLogButton())
+                    MediaTaskIconButton(
+                      tooltip: '查看日志',
+                      onPressed: onShowLog,
+                      icon: Icons.description_outlined,
+                    ),
                   const SizedBox(width: 4),
                   MediaTaskIconButton(
                     tooltip: '移除任务',

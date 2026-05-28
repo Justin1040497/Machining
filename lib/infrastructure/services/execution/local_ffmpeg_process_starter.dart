@@ -9,13 +9,13 @@ class LocalFfmpegProcessStarter implements FfmpegProcessStarter {
     required List<String> args,
     required File logFile,
   }) async {
-    final process = await Process.start(ffmpegPath, args);
     final sink = logFile.openWrite(mode: FileMode.append);
     sink.writeln('ffmpegPath: $ffmpegPath');
     sink.writeln('args: ${args.join(' ')}');
     sink.writeln('');
     await sink.close();
 
+    final process = await Process.start(ffmpegPath, args);
     return StartedFfmpegProcess(process: process, logFile: logFile);
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/application/services/execution/execution_log_store.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
@@ -56,6 +57,11 @@ final ffmpegProcessObserverProvider = Provider<FfmpegProcessObserver>((ref) {
   return LocalFfmpegProcessObserver();
 });
 
+/// 执行日志读取服务。FFmpeg stderr 日志保存在临时目录，不写入 SQLite。
+final executionLogStoreProvider = Provider<ExecutionLogStore>((ref) {
+  return ExecutionLogStore(logsDirectory: ffmpegExecutionLogsDirectory());
+});
+
 /// FFmpeg 任务队列执行器。Provider 会在容器生命周期内维持同一个执行器实例。
 final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
   return DefaultFfmpegTaskQueueRunner(
@@ -70,13 +76,17 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
   );
 });
 
+Directory ffmpegExecutionLogsDirectory() {
+  return Directory(
+    path.join(Directory.systemTemp.path, 'framelean', 'ffmpeg-logs'),
+  );
+}
+
 Future<String> createFfmpegExecutionLogFilePath(
   MediaTask task,
   FfmpegCommandPlan _,
 ) async {
-  final logsDirectory = Directory(
-    path.join(Directory.systemTemp.path, 'framelean', 'ffmpeg-logs'),
-  );
+  final logsDirectory = ffmpegExecutionLogsDirectory();
   final safeFileName = task.fileName.replaceAll(
     RegExp(r'[^A-Za-z0-9._-]'),
     '_',
