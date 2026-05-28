@@ -1,7 +1,7 @@
 #include "process_control_channel.h"
 
-#include <tlhelp32.h>
 #include <windows.h>
+#include <tlhelp32.h>
 #include <exdisp.h>
 #include <shldisp.h>
 #include <shlobj.h>
