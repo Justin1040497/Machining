@@ -229,6 +229,7 @@ test/
 
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
+- 生成 `build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg`。
 - 运行 Release app 后任务使用 app 包内 FFmpeg。
 - 在另一台 Apple Silicon Mac 上验证启动、导入、压缩和打开输出位置。
 
@@ -236,7 +237,8 @@ test/
 
 - `PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1` 成功。
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
-- 生成 `build/windows/x64/runner/FrameLean-v1.1.0-windows-x64.zip`。
+- 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`。
+- zip 解压后顶层目录为 `FrameLean-v1.1.5-windows-x64/`。
 - Windows app 可以启动、导入、压缩和打开输出位置。
 - GPU 编码器不可用时可以回退到软件编码。
 

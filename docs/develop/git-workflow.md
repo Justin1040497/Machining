@@ -260,15 +260,24 @@ flutter test
 changelog 使用现有格式：
 
 ```text
-YYYY-MM-DD / vX.Y.Z / Summary
-- added
-  - 新增内容
-- changed
-  - 更新内容
-- fixed
-  - 修复内容
-- verified
-  - 验证内容
+YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
+当天更新概要
+
+### Added
+
+- 新增内容
+
+### Changed
+
+- 更新内容
+
+### Fixed
+
+- 修复内容
+
+### Verified
+
+- 验证内容
 ```
 
 bug 修复日志命名格式：
@@ -404,6 +413,23 @@ git push origin v1.1.0
 ```
 
 发布包、Release Notes 和归档记录应以 tag 为准。
+
+## 发布产物命名
+
+发布包名称从 `pubspec.yaml` 的语义化版本读取，不包含 `+build` 后缀。
+
+以 `version: 1.1.5+3` 为例：
+
+```text
+FrameLean-v1.1.5.dmg
+FrameLean-v1.1.5-windows-x64.zip
+```
+
+Windows zip 解压后必须有同名顶层目录：
+
+```text
+FrameLean-v1.1.5-windows-x64/
+```
 
 ## 推荐执行习惯
 

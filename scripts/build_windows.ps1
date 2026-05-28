@@ -50,13 +50,30 @@ function Import-ZipAssemblies {
   Add-Type -AssemblyName System.IO.Compression.FileSystem
 }
 
+function Get-PubspecVersion {
+  param([string]$Path)
+
+  $Pubspec = Get-Content -LiteralPath $Path -Raw
+  $VersionMatch = [regex]::Match($Pubspec, "(?m)^version:\s*([0-9]+\.[0-9]+\.[0-9]+)(?:\+[^\s]+)?\s*$")
+  if (-not $VersionMatch.Success) {
+    throw "Could not read semantic version from $Path"
+  }
+
+  return $VersionMatch.Groups[1].Value
+}
+
 function New-ReleaseZip {
   param(
     [string]$SourceDirectory,
-    [string]$DestinationPath
+    [string]$DestinationPath,
+    [string]$RootEntryName
   )
 
   Import-ZipAssemblies
+
+  if ($RootEntryName -eq "") {
+    throw "RootEntryName is required."
+  }
 
   if (Test-Path -LiteralPath $DestinationPath) {
     Remove-Item -LiteralPath $DestinationPath -Force
@@ -71,7 +88,7 @@ function New-ReleaseZip {
   try {
     Get-ChildItem -LiteralPath $SourceRoot -Recurse -File | ForEach-Object {
       $RelativePath = $_.FullName.Substring($SourceRoot.Length).TrimStart([char[]]@("\", "/"))
-      $EntryName = $RelativePath.Replace("\", "/")
+      $EntryName = "$RootEntryName/$($RelativePath.Replace("\", "/"))"
       [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
         $Archive,
         $_.FullName,
@@ -86,7 +103,10 @@ function New-ReleaseZip {
 }
 
 function Assert-ZipLayout {
-  param([string]$Path)
+  param(
+    [string]$Path,
+    [string]$RootEntryName
+  )
 
   Import-ZipAssemblies
 
@@ -98,14 +118,20 @@ function Assert-ZipLayout {
       throw "Zip entries must use forward slashes. Invalid entries: $($BackslashEntries -join ', ')"
     }
 
+    $RootPrefix = "$RootEntryName/"
+    $UnexpectedEntries = @($Entries | Where-Object { -not $_.StartsWith($RootPrefix) })
+    if ($UnexpectedEntries.Count -gt 0) {
+      throw "Zip entries must be under $RootPrefix. Invalid entries: $($UnexpectedEntries -join ', ')"
+    }
+
     $RequiredEntries = @(
-      "FrameLean.exe",
-      "flutter_windows.dll",
-      "data/app.so",
-      "ffmpeg/ffmpeg.exe",
-      "ffmpeg/ffprobe.exe",
-      "legal/LICENSE",
-      "legal/NOTICE"
+      "${RootPrefix}FrameLean.exe",
+      "${RootPrefix}flutter_windows.dll",
+      "${RootPrefix}data/app.so",
+      "${RootPrefix}ffmpeg/ffmpeg.exe",
+      "${RootPrefix}ffmpeg/ffprobe.exe",
+      "${RootPrefix}legal/LICENSE",
+      "${RootPrefix}legal/NOTICE"
     )
 
     foreach ($Entry in $RequiredEntries) {
@@ -188,15 +214,14 @@ try {
   & (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") -hide_banner -version | Select-Object -First 1
 
   if (-not $SkipZip) {
-    $Pubspec = Get-Content -LiteralPath $PubspecPath -Raw
-    $VersionMatch = [regex]::Match($Pubspec, "(?m)^version:\s*([^\s]+)")
-    $Version = if ($VersionMatch.Success) { $VersionMatch.Groups[1].Value.Split("+")[0] } else { "unknown" }
-    $ZipPath = Join-Path $ZipDir "FrameLean-v$Version-windows-x64.zip"
+    $Version = Get-PubspecVersion -Path $PubspecPath
+    $PackageName = "FrameLean-v$Version-windows-x64"
+    $ZipPath = Join-Path $ZipDir "$PackageName.zip"
 
     Write-Host "Creating zip package: $ZipPath"
-    New-ReleaseZip -SourceDirectory $ReleaseDir -DestinationPath $ZipPath
+    New-ReleaseZip -SourceDirectory $ReleaseDir -DestinationPath $ZipPath -RootEntryName $PackageName
     Require-File $ZipPath
-    Assert-ZipLayout -Path $ZipPath
+    Assert-ZipLayout -Path $ZipPath -RootEntryName $PackageName
   }
 
   Write-Host ""

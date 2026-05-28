@@ -232,7 +232,7 @@ Release 产物：
 
 ```text
 build/macos/Build/Products/Release/FrameLean.app
-build/macos/Build/Products/Release/FrameLean.dmg
+build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg
 ```
 
 验证 app 内置 FFmpeg 和法律资料：
@@ -271,10 +271,10 @@ Release 产物：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/FrameLean-v1.1.0-windows-x64.zip
+build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip
 ```
 
-Windows 打包脚本会调用 `flutter build windows --release`，再验证 Release 目录、内置 FFmpeg / FFprobe 和法律资料，并默认生成 zip 包。Windows CMake 配置会把 FFmpeg / FFprobe 复制到 Release 目录的 `ffmpeg/` 下。如果运行时文件缺失，构建应失败，避免产出不完整安装包。
+Windows 打包脚本会调用 `flutter build windows --release`，再验证 Release 目录、内置 FFmpeg / FFprobe 和法律资料，并默认生成 zip 包。macOS DMG 和 Windows zip 文件名都会读取 `pubspec.yaml` 的语义化版本，不包含 `+build` 后缀；Windows zip 解压后顶层目录应为 `FrameLean-v1.1.5-windows-x64/`。Windows CMake 配置会把 FFmpeg / FFprobe 复制到 Release 目录的 `ffmpeg/` 下。如果运行时文件缺失，构建应失败，避免产出不完整安装包。
 
 验证 app 内置 FFmpeg：
 
