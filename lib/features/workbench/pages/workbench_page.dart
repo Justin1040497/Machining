@@ -484,6 +484,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       ffmpegLocator: ref.read(ffmpegLocatorProvider),
     ).call(settings);
     ref.invalidate(ffmpegRuntimeProvider);
+    await ref
+        .read(mediaTaskListProvider.notifier)
+        .applySettingsToExistingTasks(settings);
   }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {

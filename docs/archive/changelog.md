@@ -34,6 +34,7 @@ YYYY-MM-DD / vX.Y.Z / Summary
   - FFmpeg 执行失败时保留 stderr 尾部错误信息，避免只显示退出码导致 MOV 压缩失败原因不可见。
   - 修复 iPhone MOV 中 Apple Positional Audio / APAC 被 `-map 0:a?` 一起映射后，FFmpeg 因 `none` 音频流无解码器而失败的问题。
   - 修复执行日志写入任务实体后又被任务状态保存覆盖，导致失败后日志窗口为空的问题；日志窗口现在读取临时 FFmpeg 日志文件。
+  - 修复应用设置保存后仅对新导入任务生效、已有任务不更新默认配置的问题；现在设置保存时会立即更新所有待处理（pending / failed / cancelled）任务的压缩配置。
 - verified
   - 通过 `dart run build_runner build --delete-conflicting-outputs`。
   - 通过 `git ls-files '*.dart' | xargs dart format --set-exit-if-changed`。
