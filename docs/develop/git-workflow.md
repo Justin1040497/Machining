@@ -203,6 +203,40 @@ main
 
 如果某次发布很简单，可以跳过 `release/*` 分支，直接在 `main` 上打 tag。
 
+## Release 镜像同步
+
+GitHub Releases 是发布源，Gitee Releases 是国内备用更新源。
+
+手动同步入口：
+
+```text
+Actions -> Sync Gitee Releases -> Run workflow
+```
+
+运行前必须在 GitHub 仓库 Secrets 中配置：
+
+```text
+GITEE_ACCESS_TOKEN
+```
+
+该 token 需要能管理 `https://gitee.com/zhouycheng/FrameLean` 仓库 Release。
+
+同步规则：
+
+- 读取当前 GitHub 仓库所有非 draft Releases。
+- 删除 Gitee 仓库现有 Releases。
+- 按 GitHub Release 的 tag、标题、正文、预发布状态和附件重建 Gitee Releases。
+- draft 默认不同步，因为 Gitee Release 没有等价的 draft 发布状态；如确实需要，可在手动运行时开启 `include_drafts`。
+- 支持 `dry_run` 预览，不会改动 Gitee。
+- 真实覆盖同步必须勾选 `confirm_overwrite`。
+
+对应文件：
+
+```text
+.github/workflows/sync-gitee-releases.yml
+scripts/sync_gitee_releases.py
+```
+
 ### `hotfix/vX.Y.Z`
 
 用于已发布版本的紧急修复。

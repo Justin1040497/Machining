@@ -29,6 +29,27 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-05-29｜v1.1.5｜No Release
+
+今天开始自托管更新能力的第一阶段实现，先接入关于入口和 macOS Gitee / GitHub Releases 更新检查。
+
+### Added
+
+- 首页白色安全区新增关于入口，关于弹窗提供 GitHub 项目入口和检查更新入口。
+- 新增应用版本比较、托管 Releases 最新版本解析和 macOS DMG 资源识别。
+- 检查更新优先读取 Gitee Release，Gitee 响应慢或失败时回退到 GitHub，并在发现新版本时展示版本号和 Release 说明。
+- 检查更新失败时对用户显示统一重试提示，内部仍保留没有发布版本、HTTP 状态码、TLS 握手失败、连接超时和 DNS 解析失败等诊断细节。
+- 新增手动 GitHub Actions workflow，可将 GitHub Releases 覆盖同步到 Gitee Releases。
+
+### Changed
+
+- `http` 作为直接依赖用于更新检查请求。
+- 发布流程文档补充 Gitee Release 镜像同步入口、Secret 和覆盖规则。
+
+### Verified
+
+- 通过 `flutter test test/app_version_test.dart test/hosted_release_update_checker_test.dart test/update_available_dialog_test.dart test/workbench_about_dialog_test.dart test/app_settings_dialog_test.dart test/widget_test.dart test/workbench_external_link_opener_test.dart`。
+
 ## 2026-05-29｜v1.1.5｜Release
 
 今天完成 v1.1.5 发布准备，统一应用版本、macOS / Windows 发布产物命名、Windows zip 解压目录和 changelog 记录格式。

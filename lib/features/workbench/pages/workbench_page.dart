@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/update/app_update_checker.dart';
+import 'package:framelean/application/services/update/framelean_build_info.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -29,6 +31,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/update_available_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_about_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice_controller.dart';
@@ -42,6 +45,7 @@ import 'package:framelean/features/workbench/providers/media_task_notifier.dart'
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/infrastructure/providers/update_provider.dart';
 
 const Object _configValueNotProvided = Object();
 const String _frameLeanGitHubUrl = 'https://github.com/zhouycheng/FrameLean';
@@ -67,6 +71,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool workbenchImportDragging = false;
   bool appSettingsDialogOpen = false;
   bool queueActionInFlight = false;
+  bool updateCheckInFlight = false;
   final WorkbenchTaskThumbnailStore thumbnailStore =
       WorkbenchTaskThumbnailStore();
   final WorkbenchNoticeController noticeController =
@@ -502,7 +507,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         return WorkbenchAboutDialog(
           onClose: () => Navigator.of(dialogContext).pop(),
           onCheckUpdate: () {
-            showWorkbenchSnackBar('检查更新功能即将接入');
+            unawaited(checkForMacosUpdates());
           },
           onOpenGitHub: () {
             unawaited(openGitHubProject());
@@ -513,7 +518,70 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> openGitHubProject() async {
-    final result = await WorkbenchExternalLinkOpener.open(_frameLeanGitHubUrl);
+    await openExternalLink(_frameLeanGitHubUrl);
+  }
+
+  Future<void> checkForMacosUpdates() async {
+    if (updateCheckInFlight) {
+      return;
+    }
+
+    updateCheckInFlight = true;
+    showWorkbenchSnackBar('正在检查更新');
+
+    try {
+      final result = await ref
+          .read(appUpdateCheckerProvider)
+          .checkForUpdates(
+            currentVersion: FrameLeanBuildInfo.currentVersion,
+            platform: AppUpdatePlatform.macosArm64,
+          );
+      if (!mounted) {
+        return;
+      }
+
+      if (!result.updateAvailable) {
+        showWorkbenchSnackBar('当前已是最新版本');
+        return;
+      }
+
+      await showUpdateAvailableDialog(result.latestRelease);
+    } on AppUpdateException catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      showWorkbenchSnackBar(error.userMessage);
+    } on Object {
+      if (!mounted) {
+        return;
+      }
+
+      showWorkbenchSnackBar('检查更新失败，请稍后重试');
+    } finally {
+      updateCheckInFlight = false;
+    }
+  }
+
+  Future<void> showUpdateAvailableDialog(AppUpdateRelease release) async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return UpdateAvailableDialog(
+          currentVersionLabel: FrameLeanBuildInfo.currentVersionLabel,
+          release: release,
+          onClose: () => Navigator.of(dialogContext).pop(),
+          onOpenReleasePage: () {
+            Navigator.of(dialogContext).pop();
+            unawaited(openExternalLink(release.releasePageUrl.toString()));
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> openExternalLink(String url) async {
+    final result = await WorkbenchExternalLinkOpener.open(url);
     if (!result.succeeded) {
       showWorkbenchSnackBar(result.message!);
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/application/services/update/framelean_build_info.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 
 class WorkbenchAboutDialog extends StatelessWidget {
@@ -12,8 +13,6 @@ class WorkbenchAboutDialog extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onCheckUpdate;
   final VoidCallback onOpenGitHub;
-
-  static const currentVersion = '1.1.5';
 
   @override
   Widget build(BuildContext context) {
@@ -54,7 +53,7 @@ class WorkbenchAboutDialog extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           const Text(
-            '当前版本：$currentVersion',
+            '当前版本：${FrameLeanBuildInfo.currentVersionLabel}',
             style: TextStyle(
               color: Color(0xFF777777),
               fontSize: 12,
