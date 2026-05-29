@@ -56,6 +56,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `sqlite3_flutter_libs` | `^0.6.0+eol` | SQLite 原生库支持 |
 | `path_provider` | `^2.1.5` | 获取应用支持目录 |
 | `path` | `^1.9.1` | 跨平台路径拼接和规范化 |
+| `http` | `^1.6.0` | Gitee / GitHub Releases 更新检查请求 |
 | `args` | `^2.7.0` | 命令参数工具依赖，目前保留在项目依赖中 |
 | `file_selector` | `^1.1.0` | 桌面文件选择 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
@@ -152,6 +153,17 @@ GitHub Actions Windows 打包：
 该 workflow 会在 Windows runner 上下载 `deps-ffmpeg-windows-x64-20260430`
 Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
 `scripts\build_windows.ps1` 生成 Windows x64 发布包。
+
+GitHub Releases 同步到 Gitee Releases：
+
+```text
+.github/workflows/sync-gitee-releases.yml
+scripts/sync_gitee_releases.py
+```
+
+该 workflow 手动触发，使用 GitHub Releases 作为源，调用 Gitee OpenAPI
+删除并重建 `https://gitee.com/zhouycheng/FrameLean` 的 Releases 和附件。
+运行前需要在 GitHub 仓库 Secrets 配置 `GITEE_ACCESS_TOKEN`。
 
 ## 核心依赖位置
 
@@ -350,7 +362,7 @@ docs/develop/test-plan.md
 
 ## 技术边界
 
-- 当前产品实现以本地视频压缩为主，不上传文件，也不依赖云端服务。
+- 当前产品实现以视频压缩为主，暂不包含云端转码、账号体系或多设备同步。
 - 当前 UI 只允许视频任务；`image`、`audio` 枚举是预留模型，不代表已支持处理。
 - Linux 和 Web 目录不是当前发布目标；涉及平台行为时不要默认它们已经可用。
 - 应用设置通过工作台弹窗打开，不保留未完成设置页占位路由。
