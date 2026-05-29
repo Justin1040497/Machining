@@ -33,6 +33,7 @@ void main() {
     expect(find.text('/Users/leftzhou/Desktop'), findsOneWidget);
     expect(find.text('默认导出文件名'), findsOneWidget);
     expect(find.text('高级设置'), findsOneWidget);
+    expect(find.text('检查更新'), findsNothing);
     expect(find.text('自定义FFmpeg路径'), findsNothing);
     expect(find.text('自定义FFprobe路径'), findsNothing);
     expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
@@ -67,8 +68,18 @@ void main() {
     expect(find.text('为空则默认使用内置编码器'), findsOneWidget);
     expect(find.text('为空则默认使用内置分析器'), findsOneWidget);
     expect(find.text('高级设置'), findsNothing);
+    expect(find.text('关闭高级选项'), findsOneWidget);
+    expect(find.text('检查更新'), findsNothing);
     expect(find.text('取消'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
+
+    await tester.tap(find.text('关闭高级选项'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('高级设置'), findsOneWidget);
+    expect(find.text('检查更新'), findsNothing);
+    expect(find.text('自定义FFmpeg路径'), findsNothing);
+    expect(find.text('自定义FFprobe路径'), findsNothing);
   });
 
   testWidgets(

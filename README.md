@@ -3,18 +3,17 @@
 [![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon%20%7C%20Windows%20x64-000000)](#平台范围)
 [![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目结构)
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#ffmpeg--ffprobe-运行时)
-[![Processing](https://img.shields.io/badge/processing-local%20only-2E7D32)](#功能)
 [![License](https://img.shields.io/badge/license-GPLv3%2B-C62828)](#许可说明)
 
-FrameLean（帧轻）是一个本地桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令，也能在本机处理视频文件。
+FrameLean（帧轻）是一个桌面视频压缩工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频分析、预览、压缩、输出格式配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令也能处理视频文件。
 
-FrameLean 聚焦视频压缩、应用级默认设置和本地任务队列：导入本地视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后在本地执行 FFmpeg。媒体文件不上传到远程服务。
+FrameLean 聚焦视频压缩、应用级默认设置和任务队列：导入视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后执行 FFmpeg 任务。
 
 完整变更记录见 [docs/archive/changelog.md](docs/archive/changelog.md)。
 
 ## 产品截图
 
-![FrameLean 产品截图：本地视频压缩工作台](https://www.helloimg.com/i/2026/05/28/6a17cc2de7f8e.png)
+![FrameLean 产品截图：视频压缩工作台](https://www.helloimg.com/i/2026/05/28/6a17cc2de7f8e.png)
 
 ![FrameLean 产品截图：任务压缩配置](https://www.helloimg.com/i/2026/05/28/6a17cc2cd489c.png)
 

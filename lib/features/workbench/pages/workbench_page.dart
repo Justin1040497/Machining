@@ -29,8 +29,10 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_about_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice_controller.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/workbench_external_link_opener.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_picker.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
@@ -42,6 +44,7 @@ import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 
 const Object _configValueNotProvided = Object();
+const String _frameLeanGitHubUrl = 'https://github.com/zhouycheng/FrameLean';
 
 class WorkbenchPage extends ConsumerStatefulWidget {
   const WorkbenchPage({super.key});
@@ -140,6 +143,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         onAddTask: pickAndAddTasks,
         onOpenSettings: () {
           unawaited(showAppSettingsDialog());
+        },
+        onOpenAbout: () {
+          unawaited(showAboutDialog());
         },
         onClearTasks: confirmClearTasks,
         onPrimaryQueuePressed: () {
@@ -487,6 +493,30 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref
         .read(mediaTaskListProvider.notifier)
         .applySettingsToExistingTasks(settings);
+  }
+
+  Future<void> showAboutDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return WorkbenchAboutDialog(
+          onClose: () => Navigator.of(dialogContext).pop(),
+          onCheckUpdate: () {
+            showWorkbenchSnackBar('检查更新功能即将接入');
+          },
+          onOpenGitHub: () {
+            unawaited(openGitHubProject());
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> openGitHubProject() async {
+    final result = await WorkbenchExternalLinkOpener.open(_frameLeanGitHubUrl);
+    if (!result.succeeded) {
+      showWorkbenchSnackBar(result.message!);
+    }
   }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {

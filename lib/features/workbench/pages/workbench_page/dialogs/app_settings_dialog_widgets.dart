@@ -60,16 +60,16 @@ class AppSettingsSourceDirectoryCheckbox extends StatelessWidget {
 class AppSettingsActions extends StatelessWidget {
   const AppSettingsActions({
     super.key,
-    required this.showAdvancedButton,
+    required this.advancedVisible,
     required this.saving,
-    required this.onAdvanced,
+    required this.onToggleAdvanced,
     required this.onCancel,
     required this.onSave,
   });
 
-  final bool showAdvancedButton;
+  final bool advancedVisible;
   final bool saving;
-  final VoidCallback onAdvanced;
+  final VoidCallback onToggleAdvanced;
   final VoidCallback onCancel;
   final VoidCallback onSave;
 
@@ -77,12 +77,12 @@ class AppSettingsActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        if (showAdvancedButton)
-          WorkbenchDialogActionButton(
-            label: '高级设置',
-            backgroundColor: const Color(0xFFFF6B00),
-            onPressed: onAdvanced,
-          ),
+        WorkbenchDialogActionButton(
+          label: advancedVisible ? '关闭高级选项' : '高级设置',
+          backgroundColor: const Color(0xFFFF6B00),
+          width: advancedVisible ? 92 : 75,
+          onPressed: onToggleAdvanced,
+        ),
         const Spacer(),
         WorkbenchDialogActionButton(
           label: '取消',

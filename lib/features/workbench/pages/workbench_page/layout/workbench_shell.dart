@@ -32,6 +32,7 @@ class WorkbenchShell extends StatelessWidget {
     required this.onContextMenu,
     required this.onAddTask,
     required this.onOpenSettings,
+    required this.onOpenAbout,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
   });
@@ -56,6 +57,7 @@ class WorkbenchShell extends StatelessWidget {
   final WorkbenchTaskPositionCallback onContextMenu;
   final VoidCallback onAddTask;
   final VoidCallback onOpenSettings;
+  final VoidCallback onOpenAbout;
   final VoidCallback onClearTasks;
   final VoidCallback onPrimaryQueuePressed;
 
@@ -106,24 +108,20 @@ class WorkbenchShell extends StatelessWidget {
                   child: Stack(
                     children: [
                       if (defaultTargetPlatform == TargetPlatform.macOS)
-                        const Align(
+                        Align(
                           alignment: Alignment.topCenter,
-                          child: WorkbenchTopBar(),
+                          child: WorkbenchTopBar(onOpenAbout: onOpenAbout),
                         ),
                       if (defaultTargetPlatform == TargetPlatform.windows)
-                        const Positioned(
+                        Positioned(
                           key: Key('windows-notice-safe-area'),
                           left: 0,
                           top: 0,
                           right: 0,
                           height: WorkbenchConstants.appTopBarHeight,
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              border: Border(
-                                bottom: BorderSide(color: Color(0xFFE6E6E6)),
-                              ),
-                            ),
+                          child: WorkbenchTopBar(
+                            onOpenAbout: onOpenAbout,
+                            showBottomBorder: true,
                           ),
                         ),
                       Positioned.fill(

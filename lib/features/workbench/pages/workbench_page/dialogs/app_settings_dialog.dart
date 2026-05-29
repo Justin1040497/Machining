@@ -218,11 +218,11 @@ class _WorkbenchAppSettingsDialogState
                   ],
                   SizedBox(height: advancedVisible ? 32 : 28),
                   AppSettingsActions(
-                    showAdvancedButton: !advancedVisible,
+                    advancedVisible: advancedVisible,
                     saving: saving,
-                    onAdvanced: () {
+                    onToggleAdvanced: () {
                       setState(() {
-                        advancedVisible = true;
+                        advancedVisible = !advancedVisible;
                       });
                     },
                     onCancel: widget.onClose,

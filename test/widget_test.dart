@@ -534,6 +534,7 @@ void main() {
 
   testWidgets('windows shell reserves a top notice safe area', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    var aboutTapped = false;
     try {
       await tester.pumpWidget(
         MaterialApp(
@@ -559,6 +560,9 @@ void main() {
               onContextMenu: (_, _) {},
               onAddTask: () {},
               onOpenSettings: () {},
+              onOpenAbout: () {
+                aboutTapped = true;
+              },
               onClearTasks: () {},
               onPrimaryQueuePressed: () {},
             ),
@@ -571,6 +575,12 @@ void main() {
         tester.getTopLeft(find.byType(MediaTaskListTile)).dy,
         greaterThanOrEqualTo(WorkbenchConstants.appTopBarHeight + 30),
       );
+      expect(find.byTooltip('关于 FrameLean'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('关于 FrameLean'));
+      await tester.pumpAndSettle();
+
+      expect(aboutTapped, isTrue);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
