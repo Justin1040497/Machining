@@ -226,6 +226,8 @@ GITEE_ACCESS_TOKEN
 - 读取当前 GitHub 仓库所有非 draft Releases。
 - 删除 Gitee 仓库现有 Releases。
 - 按 GitHub Release 的 tag、标题、正文、预发布状态和附件重建 Gitee Releases。
+- 同步日志会按 Release 和附件打印编号、文件大小、下载进度、上传进度和完成状态。
+- 附件下载和上传使用带重试、连接超时、总时长限制和低速中断保护的传输命令，避免 Action 在大附件上传阶段静默卡住。
 - draft 默认不同步，因为 Gitee Release 没有等价的 draft 发布状态；如确实需要，可在手动运行时开启 `include_drafts`。
 - 支持 `dry_run` 预览，不会改动 Gitee。
 - 真实覆盖同步必须勾选 `confirm_overwrite`。

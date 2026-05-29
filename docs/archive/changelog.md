@@ -45,6 +45,11 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 - `http` 作为直接依赖用于更新检查请求。
 - 发布流程文档补充 Gitee Release 镜像同步入口、Secret 和覆盖规则。
+- Gitee Release 镜像同步脚本改为按 Release 和附件打印编号、文件大小、下载 / 上传进度和完成状态，并为附件传输增加重试、连接超时、总时长限制和低速中断保护。
+
+### Fixed
+
+- 修复 Gitee Release 附件上传阶段静默等待，难以判断 Action 是卡死还是仍在上传的问题。
 
 ### Verified
 

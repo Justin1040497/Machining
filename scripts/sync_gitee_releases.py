@@ -14,6 +14,12 @@ from typing import Optional
 
 GITHUB_API_BASE = "https://api.github.com"
 GITEE_API_BASE = "https://gitee.com/api/v5"
+CURL_CONNECT_TIMEOUT_SECONDS = 30
+CURL_RETRY_COUNT = 3
+CURL_RETRY_DELAY_SECONDS = 5
+TRANSFER_MAX_TIME_SECONDS = 7200
+TRANSFER_LOW_SPEED_LIMIT_BYTES_PER_SECOND = 1024
+TRANSFER_LOW_SPEED_TIME_SECONDS = 120
 
 
 class SyncError(RuntimeError):
@@ -24,6 +30,7 @@ def main() -> int:
     args = parse_args()
     github_token = required_env("GH_TOKEN")
     gitee_token = required_env("GITEE_ACCESS_TOKEN")
+    ensure_curl_available()
 
     if args.overwrite and not args.confirm_overwrite and not args.dry_run:
         raise SyncError(
@@ -36,10 +43,10 @@ def main() -> int:
         include_drafts=args.include_drafts,
     )
     releases.reverse()
-    print(f"Found {len(releases)} GitHub releases to sync.")
+    log(f"Found {len(releases)} GitHub releases to sync.")
 
     if args.dry_run:
-        print("Dry run enabled. No Gitee releases or attachments will be changed.")
+        log("Dry run enabled. No Gitee releases or attachments will be changed.")
 
     if args.overwrite:
         gitee_releases = list_gitee_releases(
@@ -47,12 +54,15 @@ def main() -> int:
             repo=args.gitee_repo,
             token=gitee_token,
         )
-        print(f"Found {len(gitee_releases)} existing Gitee releases.")
+        log(f"Found {len(gitee_releases)} existing Gitee releases.")
         if not args.dry_run:
-            for release in gitee_releases:
+            for index, release in enumerate(gitee_releases, start=1):
                 release_id = release.get("id")
                 tag_name = release.get("tag_name") or release.get("tagName")
-                print(f"Deleting Gitee release {tag_name or release_id}.")
+                log(
+                    f"Deleting Gitee release {index}/{len(gitee_releases)}: "
+                    f"{tag_name or release_id}."
+                )
                 delete_gitee_release(
                     owner=args.gitee_owner,
                     repo=args.gitee_repo,
@@ -60,10 +70,13 @@ def main() -> int:
                     token=gitee_token,
                 )
 
+    processed_assets = 0
     with tempfile.TemporaryDirectory(prefix="framelean-release-sync-") as tmp:
-        for release in releases:
-            sync_release(
+        for index, release in enumerate(releases, start=1):
+            processed_assets += sync_release(
                 release=release,
+                release_index=index,
+                release_total=len(releases),
                 download_dir=tmp,
                 github_token=github_token,
                 gitee_token=gitee_token,
@@ -73,7 +86,16 @@ def main() -> int:
                 dry_run=args.dry_run,
             )
 
-    print("Gitee release sync finished.")
+    if args.dry_run:
+        log(
+            "Gitee release sync dry run finished. "
+            f"Planned {len(releases)} releases and {processed_assets} assets."
+        )
+    else:
+        log(
+            "Gitee release sync finished. "
+            f"Synced {len(releases)} releases and {processed_assets} assets."
+        )
     return 0
 
 
@@ -119,6 +141,11 @@ def required_env(name: str) -> str:
     return value
 
 
+def ensure_curl_available() -> None:
+    if shutil.which("curl") is None:
+        raise SyncError("curl is required for release asset transfers.")
+
+
 def list_github_releases(repo: str, token: str, include_drafts: bool) -> list[dict]:
     releases: list[dict] = []
     page = 1
@@ -158,6 +185,8 @@ def list_gitee_releases(owner: str, repo: str, token: str) -> list[dict]:
 def sync_release(
     *,
     release: dict,
+    release_index: int,
+    release_total: int,
     download_dir: str,
     github_token: str,
     gitee_token: str,
@@ -165,7 +194,7 @@ def sync_release(
     gitee_repo: str,
     default_target_commitish: str,
     dry_run: bool,
-) -> None:
+) -> int:
     tag_name = release.get("tag_name")
     if not tag_name:
         raise SyncError("GitHub release is missing tag_name.")
@@ -173,12 +202,19 @@ def sync_release(
     release_name = release.get("name") or tag_name
     target_commitish = release.get("target_commitish") or default_target_commitish
     assets = release.get("assets") or []
-    print(f"Syncing {tag_name}: {release_name} ({len(assets)} assets).")
+    log(
+        f"Release {release_index}/{release_total}: "
+        f"{tag_name} - {release_name} ({len(assets)} assets)."
+    )
 
     if dry_run:
-        for asset in assets:
-            print(f"Would upload {asset.get('name')}.")
-        return
+        for asset_index, asset in enumerate(assets, start=1):
+            asset_name = asset.get("name") or "<unnamed asset>"
+            log(
+                f"  Asset {asset_index}/{len(assets)}: would upload "
+                f"{asset_name} ({format_bytes(asset.get('size'))})."
+            )
+        return len(assets)
 
     gitee_release = create_gitee_release(
         owner=gitee_owner,
@@ -195,20 +231,34 @@ def sync_release(
     release_id = gitee_release.get("id")
     if release_id is None:
         raise SyncError(f"Gitee did not return an id for release {tag_name}.")
+    log(f"  Created Gitee release id {release_id}.")
 
     release_dir = os.path.join(download_dir, sanitize_path_component(tag_name))
     shutil.rmtree(release_dir, ignore_errors=True)
     os.makedirs(release_dir, exist_ok=True)
 
-    for asset in assets:
+    for asset_index, asset in enumerate(assets, start=1):
         asset_name = asset.get("name")
-        download_url = asset.get("url") or asset.get("browser_download_url")
-        if not asset_name or not download_url:
+        download_urls = unique_strings(
+            asset.get("url"),
+            asset.get("browser_download_url"),
+        )
+        if not asset_name or not download_urls:
             raise SyncError(f"GitHub release {tag_name} has an invalid asset.")
         asset_path = os.path.join(release_dir, asset_name)
-        print(f"Downloading {asset_name}.")
-        download_file(download_url, asset_path, github_token)
-        print(f"Uploading {asset_name} to Gitee release {tag_name}.")
+        log(
+            f"  Asset {asset_index}/{len(assets)}: downloading "
+            f"{asset_name} ({format_bytes(asset.get('size'))})."
+        )
+        download_file(download_urls, asset_path, github_token, label=asset_name)
+        log(
+            f"  Asset {asset_index}/{len(assets)}: downloaded "
+            f"{asset_name} ({format_file_size(asset_path)})."
+        )
+        log(
+            f"  Asset {asset_index}/{len(assets)}: uploading "
+            f"{asset_name} to Gitee."
+        )
         upload_gitee_asset(
             owner=gitee_owner,
             repo=gitee_repo,
@@ -216,6 +266,8 @@ def sync_release(
             file_path=asset_path,
             token=gitee_token,
         )
+        log(f"  Asset {asset_index}/{len(assets)}: uploaded {asset_name}.")
+    return len(assets)
 
 
 def create_gitee_release(
@@ -239,32 +291,29 @@ def upload_gitee_asset(
     *, owner: str, repo: str, release_id: object, file_path: str, token: str
 ) -> None:
     url = f"{GITEE_API_BASE}/repos/{owner}/{repo}/releases/{release_id}/attach_files"
-    result = subprocess.run(
-        [
-            "curl",
-            "--fail",
-            "--show-error",
-            "--silent",
-            "--location",
-            "--request",
-            "POST",
-            "--header",
-            "Accept: application/json",
-            "--header",
-            f"Authorization: Bearer {token}",
-            "--form",
-            f"file=@{file_path}",
-            url,
-        ],
-        check=False,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-    )
-    if result.returncode != 0:
-        raise SyncError(
-            "Gitee asset upload failed: " + (result.stderr.strip() or result.stdout)
+    response_path = temporary_response_path("framelean-gitee-upload-")
+    try:
+        run_curl(
+            transfer_curl_args()
+            + [
+                "--progress-bar",
+                "--request",
+                "POST",
+                "--header",
+                "Accept: application/json",
+                "--header",
+                f"Authorization: Bearer {token}",
+                "--form",
+                f"file=@{file_path}",
+                "--output",
+                response_path,
+                url,
+            ],
+            failure_context="Gitee asset upload",
+            response_path=response_path,
         )
+    finally:
+        remove_file_if_exists(response_path)
 
 
 def request_json(
@@ -304,19 +353,138 @@ def request_json(
         raise SyncError(f"{provider} API {method} {url} failed: {error}") from error
 
 
-def download_file(url: str, destination: str, token: str) -> None:
-    headers = {
-        "Accept": "application/octet-stream",
-        "User-Agent": "FrameLean release sync",
-        "Authorization": f"Bearer {token}",
-    }
-    request = urllib.request.Request(url, headers=headers)
+def download_file(
+    urls: list[str], destination: str, token: str, *, label: str
+) -> None:
+    last_error: Optional[SyncError] = None
+    for index, url in enumerate(urls, start=1):
+        if index > 1:
+            log(f"    Retrying {label} with alternate GitHub asset URL.")
+        try:
+            run_curl(
+                transfer_curl_args()
+                + [
+                    "--progress-bar",
+                    "--header",
+                    "Accept: application/octet-stream",
+                    "--header",
+                    "User-Agent: FrameLean release sync",
+                    "--header",
+                    f"Authorization: Bearer {token}",
+                    "--output",
+                    destination,
+                    url,
+                ],
+                failure_context=f"GitHub asset download ({label})",
+            )
+            return
+        except SyncError as error:
+            remove_file_if_exists(destination)
+            last_error = error
+            if index < len(urls):
+                log(f"    Download source {index} failed for {label}: {error}")
+
+    if last_error is not None:
+        raise last_error
+    raise SyncError(f"GitHub release asset has no download URL: {label}")
+
+
+def transfer_curl_args() -> list[str]:
+    return [
+        "curl",
+        "--fail-with-body",
+        "--show-error",
+        "--location",
+        "--retry",
+        str(CURL_RETRY_COUNT),
+        "--retry-delay",
+        str(CURL_RETRY_DELAY_SECONDS),
+        "--retry-all-errors",
+        "--connect-timeout",
+        str(CURL_CONNECT_TIMEOUT_SECONDS),
+        "--max-time",
+        str(TRANSFER_MAX_TIME_SECONDS),
+        "--speed-time",
+        str(TRANSFER_LOW_SPEED_TIME_SECONDS),
+        "--speed-limit",
+        str(TRANSFER_LOW_SPEED_LIMIT_BYTES_PER_SECOND),
+    ]
+
+
+def run_curl(
+    command: list[str],
+    *,
+    failure_context: str,
+    response_path: Optional[str] = None,
+) -> None:
+    sys.stdout.flush()
+    sys.stderr.flush()
+    result = subprocess.run(command, check=False)
+    if result.returncode == 0:
+        return
+
+    response = read_response_excerpt(response_path)
+    if response:
+        raise SyncError(
+            f"{failure_context} failed with exit code {result.returncode}: {response}"
+        )
+    raise SyncError(f"{failure_context} failed with exit code {result.returncode}.")
+
+
+def temporary_response_path(prefix: str) -> str:
+    descriptor, path = tempfile.mkstemp(prefix=prefix, suffix=".json")
+    os.close(descriptor)
+    return path
+
+
+def read_response_excerpt(path: Optional[str]) -> str:
+    if not path or not os.path.exists(path):
+        return ""
+    with open(path, "r", encoding="utf-8", errors="replace") as file:
+        return file.read(2000).strip()
+
+
+def remove_file_if_exists(path: str) -> None:
     try:
-        with urllib.request.urlopen(request, timeout=300) as response:
-            with open(destination, "wb") as file:
-                shutil.copyfileobj(response, file)
-    except urllib.error.URLError as error:
-        raise SyncError(f"Failed to download GitHub asset {url}: {error}") from error
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
+def unique_strings(*values: object) -> list[str]:
+    result: list[str] = []
+    for value in values:
+        if not isinstance(value, str) or not value:
+            continue
+        if value not in result:
+            result.append(value)
+    return result
+
+
+def format_file_size(path: str) -> str:
+    return format_bytes(os.path.getsize(path))
+
+
+def format_bytes(value: object) -> str:
+    try:
+        size = float(value)
+    except (TypeError, ValueError):
+        return "unknown size"
+    if size < 0:
+        return "unknown size"
+
+    units = ["B", "KB", "MB", "GB", "TB"]
+    unit_index = 0
+    while size >= 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+    if units[unit_index] == "B":
+        return f"{int(size)} B"
+    return f"{size:.1f} {units[unit_index]}"
+
+
+def log(message: str) -> None:
+    print(message, flush=True)
 
 
 def sanitize_path_component(value: str) -> str:
