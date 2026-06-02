@@ -46,24 +46,35 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-05-29｜v1.1.5｜No Release
 
-今天开始自托管更新能力的第一阶段实现，先接入关于入口和 macOS Gitee / GitHub Releases 更新检查。
+今天开始自托管更新能力的第一阶段实现，先接入关于入口和客户端更新检查骨架，并清理旧的第三方 Release 更新源。
 
 ### Added
 
 - 首页白色安全区新增关于入口，关于弹窗提供 GitHub 项目入口和检查更新入口。
-- 新增应用版本比较、托管 Releases 最新版本解析和 macOS DMG 资源识别。
-- 检查更新优先读取 Gitee Release，Gitee 响应慢或失败时回退到 GitHub，并在发现新版本时展示版本号和 Release 说明。
-- 检查更新失败时对用户显示统一重试提示，内部仍保留没有发布版本、HTTP 状态码、TLS 握手失败、连接超时和 DNS 解析失败等诊断细节。
-- 新增手动 GitHub Actions workflow，可将 GitHub Releases 覆盖同步到 Gitee Releases。
+- 新增应用版本比较、自托管更新接口解析和 macOS DMG 更新信息识别。
+- 新增 Rust 自有更新服务，提供版本检查、版本日志、平台包信息和短期签名下载接口。
+- 新增更新接口 HMAC 请求签名，客户端持久化安装级 client id 并为每次请求生成 nonce。
+- 检查更新失败时对用户显示统一重试提示，内部保留 HTTP 状态码、TLS 握手失败、连接超时和 DNS 解析失败等诊断细节。
 
 ### Changed
 
 - `http` 作为直接依赖用于更新检查请求。
-- 发布流程文档补充 Gitee Release 镜像同步入口、Secret 和覆盖规则。
+- `crypto` 作为直接依赖用于更新接口 HMAC-SHA256 请求签名。
+- 检查更新从 GitHub / Gitee Releases 改为请求自建更新接口，并通过 `FRAMELEAN_UPDATE_BASE_URL` 和 `FRAMELEAN_UPDATE_HMAC_SECRET` 配置接口地址和签名密钥。
+- 发布流程文档移除 Cloudflare Workers / R2 更新源说明，后续改为自有服务器托管。
+
+### Fixed
+
+- 移除 GitHub / Gitee Release 同步 Action 和脚本，避免更新包同步流程受第三方 Release 上传速度影响。
+- 移除 Cloudflare Worker / R2 更新后端残留，避免和后续 Rust 自有服务器实现并存。
 
 ### Verified
 
-- 通过 `flutter test test/app_version_test.dart test/hosted_release_update_checker_test.dart test/update_available_dialog_test.dart test/workbench_about_dialog_test.dart test/app_settings_dialog_test.dart test/widget_test.dart test/workbench_external_link_opener_test.dart`。
+- 通过 `cargo fmt --manifest-path server/update-service/Cargo.toml --check`。
+- 通过 `cargo test --manifest-path server/update-service/Cargo.toml`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `git diff --check`。
 
 ## 2026-05-29｜v1.1.5｜Release
 

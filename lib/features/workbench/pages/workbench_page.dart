@@ -507,7 +507,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         return WorkbenchAboutDialog(
           onClose: () => Navigator.of(dialogContext).pop(),
           onCheckUpdate: () {
-            unawaited(checkForMacosUpdates());
+            unawaited(checkForUpdates());
           },
           onOpenGitHub: () {
             unawaited(openGitHubProject());
@@ -521,7 +521,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await openExternalLink(_frameLeanGitHubUrl);
   }
 
-  Future<void> checkForMacosUpdates() async {
+  Future<void> checkForUpdates() async {
     if (updateCheckInFlight) {
       return;
     }
@@ -534,7 +534,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           .read(appUpdateCheckerProvider)
           .checkForUpdates(
             currentVersion: FrameLeanBuildInfo.currentVersion,
-            platform: AppUpdatePlatform.macosArm64,
+            platform: currentUpdatePlatform(),
           );
       if (!mounted) {
         return;
@@ -545,7 +545,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         return;
       }
 
-      await showUpdateAvailableDialog(result.latestRelease);
+      final latestRelease = result.latestRelease;
+      if (latestRelease == null) {
+        showWorkbenchSnackBar('当前已是最新版本');
+        return;
+      }
+
+      await showUpdateAvailableDialog(latestRelease);
     } on AppUpdateException catch (error) {
       if (!mounted) {
         return;
@@ -561,6 +567,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     } finally {
       updateCheckInFlight = false;
     }
+  }
+
+  AppUpdatePlatform currentUpdatePlatform() {
+    if (Platform.isWindows) {
+      return AppUpdatePlatform.windowsX64;
+    }
+
+    return AppUpdatePlatform.macosArm64;
   }
 
   Future<void> showUpdateAvailableDialog(AppUpdateRelease release) async {

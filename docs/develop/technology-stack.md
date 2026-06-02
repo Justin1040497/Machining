@@ -41,6 +41,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + Xcode build phase | 已使用 | Release app 可复制 macOS arm64 FFmpeg 运行时 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
+| 更新后端 | Rust 自有服务器 | 计划中 | 后续由 `server/update-service` 提供鉴权更新检查、版本日志和安装包下载接口 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
 ## 依赖清单
@@ -56,7 +57,8 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `sqlite3_flutter_libs` | `^0.6.0+eol` | SQLite 原生库支持 |
 | `path_provider` | `^2.1.5` | 获取应用支持目录 |
 | `path` | `^1.9.1` | 跨平台路径拼接和规范化 |
-| `http` | `^1.6.0` | Gitee / GitHub Releases 更新检查请求 |
+| `http` | `^1.6.0` | 自托管更新接口请求 |
+| `crypto` | `^3.0.6` | 更新接口 HMAC-SHA256 请求签名 |
 | `args` | `^2.7.0` | 命令参数工具依赖，目前保留在项目依赖中 |
 | `file_selector` | `^1.1.0` | 桌面文件选择 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
@@ -154,16 +156,13 @@ GitHub Actions Windows 打包：
 Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
 `scripts\build_windows.ps1` 生成 Windows x64 发布包。
 
-GitHub Releases 同步到 Gitee Releases：
+自托管更新服务：
 
 ```text
-.github/workflows/sync-gitee-releases.yml
-scripts/sync_gitee_releases.py
+server/update-service
 ```
 
-该 workflow 手动触发，使用 GitHub Releases 作为源，调用 Gitee OpenAPI
-删除并重建 `https://gitee.com/zhouycheng/FrameLean` 的 Releases 和附件。
-运行前需要在 GitHub 仓库 Secrets 配置 `GITEE_ACCESS_TOKEN`。
+该服务使用 Rust 实现，部署到自有服务器，返回客户端更新检查需要的版本号、更新说明、安装包下载地址、文件大小和 SHA-256。Flutter 客户端通过 `FRAMELEAN_UPDATE_BASE_URL` 和 `FRAMELEAN_UPDATE_HMAC_SECRET` 编译参数配置实际接口地址和请求签名密钥。
 
 ## 核心依赖位置
 

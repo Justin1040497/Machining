@@ -19,12 +19,12 @@ void main() {
               title: 'FrameLean v1.1.6',
               releaseNotes: '## 更新内容\n- 新增检查更新',
               releasePageUrl: Uri.parse(
-                'https://github.com/zhouycheng/FrameLean/releases/tag/v1.1.6',
+                'https://framelean.example.com/releases/v1.1.6',
               ),
               packageAsset: AppUpdateAsset(
                 name: 'FrameLean-v1.1.6.dmg',
                 downloadUrl: Uri.parse(
-                  'https://github.com/zhouycheng/FrameLean/releases/download/v1.1.6/FrameLean-v1.1.6.dmg',
+                  'https://downloads.example.com/releases/v1.1.6/FrameLean-v1.1.6.dmg',
                 ),
                 sizeBytes: 123,
               ),
