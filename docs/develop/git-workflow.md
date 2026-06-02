@@ -392,6 +392,29 @@ git worktree prune
 | `build` | 构建或依赖 | `build: update macos packaging assets` |
 | `ci` | CI 配置 | `ci: run flutter checks on pull requests` |
 
+## 提交详情输出格式
+
+需求完成、文档和 changelog 同步、远端同步与验证完成后，必须给出 commit 详情，而不只是给一行 commit message。
+
+commit 详情固定使用下面的中文标题和顺序：
+
+```text
+## 提交详情
+
+推荐提交：
+`<type>(scope): 中文摘要`
+
+提交范围：
+- 文件或模块范围。
+
+提交正文：
+- 需要 / 不需要
+- 原因：为什么需要或不需要。
+
+建议正文：
+仅在需要提交正文时填写；不需要时写 不适用。
+```
+
 ## PR / MR 合并要求
 
 每个 PR / MR 合并前至少确认：
@@ -414,6 +437,46 @@ flutter test
 格式检查只对当前分支中 Git 跟踪的 Dart 文件执行，避免仓库下被忽略的 `worktrees/` 目录被误格式化。
 
 合并方式建议优先使用 Squash Merge，让 `main` 历史保持清晰。
+
+## PR / MR 描述固定格式
+
+需求完成、文档和 changelog 同步、远端同步与验证完成后，必须给出 PR / MR 标题和详细 description。标题建议沿用 Conventional Commits 风格：
+
+```text
+<type>(scope): 中文摘要
+```
+
+description 固定使用下面的中文标题和顺序。不要在不同任务里混用 `概述`、`Summary`、`Overview` 等替代标题；如果某段不适用，保留标题并写 `无` 或 `不适用`。
+
+```markdown
+## 变更概览
+
+- 本 PR 做了什么，按用户可见行为、工程流程或模块边界分组。
+
+## 背景与目标
+
+- 为什么要做，本次要解决的需求或问题。
+
+## 实现详情
+
+- 关键文件、模块、流程或数据结构变化。
+
+## 验证结果
+
+- 已执行命令、测试、构建或人工验证及结果。
+
+## 风险与回滚
+
+- 主要风险、兼容影响、回滚方式；没有则写 无。
+
+## 文档与变更记录
+
+- 同步更新的 docs、changelog、bug log、release note 或不适用说明。
+
+## 评审重点
+
+- 希望 reviewer 重点看的边界、文件或决策。
+```
 
 ## 版本 tag 规则
 
@@ -447,6 +510,42 @@ git push origin v1.1.0
 ```
 
 发布包、Release Notes 和归档记录应以 tag 为准。
+
+## Release 描述固定格式
+
+当任务涉及 `release/*`、`hotfix/*`、tag、Release Notes、发布产物、更新 manifest 或分发流程时，最终交付包必须额外给出 Release description。
+
+Release description 固定使用下面的中文标题和顺序。不要替换成 `Summary`、`概述`、`Overview` 等临时标题；如果某段不适用，保留标题并写 `无` 或 `不适用`。
+
+```markdown
+## 版本摘要
+
+- 版本号、发布类型和一句话范围。
+
+## 主要变更
+
+- 面向用户、开发者或发布流程的主要变化。
+
+## 验证与兼容
+
+- 自动化检查、构建、打包验证、平台兼容结论。
+
+## 发布产物
+
+- 安装包、压缩包、校验文件、更新 manifest 或下载地址；没有则写 不适用。
+
+## 已知风险
+
+- 已知问题、灰度范围、回滚风险；没有则写 无。
+
+## 升级与回滚说明
+
+- 升级路径、回滚步骤或版本恢复方式。
+
+## 关联记录
+
+- PR、commit、tag、changelog、bug log、release note 或不适用说明。
+```
 
 ## 发布产物命名
 
