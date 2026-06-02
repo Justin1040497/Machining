@@ -203,41 +203,23 @@ main
 
 如果某次发布很简单，可以跳过 `release/*` 分支，直接在 `main` 上打 tag。
 
-## Release 镜像同步
+## 更新服务发布
 
-GitHub Releases 是发布源，Gitee Releases 是国内备用更新源。
+FrameLean 更新检查不再直接请求 GitHub / Gitee Releases。客户端请求自托管更新接口，安装包下载地址由更新接口返回。
 
-手动同步入口：
-
-```text
-Actions -> Sync Gitee Releases -> Run workflow
-```
-
-运行前必须在 GitHub 仓库 Secrets 中配置：
+当前后端位置：
 
 ```text
-GITEE_ACCESS_TOKEN
+server/update-service
 ```
 
-该 token 需要能管理 `https://gitee.com/zhouycheng/FrameLean` 仓库 Release。
+发布更新时按下面顺序操作：
 
-同步规则：
-
-- 读取当前 GitHub 仓库所有非 draft Releases。
-- 删除 Gitee 仓库现有 Releases。
-- 按 GitHub Release 的 tag、标题、正文、预发布状态和附件重建 Gitee Releases。
-- 同步日志会按 Release 和附件打印编号、文件大小、下载进度、上传进度和完成状态。
-- 附件下载和上传使用带重试、连接超时、总时长限制和低速中断保护的传输命令，避免 Action 在大附件上传阶段静默卡住。
-- draft 默认不同步，因为 Gitee Release 没有等价的 draft 发布状态；如确实需要，可在手动运行时开启 `include_drafts`。
-- 支持 `dry_run` 预览，不会改动 Gitee。
-- 真实覆盖同步必须勾选 `confirm_overwrite`。
-
-对应文件：
-
-```text
-.github/workflows/sync-gitee-releases.yml
-scripts/sync_gitee_releases.py
-```
+1. 生成 macOS DMG 或后续 Windows 安装包。
+2. 计算安装包 SHA-256。
+3. 将安装包、校验文件、版本日志和版本元数据上传到自有服务器。
+4. 确认更新服务可以返回当前平台的最新版本、下载地址和校验值。
+5. 打开应用的“关于 -> 检查更新”做端到端验证。
 
 ### `hotfix/vX.Y.Z`
 

@@ -1,17 +1,27 @@
 import 'package:framelean/application/services/update/app_version.dart';
 
-enum AppUpdatePlatform { macosArm64 }
+enum AppUpdatePlatform {
+  macosArm64;
+
+  String get updateApiValue {
+    return switch (this) {
+      AppUpdatePlatform.macosArm64 => 'macos-arm64',
+    };
+  }
+}
 
 class AppUpdateAsset {
   const AppUpdateAsset({
     required this.name,
     required this.downloadUrl,
     required this.sizeBytes,
+    this.sha256,
   });
 
   final String name;
   final Uri downloadUrl;
   final int? sizeBytes;
+  final String? sha256;
 }
 
 class AppUpdateRelease {

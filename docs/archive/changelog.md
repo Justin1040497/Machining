@@ -31,29 +31,28 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-05-29｜v1.1.5｜No Release
 
-今天开始自托管更新能力的第一阶段实现，先接入关于入口和 macOS Gitee / GitHub Releases 更新检查。
+今天开始自托管更新能力的第一阶段实现，先接入关于入口和客户端更新检查骨架，并清理旧的第三方 Release 更新源。
 
 ### Added
 
 - 首页白色安全区新增关于入口，关于弹窗提供 GitHub 项目入口和检查更新入口。
-- 新增应用版本比较、托管 Releases 最新版本解析和 macOS DMG 资源识别。
-- 检查更新优先读取 Gitee Release，Gitee 响应慢或失败时回退到 GitHub，并在发现新版本时展示版本号和 Release 说明。
-- 检查更新失败时对用户显示统一重试提示，内部仍保留没有发布版本、HTTP 状态码、TLS 握手失败、连接超时和 DNS 解析失败等诊断细节。
-- 新增手动 GitHub Actions workflow，可将 GitHub Releases 覆盖同步到 Gitee Releases。
+- 新增应用版本比较、自托管更新接口解析和 macOS DMG 更新信息识别。
+- 检查更新失败时对用户显示统一重试提示，内部保留 HTTP 状态码、TLS 握手失败、连接超时和 DNS 解析失败等诊断细节。
 
 ### Changed
 
 - `http` 作为直接依赖用于更新检查请求。
-- 发布流程文档补充 Gitee Release 镜像同步入口、Secret 和覆盖规则。
-- Gitee Release 镜像同步脚本改为按 Release 和附件打印编号、文件大小、下载 / 上传进度和完成状态，并为附件传输增加重试、连接超时、总时长限制和低速中断保护。
+- 检查更新从 GitHub / Gitee Releases 改为请求自建更新接口，并通过 `FRAMELEAN_UPDATE_ENDPOINT` 配置接口地址。
+- 发布流程文档移除 Cloudflare Workers / R2 更新源说明，后续改为自有服务器托管。
 
 ### Fixed
 
-- 修复 Gitee Release 附件上传阶段静默等待，难以判断 Action 是卡死还是仍在上传的问题。
+- 移除 GitHub / Gitee Release 同步 Action 和脚本，避免更新包同步流程受第三方 Release 上传速度影响。
+- 移除 Cloudflare Worker / R2 更新后端残留，避免和后续 Rust 自有服务器实现并存。
 
 ### Verified
 
-- 通过 `flutter test test/app_version_test.dart test/hosted_release_update_checker_test.dart test/update_available_dialog_test.dart test/workbench_about_dialog_test.dart test/app_settings_dialog_test.dart test/widget_test.dart test/workbench_external_link_opener_test.dart`。
+- 通过 `flutter test test/app_version_test.dart test/update_manifest_update_checker_test.dart test/update_available_dialog_test.dart test/workbench_about_dialog_test.dart test/app_settings_dialog_test.dart test/widget_test.dart test/workbench_external_link_opener_test.dart`。
 
 ## 2026-05-29｜v1.1.5｜Release
 
