@@ -12,7 +12,7 @@ FrameLean 客户端
   -> 自有服务器上的安装包和更新元数据
 ```
 
-服务端负责返回最新版本、更新说明、平台安装包地址和校验信息。后续实现时，更新接口需要加入请求鉴权，安装包下载地址需要使用短期有效的签名链接。
+服务端负责返回最新版本、更新说明、平台安装包地址和校验信息。当前实现使用 HMAC 请求签名保护更新信息接口，并为安装包下载地址生成短期有效的签名 token。
 
 ## 仓库布局建议
 
@@ -24,7 +24,7 @@ FrameLean/
   macos/
   windows/
   server/
-    update-service/            Rust 自有更新服务，后续实现
+    update-service/            Rust 自有更新服务
   docs/                        产品、架构、开发和发布文档，保持仓库级别
   legal/                       仓库级许可证和第三方声明
   scripts/                     仍服务当前 Flutter 客户端的构建脚本
@@ -45,7 +45,17 @@ FrameLean/
 
 ## API
 
-后续 Rust 更新服务按下面方向实现，具体字段以服务端和客户端最终代码为准。
+当前 Rust 更新服务位于：
+
+```text
+server/update-service
+```
+
+服务读取 `FRAMELEAN_UPDATE_STORAGE_DIR` 下的 `releases.json`、版本日志和安装包文件。示例存储目录位于：
+
+```text
+server/update-service/examples/storage
+```
 
 ### 健康检查
 
@@ -68,6 +78,8 @@ GET /health
 GET /api/v1/updates/check?platform=macos-arm64&current_version=1.1.5
 ```
 
+响应中只返回是否有新版本、最新版本号，以及继续读取日志和平台包信息的接口地址。客户端在确认有更新后，再请求日志和当前平台安装包信息。
+
 ### 版本日志
 
 ```text
@@ -81,11 +93,62 @@ GET /api/v1/releases/{version}/packages/{platform}
 GET /api/v1/releases/{version}/packages/{platform}/download
 ```
 
+`/download` 不直接使用 HMAC header，而是要求 `/packages/{platform}` 返回的短期 `token`。token 默认有效期为 30 分钟。
+
+### 鉴权
+
+除 `/health` 和带短期 token 的下载接口外，更新服务接口都要求下面的请求头：
+
+```text
+X-FrameLean-Client-Id
+X-FrameLean-Timestamp
+X-FrameLean-Nonce
+X-FrameLean-Signature
+```
+
+签名内容为：
+
+```text
+METHOD
+PATH_WITH_QUERY
+TIMESTAMP
+NONCE
+SHA256(BODY)
+```
+
+服务端使用 `FRAMELEAN_UPDATE_HMAC_SECRET` 校验 HMAC-SHA256 签名，同时检查时间窗口和 nonce，降低直接访问和重放请求的风险。这个密钥会通过 `--dart-define` 编进桌面客户端，只能阻挡普通未授权访问，不是 DRM；如果后续要按用户授权控制更新，需要增加 license 或账号 token。
+
+## 服务端配置
+
+运行服务前需要设置：
+
+```text
+FRAMELEAN_UPDATE_HMAC_SECRET=<客户端请求签名密钥>
+FRAMELEAN_UPDATE_DOWNLOAD_SECRET=<下载 token 签名密钥，可选>
+FRAMELEAN_UPDATE_PUBLIC_BASE_URL=https://updates.example.com
+FRAMELEAN_UPDATE_STORAGE_DIR=/srv/framelean-updates/storage
+FRAMELEAN_UPDATE_BIND_ADDR=127.0.0.1:8080
+```
+
+本地运行：
+
+```bash
+cargo run --manifest-path server/update-service/Cargo.toml
+```
+
+客户端构建时需要写入服务地址和签名密钥：
+
+```bash
+flutter build macos \
+  --dart-define=FRAMELEAN_UPDATE_BASE_URL=https://updates.example.com \
+  --dart-define=FRAMELEAN_UPDATE_HMAC_SECRET=<客户端请求签名密钥>
+```
+
 ## 发布顺序
 
 1. 打包生成 macOS DMG 和 Windows 安装器。
 2. 计算安装包 SHA-256。
-3. 将安装包、日志和版本元数据发布到自有服务器。
+3. 将安装包、日志和版本元数据发布到 `FRAMELEAN_UPDATE_STORAGE_DIR`。
 4. 访问更新检查接口，确认返回版本、日志和平台包信息。
 5. 打开 App 的“关于 -> 检查更新”做端到端验证。
 

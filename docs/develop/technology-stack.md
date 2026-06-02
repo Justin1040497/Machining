@@ -58,6 +58,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `path_provider` | `^2.1.5` | 获取应用支持目录 |
 | `path` | `^1.9.1` | 跨平台路径拼接和规范化 |
 | `http` | `^1.6.0` | 自托管更新接口请求 |
+| `crypto` | `^3.0.6` | 更新接口 HMAC-SHA256 请求签名 |
 | `args` | `^2.7.0` | 命令参数工具依赖，目前保留在项目依赖中 |
 | `file_selector` | `^1.1.0` | 桌面文件选择 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
@@ -161,7 +162,7 @@ Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
 server/update-service
 ```
 
-该服务后续使用 Rust 实现，部署到自有服务器，返回客户端更新检查需要的版本号、更新说明、安装包下载地址、文件大小和 SHA-256。Flutter 客户端通过 `FRAMELEAN_UPDATE_ENDPOINT` 编译参数配置实际接口地址。
+该服务使用 Rust 实现，部署到自有服务器，返回客户端更新检查需要的版本号、更新说明、安装包下载地址、文件大小和 SHA-256。Flutter 客户端通过 `FRAMELEAN_UPDATE_BASE_URL` 和 `FRAMELEAN_UPDATE_HMAC_SECRET` 编译参数配置实际接口地址和请求签名密钥。
 
 ## 核心依赖位置
 

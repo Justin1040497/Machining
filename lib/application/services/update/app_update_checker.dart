@@ -1,11 +1,13 @@
 import 'package:framelean/application/services/update/app_version.dart';
 
 enum AppUpdatePlatform {
-  macosArm64;
+  macosArm64,
+  windowsX64;
 
   String get updateApiValue {
     return switch (this) {
       AppUpdatePlatform.macosArm64 => 'macos-arm64',
+      AppUpdatePlatform.windowsX64 => 'windows-x64',
     };
   }
 }
@@ -45,13 +47,16 @@ class AppUpdateRelease {
 class AppUpdateCheckResult {
   const AppUpdateCheckResult({
     required this.currentVersion,
-    required this.latestRelease,
+    required this.latestVersion,
+    this.latestRelease,
   });
 
   final AppVersion currentVersion;
-  final AppUpdateRelease latestRelease;
+  final AppVersion latestVersion;
+  final AppUpdateRelease? latestRelease;
 
-  bool get updateAvailable => latestRelease.version > currentVersion;
+  bool get updateAvailable =>
+      latestRelease != null && latestRelease!.version > currentVersion;
 }
 
 abstract interface class AppUpdateChecker {
