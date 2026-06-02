@@ -29,6 +29,21 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-03｜v1.1.5｜No Release
+
+今天统一需求完成后的最终交付包，固定 commit、PR description 和 Release description 的输出格式。
+
+### Changed
+
+- `framelean-workflow` Gate 6 改为要求在文档、changelog、同步和验证完成后始终输出 commit 详情和详细 PR 文案。
+- PR description 固定使用中文标题：变更概览、背景与目标、实现详情、验证结果、风险与回滚、文档与变更记录、评审重点。
+- Release description 固定使用中文标题：版本摘要、主要变更、验证与兼容、发布产物、已知风险、升级与回滚说明、关联记录。
+- 项目 workflow 和 Git workflow 文档同步记录最终交付包、commit 详情和固定模板要求。
+
+### Verified
+
+- 通过 `git diff --check`。
+
 ## 2026-05-29｜v1.1.5｜No Release
 
 今天开始自托管更新能力的第一阶段实现，先接入关于入口和客户端更新检查骨架，并清理旧的第三方 Release 更新源。

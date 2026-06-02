@@ -2,7 +2,7 @@
 
 ## 文档目的
 
-这份文档记录 FrameLean 从需求讨论到 PR 准备的完整项目执行流程。它约束 AI agent 和开发者如何讨论方案、创建分支、设计测试、实现、验证、更新文档和准备提交信息。
+这份文档记录 FrameLean 从需求讨论到 PR 准备的完整项目执行流程。它约束 AI agent 和开发者如何讨论方案、创建分支、设计测试、实现、验证、更新文档、准备提交信息，以及输出固定格式的 PR / Release 描述。
 
 Git 分支、提交、worktree、PR 和发布细节仍以 `docs/develop/git-workflow.md` 为准；本文件负责更上层的项目执行顺序。
 
@@ -116,7 +116,7 @@ flutter test
 
 如果发现问题，需要说明问题、原因、修复方式和复验结果。
 
-## 阶段 6：文档、同步与 PR 准备
+## 阶段 6：文档、同步、提交与 PR / Release 准备
 
 当改动影响架构、数据模型、测试、发布流程、用户可见行为或开发者工作流时，必须更新文档。
 
@@ -141,9 +141,12 @@ flutter test
 
 除非用户明确要求，agent 不能直接执行 `git add`、`git commit` 或 `git push`。
 
-结束时需要给出：
+文档、changelog、同步和验证完成后，结束时必须给出固定交付包：
 
 - 本次改动概要。
 - 已执行检查及结果。
-- commit message 候选，格式为 `<type>(scope): 中文摘要`。
-- 如果需要 PR，给出 PR 标题和 description 草稿。
+- commit 详情，包括推荐提交信息、提交范围、是否需要提交正文和正文内容。
+- PR 标题和详细 description，使用 `docs/develop/git-workflow.md` 的固定中文标题模板。
+- 如果本次涉及 release 分支、hotfix 分支、tag、Release Notes、发布产物、更新 manifest 或分发流程，还要给出 Release description，使用 `docs/develop/git-workflow.md` 的固定中文标题模板。
+
+PR 和 Release description 不允许临时改标题或中英文混用；如果某个固定段落不适用，保留段落标题并写 `无` 或 `不适用`。
