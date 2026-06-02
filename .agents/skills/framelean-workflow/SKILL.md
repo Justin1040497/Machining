@@ -28,7 +28,7 @@ If docs and code disagree, decide whether the code has clearly moved beyond the 
 - Read `references/test-design-policy.md` before writing tests or code.
 - Read `references/implementation-policy.md` before editing production code, scripts, tests, or docs.
 - Read `references/review-and-validation-policy.md` before reviewing, running checks, building, or reporting validation results.
-- Read `references/documentation-and-pr-policy.md` before updating docs, changelog, bug logs, syncing latest code, or preparing PR copy.
+- Read `references/documentation-and-pr-policy.md` before updating docs, changelog, bug logs, syncing latest code, or preparing commit details, PR copy, or release copy.
 - Read `references/commit-policy.md` when drafting, splitting, or reviewing commit messages.
 - Read `references/release-policy.md` for release branches, hotfix branches, release notes, or tags.
 
@@ -79,7 +79,7 @@ Run checks that match the touched files and review the business boundary.
 - Add build, script, packaging, or manual checks when the change affects those surfaces.
 - If issues appear, explain the issue, cause, fix, and why the fix is appropriate.
 
-### Gate 6: Documentation, Sync, And PR Preparation
+### Gate 6: Documentation, Sync, Commit, PR, And Release Preparation
 
 Keep docs and review artifacts current.
 
@@ -87,7 +87,10 @@ Keep docs and review artifacts current.
 - Update `docs/archive/changelog.md`; for bug fixes, add a focused log under `docs/archive/logs/`.
 - Sync latest remote code, resolve conflicts if any, and rerun the relevant Gate 5 checks.
 - Do not stage, commit, or push unless the user explicitly asks.
-- End by giving commit-message candidates and PR title/description copy when useful.
+- After docs, changelog, sync, and validation are complete, always end a commit-ready task with a final delivery package.
+- The final delivery package must include commit details and detailed PR title/description copy using the fixed format in `references/documentation-and-pr-policy.md`.
+- When the task involves a release branch, hotfix branch, tag, release notes, release artifacts, update manifest, or distribution workflow, also include release description copy using the fixed format in `references/release-policy.md`.
+- Do not invent alternate PR or release description headings such as mixing `概述`, `Summary`, or `Overview`; keep the fixed Chinese headings and order.
 
 ## Default Rules
 
