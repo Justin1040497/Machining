@@ -162,7 +162,7 @@ void main() {
         'first',
         const FfmpegProcessObservation.completed(),
       );
-      await pumpEventQueue();
+      await harness.waitForTaskStatus('first', TaskStatus.completed);
 
       expect(harness.repository.taskById('first').status, TaskStatus.completed);
       expect(harness.runner.foregroundTaskId, isNull);
@@ -182,7 +182,7 @@ void main() {
         'first',
         const FfmpegProcessObservation.completed(),
       );
-      await pumpEventQueue();
+      await harness.waitForTaskStatus('first', TaskStatus.completed);
 
       expect(harness.repository.taskById('first').status, TaskStatus.completed);
       expect(harness.runner.foregroundTaskId, isNull);
@@ -224,7 +224,7 @@ void main() {
         'two-pass',
         const FfmpegProcessObservation.completed(),
       );
-      await pumpEventQueue();
+      await harness.waitForStartedProcesses(2);
 
       expect(harness.processStarter.starts, hasLength(2));
       expect(
@@ -240,7 +240,7 @@ void main() {
         'two-pass',
         const FfmpegProcessObservation.completed(),
       );
-      await pumpEventQueue();
+      await harness.waitForTaskStatus('two-pass', TaskStatus.completed);
 
       expect(
         harness.repository.taskById('two-pass').status,
@@ -381,6 +381,35 @@ class QueueHarness {
 
   File logFileFor(String taskId) {
     return File('${logDirectory.path}/$taskId.log');
+  }
+
+  Future<void> waitForTaskStatus(String taskId, TaskStatus status) {
+    return waitForCondition(
+      description: '$taskId to reach $status',
+      condition: () => repository.taskById(taskId).status == status,
+    );
+  }
+
+  Future<void> waitForStartedProcesses(int count) {
+    return waitForCondition(
+      description: '$count started FFmpeg processes',
+      condition: () => processStarter.starts.length >= count,
+    );
+  }
+
+  Future<void> waitForCondition({
+    required String description,
+    required bool Function() condition,
+  }) async {
+    for (var attempt = 0; attempt < 100; attempt += 1) {
+      if (condition()) {
+        return;
+      }
+
+      await Future<void>.delayed(const Duration(milliseconds: 1));
+    }
+
+    fail('Timed out waiting for $description');
   }
 }
 

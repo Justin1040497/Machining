@@ -47,8 +47,10 @@ test/
   media_task_notifier_test.dart
   preview_frame_generator_test.dart
   video_thumbnail_generator_test.dart
+  workbench_about_dialog_test.dart
   workbench_bottom_bar_test.dart
   workbench_dialog_style_test.dart
+  workbench_file_revealer_test.dart
   workbench_preview_notifier_test.dart
   widget_test.dart
 ```
@@ -205,6 +207,7 @@ test/
 - 通知边距、颜色、圆角和阴影与工作台视觉风格一致。
 - Windows 顶部保留通知安全区，通知不遮挡单任务列表项右侧按钮。
 - 压缩确认、导入失败、清空任务和重命名弹窗使用统一工作台弹窗框架。
+- 首页右上角关于入口可打开关于弹窗，关于弹窗提供 GitHub 和 Gitee 项目入口。
 
 ### 完成和结果处理
 

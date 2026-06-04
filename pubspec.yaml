@@ -39,8 +39,6 @@ dependencies:
   sqlite3_flutter_libs: ^0.6.0+eol
   path_provider: ^2.1.5
   path: ^1.9.1
-  http: ^1.6.0
-  crypto: ^3.0.6
   args: ^2.7.0
   file_selector: ^1.1.0
   desktop_drop: ^0.7.1
@@ -81,6 +79,10 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/icons/github.png
+    - assets/icons/gitee.png
 
   fonts:
     - family: AlibabaPuHuiTi

@@ -29,9 +29,41 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-04｜v1.1.5｜No Release
+
+调整关于弹窗的项目仓库入口，并删除托管更新联调实现。
+
+### Added
+
+- 关于弹窗底部左侧新增 GitHub 和 Gitee 图片图标入口。
+
+### Changed
+
+- 移除关于弹窗标题栏右侧 GitHub 图标和底部左侧“检查更新”按钮。
+- GitHub / Gitee 项目入口统一使用系统外链打开逻辑。
+- 基于当前系统设计尚未稳定、域名备案相关准备尚未完成，删除客户端更新检查、更新包下载、托管更新服务联调代码和本地 Release 探测脚本。
+- 删除 `server/` 后端实验目录，并移除 `.gitignore` 中对 `/server/` 的忽略规则。
+- 清理当前开发文档中的托管更新服务、接口、构建参数和验证说明。
+
+### Verified
+
+- 通过 `flutter pub get`。
+- 通过 `dart format lib/features/workbench/pages/workbench_page.dart lib/application/services/framelean_build_info.dart lib/features/workbench/pages/workbench_page/dialogs/workbench_about_dialog.dart test/app_settings_dialog_test.dart test/workbench_about_dialog_test.dart`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `git diff --check`。
+
 ## 2026-06-03｜v1.1.5｜No Release
 
-今天统一需求完成后的最终交付包，固定 commit、PR description 和 Release description 的输出格式。
+今天统一需求完成后的最终交付包，并继续推进自托管更新前端下载和安装包打开交互。
+
+### Added
+
+- 新增更新包下载器抽象和 HTTP 实现，支持下载进度、`.part` 临时文件、SHA-256 校验和失败清理。
+- “发现新版本”弹窗新增下载更新、下载进度、下载完成、显示文件、打开 DMG 和 Windows 安装器启动交互。
+- 新增更新会话申请接口，客户端使用本地安装 ID 换取短期更新 Token。
+- 新增本地安装 ID 持久化和服务端下载事件记录 / 重复下载限流。
+- 新增更新包下载器单元测试和更新弹窗下载 / 安装交互 widget 测试。
 
 ### Changed
 
@@ -39,9 +71,21 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - PR description 固定使用中文标题：变更概览、背景与目标、实现详情、验证结果、风险与回滚、文档与变更记录、评审重点。
 - Release description 固定使用中文标题：版本摘要、主要变更、验证与兼容、发布产物、已知风险、升级与回滚说明、关联记录。
 - 项目 workflow 和 Git workflow 文档同步记录最终交付包、commit 详情和固定模板要求。
+- 自托管更新文档补充客户端下载、校验、保存目录、打开安装包和手动验证边界。
+- 更新服务鉴权从 HMAC 请求签名改为短期更新会话 Token，客户端不再内置静态 `FRAMELEAN_UPDATE_TOKEN`。
+
+### Fixed
+
+- 加固 FFmpeg 队列 runner 异步测试等待逻辑，避免默认并发全量测试中后台观测收尾尚未完成就断言任务状态。
 
 ### Verified
 
+- 通过 `flutter test test/app_update_package_downloader_test.dart test/update_available_dialog_test.dart`。
+- 通过 `git ls-files '*.dart' | xargs dart format --set-exit-if-changed`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `cargo fmt --manifest-path server/update-service/Cargo.toml --check`。
+- 通过 `cargo test --manifest-path server/update-service/Cargo.toml`。
 - 通过 `git diff --check`。
 
 ## 2026-05-29｜v1.1.5｜No Release
