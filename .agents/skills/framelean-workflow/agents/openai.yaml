@@ -1,7 +1,7 @@
 interface:
-  display_name: "FrameLean Workflow"
-  short_description: "Project workflow from intake to PR prep"
-  default_prompt: "Use $framelean-workflow to guide this FrameLean change from requirement discussion through branch, tests, implementation, validation, docs, and PR preparation."
+  display_name: "FrameLean Workflow Router"
+  short_description: "Route FrameLean work to the right project skill"
+  default_prompt: "Use $framelean-workflow to choose the smallest FrameLean project skill for this request, or run the full workflow when explicitly requested."
 
 policy:
   allow_implicit_invocation: true

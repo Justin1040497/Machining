@@ -1,0 +1,4 @@
+interface:
+  display_name: "FrameLean Feature Analysis"
+  short_description: "Analyze FrameLean feature intent and network position"
+  default_prompt: "Use $framelean-feature-analysis to write a FrameLean feature analysis with interaction chains, logic trees, and feature-network nodes."

@@ -6,7 +6,8 @@ This file is the shared project entry point for AI coding agents working in the 
 
 - Full project execution workflow rules live in `docs/develop/project-workflow.md`.
 - Git branch, commit, worktree, PR, and release rules live in `docs/develop/git-workflow.md`.
-- Agent-specific project workflow guidance lives in `.agents/skills/framelean-workflow/SKILL.md`.
+- Agent-specific project workflow routing lives in `.agents/skills/framelean-workflow/SKILL.md`.
+- Specialized project skills live under `.agents/skills/framelean-*`; keep them project-local unless the user explicitly asks for a user-level or global Skill.
 - If workflow docs and the current project implementation disagree, prefer the real project state only when implementation has clearly moved beyond stale docs; then update the stale docs.
 - If Git-specific files disagree, follow `docs/develop/git-workflow.md` first and update stale agent guidance.
 
@@ -16,6 +17,7 @@ This file is the shared project entry point for AI coding agents working in the 
 - Claude Code reads `CLAUDE.md`; this repository keeps `CLAUDE.md` as a thin adapter that imports this file.
 - Shared agent workflows belong under `.agents/`.
 - Tool-specific settings belong only in the matching tool directory, such as `.codex/` or `.claude/`, when that tool actually needs them.
+- Project-level Skills for FrameLean belong under `.agents/skills/`; do not create FrameLean workflow Skills in user-level skill directories unless explicitly requested.
 
 ## Git Workflow
 

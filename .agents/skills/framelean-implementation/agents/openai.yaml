@@ -1,0 +1,4 @@
+interface:
+  display_name: "FrameLean Implementation"
+  short_description: "Implement confirmed FrameLean tasks within project architecture"
+  default_prompt: "Use $framelean-implementation to implement confirmed FrameLean tasks within scope, architecture, and documentation boundaries."
