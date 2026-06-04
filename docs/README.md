@@ -13,6 +13,7 @@
 阅读文档时优先区分当前事实、实现计划和历史记录：
 
 - 当前事实放在 `product/`、`develop/`、`reference/`。
+- 功能级分析、设计、任务、测试计划和功能网归档放在 `features/`；这些文档服务于具体功能版本，不替代 `develop/` 中的当前架构和流程事实。
 - `plans/` 保存当时的实现计划，用于追溯任务背景；如果和当前代码或 `develop/` 冲突，以当前代码和 `develop/` 为准。
 - 历史记录放在 `archive/`，可能不再代表最新实现。
 
@@ -24,6 +25,13 @@ docs/
 
   product/
     roadmap.md                      产品路线图和下一阶段规划
+
+  features/
+    {module}/{version}/analysis.md  功能需求整理、交互链、逻辑树和功能编号
+    {module}/{version}/design.md    功能设计报告和分支建议
+    {module}/{version}/tasks.md     功能任务清单
+    {module}/{version}/test.md      功能测试计划；API 测试只是其中一类
+    feature-network/                全局功能网、局域网络和归档快照
 
   plans/
     2026-05-19-app-settings-dialog.md
@@ -127,6 +135,8 @@ FrameLean（帧轻）是一个桌面视频压缩应用。它把常用 FFmpeg 视
 4. 修改模块边界前读 `develop/architecture.md`。
 5. 修改任务、设置、数据库或持久化行为前读 `develop/data-model.md`。
 6. 新增或调整测试前读 `develop/test-plan.md`。
+
+项目级 AI workflow skills 放在 `.agents/skills/`。`framelean-workflow` 只作为轻量路由入口；功能分析、设计、任务清单、测试计划、实现、审查验证和交付收尾分别由对应的 `framelean-*` 项目级 skill 处理。
 
 ## 测试
 

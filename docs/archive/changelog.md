@@ -29,6 +29,28 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-05｜v1.1.5｜No Release
+
+今天拆分 FrameLean 项目级 workflow skills，降低单次 commit、PR、release 文案和测试计划请求的上下文负担。
+
+### Added
+
+- 新增 `framelean-feature-analysis`、`framelean-feature-design`、`framelean-feature-tasks`、`framelean-test-plan`、`framelean-implementation`、`framelean-review` 和 `framelean-delivery` 项目级 skills。
+- 新增 `.agents/skills/README.md`，说明 FrameLean 项目级 skills 的触发场景、推荐流程和文档位置约定。
+
+### Changed
+
+- 将 `framelean-workflow` 改为轻量路由入口，按请求路由到功能分析、设计、任务、测试计划、实现、审查验证或交付收尾 skill。
+- 将 API 测试链规范改造为 FrameLean 测试计划 skill 的可选 API/服务端测试章节，普通桌面应用功能测试项优先来自 `docs/develop/test-plan.md`。
+- 将 commit 详情、PR 描述、release description、changelog、bug log 和功能网归档收敛到 `framelean-delivery`。
+- 文档入口补充 `docs/features/` 的功能级分析、设计、任务、测试计划和功能网归档用途。
+
+### Verified
+
+- 通过 Ruby YAML 解析检查全部 `framelean-*` skill frontmatter。
+- 通过 Ruby YAML 解析检查全部 `agents/openai.yaml`。
+- 通过 `git diff --check`。
+
 ## 2026-06-04｜v1.1.5｜No Release
 
 调整关于弹窗的项目仓库入口，并删除托管更新联调实现。
