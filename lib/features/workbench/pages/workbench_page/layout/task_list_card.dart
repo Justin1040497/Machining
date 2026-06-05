@@ -116,7 +116,7 @@ class WorkbenchTaskListCard extends StatelessWidget {
   Widget _buildEmpty() {
     return const Center(
       child: Text(
-        '暂无任务\n点击左下角 + 添加视频',
+        '暂无任务\n点击左下角 + 添加媒体',
         textAlign: TextAlign.center,
         style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12, height: 1.5),
       ),

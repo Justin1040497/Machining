@@ -11,6 +11,7 @@ import 'package:framelean/application/use_cases/app_settings/save_app_settings_u
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
@@ -529,6 +530,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
+    if (task.mediaKind != MediaKind.video) {
+      showWorkbenchSnackBar('图片和音频任务当前使用默认配置处理，配置面板将在后续切片开放');
+      return;
+    }
+
     final initialQualityIndex =
         WorkbenchQualityPolicy.initialQualityIndexForTask(task);
     final initialSmartPreset =
@@ -657,7 +663,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> pickAndAddTasks() async {
     try {
-      final files = await WorkbenchFilePicker.pickVideoFiles();
+      final files = await WorkbenchFilePicker.pickMediaFiles();
       final paths = files
           .map((file) => file.path)
           .where((path) => path.trim().isNotEmpty)
@@ -780,7 +786,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> relinkMissingSource(MediaTask task) async {
-    final file = await WorkbenchFilePicker.pickVideoFile();
+    final file = await WorkbenchFilePicker.pickMediaFile();
     final newInputPath = file?.path.trim();
     if (newInputPath == null || newInputPath.isEmpty) {
       return;

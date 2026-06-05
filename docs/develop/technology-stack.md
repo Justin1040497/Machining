@@ -29,11 +29,11 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 12 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 14 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
-| 媒体分析 | FFprobe | 已使用 | 读取时长、编码、码率、分辨率、音频和封装信息 |
-| 媒体处理 | FFmpeg | 已使用 | 生成预览帧、缩略图、压缩和转封装 |
-| 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频扩展名会进入任务流程，图片和音频当前识别后拒绝处理 |
+| 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频和封装信息 |
+| 媒体处理 | FFmpeg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换 |
+| 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片和音频扩展名会进入任务流程；图片和音频当前使用默认配置基础处理 |
 | 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
@@ -297,7 +297,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 图片 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.bmp` |
 | 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg` |
 
-工作台当前只允许 `video` 进入任务队列。图片和音频枚举已存在，但导入时会被 `ensureSupportedMediaKind()` 拒绝。
+工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、默认配置处理和通用完成弹窗，分类型配置面板后续再开放。
 
 ## 当前核心功能对应实现
 
@@ -350,8 +350,8 @@ docs/develop/test-plan.md
 
 ## 技术边界
 
-- 当前产品实现以视频压缩为主，暂不包含云端转码、账号体系或多设备同步。
-- 当前 UI 只允许视频任务；`image`、`audio` 枚举是预留模型，不代表已支持处理。
+- 当前产品实现仍以本地媒体处理为主，暂不包含云端转码、账号体系或多设备同步。
+- 视频任务是最完整的能力面；图片和音频已支持基础本地处理，但暂不包含图片高级编辑、音频波形、试听、多轨或字幕能力。
 - Linux 和 Web 目录不是当前发布目标；涉及平台行为时不要默认它们已经可用。
 - 应用设置通过工作台弹窗打开，不保留未完成设置页占位路由。
 - FFmpeg 二进制通常不应提交到 Git；本地和发布构建需要按 `third_party/ffmpeg/*/README.md` 准备运行时。

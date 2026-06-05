@@ -1,9 +1,13 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/image_codec.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 import 'package:framelean/infrastructure/repositories/drift_media_task_repository.dart';
@@ -75,6 +79,72 @@ void main() {
       expect(analysis.audioChannelLayout, 'stereo');
       expect(analysis.isHdr, isTrue);
     });
+
+    test('persists and restores image media config json', () {
+      final config = MediaTaskConfig.initialImage().copyWith(
+        outputDirectory: '/exports',
+        outputFileName: 'web-hero',
+        image: ImageProcessingConfig.initial().copyWith(
+          outputFormat: MediaOutputFormat.webp,
+          imageCodec: ImageCodec.webp,
+          imageQuality: 74,
+          resizePreset: ImageResizePreset.longEdge1920,
+          preserveMetadata: true,
+        ),
+      );
+      final task = MediaTask(
+        id: 'image-task',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: config,
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+        analysisResult: MediaAnalysisResult(
+          imageWidth: 1200,
+          imageHeight: 800,
+          imageCodec: 'png',
+          imagePixelFormat: 'rgba',
+          imageBitDepth: 8,
+        ),
+      );
+
+      final companion = task.toCompanion();
+      final restored = taskRow(
+        id: 'image-task',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: 'image',
+        mediaConfigJson: companion.mediaConfigJson.value,
+        analysisImageWidth: companion.analysisImageWidth.value,
+        analysisImageHeight: companion.analysisImageHeight.value,
+        analysisImageCodec: companion.analysisImageCodec.value,
+        analysisImagePixelFormat: companion.analysisImagePixelFormat.value,
+        analysisImageBitDepth: companion.analysisImageBitDepth.value,
+      ).toDomain();
+
+      expect(companion.mediaConfigJson.value, contains('"image"'));
+      expect(companion.outputFormat.value, 'mp4');
+      expect(restored.mediaKind, MediaKind.image);
+      expect(restored.config.outputDirectory, '/exports');
+      expect(restored.config.outputFileName, 'web-hero');
+      expect(restored.config.image!.outputFormat, MediaOutputFormat.webp);
+      expect(restored.config.image!.imageCodec, ImageCodec.webp);
+      expect(restored.config.image!.imageQuality, 74);
+      expect(
+        restored.config.image!.resizePreset,
+        ImageResizePreset.longEdge1920,
+      );
+      expect(restored.config.image!.preserveMetadata, isTrue);
+      expect(restored.analysisResult!.imageWidth, 1200);
+      expect(restored.analysisResult!.imageHeight, 800);
+      expect(restored.analysisResult!.imageCodec, 'png');
+      expect(restored.analysisResult!.imagePixelFormat, 'rgba');
+      expect(restored.analysisResult!.imageBitDepth, 8);
+    });
   });
 }
 
@@ -94,12 +164,23 @@ MediaTask mediaTask({MediaAnalysisResult? analysisResult}) {
   );
 }
 
-TaskRow taskRow() {
-  return const TaskRow(
-    id: 'task-1',
-    inputPath: '/videos/source.mp4',
-    fileName: 'source.mp4',
-    mediaKind: 'video',
+TaskRow taskRow({
+  String id = 'task-1',
+  String inputPath = '/videos/source.mp4',
+  String fileName = 'source.mp4',
+  String mediaKind = 'video',
+  String? mediaConfigJson,
+  int? analysisImageWidth,
+  int? analysisImageHeight,
+  String? analysisImageCodec,
+  String? analysisImagePixelFormat,
+  int? analysisImageBitDepth,
+}) {
+  return TaskRow(
+    id: id,
+    inputPath: inputPath,
+    fileName: fileName,
+    mediaKind: mediaKind,
     purpose: 'compression',
     status: 'pending',
     progress: 0,
@@ -124,6 +205,12 @@ TaskRow taskRow() {
     analysisAudioChannels: 2,
     analysisAudioSampleRate: 48000,
     analysisAudioChannelLayout: 'stereo',
+    mediaConfigJson: mediaConfigJson,
+    analysisImageWidth: analysisImageWidth,
+    analysisImageHeight: analysisImageHeight,
+    analysisImageCodec: analysisImageCodec,
+    analysisImagePixelFormat: analysisImagePixelFormat,
+    analysisImageBitDepth: analysisImageBitDepth,
     outputFormat: 'mp4',
     videoCodec: 'h264',
     encoderBackend: 'auto',

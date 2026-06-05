@@ -498,10 +498,10 @@ void main() {
       ),
     );
 
-    expect(find.text('压缩完成'), findsOneWidget);
-    expect(find.text('压缩前'), findsOneWidget);
+    expect(find.text('处理完成'), findsOneWidget);
+    expect(find.text('源文件'), findsOneWidget);
     expect(find.text('100MB'), findsOneWidget);
-    expect(find.text('压缩后'), findsOneWidget);
+    expect(find.text('输出文件'), findsOneWidget);
     expect(find.text('25MB'), findsOneWidget);
     expect(find.text('导出位置'), findsOneWidget);
     expect(find.text(outputPath), findsOneWidget);

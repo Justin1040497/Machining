@@ -1,14 +1,18 @@
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 
+enum ProgressMode { timed, step }
+
 class FfmpegCommandStep {
   final List<String> args;
   final String? outputPath;
   final String label;
+  final ProgressMode progressMode;
 
   const FfmpegCommandStep({
     required this.args,
     required this.label,
+    this.progressMode = ProgressMode.timed,
     this.outputPath,
   });
 }

@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `13`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `14`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -30,7 +30,11 @@ lib/infrastructure/database/app_database.dart
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
 | `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果和时间戳 |
-| `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 单任务视频输出与压缩配置 |
+| `MediaTaskConfig` | `lib/domain/value_objects/media_task_config.dart` | 单任务通用输出、压缩和分类型配置入口 |
+| `VideoProcessingConfig` | `lib/domain/value_objects/video_processing_config.dart` | 视频输出与压缩配置 |
+| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、质量、尺寸和元数据配置 |
+| `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、编码、码率、采样率和声道配置 |
+| `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频和封装信息 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置和默认压缩偏好 |
@@ -57,7 +61,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `id` | text | 否 | 无 | `MediaTask.id` | UUID 字符串，主键，由 `MediaTask.generateId()` 生成 |
 | `input_path` | text | 否 | 无 | `inputPath` | 源文件绝对路径或系统返回的本地路径 |
 | `file_name` | text | 否 | 无 | `fileName` | UI 展示文件名，通常是 `path.basename(inputPath)` |
-| `media_kind` | text | 否 | `video` | `mediaKind` | 媒体类型枚举；当前 UI 和命令构造只支持 `video` |
+| `media_kind` | text | 否 | `video` | `mediaKind` | 媒体类型枚举；当前支持 `video`、`image`、`audio` 导入、分析和基础 FFmpeg 处理 |
 | `purpose` | text | 否 | 无 | `purpose` | 任务用途：`compression` 或 `conversion` |
 | `sort_order` | integer | 否 | 无 | `sortOrder` | 任务列表排序，读取时按 `sort_order ASC, created_at ASC` |
 
@@ -74,9 +78,17 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `completed_at` | integer | 是 | `null` | `completedAt` | FFmpeg 观测到成功完成时写入 |
 | `failed_at` | integer | 是 | `null` | `failedAt` | 启动、执行或分析失败时写入 |
 
-### 单任务视频配置字段
+### 单任务配置字段
 
-这些字段映射到 `VideoTaskConfig`。
+`media_config_json` 是新的通用配置主字段，映射到 `MediaTaskConfig`。旧视频列仍保留并继续写入，用于兼容历史数据和降低回滚风险；读取时优先使用 `media_config_json`，缺失时再从旧视频列构造 `MediaTaskConfig.video`。
+
+| 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `media_config_json` | text | 是 | `null` | `MediaTask.config` | JSON 配置，包含通用输出字段以及 `video` / `image` / `audio` 分类型配置 |
+
+### 兼容视频配置字段
+
+这些字段是旧视频配置列。新任务保存时仍写入这些字段；对图片和音频任务，仓储使用默认视频配置填充旧列，真实配置以 `media_config_json` 为准。
 
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -92,7 +104,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `target_size_ratio` | real | 是 | `null` | `targetSizeRatio` | 旧版本兼容字段；没有 `target_size_bytes` 时可按源文件大小换算 |
 | `output_file_name` | text | 否 | `''` | `outputFileName` | 用户自定义输出文件名；空字符串时自动生成 |
 
-`VideoTaskConfig.initial()` 的默认值：
+视频默认配置的兼容默认值：
 
 | 配置 | 默认值 |
 | --- | --- |
@@ -106,6 +118,17 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 推荐方案预设 | `balanced` |
 | 目标体积 | `null` |
 | 自定义文件名 | 空字符串 |
+
+`media_config_json` 当前写入结构包含：
+
+| JSON 字段 | 说明 |
+| --- | --- |
+| `configVersion` | 当前为 `1` |
+| `outputDirectory` / `outputFileName` | 通用输出目录和文件名 |
+| `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
+| `video` | 视频格式、编码器、后端、分辨率、CRF 和旧推荐预设 |
+| `image` | 图片格式、编码、质量、长边尺寸预设和是否保留元数据 |
+| `audio` | 音频格式、编码、码率、采样率和声道 |
 
 ### 源文件指纹字段
 
@@ -148,14 +171,20 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_audio_sample_rate` | integer | 是 | `null` | `audioSampleRate` | 音频采样率 |
 | `analysis_audio_channel_layout` | text | 是 | `null` | `audioChannelLayout` | 音频声道布局，例如 `mono`、`stereo`、`5.1(side)` |
 | `analysis_audio_stream_index` | integer | 是 | `null` | `audioStreamIndex` | FFprobe 选出的可转码主音频流全局索引，用于 FFmpeg 精确 `-map 0:<index>?`，避免把 iPhone APAC / `none` 音频流一起映射进输出 |
+| `analysis_image_width` | integer | 是 | `null` | `imageWidth` | 图片宽度 |
+| `analysis_image_height` | integer | 是 | `null` | `imageHeight` | 图片高度 |
+| `analysis_image_codec` | text | 是 | `null` | `imageCodec` | FFprobe 读取的图片编码名 |
+| `analysis_image_pixel_format` | text | 是 | `null` | `imagePixelFormat` | 图片像素格式 |
+| `analysis_image_bit_depth` | integer | 是 | `null` | `imageBitDepth` | 图片位深 |
 | `analysis_updated_at` | integer | 是 | `null` | `analysisUpdatedAt` | 分析结果写入时间，毫秒时间戳 |
 | `analysis_error_message` | text | 是 | `null` | `analysisErrorMessage` | 分析失败或 FFprobe 不可用时的错误信息 |
 
 压缩策略使用 `MediaAnalysisResult.preferredBitrate` 作为有效码率，优先级为：
 
 1. `analysis_video_bitrate`
-2. `analysis_container_bitrate`
-3. `analysis_estimated_bitrate`
+2. `analysis_audio_bitrate`
+3. `analysis_container_bitrate`
+4. `analysis_estimated_bitrate`
 
 ## `settings` 表
 
@@ -174,6 +203,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
 | `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
 | `default_output_file_name_template` | text | 否 | `datetimeOriginalCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
+| `default_media_config_json` | text | 是 | `null` | 预留 | 通用默认媒体配置列已加入 schema 14；当前设置仓储仍以旧视频默认字段为主，后续配置面板切片再启用 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -203,9 +233,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | 存储值 | 含义 | 当前实现 |
 | --- | --- | --- |
-| `video` | 视频 | 当前唯一支持执行的类型 |
-| `image` | 图片 | 枚举已存在，导入时会被拒绝 |
-| `audio` | 音频 | 枚举已存在，导入时会被拒绝 |
+| `video` | 视频 | 完整保留当前压缩、转封装、预览和缩略图主链路 |
+| `image` | 图片 | 支持导入、FFprobe 分析、源图缩略图和默认配置下的基础 FFmpeg 输出；配置面板后续开放 |
+| `audio` | 音频 | 支持导入、FFprobe 分析和默认配置下的基础 FFmpeg 输出；波形、试听和音频编辑不在当前范围 |
 
 ### 压缩模式
 
@@ -227,8 +257,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 1. UI 通过文件选择或拖拽拿到本地路径。
 2. `MediaTaskListNotifier.createDraftFromPath()` 调用 `ImportMediaTaskUseCase`。
-3. `ImportMediaTaskUseCase` 识别 `MediaKind`，当前只允许 `video`，并读取 `SourceFileFingerprint`。
-4. 用应用设置生成新任务默认配置，创建 `MediaTask.draft()`。
+3. `ImportMediaTaskUseCase` 识别 `MediaKind`，允许 `video`、`image`、`audio`，并读取 `SourceFileFingerprint`。
+4. 用应用设置和媒体类型生成新任务默认 `MediaTaskConfig`，创建 `MediaTask.draft()`。
 5. 写入 `analyzing` 状态并保存到 `tasks`。
 6. 后台调用 `AnalyzeMediaTaskUseCase` 和 FFprobe 分析。
 7. 成功后写入 `MediaAnalysisResult`，状态从 `analyzing` 回到 `pending`。
@@ -248,10 +278,11 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 1. 队列只从 `pending` 或已有暂停执行中启动任务。
 2. 启动前再次检查源文件和 FFmpeg 运行时。
 3. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
-4. `LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
-5. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
-6. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`。
-7. 进程失败、输出文件缺失或监听错误时写入 `failed` 和 `failed_at`。
+4. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
+5. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
+6. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
+7. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`。
+8. 进程失败、输出文件缺失或监听错误时写入 `failed` 和 `failed_at`。
 
 ## 迁移历史
 
@@ -270,6 +301,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 10 | 给 `settings` 增加保存到源文件旁、默认推荐方案和默认导出文件名模板 |
 | 11 | 将 `tasks.compression_mode` 中的历史值 `smart`、`quality` 归一化为 `preset` |
 | 12 | 给 `tasks` 增加 FFprobe 色彩、像素格式、帧率、宽高比、旋转、场序和音频声道布局字段 |
+| 13 | 给 `tasks` 增加 `analysis_audio_stream_index` |
+| 14 | 给 `tasks` 增加 `media_config_json` 和图片分析字段；给 `settings` 增加 `default_media_config_json` |
 
 ## 修改数据模型的约束
 
@@ -278,7 +311,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 - 任务状态要能在应用重启后被重新校正；不能假设内存里的 FFmpeg 进程仍存在。
 - 源文件、预览帧、日志和输出文件路径都是本地路径，跨机器或用户移动文件后可能失效。
 - `target_size_ratio` 是兼容字段，新功能应优先读写 `target_size_bytes`。
-- 数据库不保存完整 FFprobe JSON；只保存当前 UI、压缩策略和命令构造需要的字段。
+- 数据库不保存完整 FFprobe JSON；只保存当前 UI、处理策略和命令构造需要的字段。
 
 ## 后续候选
 

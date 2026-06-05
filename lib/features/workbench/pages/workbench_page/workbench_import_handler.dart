@@ -34,7 +34,7 @@ abstract final class WorkbenchImportHandler {
       final entityType = FileSystemEntity.typeSync(inputPath);
       if (entityType != FileSystemEntityType.file) {
         failures.add(
-          DroppedImportFailure(path: inputPath, reason: '只能导入视频文件，不能导入文件夹'),
+          DroppedImportFailure(path: inputPath, reason: '只能导入媒体文件，不能导入文件夹'),
         );
         continue;
       }

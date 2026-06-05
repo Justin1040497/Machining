@@ -9,5 +9,12 @@ void main() {
 
       expect(resolver.resolve('/videos/clip.MOV'), MediaKind.video);
     });
+
+    test('resolves uppercase image and audio extensions', () {
+      final resolver = FileExtensionMediaKindResolver();
+
+      expect(resolver.resolve('/images/photo.WEBP'), MediaKind.image);
+      expect(resolver.resolve('/audio/voice.MP3'), MediaKind.audio);
+    });
   });
 }

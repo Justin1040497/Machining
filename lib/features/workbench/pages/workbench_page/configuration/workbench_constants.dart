@@ -18,6 +18,34 @@ abstract final class WorkbenchConstants {
     ],
   );
 
+  static const imageTypeGroup = XTypeGroup(
+    label: '图片文件',
+    extensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
+    uniformTypeIdentifiers: [
+      'public.image',
+      'public.jpeg',
+      'public.png',
+      'org.webmproject.webp',
+    ],
+  );
+
+  static const audioTypeGroup = XTypeGroup(
+    label: '音频文件',
+    extensions: ['mp3', 'wav', 'aac', 'flac', 'm4a', 'ogg'],
+    uniformTypeIdentifiers: [
+      'public.audio',
+      'public.mp3',
+      'public.mpeg-4-audio',
+      'com.microsoft.waveform-audio',
+    ],
+  );
+
+  static const mediaTypeGroups = [
+    videoTypeGroup,
+    imageTypeGroup,
+    audioTypeGroup,
+  ];
+
   static const qualityOptions = [
     QualityOption(label: '高质量', crf: 24, targetRatio: 0.95),
     QualityOption(label: '清晰+', crf: 25, targetRatio: 0.85),

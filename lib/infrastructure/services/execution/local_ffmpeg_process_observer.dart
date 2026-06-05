@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 
 class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
@@ -21,18 +22,28 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     required StartedFfmpegProcess startedProcess,
     required MediaTask task,
     required String? outputPath,
+    ProgressMode progressMode = ProgressMode.timed,
     required Future<void> Function(double progress) onProgress,
   }) async {
     final stderrSink = startedProcess.logFile.openWrite(mode: FileMode.append);
     final stderrTail = <String>[];
     Object? streamError;
 
-    final stdoutDone = observeStdout(
-      startedProcess.process.stdout,
-      task,
-      onProgress,
-      onError: (error) => streamError ??= error,
-    );
+    if (progressMode == ProgressMode.step) {
+      await onProgress(0.5);
+    }
+
+    final stdoutDone = progressMode == ProgressMode.timed
+        ? observeStdout(
+            startedProcess.process.stdout,
+            task,
+            onProgress,
+            onError: (error) => streamError ??= error,
+          )
+        : drainStdout(
+            startedProcess.process.stdout,
+            onError: (error) => streamError ??= error,
+          );
     final stderrDone = observeStderr(
       startedProcess.process.stderr,
       stderrSink,
@@ -60,6 +71,17 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     }
 
     return const FfmpegProcessObservation.completed();
+  }
+
+  Future<void> drainStdout(
+    Stream<List<int>> stdout, {
+    required void Function(Object error) onError,
+  }) async {
+    try {
+      await stdout.drain<void>();
+    } on Object catch (error) {
+      onError(error);
+    }
   }
 
   Future<void> observeStdout(

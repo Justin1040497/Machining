@@ -8,7 +8,7 @@
 
 ## 架构总览
 
-FrameLean 是一个视频压缩桌面应用。当前主路径是：用户导入视频，应用使用 FFprobe 分析媒体信息，按任务配置构造 FFmpeg 命令，执行压缩或转封装，并把任务状态持久化到 SQLite。
+FrameLean 是一个本地媒体处理桌面应用。当前主路径是：用户导入视频、图片或音频，应用使用 FFprobe 分析媒体信息，按任务配置构造 FFmpeg 命令，执行压缩或格式转换，并把任务状态持久化到 SQLite。视频仍保留最完整的配置、预览和缩略图能力；图片和音频当前支持默认配置下的导入、分析和基础处理。
 
 项目采用接近 Clean Architecture 的分层方式：
 
@@ -118,10 +118,12 @@ docs/
 
 - `MediaTask`：媒体任务主实体。
 - `AppSettings`：应用级设置实体。
-- `VideoTaskConfig`：单个视频任务的输出和压缩配置。
+- `MediaTaskConfig`：单个媒体任务的通用配置入口，按 `mediaKind` 持有 `video`、`image` 或 `audio` 分类型配置。
+- `VideoProcessingConfig`、`ImageProcessingConfig`、`AudioProcessingConfig`：视频、图片、音频的分类型处理配置。
+- `VideoTaskConfig`：旧视频配置兼容对象，可映射为 `MediaTaskConfig.video`。
 - `MediaAnalysisResult`：FFprobe 分析结果。
 - `SourceFileFingerprint`：源文件快速指纹，用于检测源文件是否被替换或移动。
-- 枚举：任务状态、输出格式、视频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设（代码名 `SmartCompressionPreset`）、媒体类型、任务用途等。
+- 枚举：任务状态、通用输出格式、视频 / 图片 / 音频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设、媒体类型、任务用途等。
 
 `MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult` 等方法，避免 UI 或仓储直接拼装状态。
 
@@ -248,7 +250,7 @@ main()
 文件选择 / 拖拽
   -> ImportMediaTaskUseCase
   -> MediaKindResolver 按扩展名识别类型
-  -> 当前只允许 video
+  -> 允许 video / image / audio
   -> SourceFileFingerprintReader 读取文件大小和修改时间
   -> AppSettingsRepository 读取新任务默认配置
   -> MediaTask.draft()
@@ -263,7 +265,7 @@ main()
 
 ### 预览和缩略图
 
-缩略图由 `LocalVideoThumbnailGenerator` 生成，工作台用任务和文件状态组成 key，避免重复生成失败缩略图。
+缩略图由工作台缩略图缓存协调：视频继续通过 `LocalVideoThumbnailGenerator` 抽帧，图片任务直接使用源图片作为缩略图，音频任务当前使用稳定占位表现。工作台用任务和文件状态组成 key，避免重复生成失败缩略图。
 
 压缩预览由 `LocalPreviewFrameGenerator` 生成：
 
@@ -293,7 +295,9 @@ main()
 
 主要规则：
 
-- 当前只支持 `MediaKind.video`。
+- `MediaKind.video` 继续走完整视频规划链路，保留现有压缩、转封装、硬件编码、目标体积和预览片段行为。
+- `MediaKind.image` 当前在默认配置下生成单步图片输出计划，使用 `ProgressMode.step`，不依赖媒体时长。
+- `MediaKind.audio` 当前生成音频输出计划，使用 `-vn` 禁用视频流，并按音频配置写入编码、码率、采样率和声道参数。
 - `VideoCodec.source` 必须先依赖分析结果解析为 `h264` 或 `hevc`。
 - `EncoderBackend.auto` 会根据 FFmpeg 实际支持和平台优先级选择硬件编码或软件编码。
 - 输出目录为空时使用源文件目录。

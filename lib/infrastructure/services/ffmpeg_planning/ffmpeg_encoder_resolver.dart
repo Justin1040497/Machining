@@ -15,7 +15,7 @@ class FfmpegEncoderResolver {
     FfmpegEncoderCapabilities encoderCapabilities,
   ) {
     if (task.mediaKind != MediaKind.video) {
-      throw const FfmpegCommandBuildException('当前版本只支持视频任务');
+      throw const FfmpegCommandBuildException('视频编码器解析只支持视频任务');
     }
 
     resolveTargetVideoCodec(task);

@@ -69,6 +69,18 @@ class TaskRows extends Table {
       text().named('analysis_audio_channel_layout').nullable()();
   IntColumn get analysisAudioStreamIndex =>
       integer().named('analysis_audio_stream_index').nullable()();
+  TextColumn get mediaConfigJson =>
+      text().named('media_config_json').nullable()();
+  IntColumn get analysisImageWidth =>
+      integer().named('analysis_image_width').nullable()();
+  IntColumn get analysisImageHeight =>
+      integer().named('analysis_image_height').nullable()();
+  TextColumn get analysisImageCodec =>
+      text().named('analysis_image_codec').nullable()();
+  TextColumn get analysisImagePixelFormat =>
+      text().named('analysis_image_pixel_format').nullable()();
+  IntColumn get analysisImageBitDepth =>
+      integer().named('analysis_image_bit_depth').nullable()();
   IntColumn get analysisUpdatedAt =>
       integer().named('analysis_updated_at').nullable()();
   TextColumn get analysisErrorMessage =>

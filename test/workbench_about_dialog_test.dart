@@ -26,7 +26,7 @@ void main() {
     );
 
     expect(find.text('关于'), findsOneWidget);
-    expect(find.textContaining('桌面视频压缩工具'), findsOneWidget);
+    expect(find.textContaining('桌面媒体处理工具'), findsOneWidget);
     expect(find.text('当前版本：1.1.5'), findsOneWidget);
     expect(find.text('关闭'), findsOneWidget);
     expect(find.byTooltip('打开 GitHub'), findsOneWidget);

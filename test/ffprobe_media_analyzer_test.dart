@@ -161,5 +161,70 @@ void main() {
       expect(result.videoRotationDegrees, -90);
       expect(result.isHdr, isTrue);
     });
+
+    test('parses audio-only files without requiring a video stream', () {
+      final analyzer = FfprobeMediaAnalyzer();
+
+      final result = analyzer.parseResult({
+        'format': {
+          'duration': '3.5',
+          'bit_rate': '256000',
+          'format_name': 'mp3',
+        },
+        'streams': [
+          {
+            'index': 0,
+            'codec_type': 'audio',
+            'codec_name': 'mp3',
+            'bit_rate': '192000',
+            'channels': 2,
+            'channel_layout': 'stereo',
+            'sample_rate': '44100',
+          },
+        ],
+      }, fileSize: 112000);
+
+      expect(result.durationMs, 3500);
+      expect(result.videoCodec, isNull);
+      expect(result.videoWidth, isNull);
+      expect(result.audioCodec, 'mp3');
+      expect(result.audioBitrate, 192000);
+      expect(result.audioChannels, 2);
+      expect(result.audioSampleRate, 44100);
+      expect(result.audioChannelLayout, 'stereo');
+      expect(result.audioStreamIndex, 0);
+      expect(result.containerFormat, 'mp3');
+      expect(result.preferredBitrate, 192000);
+    });
+
+    test('parses static image metadata from a video-type stream', () {
+      final analyzer = FfprobeMediaAnalyzer();
+
+      final result = analyzer.parseResult({
+        'format': {'format_name': 'png_pipe'},
+        'streams': [
+          {
+            'codec_type': 'video',
+            'codec_name': 'png',
+            'width': 1200,
+            'height': 800,
+            'pix_fmt': 'rgba',
+            'bits_per_raw_sample': '8',
+            'side_data_list': [
+              {'rotation': 180},
+            ],
+          },
+        ],
+      });
+
+      expect(result.durationMs, isNull);
+      expect(result.imageWidth, 1200);
+      expect(result.imageHeight, 800);
+      expect(result.imageCodec, 'png');
+      expect(result.imagePixelFormat, 'rgba');
+      expect(result.imageBitDepth, 8);
+      expect(result.orientationDegrees, 180);
+      expect(result.containerFormat, 'png_pipe');
+    });
   });
 }

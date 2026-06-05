@@ -450,6 +450,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       startedProcess: startedProcess,
       task: task,
       outputPath: step.outputPath,
+      progressMode: step.progressMode,
       onProgress: (progress) async {
         final currentTasks = await repository.loadAllTasks();
         final currentTask = findTaskById(currentTasks, task.id);

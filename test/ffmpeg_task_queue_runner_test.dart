@@ -443,6 +443,7 @@ class FakeProcessObserver implements FfmpegProcessObserver {
     required StartedFfmpegProcess startedProcess,
     required MediaTask task,
     required String? outputPath,
+    ProgressMode progressMode = ProgressMode.timed,
     required Future<void> Function(double progress) onProgress,
   }) {
     observedTaskIds.add(task.id);

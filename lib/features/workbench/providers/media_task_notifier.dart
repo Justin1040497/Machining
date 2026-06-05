@@ -178,6 +178,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
       final newConfig = buildInitialTaskConfigFromSettings(
         sourceFileName: task.fileName,
+        mediaKind: task.mediaKind,
         settings: settings,
         now: DateTime.now(),
       );

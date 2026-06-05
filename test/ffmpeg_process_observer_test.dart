@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
@@ -62,6 +63,38 @@ void main() {
       expect(result.status, FfmpegProcessObservationStatus.completed);
       expect(progressValues, isEmpty);
     });
+
+    test(
+      'step progress reports a single midpoint without parsing duration',
+      () async {
+        final observer = LocalFfmpegProcessObserver(
+          outputPathExists: (_) => true,
+        );
+        final progressValues = <double>[];
+        final logFile = await createTempLogFile();
+        final process = FakeProcess(
+          stdoutText: 'out_time_ms=5000000\n',
+          stderrText: 'image conversion log\n',
+        );
+
+        final result = await observer.observe(
+          startedProcess: StartedFfmpegProcess(
+            process: process,
+            logFile: logFile,
+          ),
+          task: videoTaskWithDuration(),
+          outputPath: '/images/output.webp',
+          progressMode: ProgressMode.step,
+          onProgress: (progress) async {
+            progressValues.add(progress);
+          },
+        );
+
+        expect(result.status, FfmpegProcessObservationStatus.completed);
+        expect(progressValues, [0.5]);
+        expect(await logFile.readAsString(), contains('image conversion log'));
+      },
+    );
 
     test('fails when exitCode is not zero', () async {
       final observer = LocalFfmpegProcessObserver(

@@ -17,7 +17,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(openConnection());
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -118,6 +118,18 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 13) {
           await migrator.addColumn(taskRows, taskRows.analysisAudioStreamIndex);
+        }
+        if (from < 14) {
+          await migrator.addColumn(taskRows, taskRows.mediaConfigJson);
+          await migrator.addColumn(taskRows, taskRows.analysisImageWidth);
+          await migrator.addColumn(taskRows, taskRows.analysisImageHeight);
+          await migrator.addColumn(taskRows, taskRows.analysisImageCodec);
+          await migrator.addColumn(taskRows, taskRows.analysisImagePixelFormat);
+          await migrator.addColumn(taskRows, taskRows.analysisImageBitDepth);
+          await migrator.addColumn(
+            settingsRows,
+            settingsRows.defaultMediaConfigJson,
+          );
         }
       },
     );

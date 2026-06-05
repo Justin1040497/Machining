@@ -1,8 +1,8 @@
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:uuid/uuid.dart';
 
@@ -13,7 +13,7 @@ class MediaTask {
   final MediaKind mediaKind;
   final TaskPurpose purpose;
   final TaskStatus status;
-  final VideoTaskConfig config;
+  final MediaTaskConfig config;
   final double progress;
   final int sortOrder;
   final String? outputPath;
@@ -37,7 +37,7 @@ class MediaTask {
     required MediaKind mediaKind,
     required int sortOrder,
     TaskPurpose purpose = TaskPurpose.compression,
-    VideoTaskConfig? config,
+    Object? config,
   }) {
     return MediaTask(
       id: generateId(),
@@ -46,7 +46,7 @@ class MediaTask {
       mediaKind: mediaKind,
       purpose: purpose,
       status: TaskStatus.pending,
-      config: config ?? VideoTaskConfig.initial(),
+      config: MediaTaskConfig.normalize(config, mediaKind),
       progress: 0,
       sortOrder: sortOrder,
     );
@@ -59,7 +59,7 @@ class MediaTask {
     required this.mediaKind,
     required this.purpose,
     required this.status,
-    required this.config,
+    required Object config,
     required this.progress,
     required this.sortOrder,
     int? createdAt,
@@ -72,8 +72,13 @@ class MediaTask {
     this.startedAt,
     this.completedAt,
     this.failedAt,
-  }) : createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch,
-       assert(progress >= 0 && progress <= 1);
+  }) : config = MediaTaskConfig.normalize(config, mediaKind),
+       createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch,
+       assert(progress >= 0 && progress <= 1) {
+    if (!this.config.isValidFor(mediaKind)) {
+      throw StateError('媒体任务配置与媒体类型不匹配: ${mediaKind.name}');
+    }
+  }
 
   MediaTask copyWith({
     String? id,
@@ -82,7 +87,7 @@ class MediaTask {
     MediaKind? mediaKind,
     TaskPurpose? purpose,
     TaskStatus? status,
-    VideoTaskConfig? config,
+    Object? config,
     double? progress,
     int? sortOrder,
     String? outputPath,
