@@ -158,7 +158,7 @@ flutter test
 准备 macOS arm64 FFmpeg / FFprobe：
 
 ```bash
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 脚本会构建 FFmpeg 7.1.1 和 x264，并检查：
@@ -176,7 +176,7 @@ third_party/ffmpeg/macos-arm64/ffprobe
 Release DMG 构建：
 
 ```bash
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 脚本会检查并准备内置 FFmpeg / FFprobe，调用 `pubspec.yaml` 中的
@@ -212,7 +212,7 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 Release 构建：
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
 
 Release 产物位置：
@@ -333,19 +333,19 @@ lib/
 - [docs/develop/technology-stack.md](docs/develop/technology-stack.md)：技术栈、依赖和平台范围。
 - [docs/develop/data-model.md](docs/develop/data-model.md)：数据库 schema、任务模型和设置模型。
 - [docs/develop/test-plan.md](docs/develop/test-plan.md)：自动化测试和手动验证计划。
-- [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)：FFmpeg、x264、GPL 路线和分发参考。
+- [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)：FFmpeg、x264、LAME、libwebp、Opus、GPL 路线和分发参考。
 
 ## 许可说明
 
-FrameLean 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
+FrameLean 项目整体按 `GPL-3.0-or-later` 分发。根目录保留 `LICENSE` 作为标准发现入口，完整发布法律资料集中在 `legal/`：
 
 - [LICENSE](LICENSE)：GNU General Public License v3 正文。
-- [NOTICE](NOTICE)：项目版权、无担保和运行时声明。
+- [legal/NOTICE.md](legal/NOTICE.md)：项目版权、无担保和运行时声明。
 - [legal/COPYING](legal/COPYING)：项目 GPLv3+ 分发入口说明。
-- [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
+- [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、LAME、libwebp、Opus、Flutter/Dart 依赖声明。
 - [legal/SOURCE_OFFER.md](legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
 - [legal/third-party/](legal/third-party)：第三方运行时和依赖资料。
 
-项目当前内置 FFmpeg + x264 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264 等依赖归各自原项目维护，FrameLean 只调用并随应用分发相应运行时。
+项目当前内置 FFmpeg + x264 + LAME + libwebp + Opus 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264、LAME、libwebp、Opus 等依赖归各自原项目维护，FrameLean 只调用并随应用分发相应运行时。
 
 详细说明见 [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)。

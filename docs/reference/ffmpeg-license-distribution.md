@@ -2,7 +2,7 @@
 
 ## 当前选择
 
-FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
+FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264、LAME / libmp3lame、libwebp 和 Opus / libopus。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
 
 当前构建脚本启用：
 
@@ -10,6 +10,9 @@ FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目�
 --enable-gpl
 --enable-version3
 --enable-libx264
+--enable-libmp3lame
+--enable-libwebp
+--enable-libopus
 --enable-videotoolbox
 --enable-audiotoolbox
 --disable-shared
@@ -22,11 +25,11 @@ FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目�
 
 `--enable-nonfree` 未启用。
 
-仓库已经补齐基础许可资料。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
+仓库已经补齐基础许可资料。根目录保留 `LICENSE` 作为标准发现入口，完整发布法律资料集中在 `legal/`：
 
 ```text
 LICENSE
-NOTICE
+legal/NOTICE.md
 legal/COPYING
 legal/THIRD_PARTY_NOTICES.md
 legal/SOURCE_OFFER.md
@@ -50,7 +53,7 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 third_party/ffmpeg/macos-arm64/README.md
 third_party/ffmpeg/macos-arm64/ffmpeg-build-info.txt
 third_party/ffmpeg/windows-x64/README.md
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 ## 构建要求
@@ -64,7 +67,7 @@ brew install nasm pkg-config
 构建：
 
 ```bash
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 脚本必须通过两个自检：
@@ -72,6 +75,9 @@ scripts/build_ffmpeg_macos_arm64.sh
 ```text
 OK: no Homebrew dynamic library dependencies detected
 OK: libx264 encoder is available
+OK: libmp3lame encoder is available
+OK: libwebp encoder is available
+OK: libopus encoder is available
 ```
 
 ## 发布要求
@@ -79,14 +85,14 @@ OK: libx264 encoder is available
 公开分发包含 FFmpeg + x264 的 app 时，发布包会包含：
 
 - FrameLean 源码
-- FFmpeg 和 x264 的源码获取方式
+- FFmpeg、x264、LAME、libwebp 和 Opus 的源码获取方式
 - FFmpeg 构建脚本和配置参数
 - GPLv3 许可证文本
-- FFmpeg / x264 的版权说明
+- FFmpeg / x264 / LAME / libwebp / Opus 的版权说明
 - 用户能够替换或重新构建运行时的说明
-- 发布包内许可证目录，包含 `LICENSE`、`NOTICE`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 FFmpeg 构建元数据
+- 发布包内许可证目录，包含 `LICENSE`、`legal/NOTICE.md`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 FFmpeg 构建元数据
 
-macOS Release app 会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+macOS Release app 会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 
 ```text
 FrameLean.app/Contents/Resources/legal/
@@ -94,7 +100,7 @@ FrameLean.app/Contents/Resources/legal/
 
 DMG 分发包包含该 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。
 
-Windows Release 产物会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+Windows Release 产物会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 
 ```text
 FrameLean.exe directory/legal/
@@ -102,7 +108,7 @@ FrameLean.exe directory/legal/
 
 ## 当前状态
 
-当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
+当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、MP3 / WebP / Opus 输出编码器校验、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
 
 ## 发布检查
 

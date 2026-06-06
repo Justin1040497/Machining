@@ -1,5 +1,6 @@
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
@@ -12,6 +13,7 @@ class AnalyzeMediaTaskUseCase {
   final SourceFileChecker sourceFileChecker;
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final Future<ResolvedFfmpegRuntime> Function() refreshRuntime;
+  final MediaInputPreparer mediaInputPreparer;
 
   const AnalyzeMediaTaskUseCase({
     required this.repository,
@@ -19,6 +21,7 @@ class AnalyzeMediaTaskUseCase {
     required this.sourceFileChecker,
     required this.readRuntime,
     required this.refreshRuntime,
+    this.mediaInputPreparer = const NoopMediaInputPreparer(),
   });
 
   Future<MediaTask?> call(String taskId) async {
@@ -43,10 +46,15 @@ class AnalyzeMediaTaskUseCase {
       return updatedTask;
     }
 
+    PreparedMediaInput? preparedInput;
     try {
+      preparedInput = await mediaInputPreparer.prepare(
+        task,
+        purpose: MediaInputPreparationPurpose.analysis,
+      );
       final result = await analyzer.analyze(
         ffprobePath: runtime.ffprobe!.path,
-        inputPath: task.inputPath,
+        inputPath: preparedInput.task.inputPath,
       );
       final latestTask = findMediaTaskById(
         await repository.loadAllTasks(),
@@ -71,6 +79,11 @@ class AnalyzeMediaTaskUseCase {
           .markFailed('媒体分析失败: $error');
       await repository.saveTask(updatedTask);
       return updatedTask;
+    } finally {
+      final input = preparedInput;
+      if (input != null) {
+        await mediaInputPreparer.cleanup(input);
+      }
     }
   }
 

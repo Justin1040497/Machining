@@ -7,6 +7,7 @@ import 'package:framelean/application/services/execution/ffmpeg_process_controll
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
@@ -42,6 +43,7 @@ class TaskExecution {
   final File logFile;
   StartedFfmpegProcess startedProcess;
   Future<FfmpegProcessObservation> observationFuture;
+  PreparedMediaInput preparedInput;
   int stepIndex;
   TaskExecutionState state;
 
@@ -52,6 +54,7 @@ class TaskExecution {
     required this.logFile,
     required this.startedProcess,
     required this.observationFuture,
+    required this.preparedInput,
     required this.stepIndex,
     required this.state,
   });
@@ -95,6 +98,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final SourceFileChecker sourceFileChecker;
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
+  final MediaInputPreparer mediaInputPreparer;
   final FfmpegProcessStarter processStarter;
   final FfmpegProcessController processController;
   final FfmpegProcessObserver processObserver;
@@ -113,6 +117,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required this.sourceFileChecker,
     required this.readRuntime,
     required this.commandBuilder,
+    this.mediaInputPreparer = const NoopMediaInputPreparer(),
     required this.processStarter,
     required this.processController,
     required this.processObserver,
@@ -251,6 +256,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (execution != null) {
       await processController.terminate(execution.startedProcess);
       await cleanupPlanFiles(execution.plan);
+      await mediaInputPreparer.cleanup(execution.preparedInput);
     }
 
     if (_foregroundTaskId == taskId) {
@@ -279,6 +285,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       execution.state = TaskExecutionState.finishing;
       await processController.terminate(execution.startedProcess);
       await cleanupPlanFiles(execution.plan);
+      await mediaInputPreparer.cleanup(execution.preparedInput);
     }
 
     _executions.clear();
@@ -361,14 +368,23 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
+    PreparedMediaInput? preparedInput;
     late final FfmpegCommandPlan plan;
     try {
-      plan = commandBuilder.build(
+      preparedInput = await mediaInputPreparer.prepare(
         task,
+        purpose: MediaInputPreparationPurpose.execution,
+      );
+      plan = commandBuilder.build(
+        preparedInput.task,
         allowExtremeCompression: allowExtremeCompression,
         encoderCapabilities: runtime.encoderCapabilities,
       );
     } on CompressionConfirmationRequiredException catch (error) {
+      final input = preparedInput;
+      if (input != null) {
+        await mediaInputPreparer.cleanup(input);
+      }
       await refreshStatus();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.compressionConfirmationRequired,
@@ -376,6 +392,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         message: error.toString(),
       );
     } on Object catch (error) {
+      final input = preparedInput;
+      if (input != null) {
+        await mediaInputPreparer.cleanup(input);
+      }
       final failedTask = task.markFailed(error.toString());
       await repository.saveTask(failedTask);
       await continueAfterTask();
@@ -385,6 +405,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         message: error.toString(),
       );
     }
+    final executionInput = preparedInput;
 
     final logFile = await File(
       await createLogFilePath(task, plan),
@@ -399,8 +420,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     late final TaskExecution execution;
     try {
       execution = await startExecutionStep(
-        task: runningTask,
+        task: executionInput.task.copyWith(
+          status: runningTask.status,
+          outputPath: runningTask.outputPath,
+          startedAt: runningTask.startedAt,
+        ),
         plan: plan,
+        preparedInput: executionInput,
         stepIndex: 0,
         ffmpegPath: runtime.ffmpeg!.path,
         logFile: logFile,
@@ -413,6 +439,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
       final failedTask = runningTask.markFailed('FFmpeg 启动失败: $error');
       await repository.saveTask(failedTask);
+      await mediaInputPreparer.cleanup(executionInput);
       await continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.processStartFailed,
@@ -436,6 +463,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   Future<TaskExecution> startExecutionStep({
     required MediaTask task,
     required FfmpegCommandPlan plan,
+    required PreparedMediaInput preparedInput,
     required int stepIndex,
     required String ffmpegPath,
     required File logFile,
@@ -450,6 +478,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       startedProcess: startedProcess,
       task: task,
       outputPath: step.outputPath,
+      progressMode: step.progressMode,
       onProgress: (progress) async {
         final currentTasks = await repository.loadAllTasks();
         final currentTask = findTaskById(currentTasks, task.id);
@@ -472,6 +501,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       logFile: logFile,
       startedProcess: startedProcess,
       observationFuture: observationFuture,
+      preparedInput: preparedInput,
       stepIndex: stepIndex,
       state: TaskExecutionState.running,
     );
@@ -568,6 +598,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       if (_foregroundTaskId == taskId) {
         _foregroundTaskId = null;
       }
+      await mediaInputPreparer.cleanup(execution.preparedInput);
       await continueAfterTask();
       return;
     }
@@ -579,6 +610,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         final nextExecution = await startExecutionStep(
           task: task,
           plan: execution.plan,
+          preparedInput: execution.preparedInput,
           stepIndex: nextStepIndex,
           ffmpegPath: execution.ffmpegPath,
           logFile: execution.logFile,
@@ -595,6 +627,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           _foregroundTaskId = null;
         }
         await cleanupPlanFiles(execution.plan);
+        await mediaInputPreparer.cleanup(execution.preparedInput);
 
         await appendExecutionLogFooter(
           execution.logFile,
@@ -652,6 +685,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     await cleanupPlanFiles(execution.plan);
+    await mediaInputPreparer.cleanup(execution.preparedInput);
     await continueAfterTask();
   }
 

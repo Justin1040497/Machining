@@ -29,11 +29,11 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 12 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 14 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
-| 媒体分析 | FFprobe | 已使用 | 读取时长、编码、码率、分辨率、音频和封装信息 |
-| 媒体处理 | FFmpeg | 已使用 | 生成预览帧、缩略图、压缩和转封装 |
-| 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频扩展名会进入任务流程，图片和音频当前识别后拒绝处理 |
+| 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频和封装信息 |
+| 媒体处理 | FFmpeg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换 |
+| 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片和音频扩展名会进入任务流程；图片和音频当前使用默认配置基础处理 |
 | 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
@@ -133,14 +133,14 @@ flutter pub get
 flutter analyze
 flutter test
 flutter run -d macos
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 Windows 常用命令：
 
 ```powershell
 flutter run -d windows
-PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
 
 GitHub Actions Windows 打包：
@@ -151,7 +151,7 @@ GitHub Actions Windows 打包：
 
 该 workflow 会在 Windows runner 上下载 `deps-ffmpeg-windows-x64-20260430`
 Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
-`scripts\build_windows.ps1` 生成 Windows x64 发布包。
+`scripts\release\build_windows.ps1` 生成 Windows x64 发布包。
 
 ## 核心依赖位置
 
@@ -207,6 +207,10 @@ ffmpeg -hide_banner -encoders
 | NVIDIA | `h264_nvenc`、`hevc_nvenc` |
 | Intel Quick Sync | `h264_qsv`、`hevc_qsv` |
 | AMD AMF | `h264_amf`、`hevc_amf` |
+| 图片编码 | `libwebp` |
+| 音频编码 | `libmp3lame`、`aac`、`aac_at`、`libopus`、`pcm_s16le`、`flac`、`pcm_s16be`、`wmav2` |
+
+图片和音频输出命令按目标格式推导编码器；其中 WebP 依赖 `libwebp`，MP3 依赖 `libmp3lame`，Opus / Ogg Opus 依赖 `libopus`。如果当前 FFmpeg 缺少目标格式对应的编码器，命令规划会在启动 FFmpeg 前失败并给出可读提示。
 
 ## 平台打包事实
 
@@ -230,13 +234,13 @@ README.md
 运行时构建脚本：
 
 ```text
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 DMG 打包脚本：
 
 ```text
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复制到：
@@ -245,13 +249,13 @@ Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复�
 FrameLean.app/Contents/Resources/ffmpeg/
 ```
 
-Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 
 ```text
 FrameLean.app/Contents/Resources/legal/
 ```
 
-当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe` 和法律资料。
+当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/release/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe`、当前输出格式要求的关键编码器和法律资料。
 
 ### Windows
 
@@ -275,7 +279,7 @@ README.md
 <FrameLean.exe 所在目录>/ffmpeg/
 ```
 
-Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。
+Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。`scripts/release/build_windows.ps1` 会在构建后检查 Release 目录内 FFmpeg 是否包含 `libx264`、`libmp3lame`、`libwebp`、`libopus`。
 
 ## 数据与文件存储
 
@@ -293,11 +297,14 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 | 类型 | 扩展名 |
 | --- | --- |
-| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi`、`.webm`、`.m4v` |
-| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.bmp` |
-| 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg` |
+| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi`、`.webm`、`.m4v`、`.flv`、`.wmv`、`.mpg`、`.mpeg`、`.ts`、`.m2ts`、`.mts`、`.3gp`、`.3g2`、`.vob`、`.ogv`、`.dv`、`.asf` |
+| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.bmp`、`.tif`、`.tiff`、`.heic`、`.heif`、`.avif`、`.ico`、`.tga` |
+| 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg`、`.oga`、`.opus`、`.weba`、`.aiff`、`.aif`、`.aifc`、`.wma`、`.amr`、`.ape`、`.alac`、`.caf`、`.au`、`.wv`、`.tta` |
+| 专有音频输入 | `.ncm`、`.mgg`、`.mgg0`、`.mgg1`、`.mggl`、`.mflac`、`.mflac0`、`.qmcflac` |
 
-工作台当前只允许 `video` 进入任务队列。图片和音频枚举已存在，但导入时会被 `ensureSupportedMediaKind()` 拒绝。
+工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、分类型配置面板、处理执行和通用完成弹窗。
+
+专有音频输入只作为导入格式，不进入 `MediaOutputFormat` 输出列表。`.ncm` 由 `NativeNcmAudioDecoder` 使用 Dart + `pointycastle` 在本地还原为临时 MP3 / FLAC；`.mgg`、`.mflac` 等 QMC 变体通过 `framelean-qmc-adapter` 或直接放置的 `qmc-decrypt` 外部运行时处理，再交给 FFprobe / FFmpeg 走标准音频链路。
 
 ## 当前核心功能对应实现
 
@@ -308,8 +315,9 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 预览状态入口 | `lib/features/workbench/providers/workbench_preview_notifier.dart`，通过 `GeneratePreviewFramesUseCase` 进入 application |
 | 任务仓储 | `lib/application/repositories/media_task_repository.dart`、`lib/infrastructure/repositories/drift_media_task_repository.dart` |
 | 设置仓储 | `lib/application/repositories/app_settings_repository.dart`、`lib/infrastructure/repositories/drift_app_settings_repository.dart` |
-| 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart` |
+| 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart`、`lib/infrastructure/repositories/mappers/media_task_config_json_mapper.dart` |
 | 媒体类型识别 | `FileExtensionMediaKindResolver` |
+| 专有音频输入适配 | `DefaultMediaInputPreparer`、`ProprietaryAudioDecoderDispatcher`、`NativeNcmAudioDecoder`、`BundledProprietaryAudioAdapterRegistry` |
 | FFprobe 分析 | `FfprobeMediaAnalyzer` |
 | 压缩建议 | `DefaultCompressionAdvisor` |
 | FFmpeg 命令构造 | `DefaultFfmpegCommandBuilder` 和 `services/ffmpeg_planning/` 下的命令规划 helper |
@@ -350,8 +358,8 @@ docs/develop/test-plan.md
 
 ## 技术边界
 
-- 当前产品实现以视频压缩为主，暂不包含云端转码、账号体系或多设备同步。
-- 当前 UI 只允许视频任务；`image`、`audio` 枚举是预留模型，不代表已支持处理。
+- 当前产品实现仍以本地媒体处理为主，暂不包含云端转码、账号体系或多设备同步。
+- 视频任务是最完整的能力面；图片和音频已支持基础本地处理，但暂不包含图片高级编辑、音频波形、试听、多轨或字幕能力。
 - Linux 和 Web 目录不是当前发布目标；涉及平台行为时不要默认它们已经可用。
 - 应用设置通过工作台弹窗打开，不保留未完成设置页占位路由。
 - FFmpeg 二进制通常不应提交到 Git；本地和发布构建需要按 `third_party/ffmpeg/*/README.md` 准备运行时。

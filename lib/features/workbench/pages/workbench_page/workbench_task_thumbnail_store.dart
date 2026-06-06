@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/execution/video_thumbnail_generator.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:path/path.dart' as path;
@@ -15,6 +16,11 @@ class WorkbenchTaskThumbnailStore {
   final Set<String> _failureKeys = {};
 
   ImageProvider? imageForTask(MediaTask task) {
+    if (task.mediaKind == MediaKind.image &&
+        File(task.inputPath).existsSync()) {
+      return FileImage(File(task.inputPath));
+    }
+
     final thumbnailPath = _thumbnailPathByKey[_keyForTask(task)];
     if (thumbnailPath == null || !File(thumbnailPath).existsSync()) {
       return null;
@@ -53,6 +59,10 @@ class WorkbenchTaskThumbnailStore {
     required bool Function() isMounted,
     required VoidCallback onChanged,
   }) async {
+    if (task.mediaKind != MediaKind.video) {
+      return;
+    }
+
     final key = _keyForTask(task);
     if (_thumbnailPathByKey.containsKey(key) ||
         _generationKeys.contains(key) ||

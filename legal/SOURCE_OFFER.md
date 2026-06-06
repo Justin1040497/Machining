@@ -9,7 +9,7 @@ The corresponding source for FrameLean includes:
 
 - FrameLean application source code.
 - Build scripts and packaging metadata in this repository.
-- FFmpeg runtime build scripts and metadata in `scripts/` and
+- FFmpeg runtime build scripts and metadata in `scripts/build/` and
   `third_party/ffmpeg/`.
 - Documentation needed to rebuild or replace the bundled FFmpeg / FFprobe
   runtime.
@@ -20,12 +20,13 @@ clearly linked public source repository, for as long as required by GPLv3.
 
 ## FFmpeg Runtime
 
-Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264 enabled.
+Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264, LAME/libmp3lame,
+libwebp, and Opus/libopus enabled.
 
 The macOS arm64 build script is:
 
 ```text
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 The documented FFmpeg configure flags include:
@@ -34,6 +35,9 @@ The documented FFmpeg configure flags include:
 --enable-gpl
 --enable-version3
 --enable-libx264
+--enable-libmp3lame
+--enable-libwebp
+--enable-libopus
 --enable-videotoolbox
 --enable-audiotoolbox
 --disable-shared
@@ -52,9 +56,13 @@ The documented FFmpeg configure flags include:
   release.
 - FFmpeg source: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
 - x264 source: <https://code.videolan.org/videolan/x264>
+- LAME source: <https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz>
+- libwebp source: <https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.5.0.tar.gz>
+- Opus source: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
 
-If a release uses different FFmpeg or x264 versions, update this file and the
-runtime build metadata before distributing that release.
+If a release uses different FFmpeg, x264, LAME, libwebp, or Opus versions,
+update this file and the runtime build metadata before distributing that
+release.
 
 ## User Replacement and Rebuild
 
@@ -63,6 +71,6 @@ locations, PATH, or user-configured custom paths, depending on platform and app
 settings. Users should be able to replace or rebuild the FFmpeg / FFprobe
 runtime with a GPL-compatible build.
 
-Release packaging includes this legal directory, the root LICENSE and NOTICE
-files, and the relevant FFmpeg build metadata so recipients receive the license
-terms and source availability information with the binary package.
+Release packaging includes this legal directory, the root LICENSE file,
+legal/NOTICE.md, and the relevant FFmpeg build metadata so recipients receive
+the license terms and source availability information with the binary package.

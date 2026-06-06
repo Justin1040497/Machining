@@ -10,10 +10,13 @@ import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 import 'package:framelean/infrastructure/repositories/mappers/compression_mode_mapper.dart';
+import 'package:framelean/infrastructure/repositories/mappers/media_task_config_json_mapper.dart';
 
 /// 用 Drift + SQLite 实现任务列表的读取、保存和删除
 class DriftMediaTaskRepository implements MediaTaskRepository {
@@ -73,6 +76,7 @@ class DriftMediaTaskRepository implements MediaTaskRepository {
 /// MediaTask 实体类转数据库 TaskRows 表数据
 extension MediaTaskMapper on MediaTask {
   TaskRowsCompanion toCompanion() {
+    final legacyVideoConfig = config.video ?? VideoProcessingConfig.initial();
     return TaskRowsCompanion(
       id: Value(id),
       inputPath: Value(inputPath),
@@ -112,18 +116,26 @@ extension MediaTaskMapper on MediaTask {
       analysisAudioSampleRate: Value(analysisResult?.audioSampleRate),
       analysisAudioChannelLayout: Value(analysisResult?.audioChannelLayout),
       analysisAudioStreamIndex: Value(analysisResult?.audioStreamIndex),
+      mediaConfigJson: Value(encodeMediaTaskConfig(config)),
+      analysisImageWidth: Value(analysisResult?.imageWidth),
+      analysisImageHeight: Value(analysisResult?.imageHeight),
+      analysisImageCodec: Value(analysisResult?.imageCodec),
+      analysisImagePixelFormat: Value(analysisResult?.imagePixelFormat),
+      analysisImageBitDepth: Value(analysisResult?.imageBitDepth),
       analysisUpdatedAt: Value(analysisUpdatedAt),
       analysisErrorMessage: Value(analysisErrorMessage),
-      outputFormat: Value(config.outputFormat.name),
-      videoCodec: Value(config.videoCodec.name),
-      encoderBackend: Value(config.encoderBackend.name),
-      resolutionPreset: Value(config.resolutionPreset.name),
+      outputFormat: Value(
+        legacyVideoConfig.outputFormat.toVideoOutputFormat().name,
+      ),
+      videoCodec: Value(legacyVideoConfig.videoCodec.name),
+      encoderBackend: Value(legacyVideoConfig.encoderBackend.name),
+      resolutionPreset: Value(legacyVideoConfig.resolutionPreset.name),
       outputDirectory: Value(config.outputDirectory),
-      compressionCrf: Value(config.compressionCrf),
+      compressionCrf: Value(legacyVideoConfig.compressionCrf),
       compressionMode: Value(
         CompressionModeMapper.toStorage(config.compressionMode),
       ),
-      smartPreset: Value(config.smartPreset?.name),
+      smartPreset: Value(legacyVideoConfig.smartPreset?.name),
       targetSizeBytes: Value(config.targetSizeBytes),
       targetSizeRatio: Value(config.targetSizeRatio),
       outputFileName: Value(config.outputFileName),
@@ -138,32 +150,15 @@ extension MediaTaskMapper on MediaTask {
 /// 数据库 TaskRows 表数据转 MediaTask 实体类
 extension TaskRowMapper on TaskRow {
   MediaTask toDomain() {
+    final resolvedMediaKind = enumValueByName(MediaKind.values, mediaKind);
     return MediaTask(
       id: id,
       inputPath: inputPath,
       fileName: fileName,
-      mediaKind: enumValueByName(MediaKind.values, mediaKind),
+      mediaKind: resolvedMediaKind,
       purpose: enumValueByName(TaskPurpose.values, purpose),
       status: enumValueByName(TaskStatus.values, status),
-      config: VideoTaskConfig(
-        outputFormat: enumValueByName(OutputFormat.values, outputFormat),
-        videoCodec: enumValueByName(VideoCodec.values, videoCodec),
-        encoderBackend: enumValueByName(EncoderBackend.values, encoderBackend),
-        resolutionPreset: enumValueByName(
-          ResolutionPreset.values,
-          resolutionPreset,
-        ),
-        outputDirectory: outputDirectory,
-        compressionCrf: compressionCrf,
-        compressionMode: CompressionModeMapper.fromStorage(compressionMode),
-        smartPreset: nullableEnumValueByName(
-          SmartCompressionPreset.values,
-          smartPreset,
-        ),
-        targetSizeBytes: targetSizeBytes,
-        targetSizeRatio: targetSizeRatio,
-        outputFileName: outputFileName,
-      ),
+      config: toMediaTaskConfig(resolvedMediaKind),
       progress: progress,
       sortOrder: sortOrder,
       outputPath: outputPath,
@@ -217,7 +212,12 @@ extension TaskRowMapper on TaskRow {
         analysisAudioChannels != null ||
         analysisAudioSampleRate != null ||
         analysisAudioChannelLayout != null ||
-        analysisAudioStreamIndex != null;
+        analysisAudioStreamIndex != null ||
+        analysisImageWidth != null ||
+        analysisImageHeight != null ||
+        analysisImageCodec != null ||
+        analysisImagePixelFormat != null ||
+        analysisImageBitDepth != null;
 
     if (!hasAnalysis) {
       return null;
@@ -250,24 +250,51 @@ extension TaskRowMapper on TaskRow {
       audioSampleRate: analysisAudioSampleRate,
       audioChannelLayout: analysisAudioChannelLayout,
       audioStreamIndex: analysisAudioStreamIndex,
+      imageWidth: analysisImageWidth,
+      imageHeight: analysisImageHeight,
+      imageCodec: analysisImageCodec,
+      imagePixelFormat: analysisImagePixelFormat,
+      imageBitDepth: analysisImageBitDepth,
+      orientationDegrees: analysisVideoRotationDegrees,
     );
   }
-}
 
-T enumValueByName<T extends Enum>(List<T> values, String name) {
-  for (final value in values) {
-    if (value.name == name) {
-      return value;
+  MediaTaskConfig toMediaTaskConfig(MediaKind mediaKind) {
+    final json = mediaConfigJson;
+    if (json != null && json.isNotEmpty) {
+      return decodeMediaTaskConfig(json);
     }
+
+    if (mediaKind != MediaKind.video) {
+      return MediaTaskConfig.initialFor(mediaKind).copyWith(
+        outputDirectory: outputDirectory,
+        outputFileName: outputFileName,
+        compressionMode: CompressionModeMapper.fromStorage(compressionMode),
+        targetSizeBytes: targetSizeBytes,
+        targetSizeRatio: targetSizeRatio,
+      );
+    }
+
+    return MediaTaskConfig.fromVideoTaskConfig(
+      VideoTaskConfig(
+        outputFormat: enumValueByName(OutputFormat.values, outputFormat),
+        videoCodec: enumValueByName(VideoCodec.values, videoCodec),
+        encoderBackend: enumValueByName(EncoderBackend.values, encoderBackend),
+        resolutionPreset: enumValueByName(
+          ResolutionPreset.values,
+          resolutionPreset,
+        ),
+        outputDirectory: outputDirectory,
+        compressionCrf: compressionCrf,
+        compressionMode: CompressionModeMapper.fromStorage(compressionMode),
+        smartPreset: nullableEnumValueByName(
+          SmartCompressionPreset.values,
+          smartPreset,
+        ),
+        targetSizeBytes: targetSizeBytes,
+        targetSizeRatio: targetSizeRatio,
+        outputFileName: outputFileName,
+      ),
+    );
   }
-
-  throw StateError('未知的枚举值: $name');
-}
-
-T? nullableEnumValueByName<T extends Enum>(List<T> values, String? name) {
-  if (name == null || name.trim().isEmpty) {
-    return null;
-  }
-
-  return enumValueByName(values, name);
 }

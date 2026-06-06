@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_settings_dialog.dart';
 
 void main() {
@@ -27,6 +30,10 @@ void main() {
     );
 
     expect(find.text('应用设置'), findsOneWidget);
+    expect(find.text('默认处理配置'), findsOneWidget);
+    expect(find.text('视频'), findsOneWidget);
+    expect(find.text('图片'), findsOneWidget);
+    expect(find.text('音频'), findsOneWidget);
     expect(find.text('默认压缩配置'), findsOneWidget);
     expect(find.text('均衡方案'), findsOneWidget);
     expect(find.text('默认导出地址'), findsOneWidget);
@@ -59,6 +66,7 @@ void main() {
       ),
     );
 
+    await tester.ensureVisible(find.text('高级设置'));
     await tester.tap(find.text('高级设置'));
     await tester.pumpAndSettle();
 
@@ -71,6 +79,7 @@ void main() {
     expect(find.text('取消'), findsOneWidget);
     expect(find.text('保存'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('关闭高级选项'));
     await tester.tap(find.text('关闭高级选项'));
     await tester.pumpAndSettle();
 
@@ -104,19 +113,23 @@ void main() {
 
       expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
 
-      await tester.tap(find.byType(Checkbox));
-      await tester.pumpAndSettle();
-
-      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
-
-      await tester.tap(find.byTooltip('选择路径'));
-      await tester.pumpAndSettle();
-
+      await tester.ensureVisible(find.text('均衡方案'));
       await tester.tap(find.text('均衡方案'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('微信发送').last);
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.byType(Checkbox));
+      await tester.tap(find.byType(Checkbox));
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
+
+      await tester.ensureVisible(find.byTooltip('选择路径'));
+      await tester.tap(find.byTooltip('选择路径'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('保存'));
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
 
@@ -124,6 +137,136 @@ void main() {
       expect(savedSettings!.saveOutputToSourceDirectory, isFalse);
       expect(savedSettings!.defaultOutputDirectory, '/tmp/output');
       expect(savedSettings!.defaultSmartPreset, SmartCompressionPreset.chat);
+      expect(
+        savedSettings!.defaultMediaConfig.video?.smartPreset,
+        SmartCompressionPreset.chat,
+      );
     },
   );
+
+  testWidgets('settings dialog saves default video codec', (tester) async {
+    AppSettings? savedSettings;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchAppSettingsDialog(
+            initialSettings: AppSettings.initial(),
+            fallbackDefaultDirectory: '/Users/leftzhou/Desktop',
+            onClose: () {},
+            onSave: (settings) async {
+              savedSettings = settings;
+            },
+            onPickOutputDirectory: () async => null,
+            onPickFfmpegPath: () async => null,
+            onPickFfprobePath: () async => null,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<VideoCodec>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('H.265 / HEVC').last);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('保存'));
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNotNull);
+    expect(savedSettings!.defaultOutputVideoCodec, VideoCodec.hevc);
+    expect(
+      savedSettings!.defaultMediaConfig.video?.videoCodec,
+      VideoCodec.hevc,
+    );
+  });
+
+  testWidgets('settings dialog saves default image config', (tester) async {
+    AppSettings? savedSettings;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchAppSettingsDialog(
+            initialSettings: AppSettings.initial(),
+            fallbackDefaultDirectory: '/Users/leftzhou/Desktop',
+            onClose: () {},
+            onSave: (settings) async {
+              savedSettings = settings;
+            },
+            onPickOutputDirectory: () async => null,
+            onPickFfmpegPath: () async => null,
+            onPickFfprobePath: () async => null,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('图片'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<ImageResizePreset>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('1280 × 720').last);
+    await tester.pumpAndSettle();
+
+    final qualitySlider = tester.widget<Slider>(find.byType(Slider));
+    qualitySlider.onChanged?.call(7);
+    await tester.pump();
+
+    final metadataSwitch = tester.widget<Switch>(find.byType(Switch));
+    metadataSwitch.onChanged?.call(true);
+    await tester.pump();
+
+    await tester.ensureVisible(find.text('保存'));
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNotNull);
+    expect(
+      savedSettings!.defaultMediaConfig.image?.resizePreset,
+      ImageResizePreset.longEdge1280,
+    );
+    expect(savedSettings!.defaultMediaConfig.image?.imageQuality, 80);
+    expect(savedSettings!.defaultMediaConfig.image?.preserveMetadata, isTrue);
+  });
+
+  testWidgets('settings dialog saves default audio config', (tester) async {
+    AppSettings? savedSettings;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchAppSettingsDialog(
+            initialSettings: AppSettings.initial(),
+            fallbackDefaultDirectory: '/Users/leftzhou/Desktop',
+            onClose: () {},
+            onSave: (settings) async {
+              savedSettings = settings;
+            },
+            onPickOutputDirectory: () async => null,
+            onPickFfmpegPath: () async => null,
+            onPickFfprobePath: () async => null,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('音频'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<AudioBitratePreset>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('128 kbps').last);
+    await tester.pumpAndSettle();
+
+    await tester.ensureVisible(find.text('保存'));
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNotNull);
+    expect(
+      savedSettings!.defaultMediaConfig.audio?.bitratePreset,
+      AudioBitratePreset.k128,
+    );
+  });
 }

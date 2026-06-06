@@ -26,8 +26,8 @@ class WorkbenchAboutDialog extends StatelessWidget {
           const WorkbenchDialogTitle('关于'),
           const SizedBox(height: 16),
           const WorkbenchDialogBodyText(
-            'FrameLean 是一款桌面视频压缩工具，提供视频导入、媒体分析、'
-            '压缩配置、任务队列和导出管理。',
+            'FrameLean 是一款桌面媒体处理工具，提供媒体导入、媒体分析、'
+            '处理配置、任务队列和导出管理。',
           ),
           const SizedBox(height: 14),
           const Text(

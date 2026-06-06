@@ -5,13 +5,17 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
@@ -716,12 +720,313 @@ void main() {
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
     });
 
-    test('rejects non-video tasks', () {
+    test('builds image processing command with step progress', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
-      final task = videoTask(
+      final task = MediaTask(
+        id: 'task-image',
         inputPath: '/images/source.png',
         fileName: 'source.png',
         mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.webp,
+            imageQuality: 76,
+            resizePreset: ImageResizePreset.longEdge1920,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/images/source_compressed.webp');
+      expect(plan.steps, hasLength(1));
+      expect(plan.steps.single.progressMode, ProgressMode.step);
+      expect(plan.args, containsAllInOrder(['-i', '/images/source.png']));
+      expect(plan.args, contains('-vf'));
+      expect(plan.args, containsAllInOrder(['-c:v', 'libwebp']));
+      expect(plan.args, containsAllInOrder(['-quality', '76']));
+      expect(plan.args, containsAllInOrder(['-map_metadata', '-1']));
+      expect(plan.args.last, '/images/source_compressed.webp');
+    });
+
+    test('rejects WebP output when FFmpeg lacks libwebp', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.webp,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      expect(
+        () => builder.build(
+          task,
+          encoderCapabilities: const FfmpegEncoderCapabilities(
+            encoderNames: {'libx264', 'aac'},
+            autoBackendPriority: [],
+          ),
+        ),
+        throwsA(
+          isA<FfmpegCommandBuildException>()
+              .having((error) => error.message, 'message', contains('WebP'))
+              .having((error) => error.message, 'message', contains('libwebp')),
+        ),
+      );
+    });
+
+    test('preserves image metadata when requested', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.jpg',
+        fileName: 'source.jpg',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            preserveMetadata: true,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, isNot(contains('-map_metadata')));
+    });
+
+    test('builds image commands for bitmap, tiff, and gif outputs', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+
+      MediaTask imageTask(MediaOutputFormat outputFormat) {
+        return MediaTask(
+          id: 'task-image-${outputFormat.name}',
+          inputPath: '/images/source.png',
+          fileName: 'source.png',
+          mediaKind: MediaKind.image,
+          purpose: TaskPurpose.conversion,
+          status: TaskStatus.pending,
+          config: MediaTaskConfig.initialImage().copyWith(
+            image: ImageProcessingConfig.initial().copyWith(
+              outputFormat: outputFormat,
+            ),
+          ),
+          progress: 0,
+          sortOrder: 0,
+          createdAt: 1,
+        );
+      }
+
+      final bmpPlan = builder.build(imageTask(MediaOutputFormat.bmp));
+      expect(bmpPlan.outputPath, '/images/source_converted.bmp');
+      expect(bmpPlan.args, containsAllInOrder(['-c:v', 'bmp']));
+
+      final tiffPlan = builder.build(imageTask(MediaOutputFormat.tiff));
+      expect(tiffPlan.outputPath, '/images/source_converted.tiff');
+      expect(tiffPlan.args, containsAllInOrder(['-c:v', 'tiff']));
+
+      final gifPlan = builder.build(imageTask(MediaOutputFormat.gif));
+      expect(gifPlan.outputPath, '/images/source_converted.gif');
+      expect(gifPlan.args, containsAllInOrder(['-c:v', 'gif']));
+    });
+
+    test('rejects image tasks with non-image output format', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.conversion,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.mp3,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      expect(
+        () => builder.build(task),
+        throwsA(isA<FfmpegCommandBuildException>()),
+      );
+    });
+
+    test('builds audio processing command', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-audio',
+        inputPath: '/audio/source.wav',
+        fileName: 'source.wav',
+        mediaKind: MediaKind.audio,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialAudio().copyWith(
+          audio: AudioProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.mp3,
+            bitratePreset: AudioBitratePreset.k128,
+            sampleRate: AudioSampleRatePreset.hz44100,
+            channels: AudioChannelsPreset.stereo,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/audio/source_compressed.mp3');
+      expect(plan.steps, hasLength(1));
+      expect(plan.args, containsAllInOrder(['-i', '/audio/source.wav']));
+      expect(plan.args, contains('-vn'));
+      expect(plan.args, containsAllInOrder(['-c:a', 'libmp3lame']));
+      expect(plan.args, containsAllInOrder(['-b:a', '128k']));
+      expect(plan.args, containsAllInOrder(['-ar', '44100']));
+      expect(plan.args, containsAllInOrder(['-ac', '2']));
+      expect(plan.args, containsAllInOrder(['-progress', 'pipe:1']));
+      expect(plan.args.last, '/audio/source_compressed.mp3');
+    });
+
+    test('rejects MP3 output when FFmpeg lacks libmp3lame', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-audio',
+        inputPath: '/audio/source.wav',
+        fileName: 'source.wav',
+        mediaKind: MediaKind.audio,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialAudio().copyWith(
+          audio: AudioProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.mp3,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      expect(
+        () => builder.build(
+          task,
+          encoderCapabilities: const FfmpegEncoderCapabilities(
+            encoderNames: {'aac', 'pcm_s16le', 'flac'},
+            autoBackendPriority: [],
+          ),
+        ),
+        throwsA(
+          isA<FfmpegCommandBuildException>()
+              .having((error) => error.message, 'message', contains('MP3'))
+              .having(
+                (error) => error.message,
+                'message',
+                contains('libmp3lame'),
+              ),
+        ),
+      );
+    });
+
+    test('builds audio commands for AIFF and WMA outputs', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+
+      MediaTask audioTask(MediaOutputFormat outputFormat) {
+        return MediaTask(
+          id: 'task-audio-${outputFormat.name}',
+          inputPath: '/audio/source.wav',
+          fileName: 'source.wav',
+          mediaKind: MediaKind.audio,
+          purpose: TaskPurpose.conversion,
+          status: TaskStatus.pending,
+          config: MediaTaskConfig.initialAudio().copyWith(
+            audio: AudioProcessingConfig.initial().copyWith(
+              outputFormat: outputFormat,
+            ),
+          ),
+          progress: 0,
+          sortOrder: 0,
+          createdAt: 1,
+        );
+      }
+
+      final aiffPlan = builder.build(audioTask(MediaOutputFormat.aiff));
+      expect(aiffPlan.outputPath, '/audio/source_converted.aiff');
+      expect(aiffPlan.args, containsAllInOrder(['-c:a', 'pcm_s16be']));
+
+      final wmaPlan = builder.build(audioTask(MediaOutputFormat.wma));
+      expect(wmaPlan.outputPath, '/audio/source_converted.wma');
+      expect(wmaPlan.args, containsAllInOrder(['-c:a', 'wmav2']));
+    });
+
+    test('builds audio commands for Opus outputs', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+
+      MediaTask audioTask(MediaOutputFormat outputFormat) {
+        return MediaTask(
+          id: 'task-audio-${outputFormat.name}',
+          inputPath: '/audio/source.wav',
+          fileName: 'source.wav',
+          mediaKind: MediaKind.audio,
+          purpose: TaskPurpose.conversion,
+          status: TaskStatus.pending,
+          config: MediaTaskConfig.initialAudio().copyWith(
+            audio: AudioProcessingConfig.initial().copyWith(
+              outputFormat: outputFormat,
+            ),
+          ),
+          progress: 0,
+          sortOrder: 0,
+          createdAt: 1,
+        );
+      }
+
+      final opusPlan = builder.build(audioTask(MediaOutputFormat.opus));
+      expect(opusPlan.outputPath, '/audio/source_converted.opus');
+      expect(opusPlan.args, containsAllInOrder(['-c:a', 'libopus']));
+
+      final oggOpusPlan = builder.build(audioTask(MediaOutputFormat.oggOpus));
+      expect(oggOpusPlan.outputPath, '/audio/source_converted.ogg');
+      expect(oggOpusPlan.args, containsAllInOrder(['-c:a', 'libopus']));
+    });
+
+    test('rejects audio tasks with non-audio output format', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-audio',
+        inputPath: '/audio/source.wav',
+        fileName: 'source.wav',
+        mediaKind: MediaKind.audio,
+        purpose: TaskPurpose.conversion,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialAudio().copyWith(
+          audio: AudioProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.jpg,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
       );
 
       expect(

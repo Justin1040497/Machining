@@ -11,7 +11,7 @@ The binaries are intentionally ignored by Git:
 Build them with:
 
 ```bash
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 The macOS Runner target copies these files into:
@@ -20,5 +20,5 @@ The macOS Runner target copies these files into:
 FrameLean.app/Contents/Resources/ffmpeg/
 ```
 
-Release builds that include these binaries must follow the GPL FFmpeg + x264
-distribution notes in `docs/reference/ffmpeg-license-distribution.md`.
+Release builds that include these binaries must follow the FFmpeg distribution
+notes in `docs/reference/ffmpeg-license-distribution.md`.

@@ -178,6 +178,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
       final newConfig = buildInitialTaskConfigFromSettings(
         sourceFileName: task.fileName,
+        mediaKind: task.mediaKind,
         settings: settings,
         now: DateTime.now(),
       );
@@ -295,6 +296,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final analyzer = ref.read(mediaAnalyzerProvider);
     final sourceFileChecker = ref.read(sourceFileCheckerProvider);
+    final mediaInputPreparer = ref.read(mediaInputPreparerProvider);
 
     final updatedTask = await AnalyzeMediaTaskUseCase(
       repository: repository,
@@ -302,6 +304,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       sourceFileChecker: sourceFileChecker,
       readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
       refreshRuntime: () => ref.refresh(ffmpegRuntimeProvider.future),
+      mediaInputPreparer: mediaInputPreparer,
     ).call(taskId);
 
     if (updatedTask != null && state.hasValue) {

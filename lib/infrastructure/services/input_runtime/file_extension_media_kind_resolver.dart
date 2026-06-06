@@ -1,5 +1,6 @@
 import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/proprietary_audio_format.dart';
 import 'package:path/path.dart' as path;
 
 /// 使用文件扩展名识别媒体类型
@@ -11,6 +12,19 @@ class FileExtensionMediaKindResolver implements MediaKindResolver {
     '.avi',
     '.webm',
     '.m4v',
+    '.flv',
+    '.wmv',
+    '.mpg',
+    '.mpeg',
+    '.ts',
+    '.m2ts',
+    '.mts',
+    '.3gp',
+    '.3g2',
+    '.vob',
+    '.ogv',
+    '.dv',
+    '.asf',
   };
 
   static const imageExtensions = {
@@ -20,6 +34,13 @@ class FileExtensionMediaKindResolver implements MediaKindResolver {
     '.webp',
     '.gif',
     '.bmp',
+    '.tif',
+    '.tiff',
+    '.heic',
+    '.heif',
+    '.avif',
+    '.ico',
+    '.tga',
   };
 
   static const audioExtensions = {
@@ -29,6 +50,20 @@ class FileExtensionMediaKindResolver implements MediaKindResolver {
     '.flac',
     '.m4a',
     '.ogg',
+    '.oga',
+    '.opus',
+    '.weba',
+    '.aiff',
+    '.aif',
+    '.aifc',
+    '.wma',
+    '.amr',
+    '.ape',
+    '.alac',
+    '.caf',
+    '.au',
+    '.wv',
+    '.tta',
   };
 
   @override
@@ -44,6 +79,10 @@ class FileExtensionMediaKindResolver implements MediaKindResolver {
     }
 
     if (audioExtensions.contains(extension)) {
+      return MediaKind.audio;
+    }
+
+    if (ProprietaryAudioFormat.fromPath(inputPath) != null) {
       return MediaKind.audio;
     }
 

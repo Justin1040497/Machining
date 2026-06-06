@@ -3,7 +3,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:path/path.dart' as path;
 
 MediaTask findMediaTaskById(List<MediaTask> tasks, String taskId) {
@@ -48,13 +48,17 @@ int nextMediaTaskSortOrder(List<MediaTask> tasks) {
 }
 
 void ensureSupportedImportedMediaKind(MediaKind mediaKind) {
-  if (mediaKind != MediaKind.video) {
-    throw StateError('当前版本暂时只支持视频文件');
+  switch (mediaKind) {
+    case MediaKind.video:
+    case MediaKind.image:
+    case MediaKind.audio:
+      return;
   }
 }
 
-VideoTaskConfig buildInitialTaskConfigFromSettings({
+MediaTaskConfig buildInitialTaskConfigFromSettings({
   required String sourceFileName,
+  required MediaKind mediaKind,
   required AppSettings settings,
   required DateTime now,
 }) {
@@ -62,27 +66,35 @@ VideoTaskConfig buildInitialTaskConfigFromSettings({
       ? ''
       : settings.defaultOutputDirectory ?? '';
 
-  return VideoTaskConfig.initial().copyWith(
-    outputDirectory: outputDirectory,
-    videoCodec: settings.defaultOutputVideoCodec,
-    smartPreset: settings.defaultSmartPreset,
-    outputFileName: buildDefaultOutputFileName(
-      sourceFileName: sourceFileName,
-      codec: settings.defaultOutputVideoCodec,
-      template: settings.defaultOutputFileNameTemplate,
-      now: now,
-    ),
-  );
+  final config = settings.defaultMediaConfig
+      .forKind(mediaKind)
+      .copyWith(
+        outputDirectory: outputDirectory,
+        outputFileName: buildDefaultOutputFileName(
+          sourceFileName: sourceFileName,
+          mediaKind: mediaKind,
+          codec: settings.defaultOutputVideoCodec,
+          template: settings.defaultOutputFileNameTemplate,
+          now: now,
+        ),
+      );
+
+  return config;
 }
 
 String buildDefaultOutputFileName({
   required String sourceFileName,
+  required MediaKind mediaKind,
   required VideoCodec codec,
   required DefaultOutputFileNameTemplate template,
   required DateTime now,
 }) {
   final baseName = path.basenameWithoutExtension(sourceFileName).trim();
-  final codecToken = codecFileNameToken(codec);
+  final codecToken = switch (mediaKind) {
+    MediaKind.video => codecFileNameToken(codec),
+    MediaKind.image => 'image',
+    MediaKind.audio => 'audio',
+  };
   final dateStr = [
     now.year.toString().padLeft(4, '0'),
     now.month.toString().padLeft(2, '0'),

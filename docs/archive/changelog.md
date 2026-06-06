@@ -29,6 +29,35 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-06｜v1.1.5｜No Release
+
+今天完成仓库根目录结构治理，作为 `feature/media-processing` 的工程整理内容。
+
+### Changed
+
+- 将根目录 `NOTICE` 移入 `legal/NOTICE.md`，保留根目录 `LICENSE` 作为项目许可证发现入口。
+- 将构建和发布脚本拆分到 `scripts/build/` 与 `scripts/release/`。
+- 将本地参考、临时样本和工具状态迁入 `.workspace/`，并通过 `.gitignore` 排除。
+- 更新 macOS / Windows 打包路径和法律材料复制配置。
+- 扩展常规媒体输入格式识别，覆盖更多视频、图片和音频扩展名。
+- 图片导出新增 BMP、TIFF、GIF；音频导出新增 AIFF、WMA、Opus 和 Ogg Opus。
+- 新增本地专有音频导入适配边界：NCM 使用 Dart 原生还原，MGG / MFLAC 通过 QMC 外部适配器运行时处理，并兼容直接放置 `qmc-decrypt`。
+- macOS 内置 FFmpeg 构建脚本新增 `libmp3lame`、`libwebp`、`libopus` 静态构建和启用参数；macOS / Windows 发布脚本会校验关键编码器是否存在。
+- 统一任务配置百分比滑杆样式：视频目标体积右侧显示 `压缩体积XX%`，图片质量复用分段百分比滑杆并显示 `保留XX%的质量`。
+
+### Fixed
+
+- 音频 MP3 输出会在命令构造阶段检查当前 FFmpeg 是否支持 `libmp3lame`，避免任务启动后才暴露 `Unknown encoder 'libmp3lame'`。
+- 图片 WebP 输出会在命令构造阶段检查当前 FFmpeg 是否支持 `libwebp`，避免发布包运行时缺编码器才失败。
+
+### Verified
+
+- 通过 `git diff --check`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `flutter test test/ffmpeg_encoder_capabilities_test.dart test/ffmpeg_command_builder_test.dart`。
+- 通过 `flutter test test/widget_test.dart test/app_settings_dialog_test.dart`。
+
 ## 2026-06-05｜v1.1.5｜No Release
 
 今天拆分 FrameLean 项目级 workflow skills，降低单次 commit、PR、release 文案和测试计划请求的上下文负担。
@@ -37,6 +66,11 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 - 新增 `framelean-feature-analysis`、`framelean-feature-design`、`framelean-feature-tasks`、`framelean-test-plan`、`framelean-implementation`、`framelean-review` 和 `framelean-delivery` 项目级 skills。
 - 新增 `.agents/skills/README.md`，说明 FrameLean 项目级 skills 的触发场景、推荐流程和文档位置约定。
+- 新增媒体处理扩展首个实现切片：`MediaTaskConfig`、视频 / 图片 / 音频分类型配置和通用输出格式。
+- Drift schema 升级到 14，新增任务通用配置 JSON、图片分析字段和设置表预留的默认媒体配置 JSON 字段。
+- 设置仓储启用 `default_media_config_json` 读写，并保留旧视频默认字段兼容。
+- 应用设置弹窗支持保存默认视频、图片和音频处理配置。
+- FFprobe 支持纯音频和静态图片分析；FFmpeg 命令规划支持图片和音频基础输出计划。
 
 ### Changed
 
@@ -44,12 +78,20 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 将 API 测试链规范改造为 FrameLean 测试计划 skill 的可选 API/服务端测试章节，普通桌面应用功能测试项优先来自 `docs/develop/test-plan.md`。
 - 将 commit 详情、PR 描述、release description、changelog、bug log 和功能网归档收敛到 `framelean-delivery`。
 - 文档入口补充 `docs/features/` 的功能级分析、设计、任务、测试计划和功能网归档用途。
+- 导入、文件选择、输出路径、完成弹窗、关于弹窗和任务空态文案从视频专用表述收敛为通用媒体处理表述。
+- 图片任务使用步骤型进度和源图缩略图；音频任务输出命令使用 `-vn` 禁用视频流。
+- 图片任务配置面板显示图片格式、分辨率、质量和保留元数据开关；质量默认 100%，默认不保留元数据，图片编码由后台按格式推导。
+- 更新媒体处理设计、任务、测试计划、数据模型、架构、技术栈、测试计划和路线图文档，明确图片 / 音频配置面板能力和剩余默认设置边界。
 
 ### Verified
 
 - 通过 Ruby YAML 解析检查全部 `framelean-*` skill frontmatter。
 - 通过 Ruby YAML 解析检查全部 `agents/openai.yaml`。
 - 通过 `git diff --check`。
+- 通过 `dart run build_runner build --delete-conflicting-outputs`。
+- 通过当前变更 Dart 文件的 `dart format --set-exit-if-changed`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
 
 ## 2026-06-04｜v1.1.5｜No Release
 
@@ -204,7 +246,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增 FFmpeg 进程控制抽象，由 application 层定义暂停、继续和终止能力，infrastructure 层负责具体平台实现。
 - 新增 Windows runner 原生进程控制通道，通过线程挂起和恢复支持 Windows 上的 FFmpeg 真暂停 / 继续。
 - 已完成任务新增“重来”入口，任务列表和完成弹窗都可以从源文件检查和媒体分析重新开始。
-- 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\build_windows.ps1` 生成发布 zip。
+- 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\release\build_windows.ps1` 生成发布 zip。
 - 新增 `docs/develop/project-workflow.md` 和 `.agents/skills/framelean-workflow/`，记录 FrameLean 项目级需求、分支、测试、实现、验证和 PR 准备流程。
 
 ### Changed

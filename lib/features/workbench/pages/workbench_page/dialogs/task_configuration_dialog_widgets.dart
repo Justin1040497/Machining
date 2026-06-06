@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
@@ -94,6 +95,24 @@ class WorkbenchSourceSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final analysis = task.analysisResult;
+    final dimension = switch (task.mediaKind) {
+      MediaKind.image => _formatImageDimension(task),
+      MediaKind.video => WorkbenchFormatters.formatResolution(analysis),
+      MediaKind.audio => '-',
+    };
+    final formatLabel = switch (task.mediaKind) {
+      MediaKind.video => '视频格式',
+      MediaKind.image => '图片格式',
+      MediaKind.audio => '音频格式',
+    };
+    final secondaryLabel = switch (task.mediaKind) {
+      MediaKind.video => '视频时长',
+      MediaKind.image => '方向',
+      MediaKind.audio => '音频时长',
+    };
+    final secondaryValue = task.mediaKind == MediaKind.image
+        ? _formatOrientation(task)
+        : WorkbenchFormatters.formatDuration(analysis?.durationMs);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -110,19 +129,17 @@ class WorkbenchSourceSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '原视频大小: ${WorkbenchFormatters.formatBytes(task.sourceFileFingerprint?.fileSize)}',
+                  '源文件大小: ${WorkbenchFormatters.formatBytes(task.sourceFileFingerprint?.fileSize)}',
                 ),
-                Text('分辨率: ${WorkbenchFormatters.formatResolution(analysis)}'),
+                Text('尺寸: $dimension'),
                 Wrap(
                   spacing: 24,
                   runSpacing: 0,
                   children: [
                     Text(
-                      '视频格式: ${WorkbenchFormatters.formatContainer(analysis?.containerFormat)}',
+                      '$formatLabel: ${WorkbenchFormatters.formatContainer(analysis?.containerFormat)}',
                     ),
-                    Text(
-                      '视频时长: ${WorkbenchFormatters.formatDuration(analysis?.durationMs)}',
-                    ),
+                    Text('$secondaryLabel: $secondaryValue'),
                   ],
                 ),
               ],
@@ -133,6 +150,28 @@ class WorkbenchSourceSummary extends StatelessWidget {
         _TaskThumbnail(thumbnail: thumbnail),
       ],
     );
+  }
+
+  String _formatImageDimension(MediaTask task) {
+    final analysis = task.analysisResult;
+    final width = analysis?.imageWidth ?? analysis?.videoWidth;
+    final height = analysis?.imageHeight ?? analysis?.videoHeight;
+    if (width == null || height == null) {
+      return '-';
+    }
+
+    return '$width × $height';
+  }
+
+  String _formatOrientation(MediaTask task) {
+    final degrees =
+        task.analysisResult?.orientationDegrees ??
+        task.analysisResult?.videoRotationDegrees;
+    if (degrees == null) {
+      return '-';
+    }
+
+    return '$degrees°';
   }
 }
 
@@ -149,8 +188,37 @@ class _TargetSizePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratios = WorkbenchConstants.targetSizeRatios;
-    final selectedIndex = _indexForRatio(selectedRatio);
-    final selectedPercent = (ratios[selectedIndex] * 100).round();
+    return WorkbenchPercentageSliderPanel(
+      title: '目标体积',
+      summaryBuilder: (ratio) => '压缩体积${(ratio * 100).round()}%',
+      values: ratios,
+      selectedValue: selectedRatio,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class WorkbenchPercentageSliderPanel extends StatelessWidget {
+  const WorkbenchPercentageSliderPanel({
+    super.key,
+    required this.title,
+    required this.summaryBuilder,
+    required this.values,
+    required this.selectedValue,
+    required this.onChanged,
+  }) : assert(values.length >= 2);
+
+  final String title;
+  final String Function(double value) summaryBuilder;
+  final List<double> values;
+  final double selectedValue;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = _indexForValue(selectedValue);
+    final selectedPanelValue = values[selectedIndex];
+    final selectedPercent = (selectedPanelValue * 100).round();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
@@ -163,13 +231,27 @@ class _TargetSizePanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
-                '目标体积',
-                style: TextStyle(
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF111111),
+                    fontSize: 12,
+                    height: 1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Spacer(),
+              Text(
+                summaryBuilder(selectedPanelValue),
+                textAlign: TextAlign.right,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   color: Color(0xFF111111),
                   fontSize: 12,
                   height: 1,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -195,13 +277,13 @@ class _TargetSizePanel extends StatelessWidget {
               ),
               child: Slider(
                 min: 0,
-                max: (ratios.length - 1).toDouble(),
-                divisions: ratios.length - 1,
+                max: (values.length - 1).toDouble(),
+                divisions: values.length - 1,
                 value: selectedIndex.toDouble(),
                 label: '$selectedPercent%',
                 onChanged: (value) {
-                  final index = value.round().clamp(0, ratios.length - 1);
-                  onChanged(ratios[index]);
+                  final index = value.round().clamp(0, values.length - 1);
+                  onChanged(values[index]);
                 },
               ),
             ),
@@ -211,16 +293,16 @@ class _TargetSizePanel extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final ratio in ratios)
+                for (final value in values)
                   Text(
-                    '${(ratio * 100).round()}%',
+                    '${(value * 100).round()}%',
                     style: TextStyle(
-                      color: ratio == ratios[selectedIndex]
+                      color: value == selectedPanelValue
                           ? const Color(0xFF315FD4)
                           : const Color(0xFF9A9A9A),
                       fontSize: 8,
                       height: 1,
-                      fontWeight: ratio == ratios[selectedIndex]
+                      fontWeight: value == selectedPanelValue
                           ? FontWeight.w700
                           : FontWeight.w500,
                     ),
@@ -234,16 +316,11 @@ class _TargetSizePanel extends StatelessWidget {
     );
   }
 
-  int _indexForRatio(double ratio) {
+  int _indexForValue(double value) {
     var nearestIndex = 0;
     var nearestDistance = double.infinity;
-    for (
-      var index = 0;
-      index < WorkbenchConstants.targetSizeRatios.length;
-      index += 1
-    ) {
-      final distance = (WorkbenchConstants.targetSizeRatios[index] - ratio)
-          .abs();
+    for (var index = 0; index < values.length; index += 1) {
+      final distance = (values[index] - value).abs();
       if (distance < nearestDistance) {
         nearestIndex = index;
         nearestDistance = distance;

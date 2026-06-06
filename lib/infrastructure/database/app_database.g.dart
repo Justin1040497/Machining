@@ -143,6 +143,17 @@ class $SettingsRowsTable extends SettingsRows
         requiredDuringInsert: false,
         defaultValue: const Constant('sourceFileNameCodec'),
       );
+  static const VerificationMeta _defaultMediaConfigJsonMeta =
+      const VerificationMeta('defaultMediaConfigJson');
+  @override
+  late final GeneratedColumn<String> defaultMediaConfigJson =
+      GeneratedColumn<String>(
+        'default_media_config_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -178,6 +189,7 @@ class $SettingsRowsTable extends SettingsRows
     defaultOutputVideoCodec,
     defaultCompressionSmartPreset,
     defaultOutputFileNameTemplate,
+    defaultMediaConfigJson,
     createdAt,
     updatedAt,
   ];
@@ -286,6 +298,15 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('default_media_config_json')) {
+      context.handle(
+        _defaultMediaConfigJsonMeta,
+        defaultMediaConfigJson.isAcceptableOrUnknown(
+          data['default_media_config_json']!,
+          _defaultMediaConfigJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -355,6 +376,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}default_output_file_name_template'],
       )!,
+      defaultMediaConfigJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_media_config_json'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -384,6 +409,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String defaultOutputVideoCodec;
   final String defaultCompressionSmartPreset;
   final String defaultOutputFileNameTemplate;
+  final String? defaultMediaConfigJson;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
@@ -398,6 +424,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.defaultOutputVideoCodec,
     required this.defaultCompressionSmartPreset,
     required this.defaultOutputFileNameTemplate,
+    this.defaultMediaConfigJson,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -435,6 +462,11 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['default_output_file_name_template'] = Variable<String>(
       defaultOutputFileNameTemplate,
     );
+    if (!nullToAbsent || defaultMediaConfigJson != null) {
+      map['default_media_config_json'] = Variable<String>(
+        defaultMediaConfigJson,
+      );
+    }
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -462,6 +494,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultOutputVideoCodec: Value(defaultOutputVideoCodec),
       defaultCompressionSmartPreset: Value(defaultCompressionSmartPreset),
       defaultOutputFileNameTemplate: Value(defaultOutputFileNameTemplate),
+      defaultMediaConfigJson: defaultMediaConfigJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(defaultMediaConfigJson),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -500,6 +535,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultOutputFileNameTemplate: serializer.fromJson<String>(
         json['defaultOutputFileNameTemplate'],
       ),
+      defaultMediaConfigJson: serializer.fromJson<String?>(
+        json['defaultMediaConfigJson'],
+      ),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -531,6 +569,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'defaultOutputFileNameTemplate': serializer.toJson<String>(
         defaultOutputFileNameTemplate,
       ),
+      'defaultMediaConfigJson': serializer.toJson<String?>(
+        defaultMediaConfigJson,
+      ),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -548,6 +589,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     String? defaultOutputVideoCodec,
     String? defaultCompressionSmartPreset,
     String? defaultOutputFileNameTemplate,
+    Value<String?> defaultMediaConfigJson = const Value.absent(),
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -574,6 +616,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         defaultCompressionSmartPreset ?? this.defaultCompressionSmartPreset,
     defaultOutputFileNameTemplate:
         defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
+    defaultMediaConfigJson: defaultMediaConfigJson.present
+        ? defaultMediaConfigJson.value
+        : this.defaultMediaConfigJson,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -610,6 +655,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultOutputFileNameTemplate: data.defaultOutputFileNameTemplate.present
           ? data.defaultOutputFileNameTemplate.value
           : this.defaultOutputFileNameTemplate,
+      defaultMediaConfigJson: data.defaultMediaConfigJson.present
+          ? data.defaultMediaConfigJson.value
+          : this.defaultMediaConfigJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -633,6 +681,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write(
             'defaultOutputFileNameTemplate: $defaultOutputFileNameTemplate, ',
           )
+          ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -652,6 +701,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     defaultOutputVideoCodec,
     defaultCompressionSmartPreset,
     defaultOutputFileNameTemplate,
+    defaultMediaConfigJson,
     createdAt,
     updatedAt,
   );
@@ -674,6 +724,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
               this.defaultCompressionSmartPreset &&
           other.defaultOutputFileNameTemplate ==
               this.defaultOutputFileNameTemplate &&
+          other.defaultMediaConfigJson == this.defaultMediaConfigJson &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -690,6 +741,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String> defaultOutputVideoCodec;
   final Value<String> defaultCompressionSmartPreset;
   final Value<String> defaultOutputFileNameTemplate;
+  final Value<String?> defaultMediaConfigJson;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
@@ -704,6 +756,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultOutputVideoCodec = const Value.absent(),
     this.defaultCompressionSmartPreset = const Value.absent(),
     this.defaultOutputFileNameTemplate = const Value.absent(),
+    this.defaultMediaConfigJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -719,6 +772,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultOutputVideoCodec = const Value.absent(),
     this.defaultCompressionSmartPreset = const Value.absent(),
     this.defaultOutputFileNameTemplate = const Value.absent(),
+    this.defaultMediaConfigJson = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -735,6 +789,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? defaultOutputVideoCodec,
     Expression<String>? defaultCompressionSmartPreset,
     Expression<String>? defaultOutputFileNameTemplate,
+    Expression<String>? defaultMediaConfigJson,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -757,6 +812,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'default_compression_smart_preset': defaultCompressionSmartPreset,
       if (defaultOutputFileNameTemplate != null)
         'default_output_file_name_template': defaultOutputFileNameTemplate,
+      if (defaultMediaConfigJson != null)
+        'default_media_config_json': defaultMediaConfigJson,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -774,6 +831,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String>? defaultOutputVideoCodec,
     Value<String>? defaultCompressionSmartPreset,
     Value<String>? defaultOutputFileNameTemplate,
+    Value<String?>? defaultMediaConfigJson,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -795,6 +853,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           defaultCompressionSmartPreset ?? this.defaultCompressionSmartPreset,
       defaultOutputFileNameTemplate:
           defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
+      defaultMediaConfigJson:
+          defaultMediaConfigJson ?? this.defaultMediaConfigJson,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -848,6 +908,11 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         defaultOutputFileNameTemplate.value,
       );
     }
+    if (defaultMediaConfigJson.present) {
+      map['default_media_config_json'] = Variable<String>(
+        defaultMediaConfigJson.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -875,6 +940,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write(
             'defaultOutputFileNameTemplate: $defaultOutputFileNameTemplate, ',
           )
+          ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1295,6 +1361,69 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         type: DriftSqlType.int,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _mediaConfigJsonMeta = const VerificationMeta(
+    'mediaConfigJson',
+  );
+  @override
+  late final GeneratedColumn<String> mediaConfigJson = GeneratedColumn<String>(
+    'media_config_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisImageWidthMeta =
+      const VerificationMeta('analysisImageWidth');
+  @override
+  late final GeneratedColumn<int> analysisImageWidth = GeneratedColumn<int>(
+    'analysis_image_width',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisImageHeightMeta =
+      const VerificationMeta('analysisImageHeight');
+  @override
+  late final GeneratedColumn<int> analysisImageHeight = GeneratedColumn<int>(
+    'analysis_image_height',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisImageCodecMeta =
+      const VerificationMeta('analysisImageCodec');
+  @override
+  late final GeneratedColumn<String> analysisImageCodec =
+      GeneratedColumn<String>(
+        'analysis_image_codec',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisImagePixelFormatMeta =
+      const VerificationMeta('analysisImagePixelFormat');
+  @override
+  late final GeneratedColumn<String> analysisImagePixelFormat =
+      GeneratedColumn<String>(
+        'analysis_image_pixel_format',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisImageBitDepthMeta =
+      const VerificationMeta('analysisImageBitDepth');
+  @override
+  late final GeneratedColumn<int> analysisImageBitDepth = GeneratedColumn<int>(
+    'analysis_image_bit_depth',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _analysisUpdatedAtMeta = const VerificationMeta(
     'analysisUpdatedAt',
   );
@@ -1525,6 +1654,12 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     analysisAudioSampleRate,
     analysisAudioChannelLayout,
     analysisAudioStreamIndex,
+    mediaConfigJson,
+    analysisImageWidth,
+    analysisImageHeight,
+    analysisImageCodec,
+    analysisImagePixelFormat,
+    analysisImageBitDepth,
     analysisUpdatedAt,
     analysisErrorMessage,
     outputFormat,
@@ -1879,6 +2014,60 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('media_config_json')) {
+      context.handle(
+        _mediaConfigJsonMeta,
+        mediaConfigJson.isAcceptableOrUnknown(
+          data['media_config_json']!,
+          _mediaConfigJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_image_width')) {
+      context.handle(
+        _analysisImageWidthMeta,
+        analysisImageWidth.isAcceptableOrUnknown(
+          data['analysis_image_width']!,
+          _analysisImageWidthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_image_height')) {
+      context.handle(
+        _analysisImageHeightMeta,
+        analysisImageHeight.isAcceptableOrUnknown(
+          data['analysis_image_height']!,
+          _analysisImageHeightMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_image_codec')) {
+      context.handle(
+        _analysisImageCodecMeta,
+        analysisImageCodec.isAcceptableOrUnknown(
+          data['analysis_image_codec']!,
+          _analysisImageCodecMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_image_pixel_format')) {
+      context.handle(
+        _analysisImagePixelFormatMeta,
+        analysisImagePixelFormat.isAcceptableOrUnknown(
+          data['analysis_image_pixel_format']!,
+          _analysisImagePixelFormatMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_image_bit_depth')) {
+      context.handle(
+        _analysisImageBitDepthMeta,
+        analysisImageBitDepth.isAcceptableOrUnknown(
+          data['analysis_image_bit_depth']!,
+          _analysisImageBitDepthMeta,
+        ),
+      );
+    }
     if (data.containsKey('analysis_updated_at')) {
       context.handle(
         _analysisUpdatedAtMeta,
@@ -2193,6 +2382,30 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.int,
         data['${effectivePrefix}analysis_audio_stream_index'],
       ),
+      mediaConfigJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_config_json'],
+      ),
+      analysisImageWidth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_image_width'],
+      ),
+      analysisImageHeight: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_image_height'],
+      ),
+      analysisImageCodec: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_image_codec'],
+      ),
+      analysisImagePixelFormat: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_image_pixel_format'],
+      ),
+      analysisImageBitDepth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_image_bit_depth'],
+      ),
       analysisUpdatedAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}analysis_updated_at'],
@@ -2310,6 +2523,12 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final int? analysisAudioSampleRate;
   final String? analysisAudioChannelLayout;
   final int? analysisAudioStreamIndex;
+  final String? mediaConfigJson;
+  final int? analysisImageWidth;
+  final int? analysisImageHeight;
+  final String? analysisImageCodec;
+  final String? analysisImagePixelFormat;
+  final int? analysisImageBitDepth;
   final int? analysisUpdatedAt;
   final String? analysisErrorMessage;
   final String outputFormat;
@@ -2366,6 +2585,12 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.analysisAudioSampleRate,
     this.analysisAudioChannelLayout,
     this.analysisAudioStreamIndex,
+    this.mediaConfigJson,
+    this.analysisImageWidth,
+    this.analysisImageHeight,
+    this.analysisImageCodec,
+    this.analysisImagePixelFormat,
+    this.analysisImageBitDepth,
     this.analysisUpdatedAt,
     this.analysisErrorMessage,
     required this.outputFormat,
@@ -2509,6 +2734,26 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
         analysisAudioStreamIndex,
       );
     }
+    if (!nullToAbsent || mediaConfigJson != null) {
+      map['media_config_json'] = Variable<String>(mediaConfigJson);
+    }
+    if (!nullToAbsent || analysisImageWidth != null) {
+      map['analysis_image_width'] = Variable<int>(analysisImageWidth);
+    }
+    if (!nullToAbsent || analysisImageHeight != null) {
+      map['analysis_image_height'] = Variable<int>(analysisImageHeight);
+    }
+    if (!nullToAbsent || analysisImageCodec != null) {
+      map['analysis_image_codec'] = Variable<String>(analysisImageCodec);
+    }
+    if (!nullToAbsent || analysisImagePixelFormat != null) {
+      map['analysis_image_pixel_format'] = Variable<String>(
+        analysisImagePixelFormat,
+      );
+    }
+    if (!nullToAbsent || analysisImageBitDepth != null) {
+      map['analysis_image_bit_depth'] = Variable<int>(analysisImageBitDepth);
+    }
     if (!nullToAbsent || analysisUpdatedAt != null) {
       map['analysis_updated_at'] = Variable<int>(analysisUpdatedAt);
     }
@@ -2649,6 +2894,24 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioStreamIndex: analysisAudioStreamIndex == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisAudioStreamIndex),
+      mediaConfigJson: mediaConfigJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mediaConfigJson),
+      analysisImageWidth: analysisImageWidth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisImageWidth),
+      analysisImageHeight: analysisImageHeight == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisImageHeight),
+      analysisImageCodec: analysisImageCodec == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisImageCodec),
+      analysisImagePixelFormat: analysisImagePixelFormat == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisImagePixelFormat),
+      analysisImageBitDepth: analysisImageBitDepth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisImageBitDepth),
       analysisUpdatedAt: analysisUpdatedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisUpdatedAt),
@@ -2779,6 +3042,20 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioStreamIndex: serializer.fromJson<int?>(
         json['analysisAudioStreamIndex'],
       ),
+      mediaConfigJson: serializer.fromJson<String?>(json['mediaConfigJson']),
+      analysisImageWidth: serializer.fromJson<int?>(json['analysisImageWidth']),
+      analysisImageHeight: serializer.fromJson<int?>(
+        json['analysisImageHeight'],
+      ),
+      analysisImageCodec: serializer.fromJson<String?>(
+        json['analysisImageCodec'],
+      ),
+      analysisImagePixelFormat: serializer.fromJson<String?>(
+        json['analysisImagePixelFormat'],
+      ),
+      analysisImageBitDepth: serializer.fromJson<int?>(
+        json['analysisImageBitDepth'],
+      ),
       analysisUpdatedAt: serializer.fromJson<int?>(json['analysisUpdatedAt']),
       analysisErrorMessage: serializer.fromJson<String?>(
         json['analysisErrorMessage'],
@@ -2870,6 +3147,14 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'analysisAudioStreamIndex': serializer.toJson<int?>(
         analysisAudioStreamIndex,
       ),
+      'mediaConfigJson': serializer.toJson<String?>(mediaConfigJson),
+      'analysisImageWidth': serializer.toJson<int?>(analysisImageWidth),
+      'analysisImageHeight': serializer.toJson<int?>(analysisImageHeight),
+      'analysisImageCodec': serializer.toJson<String?>(analysisImageCodec),
+      'analysisImagePixelFormat': serializer.toJson<String?>(
+        analysisImagePixelFormat,
+      ),
+      'analysisImageBitDepth': serializer.toJson<int?>(analysisImageBitDepth),
       'analysisUpdatedAt': serializer.toJson<int?>(analysisUpdatedAt),
       'analysisErrorMessage': serializer.toJson<String?>(analysisErrorMessage),
       'outputFormat': serializer.toJson<String>(outputFormat),
@@ -2929,6 +3214,12 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<int?> analysisAudioSampleRate = const Value.absent(),
     Value<String?> analysisAudioChannelLayout = const Value.absent(),
     Value<int?> analysisAudioStreamIndex = const Value.absent(),
+    Value<String?> mediaConfigJson = const Value.absent(),
+    Value<int?> analysisImageWidth = const Value.absent(),
+    Value<int?> analysisImageHeight = const Value.absent(),
+    Value<String?> analysisImageCodec = const Value.absent(),
+    Value<String?> analysisImagePixelFormat = const Value.absent(),
+    Value<int?> analysisImageBitDepth = const Value.absent(),
     Value<int?> analysisUpdatedAt = const Value.absent(),
     Value<String?> analysisErrorMessage = const Value.absent(),
     String? outputFormat,
@@ -3041,6 +3332,24 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioStreamIndex: analysisAudioStreamIndex.present
         ? analysisAudioStreamIndex.value
         : this.analysisAudioStreamIndex,
+    mediaConfigJson: mediaConfigJson.present
+        ? mediaConfigJson.value
+        : this.mediaConfigJson,
+    analysisImageWidth: analysisImageWidth.present
+        ? analysisImageWidth.value
+        : this.analysisImageWidth,
+    analysisImageHeight: analysisImageHeight.present
+        ? analysisImageHeight.value
+        : this.analysisImageHeight,
+    analysisImageCodec: analysisImageCodec.present
+        ? analysisImageCodec.value
+        : this.analysisImageCodec,
+    analysisImagePixelFormat: analysisImagePixelFormat.present
+        ? analysisImagePixelFormat.value
+        : this.analysisImagePixelFormat,
+    analysisImageBitDepth: analysisImageBitDepth.present
+        ? analysisImageBitDepth.value
+        : this.analysisImageBitDepth,
     analysisUpdatedAt: analysisUpdatedAt.present
         ? analysisUpdatedAt.value
         : this.analysisUpdatedAt,
@@ -3167,6 +3476,24 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioStreamIndex: data.analysisAudioStreamIndex.present
           ? data.analysisAudioStreamIndex.value
           : this.analysisAudioStreamIndex,
+      mediaConfigJson: data.mediaConfigJson.present
+          ? data.mediaConfigJson.value
+          : this.mediaConfigJson,
+      analysisImageWidth: data.analysisImageWidth.present
+          ? data.analysisImageWidth.value
+          : this.analysisImageWidth,
+      analysisImageHeight: data.analysisImageHeight.present
+          ? data.analysisImageHeight.value
+          : this.analysisImageHeight,
+      analysisImageCodec: data.analysisImageCodec.present
+          ? data.analysisImageCodec.value
+          : this.analysisImageCodec,
+      analysisImagePixelFormat: data.analysisImagePixelFormat.present
+          ? data.analysisImagePixelFormat.value
+          : this.analysisImagePixelFormat,
+      analysisImageBitDepth: data.analysisImageBitDepth.present
+          ? data.analysisImageBitDepth.value
+          : this.analysisImageBitDepth,
       analysisUpdatedAt: data.analysisUpdatedAt.present
           ? data.analysisUpdatedAt.value
           : this.analysisUpdatedAt,
@@ -3258,6 +3585,12 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
           ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
           ..write('analysisAudioStreamIndex: $analysisAudioStreamIndex, ')
+          ..write('mediaConfigJson: $mediaConfigJson, ')
+          ..write('analysisImageWidth: $analysisImageWidth, ')
+          ..write('analysisImageHeight: $analysisImageHeight, ')
+          ..write('analysisImageCodec: $analysisImageCodec, ')
+          ..write('analysisImagePixelFormat: $analysisImagePixelFormat, ')
+          ..write('analysisImageBitDepth: $analysisImageBitDepth, ')
           ..write('analysisUpdatedAt: $analysisUpdatedAt, ')
           ..write('analysisErrorMessage: $analysisErrorMessage, ')
           ..write('outputFormat: $outputFormat, ')
@@ -3319,6 +3652,12 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioSampleRate,
     analysisAudioChannelLayout,
     analysisAudioStreamIndex,
+    mediaConfigJson,
+    analysisImageWidth,
+    analysisImageHeight,
+    analysisImageCodec,
+    analysisImagePixelFormat,
+    analysisImageBitDepth,
     analysisUpdatedAt,
     analysisErrorMessage,
     outputFormat,
@@ -3380,6 +3719,12 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.analysisAudioSampleRate == this.analysisAudioSampleRate &&
           other.analysisAudioChannelLayout == this.analysisAudioChannelLayout &&
           other.analysisAudioStreamIndex == this.analysisAudioStreamIndex &&
+          other.mediaConfigJson == this.mediaConfigJson &&
+          other.analysisImageWidth == this.analysisImageWidth &&
+          other.analysisImageHeight == this.analysisImageHeight &&
+          other.analysisImageCodec == this.analysisImageCodec &&
+          other.analysisImagePixelFormat == this.analysisImagePixelFormat &&
+          other.analysisImageBitDepth == this.analysisImageBitDepth &&
           other.analysisUpdatedAt == this.analysisUpdatedAt &&
           other.analysisErrorMessage == this.analysisErrorMessage &&
           other.outputFormat == this.outputFormat &&
@@ -3438,6 +3783,12 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<int?> analysisAudioSampleRate;
   final Value<String?> analysisAudioChannelLayout;
   final Value<int?> analysisAudioStreamIndex;
+  final Value<String?> mediaConfigJson;
+  final Value<int?> analysisImageWidth;
+  final Value<int?> analysisImageHeight;
+  final Value<String?> analysisImageCodec;
+  final Value<String?> analysisImagePixelFormat;
+  final Value<int?> analysisImageBitDepth;
   final Value<int?> analysisUpdatedAt;
   final Value<String?> analysisErrorMessage;
   final Value<String> outputFormat;
@@ -3495,6 +3846,12 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisAudioSampleRate = const Value.absent(),
     this.analysisAudioChannelLayout = const Value.absent(),
     this.analysisAudioStreamIndex = const Value.absent(),
+    this.mediaConfigJson = const Value.absent(),
+    this.analysisImageWidth = const Value.absent(),
+    this.analysisImageHeight = const Value.absent(),
+    this.analysisImageCodec = const Value.absent(),
+    this.analysisImagePixelFormat = const Value.absent(),
+    this.analysisImageBitDepth = const Value.absent(),
     this.analysisUpdatedAt = const Value.absent(),
     this.analysisErrorMessage = const Value.absent(),
     this.outputFormat = const Value.absent(),
@@ -3553,6 +3910,12 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisAudioSampleRate = const Value.absent(),
     this.analysisAudioChannelLayout = const Value.absent(),
     this.analysisAudioStreamIndex = const Value.absent(),
+    this.mediaConfigJson = const Value.absent(),
+    this.analysisImageWidth = const Value.absent(),
+    this.analysisImageHeight = const Value.absent(),
+    this.analysisImageCodec = const Value.absent(),
+    this.analysisImagePixelFormat = const Value.absent(),
+    this.analysisImageBitDepth = const Value.absent(),
     this.analysisUpdatedAt = const Value.absent(),
     this.analysisErrorMessage = const Value.absent(),
     required String outputFormat,
@@ -3622,6 +3985,12 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<int>? analysisAudioSampleRate,
     Expression<String>? analysisAudioChannelLayout,
     Expression<int>? analysisAudioStreamIndex,
+    Expression<String>? mediaConfigJson,
+    Expression<int>? analysisImageWidth,
+    Expression<int>? analysisImageHeight,
+    Expression<String>? analysisImageCodec,
+    Expression<String>? analysisImagePixelFormat,
+    Expression<int>? analysisImageBitDepth,
     Expression<int>? analysisUpdatedAt,
     Expression<String>? analysisErrorMessage,
     Expression<String>? outputFormat,
@@ -3707,6 +4076,17 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         'analysis_audio_channel_layout': analysisAudioChannelLayout,
       if (analysisAudioStreamIndex != null)
         'analysis_audio_stream_index': analysisAudioStreamIndex,
+      if (mediaConfigJson != null) 'media_config_json': mediaConfigJson,
+      if (analysisImageWidth != null)
+        'analysis_image_width': analysisImageWidth,
+      if (analysisImageHeight != null)
+        'analysis_image_height': analysisImageHeight,
+      if (analysisImageCodec != null)
+        'analysis_image_codec': analysisImageCodec,
+      if (analysisImagePixelFormat != null)
+        'analysis_image_pixel_format': analysisImagePixelFormat,
+      if (analysisImageBitDepth != null)
+        'analysis_image_bit_depth': analysisImageBitDepth,
       if (analysisUpdatedAt != null) 'analysis_updated_at': analysisUpdatedAt,
       if (analysisErrorMessage != null)
         'analysis_error_message': analysisErrorMessage,
@@ -3768,6 +4148,12 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<int?>? analysisAudioSampleRate,
     Value<String?>? analysisAudioChannelLayout,
     Value<int?>? analysisAudioStreamIndex,
+    Value<String?>? mediaConfigJson,
+    Value<int?>? analysisImageWidth,
+    Value<int?>? analysisImageHeight,
+    Value<String?>? analysisImageCodec,
+    Value<String?>? analysisImagePixelFormat,
+    Value<int?>? analysisImageBitDepth,
     Value<int?>? analysisUpdatedAt,
     Value<String?>? analysisErrorMessage,
     Value<String>? outputFormat,
@@ -3842,6 +4228,14 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           analysisAudioChannelLayout ?? this.analysisAudioChannelLayout,
       analysisAudioStreamIndex:
           analysisAudioStreamIndex ?? this.analysisAudioStreamIndex,
+      mediaConfigJson: mediaConfigJson ?? this.mediaConfigJson,
+      analysisImageWidth: analysisImageWidth ?? this.analysisImageWidth,
+      analysisImageHeight: analysisImageHeight ?? this.analysisImageHeight,
+      analysisImageCodec: analysisImageCodec ?? this.analysisImageCodec,
+      analysisImagePixelFormat:
+          analysisImagePixelFormat ?? this.analysisImagePixelFormat,
+      analysisImageBitDepth:
+          analysisImageBitDepth ?? this.analysisImageBitDepth,
       analysisUpdatedAt: analysisUpdatedAt ?? this.analysisUpdatedAt,
       analysisErrorMessage: analysisErrorMessage ?? this.analysisErrorMessage,
       outputFormat: outputFormat ?? this.outputFormat,
@@ -4014,6 +4408,28 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         analysisAudioStreamIndex.value,
       );
     }
+    if (mediaConfigJson.present) {
+      map['media_config_json'] = Variable<String>(mediaConfigJson.value);
+    }
+    if (analysisImageWidth.present) {
+      map['analysis_image_width'] = Variable<int>(analysisImageWidth.value);
+    }
+    if (analysisImageHeight.present) {
+      map['analysis_image_height'] = Variable<int>(analysisImageHeight.value);
+    }
+    if (analysisImageCodec.present) {
+      map['analysis_image_codec'] = Variable<String>(analysisImageCodec.value);
+    }
+    if (analysisImagePixelFormat.present) {
+      map['analysis_image_pixel_format'] = Variable<String>(
+        analysisImagePixelFormat.value,
+      );
+    }
+    if (analysisImageBitDepth.present) {
+      map['analysis_image_bit_depth'] = Variable<int>(
+        analysisImageBitDepth.value,
+      );
+    }
     if (analysisUpdatedAt.present) {
       map['analysis_updated_at'] = Variable<int>(analysisUpdatedAt.value);
     }
@@ -4116,6 +4532,12 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
           ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
           ..write('analysisAudioStreamIndex: $analysisAudioStreamIndex, ')
+          ..write('mediaConfigJson: $mediaConfigJson, ')
+          ..write('analysisImageWidth: $analysisImageWidth, ')
+          ..write('analysisImageHeight: $analysisImageHeight, ')
+          ..write('analysisImageCodec: $analysisImageCodec, ')
+          ..write('analysisImagePixelFormat: $analysisImagePixelFormat, ')
+          ..write('analysisImageBitDepth: $analysisImageBitDepth, ')
           ..write('analysisUpdatedAt: $analysisUpdatedAt, ')
           ..write('analysisErrorMessage: $analysisErrorMessage, ')
           ..write('outputFormat: $outputFormat, ')
@@ -4164,6 +4586,7 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String> defaultOutputVideoCodec,
       Value<String> defaultCompressionSmartPreset,
       Value<String> defaultOutputFileNameTemplate,
+      Value<String?> defaultMediaConfigJson,
       required int createdAt,
       required int updatedAt,
     });
@@ -4180,6 +4603,7 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String> defaultOutputVideoCodec,
       Value<String> defaultCompressionSmartPreset,
       Value<String> defaultOutputFileNameTemplate,
+      Value<String?> defaultMediaConfigJson,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -4245,6 +4669,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get defaultOutputFileNameTemplate => $composableBuilder(
     column: $table.defaultOutputFileNameTemplate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultMediaConfigJson => $composableBuilder(
+    column: $table.defaultMediaConfigJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4325,6 +4754,11 @@ class $$SettingsRowsTableOrderingComposer
         builder: (column) => ColumnOrderings(column),
       );
 
+  ColumnOrderings<String> get defaultMediaConfigJson => $composableBuilder(
+    column: $table.defaultMediaConfigJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4400,6 +4834,11 @@ class $$SettingsRowsTableAnnotationComposer
         builder: (column) => column,
       );
 
+  GeneratedColumn<String> get defaultMediaConfigJson => $composableBuilder(
+    column: $table.defaultMediaConfigJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4452,6 +4891,7 @@ class $$SettingsRowsTableTableManager
                     const Value.absent(),
                 Value<String> defaultOutputFileNameTemplate =
                     const Value.absent(),
+                Value<String?> defaultMediaConfigJson = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
@@ -4466,6 +4906,7 @@ class $$SettingsRowsTableTableManager
                 defaultOutputVideoCodec: defaultOutputVideoCodec,
                 defaultCompressionSmartPreset: defaultCompressionSmartPreset,
                 defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
+                defaultMediaConfigJson: defaultMediaConfigJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -4485,6 +4926,7 @@ class $$SettingsRowsTableTableManager
                     const Value.absent(),
                 Value<String> defaultOutputFileNameTemplate =
                     const Value.absent(),
+                Value<String?> defaultMediaConfigJson = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
@@ -4499,6 +4941,7 @@ class $$SettingsRowsTableTableManager
                 defaultOutputVideoCodec: defaultOutputVideoCodec,
                 defaultCompressionSmartPreset: defaultCompressionSmartPreset,
                 defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
+                defaultMediaConfigJson: defaultMediaConfigJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -4567,6 +5010,12 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<int?> analysisAudioSampleRate,
       Value<String?> analysisAudioChannelLayout,
       Value<int?> analysisAudioStreamIndex,
+      Value<String?> mediaConfigJson,
+      Value<int?> analysisImageWidth,
+      Value<int?> analysisImageHeight,
+      Value<String?> analysisImageCodec,
+      Value<String?> analysisImagePixelFormat,
+      Value<int?> analysisImageBitDepth,
       Value<int?> analysisUpdatedAt,
       Value<String?> analysisErrorMessage,
       required String outputFormat,
@@ -4626,6 +5075,12 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<int?> analysisAudioSampleRate,
       Value<String?> analysisAudioChannelLayout,
       Value<int?> analysisAudioStreamIndex,
+      Value<String?> mediaConfigJson,
+      Value<int?> analysisImageWidth,
+      Value<int?> analysisImageHeight,
+      Value<String?> analysisImageCodec,
+      Value<String?> analysisImagePixelFormat,
+      Value<int?> analysisImageBitDepth,
       Value<int?> analysisUpdatedAt,
       Value<String?> analysisErrorMessage,
       Value<String> outputFormat,
@@ -4842,6 +5297,36 @@ class $$TaskRowsTableFilterComposer
 
   ColumnFilters<int> get analysisAudioStreamIndex => $composableBuilder(
     column: $table.analysisAudioStreamIndex,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mediaConfigJson => $composableBuilder(
+    column: $table.mediaConfigJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisImageWidth => $composableBuilder(
+    column: $table.analysisImageWidth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisImageHeight => $composableBuilder(
+    column: $table.analysisImageHeight,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisImageCodec => $composableBuilder(
+    column: $table.analysisImageCodec,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisImagePixelFormat => $composableBuilder(
+    column: $table.analysisImagePixelFormat,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisImageBitDepth => $composableBuilder(
+    column: $table.analysisImageBitDepth,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5130,6 +5615,36 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get mediaConfigJson => $composableBuilder(
+    column: $table.mediaConfigJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisImageWidth => $composableBuilder(
+    column: $table.analysisImageWidth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisImageHeight => $composableBuilder(
+    column: $table.analysisImageHeight,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisImageCodec => $composableBuilder(
+    column: $table.analysisImageCodec,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisImagePixelFormat => $composableBuilder(
+    column: $table.analysisImagePixelFormat,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisImageBitDepth => $composableBuilder(
+    column: $table.analysisImageBitDepth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get analysisUpdatedAt => $composableBuilder(
     column: $table.analysisUpdatedAt,
     builder: (column) => ColumnOrderings(column),
@@ -5399,6 +5914,36 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get mediaConfigJson => $composableBuilder(
+    column: $table.mediaConfigJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisImageWidth => $composableBuilder(
+    column: $table.analysisImageWidth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisImageHeight => $composableBuilder(
+    column: $table.analysisImageHeight,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisImageCodec => $composableBuilder(
+    column: $table.analysisImageCodec,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisImagePixelFormat => $composableBuilder(
+    column: $table.analysisImagePixelFormat,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisImageBitDepth => $composableBuilder(
+    column: $table.analysisImageBitDepth,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get analysisUpdatedAt => $composableBuilder(
     column: $table.analysisUpdatedAt,
     builder: (column) => column,
@@ -5547,6 +6092,12 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisAudioChannelLayout =
                     const Value.absent(),
                 Value<int?> analysisAudioStreamIndex = const Value.absent(),
+                Value<String?> mediaConfigJson = const Value.absent(),
+                Value<int?> analysisImageWidth = const Value.absent(),
+                Value<int?> analysisImageHeight = const Value.absent(),
+                Value<String?> analysisImageCodec = const Value.absent(),
+                Value<String?> analysisImagePixelFormat = const Value.absent(),
+                Value<int?> analysisImageBitDepth = const Value.absent(),
                 Value<int?> analysisUpdatedAt = const Value.absent(),
                 Value<String?> analysisErrorMessage = const Value.absent(),
                 Value<String> outputFormat = const Value.absent(),
@@ -5604,6 +6155,12 @@ class $$TaskRowsTableTableManager
                 analysisAudioSampleRate: analysisAudioSampleRate,
                 analysisAudioChannelLayout: analysisAudioChannelLayout,
                 analysisAudioStreamIndex: analysisAudioStreamIndex,
+                mediaConfigJson: mediaConfigJson,
+                analysisImageWidth: analysisImageWidth,
+                analysisImageHeight: analysisImageHeight,
+                analysisImageCodec: analysisImageCodec,
+                analysisImagePixelFormat: analysisImagePixelFormat,
+                analysisImageBitDepth: analysisImageBitDepth,
                 analysisUpdatedAt: analysisUpdatedAt,
                 analysisErrorMessage: analysisErrorMessage,
                 outputFormat: outputFormat,
@@ -5665,6 +6222,12 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisAudioChannelLayout =
                     const Value.absent(),
                 Value<int?> analysisAudioStreamIndex = const Value.absent(),
+                Value<String?> mediaConfigJson = const Value.absent(),
+                Value<int?> analysisImageWidth = const Value.absent(),
+                Value<int?> analysisImageHeight = const Value.absent(),
+                Value<String?> analysisImageCodec = const Value.absent(),
+                Value<String?> analysisImagePixelFormat = const Value.absent(),
+                Value<int?> analysisImageBitDepth = const Value.absent(),
                 Value<int?> analysisUpdatedAt = const Value.absent(),
                 Value<String?> analysisErrorMessage = const Value.absent(),
                 required String outputFormat,
@@ -5722,6 +6285,12 @@ class $$TaskRowsTableTableManager
                 analysisAudioSampleRate: analysisAudioSampleRate,
                 analysisAudioChannelLayout: analysisAudioChannelLayout,
                 analysisAudioStreamIndex: analysisAudioStreamIndex,
+                mediaConfigJson: mediaConfigJson,
+                analysisImageWidth: analysisImageWidth,
+                analysisImageHeight: analysisImageHeight,
+                analysisImageCodec: analysisImageCodec,
+                analysisImagePixelFormat: analysisImagePixelFormat,
+                analysisImageBitDepth: analysisImageBitDepth,
                 analysisUpdatedAt: analysisUpdatedAt,
                 analysisErrorMessage: analysisErrorMessage,
                 outputFormat: outputFormat,

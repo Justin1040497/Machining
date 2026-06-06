@@ -101,6 +101,18 @@ else()
   message(FATAL_ERROR "Bundled Windows FFmpeg binaries not found in ${BUNDLED_FFMPEG_WINDOWS_DIR}. Place ffmpeg.exe and ffprobe.exe there before building.")
 endif()
 
+# Bundle optional QMC audio adapter runtimes when a local build is present.
+# FrameLean checks "<exe dir>/audio_adapters/qmc/" for either
+# "framelean-qmc-adapter.exe" or the upstream "qmc-decrypt.exe".
+set(BUNDLED_QMC_ADAPTER_WINDOWS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../third_party/audio_adapters/qmc/windows-x64")
+if(EXISTS "${BUNDLED_QMC_ADAPTER_WINDOWS_DIR}/framelean-qmc-adapter.exe" OR EXISTS "${BUNDLED_QMC_ADAPTER_WINDOWS_DIR}/qmc-decrypt.exe")
+  install(DIRECTORY "${BUNDLED_QMC_ADAPTER_WINDOWS_DIR}/"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/audio_adapters/qmc"
+    COMPONENT Runtime)
+else()
+  message(STATUS "Optional QMC audio adapter not found in ${BUNDLED_QMC_ADAPTER_WINDOWS_DIR}; proprietary QMC inputs will require an adapter at runtime.")
+endif()
+
 # Bundle legal materials next to the executable so release packages include
 # license text, third-party notices, and source availability information.
 set(LEGAL_MATERIALS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../legal")
@@ -110,7 +122,6 @@ if(EXISTS "${LEGAL_MATERIALS_DIR}")
     COMPONENT Runtime)
   install(FILES
     "${CMAKE_CURRENT_SOURCE_DIR}/../LICENSE"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../NOTICE"
     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/legal"
     COMPONENT Runtime)
 else()

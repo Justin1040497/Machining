@@ -31,6 +31,7 @@ class ImportMediaTaskUseCase {
     final settings = await settingsRepository.loadSettings();
     final initialConfig = buildInitialTaskConfigFromSettings(
       sourceFileName: fileName,
+      mediaKind: mediaKind,
       settings: settings,
       now: now(),
     );

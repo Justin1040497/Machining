@@ -5,10 +5,10 @@ import 'package:framelean/features/workbench/pages/workbench_page/configuration/
 import 'package:path/path.dart' as path;
 
 abstract final class WorkbenchFilePicker {
-  static Future<List<XFile>> pickVideoFiles() async {
+  static Future<List<XFile>> pickMediaFiles() async {
     try {
       return await openFiles(
-        acceptedTypeGroups: [WorkbenchConstants.videoTypeGroup],
+        acceptedTypeGroups: WorkbenchConstants.mediaTypeGroups,
       );
     } on ArgumentError {
       return openFiles();
@@ -17,16 +17,24 @@ abstract final class WorkbenchFilePicker {
     }
   }
 
-  static Future<XFile?> pickVideoFile() async {
+  static Future<XFile?> pickMediaFile() async {
     try {
       return await openFile(
-        acceptedTypeGroups: [WorkbenchConstants.videoTypeGroup],
+        acceptedTypeGroups: WorkbenchConstants.mediaTypeGroups,
       );
     } on ArgumentError {
       return openFile();
     } on UnimplementedError {
       return openFile();
     }
+  }
+
+  static Future<List<XFile>> pickVideoFiles() async {
+    return pickMediaFiles();
+  }
+
+  static Future<XFile?> pickVideoFile() async {
+    return pickMediaFile();
   }
 
   static Future<String?> pickOutputDirectory() {

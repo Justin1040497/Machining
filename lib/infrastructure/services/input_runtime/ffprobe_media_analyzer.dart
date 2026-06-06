@@ -71,31 +71,37 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     final videoStream = findStream(streams, 'video');
     final audioStream = findUsableAudioStream(streams);
 
-    if (videoStream == null) {
-      throw StateError('媒体文件没有视频流');
+    if (videoStream == null && audioStream == null) {
+      throw StateError('媒体文件没有可用媒体流');
     }
 
-    final durationMs = parseDurationMs(format, videoStream);
+    final durationMs = parseDurationMs(format, videoStream, audioStream);
+    final videoBitDepth = videoStream == null
+        ? null
+        : parseVideoBitDepth(videoStream);
+    final rotationDegrees = videoStream == null
+        ? null
+        : parseVideoRotationDegrees(videoStream);
 
     return MediaAnalysisResult(
       durationMs: durationMs,
-      videoWidth: parseInt(videoStream['width']),
-      videoHeight: parseInt(videoStream['height']),
-      videoCodec: parseString(videoStream['codec_name']),
+      videoWidth: parseInt(videoStream?['width']),
+      videoHeight: parseInt(videoStream?['height']),
+      videoCodec: parseString(videoStream?['codec_name']),
       audioCodec: parseString(audioStream?['codec_name']),
-      videoPixelFormat: parseString(videoStream['pix_fmt']),
-      videoBitDepth: parseVideoBitDepth(videoStream),
-      colorRange: parseString(videoStream['color_range']),
-      colorSpace: parseString(videoStream['color_space']),
-      colorTransfer: parseString(videoStream['color_transfer']),
-      colorPrimaries: parseString(videoStream['color_primaries']),
-      averageFrameRate: parseString(videoStream['avg_frame_rate']),
-      realFrameRate: parseString(videoStream['r_frame_rate']),
-      sampleAspectRatio: parseString(videoStream['sample_aspect_ratio']),
-      displayAspectRatio: parseString(videoStream['display_aspect_ratio']),
-      videoRotationDegrees: parseVideoRotationDegrees(videoStream),
-      fieldOrder: parseString(videoStream['field_order']),
-      videoBitrate: parseInt(videoStream['bit_rate']),
+      videoPixelFormat: parseString(videoStream?['pix_fmt']),
+      videoBitDepth: videoBitDepth,
+      colorRange: parseString(videoStream?['color_range']),
+      colorSpace: parseString(videoStream?['color_space']),
+      colorTransfer: parseString(videoStream?['color_transfer']),
+      colorPrimaries: parseString(videoStream?['color_primaries']),
+      averageFrameRate: parseString(videoStream?['avg_frame_rate']),
+      realFrameRate: parseString(videoStream?['r_frame_rate']),
+      sampleAspectRatio: parseString(videoStream?['sample_aspect_ratio']),
+      displayAspectRatio: parseString(videoStream?['display_aspect_ratio']),
+      videoRotationDegrees: rotationDegrees,
+      fieldOrder: parseString(videoStream?['field_order']),
+      videoBitrate: parseInt(videoStream?['bit_rate']),
       audioBitrate: parseInt(audioStream?['bit_rate']),
       containerBitrate: format is Map<String, dynamic>
           ? parseInt(format['bit_rate'])
@@ -111,6 +117,12 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       audioSampleRate: parseInt(audioStream?['sample_rate']),
       audioChannelLayout: parseString(audioStream?['channel_layout']),
       audioStreamIndex: parseInt(audioStream?['index']),
+      imageWidth: parseInt(videoStream?['width']),
+      imageHeight: parseInt(videoStream?['height']),
+      imageCodec: parseString(videoStream?['codec_name']),
+      imagePixelFormat: parseString(videoStream?['pix_fmt']),
+      imageBitDepth: videoBitDepth,
+      orientationDegrees: rotationDegrees,
     );
   }
 
@@ -140,7 +152,11 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     return null;
   }
 
-  int? parseDurationMs(Object? format, Map<String, dynamic> videoStream) {
+  int? parseDurationMs(
+    Object? format,
+    Map<String, dynamic>? videoStream,
+    Map<String, dynamic>? audioStream,
+  ) {
     if (format is Map<String, dynamic>) {
       final duration = parseDouble(format['duration']);
       if (duration != null) {
@@ -148,7 +164,9 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       }
     }
 
-    final streamDuration = parseDouble(videoStream['duration']);
+    final streamDuration =
+        parseDouble(videoStream?['duration']) ??
+        parseDouble(audioStream?['duration']);
     if (streamDuration == null) {
       return null;
     }

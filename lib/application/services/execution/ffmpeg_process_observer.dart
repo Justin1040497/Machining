@@ -1,4 +1,5 @@
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 
 enum FfmpegProcessObservationStatus { completed, failed }
@@ -21,6 +22,7 @@ abstract class FfmpegProcessObserver {
     required StartedFfmpegProcess startedProcess,
     required MediaTask task,
     required String? outputPath,
+    ProgressMode progressMode = ProgressMode.timed,
     required Future<void> Function(double progress) onProgress,
   });
 }

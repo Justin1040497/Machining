@@ -16,8 +16,10 @@ class AppDatabase extends _$AppDatabase {
   /// 创建AppDatabase时 自动打开数据库
   AppDatabase() : super(openConnection());
 
+  AppDatabase.forTesting(super.e);
+
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -118,6 +120,18 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 13) {
           await migrator.addColumn(taskRows, taskRows.analysisAudioStreamIndex);
+        }
+        if (from < 14) {
+          await migrator.addColumn(taskRows, taskRows.mediaConfigJson);
+          await migrator.addColumn(taskRows, taskRows.analysisImageWidth);
+          await migrator.addColumn(taskRows, taskRows.analysisImageHeight);
+          await migrator.addColumn(taskRows, taskRows.analysisImageCodec);
+          await migrator.addColumn(taskRows, taskRows.analysisImagePixelFormat);
+          await migrator.addColumn(taskRows, taskRows.analysisImageBitDepth);
+          await migrator.addColumn(
+            settingsRows,
+            settingsRows.defaultMediaConfigJson,
+          );
         }
       },
     );

@@ -214,7 +214,7 @@ brew install nasm pkg-config
 准备 macOS arm64 FFmpeg / FFprobe：
 
 ```bash
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 必须存在的运行时路径：
@@ -233,7 +233,7 @@ flutter run -d macos
 Release DMG 构建：
 
 ```bash
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 Release 产物：
@@ -272,7 +272,7 @@ flutter run -d windows
 Release 构建：
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
 
 Release 产物：
@@ -304,7 +304,7 @@ build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 许可与分发资料：
 
 - `LICENSE`
-- `NOTICE`
+- `legal/NOTICE.md`
 - `legal/COPYING`
 - `legal/THIRD_PARTY_NOTICES.md`
 - `legal/SOURCE_OFFER.md`

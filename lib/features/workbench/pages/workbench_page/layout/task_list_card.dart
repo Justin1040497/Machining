@@ -38,13 +38,10 @@ class WorkbenchTaskListCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(27, 31, 27, 0),
-      child: taskList.when(
-        loading: _buildLoading,
-        error: (error, stackTrace) => _buildError(error),
-        data: _buildList,
-      ),
+    return taskList.when(
+      loading: _buildLoading,
+      error: (error, stackTrace) => _buildError(error),
+      data: _buildList,
     );
   }
 
@@ -70,9 +67,10 @@ class WorkbenchTaskListCard extends StatelessWidget {
       itemBuilder: (context, index) {
         final task = tasks[index];
 
-        return Padding(
+        return Container(
           key: ValueKey(task.id),
           padding: EdgeInsets.only(bottom: index == tasks.length - 1 ? 0 : 13),
+          margin: EdgeInsets.fromLTRB(27, index != 0 ? 6 : 26, 27, index != tasks.length - 1 ? 0 : 48),
           child: MediaTaskListTile(
             task: task,
             selected: selectedTask?.id == task.id,
@@ -116,7 +114,7 @@ class WorkbenchTaskListCard extends StatelessWidget {
   Widget _buildEmpty() {
     return const Center(
       child: Text(
-        '暂无任务\n点击左下角 + 添加视频',
+        '暂无任务\n点击左下角 + 添加媒体',
         textAlign: TextAlign.center,
         style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12, height: 1.5),
       ),

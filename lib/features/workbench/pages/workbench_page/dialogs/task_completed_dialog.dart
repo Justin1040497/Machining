@@ -45,7 +45,7 @@ class TaskCompletedDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 11),
-              const WorkbenchDialogTitle('压缩完成'),
+              const WorkbenchDialogTitle('处理完成'),
             ],
           ),
           const SizedBox(height: 18),
@@ -105,7 +105,7 @@ class _SizeSummary extends StatelessWidget {
           children: [
             Expanded(
               child: _SizeMetric(
-                label: '压缩前',
+                label: '源文件',
                 value: WorkbenchFormatters.formatBytes(sourceFileSize),
               ),
             ),
@@ -119,7 +119,7 @@ class _SizeSummary extends StatelessWidget {
             ),
             Expanded(
               child: _SizeMetric(
-                label: '压缩后',
+                label: '输出文件',
                 value: WorkbenchFormatters.formatBytes(outputFileSize),
               ),
             ),

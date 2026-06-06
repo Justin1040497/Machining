@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RELEASE_DIR="${ROOT}/build/macos/Build/Products/Release"
 APP_PATH="${RELEASE_DIR}/FrameLean.app"
 DMG_SOURCE_PATH="${RELEASE_DIR}/FrameLean.dmg"
 FFMPEG_DIR="${ROOT}/third_party/ffmpeg/macos-arm64"
+QMC_ADAPTER_DIR="${ROOT}/third_party/audio_adapters/qmc/macos-arm64"
 LEGAL_DIR="${ROOT}/legal"
 PUBSPEC_PATH="${ROOT}/pubspec.yaml"
 
@@ -14,6 +15,21 @@ require_command() {
     echo "error: missing required command: $1" >&2
     exit 1
   fi
+}
+
+bundled_ffmpeg_has_required_encoders() {
+  local ffmpeg_path="$FFMPEG_DIR/ffmpeg"
+  local encoder_output
+  encoder_output="$("$ffmpeg_path" -hide_banner -encoders 2>/dev/null || true)"
+
+  for encoder_name in libx264 libmp3lame libwebp libopus; do
+    if ! grep "$encoder_name" <<<"$encoder_output" >/dev/null; then
+      echo "Bundled FFmpeg runtime is missing encoder: $encoder_name"
+      return 1
+    fi
+  done
+
+  return 0
 }
 
 APP_VERSION="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[^[:space:]]+)?[[:space:]]*$/\1/p' "$PUBSPEC_PATH" | head -n 1)"
@@ -41,7 +57,10 @@ fi
 
 if [[ ! -x "$FFMPEG_DIR/ffmpeg" || ! -x "$FFMPEG_DIR/ffprobe" ]]; then
   echo "Bundled FFmpeg runtime not found. Building macOS arm64 runtime..."
-  "${ROOT}/scripts/build_ffmpeg_macos_arm64.sh"
+  "${ROOT}/scripts/build/build_ffmpeg_macos_arm64.sh"
+elif ! bundled_ffmpeg_has_required_encoders; then
+  echo "Bundled FFmpeg runtime is outdated. Rebuilding macOS arm64 runtime..."
+  "${ROOT}/scripts/build/build_ffmpeg_macos_arm64.sh"
 fi
 
 if [[ "$#" -eq 0 ]]; then
@@ -79,6 +98,13 @@ fi
 if [[ ! -f "$APP_PATH/Contents/Resources/legal/COPYING" ]]; then
   echo "error: legal materials are missing from the app package" >&2
   exit 1
+fi
+
+if [[ -x "$QMC_ADAPTER_DIR/framelean-qmc-adapter" || -x "$QMC_ADAPTER_DIR/qmc-decrypt" ]]; then
+  if [[ ! -x "$APP_PATH/Contents/Resources/audio_adapters/qmc/framelean-qmc-adapter" && ! -x "$APP_PATH/Contents/Resources/audio_adapters/qmc/qmc-decrypt" ]]; then
+    echo "error: QMC audio adapter source exists but was not copied into the app package" >&2
+    exit 1
+  fi
 fi
 
 hdiutil verify "$DMG_PATH"

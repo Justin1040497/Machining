@@ -58,6 +58,14 @@ class MediaAnalysisResult {
   /// 可转码主音频流在 FFprobe `streams` 中的全局索引。
   final int? audioStreamIndex;
 
+  /// 静态图片宽高和编码信息。
+  final int? imageWidth;
+  final int? imageHeight;
+  final String? imageCodec;
+  final String? imagePixelFormat;
+  final int? imageBitDepth;
+  final int? orientationDegrees;
+
   MediaAnalysisResult({
     this.durationMs,
     this.videoWidth,
@@ -85,6 +93,12 @@ class MediaAnalysisResult {
     this.audioSampleRate,
     this.audioChannelLayout,
     this.audioStreamIndex,
+    this.imageWidth,
+    this.imageHeight,
+    this.imageCodec,
+    this.imagePixelFormat,
+    this.imageBitDepth,
+    this.orientationDegrees,
   });
 
   MediaAnalysisResult copyWith({
@@ -114,6 +128,12 @@ class MediaAnalysisResult {
     int? audioSampleRate,
     String? audioChannelLayout,
     int? audioStreamIndex,
+    int? imageWidth,
+    int? imageHeight,
+    String? imageCodec,
+    String? imagePixelFormat,
+    int? imageBitDepth,
+    int? orientationDegrees,
   }) {
     return MediaAnalysisResult(
       durationMs: durationMs ?? this.durationMs,
@@ -142,6 +162,12 @@ class MediaAnalysisResult {
       audioSampleRate: audioSampleRate ?? this.audioSampleRate,
       audioChannelLayout: audioChannelLayout ?? this.audioChannelLayout,
       audioStreamIndex: audioStreamIndex ?? this.audioStreamIndex,
+      imageWidth: imageWidth ?? this.imageWidth,
+      imageHeight: imageHeight ?? this.imageHeight,
+      imageCodec: imageCodec ?? this.imageCodec,
+      imagePixelFormat: imagePixelFormat ?? this.imagePixelFormat,
+      imageBitDepth: imageBitDepth ?? this.imageBitDepth,
+      orientationDegrees: orientationDegrees ?? this.orientationDegrees,
     );
   }
 
@@ -150,7 +176,7 @@ class MediaAnalysisResult {
   /// 2. format.bit_rate
   /// 3. fileSize * 8 / durationSeconds
   int? get preferredBitrate =>
-      videoBitrate ?? containerBitrate ?? estimatedBitrate;
+      videoBitrate ?? audioBitrate ?? containerBitrate ?? estimatedBitrate;
 
   bool get isHdr {
     final transfer = colorTransfer?.trim().toLowerCase();

@@ -6,6 +6,8 @@ import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
+import 'package:framelean/infrastructure/repositories/mappers/media_task_config_json_mapper.dart'
+    as media_config_json;
 
 /// 用 Drift + SQLite 实现应用设置的读取和保存
 class DriftAppSettingsRepository implements AppSettingsRepository {
@@ -65,6 +67,11 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             defaultOutputFileNameTemplate: Value(
               settings.defaultOutputFileNameTemplate.name,
             ),
+            defaultMediaConfigJson: Value(
+              media_config_json.encodeMediaTaskConfig(
+                settings.defaultMediaConfig,
+              ),
+            ),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -75,6 +82,26 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
 /// 数据库Setting表转AppSetting实体类
 extension SettingsRowMapper on SettingsRow {
   AppSettings toDomain() {
+    final defaultMediaConfig = defaultMediaConfigJson;
+    if (defaultMediaConfig != null && defaultMediaConfig.isNotEmpty) {
+      return AppSettings(
+        defaultOutputDirectory: defaultOutputDirectory,
+        lastSelectedOutputDirectory: lastSelectedOutputDirectory,
+        saveOutputToSourceDirectory: saveOutputToSourceDirectory,
+        customFfmpegPath: customFfmpegPath,
+        customFfprobePath: customFfprobePath,
+        showRawLog: showRawLog,
+        showAdvancedOptions: showAdvancedOptions,
+        defaultMediaConfig: media_config_json.decodeMediaTaskConfig(
+          defaultMediaConfig,
+        ),
+        defaultOutputFileNameTemplate: enumValueByNameInSettings(
+          DefaultOutputFileNameTemplate.values,
+          defaultOutputFileNameTemplate,
+        ),
+      );
+    }
+
     return AppSettings(
       defaultOutputDirectory: defaultOutputDirectory,
       lastSelectedOutputDirectory: lastSelectedOutputDirectory,

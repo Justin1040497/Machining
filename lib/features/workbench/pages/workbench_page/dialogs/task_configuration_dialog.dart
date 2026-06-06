@@ -3,12 +3,18 @@ import 'package:framelean/application/services/ffmpeg_planning/compression_estim
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/audio_config_panel.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/image_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
@@ -25,6 +31,7 @@ class WorkbenchTaskConfigurationDraft {
     required this.compressionMode,
     required this.smartPreset,
     required this.targetSizeRatio,
+    required this.config,
   });
 
   final int qualityIndex;
@@ -35,6 +42,7 @@ class WorkbenchTaskConfigurationDraft {
   final CompressionMode compressionMode;
   final SmartCompressionPreset smartPreset;
   final double targetSizeRatio;
+  final MediaTaskConfig config;
 }
 
 Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
@@ -59,6 +67,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   var draftCompressionMode = selectedCompressionMode;
   var draftSmartPreset = selectedSmartPreset;
   var draftTargetSizeRatio = selectedTargetSizeRatio;
+  var draftConfig = task.config;
 
   return showDialog<WorkbenchTaskConfigurationDraft>(
     context: context,
@@ -80,6 +89,8 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             selectedCompressionMode: draftCompressionMode,
             selectedSmartPreset: draftSmartPreset,
             selectedTargetSizeRatio: draftTargetSizeRatio,
+            selectedImageConfig: draftConfig.image,
+            selectedAudioConfig: draftConfig.audio,
             availableEncoderBackends:
                 WorkbenchEncoderPolicy.availableEncoderBackends(
                   videoCodec: draftVideoCodec,
@@ -98,6 +109,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                   compressionMode: draftCompressionMode,
                   smartPreset: draftSmartPreset,
                   targetSizeRatio: draftTargetSizeRatio,
+                  config: draftConfig,
                 ),
               );
             },
@@ -110,11 +122,15 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     WorkbenchQualityPolicy.normalizeTargetSizeRatio(
                       draftTargetSizeRatio,
                     );
+                draftConfig = draftConfig.copyWith(
+                  compressionMode: draftCompressionMode,
+                );
               });
             },
             onSmartPresetChanged: (value) {
               updateDialogState(() {
                 draftSmartPreset = value;
+                draftConfig = draftConfig.copyWith(smartPreset: value);
               });
             },
             onTargetSizeRatioChanged: (value) {
@@ -125,6 +141,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
                       draftTargetSizeRatio,
                     );
+                draftConfig = draftConfig.copyWith(
+                  targetSizeRatio: draftTargetSizeRatio,
+                );
               });
             },
             onQualityChanged: (index) {
@@ -138,6 +157,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             onOutputFormatChanged: (value) {
               updateDialogState(() {
                 draftOutputFormat = value;
+                draftConfig = draftConfig.copyWith(outputFormat: value);
               });
             },
             onVideoCodecChanged: (value) {
@@ -151,16 +171,32 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
               updateDialogState(() {
                 draftVideoCodec = value;
                 draftEncoderBackend = nextEncoderBackend;
+                draftConfig = draftConfig.copyWith(
+                  videoCodec: value,
+                  encoderBackend: nextEncoderBackend,
+                );
               });
             },
             onEncoderBackendChanged: (value) {
               updateDialogState(() {
                 draftEncoderBackend = value;
+                draftConfig = draftConfig.copyWith(encoderBackend: value);
               });
             },
             onResolutionPresetChanged: (value) {
               updateDialogState(() {
                 draftResolutionPreset = value;
+                draftConfig = draftConfig.copyWith(resolutionPreset: value);
+              });
+            },
+            onImageConfigChanged: (value) {
+              updateDialogState(() {
+                draftConfig = draftConfig.copyWith(image: value);
+              });
+            },
+            onAudioConfigChanged: (value) {
+              updateDialogState(() {
+                draftConfig = draftConfig.copyWith(audio: value);
               });
             },
           );
@@ -183,6 +219,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.selectedCompressionMode,
     required this.selectedSmartPreset,
     required this.selectedTargetSizeRatio,
+    this.selectedImageConfig,
+    this.selectedAudioConfig,
     required this.availableEncoderBackends,
     required this.onClose,
     required this.onOpenSource,
@@ -195,6 +233,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.onVideoCodecChanged,
     required this.onEncoderBackendChanged,
     required this.onResolutionPresetChanged,
+    this.onImageConfigChanged,
+    this.onAudioConfigChanged,
   });
 
   final MediaTask task;
@@ -207,6 +247,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final CompressionMode selectedCompressionMode;
   final SmartCompressionPreset selectedSmartPreset;
   final double selectedTargetSizeRatio;
+  final ImageProcessingConfig? selectedImageConfig;
+  final AudioProcessingConfig? selectedAudioConfig;
   final List<EncoderBackend> availableEncoderBackends;
   final VoidCallback onClose;
   final VoidCallback onOpenSource;
@@ -219,6 +261,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final ValueChanged<VideoCodec> onVideoCodecChanged;
   final ValueChanged<EncoderBackend> onEncoderBackendChanged;
   final ValueChanged<ResolutionPreset> onResolutionPresetChanged;
+  final ValueChanged<ImageProcessingConfig>? onImageConfigChanged;
+  final ValueChanged<AudioProcessingConfig>? onAudioConfigChanged;
 
   @override
   State<WorkbenchTaskConfigurationDialog> createState() =>
@@ -296,15 +340,11 @@ class _WorkbenchTaskConfigurationDialogState
 
   @override
   Widget build(BuildContext context) {
-    final modified = WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
-      task: widget.task,
-      outputFormat: widget.selectedOutputFormat,
-      videoCodec: widget.selectedVideoCodec,
-      resolutionPreset: widget.selectedResolutionPreset,
-    );
-    final compressed = WorkbenchFormatters.isSourceAlreadyCompressed(
-      widget.task,
-    );
+    final isVideoTask = widget.task.mediaKind == MediaKind.video;
+    final modified = _isModified();
+    final compressed =
+        isVideoTask &&
+        WorkbenchFormatters.isSourceAlreadyCompressed(widget.task);
 
     return Dialog(
       backgroundColor: Colors.white,
@@ -343,42 +383,26 @@ class _WorkbenchTaskConfigurationDialogState
                   thumbnail: widget.thumbnail,
                 ),
                 const SizedBox(height: 14),
-                WorkbenchCompressionOptionsSection(
-                  mode: _mode,
-                  presets: _recommendedPresets,
-                  selectedQualityIndex: widget.selectedQualityIndex,
-                  activePresetTitle: _activePresetTitle,
-                  selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
-                  estimatedSizeForPreset: _estimatedOutputSizeForPreset,
-                  onModeChanged: (mode) {
-                    setState(() {
-                      _mode = mode;
-                    });
-                    widget.onCompressionModeChanged(mode);
-                  },
-                  onPresetSelected: _applyPreset,
-                  onTargetSizeRatioChanged: widget.onTargetSizeRatioChanged,
-                ),
-                const SizedBox(height: 14),
-                WorkbenchVideoConfigPanel(
-                  selectedOutputFormat: widget.selectedOutputFormat,
-                  selectedVideoCodec: widget.selectedVideoCodec,
-                  selectedEncoderBackend: widget.selectedEncoderBackend,
-                  selectedResolutionPreset: widget.selectedResolutionPreset,
-                  availableEncoderBackends: widget.availableEncoderBackends,
-                  onOutputFormatChanged: widget.onOutputFormatChanged,
-                  onVideoCodecChanged: widget.onVideoCodecChanged,
-                  onEncoderBackendChanged: widget.onEncoderBackendChanged,
-                  onResolutionPresetChanged: widget.onResolutionPresetChanged,
-                  showEncoderBackend: false,
-                  padding: EdgeInsets.zero,
-                  itemSpacing: 8,
-                  dropdownHeight: 34,
-                  showTrailingText: false,
-                  resolutionLabelBuilder: _resolutionLabel,
-                  labelFontSize: 12,
-                  valueFontSize: 12,
-                ),
+                if (isVideoTask) ...[
+                  WorkbenchCompressionOptionsSection(
+                    mode: _mode,
+                    presets: _recommendedPresets,
+                    selectedQualityIndex: widget.selectedQualityIndex,
+                    activePresetTitle: _activePresetTitle,
+                    selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
+                    estimatedSizeForPreset: _estimatedOutputSizeForPreset,
+                    onModeChanged: (mode) {
+                      setState(() {
+                        _mode = mode;
+                      });
+                      widget.onCompressionModeChanged(mode);
+                    },
+                    onPresetSelected: _applyPreset,
+                    onTargetSizeRatioChanged: widget.onTargetSizeRatioChanged,
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                _buildMediaConfigPanel(),
                 const SizedBox(height: 22),
                 WorkbenchDialogActions(
                   leading: WorkbenchTaskConfigurationStatusBadges(
@@ -394,6 +418,105 @@ class _WorkbenchTaskConfigurationDialogState
         ),
       ),
     );
+  }
+
+  Widget _buildMediaConfigPanel() {
+    switch (widget.task.mediaKind) {
+      case MediaKind.video:
+        return WorkbenchVideoConfigPanel(
+          selectedOutputFormat: widget.selectedOutputFormat,
+          selectedVideoCodec: widget.selectedVideoCodec,
+          selectedEncoderBackend: widget.selectedEncoderBackend,
+          selectedResolutionPreset: widget.selectedResolutionPreset,
+          availableEncoderBackends: widget.availableEncoderBackends,
+          onOutputFormatChanged: widget.onOutputFormatChanged,
+          onVideoCodecChanged: widget.onVideoCodecChanged,
+          onEncoderBackendChanged: widget.onEncoderBackendChanged,
+          onResolutionPresetChanged: widget.onResolutionPresetChanged,
+          showEncoderBackend: false,
+          padding: EdgeInsets.zero,
+          itemSpacing: 8,
+          dropdownHeight: 34,
+          showTrailingText: false,
+          resolutionLabelBuilder: _resolutionLabel,
+          labelFontSize: 12,
+          valueFontSize: 12,
+        );
+      case MediaKind.image:
+        final imageConfig =
+            widget.selectedImageConfig ??
+            widget.task.config.image ??
+            ImageProcessingConfig.initial();
+        return WorkbenchImageConfigPanel(
+          config: imageConfig,
+          onChanged: widget.onImageConfigChanged ?? (_) {},
+          padding: EdgeInsets.zero,
+          itemSpacing: 8,
+          dropdownHeight: 34,
+          showTrailingText: false,
+          labelFontSize: 12,
+          valueFontSize: 12,
+        );
+      case MediaKind.audio:
+        final audioConfig =
+            widget.selectedAudioConfig ??
+            widget.task.config.audio ??
+            AudioProcessingConfig.initial();
+        return WorkbenchAudioConfigPanel(
+          config: audioConfig,
+          onChanged: widget.onAudioConfigChanged ?? (_) {},
+          padding: EdgeInsets.zero,
+          itemSpacing: 8,
+          dropdownHeight: 34,
+          showTrailingText: false,
+          labelFontSize: 12,
+          valueFontSize: 12,
+        );
+    }
+  }
+
+  bool _isModified() {
+    switch (widget.task.mediaKind) {
+      case MediaKind.video:
+        return WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
+          task: widget.task,
+          outputFormat: widget.selectedOutputFormat,
+          videoCodec: widget.selectedVideoCodec,
+          resolutionPreset: widget.selectedResolutionPreset,
+        );
+      case MediaKind.image:
+        final initial = widget.task.config.image;
+        final current = widget.selectedImageConfig;
+        return initial != null &&
+            current != null &&
+            _imageConfigChanged(initial, current);
+      case MediaKind.audio:
+        final initial = widget.task.config.audio;
+        final current = widget.selectedAudioConfig;
+        return initial != null &&
+            current != null &&
+            _audioConfigChanged(initial, current);
+    }
+  }
+
+  bool _imageConfigChanged(
+    ImageProcessingConfig initial,
+    ImageProcessingConfig current,
+  ) {
+    return initial.outputFormat != current.outputFormat ||
+        initial.imageQuality != current.imageQuality ||
+        initial.resizePreset != current.resizePreset ||
+        initial.preserveMetadata != current.preserveMetadata;
+  }
+
+  bool _audioConfigChanged(
+    AudioProcessingConfig initial,
+    AudioProcessingConfig current,
+  ) {
+    return initial.outputFormat != current.outputFormat ||
+        initial.bitratePreset != current.bitratePreset ||
+        initial.sampleRate != current.sampleRate ||
+        initial.channels != current.channels;
   }
 
   String _estimatedOutputSizeForPreset(WorkbenchCompressionPreset preset) {
