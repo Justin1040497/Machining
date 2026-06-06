@@ -61,9 +61,15 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           encoderCapabilities: encoderCapabilities,
         );
       case MediaKind.image:
-        return buildImageCommandPlan(task);
+        return buildImageCommandPlan(
+          task,
+          encoderCapabilities: encoderCapabilities,
+        );
       case MediaKind.audio:
-        return buildAudioCommandPlan(task);
+        return buildAudioCommandPlan(
+          task,
+          encoderCapabilities: encoderCapabilities,
+        );
     }
   }
 
@@ -73,6 +79,10 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     required FfmpegEncoderCapabilities encoderCapabilities,
   }) {
     encoderResolver.ensureSupportedTask(task, encoderCapabilities);
+    ensureOutputFormatBelongsToKind(
+      task.config.video?.outputFormat ?? MediaOutputFormat.mp4,
+      MediaKind.video,
+    );
 
     final outputPath = outputPathBuilder.buildOutputPath(task);
     final targetCodec = encoderResolver.resolveTargetVideoCodec(task);
@@ -113,11 +123,16 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     );
   }
 
-  FfmpegCommandPlan buildImageCommandPlan(MediaTask task) {
+  FfmpegCommandPlan buildImageCommandPlan(
+    MediaTask task, {
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
+  }) {
     final config = task.config.image;
     if (config == null) {
       throw const FfmpegCommandBuildException('图片任务缺少图片配置');
     }
+    ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.image);
 
     final outputPath = outputPathBuilder.buildOutputPath(task);
     final args = <String>[
@@ -126,7 +141,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-i',
       task.inputPath,
       ...buildImageFilterArgs(config),
-      ...buildImageOutputArgs(config),
+      ...buildImageOutputArgs(config, encoderCapabilities),
       outputPath,
     ];
     final step = FfmpegCommandStep(
@@ -144,11 +159,16 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     );
   }
 
-  FfmpegCommandPlan buildAudioCommandPlan(MediaTask task) {
+  FfmpegCommandPlan buildAudioCommandPlan(
+    MediaTask task, {
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
+  }) {
     final config = task.config.audio;
     if (config == null) {
       throw const FfmpegCommandBuildException('音频任务缺少音频配置');
     }
+    ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.audio);
 
     final outputPath = outputPathBuilder.buildOutputPath(task);
     final args = <String>[
@@ -157,7 +177,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-i',
       task.inputPath,
       '-vn',
-      ...buildAudioOutputArgs(config),
+      ...buildAudioOutputArgs(config, encoderCapabilities),
       '-progress',
       'pipe:1',
       outputPath,
@@ -251,7 +271,10 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     ];
   }
 
-  List<String> buildImageOutputArgs(ImageProcessingConfig config) {
+  List<String> buildImageOutputArgs(
+    ImageProcessingConfig config,
+    FfmpegEncoderCapabilities encoderCapabilities,
+  ) {
     final metadataArgs = config.preserveMetadata
         ? const <String>[]
         : const ['-map_metadata', '-1'];
@@ -268,6 +291,12 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       case MediaOutputFormat.png:
         return ['-frames:v', '1', '-compression_level', '9', ...metadataArgs];
       case MediaOutputFormat.webp:
+        if (!encoderCapabilities.supportsImageEncoder('libwebp')) {
+          throw const FfmpegCommandBuildException(
+            '当前 FFmpeg 不支持 WebP 输出编码器: libwebp。'
+            '请在设置中指定带该编码器的 FFmpeg，或改选其他图片输出格式。',
+          );
+        }
         return [
           '-frames:v',
           '1',
@@ -277,6 +306,12 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           config.imageQuality.toString(),
           ...metadataArgs,
         ];
+      case MediaOutputFormat.bmp:
+        return ['-frames:v', '1', '-c:v', 'bmp', ...metadataArgs];
+      case MediaOutputFormat.tiff:
+        return ['-frames:v', '1', '-c:v', 'tiff', ...metadataArgs];
+      case MediaOutputFormat.gif:
+        return ['-frames:v', '1', '-c:v', 'gif', ...metadataArgs];
       case MediaOutputFormat.mp4:
       case MediaOutputFormat.mov:
       case MediaOutputFormat.mkv:
@@ -285,7 +320,13 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       case MediaOutputFormat.aac:
       case MediaOutputFormat.wav:
       case MediaOutputFormat.flac:
-        return ['-frames:v', '1', ...metadataArgs];
+      case MediaOutputFormat.aiff:
+      case MediaOutputFormat.wma:
+      case MediaOutputFormat.opus:
+      case MediaOutputFormat.oggOpus:
+        throw FfmpegCommandBuildException(
+          '图片任务不支持输出 ${config.outputFormat.name}',
+        );
     }
   }
 
@@ -301,8 +342,20 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return value;
   }
 
-  List<String> buildAudioOutputArgs(AudioProcessingConfig config) {
-    final args = <String>['-c:a', audioEncoderName(config.outputFormat)];
+  List<String> buildAudioOutputArgs(
+    AudioProcessingConfig config,
+    FfmpegEncoderCapabilities encoderCapabilities,
+  ) {
+    final encoderName = audioEncoderName(config.outputFormat);
+    if (!encoderCapabilities.supportsAudioEncoder(encoderName)) {
+      throw FfmpegCommandBuildException(
+        '当前 FFmpeg 不支持 ${config.outputFormat.name.toUpperCase()} '
+        '输出编码器: $encoderName。请在设置中指定带该编码器的 FFmpeg，'
+        '或改选其他音频输出格式。',
+      );
+    }
+
+    final args = <String>['-c:a', encoderName];
     final bitrate = audioBitrateValue(config.bitratePreset);
     if (bitrate != null) {
       args.addAll(['-b:a', bitrate]);
@@ -325,15 +378,36 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return switch (outputFormat) {
       MediaOutputFormat.mp3 => 'libmp3lame',
       MediaOutputFormat.m4a || MediaOutputFormat.aac => 'aac',
+      MediaOutputFormat.opus || MediaOutputFormat.oggOpus => 'libopus',
       MediaOutputFormat.wav => 'pcm_s16le',
       MediaOutputFormat.flac => 'flac',
+      MediaOutputFormat.aiff => 'pcm_s16be',
+      MediaOutputFormat.wma => 'wmav2',
       MediaOutputFormat.mp4 ||
       MediaOutputFormat.mov ||
       MediaOutputFormat.mkv ||
       MediaOutputFormat.jpg ||
       MediaOutputFormat.png ||
-      MediaOutputFormat.webp => 'aac',
+      MediaOutputFormat.webp ||
+      MediaOutputFormat.bmp ||
+      MediaOutputFormat.tiff ||
+      MediaOutputFormat.gif => throw FfmpegCommandBuildException(
+        '音频任务不支持输出 ${outputFormat.name}',
+      ),
     };
+  }
+
+  void ensureOutputFormatBelongsToKind(
+    MediaOutputFormat outputFormat,
+    MediaKind mediaKind,
+  ) {
+    if (MediaOutputFormat.formatsFor(mediaKind).contains(outputFormat)) {
+      return;
+    }
+
+    throw FfmpegCommandBuildException(
+      '${mediaKind.name} 任务不支持输出 ${outputFormat.name}',
+    );
   }
 
   String? audioBitrateValue(AudioBitratePreset preset) {

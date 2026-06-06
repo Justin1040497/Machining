@@ -97,11 +97,18 @@ extension WorkbenchMediaOutputFormatLabel on MediaOutputFormat {
       MediaOutputFormat.jpg => 'JPEG',
       MediaOutputFormat.png => 'PNG',
       MediaOutputFormat.webp => 'WebP',
+      MediaOutputFormat.bmp => 'BMP',
+      MediaOutputFormat.tiff => 'TIFF',
+      MediaOutputFormat.gif => 'GIF',
       MediaOutputFormat.mp3 => 'MP3',
       MediaOutputFormat.m4a => 'M4A',
       MediaOutputFormat.aac => 'AAC',
       MediaOutputFormat.wav => 'WAV',
       MediaOutputFormat.flac => 'FLAC',
+      MediaOutputFormat.aiff => 'AIFF',
+      MediaOutputFormat.wma => 'WMA',
+      MediaOutputFormat.opus => 'Opus',
+      MediaOutputFormat.oggOpus => 'Ogg Opus',
     };
   }
 }

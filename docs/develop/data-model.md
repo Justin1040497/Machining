@@ -128,7 +128,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
 | `video` | 视频格式、编码器、后端、分辨率、CRF 和旧推荐预设 |
 | `image` | 图片格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
-| `audio` | 音频格式、码率、采样率和声道；输出编码由后台按音频格式推导 |
+| `audio` | 音频格式、码率、采样率和声道；当前输出格式包含 `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`，输出编码由后台按音频格式推导 |
 
 ### 源文件指纹字段
 

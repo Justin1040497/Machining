@@ -39,6 +39,22 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 将构建和发布脚本拆分到 `scripts/build/` 与 `scripts/release/`。
 - 将本地参考、临时样本和工具状态迁入 `.workspace/`，并通过 `.gitignore` 排除。
 - 更新 macOS / Windows 打包路径和法律材料复制配置。
+- 扩展常规媒体输入格式识别，覆盖更多视频、图片和音频扩展名。
+- 图片导出新增 BMP、TIFF、GIF；音频导出新增 AIFF、WMA、Opus 和 Ogg Opus。
+- 新增本地专有音频导入适配边界：NCM 使用 Dart 原生还原，MGG / MFLAC 通过 QMC 外部适配器运行时处理，并兼容直接放置 `qmc-decrypt`。
+- macOS 内置 FFmpeg 构建脚本新增 `libmp3lame`、`libwebp`、`libopus` 静态构建和启用参数；macOS / Windows 发布脚本会校验关键编码器是否存在。
+
+### Fixed
+
+- 音频 MP3 输出会在命令构造阶段检查当前 FFmpeg 是否支持 `libmp3lame`，避免任务启动后才暴露 `Unknown encoder 'libmp3lame'`。
+- 图片 WebP 输出会在命令构造阶段检查当前 FFmpeg 是否支持 `libwebp`，避免发布包运行时缺编码器才失败。
+
+### Verified
+
+- 通过 `git diff --check`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `flutter test test/ffmpeg_encoder_capabilities_test.dart test/ffmpeg_command_builder_test.dart`。
 
 ## 2026-06-05｜v1.1.5｜No Release
 

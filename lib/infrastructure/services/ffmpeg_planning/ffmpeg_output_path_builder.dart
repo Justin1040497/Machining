@@ -110,11 +110,18 @@ class FfmpegOutputPathBuilder {
       MediaOutputFormat.jpg => '.jpg',
       MediaOutputFormat.png => '.png',
       MediaOutputFormat.webp => '.webp',
+      MediaOutputFormat.bmp => '.bmp',
+      MediaOutputFormat.tiff => '.tiff',
+      MediaOutputFormat.gif => '.gif',
       MediaOutputFormat.mp3 => '.mp3',
       MediaOutputFormat.m4a => '.m4a',
       MediaOutputFormat.aac => '.aac',
       MediaOutputFormat.wav => '.wav',
       MediaOutputFormat.flac => '.flac',
+      MediaOutputFormat.aiff => '.aiff',
+      MediaOutputFormat.wma => '.wma',
+      MediaOutputFormat.opus => '.opus',
+      MediaOutputFormat.oggOpus => '.ogg',
     };
   }
 }

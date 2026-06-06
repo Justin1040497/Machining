@@ -23,12 +23,12 @@ void main() {
       }
     });
 
-    test('returns the generated decoded audio file', () async {
+    test('returns the generated decoded audio file from qmc adapter', () async {
       final calls = <List<String>>[];
       final decoder = StandardCliProprietaryAudioDecoder(
         processRunner: (executable, args) async {
           calls.add([executable, ...args]);
-          final outputDir = args[args.indexOf('-o') + 1];
+          final outputDir = args[args.indexOf('--output-dir') + 1];
           File(path.join(outputDir, 'song.flac')).writeAsStringSync('decoded');
           return ProcessResult(1, 0, 'ok', '');
         },
@@ -36,12 +36,12 @@ void main() {
 
       final result = await decoder.decode(
         runtime: const ProprietaryAudioAdapterRuntime(
-          format: ProprietaryAudioFormat.ncm,
-          adapterName: 'ncmdump',
+          format: ProprietaryAudioFormat.qmcMflac,
+          adapterName: 'framelean-qmc-adapter',
           adapterVersion: 'fake 1.0',
-          executablePath: '/adapters/ncmdump',
+          executablePath: '/adapters/framelean-qmc-adapter',
         ),
-        inputPath: '/music/song.ncm',
+        inputPath: '/music/song.mflac',
         temporaryDirectory: tempDirectory.path,
       );
 
@@ -49,9 +49,41 @@ void main() {
       expect(result.decodedExtension, '.flac');
       expect(result.cleanupPaths, [tempDirectory.path]);
       expect(calls.single, [
-        '/adapters/ncmdump',
-        '/music/song.ncm',
-        '-o',
+        '/adapters/framelean-qmc-adapter',
+        '--input',
+        '/music/song.mflac',
+        '--output-dir',
+        tempDirectory.path,
+        '--format',
+        'qmcMflac',
+      ]);
+    });
+
+    test('uses positional arguments for qmc-decrypt runtime', () async {
+      final calls = <List<String>>[];
+      final decoder = StandardCliProprietaryAudioDecoder(
+        processRunner: (executable, args) async {
+          calls.add([executable, ...args]);
+          final outputDir = args[1];
+          File(path.join(outputDir, 'song.flac')).writeAsStringSync('decoded');
+          return ProcessResult(1, 0, 'ok', '');
+        },
+      );
+
+      await decoder.decode(
+        runtime: const ProprietaryAudioAdapterRuntime(
+          format: ProprietaryAudioFormat.qmcMflac,
+          adapterName: 'qmc-decrypt',
+          adapterVersion: 'qmc-decrypt 1.0.1',
+          executablePath: '/adapters/qmc-decrypt',
+        ),
+        inputPath: '/music/song.qmcflac',
+        temporaryDirectory: tempDirectory.path,
+      );
+
+      expect(calls.single, [
+        '/adapters/qmc-decrypt',
+        '/music/song.qmcflac',
         tempDirectory.path,
       ]);
     });
@@ -66,12 +98,12 @@ void main() {
       expect(
         () => decoder.decode(
           runtime: const ProprietaryAudioAdapterRuntime(
-            format: ProprietaryAudioFormat.ncm,
-            adapterName: 'ncmdump',
+            format: ProprietaryAudioFormat.qmcMgg,
+            adapterName: 'framelean-qmc-adapter',
             adapterVersion: 'fake 1.0',
-            executablePath: '/adapters/ncmdump',
+            executablePath: '/adapters/framelean-qmc-adapter',
           ),
-          inputPath: '/music/song.ncm',
+          inputPath: '/music/song.mgg',
           temporaryDirectory: tempDirectory.path,
         ),
         throwsA(isA<ProprietaryAudioDecodeException>()),

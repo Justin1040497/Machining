@@ -82,11 +82,18 @@ enum MediaOutputFormat {
   jpg,
   png,
   webp,
+  bmp,
+  tiff,
+  gif,
   mp3,
   m4a,
   aac,
   wav,
   flac,
+  aiff,
+  wma,
+  opus,
+  oggOpus,
 }
 ```
 

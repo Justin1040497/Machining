@@ -45,6 +45,24 @@ function Invoke-Checked {
   }
 }
 
+function Assert-FfmpegEncoders {
+  param([string]$FfmpegPath)
+
+  $EncoderOutput = (& $FfmpegPath -hide_banner -encoders 2>$null) -join "`n"
+  $RequiredEncoders = @(
+    "libx264",
+    "libmp3lame",
+    "libwebp",
+    "libopus"
+  )
+
+  foreach ($EncoderName in $RequiredEncoders) {
+    if ($EncoderOutput -notmatch [regex]::Escape($EncoderName)) {
+      throw "Bundled FFmpeg runtime is missing required encoder: $EncoderName"
+    }
+  }
+}
+
 function Import-ZipAssemblies {
   Add-Type -AssemblyName System.IO.Compression
   Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -153,6 +171,7 @@ $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $ReleaseDir = Join-Path $Root "build\windows\x64\runner\Release"
 $ZipDir = Join-Path $Root "build\windows\x64\runner"
 $FfmpegDir = Join-Path $Root "third_party\ffmpeg\windows-x64"
+$QmcAdapterDir = Join-Path $Root "third_party\audio_adapters\qmc\windows-x64"
 $LegalDir = Join-Path $Root "legal"
 $PubspecPath = Join-Path $Root "pubspec.yaml"
 
@@ -194,6 +213,26 @@ try {
   Require-File (Join-Path $ReleaseDir "legal\LICENSE")
   Require-File (Join-Path $ReleaseDir "legal\NOTICE.md")
 
+  $QmcAdapterSources = @(
+    Join-Path $QmcAdapterDir "framelean-qmc-adapter.exe",
+    Join-Path $QmcAdapterDir "qmc-decrypt.exe"
+  )
+  $HasQmcAdapterSource = @($QmcAdapterSources | Where-Object {
+    Test-Path -LiteralPath $_ -PathType Leaf
+  }).Count -gt 0
+  if ($HasQmcAdapterSource) {
+    $QmcAdapterTargets = @(
+      Join-Path $ReleaseDir "audio_adapters\qmc\framelean-qmc-adapter.exe",
+      Join-Path $ReleaseDir "audio_adapters\qmc\qmc-decrypt.exe"
+    )
+    $HasQmcAdapterTarget = @($QmcAdapterTargets | Where-Object {
+      Test-Path -LiteralPath $_ -PathType Leaf
+    }).Count -gt 0
+    if (-not $HasQmcAdapterTarget) {
+      throw "QMC audio adapter source exists but was not copied into the release directory."
+    }
+  }
+
   $VcRuntimeFiles = @(
     "msvcp140.dll",
     "vcruntime140.dll",
@@ -210,8 +249,10 @@ try {
   }
 
   Write-Host "Validating bundled FFmpeg runtime..."
-  & (Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe") -hide_banner -version | Select-Object -First 1
+  $ReleaseFfmpegPath = Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe"
+  & $ReleaseFfmpegPath -hide_banner -version | Select-Object -First 1
   & (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") -hide_banner -version | Select-Object -First 1
+  Assert-FfmpegEncoders -FfmpegPath $ReleaseFfmpegPath
 
   if (-not $SkipZip) {
     $Version = Get-PubspecVersion -Path $PubspecPath

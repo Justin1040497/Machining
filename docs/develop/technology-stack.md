@@ -207,6 +207,10 @@ ffmpeg -hide_banner -encoders
 | NVIDIA | `h264_nvenc`、`hevc_nvenc` |
 | Intel Quick Sync | `h264_qsv`、`hevc_qsv` |
 | AMD AMF | `h264_amf`、`hevc_amf` |
+| 图片编码 | `libwebp` |
+| 音频编码 | `libmp3lame`、`aac`、`aac_at`、`libopus`、`pcm_s16le`、`flac`、`pcm_s16be`、`wmav2` |
+
+图片和音频输出命令按目标格式推导编码器；其中 WebP 依赖 `libwebp`，MP3 依赖 `libmp3lame`，Opus / Ogg Opus 依赖 `libopus`。如果当前 FFmpeg 缺少目标格式对应的编码器，命令规划会在启动 FFmpeg 前失败并给出可读提示。
 
 ## 平台打包事实
 
@@ -251,7 +255,7 @@ Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LIC
 FrameLean.app/Contents/Resources/legal/
 ```
 
-当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/release/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe` 和法律资料。
+当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/release/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe`、当前输出格式要求的关键编码器和法律资料。
 
 ### Windows
 
@@ -275,7 +279,7 @@ README.md
 <FrameLean.exe 所在目录>/ffmpeg/
 ```
 
-Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。
+Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。`scripts/release/build_windows.ps1` 会在构建后检查 Release 目录内 FFmpeg 是否包含 `libx264`、`libmp3lame`、`libwebp`、`libopus`。
 
 ## 数据与文件存储
 
@@ -293,11 +297,14 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 | 类型 | 扩展名 |
 | --- | --- |
-| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi`、`.webm`、`.m4v` |
-| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.bmp` |
-| 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg` |
+| 视频 | `.mp4`、`.mov`、`.mkv`、`.avi`、`.webm`、`.m4v`、`.flv`、`.wmv`、`.mpg`、`.mpeg`、`.ts`、`.m2ts`、`.mts`、`.3gp`、`.3g2`、`.vob`、`.ogv`、`.dv`、`.asf` |
+| 图片 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.bmp`、`.tif`、`.tiff`、`.heic`、`.heif`、`.avif`、`.ico`、`.tga` |
+| 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg`、`.oga`、`.opus`、`.weba`、`.aiff`、`.aif`、`.aifc`、`.wma`、`.amr`、`.ape`、`.alac`、`.caf`、`.au`、`.wv`、`.tta` |
+| 专有音频输入 | `.ncm`、`.mgg`、`.mgg0`、`.mgg1`、`.mggl`、`.mflac`、`.mflac0`、`.qmcflac` |
 
 工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、分类型配置面板、处理执行和通用完成弹窗。
+
+专有音频输入只作为导入格式，不进入 `MediaOutputFormat` 输出列表。`.ncm` 由 `NativeNcmAudioDecoder` 使用 Dart + `pointycastle` 在本地还原为临时 MP3 / FLAC；`.mgg`、`.mflac` 等 QMC 变体通过 `framelean-qmc-adapter` 或直接放置的 `qmc-decrypt` 外部运行时处理，再交给 FFprobe / FFmpeg 走标准音频链路。
 
 ## 当前核心功能对应实现
 
@@ -310,6 +317,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 设置仓储 | `lib/application/repositories/app_settings_repository.dart`、`lib/infrastructure/repositories/drift_app_settings_repository.dart` |
 | 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart`、`lib/infrastructure/repositories/mappers/media_task_config_json_mapper.dart` |
 | 媒体类型识别 | `FileExtensionMediaKindResolver` |
+| 专有音频输入适配 | `DefaultMediaInputPreparer`、`ProprietaryAudioDecoderDispatcher`、`NativeNcmAudioDecoder`、`BundledProprietaryAudioAdapterRegistry` |
 | FFprobe 分析 | `FfprobeMediaAnalyzer` |
 | 压缩建议 | `DefaultCompressionAdvisor` |
 | FFmpeg 命令构造 | `DefaultFfmpegCommandBuilder` 和 `services/ffmpeg_planning/` 下的命令规划 helper |

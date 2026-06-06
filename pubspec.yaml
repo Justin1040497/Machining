@@ -43,6 +43,7 @@ dependencies:
   file_selector: ^1.1.0
   desktop_drop: ^0.7.1
   flutter_animate: ^4.5.2
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:

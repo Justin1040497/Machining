@@ -23,7 +23,8 @@ See the root LICENSE file and legal/COPYING in this repository.
 - Upstream: <https://ffmpeg.org/>
 - Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
 - Current FrameLean configuration: GPLv3-or-later route, because the runtime is
-  built with `--enable-gpl`, `--enable-version3`, and `--enable-libx264`.
+  built with `--enable-gpl`, `--enable-version3`, `--enable-libx264`,
+  `--enable-libmp3lame`, `--enable-libwebp`, and `--enable-libopus`.
 - Nonfree configuration: `--enable-nonfree` must not be enabled for distributed
   builds.
 - Local build reference: `scripts/build/build_ffmpeg_macos_arm64.sh`
@@ -40,6 +41,31 @@ and distributes the runtime binaries when they are included in release packages.
 x264 is a GPL-licensed H.264 encoder. Because FrameLean distributes an FFmpeg
 runtime with x264 enabled, FrameLean release packages should follow the GPLv3+
 source and license delivery path documented in legal/SOURCE_OFFER.md.
+
+### LAME / libmp3lame
+
+- Upstream: <https://lame.sourceforge.io/>
+- Source for current documented runtime: <https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz>
+- Used by FrameLean through the FFmpeg runtime via `--enable-libmp3lame`.
+
+LAME provides MP3 encoding support for the bundled FFmpeg runtime.
+
+### libwebp
+
+- Upstream: <https://chromium.googlesource.com/webm/libwebp/>
+- Source for current documented runtime: <https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.5.0.tar.gz>
+- Used by FrameLean through the FFmpeg runtime via `--enable-libwebp`.
+
+libwebp provides WebP image encoding support for the bundled FFmpeg runtime.
+
+### Opus / libopus
+
+- Upstream: <https://opus-codec.org/>
+- Source for current documented runtime: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
+- Used by FrameLean through the FFmpeg runtime via `--enable-libopus`.
+
+Opus provides Opus and Ogg Opus audio encoding support for the bundled FFmpeg
+runtime.
 
 ## Flutter and Dart
 

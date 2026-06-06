@@ -9,11 +9,18 @@ enum MediaOutputFormat {
   jpg,
   png,
   webp,
+  bmp,
+  tiff,
+  gif,
   mp3,
   m4a,
   aac,
   wav,
-  flac;
+  flac,
+  aiff,
+  wma,
+  opus,
+  oggOpus;
 
   static MediaOutputFormat fromVideoOutputFormat(OutputFormat format) {
     return switch (format) {
@@ -43,6 +50,9 @@ enum MediaOutputFormat {
         MediaOutputFormat.jpg,
         MediaOutputFormat.png,
         MediaOutputFormat.webp,
+        MediaOutputFormat.bmp,
+        MediaOutputFormat.tiff,
+        MediaOutputFormat.gif,
       ],
       MediaKind.audio => const [
         MediaOutputFormat.mp3,
@@ -50,6 +60,10 @@ enum MediaOutputFormat {
         MediaOutputFormat.aac,
         MediaOutputFormat.wav,
         MediaOutputFormat.flac,
+        MediaOutputFormat.aiff,
+        MediaOutputFormat.wma,
+        MediaOutputFormat.opus,
+        MediaOutputFormat.oggOpus,
       ],
     };
   }

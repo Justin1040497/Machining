@@ -24,10 +24,16 @@ class BundledProprietaryAudioAdapterRegistry
   Future<ProprietaryAudioAdapterRuntime> resolveRuntime(
     ProprietaryAudioFormat format,
   ) async {
-    for (final candidate in [
-      ...candidatesFor(format),
-      ...await systemPathCandidatesFor(format),
-    ]) {
+    if (format == ProprietaryAudioFormat.ncm) {
+      return const ProprietaryAudioAdapterRuntime(
+        format: ProprietaryAudioFormat.ncm,
+        adapterName: 'native-ncm-dart',
+        adapterVersion: 'builtin',
+        executablePath: '',
+      );
+    }
+
+    for (final candidate in candidatesFor(format)) {
       final version = await adapterVersion(candidate);
       if (version == null) {
         continue;
@@ -35,7 +41,21 @@ class BundledProprietaryAudioAdapterRegistry
 
       return ProprietaryAudioAdapterRuntime(
         format: format,
-        adapterName: adapterExecutableBaseName(format),
+        adapterName: adapterNameForExecutablePath(candidate),
+        adapterVersion: version,
+        executablePath: candidate,
+      );
+    }
+
+    for (final candidate in await systemPathCandidatesFor(format)) {
+      final version = await adapterVersion(candidate);
+      if (version == null) {
+        continue;
+      }
+
+      return ProprietaryAudioAdapterRuntime(
+        format: format,
+        adapterName: adapterNameForExecutablePath(candidate),
         adapterVersion: version,
         executablePath: candidate,
       );
@@ -53,44 +73,48 @@ class BundledProprietaryAudioAdapterRegistry
       return customCandidates;
     }
 
-    final executableName = executableFileName(format);
     final executableDirectory = path.dirname(Platform.resolvedExecutable);
     final currentDirectory = Directory.current.path;
     final adapterId = format.adapterId;
     final platformDirectory = currentPlatformDirectory();
+    final candidates = <String>[];
 
-    return [
-      path.join(
-        executableDirectory,
-        'audio_adapters',
-        adapterId,
-        executableName,
-      ),
-      path.join(
-        executableDirectory,
-        '..',
-        'Resources',
-        'audio_adapters',
-        adapterId,
-        executableName,
-      ),
-      path.join(
-        currentDirectory,
-        'third_party',
-        'audio_adapters',
-        adapterId,
-        platformDirectory,
-        executableName,
-      ),
-      path.join(
-        currentDirectory,
-        'tools',
-        'audio_adapters',
-        adapterId,
-        executableName,
-      ),
-      ...knownSystemCandidates(format),
-    ];
+    for (final executableName in executableFileNames(format)) {
+      candidates.addAll([
+        path.join(
+          executableDirectory,
+          'audio_adapters',
+          adapterId,
+          executableName,
+        ),
+        path.join(
+          executableDirectory,
+          '..',
+          'Resources',
+          'audio_adapters',
+          adapterId,
+          executableName,
+        ),
+        path.join(
+          currentDirectory,
+          'third_party',
+          'audio_adapters',
+          adapterId,
+          platformDirectory,
+          executableName,
+        ),
+        path.join(
+          currentDirectory,
+          'tools',
+          'audio_adapters',
+          adapterId,
+          executableName,
+        ),
+      ]);
+    }
+
+    candidates.addAll(knownSystemCandidates(format));
+    return candidates;
   }
 
   Future<String?> adapterVersion(String executablePath) async {
@@ -118,23 +142,30 @@ class BundledProprietaryAudioAdapterRegistry
   Future<List<String>> systemPathCandidatesFor(
     ProprietaryAudioFormat format,
   ) async {
-    try {
-      final result = await runProcess(Platform.isWindows ? 'where' : 'which', [
-        executableFileName(format),
-      ]).timeout(validateTimeout);
-      if (result.exitCode != 0) {
-        return const [];
-      }
+    final candidates = <String>[];
+    for (final executableName in executableFileNames(format)) {
+      try {
+        final result = await runProcess(
+          Platform.isWindows ? 'where' : 'which',
+          [executableName],
+        ).timeout(validateTimeout);
+        if (result.exitCode != 0) {
+          continue;
+        }
 
-      return result.stdout
-          .toString()
-          .split(RegExp(r'\r?\n'))
-          .map((line) => line.trim())
-          .where((line) => line.isNotEmpty)
-          .toList();
-    } on Object {
-      return const [];
+        candidates.addAll(
+          result.stdout
+              .toString()
+              .split(RegExp(r'\r?\n'))
+              .map((line) => line.trim())
+              .where((line) => line.isNotEmpty),
+        );
+      } on Object {
+        continue;
+      }
     }
+
+    return candidates;
   }
 
   Future<ProcessResult> runProcess(String executable, List<String> args) {
@@ -147,39 +178,37 @@ class BundledProprietaryAudioAdapterRegistry
   }
 
   String executableFileName(ProprietaryAudioFormat format) {
-    final baseName = adapterExecutableBaseName(format);
-    return Platform.isWindows ? '$baseName.exe' : baseName;
+    return executableFileNames(format).first;
+  }
+
+  List<String> executableFileNames(ProprietaryAudioFormat format) {
+    return adapterExecutableBaseNames(format).map((baseName) {
+      return Platform.isWindows ? '$baseName.exe' : baseName;
+    }).toList();
   }
 
   String adapterExecutableBaseName(ProprietaryAudioFormat format) {
+    return adapterExecutableBaseNames(format).first;
+  }
+
+  List<String> adapterExecutableBaseNames(ProprietaryAudioFormat format) {
     return switch (format.adapterId) {
-      'ncm' => 'ncmdump',
-      'qmc' => 'framelean-qmc-adapter',
-      _ => 'framelean-${format.adapterId}-adapter',
+      'qmc' => const ['framelean-qmc-adapter', 'qmc-decrypt'],
+      _ => ['framelean-${format.adapterId}-adapter'],
     };
   }
 
   List<String> knownSystemCandidates(ProprietaryAudioFormat format) {
-    if (format != ProprietaryAudioFormat.ncm) {
-      return const [];
-    }
-
-    final executableName = executableFileName(format);
-    if (Platform.isMacOS) {
-      return [
-        path.join('/opt/homebrew/bin', executableName),
-        path.join('/usr/local/bin', executableName),
-      ];
-    }
-
-    if (Platform.isLinux) {
-      return [
-        path.join('/usr/local/bin', executableName),
-        path.join('/usr/bin', executableName),
-      ];
-    }
-
     return const [];
+  }
+
+  String adapterNameForExecutablePath(String executablePath) {
+    final fileName = path.basename(executablePath);
+    if (Platform.isWindows && fileName.toLowerCase().endsWith('.exe')) {
+      return fileName.substring(0, fileName.length - 4);
+    }
+
+    return fileName;
   }
 
   String currentPlatformDirectory() {

@@ -18,7 +18,7 @@ import 'package:framelean/infrastructure/services/input_runtime/file_extension_p
 import 'package:framelean/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
 import 'package:framelean/infrastructure/services/input_runtime/local_source_file_checker.dart';
 import 'package:framelean/infrastructure/services/input_runtime/local_source_file_fingerprint_reader.dart';
-import 'package:framelean/infrastructure/services/input_runtime/standard_cli_proprietary_audio_decoder.dart';
+import 'package:framelean/infrastructure/services/proprietary_audio/proprietary_audio_decoder_dispatcher.dart';
 
 /// 媒体类型识别服务
 final mediaKindResolverProvider = Provider<MediaKindResolver>((ref) {
@@ -41,7 +41,7 @@ final proprietaryAudioAdapterRegistryProvider =
 final proprietaryAudioDecoderProvider = Provider<ProprietaryAudioDecoder>((
   ref,
 ) {
-  return const StandardCliProprietaryAudioDecoder();
+  return const ProprietaryAudioDecoderDispatcher();
 });
 
 /// FFprobe / FFmpeg 前的实际输入文件准备服务

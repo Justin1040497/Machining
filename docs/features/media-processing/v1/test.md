@@ -28,8 +28,8 @@
 
 测试数据建议：
 - 视频：`.mp4`、`.mov`、`.mkv`，至少包含一个 iPhone HDR / HVC1 / 10-bit MOV 和一个带 APAC / `none` 音频流的 MOV。
-- 图片：`.jpg`、`.png`、`.webp`，至少包含一张带 EXIF 方向信息的 JPEG、一张透明 PNG、一张大尺寸图片。
-- 音频：`.mp3`、`.m4a`、`.aac`、`.wav`、`.flac`，至少包含一段有 duration 的纯音频文件。
+- 图片：`.jpg`、`.png`、`.webp`、`.bmp`、`.tiff`、`.gif`，至少包含一张带 EXIF 方向信息的 JPEG、一张透明 PNG、一张大尺寸图片。
+- 音频：`.mp3`、`.m4a`、`.aac`、`.wav`、`.flac`、`.aiff`、`.wma`、`.opus`、`.ogg`，至少包含一段有 duration 的纯音频文件。
 - 异常样例：不支持扩展名、缺失源文件、同名输出路径冲突、无可用 FFprobe 信息的损坏文件。
 
 ## 2. 自动化测试项
@@ -73,11 +73,11 @@
 | 视频导入回归 | 点击添加，选择 `.mp4`、`.mov`、`.mkv` 视频 | 任务进入分析中，分析成功后进入待处理；配置弹窗显示视频面板 |
 | 视频处理回归 | 对普通视频执行压缩、转封装、目标体积两遍压缩 | 输出文件生成；进度连续更新；完成弹窗可打开输出位置；日志可查看 |
 | 高风险视频回归 | 导入 iPhone HDR / HVC1 / 10-bit MOV，选择自动编码 | 自动策略仍能安全降级；主音频流选择不带入不可转码 APAC / `none` 流 |
-| 图片导入 | 点击添加或拖拽 `.jpg`、`.png`、`.webp` | 不再提示只支持视频；任务可分析；列表显示图片类型和缩略图 |
+| 图片导入 | 点击添加或拖拽 `.jpg`、`.png`、`.webp`、`.bmp`、`.tiff`、`.gif` | 不再提示只支持视频；任务可分析；列表显示图片类型和缩略图 |
 | 图片配置 | 打开图片任务配置，修改格式、分辨率预设、质量和元数据保留开关 | 保存后任务显示已修改；执行命令使用对应图片参数 |
 | 图片处理 | 执行 JPEG、PNG、WebP 输出各一例 | 输出文件存在；图片任务使用步骤型进度，不因缺少 duration 卡住 |
 | 大图处理 | 导入大尺寸图片并选择长边限制 | 输出尺寸符合配置，宽高比保持，应用不明显卡死 |
-| 音频导入 | 点击添加或拖拽 `.mp3`、`.m4a`、`.aac`、`.wav`、`.flac` | 任务可分析；列表显示音频类型和占位缩略图；不出现视频流缺失错误 |
+| 音频导入 | 点击添加或拖拽 `.mp3`、`.m4a`、`.aac`、`.wav`、`.flac`、`.aiff`、`.wma` | 任务可分析；列表显示音频类型和占位缩略图；不出现视频流缺失错误 |
 | 音频配置 | 打开音频任务配置，修改格式、码率、采样率、声道 | 保存后任务显示已修改；执行命令包含音频参数 |
 | 音频处理 | 执行 MP3、M4A/AAC、FLAC 输出各一例 | 输出音频文件可播放；命令禁用视频流；完成弹窗显示源文件 / 输出文件 |
 | 不支持文件 | 导入 `.txt`、损坏媒体文件或未知扩展名 | 应用给出明确失败原因，不创建不可执行任务 |
@@ -100,7 +100,9 @@
 | macOS Release app | `flutter build macos --release` | Release app 构建成功；内置 FFmpeg / FFprobe 可被运行时定位 |
 | macOS DMG | `scripts/release/build_dmg_macos.sh` | 生成 `build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg`；DMG 内 app 可启动并处理三类媒体 |
 | Windows Release zip | `PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1` | 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`；Release 目录包含 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe` |
-| 内置 FFmpeg 验证 | macOS 执行包内 `ffmpeg -hide_banner -encoders`、`ffprobe -hide_banner -version`；Windows 执行 Release `ffmpeg.exe` / `ffprobe.exe` | FFmpeg / FFprobe 可运行，包含视频、图片、音频处理所需 encoder / muxer |
+| 内置 FFmpeg 验证 | macOS 执行包内 `ffmpeg -hide_banner -encoders`、`ffprobe -hide_banner -version`；Windows 执行 Release `ffmpeg.exe` / `ffprobe.exe` | FFmpeg / FFprobe 可运行，包含 `libx264`、`libmp3lame`、`libwebp`、`libopus` 等当前输出格式所需 encoder / muxer |
+| QMC adapter 打包 | 先放置或构建 `third_party/audio_adapters/qmc/<platform>/qmc-decrypt`，再执行 macOS / Windows 发布脚本 | adapter 存在时被复制到 `audio_adapters/qmc/`；不存在时不阻断普通媒体发布 |
+| 常规格式边界 | 导入常见视频、图片、音频扩展名；分别打开三类任务配置面板 | 常规输入扩展名可识别；NCM、MGG、MFLAC 等专有音频只走专有音频适配链路；导出格式下拉只显示当前媒体类型支持的格式 |
 | FFmpeg 日志路径 | 完成一次三类媒体任务后检查临时日志 | 日志记录真实 `ffmpegPath`、命令参数、stderr 尾部；失败摘要不写入 SQLite 日志正文 |
 | Windows Explorer 定位 | Windows 输出路径包含空格或中文时点击“打开文件存放位置” | Explorer 打开并定位输出文件，视频 / 图片 / 音频都可用 |
 

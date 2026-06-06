@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
 import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
-import 'package:framelean/domain/enums/proprietary_audio_format.dart';
 import 'package:framelean/domain/value_objects/proprietary_audio_decode_result.dart';
 import 'package:path/path.dart' as path;
 
@@ -81,8 +80,8 @@ class StandardCliProprietaryAudioDecoder implements ProprietaryAudioDecoder {
     required String inputPath,
     required String outputDirectory,
   }) {
-    if (runtime.format == ProprietaryAudioFormat.ncm) {
-      return [inputPath, '-o', outputDirectory];
+    if (runtime.adapterName == 'qmc-decrypt') {
+      return [inputPath, outputDirectory];
     }
 
     return [

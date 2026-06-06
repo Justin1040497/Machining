@@ -15,6 +15,10 @@ third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
 ```
 
+The release script validates that `ffmpeg.exe` includes the output encoders
+required by the current app surface: `libx264`, `libmp3lame`, `libwebp`, and
+`libopus`.
+
 The Windows CMake install step copies these files into:
 
 ```text

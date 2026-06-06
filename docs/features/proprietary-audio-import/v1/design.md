@@ -11,14 +11,14 @@ tags: [media, audio, native-decoder, ffmpeg, packaging]
 
 ## 1. 目标
 
-在 FrameLean 已支持普通视频、图片、音频处理的基础上，新增本地专有音频格式导入适配能力。用户导入 `.ncm`、`.mgg`、`.mflac` 等文件后，FrameLean 先把受支持的专有音频输入还原为标准音频临时文件，再复用现有 FFprobe / FFmpeg 音频处理链路输出为 MP3、WAV、AAC 或 M4A。
+在 FrameLean 已支持普通视频、图片、音频处理的基础上，新增本地专有音频格式导入适配能力。用户导入 `.ncm`、`.mgg`、`.mflac` 等文件后，FrameLean 先把受支持的专有音频输入还原为标准音频临时文件，再复用现有 FFprobe / FFmpeg 音频处理链路输出为 MP3、WAV、AAC、M4A、Opus 或 Ogg Opus 等标准格式。
 
 本功能的产品定位是“本地专有音频导入适配”，不是音乐平台下载、云端转换、版权绕过或在线解析服务。
 
 首版目标：
 
 - 支持 `.ncm` 输入，优先用 FrameLean 内部原生 Dart 解码实现还原为 MP3 或 FLAC 临时文件。
-- 对 `.mgg`、`.mflac` 这类 QMC 格式变体先做识别和能力边界表达；首版不承诺完整转换，可保留外部适配器接口或返回明确暂不支持。
+- 对 `.mgg`、`.mflac` 这类 QMC 格式变体先走外部适配器接口；首版能力取决于随包或开发环境中的 `framelean-qmc-adapter` / `qmc-decrypt`。
 - 解包后的临时标准音频继续走 FrameLean 当前音频配置：输出格式、码率、采样率、声道和输出路径管理。
 - `.ncm` 首版不再依赖随包分发的 `ncmdump` 二进制；算法来源、许可证参考和实现边界需要在文档中说明。
 - 对外文案保持克制：changelog 简单说明“新增部分本地专有音频格式导入适配”，不把“解密”作为主卖点。
@@ -30,7 +30,7 @@ tags: [media, audio, native-decoder, ffmpeg, packaging]
 - `MediaKind` 支持 `video`、`image`、`audio`。
 - `FileExtensionMediaKindResolver` 已识别普通音频扩展名。
 - `FfprobeMediaAnalyzer` 支持纯音频，不再要求视频流。
-- `DefaultFfmpegCommandBuilder.buildAudioCommandPlan()` 已能把标准音频输出为 MP3、M4A/AAC、WAV、FLAC。
+- `DefaultFfmpegCommandBuilder.buildAudioCommandPlan()` 已能把标准音频输出为 MP3、M4A/AAC、WAV、FLAC、AIFF、WMA、Opus 和 Ogg Opus。
 - macOS 和 Windows 发布包已有内置 FFmpeg / FFprobe 的打包、验证和许可证文档路径。
 
 当前不能直接支持 `.ncm`、`.mgg`、`.mflac` 的原因：
@@ -169,7 +169,7 @@ lib/infrastructure/services/proprietary_audio/
 `proprietary_audio_decoder_dispatcher.dart` 根据 `ProprietaryAudioFormat` 分派：
 
 - `ncm`：走原生 Dart 解码实现。
-- `qmcMgg`、`qmcMflac`：首版返回明确暂不支持，或在后续接入 `qmc/` 下的外部适配器。
+- `qmcMgg`、`qmcMflac`：走 `framelean-qmc-adapter` 外部适配器，或直接兼容 `qmc-decrypt`；适配器不可用、缺少 ekey 或变体不支持时返回明确错误。
 
 如果后续恢复外部适配器，发布包目录只服务 QMC 等未原生实现的格式：
 
@@ -200,7 +200,7 @@ FrameLean-vX.Y.Z-windows-x64/audio_adapters/
 
 ### 3.4 设置与持久化
 
-首版不新增用户设置项。NCM 走原生实现，不需要用户配置适配器路径；QMC 暂不作为完整首版承诺。
+首版不新增用户设置项。NCM 走原生实现，不需要用户配置适配器路径；QMC 通过随包或开发目录中的 `framelean-qmc-adapter` / `qmc-decrypt` 处理。
 
 如果后续接入 QMC 外部适配器，再新增只读运行时状态：
 
@@ -236,7 +236,7 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-  A["用户选择 MP3/WAV/AAC 输出"] --> B["确认临时标准音频仍存在"]
+  A["用户选择 MP3/WAV/AAC/Opus 输出"] --> B["确认临时标准音频仍存在"]
   B --> C["缺失则重新解包"]
   C --> D["FFmpeg 使用 decodedPath 作为输入"]
   D --> E["生成用户指定输出文件"]
@@ -340,7 +340,7 @@ NCM 原生实现需要遵守：
 - 解析失败、密钥失败、输出为空和 FFprobe 失败分别给出可读错误。
 - 算法参考来源和许可需要在 `docs/reference/third-party-audio-adapters.md` 中记录；不要复制不兼容许可代码。
 
-QMC 仍然保留外部适配器边界。原因是 `.mgg/.mflac` 变体更多，公开工具覆盖不一致，且部分样本需要额外 `ekey`。在没有稳定样本和清晰验收前，QMC 不应该和 NCM 绑定成同一个首版承诺。
+QMC 仍然保留外部适配器边界。原因是 `.mgg/.mflac` 变体更多，公开工具覆盖不一致，且部分样本需要额外 `ekey`。FrameLean 主程序只约定 adapter 协议、路径发现、超时和输出校验；具体开源解码器编译与许可证材料放在 `third_party/audio_adapters/qmc/` 管理。
 
 ### 5.3 许可证与第三方声明
 
@@ -418,9 +418,9 @@ QMC 后续如接入外部适配器，再增加：
 | 验收条件 | 验收方式 |
 | --- | --- |
 | `.ncm` 可导入并分析为标准音频信息 | 使用本地测试样本手动导入；新增 unit test 覆盖 resolver、NCM parser、key box 和 decoder 成功路径 |
-| `.ncm` 可输出 MP3、WAV、AAC/M4A | 手动端到端验证，检查输出文件存在且可播放 |
+| `.ncm` 可输出 MP3、WAV、AAC/M4A、Opus / Ogg Opus | 手动端到端验证，检查输出文件存在且可播放 |
 | QMC 支持范围被准确表达 | `.mgg/.mflac` 导入时要么进入已实现适配器，要么返回明确暂不支持，不进入 FFprobe 深层失败 |
-| 普通音频处理不回退 | `flutter test` 中保留现有 MP3/M4A/WAV/FLAC 命令构造断言 |
+| 普通音频处理不回退 | `flutter test` 中保留现有 MP3/M4A/WAV/FLAC/Opus 命令构造断言 |
 | 临时文件可清理 | 单测或集成测试覆盖成功、失败、取消后的临时目录状态 |
 | NCM 不依赖外部 `ncmdump` | 在未安装 `ncmdump` 的环境中，`.ncm` 分析和执行仍可走原生实现 |
 | 不联网、不下载、不调用平台 API | 代码审查和集成测试确认解码器只接收本地路径 |

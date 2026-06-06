@@ -7,6 +7,9 @@ SRC_DIR="${BUILD_DIR}/src"
 PREFIX="${BUILD_DIR}/dist"
 OUT_DIR="${ROOT}/third_party/ffmpeg/macos-arm64"
 FFMPEG_VERSION="${FFMPEG_VERSION:-7.1.1}"
+LAME_VERSION="${LAME_VERSION:-3.100}"
+LIBWEBP_VERSION="${LIBWEBP_VERSION:-1.5.0}"
+OPUS_VERSION="${OPUS_VERSION:-1.5.2}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 
 require_command() {
@@ -35,6 +38,76 @@ require_command pkg-config
 require_command tar
 
 mkdir -p "$SRC_DIR" "$PREFIX" "$OUT_DIR"
+
+cd "$SRC_DIR"
+if [[ ! -f "lame-${LAME_VERSION}.tar.gz" ]]; then
+  curl -L \
+    "https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz" \
+    -o "lame-${LAME_VERSION}.tar.gz"
+fi
+
+rm -rf "lame-${LAME_VERSION}"
+tar -xf "lame-${LAME_VERSION}.tar.gz"
+
+cd "$SRC_DIR/lame-${LAME_VERSION}"
+make distclean >/dev/null 2>&1 || true
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static \
+  --disable-frontend
+
+make -j"$JOBS"
+make install
+
+cd "$SRC_DIR"
+if [[ ! -f "libwebp-${LIBWEBP_VERSION}.tar.gz" ]]; then
+  curl -L \
+    "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz" \
+    -o "libwebp-${LIBWEBP_VERSION}.tar.gz"
+fi
+
+rm -rf "libwebp-${LIBWEBP_VERSION}"
+tar -xf "libwebp-${LIBWEBP_VERSION}.tar.gz"
+
+cd "$SRC_DIR/libwebp-${LIBWEBP_VERSION}"
+make distclean >/dev/null 2>&1 || true
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static \
+  --disable-gl \
+  --disable-sdl \
+  --disable-png \
+  --disable-jpeg \
+  --disable-tiff \
+  --disable-gif \
+  --disable-wic
+
+make -j"$JOBS"
+make install
+
+cd "$SRC_DIR"
+if [[ ! -f "opus-${OPUS_VERSION}.tar.gz" ]]; then
+  curl -L \
+    "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" \
+    -o "opus-${OPUS_VERSION}.tar.gz"
+fi
+
+rm -rf "opus-${OPUS_VERSION}"
+tar -xf "opus-${OPUS_VERSION}.tar.gz"
+
+cd "$SRC_DIR/opus-${OPUS_VERSION}"
+make distclean >/dev/null 2>&1 || true
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static \
+  --disable-extra-programs \
+  --disable-doc
+
+make -j"$JOBS"
+make install
 
 cd "$SRC_DIR"
 if [[ ! -d x264 ]]; then
@@ -76,6 +149,9 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-gpl \
   --enable-version3 \
   --enable-libx264 \
+  --enable-libmp3lame \
+  --enable-libwebp \
+  --enable-libopus \
   --enable-videotoolbox \
   --enable-audiotoolbox \
   --disable-shared \
@@ -100,12 +176,21 @@ strip "$OUT_DIR/ffprobe" >/dev/null 2>&1 || true
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
 FFmpeg version: ${FFMPEG_VERSION}
 x264 source: https://code.videolan.org/videolan/x264.git
+LAME version: ${LAME_VERSION}
+LAME source: https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz
+libwebp version: ${LIBWEBP_VERSION}
+libwebp source: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz
+Opus version: ${OPUS_VERSION}
+Opus source: https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz
 FFmpeg source: https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
 Target: macOS arm64
 Configure flags:
   --enable-gpl
   --enable-version3
   --enable-libx264
+  --enable-libmp3lame
+  --enable-libwebp
+  --enable-libopus
   --enable-videotoolbox
   --enable-audiotoolbox
   --disable-shared
@@ -139,10 +224,18 @@ fi
 echo "OK: no Homebrew dynamic library dependencies detected"
 
 echo
-echo "Checking libx264 encoder:"
-if "$OUT_DIR/ffmpeg" -hide_banner -encoders | grep 'libx264' >/dev/null; then
-  echo "OK: libx264 encoder is available"
-else
-  echo "error: libx264 encoder was not found" >&2
-  exit 1
-fi
+require_encoder() {
+  local encoder_name="$1"
+  if "$OUT_DIR/ffmpeg" -hide_banner -encoders | grep "$encoder_name" >/dev/null; then
+    echo "OK: $encoder_name encoder is available"
+  else
+    echo "error: $encoder_name encoder was not found" >&2
+    exit 1
+  fi
+}
+
+echo "Checking required encoders:"
+require_encoder libx264
+require_encoder libmp3lame
+require_encoder libwebp
+require_encoder libopus

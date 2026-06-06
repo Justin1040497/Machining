@@ -25,6 +25,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
+import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 void main() {
@@ -245,16 +246,19 @@ void main() {
       lessThan(tester.getCenter(find.text('保留元数据')).dx),
     );
 
-    final formatDropdown = tester
-        .widget<DropdownButtonFormField<MediaOutputFormat>>(
-          find
-              .byWidgetPredicate(
-                (widget) =>
-                    widget is DropdownButtonFormField<MediaOutputFormat>,
-              )
-              .first,
-        );
-    formatDropdown.onChanged?.call(MediaOutputFormat.webp);
+    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
+      find
+          .byWidgetPredicate(
+            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
+          )
+          .first,
+    );
+    expect(
+      formatDropdown.values,
+      MediaOutputFormat.formatsFor(MediaKind.image),
+    );
+    expect(formatDropdown.values, isNot(contains(MediaOutputFormat.mp3)));
+    formatDropdown.onChanged(MediaOutputFormat.webp);
 
     final resizeDropdown = tester
         .widget<DropdownButtonFormField<ImageResizePreset>>(
@@ -331,16 +335,21 @@ void main() {
     expect(find.text('声道'), findsOneWidget);
     expect(find.text('视频编码'), findsNothing);
 
-    final formatDropdown = tester
-        .widget<DropdownButtonFormField<MediaOutputFormat>>(
-          find
-              .byWidgetPredicate(
-                (widget) =>
-                    widget is DropdownButtonFormField<MediaOutputFormat>,
-              )
-              .first,
-        );
-    formatDropdown.onChanged?.call(MediaOutputFormat.mp3);
+    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
+      find
+          .byWidgetPredicate(
+            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
+          )
+          .first,
+    );
+    expect(
+      formatDropdown.values,
+      MediaOutputFormat.formatsFor(MediaKind.audio),
+    );
+    expect(formatDropdown.values, isNot(contains(MediaOutputFormat.png)));
+    expect(formatDropdown.values, contains(MediaOutputFormat.opus));
+    expect(formatDropdown.values, contains(MediaOutputFormat.oggOpus));
+    formatDropdown.onChanged(MediaOutputFormat.mp3);
 
     final bitrateDropdown = tester
         .widget<DropdownButtonFormField<AudioBitratePreset>>(

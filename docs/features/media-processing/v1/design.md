@@ -121,7 +121,7 @@ class MediaTaskConfig {
 
 图片配置：
 
-- `outputFormat`: `jpg`、`png`、`webp`。
+- `outputFormat`: `jpg`、`png`、`webp`、`bmp`、`tiff`、`gif`。
 - `imageQuality`: 1 到 100，默认 100。
 - `imageResizePreset`: `original`、3840 × 2160、2560 × 1440、1920 × 1080、1280 × 720、720 × 720。
 - `preserveMetadata`: 默认 `false`，由图片配置面板开关控制。
@@ -129,7 +129,7 @@ class MediaTaskConfig {
 
 音频配置：
 
-- `outputFormat`: `mp3`、`m4a`、`aac`、`wav`、`flac`。
+- `outputFormat`: `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`。
 - `audioBitratePreset`: `source`、`320k`、`192k`、`128k`、`96k`、`64k`。
 - `audioSampleRate`: `source`、`48000`、`44100`、`32000`。
 - `audioChannels`: `source`、`stereo`、`mono`。
@@ -453,7 +453,7 @@ lib/features/workbench/
 | 视频 / 图片 / 音频可分别生成合法 FFmpeg 命令计划 | 新增或扩展命令构造测试 |
 | 图片任务执行时不会因缺少 duration 卡住进度 | 进度观测或队列执行测试覆盖 `ProgressMode.step` |
 | 音频任务执行时使用 `-vn`，不会输出视频流 | 命令构造测试检查参数 |
-| 图片任务执行时输出格式和质量参数符合配置 | 命令构造测试检查 jpg/webp/png 参数 |
+| 图片任务执行时输出格式和质量参数符合配置 | 命令构造测试检查 jpg/webp/png/bmp/tiff/gif 参数 |
 | 工作台文件选择支持视频、图片、音频类型组 | Widget 或轻量单测检查 `WorkbenchConstants` |
 | 配置弹窗按媒体类型展示不同配置面板 | Widget 测试覆盖三类任务 |
 | 任务列表缩略图对视频、图片、音频都有稳定表现 | 缩略图 generator 测试和 Widget 测试 |
