@@ -29,6 +29,17 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-06｜v1.1.5｜No Release
+
+今天完成仓库根目录结构治理，作为 `feature/media-processing` 的工程整理内容。
+
+### Changed
+
+- 将根目录 `NOTICE` 移入 `legal/NOTICE.md`，保留根目录 `LICENSE` 作为项目许可证发现入口。
+- 将构建和发布脚本拆分到 `scripts/build/` 与 `scripts/release/`。
+- 将本地参考、临时样本和工具状态迁入 `.workspace/`，并通过 `.gitignore` 排除。
+- 更新 macOS / Windows 打包路径和法律材料复制配置。
+
 ## 2026-06-05｜v1.1.5｜No Release
 
 今天拆分 FrameLean 项目级 workflow skills，降低单次 commit、PR、release 文案和测试计划请求的上下文负担。
@@ -217,7 +228,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增 FFmpeg 进程控制抽象，由 application 层定义暂停、继续和终止能力，infrastructure 层负责具体平台实现。
 - 新增 Windows runner 原生进程控制通道，通过线程挂起和恢复支持 Windows 上的 FFmpeg 真暂停 / 继续。
 - 已完成任务新增“重来”入口，任务列表和完成弹窗都可以从源文件检查和媒体分析重新开始。
-- 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\build_windows.ps1` 生成发布 zip。
+- 新增 GitHub Actions Windows 打包 workflow，可在 Windows runner 上恢复 FFmpeg 运行时并调用 `scripts\release\build_windows.ps1` 生成发布 zip。
 - 新增 `docs/develop/project-workflow.md` 和 `.agents/skills/framelean-workflow/`，记录 FrameLean 项目级需求、分支、测试、实现、验证和 PR 准备流程。
 
 ### Changed

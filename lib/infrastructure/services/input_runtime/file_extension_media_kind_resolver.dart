@@ -29,6 +29,14 @@ class FileExtensionMediaKindResolver implements MediaKindResolver {
     '.flac',
     '.m4a',
     '.ogg',
+    '.ncm',
+    '.mgg',
+    '.mgg0',
+    '.mgg1',
+    '.mggl',
+    '.mflac',
+    '.mflac0',
+    '.qmcflac',
   };
 
   @override

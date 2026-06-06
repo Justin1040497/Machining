@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RELEASE_DIR="${ROOT}/build/macos/Build/Products/Release"
 APP_PATH="${RELEASE_DIR}/FrameLean.app"
 DMG_SOURCE_PATH="${RELEASE_DIR}/FrameLean.dmg"
@@ -41,7 +41,7 @@ fi
 
 if [[ ! -x "$FFMPEG_DIR/ffmpeg" || ! -x "$FFMPEG_DIR/ffprobe" ]]; then
   echo "Bundled FFmpeg runtime not found. Building macOS arm64 runtime..."
-  "${ROOT}/scripts/build_ffmpeg_macos_arm64.sh"
+  "${ROOT}/scripts/build/build_ffmpeg_macos_arm64.sh"
 fi
 
 if [[ "$#" -eq 0 ]]; then

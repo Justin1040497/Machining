@@ -158,7 +158,7 @@ flutter test
 准备 macOS arm64 FFmpeg / FFprobe：
 
 ```bash
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 脚本会构建 FFmpeg 7.1.1 和 x264，并检查：
@@ -176,7 +176,7 @@ third_party/ffmpeg/macos-arm64/ffprobe
 Release DMG 构建：
 
 ```bash
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 脚本会检查并准备内置 FFmpeg / FFprobe，调用 `pubspec.yaml` 中的
@@ -212,7 +212,7 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 Release 构建：
 
 ```powershell
-PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
 
 Release 产物位置：
@@ -337,10 +337,10 @@ lib/
 
 ## 许可说明
 
-FrameLean 项目整体按 `GPL-3.0-or-later` 分发。根目录保留标准发现入口，完整发布法律资料集中在 `legal/`：
+FrameLean 项目整体按 `GPL-3.0-or-later` 分发。根目录保留 `LICENSE` 作为标准发现入口，完整发布法律资料集中在 `legal/`：
 
 - [LICENSE](LICENSE)：GNU General Public License v3 正文。
-- [NOTICE](NOTICE)：项目版权、无担保和运行时声明。
+- [legal/NOTICE.md](legal/NOTICE.md)：项目版权、无担保和运行时声明。
 - [legal/COPYING](legal/COPYING)：项目 GPLv3+ 分发入口说明。
 - [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、Flutter/Dart 依赖声明。
 - [legal/SOURCE_OFFER.md](legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。

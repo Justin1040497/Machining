@@ -12,7 +12,7 @@ Upstream source:
 Local build entrypoint:
 
 ```text
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 The macOS runtime build metadata is mirrored in ffmpeg-build-info.txt and kept

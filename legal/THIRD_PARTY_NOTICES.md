@@ -26,7 +26,7 @@ See the root LICENSE file and legal/COPYING in this repository.
   built with `--enable-gpl`, `--enable-version3`, and `--enable-libx264`.
 - Nonfree configuration: `--enable-nonfree` must not be enabled for distributed
   builds.
-- Local build reference: `scripts/build_ffmpeg_macos_arm64.sh`
+- Local build reference: `scripts/build/build_ffmpeg_macos_arm64.sh`
 
 FFmpeg and FFprobe are maintained by the FFmpeg project. FrameLean only invokes
 and distributes the runtime binaries when they are included in release packages.

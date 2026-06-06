@@ -31,7 +31,22 @@ abstract final class WorkbenchConstants {
 
   static const audioTypeGroup = XTypeGroup(
     label: '音频文件',
-    extensions: ['mp3', 'wav', 'aac', 'flac', 'm4a', 'ogg'],
+    extensions: [
+      'mp3',
+      'wav',
+      'aac',
+      'flac',
+      'm4a',
+      'ogg',
+      'ncm',
+      'mgg',
+      'mgg0',
+      'mgg1',
+      'mggl',
+      'mflac',
+      'mflac0',
+      'qmcflac',
+    ],
     uniformTypeIdentifiers: [
       'public.audio',
       'public.mp3',

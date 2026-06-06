@@ -131,7 +131,7 @@ function Assert-ZipLayout {
       "${RootPrefix}ffmpeg/ffmpeg.exe",
       "${RootPrefix}ffmpeg/ffprobe.exe",
       "${RootPrefix}legal/LICENSE",
-      "${RootPrefix}legal/NOTICE"
+      "${RootPrefix}legal/NOTICE.md"
     )
 
     foreach ($Entry in $RequiredEntries) {
@@ -149,7 +149,7 @@ if ($env:OS -ne "Windows_NT") {
   throw "This script only builds the Windows package. Run it on Windows."
 }
 
-$Root = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
+$Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $ReleaseDir = Join-Path $Root "build\windows\x64\runner\Release"
 $ZipDir = Join-Path $Root "build\windows\x64\runner"
 $FfmpegDir = Join-Path $Root "third_party\ffmpeg\windows-x64"
@@ -161,7 +161,7 @@ Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
 Require-File (Join-Path $FfmpegDir "ffprobe.exe")
 Require-Directory $LegalDir
 Require-File (Join-Path $Root "LICENSE")
-Require-File (Join-Path $Root "NOTICE")
+Require-File (Join-Path $LegalDir "NOTICE.md")
 
 Push-Location $Root
 try {
@@ -192,7 +192,7 @@ try {
   Require-File (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe")
   Require-File (Join-Path $ReleaseDir "legal\COPYING")
   Require-File (Join-Path $ReleaseDir "legal\LICENSE")
-  Require-File (Join-Path $ReleaseDir "legal\NOTICE")
+  Require-File (Join-Path $ReleaseDir "legal\NOTICE.md")
 
   $VcRuntimeFiles = @(
     "msvcp140.dll",

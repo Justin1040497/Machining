@@ -98,8 +98,8 @@
 | macOS 开发运行 | `flutter run -d macos` | 应用启动；视频 / 图片 / 音频导入、分析、处理和打开输出位置可手动验证 |
 | Windows 开发运行 | `flutter run -d windows` | 应用启动；添加文件路径可用；管理员模式拖拽提示不回退 |
 | macOS Release app | `flutter build macos --release` | Release app 构建成功；内置 FFmpeg / FFprobe 可被运行时定位 |
-| macOS DMG | `scripts/build_dmg_macos.sh` | 生成 `build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg`；DMG 内 app 可启动并处理三类媒体 |
-| Windows Release zip | `PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1` | 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`；Release 目录包含 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe` |
+| macOS DMG | `scripts/release/build_dmg_macos.sh` | 生成 `build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg`；DMG 内 app 可启动并处理三类媒体 |
+| Windows Release zip | `PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1` | 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`；Release 目录包含 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe` |
 | 内置 FFmpeg 验证 | macOS 执行包内 `ffmpeg -hide_banner -encoders`、`ffprobe -hide_banner -version`；Windows 执行 Release `ffmpeg.exe` / `ffprobe.exe` | FFmpeg / FFprobe 可运行，包含视频、图片、音频处理所需 encoder / muxer |
 | FFmpeg 日志路径 | 完成一次三类媒体任务后检查临时日志 | 日志记录真实 `ffmpegPath`、命令参数、stderr 尾部；失败摘要不写入 SQLite 日志正文 |
 | Windows Explorer 定位 | Windows 输出路径包含空格或中文时点击“打开文件存放位置” | Explorer 打开并定位输出文件，视频 / 图片 / 音频都可用 |

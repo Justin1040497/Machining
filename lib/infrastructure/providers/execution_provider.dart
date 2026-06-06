@@ -69,6 +69,7 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
     sourceFileChecker: ref.read(sourceFileCheckerProvider),
     readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
     commandBuilder: ref.read(ffmpegCommandBuilderProvider),
+    mediaInputPreparer: ref.read(mediaInputPreparerProvider),
     processStarter: ref.read(ffmpegProcessStarterProvider),
     processController: ref.read(ffmpegProcessControllerProvider),
     processObserver: ref.read(ffmpegProcessObserverProvider),

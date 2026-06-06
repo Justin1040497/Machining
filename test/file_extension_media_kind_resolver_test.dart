@@ -16,5 +16,14 @@ void main() {
       expect(resolver.resolve('/images/photo.WEBP'), MediaKind.image);
       expect(resolver.resolve('/audio/voice.MP3'), MediaKind.audio);
     });
+
+    test('resolves proprietary audio extensions as audio inputs', () {
+      final resolver = FileExtensionMediaKindResolver();
+
+      expect(resolver.resolve('/audio/song.NCM'), MediaKind.audio);
+      expect(resolver.resolve('/audio/song.mgg'), MediaKind.audio);
+      expect(resolver.resolve('/audio/song.mflac'), MediaKind.audio);
+      expect(resolver.resolve('/audio/song.qmcflac'), MediaKind.audio);
+    });
   });
 }

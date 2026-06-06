@@ -250,7 +250,7 @@ test/
 
 ### Windows 构建验证
 
-- `PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1` 成功。
+- `PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1` 成功。
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
 - 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`。
 - zip 解压后顶层目录为 `FrameLean-v1.1.5-windows-x64/`。

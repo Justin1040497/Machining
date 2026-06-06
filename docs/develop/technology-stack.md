@@ -133,14 +133,14 @@ flutter pub get
 flutter analyze
 flutter test
 flutter run -d macos
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 Windows 常用命令：
 
 ```powershell
 flutter run -d windows
-PowerShell -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
 
 GitHub Actions Windows 打包：
@@ -151,7 +151,7 @@ GitHub Actions Windows 打包：
 
 该 workflow 会在 Windows runner 上下载 `deps-ffmpeg-windows-x64-20260430`
 Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
-`scripts\build_windows.ps1` 生成 Windows x64 发布包。
+`scripts\release\build_windows.ps1` 生成 Windows x64 发布包。
 
 ## 核心依赖位置
 
@@ -230,13 +230,13 @@ README.md
 运行时构建脚本：
 
 ```text
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 DMG 打包脚本：
 
 ```text
-scripts/build_dmg_macos.sh
+scripts/release/build_dmg_macos.sh
 ```
 
 Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复制到：
@@ -245,13 +245,13 @@ Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复�
 FrameLean.app/Contents/Resources/ffmpeg/
 ```
 
-Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `NOTICE` 复制到：
+Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 
 ```text
 FrameLean.app/Contents/Resources/legal/
 ```
 
-当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe` 和法律资料。
+当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/release/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe` 和法律资料。
 
 ### Windows
 

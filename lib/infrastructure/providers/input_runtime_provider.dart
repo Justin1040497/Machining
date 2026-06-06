@@ -1,20 +1,60 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
+import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
+import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
+import 'package:framelean/application/services/input_runtime/proprietary_audio_format_resolver.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/infrastructure/services/input_runtime/bundled_proprietary_audio_adapter_registry.dart';
+import 'package:framelean/infrastructure/services/input_runtime/default_media_input_preparer.dart';
 import 'package:framelean/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
 import 'package:framelean/infrastructure/services/input_runtime/file_extension_media_kind_resolver.dart';
+import 'package:framelean/infrastructure/services/input_runtime/file_extension_proprietary_audio_format_resolver.dart';
 import 'package:framelean/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
 import 'package:framelean/infrastructure/services/input_runtime/local_source_file_checker.dart';
 import 'package:framelean/infrastructure/services/input_runtime/local_source_file_fingerprint_reader.dart';
+import 'package:framelean/infrastructure/services/input_runtime/standard_cli_proprietary_audio_decoder.dart';
 
 /// 媒体类型识别服务
 final mediaKindResolverProvider = Provider<MediaKindResolver>((ref) {
   return FileExtensionMediaKindResolver();
+});
+
+/// 专有音频输入格式识别服务
+final proprietaryAudioFormatResolverProvider =
+    Provider<ProprietaryAudioFormatResolver>((ref) {
+      return const FileExtensionProprietaryAudioFormatResolver();
+    });
+
+/// 随包分发的专有音频适配器解析服务
+final proprietaryAudioAdapterRegistryProvider =
+    Provider<ProprietaryAudioAdapterRegistry>((ref) {
+      return const BundledProprietaryAudioAdapterRegistry();
+    });
+
+/// 专有音频适配器执行服务
+final proprietaryAudioDecoderProvider = Provider<ProprietaryAudioDecoder>((
+  ref,
+) {
+  return const StandardCliProprietaryAudioDecoder();
+});
+
+/// FFprobe / FFmpeg 前的实际输入文件准备服务
+final mediaInputPreparerProvider = Provider<MediaInputPreparer>((ref) {
+  return DefaultMediaInputPreparer(
+    proprietaryAudioFormatResolver: ref.watch(
+      proprietaryAudioFormatResolverProvider,
+    ),
+    proprietaryAudioAdapterRegistry: ref.watch(
+      proprietaryAudioAdapterRegistryProvider,
+    ),
+    proprietaryAudioDecoder: ref.watch(proprietaryAudioDecoderProvider),
+  );
 });
 
 /// 源文件存在检查服务

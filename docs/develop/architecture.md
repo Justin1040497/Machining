@@ -96,8 +96,11 @@ linux/
 web/
 test/
 scripts/
+tool/
 third_party/
+legal/
 docs/
+.workspace/  本地 ignored 工作区，不进入版本库
 ```
 
 当前验证和发布重点是 macOS Apple Silicon 与 Windows x64。Linux 和 Web 目录来自 Flutter 工程模板，不代表已经完成产品级支持。

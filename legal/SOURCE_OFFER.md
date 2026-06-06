@@ -9,7 +9,7 @@ The corresponding source for FrameLean includes:
 
 - FrameLean application source code.
 - Build scripts and packaging metadata in this repository.
-- FFmpeg runtime build scripts and metadata in `scripts/` and
+- FFmpeg runtime build scripts and metadata in `scripts/build/` and
   `third_party/ffmpeg/`.
 - Documentation needed to rebuild or replace the bundled FFmpeg / FFprobe
   runtime.
@@ -25,7 +25,7 @@ Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264 enabled.
 The macOS arm64 build script is:
 
 ```text
-scripts/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
 The documented FFmpeg configure flags include:
@@ -63,6 +63,6 @@ locations, PATH, or user-configured custom paths, depending on platform and app
 settings. Users should be able to replace or rebuild the FFmpeg / FFprobe
 runtime with a GPL-compatible build.
 
-Release packaging includes this legal directory, the root LICENSE and NOTICE
-files, and the relevant FFmpeg build metadata so recipients receive the license
-terms and source availability information with the binary package.
+Release packaging includes this legal directory, the root LICENSE file,
+legal/NOTICE.md, and the relevant FFmpeg build metadata so recipients receive
+the license terms and source availability information with the binary package.

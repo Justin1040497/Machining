@@ -438,7 +438,7 @@
 			);
 			inputPaths = (
 				"$(PROJECT_DIR)/../LICENSE",
-				"$(PROJECT_DIR)/../NOTICE",
+				"$(PROJECT_DIR)/../legal/NOTICE.md",
 				"$(PROJECT_DIR)/../legal",
 			);
 			name = "Bundle Legal Materials";
@@ -446,12 +446,12 @@
 			);
 			outputPaths = (
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/LICENSE",
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/NOTICE",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/NOTICE.md",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/legal/COPYING",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\n\nROOT=\"${PROJECT_DIR}/..\"\nSRC=\"${ROOT}/legal\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/legal\"\n\nif [ ! -d \"$SRC\" ]; then\n  echo \"error: Legal materials directory not found: $SRC\" >&2\n  exit 1\nfi\n\nrm -rf \"$DST\"\nmkdir -p \"$DST\"\nditto \"$SRC\" \"$DST\"\ninstall -m 644 \"$ROOT/LICENSE\" \"$DST/LICENSE\"\ninstall -m 644 \"$ROOT/NOTICE\" \"$DST/NOTICE\"\n";
+			shellScript = "set -eu\n\nROOT=\"${PROJECT_DIR}/..\"\nSRC=\"${ROOT}/legal\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/legal\"\n\nif [ ! -d \"$SRC\" ]; then\n  echo \"error: Legal materials directory not found: $SRC\" >&2\n  exit 1\nfi\n\nrm -rf \"$DST\"\nmkdir -p \"$DST\"\nditto \"$SRC\" \"$DST\"\ninstall -m 644 \"$ROOT/LICENSE\" \"$DST/LICENSE\"\n";
 		};
 		EF40530F8DFD6F5F1F65CCF6 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;

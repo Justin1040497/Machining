@@ -10,6 +10,7 @@ import 'package:framelean/application/services/execution/ffmpeg_process_observer
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -308,6 +309,43 @@ void main() {
       expect(commandBuilder.allowExtremeCompressionValues, [true]);
     });
 
+    test(
+      'start builds command with prepared input while preserving original task',
+      () async {
+        final task = audioTask(id: 'ncm-task', inputPath: '/music/song.ncm');
+        final preparer = FakeMediaInputPreparer('/tmp/framelean/song.flac');
+        final harness = QueueHarness(
+          tasks: [task],
+          mediaInputPreparer: preparer,
+        );
+
+        final result = await harness.runner.start();
+
+        expect(result.outcome, FfmpegQueueStartOutcome.started);
+        expect(harness.processStarter.starts, hasLength(1));
+        expect(
+          harness.processStarter.starts.single.args,
+          containsAllInOrder(['-i', '/tmp/framelean/song.flac']),
+        );
+        expect(
+          harness.repository.taskById('ncm-task').inputPath,
+          '/music/song.ncm',
+        );
+        expect(
+          harness.repository.taskById('ncm-task').status,
+          TaskStatus.running,
+        );
+
+        harness.processObserver.complete(
+          'ncm-task',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('ncm-task', TaskStatus.completed);
+
+        expect(preparer.cleanupCallCount, 1);
+      },
+    );
+
     test('start failure writes diagnostic footer to execution log', () async {
       final task = videoTask(id: 'start-fails', sortOrder: 0);
       final harness = QueueHarness(
@@ -349,6 +387,7 @@ class QueueHarness {
       ffprobe: null,
     ),
     FakeCommandBuilder? commandBuilder,
+    MediaInputPreparer mediaInputPreparer = const NoopMediaInputPreparer(),
     FakeProcessStarter? processStarter,
     FakeProcessController? processController,
     FakeProcessObserver? processObserver,
@@ -368,6 +407,7 @@ class QueueHarness {
       ),
       readRuntime: () async => runtime,
       commandBuilder: commandBuilder ?? FakeCommandBuilder(),
+      mediaInputPreparer: mediaInputPreparer,
       processStarter: this.processStarter,
       processController: this.processController,
       processObserver: this.processObserver,
@@ -464,6 +504,15 @@ MediaTask videoTask({String id = 'task', required int sortOrder}) {
     fileName: '$id.mp4',
     mediaKind: MediaKind.video,
     sortOrder: sortOrder,
+  ).copyWith(id: id);
+}
+
+MediaTask audioTask({required String id, required String inputPath}) {
+  return MediaTask.draft(
+    inputPath: inputPath,
+    fileName: inputPath.split('/').last,
+    mediaKind: MediaKind.audio,
+    sortOrder: 0,
   ).copyWith(id: id);
 }
 
@@ -572,6 +621,28 @@ class FakeCommandBuilder implements FfmpegCommandBuilder {
       outputPath: '/videos/${task.id}.out.mp4',
       logHint: '测试命令',
     );
+  }
+}
+
+class FakeMediaInputPreparer implements MediaInputPreparer {
+  final String preparedInputPath;
+  int cleanupCallCount = 0;
+
+  FakeMediaInputPreparer(this.preparedInputPath);
+
+  @override
+  Future<PreparedMediaInput> prepare(
+    MediaTask task, {
+    required MediaInputPreparationPurpose purpose,
+  }) async {
+    return PreparedMediaInput(
+      task: task.copyWith(inputPath: preparedInputPath),
+    );
+  }
+
+  @override
+  Future<void> cleanup(PreparedMediaInput preparedInput) async {
+    cleanupCallCount += 1;
   }
 }
 

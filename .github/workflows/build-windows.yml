@@ -103,7 +103,7 @@ jobs:
         run: flutter doctor -v
 
       - name: Build Windows package
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build_windows.ps1
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 
       - name: Upload Windows package artifact
         uses: actions/upload-artifact@v4
