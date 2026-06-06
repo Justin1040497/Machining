@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 
@@ -38,9 +40,6 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
         children: [
           _ImageQualitySelector(
             quality: config.imageQuality,
-            height: dropdownHeight,
-            labelFontSize: labelFontSize,
-            valueFontSize: valueFontSize,
             onChanged: (value) {
               onChanged(config.copyWith(imageQuality: value));
             },
@@ -97,68 +96,21 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
 }
 
 class _ImageQualitySelector extends StatelessWidget {
-  const _ImageQualitySelector({
-    required this.quality,
-    required this.height,
-    required this.labelFontSize,
-    required this.valueFontSize,
-    required this.onChanged,
-  });
+  const _ImageQualitySelector({required this.quality, required this.onChanged});
 
   final int quality;
-  final double? height;
-  final double labelFontSize;
-  final double valueFontSize;
   final ValueChanged<int> onChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '质量',
-              style: TextStyle(
-                fontSize: labelFontSize,
-                color: const Color(0xFF111111),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            Text(
-              '$quality%',
-              style: TextStyle(
-                fontSize: valueFontSize,
-                color: const Color(0xFF111111),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 4),
-        SizedBox(
-          height: height ?? 34,
-          child: SliderTheme(
-            data: SliderTheme.of(context).copyWith(
-              trackHeight: 2,
-              activeTrackColor: const Color(0xFF111111),
-              inactiveTrackColor: const Color(0xFFE3E3E3),
-              thumbColor: const Color(0xFF111111),
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12),
-            ),
-            child: Slider(
-              min: 1,
-              max: 100,
-              divisions: 99,
-              value: quality.toDouble(),
-              label: '$quality%',
-              onChanged: (value) => onChanged(value.round()),
-            ),
-          ),
-        ),
-      ],
+    final selectedQualityRatio = quality.clamp(1, 100) / 100;
+
+    return WorkbenchPercentageSliderPanel(
+      title: '质量',
+      summaryBuilder: (ratio) => '保留${(ratio * 100).round()}%的质量',
+      values: WorkbenchConstants.imageQualityRatios,
+      selectedValue: selectedQualityRatio,
+      onChanged: (value) => onChanged((value * 100).round()),
     );
   }
 }

@@ -186,6 +186,8 @@ void main() {
 
     expect(find.byType(TextField), findsNothing);
     expect(find.byType(Slider), findsOneWidget);
+    expect(find.text('目标体积'), findsOneWidget);
+    expect(find.text('压缩体积60%'), findsOneWidget);
     expect(find.text('60%'), findsWidgets);
 
     final slider = tester.widget<Slider>(find.byType(Slider));
@@ -198,7 +200,9 @@ void main() {
     tester,
   ) async {
     final imageChanges = <ImageProcessingConfig>[];
-    final initialConfig = ImageProcessingConfig.initial();
+    final initialConfig = ImageProcessingConfig.initial().copyWith(
+      imageQuality: 80,
+    );
 
     await tester.pumpWidget(
       MaterialApp(
@@ -236,6 +240,7 @@ void main() {
     expect(find.text('图片格式'), findsOneWidget);
     expect(find.text('分辨率'), findsOneWidget);
     expect(find.text('质量'), findsOneWidget);
+    expect(find.text('保留80%的质量'), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
     expect(find.text('图片编码'), findsNothing);
     expect(find.text('尺寸'), findsNothing);
@@ -269,7 +274,7 @@ void main() {
     resizeDropdown.onChanged?.call(ImageResizePreset.longEdge1280);
 
     final slider = tester.widget<Slider>(find.byType(Slider));
-    slider.onChanged?.call(76);
+    slider.onChanged?.call(9);
 
     final metadataSwitch = tester.widget<Switch>(find.byType(Switch));
     metadataSwitch.onChanged?.call(true);
@@ -282,7 +287,7 @@ void main() {
       imageChanges.map((config) => config.resizePreset),
       contains(ImageResizePreset.longEdge1280),
     );
-    expect(imageChanges.map((config) => config.imageQuality), contains(76));
+    expect(imageChanges.map((config) => config.imageQuality), contains(100));
     expect(
       imageChanges.map((config) => config.preserveMetadata),
       contains(true),

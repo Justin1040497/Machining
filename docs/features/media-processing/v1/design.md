@@ -259,7 +259,7 @@ flowchart TD
 
 - `WorkbenchTaskConfigurationDialog` 保留弹窗外壳、源文件摘要、目标体积模式和保存动作。
 - `WorkbenchVideoConfigPanel` 改名或上移为 `WorkbenchMediaConfigPanel`，内部按类型组合分面板。
-- 图片任务显示：图片格式、分辨率、质量、保留元数据开关。
+- 图片任务显示：图片格式、分辨率、质量百分比分段滑杆、保留元数据开关。
 - 音频任务显示：音频格式、编码、码率、采样率、声道。
 - 视频任务保持现有控件和推荐预设。
 - “已修改”判断改为 `MediaTaskAdjustmentPolicy`，按媒体类型比较源分析结果与配置。

@@ -188,8 +188,37 @@ class _TargetSizePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratios = WorkbenchConstants.targetSizeRatios;
-    final selectedIndex = _indexForRatio(selectedRatio);
-    final selectedPercent = (ratios[selectedIndex] * 100).round();
+    return WorkbenchPercentageSliderPanel(
+      title: '目标体积',
+      summaryBuilder: (ratio) => '压缩体积${(ratio * 100).round()}%',
+      values: ratios,
+      selectedValue: selectedRatio,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class WorkbenchPercentageSliderPanel extends StatelessWidget {
+  const WorkbenchPercentageSliderPanel({
+    super.key,
+    required this.title,
+    required this.summaryBuilder,
+    required this.values,
+    required this.selectedValue,
+    required this.onChanged,
+  }) : assert(values.length >= 2);
+
+  final String title;
+  final String Function(double value) summaryBuilder;
+  final List<double> values;
+  final double selectedValue;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedIndex = _indexForValue(selectedValue);
+    final selectedPanelValue = values[selectedIndex];
+    final selectedPercent = (selectedPanelValue * 100).round();
 
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
@@ -202,13 +231,27 @@ class _TargetSizePanel extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
-                '目标体积',
-                style: TextStyle(
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Color(0xFF111111),
+                    fontSize: 12,
+                    height: 1,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Spacer(),
+              Text(
+                summaryBuilder(selectedPanelValue),
+                textAlign: TextAlign.right,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
                   color: Color(0xFF111111),
                   fontSize: 12,
                   height: 1,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
             ],
@@ -234,13 +277,13 @@ class _TargetSizePanel extends StatelessWidget {
               ),
               child: Slider(
                 min: 0,
-                max: (ratios.length - 1).toDouble(),
-                divisions: ratios.length - 1,
+                max: (values.length - 1).toDouble(),
+                divisions: values.length - 1,
                 value: selectedIndex.toDouble(),
                 label: '$selectedPercent%',
                 onChanged: (value) {
-                  final index = value.round().clamp(0, ratios.length - 1);
-                  onChanged(ratios[index]);
+                  final index = value.round().clamp(0, values.length - 1);
+                  onChanged(values[index]);
                 },
               ),
             ),
@@ -250,16 +293,16 @@ class _TargetSizePanel extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                for (final ratio in ratios)
+                for (final value in values)
                   Text(
-                    '${(ratio * 100).round()}%',
+                    '${(value * 100).round()}%',
                     style: TextStyle(
-                      color: ratio == ratios[selectedIndex]
+                      color: value == selectedPanelValue
                           ? const Color(0xFF315FD4)
                           : const Color(0xFF9A9A9A),
                       fontSize: 8,
                       height: 1,
-                      fontWeight: ratio == ratios[selectedIndex]
+                      fontWeight: value == selectedPanelValue
                           ? FontWeight.w700
                           : FontWeight.w500,
                     ),
@@ -273,16 +316,11 @@ class _TargetSizePanel extends StatelessWidget {
     );
   }
 
-  int _indexForRatio(double ratio) {
+  int _indexForValue(double value) {
     var nearestIndex = 0;
     var nearestDistance = double.infinity;
-    for (
-      var index = 0;
-      index < WorkbenchConstants.targetSizeRatios.length;
-      index += 1
-    ) {
-      final distance = (WorkbenchConstants.targetSizeRatios[index] - ratio)
-          .abs();
+    for (var index = 0; index < values.length; index += 1) {
+      final distance = (values[index] - value).abs();
       if (distance < nearestDistance) {
         nearestIndex = index;
         nearestDistance = distance;

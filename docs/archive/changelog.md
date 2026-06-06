@@ -43,6 +43,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 图片导出新增 BMP、TIFF、GIF；音频导出新增 AIFF、WMA、Opus 和 Ogg Opus。
 - 新增本地专有音频导入适配边界：NCM 使用 Dart 原生还原，MGG / MFLAC 通过 QMC 外部适配器运行时处理，并兼容直接放置 `qmc-decrypt`。
 - macOS 内置 FFmpeg 构建脚本新增 `libmp3lame`、`libwebp`、`libopus` 静态构建和启用参数；macOS / Windows 发布脚本会校验关键编码器是否存在。
+- 统一任务配置百分比滑杆样式：视频目标体积右侧显示 `压缩体积XX%`，图片质量复用分段百分比滑杆并显示 `保留XX%的质量`。
 
 ### Fixed
 
@@ -55,6 +56,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `flutter analyze`。
 - 通过 `flutter test`。
 - 通过 `flutter test test/ffmpeg_encoder_capabilities_test.dart test/ffmpeg_command_builder_test.dart`。
+- 通过 `flutter test test/widget_test.dart test/app_settings_dialog_test.dart`。
 
 ## 2026-06-05｜v1.1.5｜No Release
 

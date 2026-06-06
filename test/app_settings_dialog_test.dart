@@ -211,7 +211,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final qualitySlider = tester.widget<Slider>(find.byType(Slider));
-    qualitySlider.onChanged?.call(88);
+    qualitySlider.onChanged?.call(7);
     await tester.pump();
 
     final metadataSwitch = tester.widget<Switch>(find.byType(Switch));
@@ -227,7 +227,7 @@ void main() {
       savedSettings!.defaultMediaConfig.image?.resizePreset,
       ImageResizePreset.longEdge1280,
     );
-    expect(savedSettings!.defaultMediaConfig.image?.imageQuality, 88);
+    expect(savedSettings!.defaultMediaConfig.image?.imageQuality, 80);
     expect(savedSettings!.defaultMediaConfig.image?.preserveMetadata, isTrue);
   });
 
