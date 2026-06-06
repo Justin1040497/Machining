@@ -16,7 +16,7 @@ tags: [media, workbench, ffmpeg, drift, refactor]
 本设计的目标不是一次性做成完整媒体编辑器，而是让当前压缩 / 转码主链路具备三类媒体的稳定基础：
 
 - 视频：保持当前压缩、转封装、分辨率、H.264 / HEVC、硬件编码能力。
-- 图片：支持单张图片导入、基础压缩、格式转换、尺寸调整和输出路径管理。
+- 图片：支持单张图片导入、基础压缩、格式转换、分辨率调整和输出路径管理。
 - 音频：支持单个音频文件导入、基础压缩、格式转换、码率 / 采样率 / 声道配置和输出路径管理。
 - 通用：任务列表、状态恢复、源文件重新指定、队列执行、日志、完成弹窗和打开输出位置继续复用现有工作台体验。
 - 命名：用户可见产品文案、domain 主模型、application 抽象和 features 主入口不再以 `VideoTaskConfig`、`VideoThumbnailGenerator`、`WorkbenchVideoConfigPanel` 作为通用能力名。
@@ -72,8 +72,6 @@ lib/domain/value_objects/image_processing_config.dart
 lib/domain/value_objects/audio_processing_config.dart
 lib/domain/enums/media_output_format.dart
 lib/domain/enums/video_codec.dart
-lib/domain/enums/image_codec.dart
-lib/domain/enums/audio_codec.dart
 lib/domain/enums/media_processing_preset.dart
 ```
 
@@ -124,18 +122,18 @@ class MediaTaskConfig {
 图片配置：
 
 - `outputFormat`: `jpg`、`png`、`webp`。
-- `imageCodec`: `source`、`jpeg`、`png`、`webp`。
-- `imageQuality`: 1 到 100，默认由预设映射。
-- `imageResizePreset`: `original`、长边 3840、2560、1920、1280、720，或后续自定义尺寸。
-- `preserveMetadata`: 首版默认 `false`，避免泄露 EXIF；如需保留另设开关。
+- `imageQuality`: 1 到 100，默认 100。
+- `imageResizePreset`: `original`、3840 × 2160、2560 × 1440、1920 × 1080、1280 × 720、720 × 720。
+- `preserveMetadata`: 默认 `false`，由图片配置面板开关控制。
+- 图片编码不作为用户配置项，后台按 `outputFormat` 推导 FFmpeg 参数。
 
 音频配置：
 
 - `outputFormat`: `mp3`、`m4a`、`aac`、`wav`、`flac`。
-- `audioCodec`: `source`、`aac`、`mp3`、`opus`、`flac`、`pcm`。
 - `audioBitratePreset`: `source`、`320k`、`192k`、`128k`、`96k`、`64k`。
 - `audioSampleRate`: `source`、`48000`、`44100`、`32000`。
 - `audioChannels`: `source`、`stereo`、`mono`。
+- 音频编码不作为用户配置项，后台按 `outputFormat` 推导 FFmpeg 参数。
 
 ### 3.3 MediaAnalysisResult
 
@@ -261,7 +259,7 @@ flowchart TD
 
 - `WorkbenchTaskConfigurationDialog` 保留弹窗外壳、源文件摘要、目标体积模式和保存动作。
 - `WorkbenchVideoConfigPanel` 改名或上移为 `WorkbenchMediaConfigPanel`，内部按类型组合分面板。
-- 图片任务显示：图片格式、质量、尺寸。
+- 图片任务显示：图片格式、分辨率、质量、保留元数据开关。
 - 音频任务显示：音频格式、编码、码率、采样率、声道。
 - 视频任务保持现有控件和推荐预设。
 - “已修改”判断改为 `MediaTaskAdjustmentPolicy`，按媒体类型比较源分析结果与配置。
@@ -289,7 +287,7 @@ flowchart TD
 - 输入：单张图片。
 - 输出：目标图片格式。
 - JPEG / WebP 使用质量参数，PNG 首版使用压缩级别或默认无损参数。
-- 尺寸调整使用 `scale`，按长边限制并保持宽高比。
+- 分辨率调整使用 `scale`，按长边限制并保持宽高比。
 - 图片命令不强制 `-progress pipe:1` 产生有效时长进度；计划可声明 `progressMode: step`.
 
 音频规划：
@@ -354,8 +352,6 @@ lib/domain/
     media_kind.dart
     media_output_format.dart
     video_codec.dart
-    image_codec.dart
-    audio_codec.dart
   value_objects/
     media_task_config.dart
     video_processing_config.dart

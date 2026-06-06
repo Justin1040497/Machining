@@ -1,7 +1,6 @@
-import 'package:framelean/domain/enums/image_codec.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 
-/// 图片尺寸处理预设。
+/// 图片分辨率处理预设。
 enum ImageResizePreset {
   original,
   longEdge3840,
@@ -14,14 +13,12 @@ enum ImageResizePreset {
 /// 图片任务的分类型处理配置。
 class ImageProcessingConfig {
   final MediaOutputFormat outputFormat;
-  final ImageCodec imageCodec;
   final int imageQuality;
   final ImageResizePreset resizePreset;
   final bool preserveMetadata;
 
   const ImageProcessingConfig({
     required this.outputFormat,
-    required this.imageCodec,
     required this.imageQuality,
     required this.resizePreset,
     required this.preserveMetadata,
@@ -30,8 +27,7 @@ class ImageProcessingConfig {
   factory ImageProcessingConfig.initial() {
     return const ImageProcessingConfig(
       outputFormat: MediaOutputFormat.jpg,
-      imageCodec: ImageCodec.jpeg,
-      imageQuality: 82,
+      imageQuality: 100,
       resizePreset: ImageResizePreset.original,
       preserveMetadata: false,
     );
@@ -39,14 +35,12 @@ class ImageProcessingConfig {
 
   ImageProcessingConfig copyWith({
     MediaOutputFormat? outputFormat,
-    ImageCodec? imageCodec,
     int? imageQuality,
     ImageResizePreset? resizePreset,
     bool? preserveMetadata,
   }) {
     return ImageProcessingConfig(
       outputFormat: outputFormat ?? this.outputFormat,
-      imageCodec: imageCodec ?? this.imageCodec,
       imageQuality: imageQuality ?? this.imageQuality,
       resizePreset: resizePreset ?? this.resizePreset,
       preserveMetadata: preserveMetadata ?? this.preserveMetadata,

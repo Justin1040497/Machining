@@ -10,12 +10,12 @@
 - `dart format --set-exit-if-changed`（当前变更 Dart 文件）
 - `flutter analyze`
 - `flutter test`
-- 聚焦测试：`ffprobe_media_analyzer_test.dart`、`ffmpeg_command_builder_test.dart`、`drift_media_task_repository_test.dart`、`ffmpeg_process_observer_test.dart`、`file_extension_media_kind_resolver_test.dart` 等。
+- 聚焦测试：`ffprobe_media_analyzer_test.dart`、`ffmpeg_command_builder_test.dart`、`drift_media_task_repository_test.dart`、`ffmpeg_process_observer_test.dart`、`file_extension_media_kind_resolver_test.dart`、`widget_test.dart` 等。
 
 仍未完成的验证：
 
 - macOS / Windows 发布包级构建和手动端到端处理验证。
-- 图片配置面板和音频配置面板相关测试，因为对应 UI 切片尚未实现。
+- 设置默认媒体配置读写、应用设置三类默认处理配置 UI 已接入自动化测试。
 
 ## 1. 测试目标
 
@@ -40,7 +40,7 @@
 | 全量测试 | `flutter test` | 所有单元测试和 widget 测试通过 | 实现完成后必跑 |
 | Domain 配置不变量 | `test/media_task_config_test.dart` | `MediaTaskConfig` 按 `MediaKind` 要求对应 `video` / `image` / `audio` 配置；`MediaTask.draft` 默认配置合法；无效组合失败 | 新增测试文件 |
 | 视频配置兼容 | `test/media_task_config_test.dart`、`test/ffmpeg_command_builder_test.dart` | 旧 `VideoTaskConfig.initial()` 默认行为迁移到 `MediaTaskConfig.video` 后不变；视频 CRF、preset、target size、输出命名不回退 | 视频测试先作为回归基线 |
-| App settings 默认媒体配置 | `test/app_settings_test.dart`、`test/app_settings_use_cases_test.dart` | 旧视频默认设置可生成 `defaultVideoConfig`；新默认媒体配置优先；图片 / 音频默认配置稳定 | 覆盖 `AppMediaProcessingSettings` 和兼容 getter |
+| App settings 默认媒体配置 | `test/app_settings_test.dart`、`test/app_settings_use_cases_test.dart`、`test/app_settings_dialog_test.dart`、`test/media_task_use_case_helpers_test.dart` | 旧视频默认设置可生成通用默认视频配置；新默认媒体配置优先；图片 / 音频默认配置会进入导入初始配置；设置弹窗可保存视频 / 图片 / 音频默认配置 | 覆盖 `defaultMediaConfig`、兼容 getter 和 UI 保存路径 |
 | 设置仓储兼容 | `test/drift_app_settings_repository_test.dart` | `default_media_config_json` 读写；旧 `default_output_video_codec` 等字段 fallback；保存时兼容期继续写旧字段 | 与 Drift schema 14 同步 |
 | 扩展名识别 | `test/file_extension_media_kind_resolver_test.dart` | 大小写扩展名可解析为 video / image / audio；不支持扩展名仍失败 | 当前只测 `.MOV`，需扩展图片 / 音频样例 |
 | 导入 use case | `test/media_task_execution_use_cases_test.dart` 或新增 `test/import_media_task_use_case_test.dart` | video / image / audio 导入不在 import 阶段被拒绝；不支持扩展名保持失败；初始 config 按类型生成 | 覆盖 `ensureSupportedImportedMediaKind` 和初始配置 helper |
@@ -60,7 +60,7 @@
 | 缩略图服务 | `test/video_thumbnail_generator_test.dart` 或新增 `test/media_thumbnail_generator_test.dart` | 视频继续抽非黑帧；图片生成或返回可用缩略图；音频返回稳定占位；失败缓存不反复生成 | `VideoThumbnailGenerator` 迁移为视频内部实现 |
 | 预览服务回归 | `test/generate_preview_frames_use_case_test.dart`、`test/preview_frame_generator_test.dart`、`test/workbench_preview_notifier_test.dart` | 视频预览仍可用；图片 / 音频首版不触发未实现的预览链路；参数变化后预览失效逻辑仍正确 | 音频波形不在本轮覆盖 |
 | Workbench 文件选择 | `test/widget_test.dart` 或新增轻量 widget / unit 测试 | `WorkbenchConstants` 暴露视频、图片、音频类型组；`pickMediaFiles()` 命名迁移后调用路径不丢失 | 文件选择器本身可用 mock 或常量检查 |
-| 配置弹窗 widget | 新增或扩展 `test/task_configuration_dialog_test.dart` | video task 显示视频配置；image task 显示图片格式 / 质量 / 尺寸 / 元数据；audio task 显示格式 / 编码 / 码率 / 采样率 / 声道 | 覆盖保存按钮和“已修改”判断 |
+| 配置弹窗 widget | 新增或扩展 `test/task_configuration_dialog_test.dart` | video task 显示视频配置；image task 显示图片格式 / 分辨率 / 质量 / 元数据开关；audio task 显示格式 / 码率 / 采样率 / 声道 | 覆盖保存按钮和“已修改”判断 |
 | Workbench 文案 | `test/workbench_about_dialog_test.dart`、`test/workbench_bottom_bar_test.dart`、`test/widget_test.dart` | 关于弹窗、空态、导入失败、主动作不再只写“视频”；没有误导性的音频编辑 / 波形文案 | 首个切片已更新 about 和主要结果文案 |
 | 完成弹窗 | 新增或扩展 `test/task_completed_dialog_test.dart` | 标题使用“处理完成”或按 purpose 展示；指标为“源文件 / 输出文件”；打开输出位置行为不变 | 首个切片已替换“压缩前 / 压缩后”唯一文案 |
 | 弹窗风格回归 | `test/workbench_dialog_style_test.dart` | 新增媒体配置、完成、导入失败等弹窗不使用默认 `AlertDialog`，保持统一工作台弹窗框架 | 防止 UI 风格回退 |
@@ -74,11 +74,11 @@
 | 视频处理回归 | 对普通视频执行压缩、转封装、目标体积两遍压缩 | 输出文件生成；进度连续更新；完成弹窗可打开输出位置；日志可查看 |
 | 高风险视频回归 | 导入 iPhone HDR / HVC1 / 10-bit MOV，选择自动编码 | 自动策略仍能安全降级；主音频流选择不带入不可转码 APAC / `none` 流 |
 | 图片导入 | 点击添加或拖拽 `.jpg`、`.png`、`.webp` | 不再提示只支持视频；任务可分析；列表显示图片类型和缩略图 |
-| 图片配置 | 打开图片任务配置，修改格式、质量、尺寸预设、元数据保留开关 | 保存后任务显示已修改；执行命令使用对应图片参数 |
+| 图片配置 | 打开图片任务配置，修改格式、分辨率预设、质量和元数据保留开关 | 保存后任务显示已修改；执行命令使用对应图片参数 |
 | 图片处理 | 执行 JPEG、PNG、WebP 输出各一例 | 输出文件存在；图片任务使用步骤型进度，不因缺少 duration 卡住 |
 | 大图处理 | 导入大尺寸图片并选择长边限制 | 输出尺寸符合配置，宽高比保持，应用不明显卡死 |
 | 音频导入 | 点击添加或拖拽 `.mp3`、`.m4a`、`.aac`、`.wav`、`.flac` | 任务可分析；列表显示音频类型和占位缩略图；不出现视频流缺失错误 |
-| 音频配置 | 打开音频任务配置，修改格式、编码、码率、采样率、声道 | 保存后任务显示已修改；执行命令包含音频参数 |
+| 音频配置 | 打开音频任务配置，修改格式、码率、采样率、声道 | 保存后任务显示已修改；执行命令包含音频参数 |
 | 音频处理 | 执行 MP3、M4A/AAC、FLAC 输出各一例 | 输出音频文件可播放；命令禁用视频流；完成弹窗显示源文件 / 输出文件 |
 | 不支持文件 | 导入 `.txt`、损坏媒体文件或未知扩展名 | 应用给出明确失败原因，不创建不可执行任务 |
 | 文件夹导入 | 拖拽文件夹到窗口 | 显示只能导入媒体文件、不能导入文件夹；应用不中断 |

@@ -123,7 +123,7 @@ docs/
 - `VideoTaskConfig`：旧视频配置兼容对象，可映射为 `MediaTaskConfig.video`。
 - `MediaAnalysisResult`：FFprobe 分析结果。
 - `SourceFileFingerprint`：源文件快速指纹，用于检测源文件是否被替换或移动。
-- 枚举：任务状态、通用输出格式、视频 / 图片 / 音频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设、媒体类型、任务用途等。
+- 枚举：任务状态、通用输出格式、视频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设、媒体类型、任务用途等。
 
 `MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult` 等方法，避免 UI 或仓储直接拼装状态。
 
@@ -297,7 +297,7 @@ main()
 
 - `MediaKind.video` 继续走完整视频规划链路，保留现有压缩、转封装、硬件编码、目标体积和预览片段行为。
 - `MediaKind.image` 当前在默认配置下生成单步图片输出计划，使用 `ProgressMode.step`，不依赖媒体时长。
-- `MediaKind.audio` 当前生成音频输出计划，使用 `-vn` 禁用视频流，并按音频配置写入编码、码率、采样率和声道参数。
+- `MediaKind.audio` 当前生成音频输出计划，使用 `-vn` 禁用视频流，并按音频格式推导编码参数，按配置写入码率、采样率和声道参数。
 - `VideoCodec.source` 必须先依赖分析结果解析为 `h264` 或 `hevc`。
 - `EncoderBackend.auto` 会根据 FFmpeg 实际支持和平台优先级选择硬件编码或软件编码。
 - 输出目录为空时使用源文件目录。

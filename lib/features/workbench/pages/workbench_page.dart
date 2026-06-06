@@ -17,6 +17,7 @@ import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
@@ -256,6 +257,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     final config = selectedTask!.config;
+    if (selectedTask.mediaKind != MediaKind.video) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || syncedConfigTaskId == taskId) {
+          return;
+        }
+
+        setState(() {
+          selectedCompressionMode = config.compressionMode;
+          syncedConfigTaskId = taskId;
+        });
+      });
+      return;
+    }
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || syncedConfigTaskId == taskId) {
         return;
@@ -282,8 +297,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     if (taskId == null) {
       return;
     }
+    if (selectedTask!.mediaKind != MediaKind.video) {
+      return;
+    }
 
-    final syncKey = '$taskId:${selectedTask!.analysisUpdatedAt}';
+    final syncKey = '$taskId:${selectedTask.analysisUpdatedAt}';
     if (syncedQualityTaskKey == syncKey) {
       return;
     }
@@ -530,26 +548,34 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
-    if (task.mediaKind != MediaKind.video) {
-      showWorkbenchSnackBar('图片和音频任务当前使用默认配置处理，配置面板将在后续切片开放');
-      return;
-    }
-
-    final initialQualityIndex =
-        WorkbenchQualityPolicy.initialQualityIndexForTask(task);
-    final initialSmartPreset =
-        task.config.smartPreset ??
-        WorkbenchQualityPolicy.smartPresetForQualityIndex(
-          task.config.compressionCrf,
-        );
+    final isVideoTask = task.mediaKind == MediaKind.video;
+    final initialQualityIndex = isVideoTask
+        ? WorkbenchQualityPolicy.initialQualityIndexForTask(task)
+        : selectedQualityIndex;
+    final initialSmartPreset = isVideoTask
+        ? task.config.smartPreset ??
+              WorkbenchQualityPolicy.smartPresetForQualityIndex(
+                task.config.compressionCrf,
+              )
+        : selectedSmartPreset;
+    final initialOutputFormat = isVideoTask
+        ? task.config.outputFormat
+        : selectedOutputFormat;
+    final initialVideoCodec = isVideoTask
+        ? task.config.videoCodec
+        : selectedVideoCodec;
+    final initialResolutionPreset = isVideoTask
+        ? task.config.resolutionPreset
+        : selectedResolutionPreset;
+    final initialCompressionMode = task.config.compressionMode;
 
     setState(() {
       selectedTaskId = task.id;
-      selectedOutputFormat = task.config.outputFormat;
-      selectedVideoCodec = task.config.videoCodec;
+      selectedOutputFormat = initialOutputFormat;
+      selectedVideoCodec = initialVideoCodec;
       selectedEncoderBackend = EncoderBackend.auto;
-      selectedResolutionPreset = task.config.resolutionPreset;
-      selectedCompressionMode = task.config.compressionMode;
+      selectedResolutionPreset = initialResolutionPreset;
+      selectedCompressionMode = initialCompressionMode;
       selectedSmartPreset = initialSmartPreset;
       selectedQualityIndex = initialQualityIndex;
       syncedConfigTaskId = task.id;
@@ -561,19 +587,29 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       task: task,
       thumbnail: thumbnailForTask(task),
       selectedQualityIndex: initialQualityIndex,
-      selectedOutputFormat: task.config.outputFormat,
-      selectedVideoCodec: task.config.videoCodec,
+      selectedOutputFormat: initialOutputFormat,
+      selectedVideoCodec: initialVideoCodec,
       selectedEncoderBackend: EncoderBackend.auto,
-      selectedResolutionPreset: task.config.resolutionPreset,
-      selectedCompressionMode: task.config.compressionMode,
+      selectedResolutionPreset: initialResolutionPreset,
+      selectedCompressionMode: initialCompressionMode,
       selectedSmartPreset: initialSmartPreset,
-      selectedTargetSizeRatio:
-          WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task),
+      selectedTargetSizeRatio: isVideoTask
+          ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
+          : WorkbenchConstants.defaultTargetSizeRatio,
       onOpenSource: () {
         unawaited(revealPathInFileManager(task.inputPath));
       },
     );
     if (!mounted || draft == null) {
+      return;
+    }
+
+    if (!isVideoTask) {
+      try {
+        await updateSelectedTaskConfig(config: draft.config);
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
       return;
     }
 
@@ -1003,6 +1039,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> updateSelectedTaskConfig({
+    MediaTaskConfig? config,
     OutputFormat? outputFormat,
     VideoCodec? videoCodec,
     EncoderBackend? encoderBackend,
@@ -1021,19 +1058,21 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     final updatedTask = task.copyWith(
-      config: task.config.copyWith(
-        outputFormat: outputFormat,
-        videoCodec: videoCodec,
-        encoderBackend: encoderBackend,
-        resolutionPreset: resolutionPreset,
-        outputDirectory: outputDirectory,
-        compressionCrf: compressionCrf,
-        compressionMode: compressionMode,
-        smartPreset: smartPreset,
-        targetSizeBytes: targetSizeBytes,
-        targetSizeRatio: targetSizeRatio,
-        outputFileName: outputFileName,
-      ),
+      config:
+          config ??
+          task.config.copyWith(
+            outputFormat: outputFormat,
+            videoCodec: videoCodec,
+            encoderBackend: encoderBackend,
+            resolutionPreset: resolutionPreset,
+            outputDirectory: outputDirectory,
+            compressionCrf: compressionCrf,
+            compressionMode: compressionMode,
+            smartPreset: smartPreset,
+            targetSizeBytes: targetSizeBytes,
+            targetSizeRatio: targetSizeRatio,
+            outputFileName: outputFileName,
+          ),
     );
 
     await ref.read(mediaTaskListProvider.notifier).saveTask(updatedTask);

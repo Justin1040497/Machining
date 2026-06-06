@@ -16,6 +16,8 @@ class AppDatabase extends _$AppDatabase {
   /// 创建AppDatabase时 自动打开数据库
   AppDatabase() : super(openConnection());
 
+  AppDatabase.forTesting(super.e);
+
   @override
   int get schemaVersion => 14;
 

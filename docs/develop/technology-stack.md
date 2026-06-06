@@ -297,7 +297,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 图片 | `.jpg`、`.jpeg`、`.png`、`.webp`、`.gif`、`.bmp` |
 | 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg` |
 
-工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、默认配置处理和通用完成弹窗，分类型配置面板后续再开放。
+工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、分类型配置面板、处理执行和通用完成弹窗。
 
 ## 当前核心功能对应实现
 
@@ -308,7 +308,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 预览状态入口 | `lib/features/workbench/providers/workbench_preview_notifier.dart`，通过 `GeneratePreviewFramesUseCase` 进入 application |
 | 任务仓储 | `lib/application/repositories/media_task_repository.dart`、`lib/infrastructure/repositories/drift_media_task_repository.dart` |
 | 设置仓储 | `lib/application/repositories/app_settings_repository.dart`、`lib/infrastructure/repositories/drift_app_settings_repository.dart` |
-| 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart` |
+| 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart`、`lib/infrastructure/repositories/mappers/media_task_config_json_mapper.dart` |
 | 媒体类型识别 | `FileExtensionMediaKindResolver` |
 | FFprobe 分析 | `FfprobeMediaAnalyzer` |
 | 压缩建议 | `DefaultCompressionAdvisor` |

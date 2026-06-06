@@ -3,9 +3,7 @@ import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_bu
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/audio_codec.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/image_codec.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
@@ -734,7 +732,6 @@ void main() {
         config: MediaTaskConfig.initialImage().copyWith(
           image: ImageProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.webp,
-            imageCodec: ImageCodec.webp,
             imageQuality: 76,
             resizePreset: ImageResizePreset.longEdge1920,
           ),
@@ -757,6 +754,30 @@ void main() {
       expect(plan.args.last, '/images/source_compressed.webp');
     });
 
+    test('preserves image metadata when requested', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.jpg',
+        fileName: 'source.jpg',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            preserveMetadata: true,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, isNot(contains('-map_metadata')));
+    });
+
     test('builds audio processing command', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = MediaTask(
@@ -769,7 +790,6 @@ void main() {
         config: MediaTaskConfig.initialAudio().copyWith(
           audio: AudioProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.mp3,
-            audioCodec: AudioCodec.mp3,
             bitratePreset: AudioBitratePreset.k128,
             sampleRate: AudioSampleRatePreset.hz44100,
             channels: AudioChannelsPreset.stereo,

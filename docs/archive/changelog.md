@@ -37,8 +37,10 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 - 新增 `framelean-feature-analysis`、`framelean-feature-design`、`framelean-feature-tasks`、`framelean-test-plan`、`framelean-implementation`、`framelean-review` 和 `framelean-delivery` 项目级 skills。
 - 新增 `.agents/skills/README.md`，说明 FrameLean 项目级 skills 的触发场景、推荐流程和文档位置约定。
-- 新增媒体处理扩展首个实现切片：`MediaTaskConfig`、视频 / 图片 / 音频分类型配置、通用输出格式和图片 / 音频编码枚举。
+- 新增媒体处理扩展首个实现切片：`MediaTaskConfig`、视频 / 图片 / 音频分类型配置和通用输出格式。
 - Drift schema 升级到 14，新增任务通用配置 JSON、图片分析字段和设置表预留的默认媒体配置 JSON 字段。
+- 设置仓储启用 `default_media_config_json` 读写，并保留旧视频默认字段兼容。
+- 应用设置弹窗支持保存默认视频、图片和音频处理配置。
 - FFprobe 支持纯音频和静态图片分析；FFmpeg 命令规划支持图片和音频基础输出计划。
 
 ### Changed
@@ -49,7 +51,8 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 文档入口补充 `docs/features/` 的功能级分析、设计、任务、测试计划和功能网归档用途。
 - 导入、文件选择、输出路径、完成弹窗、关于弹窗和任务空态文案从视频专用表述收敛为通用媒体处理表述。
 - 图片任务使用步骤型进度和源图缩略图；音频任务输出命令使用 `-vn` 禁用视频流。
-- 更新媒体处理设计、任务、测试计划、数据模型、架构、技术栈、测试计划和路线图文档，明确图片 / 音频配置面板尚未开放。
+- 图片任务配置面板显示图片格式、分辨率、质量和保留元数据开关；质量默认 100%，默认不保留元数据，图片编码由后台按格式推导。
+- 更新媒体处理设计、任务、测试计划、数据模型、架构、技术栈、测试计划和路线图文档，明确图片 / 音频配置面板能力和剩余默认设置边界。
 
 ### Verified
 

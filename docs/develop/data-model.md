@@ -32,8 +32,8 @@ lib/infrastructure/database/app_database.dart
 | `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果和时间戳 |
 | `MediaTaskConfig` | `lib/domain/value_objects/media_task_config.dart` | 单任务通用输出、压缩和分类型配置入口 |
 | `VideoProcessingConfig` | `lib/domain/value_objects/video_processing_config.dart` | 视频输出与压缩配置 |
-| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、质量、尺寸和元数据配置 |
-| `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、编码、码率、采样率和声道配置 |
+| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量和元数据保留配置 |
+| `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、码率、采样率和声道配置 |
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频和封装信息 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
@@ -127,8 +127,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `outputDirectory` / `outputFileName` | 通用输出目录和文件名 |
 | `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
 | `video` | 视频格式、编码器、后端、分辨率、CRF 和旧推荐预设 |
-| `image` | 图片格式、编码、质量、长边尺寸预设和是否保留元数据 |
-| `audio` | 音频格式、编码、码率、采样率和声道 |
+| `image` | 图片格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
+| `audio` | 音频格式、码率、采样率和声道；输出编码由后台按音频格式推导 |
 
 ### 源文件指纹字段
 
@@ -203,7 +203,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
 | `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
 | `default_output_file_name_template` | text | 否 | `datetimeOriginalCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
-| `default_media_config_json` | text | 是 | `null` | 预留 | 通用默认媒体配置列已加入 schema 14；当前设置仓储仍以旧视频默认字段为主，后续配置面板切片再启用 |
+| `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -234,7 +234,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 存储值 | 含义 | 当前实现 |
 | --- | --- | --- |
 | `video` | 视频 | 完整保留当前压缩、转封装、预览和缩略图主链路 |
-| `image` | 图片 | 支持导入、FFprobe 分析、源图缩略图和默认配置下的基础 FFmpeg 输出；配置面板后续开放 |
+| `image` | 图片 | 支持导入、FFprobe 分析、源图缩略图、图片配置面板和基础 FFmpeg 输出 |
 | `audio` | 音频 | 支持导入、FFprobe 分析和默认配置下的基础 FFmpeg 输出；波形、试听和音频编辑不在当前范围 |
 
 ### 压缩模式

@@ -4,9 +4,20 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/video_processing_config.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_settings_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/audio_config_panel.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/image_config_panel.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
@@ -44,6 +55,8 @@ class _WorkbenchAppSettingsDialogState
     extends State<WorkbenchAppSettingsDialog> {
   late SmartCompressionPreset selectedPreset;
   late VideoCodec selectedCodec;
+  late MediaKind selectedDefaultMediaKind;
+  late MediaTaskConfig draftDefaultMediaConfig;
   late DefaultOutputFileNameTemplate selectedFileNameTemplate;
   late bool saveToSourceDirectory;
   late final TextEditingController outputDirectoryController;
@@ -61,6 +74,8 @@ class _WorkbenchAppSettingsDialogState
     final settings = widget.initialSettings;
     selectedPreset = settings.defaultSmartPreset;
     selectedCodec = settings.defaultOutputVideoCodec;
+    selectedDefaultMediaKind = MediaKind.video;
+    draftDefaultMediaConfig = settings.defaultMediaConfig;
     selectedFileNameTemplate = settings.defaultOutputFileNameTemplate;
     saveToSourceDirectory = settings.saveOutputToSourceDirectory;
     outputDirectoryController = TextEditingController(
@@ -105,24 +120,18 @@ class _WorkbenchAppSettingsDialogState
                     onClose: widget.onClose,
                   ),
                   const SizedBox(height: 18),
-                  ConfigDropdown<SmartCompressionPreset>(
-                    label: '默认压缩配置',
-                    trailingText: settingsPresetLabel(selectedPreset),
-                    value: selectedPreset,
-                    values: SmartCompressionPreset.values,
-                    itemLabel: settingsPresetLabel,
-                    height: 34,
-                    showTrailingText: false,
-                    labelFontSize: 12,
-                    valueFontSize: 12,
+                  const AppSettingsSectionLabel('默认处理配置'),
+                  const SizedBox(height: 8),
+                  _DefaultMediaKindSelector(
+                    value: selectedDefaultMediaKind,
                     onChanged: (value) {
-                      if (value != null) {
-                        setState(() {
-                          selectedPreset = value;
-                        });
-                      }
+                      setState(() {
+                        selectedDefaultMediaKind = value;
+                      });
                     },
                   ),
+                  const SizedBox(height: 12),
+                  _buildDefaultMediaConfigPanel(),
                   const SizedBox(height: 18),
                   const AppSettingsSectionLabel('默认导出地址'),
                   const SizedBox(height: 8),
@@ -353,6 +362,7 @@ class _WorkbenchAppSettingsDialogState
           saveOutputToSourceDirectory: saveToSourceDirectory,
           customFfmpegPath: emptyToNull(ffmpegPathController.text),
           customFfprobePath: emptyToNull(ffprobePathController.text),
+          defaultMediaConfig: draftDefaultMediaConfig,
           defaultSmartPreset: selectedPreset,
           defaultOutputVideoCodec: selectedCodec,
           defaultOutputFileNameTemplate: selectedFileNameTemplate,
@@ -365,6 +375,183 @@ class _WorkbenchAppSettingsDialogState
         });
       }
     }
+  }
+
+  Widget _buildDefaultMediaConfigPanel() {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 140),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      child: KeyedSubtree(
+        key: ValueKey(selectedDefaultMediaKind),
+        child: switch (selectedDefaultMediaKind) {
+          MediaKind.video => _buildDefaultVideoConfigPanel(),
+          MediaKind.image => _buildDefaultImageConfigPanel(),
+          MediaKind.audio => _buildDefaultAudioConfigPanel(),
+        },
+      ),
+    );
+  }
+
+  Widget _buildDefaultVideoConfigPanel() {
+    final config = _defaultVideoConfig;
+    final encoderBackends = WorkbenchEncoderPolicy.availableEncoderBackends(
+      videoCodec: config.videoCodec,
+      selectedBackend: config.encoderBackend,
+    );
+
+    return Column(
+      children: [
+        ConfigDropdown<SmartCompressionPreset>(
+          label: '默认压缩配置',
+          trailingText: settingsPresetLabel(selectedPreset),
+          value: selectedPreset,
+          values: SmartCompressionPreset.values,
+          itemLabel: settingsPresetLabel,
+          height: 34,
+          showTrailingText: false,
+          labelFontSize: 12,
+          valueFontSize: 12,
+          onChanged: (value) {
+            if (value != null) {
+              _setDefaultVideoConfig(
+                _defaultVideoConfig.copyWith(smartPreset: value),
+              );
+            }
+          },
+        ),
+        const SizedBox(height: 8),
+        WorkbenchVideoConfigPanel(
+          selectedOutputFormat: config.outputFormat.toVideoOutputFormat(),
+          selectedVideoCodec: config.videoCodec,
+          selectedEncoderBackend: config.encoderBackend,
+          selectedResolutionPreset: config.resolutionPreset,
+          availableEncoderBackends: encoderBackends,
+          onOutputFormatChanged: (value) {
+            _setDefaultVideoConfig(
+              _defaultVideoConfig.copyWith(
+                outputFormat: MediaOutputFormat.fromVideoOutputFormat(value),
+              ),
+            );
+          },
+          onVideoCodecChanged: (value) {
+            final current = _defaultVideoConfig;
+            final nextBackend =
+                WorkbenchEncoderPolicy.isBackendCompatibleWithCodec(
+                  current.encoderBackend,
+                  value,
+                )
+                ? current.encoderBackend
+                : EncoderBackend.auto;
+            _setDefaultVideoConfig(
+              current.copyWith(videoCodec: value, encoderBackend: nextBackend),
+            );
+          },
+          onEncoderBackendChanged: (value) {
+            _setDefaultVideoConfig(
+              _defaultVideoConfig.copyWith(encoderBackend: value),
+            );
+          },
+          onResolutionPresetChanged: (value) {
+            _setDefaultVideoConfig(
+              _defaultVideoConfig.copyWith(resolutionPreset: value),
+            );
+          },
+          padding: EdgeInsets.zero,
+          itemSpacing: 8,
+          dropdownHeight: 34,
+          showTrailingText: false,
+          labelFontSize: 12,
+          valueFontSize: 12,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDefaultImageConfigPanel() {
+    return WorkbenchImageConfigPanel(
+      config: draftDefaultMediaConfig.image ?? ImageProcessingConfig.initial(),
+      onChanged: (value) {
+        setState(() {
+          draftDefaultMediaConfig = draftDefaultMediaConfig.copyWith(
+            image: value,
+          );
+        });
+      },
+      padding: EdgeInsets.zero,
+      itemSpacing: 8,
+      dropdownHeight: 34,
+      showTrailingText: false,
+      labelFontSize: 12,
+      valueFontSize: 12,
+    );
+  }
+
+  Widget _buildDefaultAudioConfigPanel() {
+    return WorkbenchAudioConfigPanel(
+      config: draftDefaultMediaConfig.audio ?? AudioProcessingConfig.initial(),
+      onChanged: (value) {
+        setState(() {
+          draftDefaultMediaConfig = draftDefaultMediaConfig.copyWith(
+            audio: value,
+          );
+        });
+      },
+      padding: EdgeInsets.zero,
+      itemSpacing: 8,
+      dropdownHeight: 34,
+      showTrailingText: false,
+      labelFontSize: 12,
+      valueFontSize: 12,
+    );
+  }
+
+  VideoProcessingConfig get _defaultVideoConfig {
+    return draftDefaultMediaConfig.video ?? VideoProcessingConfig.initial();
+  }
+
+  void _setDefaultVideoConfig(VideoProcessingConfig config) {
+    setState(() {
+      selectedCodec = config.videoCodec;
+      selectedPreset = config.smartPreset ?? SmartCompressionPreset.balanced;
+      draftDefaultMediaConfig = draftDefaultMediaConfig.copyWith(video: config);
+    });
+  }
+}
+
+class _DefaultMediaKindSelector extends StatelessWidget {
+  const _DefaultMediaKindSelector({
+    required this.value,
+    required this.onChanged,
+  });
+
+  final MediaKind value;
+  final ValueChanged<MediaKind> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: SegmentedButton<MediaKind>(
+        segments: [
+          for (final kind in MediaKind.values)
+            ButtonSegment<MediaKind>(value: kind, label: Text(kind.label)),
+        ],
+        selected: {value},
+        showSelectedIcon: false,
+        style: ButtonStyle(
+          visualDensity: VisualDensity.compact,
+          textStyle: WidgetStateProperty.all(
+            const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
+          ),
+        ),
+        onSelectionChanged: (selection) {
+          if (selection.isNotEmpty) {
+            onChanged(selection.first);
+          }
+        },
+      ),
+    );
   }
 }
 

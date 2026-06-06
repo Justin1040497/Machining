@@ -2,6 +2,7 @@ import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 
 const Object _notProvided = Object();
 
@@ -31,6 +32,9 @@ class AppSettings {
   /// 应用级压缩默认设置
   final AppCompressionSettings compressionSettings;
 
+  /// 应用级通用媒体处理默认配置
+  final MediaTaskConfig defaultMediaConfig;
+
   /// 应用级默认导出文件名模板
   final DefaultOutputFileNameTemplate defaultOutputFileNameTemplate;
 
@@ -43,20 +47,25 @@ class AppSettings {
     required this.showRawLog,
     required this.showAdvancedOptions,
     AppCompressionSettings? compressionSettings,
+    MediaTaskConfig? defaultMediaConfig,
     VideoCodec? defaultOutputVideoCodec,
     SmartCompressionPreset? defaultSmartPreset,
     this.defaultOutputFileNameTemplate =
         DefaultOutputFileNameTemplate.sourceFileNameCodec,
-  }) : compressionSettings =
-           compressionSettings ??
-           AppCompressionSettings(
-             defaultOutputVideoCodec:
-                 defaultOutputVideoCodec ??
-                 AppCompressionSettings.initial().defaultOutputVideoCodec,
-             defaultSmartPreset:
-                 defaultSmartPreset ??
-                 AppCompressionSettings.initial().defaultSmartPreset,
-           );
+  }) : defaultMediaConfig = resolveAppDefaultMediaConfig(
+         defaultMediaConfig: defaultMediaConfig,
+         compressionSettings: compressionSettings,
+         defaultOutputVideoCodec: defaultOutputVideoCodec,
+         defaultSmartPreset: defaultSmartPreset,
+       ),
+       compressionSettings = compressionSettingsFromDefaultMediaConfig(
+         resolveAppDefaultMediaConfig(
+           defaultMediaConfig: defaultMediaConfig,
+           compressionSettings: compressionSettings,
+           defaultOutputVideoCodec: defaultOutputVideoCodec,
+           defaultSmartPreset: defaultSmartPreset,
+         ),
+       );
 
   /// 默认设置
   factory AppSettings.initial() {
@@ -69,6 +78,7 @@ class AppSettings {
       showRawLog: false,
       showAdvancedOptions: false,
       compressionSettings: AppCompressionSettings.initial(),
+      defaultMediaConfig: MediaTaskConfig.initialDefaults(),
       defaultOutputFileNameTemplate:
           DefaultOutputFileNameTemplate.sourceFileNameCodec,
     );
@@ -83,6 +93,7 @@ class AppSettings {
     bool? preferRawLogView,
     bool? showAdvancedOptions,
     AppCompressionSettings? compressionSettings,
+    MediaTaskConfig? defaultMediaConfig,
     VideoCodec? defaultOutputVideoCodec,
     SmartCompressionPreset? defaultSmartPreset,
     DefaultOutputFileNameTemplate? defaultOutputFileNameTemplate,
@@ -105,12 +116,10 @@ class AppSettings {
           : customFfprobePath as String?,
       showRawLog: preferRawLogView ?? showRawLog,
       showAdvancedOptions: showAdvancedOptions ?? this.showAdvancedOptions,
-      compressionSettings:
-          compressionSettings ??
-          this.compressionSettings.copyWith(
-            defaultOutputVideoCodec: defaultOutputVideoCodec,
-            defaultSmartPreset: defaultSmartPreset,
-          ),
+      compressionSettings: compressionSettings,
+      defaultMediaConfig: defaultMediaConfig ?? this.defaultMediaConfig,
+      defaultOutputVideoCodec: defaultOutputVideoCodec,
+      defaultSmartPreset: defaultSmartPreset,
       defaultOutputFileNameTemplate:
           defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
     );
@@ -131,4 +140,45 @@ class AppSettings {
   AppSettings withCustomFfprobePath(String? path) {
     return copyWith(customFfprobePath: path);
   }
+}
+
+MediaTaskConfig resolveAppDefaultMediaConfig({
+  MediaTaskConfig? defaultMediaConfig,
+  AppCompressionSettings? compressionSettings,
+  VideoCodec? defaultOutputVideoCodec,
+  SmartCompressionPreset? defaultSmartPreset,
+}) {
+  final fallback = MediaTaskConfig.initialDefaults();
+  final base = defaultMediaConfig ?? fallback;
+  final videoCodecOverride =
+      defaultOutputVideoCodec ?? compressionSettings?.defaultOutputVideoCodec;
+  final smartPresetOverride =
+      defaultSmartPreset ?? compressionSettings?.defaultSmartPreset;
+  final baseVideo = base.video ?? fallback.video!;
+  final videoWithCodec = baseVideo.copyWith(videoCodec: videoCodecOverride);
+  final resolvedVideo = smartPresetOverride == null
+      ? videoWithCodec
+      : videoWithCodec.copyWith(smartPreset: smartPresetOverride);
+
+  return MediaTaskConfig(
+    outputDirectory: base.outputDirectory,
+    outputFileName: base.outputFileName,
+    compressionMode: base.compressionMode,
+    preset: base.preset,
+    targetSizeBytes: base.targetSizeBytes,
+    targetSizeRatio: base.targetSizeRatio,
+    video: resolvedVideo,
+    image: base.image ?? fallback.image,
+    audio: base.audio ?? fallback.audio,
+  );
+}
+
+AppCompressionSettings compressionSettingsFromDefaultMediaConfig(
+  MediaTaskConfig config,
+) {
+  final video = config.video ?? MediaTaskConfig.initialDefaults().video!;
+  return AppCompressionSettings(
+    defaultOutputVideoCodec: video.videoCodec,
+    defaultSmartPreset: video.smartPreset ?? SmartCompressionPreset.balanced,
+  );
 }

@@ -3,8 +3,6 @@ import 'package:framelean/application/services/ffmpeg_planning/default_compressi
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/audio_codec.dart';
-import 'package:framelean/domain/enums/image_codec.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
@@ -128,7 +126,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-i',
       task.inputPath,
       ...buildImageFilterArgs(config),
-      ...buildImageCodecArgs(config),
+      ...buildImageOutputArgs(config),
       outputPath,
     ];
     final step = FfmpegCommandStep(
@@ -159,7 +157,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-i',
       task.inputPath,
       '-vn',
-      ...buildAudioCodecArgs(config),
+      ...buildAudioOutputArgs(config),
       '-progress',
       'pipe:1',
       outputPath,
@@ -168,8 +166,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return FfmpegCommandPlan(
       args: args,
       outputPath: outputPath,
-      logHint:
-          '音频处理 ${config.outputFormat.name} ${effectiveAudioCodec(config).name}',
+      logHint: '音频处理 ${config.outputFormat.name}',
     );
   }
 
@@ -254,16 +251,13 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     ];
   }
 
-  List<String> buildImageCodecArgs(ImageProcessingConfig config) {
-    final codec = effectiveImageCodec(config);
+  List<String> buildImageOutputArgs(ImageProcessingConfig config) {
     final metadataArgs = config.preserveMetadata
         ? const <String>[]
         : const ['-map_metadata', '-1'];
 
-    switch (codec) {
-      case ImageCodec.source:
-        return ['-frames:v', '1', ...metadataArgs];
-      case ImageCodec.jpeg:
+    switch (config.outputFormat) {
+      case MediaOutputFormat.jpg:
         return [
           '-frames:v',
           '1',
@@ -271,9 +265,9 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           jpegQualityScale(config.imageQuality).toString(),
           ...metadataArgs,
         ];
-      case ImageCodec.png:
+      case MediaOutputFormat.png:
         return ['-frames:v', '1', '-compression_level', '9', ...metadataArgs];
-      case ImageCodec.webp:
+      case MediaOutputFormat.webp:
         return [
           '-frames:v',
           '1',
@@ -283,20 +277,16 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           config.imageQuality.toString(),
           ...metadataArgs,
         ];
+      case MediaOutputFormat.mp4:
+      case MediaOutputFormat.mov:
+      case MediaOutputFormat.mkv:
+      case MediaOutputFormat.mp3:
+      case MediaOutputFormat.m4a:
+      case MediaOutputFormat.aac:
+      case MediaOutputFormat.wav:
+      case MediaOutputFormat.flac:
+        return ['-frames:v', '1', ...metadataArgs];
     }
-  }
-
-  ImageCodec effectiveImageCodec(ImageProcessingConfig config) {
-    if (config.imageCodec != ImageCodec.source) {
-      return config.imageCodec;
-    }
-
-    return switch (config.outputFormat) {
-      MediaOutputFormat.jpg => ImageCodec.jpeg,
-      MediaOutputFormat.png => ImageCodec.png,
-      MediaOutputFormat.webp => ImageCodec.webp,
-      _ => ImageCodec.jpeg,
-    };
   }
 
   int jpegQualityScale(int quality) {
@@ -311,11 +301,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return value;
   }
 
-  List<String> buildAudioCodecArgs(AudioProcessingConfig config) {
-    final args = <String>[
-      '-c:a',
-      audioEncoderName(effectiveAudioCodec(config)),
-    ];
+  List<String> buildAudioOutputArgs(AudioProcessingConfig config) {
+    final args = <String>['-c:a', audioEncoderName(config.outputFormat)];
     final bitrate = audioBitrateValue(config.bitratePreset);
     if (bitrate != null) {
       args.addAll(['-b:a', bitrate]);
@@ -334,28 +321,18 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return args;
   }
 
-  AudioCodec effectiveAudioCodec(AudioProcessingConfig config) {
-    if (config.audioCodec != AudioCodec.source) {
-      return config.audioCodec;
-    }
-
-    return switch (config.outputFormat) {
-      MediaOutputFormat.mp3 => AudioCodec.mp3,
-      MediaOutputFormat.m4a || MediaOutputFormat.aac => AudioCodec.aac,
-      MediaOutputFormat.flac => AudioCodec.flac,
-      MediaOutputFormat.wav => AudioCodec.pcm,
-      _ => AudioCodec.aac,
-    };
-  }
-
-  String audioEncoderName(AudioCodec codec) {
-    return switch (codec) {
-      AudioCodec.source => 'copy',
-      AudioCodec.aac => 'aac',
-      AudioCodec.mp3 => 'libmp3lame',
-      AudioCodec.opus => 'libopus',
-      AudioCodec.flac => 'flac',
-      AudioCodec.pcm => 'pcm_s16le',
+  String audioEncoderName(MediaOutputFormat outputFormat) {
+    return switch (outputFormat) {
+      MediaOutputFormat.mp3 => 'libmp3lame',
+      MediaOutputFormat.m4a || MediaOutputFormat.aac => 'aac',
+      MediaOutputFormat.wav => 'pcm_s16le',
+      MediaOutputFormat.flac => 'flac',
+      MediaOutputFormat.mp4 ||
+      MediaOutputFormat.mov ||
+      MediaOutputFormat.mkv ||
+      MediaOutputFormat.jpg ||
+      MediaOutputFormat.png ||
+      MediaOutputFormat.webp => 'aac',
     };
   }
 

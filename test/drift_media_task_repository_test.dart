@@ -1,6 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/image_codec.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
@@ -86,7 +85,6 @@ void main() {
         outputFileName: 'web-hero',
         image: ImageProcessingConfig.initial().copyWith(
           outputFormat: MediaOutputFormat.webp,
-          imageCodec: ImageCodec.webp,
           imageQuality: 74,
           resizePreset: ImageResizePreset.longEdge1920,
           preserveMetadata: true,
@@ -132,7 +130,6 @@ void main() {
       expect(restored.config.outputDirectory, '/exports');
       expect(restored.config.outputFileName, 'web-hero');
       expect(restored.config.image!.outputFormat, MediaOutputFormat.webp);
-      expect(restored.config.image!.imageCodec, ImageCodec.webp);
       expect(restored.config.image!.imageQuality, 74);
       expect(
         restored.config.image!.resizePreset,

@@ -2,12 +2,15 @@ import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
 
 extension WorkbenchCompressionModeLabel on CompressionMode {
   String get label {
@@ -82,6 +85,71 @@ extension WorkbenchOutputFormatLabel on OutputFormat {
       case OutputFormat.mkv:
         return 'MKV';
     }
+  }
+}
+
+extension WorkbenchMediaOutputFormatLabel on MediaOutputFormat {
+  String get label {
+    return switch (this) {
+      MediaOutputFormat.mp4 => 'MP4',
+      MediaOutputFormat.mov => 'MOV',
+      MediaOutputFormat.mkv => 'MKV',
+      MediaOutputFormat.jpg => 'JPEG',
+      MediaOutputFormat.png => 'PNG',
+      MediaOutputFormat.webp => 'WebP',
+      MediaOutputFormat.mp3 => 'MP3',
+      MediaOutputFormat.m4a => 'M4A',
+      MediaOutputFormat.aac => 'AAC',
+      MediaOutputFormat.wav => 'WAV',
+      MediaOutputFormat.flac => 'FLAC',
+    };
+  }
+}
+
+extension WorkbenchImageResizePresetLabel on ImageResizePreset {
+  String get label {
+    return switch (this) {
+      ImageResizePreset.original => '保持原始分辨率',
+      ImageResizePreset.longEdge3840 => '3840 × 2160',
+      ImageResizePreset.longEdge2560 => '2560 × 1440',
+      ImageResizePreset.longEdge1920 => '1920 × 1080',
+      ImageResizePreset.longEdge1280 => '1280 × 720',
+      ImageResizePreset.longEdge720 => '720 × 720',
+    };
+  }
+}
+
+extension WorkbenchAudioBitratePresetLabel on AudioBitratePreset {
+  String get label {
+    return switch (this) {
+      AudioBitratePreset.source => '保持原始',
+      AudioBitratePreset.k320 => '320 kbps',
+      AudioBitratePreset.k192 => '192 kbps',
+      AudioBitratePreset.k128 => '128 kbps',
+      AudioBitratePreset.k96 => '96 kbps',
+      AudioBitratePreset.k64 => '64 kbps',
+    };
+  }
+}
+
+extension WorkbenchAudioSampleRatePresetLabel on AudioSampleRatePreset {
+  String get label {
+    return switch (this) {
+      AudioSampleRatePreset.source => '保持原始',
+      AudioSampleRatePreset.hz48000 => '48 kHz',
+      AudioSampleRatePreset.hz44100 => '44.1 kHz',
+      AudioSampleRatePreset.hz32000 => '32 kHz',
+    };
+  }
+}
+
+extension WorkbenchAudioChannelsPresetLabel on AudioChannelsPreset {
+  String get label {
+    return switch (this) {
+      AudioChannelsPreset.source => '保持原始',
+      AudioChannelsPreset.stereo => '立体声',
+      AudioChannelsPreset.mono => '单声道',
+    };
   }
 }
 

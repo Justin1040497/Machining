@@ -21,9 +21,9 @@
 
 本次已完成首个兼容优先切片，不等同于完整 v1 交付：
 
-- ✅ 已完成：通用配置模型、`MediaTask.config` 主类型泛化、媒体分析字段扩展、Drift schema 14、任务配置 JSON 映射、导入图片 / 音频、FFprobe 纯音频和静态图片解析、FFmpeg 图片 / 音频基础命令计划、步骤型进度、文件选择媒体类型组、通用完成弹窗和关于 / 空态文案。
-- 🔧 部分完成：设置表已新增 `default_media_config_json`，但设置仓储和设置 UI 仍以旧视频默认字段为主；缩略图当前视频抽帧、图片源图、音频占位，尚未拆成完整媒体缩略图服务。
-- ⬜ 未完成：图片配置面板、音频配置面板、通用配置弹窗拆分、图片 / 音频手动端到端验收、macOS / Windows 发布包级验证、旧视频列长期清理。
+- ✅ 已完成：通用配置模型、`MediaTask.config` 主类型泛化、媒体分析字段扩展、Drift schema 14、任务配置 JSON 映射、设置仓储默认媒体配置读写兼容、应用设置三类默认处理配置面板、导入图片 / 音频、FFprobe 纯音频和静态图片解析、FFmpeg 图片 / 音频基础命令计划、步骤型进度、文件选择媒体类型组、图片 / 音频配置面板、通用完成弹窗和关于 / 空态文案。
+- 🔧 部分完成：缩略图当前视频抽帧、图片源图、音频占位，尚未拆成完整媒体缩略图服务；配置弹窗已按媒体类型分派，但仍可继续整理为更明确的通用外壳和分面板文件结构。
+- ⬜ 未完成：图片 / 音频手动端到端验收、macOS / Windows 发布包级验证、旧视频列长期清理。
 
 ---
 
@@ -39,7 +39,7 @@
 8. ⬜ 任务 8 — 新增或重命名 application 媒体处理抽象（依赖任务 2、4）
 9. ⬜ 任务 9 — Drift schema 14 迁移和表字段扩展（依赖任务 2、4、5）
 10. ⬜ 任务 10 — 仓储配置 JSON 映射和旧视频列兼容读取（依赖任务 9）
-11. ⬜ 任务 11 — 设置仓储默认媒体配置读写兼容（依赖任务 5、9）
+11. ✅ 任务 11 — 设置仓储默认媒体配置读写兼容（依赖任务 5、9）
 12. ⬜ 任务 12 — FFprobe 分析器支持视频、图片、音频（依赖任务 4、7）
 13. ⬜ 任务 13 — FFmpeg 命令规划改为按 `MediaKind` 分派（依赖任务 2、8、12）
 14. ⬜ 任务 14 — 执行进度支持 `timed` 和 `step` 两种模式（依赖任务 8、13）
@@ -64,8 +64,6 @@
 
 **文件：**
 - `lib/domain/enums/media_output_format.dart`
-- `lib/domain/enums/image_codec.dart`
-- `lib/domain/enums/audio_codec.dart`
 - `lib/domain/enums/media_processing_preset.dart`
 - `lib/domain/enums/output_format.dart`
 - `lib/domain/enums/smart_compression_preset.dart`
@@ -97,18 +95,11 @@ enum MediaOutputFormat {
 - 需要提供按 `MediaKind` 过滤可用格式的纯 domain helper。
 - 旧 `OutputFormat` 在兼容期只作为视频旧字段适配来源，不继续作为主配置类型。
 
-### 1.2 新增图片和音频编码枚举 `⬜`
-
-骨架：
-
-```dart
-enum ImageCodec { source, jpeg, png, webp }
-enum AudioCodec { source, aac, mp3, opus, flac, pcm }
-```
+### 1.2 编码配置边界 `⬜`
 
 约束：
-- 不把图片 / 音频编码塞进 `VideoCodec`。
-- `source` 表示尽量保留源编码或源格式，具体实现由 infrastructure 决定。
+- 图片任务不提供独立图片编码配置，后台按输出图片格式推导编码参数。
+- 音频任务不提供独立音频编码配置，后台按输出音频格式推导编码参数。
 
 ### 1.3 泛化处理预设命名 `⬜`
 
@@ -200,7 +191,6 @@ class VideoProcessingConfig {
 ```dart
 class ImageProcessingConfig {
   final MediaOutputFormat outputFormat;
-  final ImageCodec imageCodec;
   final int imageQuality;
   final ImageResizePreset resizePreset;
   final bool preserveMetadata;
@@ -209,8 +199,10 @@ class ImageProcessingConfig {
 
 约束：
 - `imageQuality` 范围为 1 到 100。
-- `preserveMetadata` 首版默认 `false`。
-- 自定义尺寸如未在设计确认，不在首版扩大范围。
+- 默认质量为 100。
+- `preserveMetadata` 默认 `false`，由图片配置面板开关控制。
+- 图片编码不作为配置字段，由后台按 `outputFormat` 推导。
+- 自定义分辨率如未在设计确认，不在首版扩大范围。
 
 ### 2.4 新增音频配置对象 `⬜`
 
@@ -219,7 +211,6 @@ class ImageProcessingConfig {
 ```dart
 class AudioProcessingConfig {
   final MediaOutputFormat outputFormat;
-  final AudioCodec audioCodec;
   final AudioBitratePreset bitratePreset;
   final AudioSampleRatePreset sampleRate;
   final AudioChannelsPreset channels;
@@ -576,21 +567,21 @@ MediaTaskConfig mediaTaskConfigFromJson(Map<String, Object?> json);
 
 ---
 
-## 任务 11：设置仓储默认媒体配置兼容 `⬜ 待处理`
+## 任务 11：设置仓储默认媒体配置兼容 `✅ 已完成`
 
 **文件：**
 - `lib/infrastructure/repositories/drift_app_settings_repository.dart`
 
 **类型：** 修改
 
-### 11.1 读取 `default_media_config_json` `⬜`
+### 11.1 读取 `default_media_config_json` `✅`
 
 逻辑步骤：
 1. 如果有新 JSON，解析为默认媒体配置。
 2. 如果没有，使用旧视频字段生成视频默认配置。
 3. 图片 / 音频默认配置使用 domain 默认值。
 
-### 11.2 保存时写新字段并保留旧字段 `⬜`
+### 11.2 保存时写新字段并保留旧字段 `✅`
 
 约束：
 - 视频旧字段继续写入，减少回滚风险。
@@ -664,7 +655,7 @@ class DefaultMediaCommandBuilder implements MediaCommandBuilder {
 骨架规则：
 - JPEG / WebP 使用质量参数。
 - PNG 使用无损或压缩级别参数。
-- 尺寸调整使用长边限制并保持宽高比。
+- 分辨率调整使用长边限制并保持宽高比。
 - `progressMode` 使用 `ProgressMode.step`。
 
 ### 13.4 新增音频命令规划 `⬜`
@@ -830,13 +821,12 @@ class WorkbenchMediaConfigPanel extends StatelessWidget {
 
 图片控件：
 - 输出格式。
+- 分辨率。
 - 图片质量。
-- 尺寸预设。
-- 是否保留元数据。
+- 保留元数据。
 
 音频控件：
 - 输出格式。
-- 音频编码。
 - 码率。
 - 采样率。
 - 声道。
@@ -857,7 +847,7 @@ class WorkbenchMediaConfigPanel extends StatelessWidget {
 
 目标：
 - 视频：保持当前压缩参数比较逻辑。
-- 图片：比较格式、质量、尺寸、元数据设置。
+- 图片：比较格式、分辨率、质量和元数据保留设置。
 - 音频：比较格式、编码、码率、采样率、声道。
 
 ### 19.2 展示 label 和格式化支持三类媒体 `⬜`
@@ -1019,7 +1009,7 @@ class WorkbenchMediaConfigPanel extends StatelessWidget {
 
 覆盖：
 - 视频命令参数回归。
-- 图片命令包含格式、质量、尺寸参数。
+- 图片命令包含格式、分辨率、质量和元数据参数。
 - 音频命令包含 `-vn`、`-c:a`、`-b:a`、`-ar`、`-ac`。
 
 ### 25.3 进度模式测试 `⬜`

@@ -6,13 +6,17 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
@@ -187,6 +191,185 @@ void main() {
     slider.onChanged?.call(8);
 
     expect(ratioChanges, [0.9]);
+  });
+
+  testWidgets('image task configuration exposes image controls', (
+    tester,
+  ) async {
+    final imageChanges = <ImageProcessingConfig>[];
+    final initialConfig = ImageProcessingConfig.initial();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: imageTask(config: initialConfig),
+            thumbnail: null,
+            selectedQualityIndex: 4,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.preset,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.6,
+            selectedImageConfig: initialConfig,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+            onImageConfigChanged: imageChanges.add,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('图片格式'), findsOneWidget);
+    expect(find.text('分辨率'), findsOneWidget);
+    expect(find.text('质量'), findsOneWidget);
+    expect(find.text('100%'), findsOneWidget);
+    expect(find.text('图片编码'), findsNothing);
+    expect(find.text('尺寸'), findsNothing);
+    expect(find.text('保留元数据'), findsOneWidget);
+    expect(find.text('视频编码'), findsNothing);
+    expect(
+      tester.getCenter(find.byType(Switch)).dx,
+      lessThan(tester.getCenter(find.text('保留元数据')).dx),
+    );
+
+    final formatDropdown = tester
+        .widget<DropdownButtonFormField<MediaOutputFormat>>(
+          find
+              .byWidgetPredicate(
+                (widget) =>
+                    widget is DropdownButtonFormField<MediaOutputFormat>,
+              )
+              .first,
+        );
+    formatDropdown.onChanged?.call(MediaOutputFormat.webp);
+
+    final resizeDropdown = tester
+        .widget<DropdownButtonFormField<ImageResizePreset>>(
+          find.byWidgetPredicate(
+            (widget) => widget is DropdownButtonFormField<ImageResizePreset>,
+          ),
+        );
+    resizeDropdown.onChanged?.call(ImageResizePreset.longEdge1280);
+
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    slider.onChanged?.call(76);
+
+    final metadataSwitch = tester.widget<Switch>(find.byType(Switch));
+    metadataSwitch.onChanged?.call(true);
+
+    expect(
+      imageChanges.map((config) => config.outputFormat),
+      contains(MediaOutputFormat.webp),
+    );
+    expect(
+      imageChanges.map((config) => config.resizePreset),
+      contains(ImageResizePreset.longEdge1280),
+    );
+    expect(imageChanges.map((config) => config.imageQuality), contains(76));
+    expect(
+      imageChanges.map((config) => config.preserveMetadata),
+      contains(true),
+    );
+  });
+
+  testWidgets('audio task configuration exposes audio controls', (
+    tester,
+  ) async {
+    final audioChanges = <AudioProcessingConfig>[];
+    final initialConfig = AudioProcessingConfig.initial();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: audioTask(config: initialConfig),
+            thumbnail: null,
+            selectedQualityIndex: 4,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.preset,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.6,
+            selectedAudioConfig: initialConfig,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+            onAudioConfigChanged: audioChanges.add,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('音频格式'), findsOneWidget);
+    expect(find.text('音频编码'), findsNothing);
+    expect(find.text('码率'), findsOneWidget);
+    expect(find.text('采样率'), findsOneWidget);
+    expect(find.text('声道'), findsOneWidget);
+    expect(find.text('视频编码'), findsNothing);
+
+    final formatDropdown = tester
+        .widget<DropdownButtonFormField<MediaOutputFormat>>(
+          find
+              .byWidgetPredicate(
+                (widget) =>
+                    widget is DropdownButtonFormField<MediaOutputFormat>,
+              )
+              .first,
+        );
+    formatDropdown.onChanged?.call(MediaOutputFormat.mp3);
+
+    final bitrateDropdown = tester
+        .widget<DropdownButtonFormField<AudioBitratePreset>>(
+          find.byWidgetPredicate(
+            (widget) => widget is DropdownButtonFormField<AudioBitratePreset>,
+          ),
+        );
+    bitrateDropdown.onChanged?.call(AudioBitratePreset.k128);
+
+    final channelsDropdown = tester
+        .widget<DropdownButtonFormField<AudioChannelsPreset>>(
+          find.byWidgetPredicate(
+            (widget) => widget is DropdownButtonFormField<AudioChannelsPreset>,
+          ),
+        );
+    channelsDropdown.onChanged?.call(AudioChannelsPreset.stereo);
+
+    expect(
+      audioChanges.map((config) => config.outputFormat),
+      contains(MediaOutputFormat.mp3),
+    );
+    expect(
+      audioChanges.map((config) => config.bitratePreset),
+      contains(AudioBitratePreset.k128),
+    );
+    expect(
+      audioChanges.map((config) => config.channels),
+      contains(AudioChannelsPreset.stereo),
+    );
   });
 
   testWidgets('already compressed source shows no estimated size text', (
@@ -665,5 +848,63 @@ MediaTask testTask({
                 audioBitrate: 128000,
               )
         : null,
+  );
+}
+
+MediaTask imageTask({ImageProcessingConfig? config}) {
+  return MediaTask(
+    id: 'image-task',
+    inputPath: '/images/source.png',
+    fileName: 'source.png',
+    mediaKind: MediaKind.image,
+    purpose: TaskPurpose.compression,
+    status: TaskStatus.pending,
+    config: MediaTaskConfig.initialImage().copyWith(
+      image: config ?? ImageProcessingConfig.initial(),
+    ),
+    progress: 0,
+    sortOrder: 0,
+    createdAt: 1,
+    sourceFileFingerprint: const SourceFileFingerprint(
+      fileSize: 2 * 1024 * 1024,
+      lastModifiedAt: 1,
+    ),
+    analysisResult: MediaAnalysisResult(
+      imageWidth: 1200,
+      imageHeight: 800,
+      imageCodec: 'png',
+      imagePixelFormat: 'rgba',
+      imageBitDepth: 8,
+      containerFormat: 'png_pipe',
+    ),
+  );
+}
+
+MediaTask audioTask({AudioProcessingConfig? config}) {
+  return MediaTask(
+    id: 'audio-task',
+    inputPath: '/audio/source.wav',
+    fileName: 'source.wav',
+    mediaKind: MediaKind.audio,
+    purpose: TaskPurpose.compression,
+    status: TaskStatus.pending,
+    config: MediaTaskConfig.initialAudio().copyWith(
+      audio: config ?? AudioProcessingConfig.initial(),
+    ),
+    progress: 0,
+    sortOrder: 0,
+    createdAt: 1,
+    sourceFileFingerprint: const SourceFileFingerprint(
+      fileSize: 6 * 1024 * 1024,
+      lastModifiedAt: 1,
+    ),
+    analysisResult: MediaAnalysisResult(
+      durationMs: 42000,
+      audioCodec: 'pcm_s16le',
+      audioBitrate: 1411200,
+      audioChannels: 2,
+      audioSampleRate: 44100,
+      containerFormat: 'wav',
+    ),
   );
 }

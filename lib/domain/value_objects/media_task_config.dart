@@ -83,6 +83,20 @@ class MediaTaskConfig {
     );
   }
 
+  factory MediaTaskConfig.initialDefaults() {
+    return MediaTaskConfig(
+      outputDirectory: '',
+      outputFileName: '',
+      compressionMode: CompressionMode.preset,
+      preset: MediaProcessingPreset.balanced,
+      targetSizeBytes: null,
+      targetSizeRatio: null,
+      video: VideoProcessingConfig.initial(),
+      image: ImageProcessingConfig.initial(),
+      audio: AudioProcessingConfig.initial(),
+    );
+  }
+
   factory MediaTaskConfig.fromVideoTaskConfig(VideoTaskConfig config) {
     return MediaTaskConfig(
       outputDirectory: config.outputDirectory,
@@ -124,6 +138,26 @@ class MediaTaskConfig {
       MediaKind.image => image != null,
       MediaKind.audio => audio != null,
     };
+  }
+
+  MediaTaskConfig forKind(MediaKind mediaKind) {
+    return MediaTaskConfig(
+      outputDirectory: outputDirectory,
+      outputFileName: outputFileName,
+      compressionMode: compressionMode,
+      preset: preset,
+      targetSizeBytes: targetSizeBytes,
+      targetSizeRatio: targetSizeRatio,
+      video: mediaKind == MediaKind.video
+          ? video ?? VideoProcessingConfig.initial()
+          : null,
+      image: mediaKind == MediaKind.image
+          ? image ?? ImageProcessingConfig.initial()
+          : null,
+      audio: mediaKind == MediaKind.audio
+          ? audio ?? AudioProcessingConfig.initial()
+          : null,
+    );
   }
 
   MediaTaskConfig copyWith({

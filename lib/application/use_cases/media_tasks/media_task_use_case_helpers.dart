@@ -66,25 +66,20 @@ MediaTaskConfig buildInitialTaskConfigFromSettings({
       ? ''
       : settings.defaultOutputDirectory ?? '';
 
-  final config = MediaTaskConfig.initialFor(mediaKind).copyWith(
-    outputDirectory: outputDirectory,
-    outputFileName: buildDefaultOutputFileName(
-      sourceFileName: sourceFileName,
-      mediaKind: mediaKind,
-      codec: settings.defaultOutputVideoCodec,
-      template: settings.defaultOutputFileNameTemplate,
-      now: now,
-    ),
-  );
+  final config = settings.defaultMediaConfig
+      .forKind(mediaKind)
+      .copyWith(
+        outputDirectory: outputDirectory,
+        outputFileName: buildDefaultOutputFileName(
+          sourceFileName: sourceFileName,
+          mediaKind: mediaKind,
+          codec: settings.defaultOutputVideoCodec,
+          template: settings.defaultOutputFileNameTemplate,
+          now: now,
+        ),
+      );
 
-  if (mediaKind != MediaKind.video) {
-    return config;
-  }
-
-  return config.copyWith(
-    videoCodec: settings.defaultOutputVideoCodec,
-    smartPreset: settings.defaultSmartPreset,
-  );
+  return config;
 }
 
 String buildDefaultOutputFileName({
