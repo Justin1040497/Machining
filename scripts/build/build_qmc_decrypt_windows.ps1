@@ -56,7 +56,9 @@ qmc-decrypt commit: $RepoCommit
 Built by: scripts/build/build_qmc_decrypt_windows.ps1
 "@ | Set-Content -LiteralPath (Join-Path $OutDir "qmc-decrypt-build-info.txt") -Encoding UTF8
 
-  & (Join-Path $OutDir "qmc-decrypt.exe") --version
+  # The pinned qmc-decrypt CLI does not implement --version; --help is the
+  # side-effect-free startup probe available in this upstream binary.
+  Invoke-Checked (Join-Path $OutDir "qmc-decrypt.exe") @("--help")
 }
 finally {
   Pop-Location

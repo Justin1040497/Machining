@@ -29,6 +29,21 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-07｜v1.1.5｜No Release
+
+今天修复 QMC 上游 `qmc-decrypt` 构建和运行时探测脚本。
+
+### Fixed
+
+- 修复 macOS / Windows `qmc-decrypt` 构建脚本误用 `--version` 导致构建后验证失败的问题；当前锁定的上游 CLI 只支持 `--help` 探测。
+- 修复直接使用上游 `qmc-decrypt` 时的运行时可用性探测和文档契约，避免把 FrameLean wrapper 的 `--version` 要求错误套到上游二进制。
+
+### Verified
+
+- 通过 `git diff --check`。
+- 通过 `flutter test test/bundled_proprietary_audio_adapter_registry_test.dart`。
+- 通过 `scripts/build/build_qmc_decrypt_macos_arm64.sh`。
+
 ## 2026-06-06｜v1.1.5｜No Release
 
 今天完成仓库根目录结构治理，作为 `feature/media-processing` 的工程整理内容。
