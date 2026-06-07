@@ -255,6 +255,13 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
   Future<FfmpegQueueStatus> refreshStatus() async {
     return queueStatus;
   }

@@ -88,6 +88,8 @@ abstract class FfmpegTaskQueueRunner {
 
   Future<FfmpegQueueStartResult> pauseTask(String taskId);
 
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks();
+
   Future<FfmpegQueueStartResult> cancelTask(String taskId);
 
   Future<void> cancelAllExecutions();
@@ -111,6 +113,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   FfmpegQueueStatus _queueStatus = FfmpegQueueStatus.idle;
   String? _foregroundTaskId;
   Future<FfmpegQueueStartResult>? _startFuture;
+  bool _queueRunIntentActive = false;
 
   DefaultFfmpegTaskQueueRunner({
     required this.repository,
@@ -151,21 +154,27 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
+    _queueRunIntentActive = true;
     final startFuture = _start(
       allowExtremeCompression: allowExtremeCompression,
     );
     _startFuture = startFuture;
     unawaited(
       startFuture
+          .then((result) {
+            if (result.outcome ==
+                    FfmpegQueueStartOutcome.compressionConfirmationRequired ||
+                result.outcome == FfmpegQueueStartOutcome.noPendingTask ||
+                result.outcome == FfmpegQueueStartOutcome.notReady) {
+              _queueRunIntentActive = false;
+            }
+          })
           .whenComplete(() {
             _startFuture = null;
           })
-          .catchError(
-            (_) => const FfmpegQueueStartResult(
-              outcome: FfmpegQueueStartOutcome.processStartFailed,
-              message: '队列启动失败',
-            ),
-          ),
+          .catchError((_) {
+            _queueRunIntentActive = false;
+          }),
     );
     return startFuture;
   }
@@ -184,22 +193,23 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    final foregroundId = _foregroundTaskId;
-    if (foregroundId != null && foregroundId != taskId) {
-      await suspendForegroundTask();
-    }
-
-    final execution = _executions[taskId];
-    if (execution != null) {
-      return resumeExecution(task, execution);
-    }
-
-    if (task.status != TaskStatus.pending && task.status != TaskStatus.paused) {
+    if (!isStartableTask(task)) {
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.invalidTaskState,
         task: task,
         message: '当前任务状态不允许开始',
       );
+    }
+
+    final foregroundId = _foregroundTaskId;
+    if (foregroundId != null && foregroundId != taskId) {
+      await suspendForegroundTask();
+    }
+
+    _queueRunIntentActive = true;
+    final execution = _executions[taskId];
+    if (execution != null) {
+      return resumeExecution(task, execution);
     }
 
     return startTask(task, allowExtremeCompression: allowExtremeCompression);
@@ -232,11 +242,55 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     final pausedTask = await suspendForegroundTask();
-    await continueAfterTask();
+    await continueAfterTask(excludedTaskId: taskId);
     return FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.paused,
       task: pausedTask,
       message: '任务已挂起',
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
+    _queueRunIntentActive = false;
+
+    final tasks = await repository.loadAllTasks();
+    final tasksById = {for (final task in tasks) task.id: task};
+    MediaTask? lastPausedTask;
+
+    for (final execution in _executions.values) {
+      if (execution.state != TaskExecutionState.running) {
+        continue;
+      }
+
+      await processController.pause(execution.startedProcess);
+      execution.state = TaskExecutionState.paused;
+      if (_foregroundTaskId == execution.taskId) {
+        _foregroundTaskId = null;
+      }
+
+      final task = tasksById[execution.taskId];
+      if (task == null) {
+        continue;
+      }
+
+      final pausedTask = task.markPaused();
+      await repository.saveTask(pausedTask);
+      lastPausedTask = pausedTask;
+    }
+
+    await refreshStatus();
+    if (lastPausedTask == null) {
+      return const FfmpegQueueStartResult(
+        outcome: FfmpegQueueStartOutcome.invalidTaskState,
+        message: '没有正在执行的任务',
+      );
+    }
+
+    return FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+      task: lastPausedTask,
+      message: '所有正在执行的任务已暂停',
     );
   }
 
@@ -281,6 +335,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   @override
   Future<void> cancelAllExecutions() async {
+    _queueRunIntentActive = false;
     for (final execution in [..._executions.values]) {
       execution.state = TaskExecutionState.finishing;
       await processController.terminate(execution.startedProcess);
@@ -311,31 +366,28 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    final pausedExecution = firstPausedExecution();
-    if (pausedExecution != null) {
-      final task = findTaskById(
-        await repository.loadAllTasks(),
-        pausedExecution.taskId,
-      );
-      if (task != null) {
-        return resumeExecution(task, pausedExecution);
-      }
-    }
-
-    return runNextPendingTask(allowExtremeCompression: allowExtremeCompression);
+    return runNextStartableTask(
+      allowExtremeCompression: allowExtremeCompression,
+    );
   }
 
-  Future<FfmpegQueueStartResult> runNextPendingTask({
+  Future<FfmpegQueueStartResult> runNextStartableTask({
     bool allowExtremeCompression = false,
   }) async {
     final tasks = await repository.loadAllTasks();
-    final task = nextPendingTask(tasks);
+    final task = nextStartableTask(tasks);
     if (task == null) {
       await refreshStatus();
+      _queueRunIntentActive = false;
       return const FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.noPendingTask,
-        message: '没有找到 pending 任务',
+        message: '没有找到可执行任务',
       );
+    }
+
+    final execution = _executions[task.id];
+    if (execution != null) {
+      return resumeExecution(task, execution);
     }
 
     return startTask(task, allowExtremeCompression: allowExtremeCompression);
@@ -795,7 +847,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
   }
 
-  Future<void> continueAfterTask() async {
+  Future<void> continueAfterTask({String? excludedTaskId}) async {
     final tasks = await repository.loadAllTasks();
     final nextStatus = resolveQueueStatus(tasks);
 
@@ -805,14 +857,21 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     if (nextStatus == FfmpegQueueStatus.ready) {
-      if (!continuousExecutionEnabled || _foregroundTaskId != null) {
+      if (!continuousExecutionEnabled ||
+          !_queueRunIntentActive ||
+          _foregroundTaskId != null) {
         _queueStatus = FfmpegQueueStatus.ready;
         return;
       }
 
-      final nextTask = nextPendingTask(tasks);
+      final nextTask = nextStartableTask(tasks, excludedTaskId: excludedTaskId);
       if (nextTask != null) {
-        await startTask(nextTask);
+        final execution = _executions[nextTask.id];
+        if (execution != null) {
+          await resumeExecution(nextTask, execution);
+        } else {
+          await startTask(nextTask);
+        }
         return;
       }
 
@@ -820,6 +879,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return;
     }
 
+    _queueRunIntentActive = false;
     _queueStatus = FfmpegQueueStatus.idle;
   }
 
@@ -843,9 +903,14 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     return FfmpegQueueStatus.idle;
   }
 
-  MediaTask? nextPendingTask(List<MediaTask> tasks) {
-    final pendingTasks =
-        tasks.where((task) => task.status == TaskStatus.pending).toList()
+  MediaTask? nextStartableTask(
+    List<MediaTask> tasks, {
+    String? excludedTaskId,
+  }) {
+    final startableTasks =
+        tasks
+            .where((task) => task.id != excludedTaskId && isStartableTask(task))
+            .toList()
           ..sort((first, second) {
             final order = first.sortOrder.compareTo(second.sortOrder);
             if (order != 0) {
@@ -855,21 +920,16 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
             return first.createdAt.compareTo(second.createdAt);
           });
 
-    if (pendingTasks.isEmpty) {
+    if (startableTasks.isEmpty) {
       return null;
     }
 
-    return pendingTasks.first;
+    return startableTasks.first;
   }
 
-  TaskExecution? firstPausedExecution() {
-    for (final execution in _executions.values) {
-      if (execution.state == TaskExecutionState.paused) {
-        return execution;
-      }
-    }
-
-    return null;
+  bool isStartableTask(MediaTask task) {
+    return task.status == TaskStatus.pending ||
+        task.status == TaskStatus.paused;
   }
 
   MediaTask? findTaskById(List<MediaTask> tasks, String taskId) {

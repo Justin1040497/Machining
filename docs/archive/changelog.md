@@ -50,6 +50,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 任务执行期间状态轮询间隔从 500ms 延长到 1000ms，并新增 `_taskListHasChanged` 变更检测，仅在任务 id / status / progress 实际变化时触发 UI 更新，避免无变化的无效全量重建。
 - 工作台 `syncSelectedTaskIdAfterBuild`、`syncSelectedTaskConfigAfterBuild`、`syncQualityPresetAfterBuild` 从 `build()` 内移到 `ref.listen` 回调中触发，仅在任务列表数据变化时执行，不再随拖拽导入状态、主题切换等无关重建调度 deferred `setState`。
 - 深浅主题切换使用 `TweenAnimationBuilder` + `ThemeData.lerp` + `FrameLeanColors.lerp` 实现颜色平滑过渡，通过 `MaterialApp.router.builder` 注入 `Theme` 覆盖层而非重建整个路由系统。
+- 队列执行语义改为以任务列表顺序为唯一队列顺序：底部开始按实时列表顺序选择等待中 / 已暂停任务，运行中调整任务顺序会影响后续任务；任务行开始保留插队行为，不修改列表排序。
 
 ### Fixed
 
@@ -57,6 +58,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复 macOS / Windows `qmc-decrypt` 构建脚本误用 `--version` 导致构建后验证失败的问题；当前锁定的上游 CLI 只支持 `--help` 探测。
 - 修复直接使用上游 `qmc-decrypt` 时的运行时可用性探测和文档契约，避免把 FrameLean wrapper 的 `--version` 要求错误套到上游二进制。
 - 修复任务拖拽排序松手后，被移动任务及其之间的所有任务项预览图和标题闪烁的问题；根因是 `reorderTasks` 异步等待 DB 持久化后才更新 state，与 `ReorderableListView` 期望的同步数据更新产生时序冲突，改为乐观更新：先从内存 state 计算重排结果立即更新 UI，再异步持久化到 DB。
+- 修复底部暂停按钮文案为“暂停所有任务”但实际逐个调用单任务暂停、可能触发队列继续执行的问题；底部暂停现在只暂停当前执行上下文并停止自动续跑。
 
 ### Verified
 

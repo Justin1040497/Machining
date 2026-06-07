@@ -446,15 +446,15 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> pauseRunningTasks() async {
-    final taskList = ref.read(mediaTaskListProvider);
-    if (!taskList.hasValue) {
-      return;
-    }
-
-    for (final task in taskList.requireValue) {
-      if (task.status == TaskStatus.running) {
-        await pauseTask(task);
+    try {
+      final result = await ref
+          .read(mediaTaskListProvider.notifier)
+          .pauseAllRunningTasks();
+      if (result.message != null) {
+        showWorkbenchSnackBar(result.message!);
       }
+    } on Object catch (error) {
+      showWorkbenchSnackBar(error.toString());
     }
   }
 

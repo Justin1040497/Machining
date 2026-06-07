@@ -6,6 +6,7 @@ import 'package:framelean/application/use_cases/media_tasks/analyze_media_task_u
 import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/import_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/application/use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
 
@@ -238,6 +239,16 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       startExecutionRefreshPolling();
     }
 
+    return result;
+  }
+
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
+    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    final result = await PauseAllMediaTaskExecutionsUseCase(
+      queueRunner: queueRunner,
+    ).call();
+
+    await refreshTasksFromRepository();
     return result;
   }
 

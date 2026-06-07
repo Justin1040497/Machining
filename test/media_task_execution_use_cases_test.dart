@@ -3,6 +3,7 @@ import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
@@ -46,6 +47,17 @@ void main() {
 
       expect(result.outcome, FfmpegQueueStartOutcome.paused);
       expect(runner.pausedTaskId, 'task-1');
+    });
+
+    test('pause all tasks delegates to the queue runner', () async {
+      final runner = FakeFfmpegTaskQueueRunner();
+
+      final result = await PauseAllMediaTaskExecutionsUseCase(
+        queueRunner: runner,
+      ).call();
+
+      expect(result.outcome, FfmpegQueueStartOutcome.paused);
+      expect(runner.pauseAllCallCount, 1);
     });
 
     test('delete cancels running task before deleting it', () async {
@@ -162,6 +174,7 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   String? startOrResumeTaskId;
   String? pausedTaskId;
   final List<String> cancelledTaskIds = [];
+  int pauseAllCallCount = 0;
   int cancelAllCallCount = 0;
 
   @override
@@ -180,6 +193,14 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   @override
   Future<FfmpegQueueStartResult> pauseTask(String taskId) async {
     pausedTaskId = taskId;
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
+    pauseAllCallCount += 1;
     return const FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.paused,
     );
