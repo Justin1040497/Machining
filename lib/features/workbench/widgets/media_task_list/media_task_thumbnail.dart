@@ -1,9 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/features/workbench/presentation_mappers/media_kind_icons.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class MediaTaskThumbnail extends StatelessWidget {
-  const MediaTaskThumbnail({super.key, this.thumbnail});
+  const MediaTaskThumbnail({
+    super.key,
+    required this.mediaKind,
+    this.thumbnail,
+  });
 
+  final MediaKind mediaKind;
   final ImageProvider? thumbnail;
 
   @override
@@ -21,11 +28,7 @@ class MediaTaskThumbnail extends StatelessWidget {
             : DecorationImage(image: thumbnail!, fit: BoxFit.cover),
       ),
       child: thumbnail == null
-          ? Icon(
-              Icons.movie_creation_outlined,
-              size: 18,
-              color: colors.iconMuted,
-            )
+          ? Icon(mediaKind.placeholderIcon, size: 18, color: colors.iconMuted)
           : null,
     );
   }

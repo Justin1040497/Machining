@@ -26,6 +26,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/configuration/
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
@@ -721,6 +722,50 @@ void main() {
     await tester.pump();
 
     expect(retryCount, 1);
+  });
+
+  testWidgets('task list placeholder thumbnails match media kind', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              MediaTaskListTile(task: testTask()),
+              MediaTaskListTile(task: imageTask()),
+              MediaTaskListTile(task: audioTask()),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.movie_creation_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.audiotrack_rounded), findsOneWidget);
+  });
+
+  testWidgets('source summary placeholder thumbnails match media kind', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              WorkbenchSourceSummary(task: testTask(), thumbnail: null),
+              WorkbenchSourceSummary(task: imageTask(), thumbnail: null),
+              WorkbenchSourceSummary(task: audioTask(), thumbnail: null),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byIcon(Icons.movie_creation_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.image_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.audiotrack_rounded), findsOneWidget);
   });
 
   testWidgets('completed dialog focuses on size and output path', (

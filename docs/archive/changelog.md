@@ -66,6 +66,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复任务拖拽排序松手后，被移动任务及其之间的所有任务项预览图和标题闪烁的问题；根因是 `reorderTasks` 异步等待 DB 持久化后才更新 state，与 `ReorderableListView` 期望的同步数据更新产生时序冲突，改为乐观更新：先从内存 state 计算重排结果立即更新 UI，再异步持久化到 DB。
 - 修复底部暂停按钮文案为“暂停所有任务”但实际逐个调用单任务暂停、可能触发队列继续执行的问题；底部暂停现在只暂停当前执行上下文并停止自动续跑。
 - 修复拖拽排序后台持久化失败会变成未处理异步错误的问题；页面现在捕获失败并提示，notifier 会刷新仓储顺序恢复一致性。
+- 修复图片和音频任务没有预览图时仍显示视频占位图标的问题；任务列表和任务详情源文件摘要现在按视频 / 图片 / 音频类型显示对应占位图标。
 
 ### Verified
 
@@ -73,6 +74,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `git diff --check`。
 - 通过 `flutter analyze`。
 - 通过 `flutter test`。
+- 通过 `flutter test test/widget_test.dart`，覆盖媒体类型占位图标回归测试。
 - 通过 `flutter test test/bundled_proprietary_audio_adapter_registry_test.dart`。
 - 通过 `scripts/build/build_qmc_decrypt_macos_arm64.sh`。
 
