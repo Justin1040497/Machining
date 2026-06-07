@@ -45,6 +45,7 @@ import 'package:framelean/features/workbench/providers/media_task_notifier.dart'
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
 const Object _configValueNotProvided = Object();
 const String _frameLeanGitHubUrl = 'https://github.com/zhouycheng/FrameLean';
@@ -100,15 +101,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     ) {
       notifyAnalysisErrors(next.asData?.value);
       notifyCompletedTasks(previous?.asData?.value, next.asData?.value);
+      final tasks = next.asData?.value ?? const <MediaTask>[];
+      final selectedTask = resolveSelectedTask(tasks);
+      syncSelectedTaskIdAfterBuild(selectedTask);
+      syncSelectedTaskConfigAfterBuild(selectedTask);
+      syncQualityPresetAfterBuild(selectedTask);
     });
     final taskList = ref.watch(mediaTaskListProvider);
     final tasks = taskList.hasValue
         ? taskList.requireValue
         : const <MediaTask>[];
     final selectedTask = resolveSelectedTask(tasks);
-    syncSelectedTaskIdAfterBuild(selectedTask);
-    syncSelectedTaskConfigAfterBuild(selectedTask);
-    syncQualityPresetAfterBuild(selectedTask);
     syncTaskThumbnailsAfterBuild(tasks);
 
     final hasRunningTask = tasks.any(
@@ -538,6 +541,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         repository: repository,
       ).call();
       await repository.saveSettings(settings.copyWith(themeMode: nextMode));
+      unawaited(ThemePrefsCache.write(nextMode));
     } on Object catch (error) {
       ref.read(appThemeModeProvider.notifier).setThemeMode(oldMode);
       showWorkbenchSnackBar('主题切换失败: $error');
