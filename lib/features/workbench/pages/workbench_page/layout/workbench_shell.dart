@@ -2,12 +2,14 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/drop_overlay.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchShell extends StatelessWidget {
   const WorkbenchShell({
@@ -32,6 +34,8 @@ class WorkbenchShell extends StatelessWidget {
     required this.onContextMenu,
     required this.onAddTask,
     required this.onOpenSettings,
+    required this.themeMode,
+    required this.onToggleThemeMode,
     required this.onOpenAbout,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
@@ -57,12 +61,15 @@ class WorkbenchShell extends StatelessWidget {
   final WorkbenchTaskPositionCallback onContextMenu;
   final VoidCallback onAddTask;
   final VoidCallback onOpenSettings;
+  final AppThemeMode themeMode;
+  final VoidCallback onToggleThemeMode;
   final VoidCallback onOpenAbout;
   final VoidCallback onClearTasks;
   final VoidCallback onPrimaryQueuePressed;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final reserveTopNoticeArea =
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows;
@@ -104,13 +111,17 @@ class WorkbenchShell extends StatelessWidget {
                       : constraints.maxHeight,
                 ),
                 child: DecoratedBox(
-                  decoration: const BoxDecoration(color: Color(0xFFF3F3F3)),
+                  decoration: BoxDecoration(color: colors.surfaceCanvas),
                   child: Stack(
                     children: [
                       if (defaultTargetPlatform == TargetPlatform.macOS)
                         Align(
                           alignment: Alignment.topCenter,
-                          child: WorkbenchTopBar(onOpenAbout: onOpenAbout),
+                          child: WorkbenchTopBar(
+                            themeMode: themeMode,
+                            onToggleThemeMode: onToggleThemeMode,
+                            onOpenAbout: onOpenAbout,
+                          ),
                         ),
                       if (defaultTargetPlatform == TargetPlatform.windows)
                         Positioned(
@@ -120,6 +131,8 @@ class WorkbenchShell extends StatelessWidget {
                           right: 0,
                           height: WorkbenchConstants.appTopBarHeight,
                           child: WorkbenchTopBar(
+                            themeMode: themeMode,
+                            onToggleThemeMode: onToggleThemeMode,
                             onOpenAbout: onOpenAbout,
                             showBottomBorder: true,
                           ),

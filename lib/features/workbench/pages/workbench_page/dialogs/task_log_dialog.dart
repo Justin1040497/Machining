@@ -8,6 +8,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 
 /// 任务日志弹窗
@@ -141,6 +142,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
   }
 
   Widget _buildLogContent() {
+    final colors = context.frameLeanColors;
     final log = _liveLog;
 
     if (log == null || log.isEmpty) {
@@ -149,9 +151,9 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
+        color: colors.surfaceMuted,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE4E8EF)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -176,10 +178,10 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
                 padding: const EdgeInsets.all(16),
                 child: SelectableText(
                   log,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'Courier New',
-                    fontSize: 12,
-                    color: Color(0xFF333333),
+                    fontSize: 12.flSp,
+                    color: colors.textPrimary,
                     height: 1.5,
                   ),
                 ),
@@ -193,6 +195,8 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
   }
 
   Widget _buildAutoScrollHint() {
+    final colors = context.frameLeanColors;
+
     return GestureDetector(
       onTap: () {
         setState(() {
@@ -202,23 +206,24 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
       },
       child: Container(
         height: 32,
-        decoration: const BoxDecoration(
-          color: Color(0xFF6290FF),
-          borderRadius: BorderRadius.only(
+        decoration: BoxDecoration(
+          color: colors.primary,
+          borderRadius: const BorderRadius.only(
             bottomLeft: Radius.circular(7),
             bottomRight: Radius.circular(7),
           ),
         ),
         alignment: Alignment.center,
-        child: const Text(
+        child: Text(
           '跟随最新日志',
-          style: TextStyle(color: Colors.white, fontSize: 12),
+          style: TextStyle(color: colors.onPrimary, fontSize: 12.flSp),
         ),
       ),
     );
   }
 
   Widget _buildEmptyState() {
+    final colors = context.frameLeanColors;
     final currentTask = _resolveCurrentTask();
     String message;
     if (currentTask.status == TaskStatus.pending) {
@@ -234,23 +239,23 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
 
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFFF8F8F8),
+        color: colors.surfaceMuted,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE4E8EF)),
+        border: Border.all(color: colors.border),
       ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
+            Icon(
               Icons.description_outlined,
               size: 48,
-              color: Color(0xFFCCCCCC),
+              color: colors.textTertiary,
             ),
             const SizedBox(height: 16),
             Text(
               message,
-              style: const TextStyle(color: Color(0xFF999999), fontSize: 14),
+              style: TextStyle(color: colors.textTertiary, fontSize: 14.flSp),
             ),
           ],
         ),
@@ -259,6 +264,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
   }
 
   Widget _buildFooter() {
+    final colors = context.frameLeanColors;
     final log = _liveLog;
     final hasLog = log != null && log.isNotEmpty;
 
@@ -266,13 +272,13 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
       children: [
         Text(
           _getLogInfo(),
-          style: const TextStyle(color: Color(0xFF999999), fontSize: 12),
+          style: TextStyle(color: colors.textTertiary, fontSize: 12.flSp),
         ),
         const Spacer(),
         if (hasLog) ...[
           WorkbenchDialogActionButton(
             label: '复制日志',
-            backgroundColor: const Color(0xFFB8B8B8),
+            backgroundColor: colors.statusCancelled,
             onPressed: _copyLog,
             width: 85,
           ),
@@ -280,7 +286,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
         ],
         WorkbenchDialogActionButton(
           label: '关闭',
-          backgroundColor: const Color(0xFF6290FF),
+          backgroundColor: colors.primary,
           onPressed: () => Navigator.of(context).pop(),
           width: 75,
         ),
@@ -307,12 +313,27 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
     if (log == null || log.isEmpty) {
       return;
     }
+    final colors = context.frameLeanColors;
 
     Clipboard.setData(ClipboardData(text: log));
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('日志已复制到剪贴板'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: colors.surface,
+        duration: const Duration(seconds: 2),
+        elevation: 8,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+          side: BorderSide(color: colors.border),
+        ),
+        content: Text(
+          '日志已复制到剪贴板',
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 13.flSp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
       ),
     );
   }

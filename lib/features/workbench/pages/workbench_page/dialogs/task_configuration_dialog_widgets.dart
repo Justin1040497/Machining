@@ -8,6 +8,8 @@ import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/features/workbench/widgets/form_controls/workbench_segmented_switch.dart';
 
 class WorkbenchCompressionPreset {
   const WorkbenchCompressionPreset({
@@ -94,6 +96,7 @@ class WorkbenchSourceSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final analysis = task.analysisResult;
     final dimension = switch (task.mediaKind) {
       MediaKind.image => _formatImageDimension(task),
@@ -119,9 +122,9 @@ class WorkbenchSourceSummary extends StatelessWidget {
       children: [
         Expanded(
           child: DefaultTextStyle(
-            style: const TextStyle(
-              color: Color(0xFF9A9A9A),
-              fontSize: 11,
+            style: TextStyle(
+              color: colors.textTertiary,
+              fontSize: 11.flSp,
               height: 1.95,
               fontWeight: FontWeight.w400,
             ),
@@ -216,6 +219,7 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final selectedIndex = _indexForValue(selectedValue);
     final selectedPanelValue = values[selectedIndex];
     final selectedPercent = (selectedPanelValue * 100).round();
@@ -223,9 +227,9 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(10, 9, 10, 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colors.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE4E4E4)),
+        border: Border.all(color: colors.border),
       ),
       child: Column(
         children: [
@@ -234,9 +238,9 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
-                    color: Color(0xFF111111),
-                    fontSize: 12,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 12.flSp,
                     height: 1,
                     fontWeight: FontWeight.w600,
                   ),
@@ -247,9 +251,9 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
                 summaryBuilder(selectedPanelValue),
                 textAlign: TextAlign.right,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF111111),
-                  fontSize: 12,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 12.flSp,
                   height: 1,
                   fontWeight: FontWeight.w500,
                 ),
@@ -262,16 +266,16 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
             child: SliderTheme(
               data: SliderTheme.of(context).copyWith(
                 trackHeight: 14,
-                activeTrackColor: const Color(0xFF6290FF),
-                inactiveTrackColor: const Color(0xFFEDEDED),
-                thumbColor: Colors.white,
-                overlayColor: const Color(0x1A6290FF),
-                activeTickMarkColor: Colors.white,
-                inactiveTickMarkColor: const Color(0xFFCFCFCF),
-                valueIndicatorColor: const Color(0xFF315FD4),
-                valueIndicatorTextStyle: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 11,
+                activeTrackColor: colors.primary,
+                inactiveTrackColor: colors.surfaceDisabled,
+                thumbColor: colors.primary,
+                overlayColor: colors.primary.withAlpha(26),
+                activeTickMarkColor: colors.surface,
+                inactiveTickMarkColor: colors.borderStrong,
+                valueIndicatorColor: colors.primary,
+                valueIndicatorTextStyle: TextStyle(
+                  color: colors.onPrimary,
+                  fontSize: 11.flSp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -298,9 +302,9 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
                     '${(value * 100).round()}%',
                     style: TextStyle(
                       color: value == selectedPanelValue
-                          ? const Color(0xFF315FD4)
-                          : const Color(0xFF9A9A9A),
-                      fontSize: 8,
+                          ? colors.primary
+                          : colors.textTertiary,
+                      fontSize: 8.flSp,
                       height: 1,
                       fontWeight: value == selectedPanelValue
                           ? FontWeight.w700
@@ -339,79 +343,17 @@ class _CompressionModeSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 34,
-      padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F1F1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          _CompressionModeSegment(
-            label: '推荐方案选项',
-            selected: mode != CompressionMode.targetSize,
-            onTap: () => onChanged(CompressionMode.preset),
-          ),
-          _CompressionModeSegment(
-            label: '自定义目标体积',
-            selected: mode == CompressionMode.targetSize,
-            onTap: () => onChanged(CompressionMode.targetSize),
-          ),
-        ],
-      ),
-    );
-  }
-}
+    final value = mode == CompressionMode.targetSize
+        ? CompressionMode.targetSize
+        : CompressionMode.preset;
 
-class _CompressionModeSegment extends StatelessWidget {
-  const _CompressionModeSegment({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: selected ? Colors.white : Colors.transparent,
-            borderRadius: BorderRadius.circular(9),
-            boxShadow: selected
-                ? const [
-                    BoxShadow(
-                      color: Color(0x10000000),
-                      blurRadius: 8,
-                      offset: Offset(0, 2),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: selected
-                  ? const Color(0xFF111111)
-                  : const Color(0xFF777777),
-              fontSize: 12,
-              height: 1,
-              fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-            ),
-          ),
-        ),
-      ),
+    return WorkbenchSegmentedSwitch<CompressionMode>(
+      value: value,
+      segments: const [
+        WorkbenchSegment(value: CompressionMode.preset, label: '推荐方案选项'),
+        WorkbenchSegment(value: CompressionMode.targetSize, label: '自定义目标体积'),
+      ],
+      onChanged: onChanged,
     );
   }
 }
@@ -472,6 +414,8 @@ class _RecommendedPresetCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Tooltip(
       message: '${preset.title}：${preset.subtitle}',
       waitDuration: const Duration(milliseconds: 500),
@@ -483,18 +427,16 @@ class _RecommendedPresetCard extends StatelessWidget {
           height: 72,
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 7),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFEFF4FF) : Colors.white,
+            color: selected ? colors.primarySoft : colors.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: selected
-                  ? const Color(0xFF6290FF)
-                  : const Color(0xFFE4E4E4),
+              color: selected ? colors.primary : colors.border,
               width: selected ? 1.3 : 1,
             ),
             boxShadow: selected
-                ? const [
+                ? [
                     BoxShadow(
-                      color: Color(0x126290FF),
+                      color: colors.primary.withAlpha(18),
                       blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
@@ -509,10 +451,8 @@ class _RecommendedPresetCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selected
-                      ? const Color(0xFF315FD4)
-                      : const Color(0xFF111111),
-                  fontSize: 11,
+                  color: selected ? colors.primary : colors.textPrimary,
+                  fontSize: 11.flSp,
                   height: 1,
                   fontWeight: FontWeight.w700,
                 ),
@@ -522,9 +462,9 @@ class _RecommendedPresetCard extends StatelessWidget {
                 preset.subtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF8C8C8C),
-                  fontSize: 9,
+                style: TextStyle(
+                  color: colors.textTertiary,
+                  fontSize: 9.flSp,
                   height: 1,
                   fontWeight: FontWeight.w500,
                 ),
@@ -538,10 +478,8 @@ class _RecommendedPresetCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: selected
-                            ? const Color(0xFF6290FF)
-                            : const Color(0xFF9A9A9A),
-                        fontSize: 9,
+                        color: selected ? colors.primary : colors.textTertiary,
+                        fontSize: 9.flSp,
                         height: 1,
                         fontWeight: FontWeight.w600,
                       ),
@@ -569,21 +507,23 @@ class WorkbenchTaskConfigurationStatusBadges extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Wrap(
       spacing: 6,
       runSpacing: 4,
       children: [
         if (modified)
-          const _StatusBadge(
+          _StatusBadge(
             label: '已修改',
-            color: Color(0xFF6290FF),
-            backgroundColor: Color(0x176290FF),
+            color: colors.primary,
+            backgroundColor: colors.primarySoft,
           ),
         if (compressed)
-          const _StatusBadge(
+          _StatusBadge(
             label: '已压缩',
-            color: Color(0xFF873300),
-            backgroundColor: Color(0xFFFBE4D6),
+            color: colors.statusRunning,
+            backgroundColor: colors.runningSoft,
           ),
       ],
     );
@@ -616,7 +556,7 @@ class _StatusBadge extends StatelessWidget {
           label,
           style: TextStyle(
             color: color,
-            fontSize: 9,
+            fontSize: 9.flSp,
             height: 1,
             fontWeight: FontWeight.w700,
           ),
@@ -633,11 +573,13 @@ class _TaskThumbnail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Container(
       width: 60,
       height: 60,
       decoration: BoxDecoration(
-        color: const Color(0xFFE7EEF5),
+        color: colors.primarySoft,
         borderRadius: BorderRadius.circular(8),
         image: thumbnail == null
             ? null
@@ -645,9 +587,9 @@ class _TaskThumbnail extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: thumbnail == null
-          ? const Icon(
+          ? Icon(
               Icons.movie_creation_outlined,
-              color: Color(0xFF7D8B95),
+              color: colors.iconMuted,
               size: 22,
             )
           : null,

@@ -29,6 +29,8 @@ class SettingsRows extends Table {
       .withDefault(const Constant('sourceFileNameCodec'))();
   TextColumn get defaultMediaConfigJson =>
       text().named('default_media_config_json').nullable()();
+  TextColumn get themeMode =>
+      text().named('theme_mode').withDefault(const Constant('light'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

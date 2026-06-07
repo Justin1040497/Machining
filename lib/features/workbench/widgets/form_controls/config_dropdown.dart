@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class ConfigDropdown<T> extends StatelessWidget {
   const ConfigDropdown({
@@ -28,6 +29,8 @@ class ConfigDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,8 +40,8 @@ class ConfigDropdown<T> extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontSize: labelFontSize,
-                color: const Color(0xFF111111),
+                fontSize: labelFontSize.flSp,
+                color: colors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -46,8 +49,8 @@ class ConfigDropdown<T> extends StatelessWidget {
               Text(
                 trailingText,
                 style: TextStyle(
-                  fontSize: valueFontSize,
-                  color: const Color(0xFF111111),
+                  fontSize: valueFontSize.flSp,
+                  color: colors.textPrimary,
                 ),
               ),
           ],
@@ -59,40 +62,43 @@ class ConfigDropdown<T> extends StatelessWidget {
             key: ValueKey('$label-$value'),
             initialValue: value,
             isDense: true,
-            style: TextStyle(fontSize: valueFontSize, color: Colors.black),
+            style: TextStyle(
+              fontSize: valueFontSize.flSp,
+              color: colors.textPrimary,
+            ),
             items: values.map((item) {
               return DropdownMenuItem<T>(
                 value: item,
                 child: Text(
                   itemLabel(item),
                   style: TextStyle(
-                    fontSize: valueFontSize,
-                    color: const Color(0xFF111111),
+                    fontSize: valueFontSize.flSp,
+                    color: colors.textPrimary,
                     height: 1.2,
                   ),
                 ),
               );
             }).toList(),
             onChanged: onChanged,
-            icon: const Icon(
+            icon: Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: Color(0xFF9A9A9A),
+              color: colors.iconMuted,
               size: 20,
             ),
             decoration: InputDecoration(
               isDense: true,
               filled: true,
-              fillColor: Colors.white,
+              fillColor: colors.surface,
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(2),
-                borderSide: const BorderSide(color: Color(0xFFE3E3E3)),
+                borderSide: BorderSide(color: colors.border),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(2),
-                borderSide: const BorderSide(color: Color(0xFF6290FF)),
+                borderSide: BorderSide(color: colors.primary),
               ),
             ),
-            dropdownColor: Colors.white,
+            dropdownColor: colors.surface,
             borderRadius: BorderRadius.circular(6),
           ),
         ),

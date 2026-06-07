@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/application/services/framelean_build_info.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchAboutDialog extends StatelessWidget {
   const WorkbenchAboutDialog({
@@ -16,6 +17,8 @@ class WorkbenchAboutDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return WorkbenchDialogFrame(
       maxWidth: 390,
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 21),
@@ -30,11 +33,11 @@ class WorkbenchAboutDialog extends StatelessWidget {
             '处理配置、任务队列和导出管理。',
           ),
           const SizedBox(height: 14),
-          const Text(
+          Text(
             '当前版本：${FrameLeanBuildInfo.currentVersionLabel}',
             style: TextStyle(
-              color: Color(0xFF777777),
-              fontSize: 12,
+              color: colors.textSecondary,
+              fontSize: 12.flSp,
               fontWeight: FontWeight.w400,
             ),
           ),
@@ -60,7 +63,7 @@ class WorkbenchAboutDialog extends StatelessWidget {
               const Spacer(),
               WorkbenchDialogActionButton(
                 label: '关闭',
-                backgroundColor: const Color(0xFFB8B8B8),
+                backgroundColor: colors.statusCancelled,
                 onPressed: onClose,
               ),
             ],
@@ -84,6 +87,8 @@ class _RepositoryIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return SizedBox(
       width: 32,
       height: 32,
@@ -92,7 +97,7 @@ class _RepositoryIconButton extends StatelessWidget {
         onPressed: onPressed,
         padding: EdgeInsets.zero,
         style: IconButton.styleFrom(
-          hoverColor: const Color(0xFFF2F2F2),
+          hoverColor: colors.surfaceMuted,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         icon: Image.asset(

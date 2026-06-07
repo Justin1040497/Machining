@@ -19,7 +19,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration {
@@ -132,6 +132,9 @@ class AppDatabase extends _$AppDatabase {
             settingsRows,
             settingsRows.defaultMediaConfigJson,
           );
+        }
+        if (from < 15) {
+          await migrator.addColumn(settingsRows, settingsRows.themeMode);
         }
       },
     );

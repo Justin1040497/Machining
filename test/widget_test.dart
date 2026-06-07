@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/app/theme/framelean_colors.dart';
+import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -194,6 +197,51 @@ void main() {
     slider.onChanged?.call(8);
 
     expect(ratioChanges, [0.9]);
+  });
+
+  testWidgets('dark theme segmented slider thumb uses primary color', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: frameLeanDarkTheme(),
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: testTask(
+              config: VideoTaskConfig.initial().copyWith(
+                compressionMode: CompressionMode.targetSize,
+                targetSizeRatio: 0.6,
+              ),
+            ),
+            thumbnail: null,
+            selectedQualityIndex: 3,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.targetSize,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.6,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final sliderTheme = tester.widget<SliderTheme>(find.byType(SliderTheme));
+
+    expect(sliderTheme.data.thumbColor, frameLeanDarkColors.primary);
   });
 
   testWidgets('image task configuration exposes image controls', (
@@ -732,6 +780,7 @@ void main() {
   testWidgets('windows shell reserves a top notice safe area', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
     var aboutTapped = false;
+    var themeTapped = false;
     try {
       await tester.pumpWidget(
         MaterialApp(
@@ -757,6 +806,10 @@ void main() {
               onContextMenu: (_, _) {},
               onAddTask: () {},
               onOpenSettings: () {},
+              themeMode: AppThemeMode.light,
+              onToggleThemeMode: () {
+                themeTapped = true;
+              },
               onOpenAbout: () {
                 aboutTapped = true;
               },
@@ -773,6 +826,12 @@ void main() {
         greaterThanOrEqualTo(WorkbenchConstants.appTopBarHeight + 30),
       );
       expect(find.byTooltip('关于 FrameLean'), findsOneWidget);
+      expect(find.byTooltip('切换为深色模式'), findsOneWidget);
+
+      await tester.tap(find.byTooltip('切换为深色模式'));
+      await tester.pumpAndSettle();
+
+      expect(themeTapped, isTrue);
 
       await tester.tap(find.byTooltip('关于 FrameLean'));
       await tester.pumpAndSettle();
@@ -781,6 +840,67 @@ void main() {
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
+  });
+
+  testWidgets('task list drag handle starts reorder without layout exception', (
+    tester,
+  ) async {
+    final reorderCalls = <(int oldIndex, int newIndex)>[];
+    final firstTask = testTask(
+      fileName: 'first.mp4',
+    ).copyWith(id: 'task-1', sortOrder: 0);
+    final secondTask = testTask(
+      fileName: 'second.mp4',
+    ).copyWith(id: 'task-2', sortOrder: 1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchShell(
+            taskList: AsyncData([firstTask, secondTask]),
+            selectedTask: firstTask,
+            importEnabled: true,
+            importDragging: false,
+            hasRunningTask: false,
+            queueActionInFlight: false,
+            thumbnailForTask: (_) => null,
+            onImportDraggingChanged: (_) {},
+            onImportDrop: (_) {},
+            onReorder: (oldIndex, newIndex) {
+              reorderCalls.add((oldIndex, newIndex));
+            },
+            onOpenTask: (_) {},
+            onStart: (_) {},
+            onPause: (_) {},
+            onRemove: (_) {},
+            onRetry: (_) {},
+            onRelink: (_) {},
+            onShowLog: (_) {},
+            onContextMenu: (_, _) {},
+            onAddTask: () {},
+            onOpenSettings: () {},
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenAbout: () {},
+            onClearTasks: () {},
+            onPrimaryQueuePressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    final firstDragHandle = find.byIcon(Icons.drag_indicator_rounded).first;
+    final gesture = await tester.startGesture(
+      tester.getCenter(firstDragHandle),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveBy(const Offset(0, 150));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+    expect(reorderCalls, isNotEmpty);
   });
 }
 

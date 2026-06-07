@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
@@ -17,6 +18,8 @@ class MediaTaskListTile extends StatelessWidget {
   final VoidCallback? onShowLog;
   final VoidCallback? onRemove;
   final GestureTapDownCallback? onSecondaryTapDown;
+  final Widget? dragHandle;
+  final bool tooltipsEnabled;
 
   const MediaTaskListTile({
     super.key,
@@ -31,6 +34,8 @@ class MediaTaskListTile extends StatelessWidget {
     this.onShowLog,
     this.onRemove,
     this.onSecondaryTapDown,
+    this.dragHandle,
+    this.tooltipsEnabled = true,
   });
 
   bool get hasProgressBackground =>
@@ -45,6 +50,8 @@ class MediaTaskListTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -55,19 +62,17 @@ class MediaTaskListTile extends StatelessWidget {
           duration: const Duration(milliseconds: 120),
           height: 86,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
-              color: selected
-                  ? const Color(0xFFDBDBDB)
-                  : const Color(0xFFE3E3E3),
+              color: selected ? colors.borderStrong : colors.border,
               width: 1,
             ),
-            boxShadow: const [
+            boxShadow: [
               BoxShadow(
-                color: Color(0x08000000),
+                color: colors.shadow,
                 blurRadius: 1,
-                offset: Offset(0, 1),
+                offset: const Offset(0, 1),
               ),
             ],
           ),
@@ -77,16 +82,19 @@ class MediaTaskListTile extends StatelessWidget {
               if (hasProgressBackground) _buildProgressBackground(),
               Row(
                 children: [
-                  const SizedBox(width: 14),
+                  const SizedBox(width: 10),
+                  dragHandle ?? const SizedBox(width: 24),
+                  const SizedBox(width: 4),
                   MediaTaskThumbnail(thumbnail: thumbnail),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildTaskText()),
+                  Expanded(child: _buildTaskText(context)),
                   MediaTaskActionButton(
                     task: task,
                     onStart: onStart,
                     onPause: onPause,
                     onRetry: onRetry,
                     onRelink: onRelink,
+                    tooltipsEnabled: tooltipsEnabled,
                   ),
                   const SizedBox(width: 4),
                   if (_shouldShowLogButton())
@@ -94,12 +102,14 @@ class MediaTaskListTile extends StatelessWidget {
                       tooltip: '查看日志',
                       onPressed: onShowLog,
                       icon: Icons.description_outlined,
+                      tooltipsEnabled: tooltipsEnabled,
                     ),
                   const SizedBox(width: 4),
                   MediaTaskIconButton(
                     tooltip: '移除任务',
                     onPressed: onRemove,
                     icon: Icons.close_rounded,
+                    tooltipsEnabled: tooltipsEnabled,
                   ),
                   const SizedBox(width: 10),
                 ],
@@ -115,36 +125,48 @@ class MediaTaskListTile extends StatelessWidget {
     final progress = task.progress.clamp(0, 1).toDouble();
 
     return Positioned.fill(
-      child: AnimatedFractionallySizedBox(
-        alignment: Alignment.centerLeft,
-        widthFactor: progress,
-        duration: const Duration(milliseconds: 500),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(7),
-            color: const Color(0xFFEAF2FF),
-          ),
-        ),
+      child: Builder(
+        builder: (context) {
+          final colors = context.frameLeanColors;
+
+          return AnimatedFractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: progress,
+            duration: const Duration(milliseconds: 500),
+            curve: Curves.easeOutCubic,
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(7),
+                color: colors.progress,
+              ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildTaskText() {
+  Widget _buildTaskText(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Tooltip(
+        _MaybeTooltip(
+          enabled: tooltipsEnabled,
           message: task.fileName,
-          waitDuration: const Duration(milliseconds: 500),
-          child: Text(
-            task.fileName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF111111),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          child: Semantics(
+            label: task.fileName,
+            child: Text(
+              task.fileName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 14.flSp,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ),
@@ -155,7 +177,7 @@ class MediaTaskListTile extends StatelessWidget {
             const SizedBox(width: 10),
             Text(
               _formatBytes(task.sourceFileFingerprint?.fileSize),
-              style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 11),
+              style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
             ),
           ],
         ),
@@ -185,5 +207,30 @@ class MediaTaskListTile extends StatelessWidget {
         ? value.toStringAsFixed(0)
         : value.toStringAsFixed(1);
     return '$text${units[unitIndex]}';
+  }
+}
+
+class _MaybeTooltip extends StatelessWidget {
+  const _MaybeTooltip({
+    required this.enabled,
+    required this.message,
+    required this.child,
+  });
+
+  final bool enabled;
+  final String message;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) {
+      return child;
+    }
+
+    return Tooltip(
+      message: message,
+      waitDuration: const Duration(milliseconds: 500),
+      child: child,
+    );
   }
 }

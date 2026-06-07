@@ -67,9 +67,9 @@ docs/
 
 ## 产品
 
-FrameLean（帧轻）是一个桌面视频压缩应用。它把常用 FFmpeg 视频分析、预览、压缩和格式输出能力封装成图形界面，让用户不需要手写 FFmpeg 命令也能处理视频文件。
+FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理应用。它把常用 FFmpeg / FFprobe 视频、图片、音频分析、压缩和格式输出能力封装成图形界面，让用户不需要手写 FFmpeg 命令也能处理本地媒体文件。
 
-当前产品范围以视频压缩、推荐方案预设、自定义目标体积压缩、输出预估、应用默认设置和本地任务队列为主。
+当前产品范围以视频压缩、推荐方案预设、自定义目标体积压缩、输出预估、应用默认设置、本地任务队列和基础图片 / 音频处理为主。视频链路最完整；图片和音频已支持导入、分析、分类型配置、基础 FFmpeg 输出和完成结果展示。
 
 产品原则：
 
@@ -85,14 +85,18 @@ FrameLean（帧轻）是一个桌面视频压缩应用。它把常用 FFmpeg 视
 
 当前产品能力：
 
-- 通过文件选择器或拖拽导入本地视频。
-- 使用 FFprobe 分析媒体信息。
+- 通过文件选择器或拖拽导入本地视频、图片、音频和部分专有音频输入。
+- 使用 FFprobe 分析视频、图片和音频媒体信息。
 - 通过 FFmpeg 服务生成缩略图和预览相关素材。
 - 配置输出格式、视频编码、编码器后端、分辨率、输出目录和输出文件名。
+- 配置图片输出格式、分辨率、质量和元数据保留策略。
+- 配置音频输出格式、码率、采样率和声道。
 - 使用清晰优先、均衡推荐、微信发送、体积优先等推荐方案预设。
 - 使用自定义目标体积模式，通过比例滑杆选择目标体积。
 - 检测 macOS VideoToolbox 和 Windows 硬件编码后端。
 - 管理任务队列的开始、暂停、继续、取消、删除、重试和重命名。
+- 通过任务列表拖拽手柄调整任务顺序，并持久化排序。
+- 通过顶部栏图标按钮在浅色和深色主题之间切换；启动前读取已保存主题，避免首帧闪色。
 - 完成后显示输出路径，并打开 Finder、Explorer 或 Linux 文件管理器。
 - 支持 macOS Apple Silicon 和 Windows x64 的 FFmpeg / FFprobe 运行时打包路径。
 - 通过统一工作台弹窗框架展示确认、失败、重命名、清空和完成信息。
@@ -147,24 +151,39 @@ test/
   app_settings_dialog_test.dart
   app_settings_test.dart
   app_settings_use_cases_test.dart
+  bundled_proprietary_audio_adapter_registry_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
   compression_mode_mapper_test.dart
   drift_app_settings_repository_test.dart
+  drift_media_task_repository_test.dart
   ffmpeg_command_builder_test.dart
   ffmpeg_encoder_capabilities_test.dart
   ffmpeg_process_observer_test.dart
   ffmpeg_task_queue_runner_test.dart
   ffprobe_media_analyzer_test.dart
+  file_extension_media_kind_resolver_test.dart
+  framelean_responsive_test.dart
   generate_preview_frames_use_case_test.dart
+  media_input_preparer_test.dart
+  media_output_format_test.dart
   media_task_execution_use_cases_test.dart
   media_task_notifier_test.dart
+  media_task_use_case_helpers_test.dart
+  native_ncm_audio_decoder_test.dart
   preview_frame_generator_test.dart
+  proprietary_audio_decoder_dispatcher_test.dart
+  proprietary_audio_format_resolver_test.dart
+  standard_cli_proprietary_audio_decoder_test.dart
   video_thumbnail_generator_test.dart
-  workbench_bottom_bar_test.dart
-  workbench_dialog_style_test.dart
-  workbench_preview_notifier_test.dart
   widget_test.dart
+  workbench_about_dialog_test.dart
+  workbench_bottom_bar_test.dart
+  workbench_constants_test.dart
+  workbench_dialog_style_test.dart
+  workbench_external_link_opener_test.dart
+  workbench_file_revealer_test.dart
+  workbench_preview_notifier_test.dart
 ```
 
 安装依赖：

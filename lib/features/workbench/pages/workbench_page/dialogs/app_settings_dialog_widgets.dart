@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class AppSettingsSectionLabel extends StatelessWidget {
   const AppSettingsSectionLabel(this.label, {super.key});
@@ -8,11 +9,13 @@ class AppSettingsSectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Text(
       label,
-      style: const TextStyle(
-        color: Color(0xFF111111),
-        fontSize: 12,
+      style: TextStyle(
+        color: colors.textPrimary,
+        fontSize: 12.flSp,
         fontWeight: FontWeight.w400,
       ),
     );
@@ -31,6 +34,8 @@ class AppSettingsSourceDirectoryCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Row(
       children: [
         SizedBox(
@@ -41,16 +46,16 @@ class AppSettingsSourceDirectoryCheckbox extends StatelessWidget {
             onChanged: (value) {
               onChanged(value ?? false);
             },
-            side: const BorderSide(color: Color(0xFFDCDCDC)),
+            side: BorderSide(color: colors.borderStrong),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(2),
             ),
           ),
         ),
         const SizedBox(width: 9),
-        const Text(
+        Text(
           '保存到原文件旁',
-          style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 11),
+          style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
         ),
       ],
     );
@@ -75,24 +80,26 @@ class AppSettingsActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Row(
       children: [
         WorkbenchDialogActionButton(
           label: advancedVisible ? '关闭高级选项' : '高级设置',
-          backgroundColor: const Color(0xFFFF6B00),
+          backgroundColor: colors.statusRunning,
           width: advancedVisible ? 92 : 75,
           onPressed: onToggleAdvanced,
         ),
         const Spacer(),
         WorkbenchDialogActionButton(
           label: '取消',
-          backgroundColor: const Color(0xFFB8B8B8),
+          backgroundColor: colors.statusCancelled,
           onPressed: saving ? null : onCancel,
         ),
         const SizedBox(width: 16),
         WorkbenchDialogActionButton(
           label: '保存',
-          backgroundColor: const Color(0xFF6290FF),
+          backgroundColor: colors.primary,
           onPressed: saving ? null : onSave,
         ),
       ],

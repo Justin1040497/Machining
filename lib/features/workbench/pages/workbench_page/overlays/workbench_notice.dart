@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchNotice extends StatelessWidget {
   const WorkbenchNotice({
@@ -84,7 +85,8 @@ class _NoticeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = _NoticeStyle.resolve(message);
+    final colors = context.frameLeanColors;
+    final style = _NoticeStyle.resolve(context, message);
 
     return Semantics(
       container: true,
@@ -98,17 +100,17 @@ class _NoticeCard extends StatelessWidget {
             filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.white.withAlpha(242),
+                color: colors.surface.withAlpha(242),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE0E6F0)),
-                boxShadow: const [
+                border: Border.all(color: colors.border),
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x18000000),
+                    color: colors.shadow,
                     blurRadius: 24,
                     offset: Offset(0, 12),
                   ),
                   BoxShadow(
-                    color: Color(0x0A000000),
+                    color: colors.shadow.withAlpha(10),
                     blurRadius: 4,
                     offset: Offset(0, 1),
                   ),
@@ -183,15 +185,17 @@ class _NoticeMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Padding(
       padding: const EdgeInsets.only(top: 2),
       child: Text(
         message,
         maxLines: 3,
         overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: Color(0xFF1D2430),
-          fontSize: 13,
+        style: TextStyle(
+          color: colors.textPrimary,
+          fontSize: 13.flSp,
           height: 1.35,
           fontWeight: FontWeight.w500,
         ),
@@ -224,7 +228,7 @@ class _NoticeActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 9),
           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          textStyle: TextStyle(fontSize: 12.flSp, fontWeight: FontWeight.w700),
         ),
         child: Text(label),
       ),
@@ -239,18 +243,20 @@ class _NoticeCloseButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Tooltip(
       message: '关闭',
       child: IconButton(
         onPressed: onPressed,
         icon: const Icon(Icons.close_rounded, size: 16),
-        color: const Color(0xFF8A9099),
+        color: colors.iconMuted,
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints.tightFor(width: 28, height: 28),
         visualDensity: VisualDensity.compact,
         style: IconButton.styleFrom(
-          hoverColor: const Color(0xFFF2F4F8),
-          highlightColor: const Color(0xFFE9EEF8),
+          hoverColor: colors.surfaceMuted,
+          highlightColor: colors.primarySoft,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
       ),
@@ -269,7 +275,8 @@ class _NoticeStyle {
   final Color color;
   final Color backgroundColor;
 
-  static _NoticeStyle resolve(String message) {
+  static _NoticeStyle resolve(BuildContext context, String message) {
+    final colors = context.frameLeanColors;
     final normalized = message.toLowerCase();
     if (_hasAny(normalized, const [
       'error',
@@ -281,10 +288,10 @@ class _NoticeStyle {
       '不能为空',
       '打开失败',
     ])) {
-      return const _NoticeStyle(
+      return _NoticeStyle(
         icon: Icons.error_outline_rounded,
-        color: Color(0xFFE15B4F),
-        backgroundColor: Color(0xFFFFECEA),
+        color: colors.statusFailed,
+        backgroundColor: colors.failedSoft,
       );
     }
 
@@ -296,17 +303,17 @@ class _NoticeStyle {
       '已重新链接',
       '导入成功',
     ])) {
-      return const _NoticeStyle(
+      return _NoticeStyle(
         icon: Icons.check_rounded,
-        color: Color(0xFF2F9E62),
-        backgroundColor: Color(0xFFE8F7EE),
+        color: colors.primary,
+        backgroundColor: colors.primarySoft,
       );
     }
 
-    return const _NoticeStyle(
+    return _NoticeStyle(
       icon: Icons.info_outline_rounded,
-      color: Color(0xFF6290FF),
-      backgroundColor: Color(0xFFEFF4FF),
+      color: colors.primary,
+      backgroundColor: colors.primarySoft,
     );
   }
 

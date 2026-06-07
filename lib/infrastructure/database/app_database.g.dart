@@ -154,6 +154,18 @@ class $SettingsRowsTable extends SettingsRows
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _themeModeMeta = const VerificationMeta(
+    'themeMode',
+  );
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+    'theme_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('light'),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -190,6 +202,7 @@ class $SettingsRowsTable extends SettingsRows
     defaultCompressionSmartPreset,
     defaultOutputFileNameTemplate,
     defaultMediaConfigJson,
+    themeMode,
     createdAt,
     updatedAt,
   ];
@@ -307,6 +320,12 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('theme_mode')) {
+      context.handle(
+        _themeModeMeta,
+        themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -380,6 +399,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}default_media_config_json'],
       ),
+      themeMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme_mode'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -410,6 +433,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String defaultCompressionSmartPreset;
   final String defaultOutputFileNameTemplate;
   final String? defaultMediaConfigJson;
+  final String themeMode;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
@@ -425,6 +449,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.defaultCompressionSmartPreset,
     required this.defaultOutputFileNameTemplate,
     this.defaultMediaConfigJson,
+    required this.themeMode,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -467,6 +492,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         defaultMediaConfigJson,
       );
     }
+    map['theme_mode'] = Variable<String>(themeMode);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -497,6 +523,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultMediaConfigJson: defaultMediaConfigJson == null && nullToAbsent
           ? const Value.absent()
           : Value(defaultMediaConfigJson),
+      themeMode: Value(themeMode),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -538,6 +565,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultMediaConfigJson: serializer.fromJson<String?>(
         json['defaultMediaConfigJson'],
       ),
+      themeMode: serializer.fromJson<String>(json['themeMode']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -572,6 +600,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'defaultMediaConfigJson': serializer.toJson<String?>(
         defaultMediaConfigJson,
       ),
+      'themeMode': serializer.toJson<String>(themeMode),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -590,6 +619,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     String? defaultCompressionSmartPreset,
     String? defaultOutputFileNameTemplate,
     Value<String?> defaultMediaConfigJson = const Value.absent(),
+    String? themeMode,
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -619,6 +649,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     defaultMediaConfigJson: defaultMediaConfigJson.present
         ? defaultMediaConfigJson.value
         : this.defaultMediaConfigJson,
+    themeMode: themeMode ?? this.themeMode,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -658,6 +689,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       defaultMediaConfigJson: data.defaultMediaConfigJson.present
           ? data.defaultMediaConfigJson.value
           : this.defaultMediaConfigJson,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -682,6 +714,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
             'defaultOutputFileNameTemplate: $defaultOutputFileNameTemplate, ',
           )
           ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
+          ..write('themeMode: $themeMode, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -702,6 +735,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     defaultCompressionSmartPreset,
     defaultOutputFileNameTemplate,
     defaultMediaConfigJson,
+    themeMode,
     createdAt,
     updatedAt,
   );
@@ -725,6 +759,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.defaultOutputFileNameTemplate ==
               this.defaultOutputFileNameTemplate &&
           other.defaultMediaConfigJson == this.defaultMediaConfigJson &&
+          other.themeMode == this.themeMode &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -742,6 +777,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String> defaultCompressionSmartPreset;
   final Value<String> defaultOutputFileNameTemplate;
   final Value<String?> defaultMediaConfigJson;
+  final Value<String> themeMode;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
@@ -757,6 +793,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultCompressionSmartPreset = const Value.absent(),
     this.defaultOutputFileNameTemplate = const Value.absent(),
     this.defaultMediaConfigJson = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -773,6 +810,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultCompressionSmartPreset = const Value.absent(),
     this.defaultOutputFileNameTemplate = const Value.absent(),
     this.defaultMediaConfigJson = const Value.absent(),
+    this.themeMode = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -790,6 +828,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? defaultCompressionSmartPreset,
     Expression<String>? defaultOutputFileNameTemplate,
     Expression<String>? defaultMediaConfigJson,
+    Expression<String>? themeMode,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -814,6 +853,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'default_output_file_name_template': defaultOutputFileNameTemplate,
       if (defaultMediaConfigJson != null)
         'default_media_config_json': defaultMediaConfigJson,
+      if (themeMode != null) 'theme_mode': themeMode,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -832,6 +872,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String>? defaultCompressionSmartPreset,
     Value<String>? defaultOutputFileNameTemplate,
     Value<String?>? defaultMediaConfigJson,
+    Value<String>? themeMode,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -855,6 +896,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
       defaultMediaConfigJson:
           defaultMediaConfigJson ?? this.defaultMediaConfigJson,
+      themeMode: themeMode ?? this.themeMode,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -913,6 +955,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         defaultMediaConfigJson.value,
       );
     }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -941,6 +986,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
             'defaultOutputFileNameTemplate: $defaultOutputFileNameTemplate, ',
           )
           ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
+          ..write('themeMode: $themeMode, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4587,6 +4633,7 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String> defaultCompressionSmartPreset,
       Value<String> defaultOutputFileNameTemplate,
       Value<String?> defaultMediaConfigJson,
+      Value<String> themeMode,
       required int createdAt,
       required int updatedAt,
     });
@@ -4604,6 +4651,7 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String> defaultCompressionSmartPreset,
       Value<String> defaultOutputFileNameTemplate,
       Value<String?> defaultMediaConfigJson,
+      Value<String> themeMode,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -4674,6 +4722,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get defaultMediaConfigJson => $composableBuilder(
     column: $table.defaultMediaConfigJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4759,6 +4812,11 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -4839,6 +4897,9 @@ class $$SettingsRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -4892,6 +4953,7 @@ class $$SettingsRowsTableTableManager
                 Value<String> defaultOutputFileNameTemplate =
                     const Value.absent(),
                 Value<String?> defaultMediaConfigJson = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
@@ -4907,6 +4969,7 @@ class $$SettingsRowsTableTableManager
                 defaultCompressionSmartPreset: defaultCompressionSmartPreset,
                 defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
                 defaultMediaConfigJson: defaultMediaConfigJson,
+                themeMode: themeMode,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -4927,6 +4990,7 @@ class $$SettingsRowsTableTableManager
                 Value<String> defaultOutputFileNameTemplate =
                     const Value.absent(),
                 Value<String?> defaultMediaConfigJson = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
@@ -4942,6 +5006,7 @@ class $$SettingsRowsTableTableManager
                 defaultCompressionSmartPreset: defaultCompressionSmartPreset,
                 defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
                 defaultMediaConfigJson: defaultMediaConfigJson,
+                themeMode: themeMode,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

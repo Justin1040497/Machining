@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/app/theme/framelean_colors.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchDialogFrame extends StatelessWidget {
   const WorkbenchDialogFrame({
@@ -14,8 +16,10 @@ class WorkbenchDialogFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
@@ -33,11 +37,13 @@ class WorkbenchDialogTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Text(
       title,
-      style: const TextStyle(
-        color: Color(0xFF111111),
-        fontSize: 18,
+      style: TextStyle(
+        color: colors.textPrimary,
+        fontSize: 18.flSp,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -51,11 +57,13 @@ class WorkbenchDialogBodyText extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Text(
       text,
-      style: const TextStyle(
-        color: Color(0xFF555555),
-        fontSize: 13,
+      style: TextStyle(
+        color: colors.textSecondary,
+        fontSize: 13.flSp,
         height: 1.55,
         fontWeight: FontWeight.w400,
       ),
@@ -77,6 +85,8 @@ class WorkbenchDialogBackHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Row(
       children: [
         Transform.translate(
@@ -88,9 +98,9 @@ class WorkbenchDialogBackHeader extends StatelessWidget {
               tooltip: '关闭',
               onPressed: onClose,
               padding: EdgeInsets.zero,
-              icon: const Icon(
+              icon: Icon(
                 Icons.keyboard_arrow_left_rounded,
-                color: Colors.black,
+                color: colors.textPrimary,
                 size: 24,
               ),
             ),
@@ -99,9 +109,9 @@ class WorkbenchDialogBackHeader extends StatelessWidget {
         const SizedBox(width: 1),
         Text(
           title,
-          style: const TextStyle(
-            color: Color(0xFF111111),
-            fontSize: 15,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 15.flSp,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -125,6 +135,8 @@ class WorkbenchDialogActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Row(
       children: [
         Expanded(
@@ -135,13 +147,13 @@ class WorkbenchDialogActions extends StatelessWidget {
         ),
         WorkbenchDialogActionButton(
           label: '取消',
-          backgroundColor: const Color(0xFFB8B8B8),
+          backgroundColor: colors.statusCancelled,
           onPressed: onCancel,
         ),
         const SizedBox(width: 16),
         WorkbenchDialogActionButton(
           label: '保存',
-          backgroundColor: const Color(0xFF6290FF),
+          backgroundColor: colors.primary,
           onPressed: onSave,
         ),
       ],
@@ -165,6 +177,9 @@ class WorkbenchDialogActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final foregroundColor = _resolveForegroundColor(colors);
+
     return SizedBox(
       width: width,
       height: 28,
@@ -174,13 +189,31 @@ class WorkbenchDialogActionButton extends StatelessWidget {
           backgroundColor: onPressed == null
               ? backgroundColor.withAlpha(150)
               : backgroundColor,
-          foregroundColor: Colors.white,
+          foregroundColor: foregroundColor,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500),
+          textStyle: TextStyle(fontSize: 11.flSp, fontWeight: FontWeight.w500),
         ),
         child: Text(label),
       ),
     );
+  }
+
+  Color _resolveForegroundColor(FrameLeanColors colors) {
+    if (backgroundColor == colors.primary) {
+      return colors.onPrimary;
+    }
+    if (backgroundColor == colors.statusFailed) {
+      return colors.onDanger;
+    }
+    if (backgroundColor == colors.statusRunning ||
+        backgroundColor == colors.statusPending) {
+      return colors.onWarning;
+    }
+    if (backgroundColor == colors.statusCancelled) {
+      return colors.textPrimary;
+    }
+
+    return colors.onPrimary;
   }
 }
