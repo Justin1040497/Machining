@@ -43,7 +43,9 @@ qmc-decrypt commit: $REPO_COMMIT
 Built by: scripts/build/build_qmc_decrypt_macos_arm64.sh
 EOF
 
-"$OUT_DIR/qmc-decrypt" --version
+# The pinned qmc-decrypt CLI does not implement --version; --help is the
+# side-effect-free startup probe available in this upstream binary.
+"$OUT_DIR/qmc-decrypt" --help >/dev/null
 
 echo
 echo "QMC adapter is ready:"

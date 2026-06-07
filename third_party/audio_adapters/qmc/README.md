@@ -22,10 +22,9 @@ Direct `qmc-decrypt` command contract:
 
 ```text
 qmc-decrypt <source> <temporary-dir>
-qmc-decrypt --version
 ```
 
-`qmc-decrypt` only supports the variants supported by its upstream project. `mgg1` and `mflac0` require an `ekey`; FrameLean does not provide an ekey UI yet, so those inputs should fail with a readable adapter error until that product boundary is added.
+The pinned upstream `qmc-decrypt` binary does not expose `--version`; FrameLean probes it with `--help` and reports its version as unavailable. `qmc-decrypt` only supports the variants supported by its upstream project. `mgg1` and `mflac0` require an `ekey`; FrameLean does not provide an ekey UI yet, so those inputs should fail with a readable adapter error until that product boundary is added.
 
 Placement for development:
 

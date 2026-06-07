@@ -123,12 +123,19 @@ class BundledProprietaryAudioAdapterRegistry
       return null;
     }
 
+    final adapterName = adapterNameForExecutablePath(executablePath);
+
     try {
-      final result = await runProcess(executablePath, const [
-        '--version',
-      ]).timeout(validateTimeout);
+      final result = await runProcess(
+        executablePath,
+        adapterProbeArguments(adapterName),
+      ).timeout(validateTimeout);
 
       final output = '${result.stdout}\n${result.stderr}'.trim();
+      if (adapterName == 'qmc-decrypt' && result.exitCode == 0) {
+        return 'qmc-decrypt (version unavailable)';
+      }
+
       if (result.exitCode == 0 && output.isNotEmpty) {
         return output.split(RegExp(r'\r?\n')).first;
       }
@@ -175,6 +182,14 @@ class BundledProprietaryAudioAdapterRegistry
     }
 
     return Process.run(executable, args, runInShell: Platform.isWindows);
+  }
+
+  List<String> adapterProbeArguments(String adapterName) {
+    if (adapterName == 'qmc-decrypt') {
+      return const ['--help'];
+    }
+
+    return const ['--version'];
   }
 
   String executableFileName(ProprietaryAudioFormat format) {

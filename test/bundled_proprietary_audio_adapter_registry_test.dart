@@ -80,10 +80,17 @@ void main() {
         Platform.isWindows ? 'qmc-decrypt.exe' : 'qmc-decrypt',
       );
       File(executablePath).writeAsStringSync('adapter');
+      final processCalls = <List<String>>[];
       final registry = BundledProprietaryAudioAdapterRegistry(
         candidateBuilder: (_) => [executablePath],
         processRunner: (executable, args) async {
-          return ProcessResult(1, 0, 'qmc-decrypt 1.0.1', '');
+          processCalls.add([executable, ...args]);
+          return ProcessResult(
+            1,
+            0,
+            'Usage: qmc-decrypt <input> <output> [ekey]',
+            '',
+          );
         },
       );
 
@@ -92,8 +99,9 @@ void main() {
       );
 
       expect(runtime.adapterName, 'qmc-decrypt');
-      expect(runtime.adapterVersion, 'qmc-decrypt 1.0.1');
+      expect(runtime.adapterVersion, 'qmc-decrypt (version unavailable)');
       expect(runtime.executablePath, executablePath);
+      expect(processCalls.single, [executablePath, '--help']);
     });
   });
 }

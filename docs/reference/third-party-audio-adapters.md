@@ -59,7 +59,8 @@ tools/audio_adapters/qmc/qmc-decrypt
 - 只写入 FrameLean 分配的临时输出目录。
 - 不联网、不登录、不下载、不调用音乐平台 API。
 - 成功后输出 MP3、FLAC、OGG、M4A、AAC 或 WAV 等标准音频文件。
-- 支持 `--version`，用于运行时可用性检测。
+- FrameLean wrapper 适配器支持 `--version`，用于运行时可用性检测。
+- 直接使用上游 `qmc-decrypt` 时改用 `--help` 探测，因为当前锁定版本不提供 `--version`。
 
 候选参考：
 
