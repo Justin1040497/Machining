@@ -56,7 +56,9 @@ test/
   preview_frame_generator_test.dart
   proprietary_audio_decoder_dispatcher_test.dart
   proprietary_audio_format_resolver_test.dart
+  reorder_media_tasks_use_case_test.dart
   standard_cli_proprietary_audio_decoder_test.dart
+  theme_prefs_reconciler_test.dart
   video_thumbnail_generator_test.dart
   widget_test.dart
   workbench_about_dialog_test.dart
@@ -76,6 +78,7 @@ test/
 - 应用设置读取和保存 Use Cases。
 - Drift `settings` 行和领域模型之间的映射。
 - `theme_mode` 可保存 / 读取；未知主题值回退浅色。
+- `theme_prefs.json` 作为首帧缓存镜像，读写失败或损坏时不影响启动；启动后 DB 与缓存不一致时以 `settings.theme_mode` 为准对齐应用状态并重写缓存。
 - 应用设置弹窗的紧凑态、高级态、三类默认媒体配置和保存行为。
 - 底部栏设置入口和新任务默认配置应用。
 
@@ -84,6 +87,7 @@ test/
 - 导入任务时套用应用默认设置、识别视频 / 图片 / 音频媒体类型并写入分析中状态。
 - 启动恢复时校正源文件丢失、指纹变化和缺失分析结果。
 - 重新指定源文件、失败重试、删除、清空和排序。
+- 任务重排只持久化 `sort_order` 字段，失败时刷新仓储顺序，避免 UI 顺序和 DB 顺序分裂。
 - 队列启动、单任务开始 / 继续、暂停和清空时取消执行。
 - 预览帧生成通过 `GeneratePreviewFramesUseCase` 读取运行时并调用预览服务。
 
@@ -169,6 +173,7 @@ test/
 - 任务列表通过拖拽手柄触发重排时不抛布局异常，且 reorder 回调被触发。
 - 拖拽列表项内不启用 `Tooltip` overlay，使用 `Semantics` 保留无障碍标签。
 - 运行中任务的拖拽手柄禁用；其他任务在队列执行期间仍可调整顺序以影响后续执行。
+- 任务列表预热为 `AsyncData` 时，选中任务、配置和质量预设的初始同步仍会执行。
 - 顶部栏主题按钮可在浅色和深色之间切换。
 - 深色主题下分段滑杆 thumb 使用主色，不和深色 surface 混在一起。
 - 默认 `AlertDialog` 不应出现在统一样式弹窗中。

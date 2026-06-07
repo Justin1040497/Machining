@@ -66,6 +66,23 @@ class DriftMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskSortOrders(
+    List<MediaTaskSortOrderUpdate> updates,
+  ) async {
+    if (updates.isEmpty) {
+      return;
+    }
+
+    await database.transaction(() async {
+      for (final update in updates) {
+        await (database.update(database.taskRows)
+              ..where((table) => table.id.equals(update.taskId)))
+            .write(TaskRowsCompanion(sortOrder: Value(update.sortOrder)));
+      }
+    });
+  }
+
+  @override
   Future<void> deleteTaskById(String taskId) async {
     await (database.delete(
       database.taskRows,

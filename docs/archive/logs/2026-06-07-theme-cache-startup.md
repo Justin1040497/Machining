@@ -17,12 +17,14 @@ AppDatabase() → LazyDatabase → getApplicationSupportDirectory() → NativeDa
 
 - **`ThemePrefsCache.read()`** — 从 `getApplicationSupportDirectory()` 下的 `theme_prefs.json` 读取，失败或文件不存在时回退到 `AppThemeMode.light`。不依赖 Drift。
 - **`ThemePrefsCache.write()`** — 主题切换成功后将当前值写入缓存文件。
+- **`reconcileThemePrefsCache()`** — 首帧后异步读取 DB 设置；如果 `settings.theme_mode` 与缓存启动值不同，以 DB 为准更新应用主题并重写缓存。
 
 ## 启动流程变化
 
 ```
 之前：main() → DB init → DB query → runApp(正确主题)
-之后：main() → 读缓存文件 (~5ms) → runApp(正确主题)
+之后：main() → 读缓存文件 (~5ms) → runApp(缓存主题)
+      首帧后异步读取 DB → 必要时更新应用主题并重写缓存
       DB 在 LazyDatabase 内部按需初始化，不阻塞首帧
 ```
 
@@ -32,13 +34,16 @@ AppDatabase() → LazyDatabase → getApplicationSupportDirectory() → NativeDa
 
 1. `read()` 返回 `AppThemeMode.light` 作为 fallback
 2. 应用正常启动，不会崩溃
-3. 用户下次切换主题时 `write()` 自动重建缓存文件
-4. 不影响任何功能，只是当次启动可能用默认亮色主题
+3. 启动后 `reconcileThemePrefsCache()` 读取 DB 的 `settings.theme_mode`
+4. 如果 DB 不是浅色，应用会切到 DB 主题并重建缓存
+5. 不影响任何功能，最多首帧短暂使用默认亮色主题
 
 ## 改动
 
 - 新增 `lib/infrastructure/services/theme_prefs_cache.dart`
+- 新增 `lib/app/theme/theme_prefs_reconciler.dart`
 - `lib/main.dart`：移除 `_loadInitialSettings` 阻塞调用，改为先读缓存、立即 `runApp()`
+- `lib/app/app.dart`：应用启动后异步执行缓存与 DB 的主题对齐
 - `lib/features/workbench/pages/workbench_page.dart`：`toggleThemeMode()` 中 DB 保存成功后加一行 `ThemePrefsCache.write(nextMode)`
 
 ## 验证

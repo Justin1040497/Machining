@@ -9,7 +9,7 @@ import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_
 import 'package:framelean/application/use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
-
+import 'package:framelean/application/use_cases/media_tasks/reorder_media_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/replace_missing_source_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/retry_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
@@ -313,31 +313,33 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     return false;
   }
 
-  void reorderTasks({required int oldIndex, required int newIndex}) {
+  Future<void> reorderTasks({
+    required int oldIndex,
+    required int newIndex,
+  }) async {
     final tasks = state.requireValue;
-
-    if (oldIndex < 0 || oldIndex >= tasks.length) return;
-    if (tasks[oldIndex].status == TaskStatus.running) return;
-
-    var targetIndex = newIndex;
-    if (targetIndex > oldIndex) targetIndex -= 1;
-    targetIndex = targetIndex.clamp(0, tasks.length - 1);
-    if (oldIndex == targetIndex) return;
-
-    final reordered = [...tasks];
-    final movedTask = reordered.removeAt(oldIndex);
-    reordered.insert(targetIndex, movedTask);
-
-    final reorderedTasks = <MediaTask>[];
-    for (var i = 0; i < reordered.length; i += 1) {
-      reorderedTasks.add(reordered[i].copyWith(sortOrder: i));
+    final reorderedTasks = reorderMediaTasksInMemory(
+      tasks,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
+    if (identical(reorderedTasks, tasks)) {
+      return;
     }
 
     // 乐观更新：立即更新 UI，再异步持久化
     state = AsyncData(reorderedTasks);
 
     final repository = ref.read(mediaTaskRepositoryProvider);
-    unawaited(repository.replaceAllTasks(reorderedTasks));
+    try {
+      await repository.updateTaskSortOrders(
+        mediaTaskSortOrderUpdatesFor(reorderedTasks),
+      );
+    } on Object {
+      await refreshTasksFromRepository();
+      rethrow;
+    }
+
     unawaited(syncFfmpegQueueStatus());
   }
 

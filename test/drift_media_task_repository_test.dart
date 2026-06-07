@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:drift/native.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
@@ -142,20 +144,55 @@ void main() {
       expect(restored.analysisResult!.imagePixelFormat, 'rgba');
       expect(restored.analysisResult!.imageBitDepth, 8);
     });
+
+    test('updates only sort order fields', () async {
+      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(database.close);
+      final repository = DriftMediaTaskRepository(database);
+      final runningTask = mediaTask(
+        id: 'running',
+        status: TaskStatus.running,
+        progress: 0.5,
+        sortOrder: 0,
+        outputPath: '/videos/running.out.mp4',
+      );
+      final pendingTask = mediaTask(id: 'pending', sortOrder: 1);
+
+      await repository.replaceAllTasks([runningTask, pendingTask]);
+      await repository.updateTaskSortOrders(const [
+        MediaTaskSortOrderUpdate(taskId: 'running', sortOrder: 1),
+        MediaTaskSortOrderUpdate(taskId: 'pending', sortOrder: 0),
+      ]);
+
+      final tasks = await repository.loadAllTasks();
+      expect(tasks.map((task) => task.id), ['pending', 'running']);
+      final restoredRunning = tasks.singleWhere((task) => task.id == 'running');
+      expect(restoredRunning.status, TaskStatus.running);
+      expect(restoredRunning.progress, 0.5);
+      expect(restoredRunning.outputPath, '/videos/running.out.mp4');
+    });
   });
 }
 
-MediaTask mediaTask({MediaAnalysisResult? analysisResult}) {
+MediaTask mediaTask({
+  String id = 'task-1',
+  TaskStatus status = TaskStatus.pending,
+  double progress = 0,
+  int sortOrder = 0,
+  String? outputPath,
+  MediaAnalysisResult? analysisResult,
+}) {
   return MediaTask(
-    id: 'task-1',
-    inputPath: '/videos/source.mp4',
-    fileName: 'source.mp4',
+    id: id,
+    inputPath: '/videos/$id.mp4',
+    fileName: '$id.mp4',
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.pending,
+    status: status,
     config: VideoTaskConfig.initial(),
-    progress: 0,
-    sortOrder: 0,
+    progress: progress,
+    sortOrder: sortOrder,
+    outputPath: outputPath,
     createdAt: 1,
     analysisResult: analysisResult,
   );

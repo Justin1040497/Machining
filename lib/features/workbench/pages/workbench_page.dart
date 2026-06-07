@@ -80,33 +80,28 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   final Set<String> notifiedCompletedTaskKeys = {};
   bool windowsPrivilegeNoticeShown = false;
   bool themeModeChangeInFlight = false;
+  ProviderSubscription<AsyncValue<List<MediaTask>>>? taskListSubscription;
 
   @override
   void initState() {
     super.initState();
+    taskListSubscription = ref.listenManual<AsyncValue<List<MediaTask>>>(
+      mediaTaskListProvider,
+      handleTaskListChanged,
+      fireImmediately: true,
+    );
     unawaited(showWindowsAdministratorDragNoticeIfNeeded());
   }
 
   @override
   void dispose() {
+    taskListSubscription?.close();
     noticeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<List<MediaTask>>>(mediaTaskListProvider, (
-      previous,
-      next,
-    ) {
-      notifyAnalysisErrors(next.asData?.value);
-      notifyCompletedTasks(previous?.asData?.value, next.asData?.value);
-      final tasks = next.asData?.value ?? const <MediaTask>[];
-      final selectedTask = resolveSelectedTask(tasks);
-      syncSelectedTaskIdAfterBuild(selectedTask);
-      syncSelectedTaskConfigAfterBuild(selectedTask);
-      syncQualityPresetAfterBuild(selectedTask);
-    });
     final taskList = ref.watch(mediaTaskListProvider);
     final tasks = taskList.hasValue
         ? taskList.requireValue
@@ -134,11 +129,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           });
         },
         onImportDrop: handleWorkbenchImportDrop,
-        onReorder: (oldIndex, newIndex) {
-          ref
-              .read(mediaTaskListProvider.notifier)
-              .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
-        },
+        onReorder: reorderTasks,
         onOpenTask: openTask,
         onStart: startOrResumeTask,
         onPause: pauseTask,
@@ -166,6 +157,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         },
       ),
     );
+  }
+
+  void handleTaskListChanged(
+    AsyncValue<List<MediaTask>>? previous,
+    AsyncValue<List<MediaTask>> next,
+  ) {
+    if (previous != null) {
+      notifyAnalysisErrors(next.asData?.value);
+      notifyCompletedTasks(previous.asData?.value, next.asData?.value);
+    }
+
+    final tasks = next.asData?.value ?? const <MediaTask>[];
+    final selectedTask = resolveSelectedTask(tasks);
+    syncSelectedTaskIdAfterBuild(selectedTask);
+    syncSelectedTaskConfigAfterBuild(selectedTask);
+    syncQualityPresetAfterBuild(selectedTask);
   }
 
   Future<void> showWindowsAdministratorDragNoticeIfNeeded() async {
@@ -456,6 +463,19 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     } on Object catch (error) {
       showWorkbenchSnackBar(error.toString());
     }
+  }
+
+  void reorderTasks(int oldIndex, int newIndex) {
+    final reorderFuture = ref
+        .read(mediaTaskListProvider.notifier)
+        .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
+    unawaited(
+      reorderFuture.catchError((Object error, StackTrace stackTrace) {
+        if (mounted) {
+          showWorkbenchSnackBar('任务排序保存失败: $error');
+        }
+      }),
+    );
   }
 
   Future<void> showAppSettingsDialog() async {

@@ -665,6 +665,20 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskSortOrders(
+    List<MediaTaskSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(sortOrder: update.sortOrder);
+    }
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     final index = tasks.indexWhere(
       (existingTask) => existingTask.id == task.id,
