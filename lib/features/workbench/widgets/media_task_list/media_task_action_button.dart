@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_item_models.dart';
 
 class MediaTaskActionButton extends StatelessWidget {
@@ -11,6 +12,7 @@ class MediaTaskActionButton extends StatelessWidget {
     this.onPause,
     this.onRetry,
     this.onRelink,
+    this.tooltipsEnabled = true,
   });
 
   final MediaTask task;
@@ -18,6 +20,7 @@ class MediaTaskActionButton extends StatelessWidget {
   final VoidCallback? onPause;
   final VoidCallback? onRetry;
   final VoidCallback? onRelink;
+  final bool tooltipsEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +34,7 @@ class MediaTaskActionButton extends StatelessWidget {
       tooltip: action.tooltip,
       onPressed: action.onPressed,
       icon: action.icon,
+      tooltipsEnabled: tooltipsEnabled,
     );
   }
 
@@ -78,26 +82,33 @@ class MediaTaskIconButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onPressed,
+    this.tooltipsEnabled = true,
   });
 
   final String tooltip;
   final IconData icon;
   final VoidCallback? onPressed;
+  final bool tooltipsEnabled;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: SizedBox(
-        width: 36,
-        height: 36,
-        child: IconButton(
-          onPressed: onPressed,
-          padding: EdgeInsets.zero,
-          splashRadius: 18,
-          icon: Icon(icon, color: const Color(0xFF9A9A9A), size: 22),
-        ),
+    final colors = context.frameLeanColors;
+
+    final button = SizedBox(
+      width: 36,
+      height: 36,
+      child: IconButton(
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        splashRadius: 18,
+        icon: Icon(icon, color: colors.iconMuted, size: 22),
       ),
     );
+
+    if (!tooltipsEnabled) {
+      return Semantics(label: tooltip, child: button);
+    }
+
+    return Tooltip(message: tooltip, child: button);
   }
 }

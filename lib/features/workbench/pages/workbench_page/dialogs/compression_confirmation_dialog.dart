@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class CompressionConfirmationDialog extends StatelessWidget {
   const CompressionConfirmationDialog({super.key, required this.message});
@@ -8,6 +9,8 @@ class CompressionConfirmationDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return WorkbenchDialogFrame(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -22,13 +25,13 @@ class CompressionConfirmationDialog extends StatelessWidget {
             children: [
               WorkbenchDialogActionButton(
                 label: '取消',
-                backgroundColor: const Color(0xFFB8B8B8),
+                backgroundColor: colors.statusCancelled,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               const SizedBox(width: 16),
               WorkbenchDialogActionButton(
                 label: '继续压缩',
-                backgroundColor: const Color(0xFF6290FF),
+                backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(true),
                 width: 96,
               ),

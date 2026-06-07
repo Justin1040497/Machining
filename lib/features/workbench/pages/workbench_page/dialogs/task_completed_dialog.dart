@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class TaskCompletedDialog extends StatelessWidget {
   const TaskCompletedDialog({
@@ -20,6 +21,7 @@ class TaskCompletedDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final hasOutputPath = outputPath != null && outputPath!.isNotEmpty;
 
     return WorkbenchDialogFrame(
@@ -35,12 +37,12 @@ class TaskCompletedDialog extends StatelessWidget {
                 width: 30,
                 height: 30,
                 decoration: BoxDecoration(
-                  color: const Color(0x176290FF),
+                  color: colors.primarySoft,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_rounded,
-                  color: Color(0xFF6290FF),
+                  color: colors.primary,
                   size: 19,
                 ),
               ),
@@ -64,13 +66,13 @@ class TaskCompletedDialog extends StatelessWidget {
             children: [
               WorkbenchDialogActionButton(
                 label: '取消',
-                backgroundColor: const Color(0xFFB8B8B8),
+                backgroundColor: colors.statusCancelled,
                 onPressed: onClose,
               ),
               const SizedBox(width: 14),
               WorkbenchDialogActionButton(
                 label: '打开文件存放位置',
-                backgroundColor: const Color(0xFF6290FF),
+                backgroundColor: colors.primary,
                 onPressed: onReveal,
                 width: 126,
               ),
@@ -93,11 +95,13 @@ class _SizeSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F8FA),
+        color: colors.surfaceMuted,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE4E8EF)),
+        border: Border.all(color: colors.border),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -109,11 +113,11 @@ class _SizeSummary extends StatelessWidget {
                 value: WorkbenchFormatters.formatBytes(sourceFileSize),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               child: Icon(
                 Icons.arrow_forward_rounded,
-                color: Color(0xFF9AA3B2),
+                color: colors.textTertiary,
                 size: 18,
               ),
             ),
@@ -138,14 +142,16 @@ class _SizeMetric extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(
-            color: Color(0xFF7B8493),
-            fontSize: 11,
+          style: TextStyle(
+            color: colors.textTertiary,
+            fontSize: 11.flSp,
             height: 1.2,
           ),
         ),
@@ -154,9 +160,9 @@ class _SizeMetric extends StatelessWidget {
           value,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Color(0xFF171B22),
-            fontSize: 14,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 14.flSp,
             fontWeight: FontWeight.w600,
             height: 1.2,
           ),
@@ -174,6 +180,8 @@ class _OutputPathLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
@@ -181,9 +189,9 @@ class _OutputPathLine extends StatelessWidget {
           width: 52,
           child: Text(
             label,
-            style: const TextStyle(
-              color: Color(0xFF7B8493),
-              fontSize: 11,
+            style: TextStyle(
+              color: colors.textTertiary,
+              fontSize: 11.flSp,
               height: 1.2,
             ),
           ),
@@ -195,18 +203,18 @@ class _OutputPathLine extends StatelessWidget {
             alignment: Alignment.centerLeft,
             padding: const EdgeInsets.symmetric(horizontal: 9),
             decoration: BoxDecoration(
-              color: const Color(0xFFF7F8FA),
+              color: colors.surfaceMuted,
               borderRadius: BorderRadius.circular(7),
-              border: Border.all(color: const Color(0xFFE4E8EF)),
+              border: Border.all(color: colors.border),
             ),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SelectableText(
                 path,
                 maxLines: 1,
-                style: const TextStyle(
-                  color: Color(0xFF4E5867),
-                  fontSize: 11,
+                style: TextStyle(
+                  color: colors.textSecondary,
+                  fontSize: 11.flSp,
                   height: 1.2,
                 ),
               ),

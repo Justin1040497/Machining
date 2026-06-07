@@ -31,16 +31,34 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-07｜v1.1.5｜No Release
 
-今天修复 QMC 上游 `qmc-decrypt` 构建和运行时探测脚本。
+今天完成工作台主题和交互体验整理，补齐深浅主题切换、响应式尺寸、任务拖拽排序和相关文档，并修复 QMC 上游 `qmc-decrypt` 构建和运行时探测脚本。
+
+### Added
+
+- 新增 FrameLean 主题 token 和深色配色，工作台顶部栏新增深浅主题切换按钮，主题偏好保存到 `settings.theme_mode`。
+- `main()` 启动前读取本地设置并注入初始主题，避免用户保存深色主题后应用先显示浅色再闪到深色。
+- 接入 `flutter_screenutil`，工作台和主题文本按桌面基准尺寸适配，并限制桌面大窗口不放大字体。
+- 任务列表新增拖拽手柄，使用 `ReorderableListView` 调整任务顺序并复用现有排序持久化逻辑。
+- 设置弹窗顶部媒体类型切换复用任务配置卡中的分段切换组件。
+- 新增工作台 UI 刷新、主题切换设计文档，并新增 `ReorderableListView` / `Tooltip` 拖拽布局断言问题日志。
+
+### Changed
+
+- 工作台、任务列表、顶部栏、底部栏、弹窗、通知、表单控件、状态标签、进度条和滑杆颜色统一改为从 `FrameLeanColors` 主题 token 读取。
+- 图片质量和视频目标体积分段滑杆在深色主题下使用主色作为圆形拖拽点，避免深色 thumb 与弹窗背景混在一起。
+- README、文档入口、技术栈、数据模型和测试计划更新为当前媒体处理、主题切换、schema 15 和测试入口事实。
 
 ### Fixed
 
+- 修复 `ReorderableListView` 拖拽任务项时，任务行内部 `Tooltip` / `OverlayPortal` 在拖拽 overlay 重挂载期间触发 `_RenderLayoutBuilder was mutated in _RenderLayoutBuilder.performLayout` 的问题；拖拽列表项内关闭 tooltip wrapper，并用 `Semantics` 保留无障碍标签。
 - 修复 macOS / Windows `qmc-decrypt` 构建脚本误用 `--version` 导致构建后验证失败的问题；当前锁定的上游 CLI 只支持 `--help` 探测。
 - 修复直接使用上游 `qmc-decrypt` 时的运行时可用性探测和文档契约，避免把 FrameLean wrapper 的 `--version` 要求错误套到上游二进制。
 
 ### Verified
 
 - 通过 `git diff --check`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
 - 通过 `flutter test test/bundled_proprietary_audio_adapter_registry_test.dart`。
 - 通过 `scripts/build/build_qmc_decrypt_macos_arm64.sh`。
 

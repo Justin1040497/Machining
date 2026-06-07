@@ -20,8 +20,10 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/image_
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/path_field.dart';
+import 'package:framelean/features/workbench/widgets/form_controls/workbench_segmented_switch.dart';
 
 typedef AppSettingsSaveCallback = Future<void> Function(AppSettings settings);
 typedef AppSettingsPathPicker = Future<String?> Function();
@@ -99,8 +101,10 @@ class _WorkbenchAppSettingsDialogState
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
@@ -530,27 +534,13 @@ class _DefaultMediaKindSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: SegmentedButton<MediaKind>(
-        segments: [
-          for (final kind in MediaKind.values)
-            ButtonSegment<MediaKind>(value: kind, label: Text(kind.label)),
-        ],
-        selected: {value},
-        showSelectedIcon: false,
-        style: ButtonStyle(
-          visualDensity: VisualDensity.compact,
-          textStyle: WidgetStateProperty.all(
-            const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
-          ),
-        ),
-        onSelectionChanged: (selection) {
-          if (selection.isNotEmpty) {
-            onChanged(selection.first);
-          }
-        },
-      ),
+    return WorkbenchSegmentedSwitch<MediaKind>(
+      value: value,
+      segments: [
+        for (final kind in MediaKind.values)
+          WorkbenchSegment(value: kind, label: kind.label),
+      ],
+      onChanged: onChanged,
     );
   }
 }

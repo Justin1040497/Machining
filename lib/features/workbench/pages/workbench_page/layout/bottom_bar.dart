@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchBottomBar extends StatelessWidget {
   const WorkbenchBottomBar({
@@ -24,6 +25,7 @@ class WorkbenchBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final hasTasks = taskList.hasValue && taskList.requireValue.isNotEmpty;
 
     return SizedBox(
@@ -33,7 +35,7 @@ class WorkbenchBottomBar extends StatelessWidget {
         children: [
           SizedBox.expand(
             child: Container(
-              color: Colors.white,
+              color: colors.surface,
               padding: const EdgeInsets.symmetric(horizontal: 22),
               child: Row(
                 children: [
@@ -53,7 +55,7 @@ class WorkbenchBottomBar extends StatelessWidget {
                   _DockIconButton(
                     tooltip: '清空列表',
                     icon: Icons.delete_outline_rounded,
-                    color: const Color(0xFFFF5B61),
+                    color: colors.statusFailed,
                     onPressed: hasTasks ? onClearTasks : null,
                   ),
                 ],
@@ -88,22 +90,24 @@ class _DockIconButton extends StatelessWidget {
     required this.icon,
     required this.onPressed,
     this.size = 22,
-    this.color = Colors.black,
+    this.color,
   });
 
   final String tooltip;
   final IconData icon;
   final VoidCallback? onPressed;
   final double size;
-  final Color color;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Tooltip(
       message: tooltip,
       child: IconButton(
         onPressed: onPressed,
-        icon: Icon(icon, size: size, color: color),
+        icon: Icon(icon, size: size, color: color ?? colors.textPrimary),
       ),
     );
   }
@@ -124,6 +128,8 @@ class _PrimaryQueueButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return Tooltip(
       message: hasRunningTask ? '暂停所有任务' : '开始执行',
       child: SizedBox(
@@ -132,10 +138,10 @@ class _PrimaryQueueButton extends StatelessWidget {
         child: FilledButton(
           onPressed: hasTasks && !queueActionInFlight ? onPressed : null,
           style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFF6290FF),
-            disabledBackgroundColor: const Color(0xFFB9CBFF),
-            foregroundColor: Colors.white,
-            disabledForegroundColor: Colors.white,
+            backgroundColor: colors.primary,
+            disabledBackgroundColor: colors.progress,
+            foregroundColor: colors.onPrimary,
+            disabledForegroundColor: colors.textTertiary,
             shape: const CircleBorder(),
             padding: EdgeInsets.zero,
             elevation: 0,

@@ -1,4 +1,5 @@
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
@@ -38,6 +39,9 @@ class AppSettings {
   /// 应用级默认导出文件名模板
   final DefaultOutputFileNameTemplate defaultOutputFileNameTemplate;
 
+  /// 应用主题模式
+  final AppThemeMode themeMode;
+
   AppSettings({
     this.defaultOutputDirectory,
     this.lastSelectedOutputDirectory,
@@ -52,6 +56,7 @@ class AppSettings {
     SmartCompressionPreset? defaultSmartPreset,
     this.defaultOutputFileNameTemplate =
         DefaultOutputFileNameTemplate.sourceFileNameCodec,
+    this.themeMode = AppThemeMode.light,
   }) : defaultMediaConfig = resolveAppDefaultMediaConfig(
          defaultMediaConfig: defaultMediaConfig,
          compressionSettings: compressionSettings,
@@ -81,6 +86,7 @@ class AppSettings {
       defaultMediaConfig: MediaTaskConfig.initialDefaults(),
       defaultOutputFileNameTemplate:
           DefaultOutputFileNameTemplate.sourceFileNameCodec,
+      themeMode: AppThemeMode.light,
     );
   }
 
@@ -97,6 +103,7 @@ class AppSettings {
     VideoCodec? defaultOutputVideoCodec,
     SmartCompressionPreset? defaultSmartPreset,
     DefaultOutputFileNameTemplate? defaultOutputFileNameTemplate,
+    AppThemeMode? themeMode,
   }) {
     return AppSettings(
       defaultOutputDirectory: identical(defaultOutputDirectory, _notProvided)
@@ -122,6 +129,7 @@ class AppSettings {
       defaultSmartPreset: defaultSmartPreset,
       defaultOutputFileNameTemplate:
           defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 

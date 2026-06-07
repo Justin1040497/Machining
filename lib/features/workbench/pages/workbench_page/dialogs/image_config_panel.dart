@@ -5,6 +5,7 @@ import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchImageConfigPanel extends StatelessWidget {
@@ -132,6 +133,8 @@ class _PreserveMetadataSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return SizedBox(
       height: height ?? 34,
       child: Row(
@@ -150,8 +153,8 @@ class _PreserveMetadataSwitch extends StatelessWidget {
             child: Text(
               '保留元数据',
               style: TextStyle(
-                fontSize: labelFontSize,
-                color: const Color(0xFF111111),
+                fontSize: labelFontSize.flSp,
+                color: colors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -160,8 +163,8 @@ class _PreserveMetadataSwitch extends StatelessWidget {
           Text(
             value ? '开启' : '关闭',
             style: TextStyle(
-              fontSize: valueFontSize,
-              color: const Color(0xFF111111),
+              fontSize: valueFontSize.flSp,
+              color: colors.textPrimary,
             ),
           ),
         ],

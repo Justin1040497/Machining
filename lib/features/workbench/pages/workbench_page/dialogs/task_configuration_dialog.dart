@@ -19,6 +19,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 @immutable
 class WorkbenchTaskConfigurationDraft {
@@ -340,6 +341,7 @@ class _WorkbenchTaskConfigurationDialogState
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final isVideoTask = widget.task.mediaKind == MediaKind.video;
     final modified = _isModified();
     final compressed =
@@ -347,7 +349,7 @@ class _WorkbenchTaskConfigurationDialogState
         WorkbenchFormatters.isSourceAlreadyCompressed(widget.task);
 
     return Dialog(
-      backgroundColor: Colors.white,
+      backgroundColor: colors.surface,
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
@@ -369,9 +371,9 @@ class _WorkbenchTaskConfigurationDialogState
                       tooltip: '打开源文件所在位置',
                       onPressed: widget.onOpenSource,
                       padding: EdgeInsets.zero,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.open_in_new_rounded,
-                        color: Colors.black,
+                        color: colors.textPrimary,
                         size: 16,
                       ),
                     ),

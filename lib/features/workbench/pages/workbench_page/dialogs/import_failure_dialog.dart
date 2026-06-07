@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:path/path.dart' as path;
 
 class ImportFailureDialog extends StatelessWidget {
@@ -10,6 +11,7 @@ class ImportFailureDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final logText = failures
         .map((failure) {
           final fileName = path.basename(failure.path);
@@ -31,16 +33,16 @@ class ImportFailureDialog extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFF7F7F7),
+                color: colors.surfaceMuted,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFFE4E4E4)),
+                border: Border.all(color: colors.border),
               ),
               child: SingleChildScrollView(
                 child: SelectableText(
                   logText,
-                  style: const TextStyle(
-                    color: Color(0xFF555555),
-                    fontSize: 12,
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12.flSp,
                     height: 1.45,
                   ),
                 ),
@@ -53,7 +55,7 @@ class ImportFailureDialog extends StatelessWidget {
             children: [
               WorkbenchDialogActionButton(
                 label: '知道了',
-                backgroundColor: const Color(0xFF6290FF),
+                backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ],

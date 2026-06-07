@@ -29,14 +29,17 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 14 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 15 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频和封装信息 |
 | 媒体处理 | FFmpeg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换 |
-| 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片和音频扩展名会进入任务流程；图片和音频当前使用默认配置基础处理 |
+| 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片、音频和部分专有音频输入扩展名会进入任务流程 |
+| 专有音频输入 | Dart 原生 NCM + 外部 QMC 适配器 | 已使用 | NCM 使用本地 Dart 解密；MGG / MFLAC 等 QMC 输入通过适配器或 `qmc-decrypt` 预处理 |
 | 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
+| 响应式尺寸 | flutter_screenutil | 已使用 | 工作台和主题文本使用桌面基准尺寸，允许小窗口缩小但不随大窗口放大 |
+| 主题系统 | ThemeExtension + settings.theme_mode | 已使用 | 工作台支持浅色 / 深色主题切换，启动前读取设置避免首帧闪色 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + Xcode build phase | 已使用 | Release app 可复制 macOS arm64 FFmpeg 运行时 |
@@ -60,6 +63,8 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `file_selector` | `^1.1.0` | 桌面文件选择 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
 | `flutter_animate` | `^4.5.2` | 声明式 UI 动画，当前用于工作台通知浮层 |
+| `flutter_screenutil` | `^5.9.3` | 桌面 UI 文本和尺寸适配 |
+| `pointycastle` | `^4.0.0` | NCM 专有音频输入的本地加密/解密算法支持 |
 | `cupertino_icons` | `^1.0.8` | Flutter 默认图标依赖 |
 
 开发依赖：

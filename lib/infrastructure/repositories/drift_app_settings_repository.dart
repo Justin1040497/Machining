@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
@@ -72,6 +73,7 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
                 settings.defaultMediaConfig,
               ),
             ),
+            themeMode: Value(settings.themeMode.name),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -99,6 +101,7 @@ extension SettingsRowMapper on SettingsRow {
           DefaultOutputFileNameTemplate.values,
           defaultOutputFileNameTemplate,
         ),
+        themeMode: appThemeModeFromSettings(themeMode),
       );
     }
 
@@ -124,8 +127,19 @@ extension SettingsRowMapper on SettingsRow {
         DefaultOutputFileNameTemplate.values,
         defaultOutputFileNameTemplate,
       ),
+      themeMode: appThemeModeFromSettings(themeMode),
     );
   }
+}
+
+AppThemeMode appThemeModeFromSettings(String name) {
+  for (final value in AppThemeMode.values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+
+  return AppThemeMode.light;
 }
 
 T enumValueByNameInSettings<T extends Enum>(List<T> values, String name) {

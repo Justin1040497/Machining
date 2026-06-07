@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 typedef WorkbenchTaskPositionCallback =
@@ -66,11 +68,17 @@ class WorkbenchTaskListCard extends StatelessWidget {
       },
       itemBuilder: (context, index) {
         final task = tasks[index];
+        final dragEnabled = task.status != TaskStatus.running;
 
         return Container(
           key: ValueKey(task.id),
           padding: EdgeInsets.only(bottom: index == tasks.length - 1 ? 0 : 13),
-          margin: EdgeInsets.fromLTRB(27, index != 0 ? 6 : 26, 27, index != tasks.length - 1 ? 0 : 48),
+          margin: EdgeInsets.fromLTRB(
+            27,
+            index != 0 ? 6 : 30,
+            27,
+            index != tasks.length - 1 ? 0 : 48,
+          ),
           child: MediaTaskListTile(
             task: task,
             selected: selectedTask?.id == task.id,
@@ -85,6 +93,12 @@ class WorkbenchTaskListCard extends StatelessWidget {
             onSecondaryTapDown: (details) {
               onContextMenu(task, details.globalPosition);
             },
+            tooltipsEnabled: false,
+            dragHandle: ReorderableDragStartListener(
+              index: index,
+              enabled: dragEnabled,
+              child: _TaskDragHandle(enabled: dragEnabled),
+            ),
           ),
         );
       },
@@ -102,21 +116,61 @@ class WorkbenchTaskListCard extends StatelessWidget {
   }
 
   Widget _buildError(Object error) {
-    return Center(
-      child: Text(
-        '任务列表读取失败\n$error',
-        textAlign: TextAlign.center,
-        style: const TextStyle(color: Color(0xFF9A9A9A), fontSize: 12),
-      ),
+    return Builder(
+      builder: (context) {
+        final colors = context.frameLeanColors;
+
+        return Center(
+          child: Text(
+            '任务列表读取失败\n$error',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: colors.textTertiary, fontSize: 12.flSp),
+          ),
+        );
+      },
     );
   }
 
   Widget _buildEmpty() {
-    return const Center(
-      child: Text(
-        '暂无任务\n点击左下角 + 添加媒体',
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 12, height: 1.5),
+    return Builder(
+      builder: (context) {
+        final colors = context.frameLeanColors;
+
+        return Center(
+          child: Text(
+            '暂无任务\n点击左下角 + 添加媒体',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: colors.textTertiary,
+              fontSize: 12.flSp,
+              height: 1.5,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _TaskDragHandle extends StatelessWidget {
+  const _TaskDragHandle({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return Semantics(
+      label: enabled ? '拖动排序' : '运行中任务不能拖动',
+      child: SizedBox(
+        width: 24,
+        height: 48,
+        child: Icon(
+          Icons.drag_indicator_rounded,
+          color: enabled ? colors.iconMuted : colors.statusCancelled,
+          size: 18,
+        ),
       ),
     );
   }

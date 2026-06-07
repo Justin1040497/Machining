@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:framelean/app/theme/app_theme_controller.dart';
+import 'package:framelean/app/theme/framelean_responsive.dart';
+import 'package:framelean/app/theme/framelean_theme.dart';
 
 import 'app_router.dart';
 
@@ -8,35 +12,23 @@ class FrameLeanApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
-      title: "FrameLean",
-      debugShowCheckedModeBanner: false,
-      routerConfig: appRouter,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueAccent),
-        fontFamily: 'AlibabaPuHuiTi',
-        textTheme: TextTheme(
-          bodyMedium: TextStyle(fontSize: 14),
-          bodySmall: TextStyle(fontSize: 13.2),
-          labelMedium: TextStyle(fontSize: 12, color: Colors.grey),
-          bodyLarge: TextStyle(fontSize: 16),
-        ),
-        iconTheme: IconThemeData(size: 20),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        outlinedButtonTheme: OutlinedButtonThemeData(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-      ),
+    final themeMode = ref.watch(appThemeModeProvider);
+
+    return ScreenUtilInit(
+      designSize: frameLeanScreenDesignSize,
+      minTextAdapt: true,
+      splitScreenMode: true,
+      fontSizeResolver: frameLeanFontSizeResolver,
+      builder: (context, child) {
+        return MaterialApp.router(
+          title: 'FrameLean',
+          debugShowCheckedModeBanner: false,
+          routerConfig: appRouter,
+          theme: frameLeanLightTheme(),
+          darkTheme: frameLeanDarkTheme(),
+          themeMode: themeMode.materialThemeMode,
+        );
+      },
     );
   }
 }

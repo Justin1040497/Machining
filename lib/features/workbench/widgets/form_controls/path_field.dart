@@ -1,5 +1,6 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class PathField extends StatelessWidget {
   const PathField({
@@ -35,6 +36,8 @@ class PathField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return DropTarget(
       enable: enabled && onDropped != null,
       onDragEntered: (_) => onDraggingChanged?.call(true),
@@ -43,12 +46,10 @@ class PathField extends StatelessWidget {
       child: Container(
         height: height,
         decoration: BoxDecoration(
-          color: enabled ? Colors.white : const Color(0xFFF8F8F8),
+          color: enabled ? colors.surface : colors.surfaceDisabled,
           borderRadius: BorderRadius.circular(2),
           border: Border.all(
-            color: highlighted
-                ? const Color(0xFF6290FF)
-                : const Color(0xFFE3E3E3),
+            color: highlighted ? colors.primary : colors.border,
           ),
         ),
         child: Row(
@@ -60,16 +61,14 @@ class PathField extends StatelessWidget {
                 onChanged: onChanged,
                 maxLines: 1,
                 style: TextStyle(
-                  color: enabled
-                      ? const Color(0xFF111111)
-                      : const Color(0xFFCFCFCF),
-                  fontSize: fontSize,
+                  color: enabled ? colors.textPrimary : colors.textTertiary,
+                  fontSize: fontSize.flSp,
                 ),
                 decoration: InputDecoration(
                   hintText: hintText,
                   hintStyle: TextStyle(
-                    color: const Color(0xFFCFCFCF),
-                    fontSize: hintFontSize ?? fontSize,
+                    color: colors.textTertiary,
+                    fontSize: (hintFontSize ?? fontSize).flSp,
                   ),
                   border: InputBorder.none,
                   isDense: true,
@@ -87,9 +86,7 @@ class PathField extends StatelessWidget {
                   padding: EdgeInsets.zero,
                   icon: Icon(
                     trailingIcon,
-                    color: enabled
-                        ? const Color(0xFF9A9A9A)
-                        : const Color(0xFFCFCFCF),
+                    color: enabled ? colors.iconMuted : colors.textTertiary,
                     size: 20,
                   ),
                 ),

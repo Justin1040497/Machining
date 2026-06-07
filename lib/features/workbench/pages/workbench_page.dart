@@ -4,10 +4,11 @@ import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -77,6 +78,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   final Set<String> notifiedAnalysisErrorKeys = {};
   final Set<String> notifiedCompletedTaskKeys = {};
   bool windowsPrivilegeNoticeShown = false;
+  bool themeModeChangeInFlight = false;
 
   @override
   void initState() {
@@ -112,6 +114,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     final hasRunningTask = tasks.any(
       (task) => task.status == TaskStatus.running,
     );
+    final themeMode = ref.watch(appThemeModeProvider);
 
     return Scaffold(
       body: WorkbenchShell(
@@ -146,6 +149,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         onAddTask: pickAndAddTasks,
         onOpenSettings: () {
           unawaited(showAppSettingsDialog());
+        },
+        themeMode: themeMode,
+        onToggleThemeMode: () {
+          unawaited(toggleThemeMode());
         },
         onOpenAbout: () {
           unawaited(showAboutDialog());
@@ -513,6 +520,30 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref
         .read(mediaTaskListProvider.notifier)
         .applySettingsToExistingTasks(settings);
+  }
+
+  Future<void> toggleThemeMode() async {
+    if (themeModeChangeInFlight) {
+      return;
+    }
+
+    themeModeChangeInFlight = true;
+    final oldMode = ref.read(appThemeModeProvider);
+    final nextMode = oldMode.toggled;
+    ref.read(appThemeModeProvider.notifier).setThemeMode(nextMode);
+
+    try {
+      final repository = ref.read(appSettingsRepositoryProvider);
+      final settings = await LoadAppSettingsUseCase(
+        repository: repository,
+      ).call();
+      await repository.saveSettings(settings.copyWith(themeMode: nextMode));
+    } on Object catch (error) {
+      ref.read(appThemeModeProvider.notifier).setThemeMode(oldMode);
+      showWorkbenchSnackBar('主题切换失败: $error');
+    } finally {
+      themeModeChangeInFlight = false;
+    }
   }
 
   Future<void> showAboutDialog() async {

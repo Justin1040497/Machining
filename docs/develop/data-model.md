@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `14`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `15`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -37,7 +37,7 @@ lib/infrastructure/database/app_database.dart
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频和封装信息 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
-| `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置和默认压缩偏好 |
+| `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 
 数据库和领域模型之间的转换由仓储映射完成：
@@ -202,8 +202,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `show_advanced_options` | boolean | 否 | `false` | `showAdvancedOptions` | 是否展示高级选项 |
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
 | `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
-| `default_output_file_name_template` | text | 否 | `datetimeOriginalCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
+| `default_output_file_name_template` | text | 否 | `sourceFileNameCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
+| `theme_mode` | text | 否 | `light` | `themeMode` | 应用主题偏好；当前支持 `light`、`dark`，启动前读取以避免主题首帧闪色 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -303,6 +304,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 12 | 给 `tasks` 增加 FFprobe 色彩、像素格式、帧率、宽高比、旋转、场序和音频声道布局字段 |
 | 13 | 给 `tasks` 增加 `analysis_audio_stream_index` |
 | 14 | 给 `tasks` 增加 `media_config_json` 和图片分析字段；给 `settings` 增加 `default_media_config_json` |
+| 15 | 给 `settings` 增加 `theme_mode`，保存浅色 / 深色主题偏好 |
 
 ## 修改数据模型的约束
 

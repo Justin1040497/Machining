@@ -1,6 +1,7 @@
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
@@ -26,6 +27,7 @@ void main() {
       defaultOutputVideoCodec: 'hevc',
       defaultCompressionSmartPreset: 'chat',
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
+      themeMode: 'dark',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -47,6 +49,7 @@ void main() {
       settings.defaultOutputFileNameTemplate,
       DefaultOutputFileNameTemplate.sourceFileNameCodec,
     );
+    expect(settings.themeMode, AppThemeMode.dark);
   });
 
   test('settings row prefers default media config json over legacy fields', () {
@@ -70,6 +73,7 @@ void main() {
       defaultCompressionSmartPreset: 'chat',
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       defaultMediaConfigJson: encodeMediaTaskConfig(mediaConfig),
+      themeMode: 'light',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -79,6 +83,30 @@ void main() {
     expect(settings.defaultOutputVideoCodec, VideoCodec.h264);
     expect(settings.defaultSmartPreset, SmartCompressionPreset.balanced);
     expect(settings.defaultMediaConfig.image?.imageQuality, 67);
+    expect(settings.themeMode, AppThemeMode.light);
+  });
+
+  test('settings row falls back to light theme for unknown theme values', () {
+    final row = SettingsRow(
+      id: 1,
+      defaultOutputDirectory: null,
+      lastSelectedOutputDirectory: null,
+      saveOutputToSourceDirectory: true,
+      customFfmpegPath: null,
+      customFfprobePath: null,
+      showRawLog: false,
+      showAdvancedOptions: false,
+      defaultOutputVideoCodec: 'h264',
+      defaultCompressionSmartPreset: 'balanced',
+      defaultOutputFileNameTemplate: 'sourceFileNameCodec',
+      themeMode: 'unexpected',
+      createdAt: 1,
+      updatedAt: 2,
+    );
+
+    final settings = row.toDomain();
+
+    expect(settings.themeMode, AppThemeMode.light);
   });
 
   test(
@@ -96,7 +124,10 @@ void main() {
       );
 
       await repository.saveSettings(
-        AppSettings.initial().copyWith(defaultMediaConfig: mediaConfig),
+        AppSettings.initial().copyWith(
+          defaultMediaConfig: mediaConfig,
+          themeMode: AppThemeMode.dark,
+        ),
       );
 
       final row = await database.select(database.settingsRows).getSingle();
@@ -104,6 +135,7 @@ void main() {
 
       expect(row.defaultOutputVideoCodec, 'hevc');
       expect(row.defaultCompressionSmartPreset, 'chat');
+      expect(row.themeMode, 'dark');
       expect(savedConfig.video?.videoCodec, VideoCodec.hevc);
       expect(savedConfig.image?.imageQuality, 71);
     },

@@ -1,5 +1,5 @@
 name: framelean
-description: "FrameLean is a local desktop video compression app."
+description: "FrameLean is a local desktop media compression app."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -43,6 +43,7 @@ dependencies:
   file_selector: ^1.1.0
   desktop_drop: ^0.7.1
   flutter_animate: ^4.5.2
+  flutter_screenutil: ^5.9.3
   pointycastle: ^4.0.0
 
 dev_dependencies:

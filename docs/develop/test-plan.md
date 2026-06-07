@@ -33,26 +33,39 @@ test/
   app_settings_dialog_test.dart
   app_settings_test.dart
   app_settings_use_cases_test.dart
+  bundled_proprietary_audio_adapter_registry_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
   compression_mode_mapper_test.dart
   drift_app_settings_repository_test.dart
+  drift_media_task_repository_test.dart
   ffmpeg_command_builder_test.dart
   ffmpeg_encoder_capabilities_test.dart
   ffmpeg_process_observer_test.dart
   ffmpeg_task_queue_runner_test.dart
   ffprobe_media_analyzer_test.dart
+  file_extension_media_kind_resolver_test.dart
+  framelean_responsive_test.dart
   generate_preview_frames_use_case_test.dart
+  media_input_preparer_test.dart
+  media_output_format_test.dart
   media_task_execution_use_cases_test.dart
   media_task_notifier_test.dart
+  media_task_use_case_helpers_test.dart
+  native_ncm_audio_decoder_test.dart
   preview_frame_generator_test.dart
+  proprietary_audio_decoder_dispatcher_test.dart
+  proprietary_audio_format_resolver_test.dart
+  standard_cli_proprietary_audio_decoder_test.dart
   video_thumbnail_generator_test.dart
+  widget_test.dart
   workbench_about_dialog_test.dart
   workbench_bottom_bar_test.dart
+  workbench_constants_test.dart
   workbench_dialog_style_test.dart
+  workbench_external_link_opener_test.dart
   workbench_file_revealer_test.dart
   workbench_preview_notifier_test.dart
-  widget_test.dart
 ```
 
 ## 自动化测试覆盖范围
@@ -62,6 +75,7 @@ test/
 - 应用设置初始默认值、复制更新和可空路径清除。
 - 应用设置读取和保存 Use Cases。
 - Drift `settings` 行和领域模型之间的映射。
+- `theme_mode` 可保存 / 读取；未知主题值回退浅色。
 - 应用设置弹窗的紧凑态、高级态、三类默认媒体配置和保存行为。
 - 底部栏设置入口和新任务默认配置应用。
 
@@ -149,6 +163,10 @@ test/
 
 - 任务配置弹窗中“已修改”和“已压缩”只在底部按钮同排左侧显示。
 - 未实际改变配置时不显示“已修改”。
+- 任务列表通过拖拽手柄触发重排时不抛布局异常，且 reorder 回调被触发。
+- 拖拽列表项内不启用 `Tooltip` overlay，使用 `Semantics` 保留无障碍标签。
+- 顶部栏主题按钮可在浅色和深色之间切换。
+- 深色主题下分段滑杆 thumb 使用主色，不和深色 surface 混在一起。
 - 默认 `AlertDialog` 不应出现在统一样式弹窗中。
 - 工作台预览状态入口能正确记录生成中、错误、对比比例和选中帧。
 

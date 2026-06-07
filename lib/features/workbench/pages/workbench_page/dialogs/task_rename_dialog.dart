@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class TaskRenameDialog extends StatefulWidget {
   const TaskRenameDialog({super.key, required this.initialName});
@@ -27,6 +28,8 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
     return WorkbenchDialogFrame(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -38,30 +41,30 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
             controller: controller,
             autofocus: true,
             maxLines: 1,
-            style: const TextStyle(
-              color: Color(0xFF111111),
-              fontSize: 13,
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 13.flSp,
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
               labelText: '任务名称',
-              labelStyle: const TextStyle(
-                color: Color(0xFF8C8C8C),
-                fontSize: 12,
+              labelStyle: TextStyle(
+                color: colors.textTertiary,
+                fontSize: 12.flSp,
               ),
               filled: true,
-              fillColor: Colors.white,
+              fillColor: colors.surface,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 12,
                 vertical: 12,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFFDCDCDC)),
+                borderSide: BorderSide(color: colors.borderStrong),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(6),
-                borderSide: const BorderSide(color: Color(0xFF6290FF)),
+                borderSide: BorderSide(color: colors.primary),
               ),
             ),
             onSubmitted: (value) => Navigator.of(context).pop(value),
@@ -72,13 +75,13 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
             children: [
               WorkbenchDialogActionButton(
                 label: '取消',
-                backgroundColor: const Color(0xFFB8B8B8),
+                backgroundColor: colors.statusCancelled,
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 16),
               WorkbenchDialogActionButton(
                 label: '保存',
-                backgroundColor: const Color(0xFF6290FF),
+                backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(controller.text),
               ),
             ],

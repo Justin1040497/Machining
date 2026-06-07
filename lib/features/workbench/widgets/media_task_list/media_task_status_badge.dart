@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_item_models.dart';
 
 class MediaTaskStatusBadge extends StatelessWidget {
@@ -10,7 +11,7 @@ class MediaTaskStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = resolveStatusStyle(task);
+    final style = resolveStatusStyle(context, task);
 
     /// 自适应
     return UnconstrainedBox(
@@ -28,7 +29,7 @@ class MediaTaskStatusBadge extends StatelessWidget {
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
             color: style.foregroundColor,
-            fontSize: 8,
+            fontSize: 8.flSp,
             height: 1,
             fontWeight: FontWeight.w500,
           ),
@@ -37,55 +38,60 @@ class MediaTaskStatusBadge extends StatelessWidget {
     );
   }
 
-  MediaTaskStatusStyle resolveStatusStyle(MediaTask task) {
+  MediaTaskStatusStyle resolveStatusStyle(
+    BuildContext context,
+    MediaTask task,
+  ) {
+    final colors = context.frameLeanColors;
+
     switch (task.status) {
       case TaskStatus.running:
         return MediaTaskStatusStyle(
           label: '运行中 ${(task.progress * 100).round()}%',
-          backgroundColor: const Color(0xFFFF7A00),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.statusRunning,
+          foregroundColor: colors.onWarning,
         );
       case TaskStatus.pending:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '等待中',
-          backgroundColor: Color(0xFFE9D900),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.statusPending,
+          foregroundColor: colors.onWarning,
         );
       case TaskStatus.completed:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '已完成',
-          backgroundColor: Color(0xFFD7D7D7),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.progress,
+          foregroundColor: colors.primary,
         );
       case TaskStatus.failed:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '失败',
-          backgroundColor: Color(0xFFFF6B73),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.statusFailed,
+          foregroundColor: colors.onDanger,
         );
       case TaskStatus.cancelled:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '已取消',
-          backgroundColor: Color(0xFFD7D7D7),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.statusCancelled,
+          foregroundColor: colors.textPrimary,
         );
       case TaskStatus.missingSource:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '找不到源文件',
-          backgroundColor: Color(0xFFD7D7D7),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.statusMissingSource,
+          foregroundColor: colors.onPrimary,
         );
       case TaskStatus.analyzing:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '分析中',
-          backgroundColor: Color(0xFF74A2FF),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
         );
       case TaskStatus.paused:
-        return const MediaTaskStatusStyle(
+        return MediaTaskStatusStyle(
           label: '暂停中',
-          backgroundColor: Color(0xFFFFA6AF),
-          foregroundColor: Colors.white,
+          backgroundColor: colors.runningSoft,
+          foregroundColor: colors.statusRunning,
         );
     }
   }
