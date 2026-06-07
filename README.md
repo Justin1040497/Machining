@@ -9,7 +9,7 @@ FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具，�
 
 FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后执行 FFmpeg 任务。图片和音频已进入同一任务模型，支持导入、分析、分类型配置、基础输出处理和完成结果展示。
 
-完整变更记录见 [docs/archive/changelog.md](docs/archive/changelog.md)。
+完整变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
 ## 产品截图
 
@@ -325,15 +325,21 @@ lib/
 
 ## 文档
 
-文档入口在 [docs/README.md](docs/README.md)。
+项目背景和当前上下文见 [CONTEXT.md](CONTEXT.md)，文档入口在 [docs/README.md](docs/README.md)。
 
 常用文档：
 
-- [docs/product/roadmap.md](docs/product/roadmap.md)：产品路线图和下一阶段规划。
+- [docs/work/active.md](docs/work/active.md)：当前正在推进的任务。
+- [docs/work/backlog.md](docs/work/backlog.md)：候选任务池。
+- [docs/work/decisions.md](docs/work/decisions.md)：仍有效的重要决策索引。
+- [docs/releases/v1.1.5/overview.md](docs/releases/v1.1.5/overview.md)：当前版本事实设计说明。
 - [docs/develop/architecture.md](docs/develop/architecture.md)：项目架构和模块边界。
 - [docs/develop/technology-stack.md](docs/develop/technology-stack.md)：技术栈、依赖和平台范围。
 - [docs/develop/data-model.md](docs/develop/data-model.md)：数据库 schema、任务模型和设置模型。
 - [docs/develop/test-plan.md](docs/develop/test-plan.md)：自动化测试和手动验证计划。
+- [docs/develop/workflow.md](docs/develop/workflow.md)：需求、分支、测试、实现、验证、提交、PR 和发布流程。
+- [.agents/skills/README.md](.agents/skills/README.md)：FrameLean 项目级 skills 路由和共享预读协议。
+- [docs/lessons.md](docs/lessons.md)：踩坑记录和经验总结。
 - [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)：FFmpeg、x264、LAME、libwebp、Opus、GPL 路线和分发参考。
 
 ## 许可说明

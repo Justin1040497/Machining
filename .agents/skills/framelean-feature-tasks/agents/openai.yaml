@@ -1,4 +1,0 @@
-interface:
-  display_name: "FrameLean Feature Tasks"
-  short_description: "Break FrameLean designs into executable task lists"
-  default_prompt: "Use $framelean-feature-tasks to turn a FrameLean design into ordered file-level implementation tasks."

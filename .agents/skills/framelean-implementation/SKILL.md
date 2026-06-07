@@ -1,22 +1,22 @@
 ---
 name: framelean-implementation
-description: "Use to implement confirmed FrameLean tasks after requirements, design, and test boundaries are accepted. Applies to production code, tests, scripts, docs, and project-level skill edits while preserving scope, architecture, user changes, and current project style. Use only inside the FrameLean repository."
+description: "Use to implement confirmed FrameLean tasks after requirements, analysis, plan, and validation boundaries are accepted. Applies to production code, tests, scripts, docs, and project-level skill edits while preserving scope, architecture, user changes, and current project style. Use only inside the FrameLean repository."
 ---
 
 # FrameLean Implementation
 
-Implement only the confirmed FrameLean scope. This skill starts after the user has accepted the requirement/design/task/test boundary with `可以`.
+Implement only confirmed FrameLean scope. This skill starts after the user has accepted the requirement, analysis, plan, or requested an end-to-end execution.
 
-## Required Context
+## Shared Context
 
-Read `AGENTS.md`, relevant feature docs, task list, source, tests, and current Git status. Use `docs/develop/architecture.md`, `docs/develop/data-model.md`, `docs/develop/technology-stack.md`, or `docs/develop/git-workflow.md` only when the touched files require those rules.
+Read `.agents/skills/README.md` first and follow the shared pre-read protocol. Prefer docs first, then the active `.workspace/plans/` file if one exists, then related source/tests found with `rg`.
 
 ## Scope Rules
 
-- Do not add unconfirmed features, broad refactors, visual redesigns, generated artifacts, or formatting churn.
-- Do not stage, commit, revert, delete, or format unrelated user changes.
-- If the confirmed design becomes impossible or risky, stop and explain the conflict before changing scope.
-- Prefer existing helpers, providers, use cases, mappers, widgets, and scripts before adding abstractions.
+- Do not add unconfirmed features, broad refactors, generated artifacts, or formatting churn.
+- Do not stage, commit, push, revert, delete, or format unrelated user changes.
+- If the confirmed plan becomes impossible or risky, stop and explain the conflict before changing scope.
+- Prefer existing helpers, providers, use cases, mappers, widgets, scripts, and docs patterns.
 - Add abstractions only when they reduce real duplication, preserve a boundary, or match an established FrameLean pattern.
 
 ## Architecture Rules
@@ -36,13 +36,31 @@ features -> application -> domain
 - `features/workbench` coordinates UI state through Riverpod notifiers and application use cases.
 - `app` remains shell, theme, and routing.
 
-## After Implementation
+## Documentation During Implementation
+
+Update docs only when the change affects current facts:
+
+```text
+CONTEXT.md
+CHANGELOG.md
+docs/work/*
+docs/releases/*
+docs/decisions/*
+docs/lessons.md
+docs/develop/*
+docs/reference/*
+.agents/skills/*
+```
+
+Keep `.workspace/` plans as temporary execution artifacts, not committed facts.
+
+## Handoff
 
 Report:
 
 - What changed.
 - Which confirmed behavior or boundary it satisfies.
 - What did not change.
-- Any unclear product or business boundary.
+- Which validation remains.
 
-Do not move to validation until the user explicitly says `可以`, unless the user asked you to complete implementation and validation in the same turn.
+Do not move to validation unless the user asked to complete implementation and validation in the same turn.

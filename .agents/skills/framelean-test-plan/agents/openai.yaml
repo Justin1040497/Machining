@@ -1,4 +1,0 @@
-interface:
-  display_name: "FrameLean Test Plan"
-  short_description: "Write FrameLean feature test plans and acceptance checks"
-  default_prompt: "Use $framelean-test-plan to write a FrameLean feature test document from docs/develop/test-plan.md, including API checks only when relevant."

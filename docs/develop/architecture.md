@@ -4,7 +4,7 @@
 
 这个文件记录 FrameLean 当前项目架构、核心模块解析，以及为什么采用这种架构。
 
-这里描述的是当前代码事实，不记录产品规划或历史开发日志。测试和构建说明看 `docs/develop/test-plan.md`，文档总入口看 `docs/README.md`。
+这里描述的是当前代码事实，不记录产品规划或历史开发日志。测试和构建说明看 `docs/develop/test-plan.md`，文档总入口看 `docs/README.md`，项目上下文看根目录 `CONTEXT.md`。
 
 ## 架构总览
 
@@ -457,4 +457,4 @@ test/workbench_preview_notifier_test.dart
 
 ## 给 AI 的使用说明
 
-处理代码任务时，优先阅读本文档和 `data-model.md`。如果任务涉及产品范围，先读 `docs/README.md` 的产品部分和 `docs/product/roadmap.md`；如果任务涉及测试或构建，再读 `docs/develop/test-plan.md` 和 `docs/README.md` 的测试 / 构建部分。
+处理代码任务时，优先阅读 `CONTEXT.md`、本文档和 `data-model.md`。如果任务涉及当前或候选工作，读 `docs/work/active.md` 和 `docs/work/backlog.md`；如果任务涉及测试、构建或流程，再读 `docs/develop/test-plan.md` 和 `docs/develop/workflow.md`。
