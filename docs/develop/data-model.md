@@ -289,7 +289,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 ## 迁移历史
 
-当前迁移逻辑位于 `AppDatabase.migration.onUpgrade`：
+当前迁移逻辑位于 `AppDatabase.migration.onUpgrade`。所有 `addColumn` 调用通过 `_safeAddColumn` helper 实现幂等（若列已存在则安全跳过），防止开发阶段反复打包时因 Drift `onCreate` 已创建完整表而导致 `duplicate column name` 错误。新增列时继续使用 `_safeAddColumn`，不要直接调用 `migrator.addColumn`。
 
 | 目标版本 | 变更 |
 | --- | --- |

@@ -60,6 +60,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ### Fixed
 
+- 修复 Drift 数据库迁移在开发阶段反复打包时偶发报 `SqliteException: duplicate column name` 的问题。根因是 Drift `onCreate` 直接创建包含所有当前列的完整表结构，在某些边缘情况下列在迁移前已存在，`ALTER TABLE ADD COLUMN` 重复添加导致启动时报“任务列表读取失败”。修复方案：新增 `_safeAddColumn` helper，所有 `migrator.addColumn` 调用改为幂等添加，遇 "duplicate column" 错误时安全跳过。
 - 修复 `ReorderableListView` 拖拽任务项时，任务行内部 `Tooltip` / `OverlayPortal` 在拖拽 overlay 重挂载期间触发 `_RenderLayoutBuilder was mutated in _RenderLayoutBuilder.performLayout` 的问题；拖拽列表项内关闭 tooltip wrapper，并用 `Semantics` 保留无障碍标签。
 - 修复 macOS / Windows `qmc-decrypt` 构建脚本误用 `--version` 导致构建后验证失败的问题；当前锁定的上游 CLI 只支持 `--help` 探测。
 - 修复直接使用上游 `qmc-decrypt` 时的运行时可用性探测和文档契约，避免把 FrameLean wrapper 的 `--version` 要求错误套到上游二进制。
