@@ -36,29 +36,45 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 ### Added
 
 - 新增 FrameLean 主题 token 和深色配色，工作台顶部栏新增深浅主题切换按钮，主题偏好保存到 `settings.theme_mode`。
-- `main()` 启动前读取本地设置并注入初始主题，避免用户保存深色主题后应用先显示浅色再闪到深色。
+- `main()` 启动前读取轻量 `theme_prefs.json` 缓存并注入初始主题，避免等待 SQLite / Drift 初始化完成才确定首帧主题。
 - 接入 `flutter_screenutil`，工作台和主题文本按桌面基准尺寸适配，并限制桌面大窗口不放大字体。
 - 任务列表新增拖拽手柄，使用 `ReorderableListView` 调整任务顺序并复用现有排序持久化逻辑。
 - 设置弹窗顶部媒体类型切换复用任务配置卡中的分段切换组件。
 - 新增工作台 UI 刷新、主题切换设计文档，并新增 `ReorderableListView` / `Tooltip` 拖拽布局断言问题日志。
+- 新增任务排序 use case、仓储 sort-only 持久化和主题缓存启动自愈的回归测试。
 
 ### Changed
 
 - 工作台、任务列表、顶部栏、底部栏、弹窗、通知、表单控件、状态标签、进度条和滑杆颜色统一改为从 `FrameLeanColors` 主题 token 读取。
 - 图片质量和视频目标体积分段滑杆在深色主题下使用主色作为圆形拖拽点，避免深色 thumb 与弹窗背景混在一起。
 - README、文档入口、技术栈、数据模型和测试计划更新为当前媒体处理、主题切换、schema 15 和测试入口事实。
+- 任务执行期间状态轮询间隔从 500ms 延长到 1000ms，并新增 `_taskListHasChanged` 变更检测，仅在任务 id / status / progress 实际变化时触发 UI 更新，避免无变化的无效全量重建。
+- 工作台 `syncSelectedTaskIdAfterBuild`、`syncSelectedTaskConfigAfterBuild`、`syncQualityPresetAfterBuild` 从 `build()` 内移到 `ref.listen` 回调中触发，仅在任务列表数据变化时执行，不再随拖拽导入状态、主题切换等无关重建调度 deferred `setState`。
+- 深浅主题切换使用 `MaterialApp.router` 内建主题动画参数，交由 Flutter 的 `AnimatedTheme` 处理过渡。
+- 队列执行语义改为以任务列表顺序为唯一队列顺序：底部开始按实时列表顺序选择等待中 / 已暂停任务，运行中调整任务顺序会影响后续任务；任务行开始保留插队行为，不修改列表排序。
+- 任务排序持久化改为只更新 `sort_order`，避免拖拽排序用旧任务快照覆盖运行中任务的进度、状态、错误或输出路径。
+- 工作台任务列表变更监听改为 `listenManual(..., fireImmediately: true)`，预热 `AsyncData` 下也能同步选中任务、配置和质量预设。
+- 深浅主题动画交回 `MaterialApp.router` 的 `themeAnimationDuration` / `themeAnimationCurve`，不再手写 `ThemeData.lerp` 包装层。
+- 主题启动缓存明确为 `theme_prefs.json` 首帧镜像；启动后异步读取 DB，并以 `settings.theme_mode` 为准更新应用主题和重写缓存。
+- `.claude/settings.local.json` 从共享提交中移除，并加入 `.gitignore` 作为本机配置。
 
 ### Fixed
 
 - 修复 `ReorderableListView` 拖拽任务项时，任务行内部 `Tooltip` / `OverlayPortal` 在拖拽 overlay 重挂载期间触发 `_RenderLayoutBuilder was mutated in _RenderLayoutBuilder.performLayout` 的问题；拖拽列表项内关闭 tooltip wrapper，并用 `Semantics` 保留无障碍标签。
 - 修复 macOS / Windows `qmc-decrypt` 构建脚本误用 `--version` 导致构建后验证失败的问题；当前锁定的上游 CLI 只支持 `--help` 探测。
 - 修复直接使用上游 `qmc-decrypt` 时的运行时可用性探测和文档契约，避免把 FrameLean wrapper 的 `--version` 要求错误套到上游二进制。
+- 修复任务拖拽排序松手后，被移动任务及其之间的所有任务项预览图和标题闪烁的问题；根因是 `reorderTasks` 异步等待 DB 持久化后才更新 state，与 `ReorderableListView` 期望的同步数据更新产生时序冲突，改为乐观更新：先从内存 state 计算重排结果立即更新 UI，再异步持久化到 DB。
+- 修复底部暂停按钮文案为“暂停所有任务”但实际逐个调用单任务暂停、可能触发队列继续执行的问题；底部暂停现在只暂停当前执行上下文并停止自动续跑。
+- 修复拖拽排序后台持久化失败会变成未处理异步错误的问题；页面现在捕获失败并提示，notifier 会刷新仓储顺序恢复一致性。
+- 修复图片和音频任务没有预览图时仍显示视频占位图标的问题；任务列表和任务详情源文件摘要现在按视频 / 图片 / 音频类型显示对应占位图标。
 
 ### Verified
 
+- 通过 `dart analyze lib/`。
 - 通过 `git diff --check`。
 - 通过 `flutter analyze`。
 - 通过 `flutter test`。
+- 通过 `flutter test test/widget_test.dart`，覆盖媒体类型占位图标回归测试。
 - 通过 `flutter test test/bundled_proprietary_audio_adapter_registry_test.dart`。
 - 通过 `scripts/build/build_qmc_decrypt_macos_arm64.sh`。
 

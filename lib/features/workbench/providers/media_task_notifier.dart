@@ -6,6 +6,7 @@ import 'package:framelean/application/use_cases/media_tasks/analyze_media_task_u
 import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/import_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/application/use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/reorder_media_tasks_use_case.dart';
@@ -241,6 +242,16 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     return result;
   }
 
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
+    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    final result = await PauseAllMediaTaskExecutionsUseCase(
+      queueRunner: queueRunner,
+    ).call();
+
+    await refreshTasksFromRepository();
+    return result;
+  }
+
   Future<void> refreshTasksFromRepository() async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     state = AsyncData(await repository.loadAllTasks());
@@ -248,7 +259,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
   void startExecutionRefreshPolling() {
     executionRefreshTimer?.cancel();
-    executionRefreshTimer = Timer.periodic(const Duration(milliseconds: 500), (
+    executionRefreshTimer = Timer.periodic(const Duration(milliseconds: 1000), (
       timer,
     ) {
       unawaited(refreshExecutionState(timer));
@@ -260,9 +271,17 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       return;
     }
 
-    await refreshTasksFromRepository();
-    final tasks = state.requireValue;
-    final hasActiveTask = tasks.any(
+    final repository = ref.read(mediaTaskRepositoryProvider);
+    final freshTasks = await repository.loadAllTasks();
+    final currentTasks = state.requireValue;
+
+    if (!_taskListHasChanged(currentTasks, freshTasks)) {
+      return;
+    }
+
+    state = AsyncData(freshTasks);
+
+    final hasActiveTask = freshTasks.any(
       (task) =>
           task.status == TaskStatus.running || task.status == TaskStatus.paused,
     );
@@ -273,16 +292,54 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     }
   }
 
+  bool _taskListHasChanged(
+    List<MediaTask> oldTasks,
+    List<MediaTask> freshTasks,
+  ) {
+    if (oldTasks.length != freshTasks.length) {
+      return true;
+    }
+
+    for (var i = 0; i < oldTasks.length; i++) {
+      final old = oldTasks[i];
+      final fresh = freshTasks[i];
+      if (old.id != fresh.id ||
+          old.status != fresh.status ||
+          old.progress != fresh.progress) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   Future<void> reorderTasks({
     required int oldIndex,
     required int newIndex,
   }) async {
-    final repository = ref.read(mediaTaskRepositoryProvider);
-    final reorderedTasks = await ReorderMediaTasksUseCase(
-      repository: repository,
-    ).call(oldIndex: oldIndex, newIndex: newIndex);
+    final tasks = state.requireValue;
+    final reorderedTasks = reorderMediaTasksInMemory(
+      tasks,
+      oldIndex: oldIndex,
+      newIndex: newIndex,
+    );
+    if (identical(reorderedTasks, tasks)) {
+      return;
+    }
 
+    // 乐观更新：立即更新 UI，再异步持久化
     state = AsyncData(reorderedTasks);
+
+    final repository = ref.read(mediaTaskRepositoryProvider);
+    try {
+      await repository.updateTaskSortOrders(
+        mediaTaskSortOrderUpdatesFor(reorderedTasks),
+      );
+    } on Object {
+      await refreshTasksFromRepository();
+      rethrow;
+    }
+
     unawaited(syncFfmpegQueueStatus());
   }
 

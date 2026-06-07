@@ -148,7 +148,7 @@ Use Cases：
 - `ReplaceMissingSourceUseCase`：为丢失源文件任务重新指定本地文件。
 - `RetryMediaTaskUseCase`：失败任务重试前检查源文件，并决定是否重新分析。
 - `ReorderMediaTasksUseCase`：保存任务列表排序。
-- `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`：进入队列执行、单任务开始 / 继续和暂停。
+- `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`PauseAllMediaTaskExecutionsUseCase`：进入队列执行、单任务开始 / 继续 / 暂停和底部暂停全部。
 - `ClearMediaTasksUseCase`、`DeleteMediaTaskUseCase`：删除任务前先处理正在执行的 FFmpeg 进程。
 - `GeneratePreviewFramesUseCase`：为工作台预览调用运行时解析和预览帧生成服务。
 
@@ -195,7 +195,7 @@ Use Cases：
 - 源文件丢失后的重新指定。
 - 任务配置保存。
 - 单任务开始 / 暂停 / 继续 / 重试。
-- 队列启动和连续执行。
+- 队列启动、底部暂停全部、按实时列表顺序连续执行和任务行插队。
 - 完成、失败和分析错误提示。
 - 缩略图和压缩前后预览帧。
 

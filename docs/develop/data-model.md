@@ -204,9 +204,11 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
 | `default_output_file_name_template` | text | 否 | `sourceFileNameCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
-| `theme_mode` | text | 否 | `light` | `themeMode` | 应用主题偏好；当前支持 `light`、`dark`，启动前读取以避免主题首帧闪色 |
+| `theme_mode` | text | 否 | `light` | `themeMode` | 应用主题偏好；当前支持 `light`、`dark`，是主题设置的 source of truth |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
+
+主题启动另有轻量缓存镜像 `theme_prefs.json`，位于应用支持目录，只保存 `themeMode` 用于首帧渲染。缓存文件损坏或丢失时回退 `light`；应用启动后会异步读取 `settings.theme_mode`，若 DB 与缓存不同，则以 DB 为准更新当前主题并重写缓存。
 
 ## 枚举值
 

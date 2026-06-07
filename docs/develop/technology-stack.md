@@ -39,8 +39,8 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
 | 响应式尺寸 | flutter_screenutil | 已使用 | 工作台和主题文本使用桌面基准尺寸，允许小窗口缩小但不随大窗口放大 |
-| 主题系统 | ThemeExtension + settings.theme_mode | 已使用 | 工作台支持浅色 / 深色主题切换，启动前读取设置避免首帧闪色 |
-| 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录和文件名处理 |
+| 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
+| 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + Xcode build phase | 已使用 | Release app 可复制 macOS arm64 FFmpeg 运行时 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |

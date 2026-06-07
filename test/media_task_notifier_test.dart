@@ -12,6 +12,7 @@ import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
@@ -96,6 +97,75 @@ void main() {
       expect(task.config.outputFileName, contains('source'));
       expect(task.config.outputFileName, contains('hevc'));
     });
+
+    test(
+      'reorders tasks by updating sort orders without replacing all tasks',
+      () async {
+        final firstTask = readyVideoTask(id: 'first', sortOrder: 0);
+        final secondTask = readyVideoTask(id: 'second', sortOrder: 1);
+        final thirdTask = readyVideoTask(id: 'third', sortOrder: 2);
+        final repository = FakeMediaTaskRepository([
+          firstTask,
+          secondTask,
+          thirdTask,
+        ]);
+        final container = testContainer(
+          repository: repository,
+          sourceFileChecker: FakeSourceFileChecker(
+            existingPaths: {
+              firstTask.inputPath,
+              secondTask.inputPath,
+              thirdTask.inputPath,
+            },
+          ),
+          fingerprintReader: FakeSourceFileFingerprintReader(
+            fingerprint: testFingerprint,
+          ),
+        );
+
+        await container.read(mediaTaskListProvider.future);
+        await container
+            .read(mediaTaskListProvider.notifier)
+            .reorderTasks(oldIndex: 0, newIndex: 3);
+
+        final tasks = container.read(mediaTaskListProvider).requireValue;
+        expect(tasks.map((task) => task.id), ['second', 'third', 'first']);
+        expect(repository.updateSortOrdersCallCount, 1);
+        expect(repository.replaceAllCallCount, 0);
+        expect(repository.taskById('first').sortOrder, 2);
+        expect(repository.taskById('second').sortOrder, 0);
+        expect(repository.taskById('third').sortOrder, 1);
+      },
+    );
+
+    test('reloads repository order when reorder persistence fails', () async {
+      final firstTask = readyVideoTask(id: 'first', sortOrder: 0);
+      final secondTask = readyVideoTask(id: 'second', sortOrder: 1);
+      final repository = FakeMediaTaskRepository([firstTask, secondTask])
+        ..updateSortOrdersError = StateError('sort failed');
+      final container = testContainer(
+        repository: repository,
+        sourceFileChecker: FakeSourceFileChecker(
+          existingPaths: {firstTask.inputPath, secondTask.inputPath},
+        ),
+        fingerprintReader: FakeSourceFileFingerprintReader(
+          fingerprint: testFingerprint,
+        ),
+      );
+
+      await container.read(mediaTaskListProvider.future);
+
+      await expectLater(
+        container
+            .read(mediaTaskListProvider.notifier)
+            .reorderTasks(oldIndex: 0, newIndex: 2),
+        throwsStateError,
+      );
+
+      final tasks = container.read(mediaTaskListProvider).requireValue;
+      expect(tasks.map((task) => task.id), ['first', 'second']);
+      expect(repository.updateSortOrdersCallCount, 1);
+    });
   });
 }
 
@@ -131,6 +201,7 @@ MediaTask videoTask({
   String inputPath = '/videos/missing.mp4',
   TaskStatus status = TaskStatus.pending,
   VideoTaskConfig? config,
+  int sortOrder = 0,
 }) {
   return MediaTask(
     id: id,
@@ -141,8 +212,20 @@ MediaTask videoTask({
     status: status,
     config: config ?? VideoTaskConfig.initial(),
     progress: 0,
-    sortOrder: 0,
+    sortOrder: sortOrder,
     createdAt: 1,
+  );
+}
+
+MediaTask readyVideoTask({required String id, required int sortOrder}) {
+  return videoTask(
+    id: id,
+    inputPath: '/videos/$id.mp4',
+    sortOrder: sortOrder,
+  ).copyWith(
+    sourceFileFingerprint: testFingerprint,
+    analysisResult: MediaAnalysisResult(durationMs: 1000),
+    analysisUpdatedAt: 1,
   );
 }
 
@@ -152,6 +235,8 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
 
   final List<MediaTask> tasks;
   int replaceAllCallCount = 0;
+  int updateSortOrdersCallCount = 0;
+  Object? updateSortOrdersError;
 
   @override
   Future<void> deleteTaskById(String taskId) async {
@@ -160,7 +245,14 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
 
   @override
   Future<List<MediaTask>> loadAllTasks() async {
-    return [...tasks];
+    return [...tasks]..sort((first, second) {
+      final order = first.sortOrder.compareTo(second.sortOrder);
+      if (order != 0) {
+        return order;
+      }
+
+      return first.createdAt.compareTo(second.createdAt);
+    });
   }
 
   @override
@@ -169,6 +261,26 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
     this.tasks
       ..clear()
       ..addAll(tasks);
+  }
+
+  @override
+  Future<void> updateTaskSortOrders(
+    List<MediaTaskSortOrderUpdate> updates,
+  ) async {
+    updateSortOrdersCallCount += 1;
+    final error = updateSortOrdersError;
+    if (error != null) {
+      throw error;
+    }
+
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(sortOrder: update.sortOrder);
+    }
   }
 
   @override
@@ -182,6 +294,10 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
     }
 
     tasks[index] = task;
+  }
+
+  MediaTask taskById(String id) {
+    return tasks.singleWhere((task) => task.id == id);
   }
 }
 
@@ -249,6 +365,13 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   @override
   Future<FfmpegQueueStartResult> pauseTask(String taskId) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
     return const FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.paused,
     );

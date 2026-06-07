@@ -85,7 +85,10 @@ class MediaTaskListTile extends StatelessWidget {
                   const SizedBox(width: 10),
                   dragHandle ?? const SizedBox(width: 24),
                   const SizedBox(width: 4),
-                  MediaTaskThumbnail(thumbnail: thumbnail),
+                  MediaTaskThumbnail(
+                    mediaKind: task.mediaKind,
+                    thumbnail: thumbnail,
+                  ),
                   const SizedBox(width: 12),
                   Expanded(child: _buildTaskText(context)),
                   MediaTaskActionButton(

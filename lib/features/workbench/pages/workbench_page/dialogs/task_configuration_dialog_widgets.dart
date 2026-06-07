@@ -8,6 +8,7 @@ import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/presentation_mappers/media_kind_icons.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/workbench_segmented_switch.dart';
 
@@ -150,7 +151,7 @@ class WorkbenchSourceSummary extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        _TaskThumbnail(thumbnail: thumbnail),
+        _TaskThumbnail(mediaKind: task.mediaKind, thumbnail: thumbnail),
       ],
     );
   }
@@ -567,8 +568,9 @@ class _StatusBadge extends StatelessWidget {
 }
 
 class _TaskThumbnail extends StatelessWidget {
-  const _TaskThumbnail({required this.thumbnail});
+  const _TaskThumbnail({required this.mediaKind, required this.thumbnail});
 
+  final MediaKind mediaKind;
   final ImageProvider? thumbnail;
 
   @override
@@ -587,11 +589,7 @@ class _TaskThumbnail extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: thumbnail == null
-          ? Icon(
-              Icons.movie_creation_outlined,
-              color: colors.iconMuted,
-              size: 22,
-            )
+          ? Icon(mediaKind.placeholderIcon, color: colors.iconMuted, size: 22)
           : null,
     );
   }

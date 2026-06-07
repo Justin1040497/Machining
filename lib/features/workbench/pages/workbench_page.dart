@@ -45,6 +45,7 @@ import 'package:framelean/features/workbench/providers/media_task_notifier.dart'
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
 const Object _configValueNotProvided = Object();
 const String _frameLeanGitHubUrl = 'https://github.com/zhouycheng/FrameLean';
@@ -79,36 +80,33 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   final Set<String> notifiedCompletedTaskKeys = {};
   bool windowsPrivilegeNoticeShown = false;
   bool themeModeChangeInFlight = false;
+  ProviderSubscription<AsyncValue<List<MediaTask>>>? taskListSubscription;
 
   @override
   void initState() {
     super.initState();
+    taskListSubscription = ref.listenManual<AsyncValue<List<MediaTask>>>(
+      mediaTaskListProvider,
+      handleTaskListChanged,
+      fireImmediately: true,
+    );
     unawaited(showWindowsAdministratorDragNoticeIfNeeded());
   }
 
   @override
   void dispose() {
+    taskListSubscription?.close();
     noticeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AsyncValue<List<MediaTask>>>(mediaTaskListProvider, (
-      previous,
-      next,
-    ) {
-      notifyAnalysisErrors(next.asData?.value);
-      notifyCompletedTasks(previous?.asData?.value, next.asData?.value);
-    });
     final taskList = ref.watch(mediaTaskListProvider);
     final tasks = taskList.hasValue
         ? taskList.requireValue
         : const <MediaTask>[];
     final selectedTask = resolveSelectedTask(tasks);
-    syncSelectedTaskIdAfterBuild(selectedTask);
-    syncSelectedTaskConfigAfterBuild(selectedTask);
-    syncQualityPresetAfterBuild(selectedTask);
     syncTaskThumbnailsAfterBuild(tasks);
 
     final hasRunningTask = tasks.any(
@@ -131,11 +129,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           });
         },
         onImportDrop: handleWorkbenchImportDrop,
-        onReorder: (oldIndex, newIndex) {
-          ref
-              .read(mediaTaskListProvider.notifier)
-              .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
-        },
+        onReorder: reorderTasks,
         onOpenTask: openTask,
         onStart: startOrResumeTask,
         onPause: pauseTask,
@@ -163,6 +157,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         },
       ),
     );
+  }
+
+  void handleTaskListChanged(
+    AsyncValue<List<MediaTask>>? previous,
+    AsyncValue<List<MediaTask>> next,
+  ) {
+    if (previous != null) {
+      notifyAnalysisErrors(next.asData?.value);
+      notifyCompletedTasks(previous.asData?.value, next.asData?.value);
+    }
+
+    final tasks = next.asData?.value ?? const <MediaTask>[];
+    final selectedTask = resolveSelectedTask(tasks);
+    syncSelectedTaskIdAfterBuild(selectedTask);
+    syncSelectedTaskConfigAfterBuild(selectedTask);
+    syncQualityPresetAfterBuild(selectedTask);
   }
 
   Future<void> showWindowsAdministratorDragNoticeIfNeeded() async {
@@ -443,16 +453,29 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> pauseRunningTasks() async {
-    final taskList = ref.read(mediaTaskListProvider);
-    if (!taskList.hasValue) {
-      return;
-    }
-
-    for (final task in taskList.requireValue) {
-      if (task.status == TaskStatus.running) {
-        await pauseTask(task);
+    try {
+      final result = await ref
+          .read(mediaTaskListProvider.notifier)
+          .pauseAllRunningTasks();
+      if (result.message != null) {
+        showWorkbenchSnackBar(result.message!);
       }
+    } on Object catch (error) {
+      showWorkbenchSnackBar(error.toString());
     }
+  }
+
+  void reorderTasks(int oldIndex, int newIndex) {
+    final reorderFuture = ref
+        .read(mediaTaskListProvider.notifier)
+        .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
+    unawaited(
+      reorderFuture.catchError((Object error, StackTrace stackTrace) {
+        if (mounted) {
+          showWorkbenchSnackBar('任务排序保存失败: $error');
+        }
+      }),
+    );
   }
 
   Future<void> showAppSettingsDialog() async {
@@ -538,6 +561,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         repository: repository,
       ).call();
       await repository.saveSettings(settings.copyWith(themeMode: nextMode));
+      unawaited(ThemePrefsCache.write(nextMode));
     } on Object catch (error) {
       ref.read(appThemeModeProvider.notifier).setThemeMode(oldMode);
       showWorkbenchSnackBar('主题切换失败: $error');
