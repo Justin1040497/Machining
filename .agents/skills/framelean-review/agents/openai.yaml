@@ -1,4 +1,0 @@
-interface:
-  display_name: "FrameLean Review"
-  short_description: "Review and validate FrameLean changes"
-  default_prompt: "Use $framelean-review to inspect FrameLean changes, run relevant checks, explain failures, and report validation results."

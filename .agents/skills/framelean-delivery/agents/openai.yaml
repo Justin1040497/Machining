@@ -1,4 +1,4 @@
 interface:
   display_name: "FrameLean Delivery"
-  short_description: "Prepare FrameLean delivery, PR, release, and feature archive"
-  default_prompt: "Use $framelean-delivery to prepare FrameLean commit details, PR copy, release descriptions, changelog entries, and feature-network archive updates."
+  short_description: "Calibrate docs and draft commit and PR copy"
+  default_prompt: "Use $framelean-delivery to update current facts and prepare Markdown commit and PR copy."

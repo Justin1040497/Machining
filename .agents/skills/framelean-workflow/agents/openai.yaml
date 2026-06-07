@@ -1,7 +1,4 @@
 interface:
-  display_name: "FrameLean Workflow Router"
-  short_description: "Route FrameLean work to the right project skill"
-  default_prompt: "Use $framelean-workflow to choose the smallest FrameLean project skill for this request, or run the full workflow when explicitly requested."
-
-policy:
-  allow_implicit_invocation: true
+  display_name: "FrameLean Workflow"
+  short_description: "Route FrameLean project workflow requests"
+  default_prompt: "Use $framelean-workflow to choose the right FrameLean project skill for this request."

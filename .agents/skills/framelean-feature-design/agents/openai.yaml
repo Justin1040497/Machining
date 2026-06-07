@@ -1,4 +1,0 @@
-interface:
-  display_name: "FrameLean Feature Design"
-  short_description: "Write FrameLean design reports and branch suggestions"
-  default_prompt: "Use $framelean-feature-design to prepare a FrameLean design report with scope, architecture boundaries, acceptance criteria, and branch name options."

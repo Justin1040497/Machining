@@ -1,124 +1,132 @@
 # FrameLean Skills 使用说明
 
-本目录解释 FrameLean 这个项目的 skills。它们服务于当前仓库的需求分析、功能设计、任务拆解、测试计划、实现、审查验证和交付收尾。
+本目录保存 FrameLean 项目级 skills。它们只服务当前仓库，不默认创建到用户级目录。
 
-如果需要创建或修改 FrameLean workflow 相关 skill，默认放在本目录：
+## 项目级 Skill 规则
+
+- 项目级 skill 必须放在 `.agents/skills/`。
+- 项目级 skill 名称必须使用 `framelean-` 前缀。
+- 不创建 skill 级 `README.md`、`CHANGELOG.md`、安装说明或过程记录。
+- 新增、删除、合并或重命名 skill 后，同步更新本文件和 `framelean-workflow/SKILL.md`。
+- 临时分析、设计、任务和 release 草稿放入 `.workspace/`，不写入 `docs/`。
+- `docs/` 只保存当前仍有效的项目事实、版本事实、决策、经验和工作池。
+
+## 共享预读协议
+
+所有 FrameLean skills 开工前先了解当前项目，但按需递增读取，避免浪费上下文。
+
+### Level 1：项目事实
+
+默认先读：
 
 ```text
-.agents/skills/
+AGENTS.md
+CONTEXT.md
+CHANGELOG.md
+docs/README.md
+docs/work/active.md
+docs/work/backlog.md
+docs/work/decisions.md
 ```
 
-不要把这些项目级 skills 创建到 `/Users/leftzhou/.agents/skills` 或其他用户级目录，除非用户明确要求做成全局 skill。
+### Level 2：领域事实
 
-## 总入口
+按本次任务选择性读取：
 
-优先使用 `framelean-workflow` 作为轻量路由入口。它只负责判断当前请求该交给哪个更小的 project skill，不再加载完整工作流细则。
+```text
+docs/releases/{相关版本}/*
+docs/decisions/{相关决策}.md
+docs/lessons.md
+docs/develop/architecture.md
+docs/develop/data-model.md
+docs/develop/technology-stack.md
+docs/develop/test-plan.md
+docs/develop/workflow.md
+docs/reference/*
+```
 
-适合使用 `framelean-workflow` 的情况：
+### Level 3：代码事实
 
-- 用户说“走完整流程”。
-- 用户不确定该用哪个 FrameLean skill。
-- 请求横跨需求、设计、任务、测试、实现、验证、交付多个阶段。
+只有当任务需要分析、实现或验证具体功能时才读取源码：
 
-如果用户请求很明确，直接使用对应的小 skill，避免无意义加载完整流程。
+- 先用 `rg` 搜模块名、类名、文件名、功能关键词。
+- 只打开命中的相关源码、测试、脚本和配置。
+- 不为了“了解项目”全量读取 `lib/`、`test/`、`scripts/`。
+
+### Level 4：Git 事实
+
+只有 `framelean-validation`、`framelean-delivery`、`framelean-release` 或用户明确要求 Git 状态时读取：
+
+```text
+git status --short
+git branch --show-current
+git diff --stat
+git diff
+git log
+git tag
+```
+
+## `.workspace` 约定
+
+```text
+.workspace/
+  plans/
+    YYMMDD-feature-slug.md
+  release-drafts/
+    vX.Y.Z.md
+```
+
+- `framelean-feature-plan` 使用 `.workspace/plans/` 保存已确认需要落盘的设计、计划和任务。
+- `framelean-release` 可以使用 `.workspace/release-drafts/` 保存讨论中的 release 草稿。
+- `.workspace/` 不进入版本库；稳定事实由 `framelean-delivery` 或确认后的 `framelean-release` 写入 `docs/`。
 
 ## Skill 路由表
 
 | 用户意图 | 使用 skill | 主要产物 |
 | --- | --- | --- |
-| 分析功能、整理需求、梳理现有模块、写交互链/逻辑树/功能编号 | `framelean-feature-analysis` | `docs/features/{module}/{version}/analysis.md` |
-| 写设计报告、比较方案、定义边界、提出分支名建议 | `framelean-feature-design` | `design.md` |
-| 基于设计报告拆任务清单 | `framelean-feature-tasks` | `tasks.md` |
-| 写测试计划/测试文档 | `framelean-test-plan` | `test.md` |
-| 实现已确认的代码、测试、脚本或文档改动 | `framelean-implementation` | 源码、测试、脚本或文档变更 |
-| 审查 diff、跑验证、解释失败、复验 | `framelean-review` | 验证结果和风险说明 |
-| 生成 commit/PR/release 文案、更新 changelog、归档功能网、准备最终交付包 | `framelean-delivery` | 提交详情、PR 描述、Release description、归档记录 |
+| 不确定该用哪个 FrameLean skill、要求完整流程或横跨多个阶段 | `framelean-workflow` | 路由和执行顺序 |
+| 讨论候选需求，确认后加入需求池 | `framelean-requirement-pool` | `docs/work/backlog.md` |
+| 分析功能、整理需求、梳理现有模块、写交互链或逻辑树 | `framelean-feature-analysis` | 默认内联；必要时引用需求池 |
+| 写设计、比较方案、拆任务、列验证边界 | `framelean-feature-plan` | `.workspace/plans/YYMMDD-feature-slug.md` 或内联计划 |
+| 实现已确认的代码、测试、脚本、文档或项目级 skill 改动 | `framelean-implementation` | 源码、测试、脚本、文档或 skill 变更 |
+| 写验证计划、审查 diff、运行检查、解释失败、复验 | `framelean-validation` | 验证计划、审查发现、命令结果 |
+| 校准项目事实文档，准备 commit 信息和 PR description | `framelean-delivery` | 文档校准、Markdown commit 信息、Markdown PR 描述 |
+| 根据用户指定版本号总结并产出 release 文档 | `framelean-release` | `docs/releases/vX.Y.Z/release.md` |
+| 创建、合并、删除或重构 FrameLean 项目级 skills | `framelean-skill-create` | `.agents/skills/framelean-*` 和路由更新 |
 
-## 推荐完整流程
+## 推荐流程
 
-只有用户明确要求端到端推进时，才按完整链路执行：
-
-1. `framelean-feature-analysis`
-2. `framelean-feature-design`
-3. `framelean-feature-tasks`
-4. `framelean-test-plan`
-5. 按 `docs/develop/git-workflow.md` 准备分支或 worktree
-6. `framelean-implementation`
-7. `framelean-review`
-8. `framelean-delivery`
-
-项目仍保留原有门禁：需求/设计/测试/实现等阶段之间，如果用户没有明确说 `可以`，不要擅自进入下一阶段；用户明确要求一次性完成的情况除外。
-
-## 常见用法
-
-### 只要 PR 或 commit 文案
-
-使用 `framelean-delivery`，不要触发完整 workflow。
-
-示例请求：
+常规功能：
 
 ```text
-用 $framelean-delivery 给当前改动写 commit 信息和 PR 描述
+framelean-requirement-pool
+framelean-feature-analysis
+framelean-feature-plan
+framelean-implementation
+framelean-validation
+framelean-delivery
 ```
 
-`framelean-delivery` 支持 brief mode：只读取 Git 状态、diff、相关模板和必要文件，不强制做功能网归档。
-
-### 写功能设计报告
-
-使用 `framelean-feature-design`。
-
-设计报告必须给出 2-4 个分支名建议，例如：
+发布文档：
 
 ```text
-feature/<name>
-fix/<name>
-chore/<name>
-docs/<name>
+framelean-release
 ```
 
-只提出建议，不直接创建分支；创建或切换分支仍要等用户确认。
-
-### 写测试计划
-
-使用 `framelean-test-plan`。
-
-测试计划的主要来源是 `docs/develop/test-plan.md`、当前功能的 `analysis.md` / `design.md` / `tasks.md`、真实代码和现有测试。API 测试只是可选小节，只有当前功能真实涉及 HTTP/API/服务端接口时才展开。
-
-### 审查和验证
-
-使用 `framelean-review`。
-
-它负责检查 diff 范围、架构边界、测试缺口，并按改动面运行或建议验证命令。交付文案不放在这个 skill 里。
-
-### 功能网归档和最终交付
-
-使用 `framelean-delivery` 的 archive mode。
-
-适用场景：
-
-- 用户要求“归档功能网”。
-- 功能已经完成，需要整理 changelog、bug log、commit details、PR description。
-- 任务涉及 release 分支、hotfix、tag、Release Notes、发布产物或分发流程，需要 release description。
-
-## 文档位置约定
-
-功能级文档使用：
+项目级 skill 维护：
 
 ```text
-docs/features/{module}/{version}/analysis.md
-docs/features/{module}/{version}/design.md
-docs/features/{module}/{version}/tasks.md
-docs/features/{module}/{version}/test.md
-docs/features/feature-network/
+framelean-skill-create
+framelean-implementation
+framelean-validation
+framelean-delivery
 ```
-
-这些文档服务于具体功能版本，不替代 `docs/develop/` 中的当前架构、测试、Git 和项目执行规则。
 
 ## 共同底线
 
-- 先读 `AGENTS.md` 和相关项目文档。
-- 不只依赖文档；需要检查真实源码、测试、脚本、配置和 Git 状态。
-- 如果文档与代码冲突，只有在代码明显领先于旧文档时才以代码为准；否则要指出冲突。
+- 先读共享预读协议要求的项目事实，再按需读领域事实、代码事实和 Git 事实。
+- 如果用户没有指定新需求，`framelean-feature-analysis` 应先从 `docs/work/backlog.md` 推荐未完成需求。
 - 不在 `main` 上直接做日常开发改动。
 - 不 stage、commit、push、revert、delete 或格式化无关用户改动。
-- 保持请求边界，不把小任务扩成完整流程。
+- 不创建 `docs/archive/`、`docs/features/`、`docs/plans/` 或 `docs/product/roadmap.md`。
+- 不把 `.workspace/` 的临时计划当作长期事实；长期事实进入 `docs/` 前必须确认仍然有效。

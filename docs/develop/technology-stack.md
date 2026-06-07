@@ -374,9 +374,10 @@ docs/develop/test-plan.md
 
 AI 在处理代码任务时，应优先阅读：
 
-1. `docs/README.md`
-2. `docs/develop/architecture.md`
-3. `docs/develop/data-model.md`
-4. `docs/develop/test-plan.md`
+1. `CONTEXT.md`
+2. `docs/README.md`
+3. `docs/develop/architecture.md`
+4. `docs/develop/data-model.md`
+5. `docs/develop/test-plan.md`
 
-不要把 `archive/` 中的历史日志直接当成当前实现事实。
+不要把旧计划、旧任务清单或历史提交记录直接当成当前实现事实。版本形成的稳定事实看 `docs/releases/`，重要决策看 `docs/decisions/`，可复用经验看 `docs/lessons.md`。
