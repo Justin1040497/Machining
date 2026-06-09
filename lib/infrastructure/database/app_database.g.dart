@@ -164,7 +164,7 @@ class $SettingsRowsTable extends SettingsRows
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('light'),
+    defaultValue: const Constant('system'),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',

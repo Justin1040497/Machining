@@ -4,11 +4,10 @@ import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -22,7 +21,6 @@ import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_settings_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
@@ -43,7 +41,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_task
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
@@ -70,7 +67,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   String? syncedConfigTaskId;
   String? syncedQualityTaskKey;
   bool workbenchImportDragging = false;
-  bool appSettingsDialogOpen = false;
   bool queueActionInFlight = false;
   final WorkbenchTaskThumbnailStore thumbnailStore =
       WorkbenchTaskThumbnailStore();
@@ -118,7 +114,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       body: WorkbenchShell(
         taskList: taskList,
         selectedTask: selectedTask,
-        importEnabled: !appSettingsDialogOpen,
+        importEnabled: true,
         importDragging: workbenchImportDragging,
         hasRunningTask: hasRunningTask,
         queueActionInFlight: queueActionInFlight,
@@ -142,7 +138,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         },
         onAddTask: pickAndAddTasks,
         onOpenSettings: () {
-          unawaited(showAppSettingsDialog());
+          unawaited(openSettingsPage());
         },
         themeMode: themeMode,
         onToggleThemeMode: () {
@@ -478,71 +474,18 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
   }
 
-  Future<void> showAppSettingsDialog() async {
-    try {
-      final settings = await LoadAppSettingsUseCase(
-        repository: ref.read(appSettingsRepositoryProvider),
-      ).call();
-      if (!mounted) {
-        return;
-      }
-
-      setState(() {
-        appSettingsDialogOpen = true;
-        workbenchImportDragging = false;
-      });
-
-      try {
-        await showDialog<void>(
-          context: context,
-          builder: (dialogContext) {
-            return WorkbenchAppSettingsDialog(
-              initialSettings: settings,
-              fallbackDefaultDirectory: WorkbenchFilePicker.defaultExportPath,
-              onClose: () => Navigator.of(dialogContext).pop(),
-              onPickOutputDirectory: WorkbenchFilePicker.pickOutputDirectory,
-              onPickFfmpegPath: WorkbenchFilePicker.pickExecutablePath,
-              onPickFfprobePath: WorkbenchFilePicker.pickExecutablePath,
-              onSave: (updatedSettings) async {
-                try {
-                  await saveAppSettings(updatedSettings);
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  showWorkbenchSnackBar('设置已保存');
-                } on Object catch (error) {
-                  showWorkbenchSnackBar(error.toString());
-                }
-              },
-            );
-          },
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            appSettingsDialogOpen = false;
-            workbenchImportDragging = false;
-          });
-        }
-      }
-    } on Object catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      showWorkbenchSnackBar('设置打开失败: $error');
+  Future<void> openSettingsPage() async {
+    final saved = await context.push<bool>('/settings');
+    if (!mounted) {
+      return;
     }
-  }
 
-  Future<void> saveAppSettings(AppSettings settings) async {
-    await SaveAppSettingsUseCase(
-      repository: ref.read(appSettingsRepositoryProvider),
-      ffmpegLocator: ref.read(ffmpegLocatorProvider),
-    ).call(settings);
-    ref.invalidate(ffmpegRuntimeProvider);
-    await ref
-        .read(mediaTaskListProvider.notifier)
-        .applySettingsToExistingTasks(settings);
+    setState(() {
+      workbenchImportDragging = false;
+    });
+    if (saved == true) {
+      showWorkbenchSnackBar('设置已保存');
+    }
   }
 
   Future<void> toggleThemeMode() async {
@@ -779,10 +722,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
-    if (appSettingsDialogOpen) {
-      return;
-    }
-
     if (mounted) {
       setState(() {
         workbenchImportDragging = false;

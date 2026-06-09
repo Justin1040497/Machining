@@ -6,7 +6,6 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/app/theme/framelean_responsive.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
@@ -56,8 +55,8 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp> {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = ref.watch(
-      appThemeModeProvider.select((mode) => mode == AppThemeMode.dark),
+    final themeMode = ref.watch(
+      appThemeModeProvider.select((mode) => mode.materialThemeMode),
     );
 
     return ScreenUtilInit(
@@ -72,7 +71,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp> {
           routerConfig: appRouter,
           theme: frameLeanLightTheme(),
           darkTheme: frameLeanDarkTheme(),
-          themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
+          themeMode: themeMode,
           themeAnimationDuration: const Duration(milliseconds: 200),
           themeAnimationCurve: Curves.easeIn,
         );

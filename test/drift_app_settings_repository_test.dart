@@ -86,7 +86,7 @@ void main() {
     expect(settings.themeMode, AppThemeMode.light);
   });
 
-  test('settings row falls back to light theme for unknown theme values', () {
+  test('settings row falls back to system theme for unknown theme values', () {
     final row = SettingsRow(
       id: 1,
       defaultOutputDirectory: null,
@@ -106,7 +106,7 @@ void main() {
 
     final settings = row.toDomain();
 
-    expect(settings.themeMode, AppThemeMode.light);
+    expect(settings.themeMode, AppThemeMode.system);
   });
 
   test(
