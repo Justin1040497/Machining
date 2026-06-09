@@ -40,6 +40,20 @@
 
 - 版本事实：`docs/releases/v1.1.5/workbench-theme-and-reorder.md`
 
+## macOS Flutter 窗口要处理 first mouse
+
+经验：
+
+- macOS 非焦点窗口默认可能把第一下鼠标点击用于激活窗口，不一定交给 Flutter 控件。
+- Flutter macOS 使用透明标题栏和 `.fullSizeContentView` 时，这个现象在 Debug 运行中更明显。
+- `desktop_drop` 会向 FlutterView 添加覆盖窗口的原生 `NSView` 接收拖拽事件；只处理 FlutterView 不够，还要让插件注入的子视图也接受 first mouse。
+- 修复应放在 macOS Runner 层，Dart 层的按钮防重复点击只能避免连续点击叠加动作，不能解决第一下被 AppKit 吃掉。
+
+关联：
+
+- 技术栈：`docs/develop/technology-stack.md`
+- 测试计划：`docs/develop/test-plan.md`
+
 ## 主题启动缓存只能作为首帧镜像
 
 经验：

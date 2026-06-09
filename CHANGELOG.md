@@ -40,9 +40,16 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 关于页底部图标接入 Gitee、GitHub、Gmail 和掘金真实链接，并复用工作台外链打开器。
 - 将应用设置测试从弹窗测试调整为页面测试，覆盖侧边栏导航、主题、输出、编码器、视频 / 图片 / 音频默认值和关于页缓存清理。
 
+### Fixed
+
+- 修复 macOS Debug 窗口首次点击只激活窗口、按钮需要点两次才触发的问题；Runner 现在会让 FlutterView 以及 `desktop_drop` 注入的原生拖拽视图都接受 first mouse。
+- 工作台打开页面、弹窗、文件选择器和任务动作入口增加一次性 in-flight guard，避免 debug 慢响应下连续点击叠出多个路由、弹窗或重复任务动作。
+
 ### Verified
 
 - 通过 `flutter test test/app_settings_page_test.dart test/workbench_external_link_opener_test.dart`。
+- 通过 `flutter test test/widget_test.dart test/workbench_bottom_bar_test.dart`。
+- 通过 macOS Debug Runner `xcodebuild` 编译。
 - 通过 `flutter analyze`。
 - 通过 `flutter test`。
 

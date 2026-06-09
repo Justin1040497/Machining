@@ -1,5 +1,37 @@
 import Cocoa
 import FlutterMacOS
+import ObjectiveC.runtime
+
+private enum FrameLeanFirstMouse {
+  private static var patchedClassNames = Set<String>()
+
+  static func enable(for rootView: NSView) {
+    patchClass(type(of: rootView))
+
+    for subview in rootView.subviews {
+      enable(for: subview)
+    }
+  }
+
+  private static func patchClass(_ viewClass: AnyClass) {
+    let className = NSStringFromClass(viewClass)
+    if patchedClassNames.contains(className) {
+      return
+    }
+    patchedClassNames.insert(className)
+
+    let selector = #selector(NSView.acceptsFirstMouse(for:))
+    let acceptsFirstMouse: @convention(block) (AnyObject, NSEvent?) -> Bool = { _, _ in
+      true
+    }
+    class_replaceMethod(
+      viewClass,
+      selector,
+      imp_implementationWithBlock(acceptsFirstMouse as Any),
+      "c@:@"
+    )
+  }
+}
 
 class MainFlutterWindow: NSWindow {
   override func awakeFromNib() {
@@ -20,6 +52,9 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(defaultWindowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+    // FlutterView and desktop_drop's native drag view must handle the click
+    // that also activates an inactive macOS window.
+    FrameLeanFirstMouse.enable(for: flutterViewController.view)
 
     super.awakeFromNib()
   }
