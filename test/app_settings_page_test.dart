@@ -43,7 +43,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('深色').last);
     await tester.pumpAndSettle();
-    await saveWithBackButton(tester);
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
 
     expect(savedSettings, isNotNull);
     expect(savedSettings!.themeMode, AppThemeMode.dark);
@@ -72,7 +73,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('源文件名-日期-压缩编码格式').last);
     await tester.pumpAndSettle();
-    await saveWithBackButton(tester);
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
 
     expect(savedSettings, isNotNull);
     expect(savedSettings!.saveOutputToSourceDirectory, isFalse);
@@ -97,7 +99,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).last);
     await tester.pumpAndSettle();
-    await saveWithBackButton(tester);
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
 
     expect(savedSettings, isNotNull);
     expect(savedSettings!.customFfmpegPath, '/usr/local/bin/ffmpeg');
@@ -124,7 +127,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('H.265 / HEVC').last);
     await tester.pumpAndSettle();
-    await saveWithBackButton(tester);
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
 
     final video = savedSettings!.defaultMediaConfig.video;
     expect(savedSettings, isNotNull);
@@ -154,7 +158,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('保留图片元数据'));
     await tester.pumpAndSettle();
-    await saveWithBackButton(tester);
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
 
     final image = savedSettings!.defaultMediaConfig.image;
     expect(savedSettings, isNotNull);
@@ -181,7 +186,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('单声道').last);
     await tester.pumpAndSettle();
-    await saveWithBackButton(tester);
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
 
     final audio = savedSettings!.defaultMediaConfig.audio;
     expect(savedSettings, isNotNull);
@@ -242,11 +248,6 @@ void main() {
       'https://juejin.cn/user/394062317754227',
     ]);
   });
-}
-
-Future<void> saveWithBackButton(WidgetTester tester) async {
-  await tester.tap(find.text('返回工作台'));
-  await tester.pumpAndSettle();
 }
 
 Future<void> pumpSettingsPage(

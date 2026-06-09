@@ -83,12 +83,8 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/app_icon/dark.png
-    - assets/app_icon/light.png
-    - assets/icons/github.png
-    - assets/icons/gitee.png
-    - assets/icons/gmail.png
-    - assets/icons/juejin.png
+    - assets/app_icon/
+    - assets/icons/
 
   fonts:
     - family: AlibabaPuHuiTi

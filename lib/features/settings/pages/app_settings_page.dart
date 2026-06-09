@@ -31,6 +31,7 @@ import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice_controller.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_external_link_opener.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
@@ -67,11 +68,18 @@ class AppSettingsPage extends ConsumerStatefulWidget {
 
 class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
   late Future<AppSettings> settingsFuture;
+  final WorkbenchNoticeController noticeController = WorkbenchNoticeController();
 
   @override
   void initState() {
     super.initState();
     settingsFuture = loadSettings();
+  }
+
+  @override
+  void dispose() {
+    noticeController.dispose();
+    super.dispose();
   }
 
   Future<AppSettings> loadSettings() {
@@ -111,7 +119,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
         return;
       }
 
-      returnToWorkbench(saved: true);
+      noticeController.show(context, '设置修改并保存成功');
     } on Object catch (error) {
       if (!mounted) {
         return;
@@ -173,6 +181,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
               },
               onLaunchCleanUninstaller: launchCleanUninstaller,
               onOpenExternalLink: openExternalLink,
+              onClose: () => returnToWorkbench(),
               onSave: saveSettings,
             );
           }
@@ -291,6 +300,7 @@ class AppSettingsView extends StatefulWidget {
     required this.onPickFfmpegPath,
     required this.onPickFfprobePath,
     required this.onSave,
+    this.onClose,
     this.onPreviewAppCacheCleanup,
     this.onClearAppCache,
     this.onLoadAppUninstallAvailability,
@@ -304,6 +314,7 @@ class AppSettingsView extends StatefulWidget {
   final AppSettingsPathPicker onPickFfmpegPath;
   final AppSettingsPathPicker onPickFfprobePath;
   final AppSettingsSaveCallback onSave;
+  final VoidCallback? onClose;
   final AppCacheCleanupPreviewCallback? onPreviewAppCacheCleanup;
   final AppCacheCleanupCallback? onClearAppCache;
   final AppUninstallAvailabilityCallback? onLoadAppUninstallAvailability;
@@ -333,6 +344,8 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   bool outputDirectoryDragging = false;
   bool ffmpegPathDragging = false;
   bool ffprobePathDragging = false;
+  late AppSettings savedSettings;
+  _SettingsSection? savingSection;
   bool saving = false;
   bool clearingCache = false;
   bool uninstalling = false;
@@ -374,6 +387,8 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     imageQualityController = TextEditingController(
       text: imageConfig.imageQuality.toString(),
     );
+
+    savedSettings = widget.initialSettings;
   }
 
   @override
@@ -394,18 +409,21 @@ class _AppSettingsViewState extends State<AppSettingsView> {
         bottom: false,
         child: Row(
           children: [
+            // 侧边栏
             SizedBox(
               width: _sidebarWidth,
               child: _SettingsSidebar(
                 selectedSection: selectedSection,
                 saving: saving,
-                onClose: saveAndClose,
+                onClose: closePage,
                 onSectionSelected: (section) {
+                  _revertCurrentSectionIfDirty();
                   setState(() => selectedSection = section);
                 },
               ),
             ),
             VerticalDivider(width: 1, thickness: 1, color: colors.border),
+            // 内容区域
             Expanded(child: _SettingsContent(child: buildSelectedSection())),
           ],
         ),
@@ -453,6 +471,13 @@ class _AppSettingsViewState extends State<AppSettingsView> {
             }
             setState(() => completionSoundOption = value);
           },
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.app),
+          saving: savingSection == _SettingsSection.app,
+          onCancel: () => _revertSection(_SettingsSection.app),
+          onSave: () => _saveSection(_SettingsSection.app),
         ),
       ],
     );
@@ -601,6 +626,13 @@ class _AppSettingsViewState extends State<AppSettingsView> {
             updateVideoConfig(config.copyWith(resolutionPreset: value));
           },
         ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.video),
+          saving: savingSection == _SettingsSection.video,
+          onCancel: () => _revertSection(_SettingsSection.video),
+          onSave: () => _saveSection(_SettingsSection.video),
+        ),
       ],
     );
   }
@@ -660,6 +692,13 @@ class _AppSettingsViewState extends State<AppSettingsView> {
           onChanged: (value) {
             updateImageConfig(config.copyWith(preserveMetadata: value));
           },
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.image),
+          saving: savingSection == _SettingsSection.image,
+          onCancel: () => _revertSection(_SettingsSection.image),
+          onSave: () => _saveSection(_SettingsSection.image),
         ),
       ],
     );
@@ -728,6 +767,13 @@ class _AppSettingsViewState extends State<AppSettingsView> {
             ),
           ],
         ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.audio),
+          saving: savingSection == _SettingsSection.audio,
+          onCancel: () => _revertSection(_SettingsSection.audio),
+          onSave: () => _saveSection(_SettingsSection.audio),
+        ),
       ],
     );
   }
@@ -772,6 +818,13 @@ class _AppSettingsViewState extends State<AppSettingsView> {
             setState(() => outputFileNameTemplate = value);
           },
         ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.output),
+          saving: savingSection == _SettingsSection.output,
+          onCancel: () => _revertSection(_SettingsSection.output),
+          onSave: () => _saveSection(_SettingsSection.output),
+        ),
       ],
     );
   }
@@ -808,6 +861,13 @@ class _AppSettingsViewState extends State<AppSettingsView> {
             setState(() => ffprobePathDragging = value);
           },
           onDropped: handleFfprobePathDrop,
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.encoder),
+          saving: savingSection == _SettingsSection.encoder,
+          onCancel: () => _revertSection(_SettingsSection.encoder),
+          onSave: () => _saveSection(_SettingsSection.encoder),
         ),
       ],
     );
@@ -1031,6 +1091,226 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     }
   }
 
+  void closePage() {
+    _revertCurrentSectionIfDirty();
+    widget.onClose?.call();
+  }
+
+  void _revertCurrentSectionIfDirty() {
+    if (!isSectionDirty(selectedSection)) return;
+    _revertSection(selectedSection);
+  }
+
+  // ------- dirty detection -------
+
+  bool isSectionDirty(_SettingsSection section) {
+    return switch (section) {
+      _SettingsSection.app => _isAppSectionDirty,
+      _SettingsSection.about => false,
+      _SettingsSection.video => _isVideoSectionDirty,
+      _SettingsSection.image => _isImageSectionDirty,
+      _SettingsSection.audio => _isAudioSectionDirty,
+      _SettingsSection.output => _isOutputSectionDirty,
+      _SettingsSection.encoder => _isEncoderSectionDirty,
+    };
+  }
+
+  bool get _isAppSectionDirty => themeMode != savedSettings.themeMode;
+
+  bool get _isVideoSectionDirty {
+    final current = videoConfig;
+    final savedVideo = _withAllMediaDefaults(savedSettings.defaultMediaConfig)
+        .video;
+    if (savedVideo == null) return false;
+    return current.outputFormat != savedVideo.outputFormat ||
+        current.videoCodec != savedVideo.videoCodec ||
+        current.resolutionPreset != savedVideo.resolutionPreset ||
+        current.smartPreset != savedVideo.smartPreset;
+  }
+
+  bool get _isImageSectionDirty {
+    final current = imageConfig;
+    final savedImage = _withAllMediaDefaults(savedSettings.defaultMediaConfig)
+        .image;
+    if (savedImage == null) return false;
+    return current.outputFormat != savedImage.outputFormat ||
+        current.imageQuality != savedImage.imageQuality ||
+        current.resizePreset != savedImage.resizePreset ||
+        current.preserveMetadata != savedImage.preserveMetadata;
+  }
+
+  bool get _isAudioSectionDirty {
+    final current = audioConfig;
+    final savedAudio = _withAllMediaDefaults(savedSettings.defaultMediaConfig)
+        .audio;
+    if (savedAudio == null) return false;
+    return current.outputFormat != savedAudio.outputFormat ||
+        current.bitratePreset != savedAudio.bitratePreset ||
+        current.sampleRate != savedAudio.sampleRate ||
+        current.channels != savedAudio.channels;
+  }
+
+  bool get _isOutputSectionDirty {
+    if (saveOutputToSourceDirectory !=
+        savedSettings.saveOutputToSourceDirectory) {
+      return true;
+    }
+    if (outputFileNameTemplate !=
+        savedSettings.defaultOutputFileNameTemplate) {
+      return true;
+    }
+    if (!saveOutputToSourceDirectory) {
+      final currentDir = outputDirectoryController.text.trim();
+      final savedDir = savedSettings.defaultOutputDirectory ?? '';
+      if (currentDir != savedDir) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  bool get _isEncoderSectionDirty {
+    final currentFfmpeg = ffmpegPathController.text.trim();
+    final savedFfmpeg = savedSettings.customFfmpegPath ?? '';
+    if (currentFfmpeg != savedFfmpeg) return true;
+
+    final currentFfprobe = ffprobePathController.text.trim();
+    final savedFfprobe = savedSettings.customFfprobePath ?? '';
+    if (currentFfprobe != savedFfprobe) return true;
+
+    return false;
+  }
+
+  // ------- per-section revert -------
+
+  void _revertSection(_SettingsSection section) {
+    switch (section) {
+      case _SettingsSection.app:
+        _revertAppSection();
+      case _SettingsSection.video:
+        _revertVideoSection();
+      case _SettingsSection.image:
+        _revertImageSection();
+      case _SettingsSection.audio:
+        _revertAudioSection();
+      case _SettingsSection.output:
+        _revertOutputSection();
+      case _SettingsSection.encoder:
+        _revertEncoderSection();
+      case _SettingsSection.about:
+        break;
+    }
+  }
+
+  void _revertAppSection() {
+    setState(() => themeMode = savedSettings.themeMode);
+  }
+
+  void _revertVideoSection() {
+    final savedVideo = _withAllMediaDefaults(savedSettings.defaultMediaConfig)
+        .video;
+    if (savedVideo == null) return;
+    updateVideoConfig(savedVideo);
+  }
+
+  void _revertImageSection() {
+    final savedImage = _withAllMediaDefaults(savedSettings.defaultMediaConfig)
+        .image;
+    if (savedImage == null) return;
+    updateImageConfig(savedImage);
+  }
+
+  void _revertAudioSection() {
+    final savedAudio = _withAllMediaDefaults(savedSettings.defaultMediaConfig)
+        .audio;
+    if (savedAudio == null) return;
+    updateAudioConfig(savedAudio);
+  }
+
+  void _revertOutputSection() {
+    setState(() {
+      saveOutputToSourceDirectory =
+          savedSettings.saveOutputToSourceDirectory;
+      outputFileNameTemplate =
+          savedSettings.defaultOutputFileNameTemplate;
+      outputDirectoryController.text =
+          savedSettings.defaultOutputDirectory ??
+              widget.fallbackDefaultDirectory;
+    });
+  }
+
+  void _revertEncoderSection() {
+    setState(() {
+      ffmpegPathController.text = savedSettings.customFfmpegPath ?? '';
+      ffprobePathController.text = savedSettings.customFfprobePath ?? '';
+    });
+  }
+
+  // ------- per-section save -------
+
+  Future<void> _saveSection(_SettingsSection section) async {
+    if (savingSection != null) return;
+    setState(() => savingSection = section);
+    try {
+      final updatedSettings = _buildSettingsForSection(section);
+      await widget.onSave(updatedSettings);
+      if (!mounted) return;
+      setState(() => savedSettings = updatedSettings);
+    } finally {
+      if (mounted) {
+        setState(() => savingSection = null);
+      }
+    }
+  }
+
+  AppSettings _buildSettingsForSection(_SettingsSection section) {
+    final base = savedSettings;
+    switch (section) {
+      case _SettingsSection.app:
+        return base.copyWith(themeMode: themeMode);
+      case _SettingsSection.video:
+        final video = videoConfig;
+        final updatedConfig = savedSettings.defaultMediaConfig.copyWith(
+          video: video,
+        );
+        return base.copyWith(
+          defaultMediaConfig: updatedConfig,
+          defaultOutputVideoCodec: video.videoCodec,
+          defaultSmartPreset: video.smartPreset ?? SmartCompressionPreset.balanced,
+        );
+      case _SettingsSection.image:
+        final updatedConfig = savedSettings.defaultMediaConfig.copyWith(
+          image: imageConfig,
+        );
+        return base.copyWith(defaultMediaConfig: updatedConfig);
+      case _SettingsSection.audio:
+        final updatedConfig = savedSettings.defaultMediaConfig.copyWith(
+          audio: audioConfig,
+        );
+        return base.copyWith(defaultMediaConfig: updatedConfig);
+      case _SettingsSection.output:
+        final outputDirectory = outputDirectoryController.text.trim();
+        return base.copyWith(
+          saveOutputToSourceDirectory: saveOutputToSourceDirectory,
+          defaultOutputDirectory: saveOutputToSourceDirectory
+              ? null
+              : outputDirectory.isEmpty
+                  ? null
+                  : outputDirectory,
+          defaultOutputFileNameTemplate: outputFileNameTemplate,
+        );
+      case _SettingsSection.encoder:
+        final ffmpegPath = ffmpegPathController.text.trim();
+        final ffprobePath = ffprobePathController.text.trim();
+        return base.copyWith(
+          customFfmpegPath: ffmpegPath.isEmpty ? null : ffmpegPath,
+          customFfprobePath: ffprobePath.isEmpty ? null : ffprobePath,
+        );
+      case _SettingsSection.about:
+        return base;
+    }
+  }
+
   Future<void> saveAndClose() async {
     if (saving) {
       return;
@@ -1074,6 +1354,76 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   }
 }
 
+class _SectionActions extends StatelessWidget {
+  const _SectionActions({
+    required this.dirty,
+    required this.saving,
+    required this.onCancel,
+    required this.onSave,
+  });
+
+  final bool dirty;
+  final bool saving;
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        SizedBox(
+          height: 28,
+          child: OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              side: BorderSide(color: colors.borderStrong),
+              foregroundColor: colors.textPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            onPressed: (dirty && !saving) ? onCancel : null,
+            child: const Text('取消'),
+          ),
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          height: 28,
+          child: FilledButton(
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            onPressed: (dirty && !saving) ? onSave : null,
+            child: saving
+                ? const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
+                  )
+                : const Text('保存'),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _SettingsContent extends StatelessWidget {
   const _SettingsContent({required this.child});
 
@@ -1084,7 +1434,11 @@ class _SettingsContent extends StatelessWidget {
     final colors = context.frameLeanColors;
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.surface),
-      child: child,
+      child: Container(
+        padding: EdgeInsets.only(top: 34),
+        alignment: AlignmentDirectional.topStart,
+        child: child,
+      ),
     );
   }
 }
@@ -1109,6 +1463,7 @@ class _SettingsForm extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: maxWidth),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Text(
               title,
@@ -1218,7 +1573,7 @@ class _BackToWorkbenchButton extends StatelessWidget {
             Icon(
               Icons.chevron_left_rounded,
               color: colors.textPrimary,
-              size: 22,
+              size: 24,
             ),
             const SizedBox(width: 8),
             Expanded(
@@ -1597,7 +1952,7 @@ class _AboutIconLinks extends StatelessWidget {
     ),
     _AboutIconLink(
       label: 'GitHub',
-      assetPath: 'assets/icons/github.png',
+      assetPath: 'assets/icons/github-black.png',
       url: _frameLeanGitHubUrl,
     ),
     _AboutIconLink(
@@ -1614,12 +1969,18 @@ class _AboutIconLinks extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final githubAsset = isDark
+        ? 'assets/icons/github-while.png'
+        : 'assets/icons/github-black.png';
+
     return Row(
       children: [
         for (final link in _links) ...[
           _AboutIconButton(
             label: link.label,
-            assetPath: link.assetPath,
+            assetPath:
+                link.label == 'GitHub' ? githubAsset : link.assetPath,
             onTap: () {
               unawaited(onOpenLink(link.url));
             },
