@@ -9,6 +9,7 @@ import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -513,7 +514,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     themeModeChangeInFlight = true;
     final oldMode = ref.read(appThemeModeProvider);
-    final nextMode = oldMode.toggled;
+    // Use the actual rendered brightness so that "follow system" toggles
+    // to the opposite of what the user sees, not always to dark.
+    final isCurrentlyDark = Theme.of(context).brightness == Brightness.dark;
+    final nextMode =
+        isCurrentlyDark ? AppThemeMode.light : AppThemeMode.dark;
     ref.read(appThemeModeProvider.notifier).setThemeMode(nextMode);
 
     try {
