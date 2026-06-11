@@ -4,12 +4,12 @@ import 'dart:io';
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -22,7 +22,6 @@ import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/app_settings_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
@@ -43,7 +42,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_task
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
@@ -70,7 +68,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   String? syncedConfigTaskId;
   String? syncedQualityTaskKey;
   bool workbenchImportDragging = false;
-  bool appSettingsDialogOpen = false;
   bool queueActionInFlight = false;
   final WorkbenchTaskThumbnailStore thumbnailStore =
       WorkbenchTaskThumbnailStore();
@@ -78,6 +75,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       WorkbenchNoticeController();
   final Set<String> notifiedAnalysisErrorKeys = {};
   final Set<String> notifiedCompletedTaskKeys = {};
+  final Set<String> workbenchActionsInFlight = {};
   bool windowsPrivilegeNoticeShown = false;
   bool themeModeChangeInFlight = false;
   ProviderSubscription<AsyncValue<List<MediaTask>>>? taskListSubscription;
@@ -118,7 +116,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       body: WorkbenchShell(
         taskList: taskList,
         selectedTask: selectedTask,
-        importEnabled: !appSettingsDialogOpen,
+        importEnabled: true,
         importDragging: workbenchImportDragging,
         hasRunningTask: hasRunningTask,
         queueActionInFlight: queueActionInFlight,
@@ -142,7 +140,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         },
         onAddTask: pickAndAddTasks,
         onOpenSettings: () {
-          unawaited(showAppSettingsDialog());
+          unawaited(openSettingsPage());
         },
         themeMode: themeMode,
         onToggleThemeMode: () {
@@ -478,71 +476,35 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
   }
 
-  Future<void> showAppSettingsDialog() async {
-    try {
-      final settings = await LoadAppSettingsUseCase(
-        repository: ref.read(appSettingsRepositoryProvider),
-      ).call();
+  Future<void> openSettingsPage() async {
+    await runWorkbenchActionOnce('open-settings-page', () async {
+      final saved = await context.push<bool>('/settings');
       if (!mounted) {
         return;
       }
 
       setState(() {
-        appSettingsDialogOpen = true;
         workbenchImportDragging = false;
       });
-
-      try {
-        await showDialog<void>(
-          context: context,
-          builder: (dialogContext) {
-            return WorkbenchAppSettingsDialog(
-              initialSettings: settings,
-              fallbackDefaultDirectory: WorkbenchFilePicker.defaultExportPath,
-              onClose: () => Navigator.of(dialogContext).pop(),
-              onPickOutputDirectory: WorkbenchFilePicker.pickOutputDirectory,
-              onPickFfmpegPath: WorkbenchFilePicker.pickExecutablePath,
-              onPickFfprobePath: WorkbenchFilePicker.pickExecutablePath,
-              onSave: (updatedSettings) async {
-                try {
-                  await saveAppSettings(updatedSettings);
-                  if (dialogContext.mounted) {
-                    Navigator.of(dialogContext).pop();
-                  }
-                  showWorkbenchSnackBar('设置已保存');
-                } on Object catch (error) {
-                  showWorkbenchSnackBar(error.toString());
-                }
-              },
-            );
-          },
-        );
-      } finally {
-        if (mounted) {
-          setState(() {
-            appSettingsDialogOpen = false;
-            workbenchImportDragging = false;
-          });
-        }
+      if (saved == true) {
+        showWorkbenchSnackBar('设置已保存');
       }
-    } on Object catch (error) {
-      if (!mounted) {
-        return;
-      }
-
-      showWorkbenchSnackBar('设置打开失败: $error');
-    }
+    });
   }
 
-  Future<void> saveAppSettings(AppSettings settings) async {
-    await SaveAppSettingsUseCase(
-      repository: ref.read(appSettingsRepositoryProvider),
-      ffmpegLocator: ref.read(ffmpegLocatorProvider),
-    ).call(settings);
-    ref.invalidate(ffmpegRuntimeProvider);
-    await ref
-        .read(mediaTaskListProvider.notifier)
-        .applySettingsToExistingTasks(settings);
+  Future<void> runWorkbenchActionOnce(
+    String key,
+    Future<void> Function() action,
+  ) async {
+    if (!workbenchActionsInFlight.add(key)) {
+      return;
+    }
+
+    try {
+      await action();
+    } finally {
+      workbenchActionsInFlight.remove(key);
+    }
   }
 
   Future<void> toggleThemeMode() async {
@@ -552,7 +514,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     themeModeChangeInFlight = true;
     final oldMode = ref.read(appThemeModeProvider);
-    final nextMode = oldMode.toggled;
+    // Use the actual rendered brightness so that "follow system" toggles
+    // to the opposite of what the user sees, not always to dark.
+    final isCurrentlyDark = Theme.of(context).brightness == Brightness.dark;
+    final nextMode =
+        isCurrentlyDark ? AppThemeMode.light : AppThemeMode.dark;
     ref.read(appThemeModeProvider.notifier).setThemeMode(nextMode);
 
     try {
@@ -571,20 +537,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> showAboutDialog() async {
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        return WorkbenchAboutDialog(
-          onClose: () => Navigator.of(dialogContext).pop(),
-          onOpenGitHub: () {
-            unawaited(openGitHubProject());
-          },
-          onOpenGitee: () {
-            unawaited(openGiteeProject());
-          },
-        );
-      },
-    );
+    await runWorkbenchActionOnce('show-about-dialog', () async {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return WorkbenchAboutDialog(
+            onClose: () => Navigator.of(dialogContext).pop(),
+            onOpenGitHub: () {
+              unawaited(openGitHubProject());
+            },
+            onOpenGitee: () {
+              unawaited(openGiteeProject());
+            },
+          );
+        },
+      );
+    });
   }
 
   Future<void> openGitHubProject() async {
@@ -603,119 +571,123 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
-    final isVideoTask = task.mediaKind == MediaKind.video;
-    final initialQualityIndex = isVideoTask
-        ? WorkbenchQualityPolicy.initialQualityIndexForTask(task)
-        : selectedQualityIndex;
-    final initialSmartPreset = isVideoTask
-        ? task.config.smartPreset ??
-              WorkbenchQualityPolicy.smartPresetForQualityIndex(
-                task.config.compressionCrf,
-              )
-        : selectedSmartPreset;
-    final initialOutputFormat = isVideoTask
-        ? task.config.outputFormat
-        : selectedOutputFormat;
-    final initialVideoCodec = isVideoTask
-        ? task.config.videoCodec
-        : selectedVideoCodec;
-    final initialResolutionPreset = isVideoTask
-        ? task.config.resolutionPreset
-        : selectedResolutionPreset;
-    final initialCompressionMode = task.config.compressionMode;
+    await runWorkbenchActionOnce('show-task-configuration-dialog', () async {
+      final isVideoTask = task.mediaKind == MediaKind.video;
+      final initialQualityIndex = isVideoTask
+          ? WorkbenchQualityPolicy.initialQualityIndexForTask(task)
+          : selectedQualityIndex;
+      final initialSmartPreset = isVideoTask
+          ? task.config.smartPreset ??
+                WorkbenchQualityPolicy.smartPresetForQualityIndex(
+                  task.config.compressionCrf,
+                )
+          : selectedSmartPreset;
+      final initialOutputFormat = isVideoTask
+          ? task.config.outputFormat
+          : selectedOutputFormat;
+      final initialVideoCodec = isVideoTask
+          ? task.config.videoCodec
+          : selectedVideoCodec;
+      final initialResolutionPreset = isVideoTask
+          ? task.config.resolutionPreset
+          : selectedResolutionPreset;
+      final initialCompressionMode = task.config.compressionMode;
 
-    setState(() {
-      selectedTaskId = task.id;
-      selectedOutputFormat = initialOutputFormat;
-      selectedVideoCodec = initialVideoCodec;
-      selectedEncoderBackend = EncoderBackend.auto;
-      selectedResolutionPreset = initialResolutionPreset;
-      selectedCompressionMode = initialCompressionMode;
-      selectedSmartPreset = initialSmartPreset;
-      selectedQualityIndex = initialQualityIndex;
-      syncedConfigTaskId = task.id;
-      syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
-    });
+      setState(() {
+        selectedTaskId = task.id;
+        selectedOutputFormat = initialOutputFormat;
+        selectedVideoCodec = initialVideoCodec;
+        selectedEncoderBackend = EncoderBackend.auto;
+        selectedResolutionPreset = initialResolutionPreset;
+        selectedCompressionMode = initialCompressionMode;
+        selectedSmartPreset = initialSmartPreset;
+        selectedQualityIndex = initialQualityIndex;
+        syncedConfigTaskId = task.id;
+        syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
+      });
 
-    final draft = await showWorkbenchTaskConfigurationEditor(
-      context: context,
-      task: task,
-      thumbnail: thumbnailForTask(task),
-      selectedQualityIndex: initialQualityIndex,
-      selectedOutputFormat: initialOutputFormat,
-      selectedVideoCodec: initialVideoCodec,
-      selectedEncoderBackend: EncoderBackend.auto,
-      selectedResolutionPreset: initialResolutionPreset,
-      selectedCompressionMode: initialCompressionMode,
-      selectedSmartPreset: initialSmartPreset,
-      selectedTargetSizeRatio: isVideoTask
-          ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
-          : WorkbenchConstants.defaultTargetSizeRatio,
-      onOpenSource: () {
-        unawaited(revealPathInFileManager(task.inputPath));
-      },
-    );
-    if (!mounted || draft == null) {
-      return;
-    }
-
-    if (!isVideoTask) {
-      try {
-        await updateSelectedTaskConfig(config: draft.config);
-      } on Object catch (error) {
-        showWorkbenchSnackBar(error.toString());
-      }
-      return;
-    }
-
-    final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
-    final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
-      draft.targetSizeRatio,
-    );
-    final resolvedQualityIndex = isTargetSize
-        ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(targetSizeRatio)
-        : draft.qualityIndex;
-    final qualityOption =
-        WorkbenchConstants.qualityOptions[resolvedQualityIndex];
-    final targetSizeBytes =
-        WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
-          task,
-          targetSizeRatio,
-        );
-
-    try {
-      await updateSelectedTaskConfig(
-        outputFormat: draft.outputFormat,
-        videoCodec: draft.videoCodec,
-        encoderBackend: draft.encoderBackend,
-        resolutionPreset: draft.resolutionPreset,
-        compressionCrf: qualityOption.crf,
-        compressionMode: isTargetSize
-            ? CompressionMode.targetSize
-            : CompressionMode.preset,
-        smartPreset: isTargetSize ? null : draft.smartPreset,
-        targetSizeBytes: isTargetSize ? targetSizeBytes : null,
-        targetSizeRatio: isTargetSize ? targetSizeRatio : null,
+      final draft = await showWorkbenchTaskConfigurationEditor(
+        context: context,
+        task: task,
+        thumbnail: thumbnailForTask(task),
+        selectedQualityIndex: initialQualityIndex,
+        selectedOutputFormat: initialOutputFormat,
+        selectedVideoCodec: initialVideoCodec,
+        selectedEncoderBackend: EncoderBackend.auto,
+        selectedResolutionPreset: initialResolutionPreset,
+        selectedCompressionMode: initialCompressionMode,
+        selectedSmartPreset: initialSmartPreset,
+        selectedTargetSizeRatio: isVideoTask
+            ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
+            : WorkbenchConstants.defaultTargetSizeRatio,
+        onOpenSource: () {
+          unawaited(revealPathInFileManager(task.inputPath));
+        },
       );
-
-      if (!mounted) {
+      if (!mounted || draft == null) {
         return;
       }
 
-      setState(() {
-        selectedQualityIndex = resolvedQualityIndex;
-        selectedOutputFormat = draft.outputFormat;
-        selectedVideoCodec = draft.videoCodec;
-        selectedEncoderBackend = draft.encoderBackend;
-        selectedResolutionPreset = draft.resolutionPreset;
-        selectedCompressionMode = isTargetSize
-            ? CompressionMode.targetSize
-            : CompressionMode.preset;
-        selectedSmartPreset = draft.smartPreset;
-      });
-    } on Object catch (error) {
-      showWorkbenchSnackBar(error.toString());
-    }
+      if (!isVideoTask) {
+        try {
+          await updateSelectedTaskConfig(config: draft.config);
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+        return;
+      }
+
+      final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
+      final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
+        draft.targetSizeRatio,
+      );
+      final resolvedQualityIndex = isTargetSize
+          ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
+              targetSizeRatio,
+            )
+          : draft.qualityIndex;
+      final qualityOption =
+          WorkbenchConstants.qualityOptions[resolvedQualityIndex];
+      final targetSizeBytes =
+          WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
+            task,
+            targetSizeRatio,
+          );
+
+      try {
+        await updateSelectedTaskConfig(
+          outputFormat: draft.outputFormat,
+          videoCodec: draft.videoCodec,
+          encoderBackend: draft.encoderBackend,
+          resolutionPreset: draft.resolutionPreset,
+          compressionCrf: qualityOption.crf,
+          compressionMode: isTargetSize
+              ? CompressionMode.targetSize
+              : CompressionMode.preset,
+          smartPreset: isTargetSize ? null : draft.smartPreset,
+          targetSizeBytes: isTargetSize ? targetSizeBytes : null,
+          targetSizeRatio: isTargetSize ? targetSizeRatio : null,
+        );
+
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          selectedQualityIndex = resolvedQualityIndex;
+          selectedOutputFormat = draft.outputFormat;
+          selectedVideoCodec = draft.videoCodec;
+          selectedEncoderBackend = draft.encoderBackend;
+          selectedResolutionPreset = draft.resolutionPreset;
+          selectedCompressionMode = isTargetSize
+              ? CompressionMode.targetSize
+              : CompressionMode.preset;
+          selectedSmartPreset = draft.smartPreset;
+        });
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
   }
 
   void openTask(MediaTask task) {
@@ -753,36 +725,34 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> pickAndAddTasks() async {
-    try {
-      final files = await WorkbenchFilePicker.pickMediaFiles();
-      final paths = files
-          .map((file) => file.path)
-          .where((path) => path.trim().isNotEmpty)
-          .toList();
-      if (paths.isEmpty) {
-        return;
-      }
+    await runWorkbenchActionOnce('pick-and-add-tasks', () async {
+      try {
+        final files = await WorkbenchFilePicker.pickMediaFiles();
+        final paths = files
+            .map((file) => file.path)
+            .where((path) => path.trim().isNotEmpty)
+            .toList();
+        if (paths.isEmpty) {
+          return;
+        }
 
-      final createdTasks = await ref
-          .read(mediaTaskListProvider.notifier)
-          .createDraftsFromPaths(paths);
-      if (createdTasks.isNotEmpty) {
-        setState(() {
-          selectedTaskId = createdTasks.first.id;
-          syncedConfigTaskId = null;
-          syncedQualityTaskKey = null;
-        });
+        final createdTasks = await ref
+            .read(mediaTaskListProvider.notifier)
+            .createDraftsFromPaths(paths);
+        if (createdTasks.isNotEmpty) {
+          setState(() {
+            selectedTaskId = createdTasks.first.id;
+            syncedConfigTaskId = null;
+            syncedQualityTaskKey = null;
+          });
+        }
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
       }
-    } on Object catch (error) {
-      showWorkbenchSnackBar(error.toString());
-    }
+    });
   }
 
   Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
-    if (appSettingsDialogOpen) {
-      return;
-    }
-
     if (mounted) {
       setState(() {
         workbenchImportDragging = false;
@@ -848,86 +818,94 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> confirmClearTasks() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => const ClearTasksDialog(),
-    );
+    await runWorkbenchActionOnce('confirm-clear-tasks', () async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => const ClearTasksDialog(),
+      );
 
-    if (confirmed != true) {
-      return;
-    }
+      if (confirmed != true) {
+        return;
+      }
 
-    await ref.read(mediaTaskListProvider.notifier).clearTasks();
-    setState(() {
-      selectedTaskId = null;
-      syncedConfigTaskId = null;
-      syncedQualityTaskKey = null;
-    });
-  }
-
-  Future<void> deleteTask(MediaTask task) async {
-    await ref.read(mediaTaskListProvider.notifier).deleteTaskById(task.id);
-    if (selectedTaskId == task.id) {
+      await ref.read(mediaTaskListProvider.notifier).clearTasks();
       setState(() {
         selectedTaskId = null;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
       });
-    }
+    });
+  }
+
+  Future<void> deleteTask(MediaTask task) async {
+    await runWorkbenchActionOnce('delete-task:${task.id}', () async {
+      await ref.read(mediaTaskListProvider.notifier).deleteTaskById(task.id);
+      if (selectedTaskId == task.id) {
+        setState(() {
+          selectedTaskId = null;
+          syncedConfigTaskId = null;
+          syncedQualityTaskKey = null;
+        });
+      }
+    });
   }
 
   Future<void> relinkMissingSource(MediaTask task) async {
-    final file = await WorkbenchFilePicker.pickMediaFile();
-    final newInputPath = file?.path.trim();
-    if (newInputPath == null || newInputPath.isEmpty) {
-      return;
-    }
-
-    try {
-      await ref
-          .read(mediaTaskListProvider.notifier)
-          .replaceMissingSource(taskId: task.id, newInputPath: newInputPath);
-      if (!mounted) {
+    await runWorkbenchActionOnce('relink-missing-source:${task.id}', () async {
+      final file = await WorkbenchFilePicker.pickMediaFile();
+      final newInputPath = file?.path.trim();
+      if (newInputPath == null || newInputPath.isEmpty) {
         return;
       }
 
-      setState(() {
-        selectedTaskId = task.id;
-        syncedConfigTaskId = null;
-        syncedQualityTaskKey = null;
-      });
-      showWorkbenchSnackBar('源文件已重新链接');
-    } on Object catch (error) {
-      showWorkbenchSnackBar(error.toString());
-    }
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .replaceMissingSource(taskId: task.id, newInputPath: newInputPath);
+        if (!mounted) {
+          return;
+        }
+
+        setState(() {
+          selectedTaskId = task.id;
+          syncedConfigTaskId = null;
+          syncedQualityTaskKey = null;
+        });
+        showWorkbenchSnackBar('源文件已重新链接');
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
   }
 
   Future<void> showTaskContextMenu(
     MediaTask task,
     Offset globalPosition,
   ) async {
-    final selectedAction = await showWorkbenchTaskContextMenu(
-      context: context,
-      task: task,
-      globalPosition: globalPosition,
-    );
+    await runWorkbenchActionOnce('show-task-context-menu', () async {
+      final selectedAction = await showWorkbenchTaskContextMenu(
+        context: context,
+        task: task,
+        globalPosition: globalPosition,
+      );
 
-    if (!mounted || selectedAction == null) {
-      return;
-    }
+      if (!mounted || selectedAction == null) {
+        return;
+      }
 
-    switch (selectedAction) {
-      case TaskContextMenuAction.revealInFileManager:
-        await revealTaskInFileManager(task);
-      case TaskContextMenuAction.relinkSource:
-        await relinkMissingSource(task);
-      case TaskContextMenuAction.rename:
-        await renameTask(task);
-      case TaskContextMenuAction.showLog:
-        await showTaskLog(task);
-      case TaskContextMenuAction.delete:
-        await deleteTask(task);
-    }
+      switch (selectedAction) {
+        case TaskContextMenuAction.revealInFileManager:
+          await revealTaskInFileManager(task);
+        case TaskContextMenuAction.relinkSource:
+          await relinkMissingSource(task);
+        case TaskContextMenuAction.rename:
+          await renameTask(task);
+        case TaskContextMenuAction.showLog:
+          await showTaskLog(task);
+        case TaskContextMenuAction.delete:
+          await deleteTask(task);
+      }
+    });
   }
 
   Future<void> revealTaskInFileManager(MediaTask task) async {
@@ -945,47 +923,65 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> renameTask(MediaTask task) async {
-    final nextName = await showDialog<String>(
-      context: context,
-      builder: (context) => TaskRenameDialog(initialName: task.fileName),
-    );
+    await runWorkbenchActionOnce('rename-task:${task.id}', () async {
+      final nextName = await showDialog<String>(
+        context: context,
+        builder: (context) => TaskRenameDialog(initialName: task.fileName),
+      );
 
-    if (!mounted || nextName == null) {
-      return;
-    }
+      if (!mounted || nextName == null) {
+        return;
+      }
 
-    final trimmedName = nextName.trim();
-    if (trimmedName.isEmpty) {
-      showWorkbenchSnackBar('任务名称不能为空');
-      return;
-    }
+      final trimmedName = nextName.trim();
+      if (trimmedName.isEmpty) {
+        showWorkbenchSnackBar('任务名称不能为空');
+        return;
+      }
 
-    await ref
-        .read(mediaTaskListProvider.notifier)
-        .saveTask(task.copyWith(fileName: trimmedName));
+      await ref
+          .read(mediaTaskListProvider.notifier)
+          .saveTask(task.copyWith(fileName: trimmedName));
+    });
   }
 
   Future<void> showTaskLog(MediaTask task) async {
-    if (!mounted) {
-      return;
-    }
+    await runWorkbenchActionOnce('show-task-log:${task.id}', () async {
+      if (!mounted) {
+        return;
+      }
 
-    await TaskLogDialog.show(
-      context,
-      task,
-      logStore: ref.read(executionLogStoreProvider),
-    );
+      await TaskLogDialog.show(
+        context,
+        task,
+        logStore: ref.read(executionLogStoreProvider),
+      );
+    });
   }
 
   Future<void> retryTask(MediaTask task) async {
-    try {
-      await ref.read(mediaTaskListProvider.notifier).retryTaskById(task.id);
-    } on Object catch (error) {
-      showWorkbenchSnackBar(error.toString());
-    }
+    await runWorkbenchActionOnce('retry-task:${task.id}', () async {
+      try {
+        await ref.read(mediaTaskListProvider.notifier).retryTaskById(task.id);
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
   }
 
   Future<void> startOrResumeTask(
+    MediaTask task, {
+    bool allowExtremeCompression = false,
+  }) async {
+    await runWorkbenchActionOnce('start-or-resume-task:${task.id}', () {
+      return startOrResumeTaskUnchecked(
+        task,
+        allowExtremeCompression: allowExtremeCompression,
+      );
+    });
+  }
+
+  Future<void> startOrResumeTaskUnchecked(
     MediaTask task, {
     bool allowExtremeCompression = false,
   }) async {
@@ -998,7 +994,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           );
       if (await confirmAndRestartWhenCompressionRequiresConfirmation(
         result,
-        () => startOrResumeTask(task, allowExtremeCompression: true),
+        () => startOrResumeTaskUnchecked(task, allowExtremeCompression: true),
       )) {
         return;
       }
@@ -1011,16 +1007,18 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> pauseTask(MediaTask task) async {
-    try {
-      final result = await ref
-          .read(mediaTaskListProvider.notifier)
-          .pauseTaskById(task.id);
-      if (result.message != null) {
-        showWorkbenchSnackBar(result.message!);
+    await runWorkbenchActionOnce('pause-task:${task.id}', () async {
+      try {
+        final result = await ref
+            .read(mediaTaskListProvider.notifier)
+            .pauseTaskById(task.id);
+        if (result.message != null) {
+          showWorkbenchSnackBar(result.message!);
+        }
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
       }
-    } on Object catch (error) {
-      showWorkbenchSnackBar(error.toString());
-    }
+    });
   }
 
   Future<void> startExecutionQueue({

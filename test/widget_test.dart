@@ -607,6 +607,35 @@ void main() {
     expect(retryCount, 0);
   });
 
+  testWidgets('task action button does not also open the task tile', (
+    tester,
+  ) async {
+    var startCount = 0;
+    var openCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: testTask(status: TaskStatus.pending),
+            onTap: () {
+              openCount += 1;
+            },
+            onStart: () {
+              startCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byTooltip('开始压缩'));
+    await tester.pump();
+
+    expect(startCount, 1);
+    expect(openCount, 0);
+  });
+
   testWidgets('pending task without analysis has no primary action', (
     tester,
   ) async {

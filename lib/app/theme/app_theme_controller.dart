@@ -26,6 +26,7 @@ class AppThemeModeController extends Notifier<AppThemeMode> {
 extension AppThemeModeMaterialMapping on AppThemeMode {
   ThemeMode get materialThemeMode {
     return switch (this) {
+      AppThemeMode.system => ThemeMode.system,
       AppThemeMode.light => ThemeMode.light,
       AppThemeMode.dark => ThemeMode.dark,
     };

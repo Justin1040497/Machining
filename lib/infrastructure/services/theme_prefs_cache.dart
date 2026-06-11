@@ -9,17 +9,17 @@ import 'package:path_provider/path_provider.dart';
 /// 避免等 SQLite / Drift 初始化完成才能确定首帧主题。
 ///
 /// 这不是 source of truth，DB 中的 settings 表才是。
-/// 如果缓存文件丢失或损坏，回退到默认亮色主题，不影响功能。
+/// 如果缓存文件丢失或损坏，回退到跟随系统主题，不影响功能。
 class ThemePrefsCache {
   static const _fileName = 'theme_prefs.json';
   static const _keyThemeMode = 'themeMode';
 
-  /// 读取缓存的 [AppThemeMode]，失败时返回 [AppThemeMode.light]。
+  /// 读取缓存的 [AppThemeMode]，失败时返回 [AppThemeMode.system]。
   static Future<AppThemeMode> read() async {
     try {
       final file = await _cacheFile();
       if (!await file.exists()) {
-        return AppThemeMode.light;
+        return AppThemeMode.system;
       }
 
       final content = await file.readAsString();
@@ -32,9 +32,9 @@ class ThemePrefsCache {
         }
       }
 
-      return AppThemeMode.light;
+      return AppThemeMode.system;
     } on Object {
-      return AppThemeMode.light;
+      return AppThemeMode.system;
     }
   }
 

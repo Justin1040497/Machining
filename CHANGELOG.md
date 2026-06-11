@@ -29,6 +29,30 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-09｜v1.1.5｜No Release
+
+今天将应用设置从工作台弹窗迁移为全屏 `/settings` 路由页面，并按 v1.2.0 原型整理左侧设置导航、右侧配置内容和应用维护入口。
+
+### Changed
+
+- 应用设置入口改为全屏跳转页面，工作台设置按钮通过 GoRouter 进入 `/settings`，设置保存后返回工作台。
+- 设置页面保留原型中的常规配置、任务设置、输入和输出分组，并继续复用现有设置实体、保存用例、路径控件和缓存清理 / Windows 卸载入口。
+- 关于页底部图标接入 Gitee、GitHub、Gmail 和掘金真实链接，并复用工作台外链打开器。
+- 将应用设置测试从弹窗测试调整为页面测试，覆盖侧边栏导航、主题、输出、编码器、视频 / 图片 / 音频默认值和关于页缓存清理。
+
+### Fixed
+
+- 修复 macOS Debug 窗口首次点击只激活窗口、按钮需要点两次才触发的问题；Runner 现在会让 FlutterView 以及 `desktop_drop` 注入的原生拖拽视图都接受 first mouse。
+- 工作台打开页面、弹窗、文件选择器和任务动作入口增加一次性 in-flight guard，避免 debug 慢响应下连续点击叠出多个路由、弹窗或重复任务动作。
+
+### Verified
+
+- 通过 `flutter test test/app_settings_page_test.dart test/workbench_external_link_opener_test.dart`。
+- 通过 `flutter test test/widget_test.dart test/workbench_bottom_bar_test.dart`。
+- 通过 macOS Debug Runner `xcodebuild` 编译。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+
 ## 2026-06-08｜v1.1.5｜No Release
 
 今天重构 FrameLean 文档信息架构和项目级 skills，将过程型功能文档、碎片问题日志和冗余阶段 skill 收敛为上下文、工作区、版本事实、决策、经验总结和轻量 workflow 路由。

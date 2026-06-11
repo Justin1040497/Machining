@@ -26,7 +26,7 @@ void main() {
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.audio), isTrue);
     expect(settings.defaultMediaConfig.image?.imageQuality, 100);
     expect(settings.defaultMediaConfig.image?.preserveMetadata, isFalse);
-    expect(settings.themeMode, AppThemeMode.light);
+    expect(settings.themeMode, AppThemeMode.system);
   });
 
   test('copyWith can clear nullable paths and update default fields', () {

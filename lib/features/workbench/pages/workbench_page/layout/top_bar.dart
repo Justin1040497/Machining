@@ -20,6 +20,7 @@ class WorkbenchTopBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
       height: WorkbenchConstants.appTopBarHeight,
@@ -38,12 +39,10 @@ class WorkbenchTopBar extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _TopBarIconButton(
-                  tooltip: themeMode == AppThemeMode.light
-                      ? '切换为深色模式'
-                      : '切换为浅色模式',
-                  icon: themeMode == AppThemeMode.light
-                      ? Icons.dark_mode_outlined
-                      : Icons.light_mode_outlined,
+                  tooltip: isDark ? '切换为浅色模式' : '切换为深色模式',
+                  icon: isDark
+                      ? Icons.light_mode_outlined
+                      : Icons.dark_mode_outlined,
                   onPressed: onToggleThemeMode,
                 ),
                 const SizedBox(width: 8),

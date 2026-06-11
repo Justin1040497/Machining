@@ -56,7 +56,7 @@ class AppSettings {
     SmartCompressionPreset? defaultSmartPreset,
     this.defaultOutputFileNameTemplate =
         DefaultOutputFileNameTemplate.sourceFileNameCodec,
-    this.themeMode = AppThemeMode.light,
+    this.themeMode = AppThemeMode.system,
   }) : defaultMediaConfig = resolveAppDefaultMediaConfig(
          defaultMediaConfig: defaultMediaConfig,
          compressionSettings: compressionSettings,
@@ -86,7 +86,7 @@ class AppSettings {
       defaultMediaConfig: MediaTaskConfig.initialDefaults(),
       defaultOutputFileNameTemplate:
           DefaultOutputFileNameTemplate.sourceFileNameCodec,
-      themeMode: AppThemeMode.light,
+      themeMode: AppThemeMode.system,
     );
   }
 

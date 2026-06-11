@@ -112,7 +112,7 @@ docs/
 `app` 保存应用外壳：
 
 - `FrameLeanApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
-- `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，应用设置通过工作台弹窗打开。
+- `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，`/settings` 指向全屏应用设置页。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
 ### domain
@@ -178,15 +178,22 @@ Use Cases：
 
 `features/workbench` 是当前主要 UI 功能区：
 
-- `pages/workbench_page.dart`：工作台入口页面，负责组装页面状态和弹窗流程。
+- `pages/workbench_page.dart`：工作台入口页面，负责组装页面状态、任务操作和工作台弹窗流程。
 - `pages/workbench_page/layout/`：顶部栏、底部栏、任务列表容器和工作台外壳。
-- `pages/workbench_page/dialogs/`：任务配置、应用设置、完成、失败、清空、重命名、压缩确认等工作台弹窗。
+- `pages/workbench_page/dialogs/`：任务配置、完成、失败、清空、重命名、压缩确认等工作台弹窗。
 - `pages/workbench_page/overlays/`：拖拽覆盖层和右上角通知浮层。
 - `pages/workbench_page/configuration/`：工作台常量、格式化、轻量模型和 UI 判断策略。
 - `widgets/form_controls/`：可复用表单控件，例如路径输入和配置下拉。
 - `widgets/media_task_list/`：任务列表项、状态徽标、操作按钮和缩略图组件。
 - `MediaTaskListNotifier`：任务管理和任务状态管理入口，通过 media task use cases 进入 application。
 - `WorkbenchPreviewNotifier`：预览状态入口，通过 `GeneratePreviewFramesUseCase` 进入 application。
+
+### features/settings
+
+`features/settings` 是全屏应用设置功能区：
+
+- `pages/app_settings_page.dart`：`/settings` 页面入口，负责加载和保存 `AppSettings`、接入缓存清理和 Windows 清理卸载入口。
+- 设置页复用 `features/workbench/widgets/form_controls/` 的路径输入和下拉控件，保持与工作台配置控件一致。
 
 工作台当前支持：
 

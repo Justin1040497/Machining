@@ -30,7 +30,7 @@ flutter test test/ffmpeg_command_builder_test.dart
 
 ```text
 test/
-  app_settings_dialog_test.dart
+  app_settings_page_test.dart
   app_settings_test.dart
   app_settings_use_cases_test.dart
   bundled_proprietary_audio_adapter_registry_test.dart
@@ -77,9 +77,9 @@ test/
 - 应用设置初始默认值、复制更新和可空路径清除。
 - 应用设置读取和保存 Use Cases。
 - Drift `settings` 行和领域模型之间的映射。
-- `theme_mode` 可保存 / 读取；未知主题值回退浅色。
+- `theme_mode` 可保存 / 读取；未知主题值回退跟随系统。
 - `theme_prefs.json` 作为首帧缓存镜像，读写失败或损坏时不影响启动；启动后 DB 与缓存不一致时以 `settings.theme_mode` 为准对齐应用状态并重写缓存。
-- 应用设置弹窗的紧凑态、高级态、三类默认媒体配置和保存行为。
+- 应用设置页面的侧边栏导航、三类默认媒体配置、缓存清理入口和保存返回行为。
 - 底部栏设置入口和新任务默认配置应用。
 
 ### Application Use Cases

@@ -130,7 +130,7 @@ flutter test test/ffmpeg_command_builder_test.dart
 当前测试重点：
 
 - Application Use Cases 和任务执行入口。
-- 应用设置弹窗、默认媒体配置、主题偏好和 Drift 持久化映射。
+- 应用设置页面、默认媒体配置、主题偏好和 Drift 持久化映射。
 - 压缩模式持久化兼容映射。
 - 压缩建议和输出体积估算。
 - FFmpeg 命令构造。

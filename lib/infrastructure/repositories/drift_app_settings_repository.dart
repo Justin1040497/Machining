@@ -139,7 +139,7 @@ AppThemeMode appThemeModeFromSettings(String name) {
     }
   }
 
-  return AppThemeMode.light;
+  return AppThemeMode.system;
 }
 
 T enumValueByNameInSettings<T extends Enum>(List<T> values, String name) {
