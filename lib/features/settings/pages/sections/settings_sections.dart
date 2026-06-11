@@ -1,0 +1,466 @@
+part of '../app_settings_page.dart';
+
+extension _AppSettingsViewSections on _AppSettingsViewState {
+  Widget buildSelectedSection() {
+    return switch (selectedSection) {
+      _SettingsSection.app => buildAppSettingsSection(),
+      _SettingsSection.about => buildAboutSection(),
+      _SettingsSection.video => buildVideoSection(),
+      _SettingsSection.image => buildImageSection(),
+      _SettingsSection.audio => buildAudioSection(),
+      _SettingsSection.output => buildOutputSection(),
+      _SettingsSection.encoder => buildEncoderSection(),
+    };
+  }
+
+  Widget buildAppSettingsSection() {
+    return _SettingsForm(
+      title: '应用设置',
+      children: [
+        _SettingsDropdown<AppThemeMode>(
+          label: '应用主题颜色',
+          value: themeMode,
+          values: AppThemeMode.values,
+          itemLabel: (value) => value.settingsLabel,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => themeMode = value);
+          },
+        ),
+        const SizedBox(height: 22),
+        _SettingsDropdown<_CompletionSoundOption>(
+          label: '完成音频设置',
+          value: completionSoundOption,
+          values: _CompletionSoundOption.values,
+          itemLabel: (value) => value.label,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => completionSoundOption = value);
+          },
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.app),
+          saving: savingSection == _SettingsSection.app,
+          onCancel: () => _revertSection(_SettingsSection.app),
+          onSave: () => _saveSection(_SettingsSection.app),
+        ),
+      ],
+    );
+  }
+
+  Widget buildAboutSection() {
+    final colors = context.frameLeanColors;
+    final iconPath = Theme.of(context).brightness == Brightness.dark
+        ? 'assets/app_icon/light.png'
+        : 'assets/app_icon/dark.png';
+    final showUninstall = Platform.isWindows;
+
+    return _SettingsForm(
+      title: '关于',
+      maxWidth: 560,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(7),
+          child: Image.asset(
+            iconPath,
+            width: 62,
+            height: 62,
+            fit: BoxFit.cover,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _AboutTextBlock(
+          title: '项目简介',
+          body:
+              'FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具。'
+              '基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。'
+              '它把常用的视频、图片、音频分析、压缩、格式输出配置和任务队列能力封装成图形界面，'
+              '让用户不用手写 FFmpeg 命令也能处理本地媒体文件。',
+        ),
+        const SizedBox(height: 18),
+        _AboutTextBlock(
+          title: '作者想说的话',
+          body:
+              '非常感谢你下载并使用我的应用，作者我通过比赛接触了 Flutter 和移动端开发近 2 年，'
+              '这是我的第一款独立开发的应用。在使用过程中如果遇到了什么问题或者什么功能让你感到不方便，'
+              '可以通过下面的方式联系作者，作者非常需要你提出的宝贵建议。',
+        ),
+        const SizedBox(height: 12),
+        Text(
+          '当前版本：${FrameLeanBuildInfo.currentVersionLabel}',
+          style: TextStyle(color: colors.textSecondary, fontSize: 12),
+        ),
+        const SizedBox(height: 14),
+        _AboutIconLinks(onOpenLink: widget.onOpenExternalLink ?? (_) async {}),
+        const SizedBox(height: 34),
+        Wrap(
+          spacing: 22,
+          runSpacing: 12,
+          children: [
+            _MaintenanceButton(
+              label: clearingCache ? '正在清理' : '清空应用缓存',
+              color: colors.statusRunning,
+              foregroundColor: colors.onWarning,
+              onPressed: clearingCache ? null : confirmClearAppCache,
+            ),
+            if (showUninstall)
+              _MaintenanceButton(
+                label: uninstalling ? '正在准备' : '卸载应用',
+                color: colors.statusFailed,
+                foregroundColor: colors.onDanger,
+                onPressed: uninstalling ? null : confirmUninstallApp,
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget buildVideoSection() {
+    final config = videoConfig;
+    final smartPreset = config.smartPreset ?? SmartCompressionPreset.balanced;
+
+    return _SettingsForm(
+      title: '视频任务默认值配置',
+      children: [
+        _SettingsDropdown<CompressionMode>(
+          label: '默认模式选择',
+          value: CompressionMode.preset,
+          values: const [CompressionMode.preset],
+          itemLabel: (value) => '推荐方案选项',
+          onChanged: (_) {},
+        ),
+        const SizedBox(height: 22),
+        _SettingsDropdown<SmartCompressionPreset>(
+          label: '默认推荐方案预设',
+          value: smartPreset,
+          values: SmartCompressionPreset.values,
+          itemLabel: (value) => value.label,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateVideoConfig(config.copyWith(smartPreset: value));
+          },
+        ),
+        const SizedBox(height: 22),
+        _TwoColumnFields(
+          children: [
+            _SettingsDropdown<MediaOutputFormat>(
+              label: '默认输出格式',
+              value: config.outputFormat,
+              values: MediaOutputFormat.formatsFor(MediaKind.video),
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateVideoConfig(config.copyWith(outputFormat: value));
+              },
+            ),
+            _SettingsDropdown<VideoCodec>(
+              label: '默认编码格式',
+              value: config.videoCodec,
+              values: VideoCodec.values,
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateVideoConfig(
+                  config.copyWith(
+                    videoCodec: value,
+                    encoderBackend: EncoderBackend.auto,
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SettingsDropdown<ResolutionPreset>(
+          label: '默认视频分辨率',
+          width: 285,
+          value: config.resolutionPreset,
+          values: ResolutionPreset.values,
+          itemLabel: (value) => value.label,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateVideoConfig(config.copyWith(resolutionPreset: value));
+          },
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.video),
+          saving: savingSection == _SettingsSection.video,
+          onCancel: () => _revertSection(_SettingsSection.video),
+          onSave: () => _saveSection(_SettingsSection.video),
+        ),
+      ],
+    );
+  }
+
+  Widget buildImageSection() {
+    final config = imageConfig;
+
+    return _SettingsForm(
+      title: '图片任务默认值配置',
+      children: [
+        _TwoColumnFields(
+          children: [
+            _SettingsDropdown<MediaOutputFormat>(
+              label: '默认输出格式',
+              value: config.outputFormat,
+              values: MediaOutputFormat.formatsFor(MediaKind.image),
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateImageConfig(config.copyWith(outputFormat: value));
+              },
+            ),
+            _SettingsTextField(
+              label: '默认图片质量',
+              controller: imageQualityController,
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                final parsed = int.tryParse(value);
+                if (parsed == null || parsed < 1 || parsed > 100) {
+                  return;
+                }
+                updateImageConfig(config.copyWith(imageQuality: parsed));
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _SettingsDropdown<ImageResizePreset>(
+          label: '默认图片尺寸',
+          width: 285,
+          value: config.resizePreset,
+          values: ImageResizePreset.values,
+          itemLabel: (value) => value.label,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateImageConfig(config.copyWith(resizePreset: value));
+          },
+        ),
+        const SizedBox(height: 16),
+        _SettingsCheckbox(
+          label: '保留图片元数据',
+          value: config.preserveMetadata,
+          onChanged: (value) {
+            updateImageConfig(config.copyWith(preserveMetadata: value));
+          },
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.image),
+          saving: savingSection == _SettingsSection.image,
+          onCancel: () => _revertSection(_SettingsSection.image),
+          onSave: () => _saveSection(_SettingsSection.image),
+        ),
+      ],
+    );
+  }
+
+  Widget buildAudioSection() {
+    final config = audioConfig;
+
+    return _SettingsForm(
+      title: '音频任务默认值配置',
+      children: [
+        _TwoColumnFields(
+          children: [
+            _SettingsDropdown<MediaOutputFormat>(
+              label: '默认输出格式',
+              value: config.outputFormat,
+              values: MediaOutputFormat.formatsFor(MediaKind.audio),
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateAudioConfig(config.copyWith(outputFormat: value));
+              },
+            ),
+            _SettingsDropdown<AudioBitratePreset>(
+              label: '默认码率',
+              value: config.bitratePreset,
+              values: AudioBitratePreset.values,
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateAudioConfig(config.copyWith(bitratePreset: value));
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 22),
+        _TwoColumnFields(
+          children: [
+            _SettingsDropdown<AudioSampleRatePreset>(
+              label: '默认采样率',
+              value: config.sampleRate,
+              values: AudioSampleRatePreset.values,
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateAudioConfig(config.copyWith(sampleRate: value));
+              },
+            ),
+            _SettingsDropdown<AudioChannelsPreset>(
+              label: '默认声道',
+              value: config.channels,
+              values: AudioChannelsPreset.values,
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateAudioConfig(config.copyWith(channels: value));
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.audio),
+          saving: savingSection == _SettingsSection.audio,
+          onCancel: () => _revertSection(_SettingsSection.audio),
+          onSave: () => _saveSection(_SettingsSection.audio),
+        ),
+      ],
+    );
+  }
+
+  Widget buildOutputSection() {
+    return _SettingsForm(
+      title: '输出配置',
+      children: [
+        _FormFieldLabel('默认导出地址'),
+        const SizedBox(height: 8),
+        _SettingsCheckbox(
+          label: '保存到原文件旁',
+          value: saveOutputToSourceDirectory,
+          onChanged: (value) {
+            updateViewState(() => saveOutputToSourceDirectory = value);
+          },
+        ),
+        const SizedBox(height: 8),
+        _SettingsPathField(
+          controller: outputDirectoryController,
+          enabled: !saveOutputToSourceDirectory,
+          highlighted: outputDirectoryDragging,
+          hintText: widget.fallbackDefaultDirectory,
+          trailingTooltip: '选择文件夹',
+          onTrailingTap: pickOutputDirectory,
+          onDraggingChanged: (value) {
+            updateViewState(() => outputDirectoryDragging = value);
+          },
+          onDropped: handleOutputDirectoryDrop,
+        ),
+        const SizedBox(height: 22),
+        _SettingsDropdown<DefaultOutputFileNameTemplate>(
+          label: '默认导出文件名',
+          width: 360,
+          value: outputFileNameTemplate,
+          values: DefaultOutputFileNameTemplate.values,
+          itemLabel: (value) => value.label,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => outputFileNameTemplate = value);
+          },
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.output),
+          saving: savingSection == _SettingsSection.output,
+          onCancel: () => _revertSection(_SettingsSection.output),
+          onSave: () => _saveSection(_SettingsSection.output),
+        ),
+      ],
+    );
+  }
+
+  Widget buildEncoderSection() {
+    return _SettingsForm(
+      title: '编码器配置',
+      children: [
+        _FormFieldLabel('FFmpeg路径'),
+        const SizedBox(height: 8),
+        _SettingsPathField(
+          controller: ffmpegPathController,
+          enabled: true,
+          highlighted: ffmpegPathDragging,
+          hintText: '使用内置 FFmpeg',
+          trailingTooltip: '选择 FFmpeg',
+          onTrailingTap: pickFfmpegPath,
+          onDraggingChanged: (value) {
+            updateViewState(() => ffmpegPathDragging = value);
+          },
+          onDropped: handleFfmpegPathDrop,
+        ),
+        const SizedBox(height: 18),
+        _FormFieldLabel('FFprobe路径'),
+        const SizedBox(height: 8),
+        _SettingsPathField(
+          controller: ffprobePathController,
+          enabled: true,
+          highlighted: ffprobePathDragging,
+          hintText: '使用内置 FFprobe',
+          trailingTooltip: '选择 FFprobe',
+          onTrailingTap: pickFfprobePath,
+          onDraggingChanged: (value) {
+            updateViewState(() => ffprobePathDragging = value);
+          },
+          onDropped: handleFfprobePathDrop,
+        ),
+        const SizedBox(height: 32),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.encoder),
+          saving: savingSection == _SettingsSection.encoder,
+          onCancel: () => _revertSection(_SettingsSection.encoder),
+          onSave: () => _saveSection(_SettingsSection.encoder),
+        ),
+      ],
+    );
+  }
+
+  void updateVideoConfig(VideoProcessingConfig config) {
+    updateViewState(() {
+      defaultMediaConfig = defaultMediaConfig.copyWith(video: config);
+    });
+  }
+
+  void updateImageConfig(ImageProcessingConfig config) {
+    updateViewState(() {
+      defaultMediaConfig = defaultMediaConfig.copyWith(image: config);
+      if (imageQualityController.text != config.imageQuality.toString()) {
+        imageQualityController.text = config.imageQuality.toString();
+      }
+    });
+  }
+
+  void updateAudioConfig(AudioProcessingConfig config) {
+    updateViewState(() {
+      defaultMediaConfig = defaultMediaConfig.copyWith(audio: config);
+    });
+  }
+}

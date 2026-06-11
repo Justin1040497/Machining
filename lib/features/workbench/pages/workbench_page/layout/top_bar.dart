@@ -8,13 +8,13 @@ class WorkbenchTopBar extends StatelessWidget {
     super.key,
     required this.themeMode,
     required this.onToggleThemeMode,
-    required this.onOpenAbout,
+    required this.onOpenNotifications,
     this.showBottomBorder = false,
   });
 
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
-  final VoidCallback onOpenAbout;
+  final VoidCallback onOpenNotifications;
   final bool showBottomBorder;
 
   @override
@@ -47,9 +47,9 @@ class WorkbenchTopBar extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 _TopBarIconButton(
-                  tooltip: '关于 FrameLean',
-                  icon: Icons.info_outline_rounded,
-                  onPressed: onOpenAbout,
+                  tooltip: '通知中心',
+                  icon: Icons.notifications_none_rounded,
+                  onPressed: onOpenNotifications,
                 ),
               ],
             ),

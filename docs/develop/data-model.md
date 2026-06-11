@@ -4,7 +4,7 @@
 
 这份文档记录 FrameLean 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
 
-当前版本只持久化本地任务列表和应用设置；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
+当前版本持久化本地任务列表、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
 
 ## 数据库总览
 
@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `15`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `16`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -22,6 +22,7 @@ lib/infrastructure/database/app_database.dart
 | --- | --- | --- |
 | `tasks` | `TaskRows` | 保存导入媒体任务、执行状态、输出配置、源文件指纹和 FFprobe 分析结果 |
 | `settings` | `SettingsRows` | 保存应用级设置；当前只保存一行全局设置，固定 `id = 1` |
+| `app_notifications` | `AppNotificationRows` | 保存应用内通知历史，供全局提示和后续通知中心读取 |
 
 ## 领域模型关系
 
@@ -39,12 +40,14 @@ lib/infrastructure/database/app_database.dart
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
+| `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 
 ```text
 lib/infrastructure/repositories/drift_media_task_repository.dart
 lib/infrastructure/repositories/drift_app_settings_repository.dart
+lib/infrastructure/repositories/drift_app_notification_repository.dart
 lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 ```
 
@@ -204,11 +207,27 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
 | `default_output_file_name_template` | text | 否 | `sourceFileNameCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
-| `theme_mode` | text | 否 | `light` | `themeMode` | 应用主题偏好；当前支持 `light`、`dark`，是主题设置的 source of truth |
+| `theme_mode` | text | 否 | `system` | `themeMode` | 应用主题偏好；当前支持 `system`、`light`、`dark`，是主题设置的 source of truth |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
 主题启动另有轻量缓存镜像 `theme_prefs.json`，位于应用支持目录，只保存 `themeMode` 用于首帧渲染。缓存文件损坏或丢失时回退 `light`；应用启动后会异步读取 `settings.theme_mode`，若 DB 与缓存不同，则以 DB 为准更新当前主题并重写缓存。
+
+## `app_notifications` 表
+
+`app_notifications` 保存应用内通知历史。业务代码通过 `AppNotificationManager` 记录通知；根级通知 Host 订阅同一 manager 的展示事件并弹出临时提示。后续通知中心面板应读取这张表，而不是从页面局部状态拼装历史。
+
+| 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `id` | text | 否 | 无 | `id` | UUID 字符串，主键 |
+| `level` | text | 否 | 无 | `level` | 通知级别：`info`、`success`、`warning`、`error` |
+| `title` | text | 否 | 无 | `title` | 通知标题 |
+| `message` | text | 否 | `''` | `message` | 通知正文或失败原因 |
+| `source` | text | 否 | 无 | `source` | 通知来源，例如 `settings`、`workbench` |
+| `created_at` | integer | 否 | 无 | `createdAt` | 通知创建时间，毫秒时间戳 |
+| `read_at` | integer | 是 | `null` | `readAt` | 通知被标记为已读的时间 |
+| `dismissed_at` | integer | 是 | `null` | `dismissedAt` | 通知被关闭或归档的时间 |
+| `payload_json` | text | 是 | `null` | `payloadJson` | 后续通知中心可用于跳转或动作的扩展载荷 |
 
 ## 枚举值
 

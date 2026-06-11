@@ -6,9 +6,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
+import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -31,23 +33,19 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_about_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice_controller.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_external_link_opener.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_picker.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
+import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
 const Object _configValueNotProvided = Object();
-const String _frameLeanGitHubUrl = 'https://github.com/zhouycheng/FrameLean';
-const String _frameLeanGiteeUrl = 'https://gitee.com/zhouycheng/FrameLean';
 
 class WorkbenchPage extends ConsumerStatefulWidget {
   const WorkbenchPage({super.key});
@@ -71,8 +69,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool queueActionInFlight = false;
   final WorkbenchTaskThumbnailStore thumbnailStore =
       WorkbenchTaskThumbnailStore();
-  final WorkbenchNoticeController noticeController =
-      WorkbenchNoticeController();
   final Set<String> notifiedAnalysisErrorKeys = {};
   final Set<String> notifiedCompletedTaskKeys = {};
   final Set<String> workbenchActionsInFlight = {};
@@ -94,7 +90,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   @override
   void dispose() {
     taskListSubscription?.close();
-    noticeController.dispose();
     super.dispose();
   }
 
@@ -146,9 +141,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         onToggleThemeMode: () {
           unawaited(toggleThemeMode());
         },
-        onOpenAbout: () {
-          unawaited(showAboutDialog());
-        },
+        onOpenNotifications: openNotificationCenter,
         onClearTasks: confirmClearTasks,
         onPrimaryQueuePressed: () {
           unawaited(handlePrimaryQueueAction(hasRunningTask));
@@ -478,7 +471,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> openSettingsPage() async {
     await runWorkbenchActionOnce('open-settings-page', () async {
-      final saved = await context.push<bool>('/settings');
+      await context.push<void>('/settings');
       if (!mounted) {
         return;
       }
@@ -486,9 +479,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       setState(() {
         workbenchImportDragging = false;
       });
-      if (saved == true) {
-        showWorkbenchSnackBar('设置已保存');
-      }
     });
   }
 
@@ -517,8 +507,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     // Use the actual rendered brightness so that "follow system" toggles
     // to the opposite of what the user sees, not always to dark.
     final isCurrentlyDark = Theme.of(context).brightness == Brightness.dark;
-    final nextMode =
-        isCurrentlyDark ? AppThemeMode.light : AppThemeMode.dark;
+    final nextMode = isCurrentlyDark ? AppThemeMode.light : AppThemeMode.dark;
     ref.read(appThemeModeProvider.notifier).setThemeMode(nextMode);
 
     try {
@@ -536,39 +525,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  Future<void> showAboutDialog() async {
-    await runWorkbenchActionOnce('show-about-dialog', () async {
-      await showDialog<void>(
-        context: context,
-        builder: (dialogContext) {
-          return WorkbenchAboutDialog(
-            onClose: () => Navigator.of(dialogContext).pop(),
-            onOpenGitHub: () {
-              unawaited(openGitHubProject());
-            },
-            onOpenGitee: () {
-              unawaited(openGiteeProject());
-            },
-          );
-        },
-      );
-    });
-  }
-
-  Future<void> openGitHubProject() async {
-    await openExternalLink(_frameLeanGitHubUrl);
-  }
-
-  Future<void> openGiteeProject() async {
-    await openExternalLink(_frameLeanGiteeUrl);
-  }
-
-  Future<void> openExternalLink(String url) async {
-    final result = await WorkbenchExternalLinkOpener.open(url);
-    if (!result.succeeded) {
-      showWorkbenchSnackBar(result.message!);
-    }
-  }
+  void openNotificationCenter() {}
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     await runWorkbenchActionOnce('show-task-configuration-dialog', () async {
@@ -1136,6 +1093,33 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return;
     }
 
-    noticeController.show(context, message, action: action);
+    unawaited(
+      ref
+          .read(appNotificationManagerProvider)
+          .notify(
+            level: notificationLevelForWorkbenchMessage(message),
+            title: message,
+            source: 'workbench',
+            action: action == null
+                ? null
+                : AppNotificationAction(
+                    label: action.label,
+                    onPressed: action.onPressed,
+                  ),
+          ),
+    );
   }
+}
+
+AppNotificationLevel notificationLevelForWorkbenchMessage(String message) {
+  if (message.contains('失败') ||
+      message.contains('错误') ||
+      message.contains('无法') ||
+      message.contains('异常')) {
+    return AppNotificationLevel.error;
+  }
+  if (message.contains('成功') || message.contains('已')) {
+    return AppNotificationLevel.success;
+  }
+  return AppNotificationLevel.info;
 }

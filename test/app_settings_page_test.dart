@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
@@ -48,6 +50,132 @@ void main() {
 
     expect(savedSettings, isNotNull);
     expect(savedSettings!.themeMode, AppThemeMode.dark);
+  });
+
+  testWidgets('switching sections reverts unsaved edits without saving', (
+    tester,
+  ) async {
+    AppSettings? savedSettings;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async => savedSettings = settings,
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色').last);
+    await tester.pumpAndSettle();
+    expect(find.text('深色'), findsOneWidget);
+
+    await tester.tap(find.text('视频任务'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('应用设置').first);
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNull);
+    expect(find.text('跟随系统'), findsOneWidget);
+  });
+
+  testWidgets('cancel reverts current section without saving', (tester) async {
+    AppSettings? savedSettings;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async => savedSettings = settings,
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNull);
+    expect(find.text('跟随系统'), findsOneWidget);
+  });
+
+  testWidgets('leaving settings reverts current section without saving', (
+    tester,
+  ) async {
+    AppSettings? savedSettings;
+    var closed = false;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async => savedSettings = settings,
+      onClose: () {
+        closed = true;
+      },
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('返回工作台'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNull);
+    expect(closed, isTrue);
+  });
+
+  testWidgets('failed save keeps edits dirty for retry or cancel', (
+    tester,
+  ) async {
+    AppSettings? savedSettings;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async {
+        savedSettings = settings;
+        throw StateError('无法保存设置');
+      },
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings?.themeMode, AppThemeMode.dark);
+    expect(find.text('深色'), findsOneWidget);
+
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('跟随系统'), findsOneWidget);
+  });
+
+  testWidgets('in-flight save can finish after settings view is unmounted', (
+    tester,
+  ) async {
+    final saveCompleter = Completer<void>();
+    AppSettings? savedSettings;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async {
+        await saveCompleter.future;
+        savedSettings = settings;
+      },
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存'));
+    await tester.pump();
+    await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+
+    saveCompleter.complete();
+    await tester.pump();
+
+    expect(savedSettings?.themeMode, AppThemeMode.dark);
   });
 
   testWidgets('saves output directory and file name template', (tester) async {
@@ -254,6 +382,7 @@ Future<void> pumpSettingsPage(
   WidgetTester tester, {
   AppSettings? initialSettings,
   Future<void> Function(AppSettings settings)? onSave,
+  VoidCallback? onClose,
   AppCacheCleanupPreviewCallback? onPreviewAppCacheCleanup,
   AppSettingsExternalLinkCallback? onOpenExternalLink,
 }) async {
@@ -267,6 +396,7 @@ Future<void> pumpSettingsPage(
           onPickOutputDirectory: () async => '/tmp/framelean-picked',
           onPickFfmpegPath: () async => '/usr/local/bin/ffmpeg',
           onPickFfprobePath: () async => '/usr/local/bin/ffprobe',
+          onClose: onClose,
           onPreviewAppCacheCleanup:
               onPreviewAppCacheCleanup ??
               () async => const AppCacheCleanupPreview(

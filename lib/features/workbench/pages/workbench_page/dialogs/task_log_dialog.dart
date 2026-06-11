@@ -5,11 +5,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/execution/execution_log_store.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
+import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
 
 /// 任务日志弹窗
 ///
@@ -313,28 +315,18 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
     if (log == null || log.isEmpty) {
       return;
     }
-    final colors = context.frameLeanColors;
 
-    Clipboard.setData(ClipboardData(text: log));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: colors.surface,
-        duration: const Duration(seconds: 2),
-        elevation: 8,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
-          side: BorderSide(color: colors.border),
-        ),
-        content: Text(
-          '日志已复制到剪贴板',
-          style: TextStyle(
-            color: colors.textPrimary,
-            fontSize: 13.flSp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
+    unawaited(_copyLogToClipboard(log));
+  }
+
+  Future<void> _copyLogToClipboard(String log) async {
+    await Clipboard.setData(ClipboardData(text: log));
+    await ref
+        .read(appNotificationManagerProvider)
+        .notify(
+          level: AppNotificationLevel.success,
+          title: '日志已复制到剪贴板',
+          source: 'workbench',
+        );
   }
 }

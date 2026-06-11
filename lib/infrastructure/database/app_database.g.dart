@@ -4607,16 +4607,586 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   }
 }
 
+class $AppNotificationRowsTable extends AppNotificationRows
+    with TableInfo<$AppNotificationRowsTable, AppNotificationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppNotificationRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _levelMeta = const VerificationMeta('level');
+  @override
+  late final GeneratedColumn<String> level = GeneratedColumn<String>(
+    'level',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _messageMeta = const VerificationMeta(
+    'message',
+  );
+  @override
+  late final GeneratedColumn<String> message = GeneratedColumn<String>(
+    'message',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
+  static const VerificationMeta _sourceMeta = const VerificationMeta('source');
+  @override
+  late final GeneratedColumn<String> source = GeneratedColumn<String>(
+    'source',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _readAtMeta = const VerificationMeta('readAt');
+  @override
+  late final GeneratedColumn<int> readAt = GeneratedColumn<int>(
+    'read_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _dismissedAtMeta = const VerificationMeta(
+    'dismissedAt',
+  );
+  @override
+  late final GeneratedColumn<int> dismissedAt = GeneratedColumn<int>(
+    'dismissed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _payloadJsonMeta = const VerificationMeta(
+    'payloadJson',
+  );
+  @override
+  late final GeneratedColumn<String> payloadJson = GeneratedColumn<String>(
+    'payload_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    level,
+    title,
+    message,
+    source,
+    createdAt,
+    readAt,
+    dismissedAt,
+    payloadJson,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_notifications';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppNotificationRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('level')) {
+      context.handle(
+        _levelMeta,
+        level.isAcceptableOrUnknown(data['level']!, _levelMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_levelMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('message')) {
+      context.handle(
+        _messageMeta,
+        message.isAcceptableOrUnknown(data['message']!, _messageMeta),
+      );
+    }
+    if (data.containsKey('source')) {
+      context.handle(
+        _sourceMeta,
+        source.isAcceptableOrUnknown(data['source']!, _sourceMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('read_at')) {
+      context.handle(
+        _readAtMeta,
+        readAt.isAcceptableOrUnknown(data['read_at']!, _readAtMeta),
+      );
+    }
+    if (data.containsKey('dismissed_at')) {
+      context.handle(
+        _dismissedAtMeta,
+        dismissedAt.isAcceptableOrUnknown(
+          data['dismissed_at']!,
+          _dismissedAtMeta,
+        ),
+      );
+    }
+    if (data.containsKey('payload_json')) {
+      context.handle(
+        _payloadJsonMeta,
+        payloadJson.isAcceptableOrUnknown(
+          data['payload_json']!,
+          _payloadJsonMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AppNotificationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppNotificationRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      level: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}level'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      message: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}message'],
+      )!,
+      source: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}created_at'],
+      )!,
+      readAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}read_at'],
+      ),
+      dismissedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}dismissed_at'],
+      ),
+      payloadJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}payload_json'],
+      ),
+    );
+  }
+
+  @override
+  $AppNotificationRowsTable createAlias(String alias) {
+    return $AppNotificationRowsTable(attachedDatabase, alias);
+  }
+}
+
+class AppNotificationRow extends DataClass
+    implements Insertable<AppNotificationRow> {
+  final String id;
+  final String level;
+  final String title;
+  final String message;
+  final String source;
+  final int createdAt;
+  final int? readAt;
+  final int? dismissedAt;
+  final String? payloadJson;
+  const AppNotificationRow({
+    required this.id,
+    required this.level,
+    required this.title,
+    required this.message,
+    required this.source,
+    required this.createdAt,
+    this.readAt,
+    this.dismissedAt,
+    this.payloadJson,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['level'] = Variable<String>(level);
+    map['title'] = Variable<String>(title);
+    map['message'] = Variable<String>(message);
+    map['source'] = Variable<String>(source);
+    map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || readAt != null) {
+      map['read_at'] = Variable<int>(readAt);
+    }
+    if (!nullToAbsent || dismissedAt != null) {
+      map['dismissed_at'] = Variable<int>(dismissedAt);
+    }
+    if (!nullToAbsent || payloadJson != null) {
+      map['payload_json'] = Variable<String>(payloadJson);
+    }
+    return map;
+  }
+
+  AppNotificationRowsCompanion toCompanion(bool nullToAbsent) {
+    return AppNotificationRowsCompanion(
+      id: Value(id),
+      level: Value(level),
+      title: Value(title),
+      message: Value(message),
+      source: Value(source),
+      createdAt: Value(createdAt),
+      readAt: readAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(readAt),
+      dismissedAt: dismissedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dismissedAt),
+      payloadJson: payloadJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(payloadJson),
+    );
+  }
+
+  factory AppNotificationRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppNotificationRow(
+      id: serializer.fromJson<String>(json['id']),
+      level: serializer.fromJson<String>(json['level']),
+      title: serializer.fromJson<String>(json['title']),
+      message: serializer.fromJson<String>(json['message']),
+      source: serializer.fromJson<String>(json['source']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+      readAt: serializer.fromJson<int?>(json['readAt']),
+      dismissedAt: serializer.fromJson<int?>(json['dismissedAt']),
+      payloadJson: serializer.fromJson<String?>(json['payloadJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'level': serializer.toJson<String>(level),
+      'title': serializer.toJson<String>(title),
+      'message': serializer.toJson<String>(message),
+      'source': serializer.toJson<String>(source),
+      'createdAt': serializer.toJson<int>(createdAt),
+      'readAt': serializer.toJson<int?>(readAt),
+      'dismissedAt': serializer.toJson<int?>(dismissedAt),
+      'payloadJson': serializer.toJson<String?>(payloadJson),
+    };
+  }
+
+  AppNotificationRow copyWith({
+    String? id,
+    String? level,
+    String? title,
+    String? message,
+    String? source,
+    int? createdAt,
+    Value<int?> readAt = const Value.absent(),
+    Value<int?> dismissedAt = const Value.absent(),
+    Value<String?> payloadJson = const Value.absent(),
+  }) => AppNotificationRow(
+    id: id ?? this.id,
+    level: level ?? this.level,
+    title: title ?? this.title,
+    message: message ?? this.message,
+    source: source ?? this.source,
+    createdAt: createdAt ?? this.createdAt,
+    readAt: readAt.present ? readAt.value : this.readAt,
+    dismissedAt: dismissedAt.present ? dismissedAt.value : this.dismissedAt,
+    payloadJson: payloadJson.present ? payloadJson.value : this.payloadJson,
+  );
+  AppNotificationRow copyWithCompanion(AppNotificationRowsCompanion data) {
+    return AppNotificationRow(
+      id: data.id.present ? data.id.value : this.id,
+      level: data.level.present ? data.level.value : this.level,
+      title: data.title.present ? data.title.value : this.title,
+      message: data.message.present ? data.message.value : this.message,
+      source: data.source.present ? data.source.value : this.source,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      readAt: data.readAt.present ? data.readAt.value : this.readAt,
+      dismissedAt: data.dismissedAt.present
+          ? data.dismissedAt.value
+          : this.dismissedAt,
+      payloadJson: data.payloadJson.present
+          ? data.payloadJson.value
+          : this.payloadJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppNotificationRow(')
+          ..write('id: $id, ')
+          ..write('level: $level, ')
+          ..write('title: $title, ')
+          ..write('message: $message, ')
+          ..write('source: $source, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('readAt: $readAt, ')
+          ..write('dismissedAt: $dismissedAt, ')
+          ..write('payloadJson: $payloadJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    level,
+    title,
+    message,
+    source,
+    createdAt,
+    readAt,
+    dismissedAt,
+    payloadJson,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppNotificationRow &&
+          other.id == this.id &&
+          other.level == this.level &&
+          other.title == this.title &&
+          other.message == this.message &&
+          other.source == this.source &&
+          other.createdAt == this.createdAt &&
+          other.readAt == this.readAt &&
+          other.dismissedAt == this.dismissedAt &&
+          other.payloadJson == this.payloadJson);
+}
+
+class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
+  final Value<String> id;
+  final Value<String> level;
+  final Value<String> title;
+  final Value<String> message;
+  final Value<String> source;
+  final Value<int> createdAt;
+  final Value<int?> readAt;
+  final Value<int?> dismissedAt;
+  final Value<String?> payloadJson;
+  final Value<int> rowid;
+  const AppNotificationRowsCompanion({
+    this.id = const Value.absent(),
+    this.level = const Value.absent(),
+    this.title = const Value.absent(),
+    this.message = const Value.absent(),
+    this.source = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.readAt = const Value.absent(),
+    this.dismissedAt = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AppNotificationRowsCompanion.insert({
+    required String id,
+    required String level,
+    required String title,
+    this.message = const Value.absent(),
+    required String source,
+    required int createdAt,
+    this.readAt = const Value.absent(),
+    this.dismissedAt = const Value.absent(),
+    this.payloadJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       level = Value(level),
+       title = Value(title),
+       source = Value(source),
+       createdAt = Value(createdAt);
+  static Insertable<AppNotificationRow> custom({
+    Expression<String>? id,
+    Expression<String>? level,
+    Expression<String>? title,
+    Expression<String>? message,
+    Expression<String>? source,
+    Expression<int>? createdAt,
+    Expression<int>? readAt,
+    Expression<int>? dismissedAt,
+    Expression<String>? payloadJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (level != null) 'level': level,
+      if (title != null) 'title': title,
+      if (message != null) 'message': message,
+      if (source != null) 'source': source,
+      if (createdAt != null) 'created_at': createdAt,
+      if (readAt != null) 'read_at': readAt,
+      if (dismissedAt != null) 'dismissed_at': dismissedAt,
+      if (payloadJson != null) 'payload_json': payloadJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AppNotificationRowsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? level,
+    Value<String>? title,
+    Value<String>? message,
+    Value<String>? source,
+    Value<int>? createdAt,
+    Value<int?>? readAt,
+    Value<int?>? dismissedAt,
+    Value<String?>? payloadJson,
+    Value<int>? rowid,
+  }) {
+    return AppNotificationRowsCompanion(
+      id: id ?? this.id,
+      level: level ?? this.level,
+      title: title ?? this.title,
+      message: message ?? this.message,
+      source: source ?? this.source,
+      createdAt: createdAt ?? this.createdAt,
+      readAt: readAt ?? this.readAt,
+      dismissedAt: dismissedAt ?? this.dismissedAt,
+      payloadJson: payloadJson ?? this.payloadJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (level.present) {
+      map['level'] = Variable<String>(level.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (message.present) {
+      map['message'] = Variable<String>(message.value);
+    }
+    if (source.present) {
+      map['source'] = Variable<String>(source.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (readAt.present) {
+      map['read_at'] = Variable<int>(readAt.value);
+    }
+    if (dismissedAt.present) {
+      map['dismissed_at'] = Variable<int>(dismissedAt.value);
+    }
+    if (payloadJson.present) {
+      map['payload_json'] = Variable<String>(payloadJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppNotificationRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('level: $level, ')
+          ..write('title: $title, ')
+          ..write('message: $message, ')
+          ..write('source: $source, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('readAt: $readAt, ')
+          ..write('dismissedAt: $dismissedAt, ')
+          ..write('payloadJson: $payloadJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $SettingsRowsTable settingsRows = $SettingsRowsTable(this);
   late final $TaskRowsTable taskRows = $TaskRowsTable(this);
+  late final $AppNotificationRowsTable appNotificationRows =
+      $AppNotificationRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [settingsRows, taskRows];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    settingsRows,
+    taskRows,
+    appNotificationRows,
+  ];
 }
 
 typedef $$SettingsRowsTableCreateCompanionBuilder =
@@ -6397,6 +6967,302 @@ typedef $$TaskRowsTableProcessedTableManager =
       TaskRow,
       PrefetchHooks Function()
     >;
+typedef $$AppNotificationRowsTableCreateCompanionBuilder =
+    AppNotificationRowsCompanion Function({
+      required String id,
+      required String level,
+      required String title,
+      Value<String> message,
+      required String source,
+      required int createdAt,
+      Value<int?> readAt,
+      Value<int?> dismissedAt,
+      Value<String?> payloadJson,
+      Value<int> rowid,
+    });
+typedef $$AppNotificationRowsTableUpdateCompanionBuilder =
+    AppNotificationRowsCompanion Function({
+      Value<String> id,
+      Value<String> level,
+      Value<String> title,
+      Value<String> message,
+      Value<String> source,
+      Value<int> createdAt,
+      Value<int?> readAt,
+      Value<int?> dismissedAt,
+      Value<String?> payloadJson,
+      Value<int> rowid,
+    });
+
+class $$AppNotificationRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $AppNotificationRowsTable> {
+  $$AppNotificationRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get message => $composableBuilder(
+    column: $table.message,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AppNotificationRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AppNotificationRowsTable> {
+  $$AppNotificationRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get level => $composableBuilder(
+    column: $table.level,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get message => $composableBuilder(
+    column: $table.message,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get source => $composableBuilder(
+    column: $table.source,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get readAt => $composableBuilder(
+    column: $table.readAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AppNotificationRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AppNotificationRowsTable> {
+  $$AppNotificationRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get level =>
+      $composableBuilder(column: $table.level, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get message =>
+      $composableBuilder(column: $table.message, builder: (column) => column);
+
+  GeneratedColumn<String> get source =>
+      $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<int> get readAt =>
+      $composableBuilder(column: $table.readAt, builder: (column) => column);
+
+  GeneratedColumn<int> get dismissedAt => $composableBuilder(
+    column: $table.dismissedAt,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get payloadJson => $composableBuilder(
+    column: $table.payloadJson,
+    builder: (column) => column,
+  );
+}
+
+class $$AppNotificationRowsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $AppNotificationRowsTable,
+          AppNotificationRow,
+          $$AppNotificationRowsTableFilterComposer,
+          $$AppNotificationRowsTableOrderingComposer,
+          $$AppNotificationRowsTableAnnotationComposer,
+          $$AppNotificationRowsTableCreateCompanionBuilder,
+          $$AppNotificationRowsTableUpdateCompanionBuilder,
+          (
+            AppNotificationRow,
+            BaseReferences<
+              _$AppDatabase,
+              $AppNotificationRowsTable,
+              AppNotificationRow
+            >,
+          ),
+          AppNotificationRow,
+          PrefetchHooks Function()
+        > {
+  $$AppNotificationRowsTableTableManager(
+    _$AppDatabase db,
+    $AppNotificationRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AppNotificationRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AppNotificationRowsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$AppNotificationRowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> level = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> message = const Value.absent(),
+                Value<String> source = const Value.absent(),
+                Value<int> createdAt = const Value.absent(),
+                Value<int?> readAt = const Value.absent(),
+                Value<int?> dismissedAt = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppNotificationRowsCompanion(
+                id: id,
+                level: level,
+                title: title,
+                message: message,
+                source: source,
+                createdAt: createdAt,
+                readAt: readAt,
+                dismissedAt: dismissedAt,
+                payloadJson: payloadJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String level,
+                required String title,
+                Value<String> message = const Value.absent(),
+                required String source,
+                required int createdAt,
+                Value<int?> readAt = const Value.absent(),
+                Value<int?> dismissedAt = const Value.absent(),
+                Value<String?> payloadJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppNotificationRowsCompanion.insert(
+                id: id,
+                level: level,
+                title: title,
+                message: message,
+                source: source,
+                createdAt: createdAt,
+                readAt: readAt,
+                dismissedAt: dismissedAt,
+                payloadJson: payloadJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AppNotificationRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $AppNotificationRowsTable,
+      AppNotificationRow,
+      $$AppNotificationRowsTableFilterComposer,
+      $$AppNotificationRowsTableOrderingComposer,
+      $$AppNotificationRowsTableAnnotationComposer,
+      $$AppNotificationRowsTableCreateCompanionBuilder,
+      $$AppNotificationRowsTableUpdateCompanionBuilder,
+      (
+        AppNotificationRow,
+        BaseReferences<
+          _$AppDatabase,
+          $AppNotificationRowsTable,
+          AppNotificationRow
+        >,
+      ),
+      AppNotificationRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -6405,4 +7271,6 @@ class $AppDatabaseManager {
       $$SettingsRowsTableTableManager(_db, _db.settingsRows);
   $$TaskRowsTableTableManager get taskRows =>
       $$TaskRowsTableTableManager(_db, _db.taskRows);
+  $$AppNotificationRowsTableTableManager get appNotificationRows =>
+      $$AppNotificationRowsTableTableManager(_db, _db.appNotificationRows);
 }
