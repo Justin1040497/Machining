@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `16`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `18`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -40,7 +40,7 @@ lib/infrastructure/database/app_database.dart
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
-| `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
+| `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含类型、级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 
@@ -208,6 +208,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_output_file_name_template` | text | 否 | `sourceFileNameCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
 | `theme_mode` | text | 否 | `system` | `themeMode` | 应用主题偏好；当前支持 `system`、`light`、`dark`，是主题设置的 source of truth |
+| `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -220,6 +221,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | `id` | text | 否 | 无 | `id` | UUID 字符串，主键 |
+| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`；后续可扩展更新等类型 |
 | `level` | text | 否 | 无 | `level` | 通知级别：`info`、`success`、`warning`、`error` |
 | `title` | text | 否 | 无 | `title` | 通知标题 |
 | `message` | text | 否 | `''` | `message` | 通知正文或失败原因 |
@@ -227,7 +229,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `created_at` | integer | 否 | 无 | `createdAt` | 通知创建时间，毫秒时间戳 |
 | `read_at` | integer | 是 | `null` | `readAt` | 通知被标记为已读的时间 |
 | `dismissed_at` | integer | 是 | `null` | `dismissedAt` | 通知被关闭或归档的时间 |
-| `payload_json` | text | 是 | `null` | `payloadJson` | 后续通知中心可用于跳转或动作的扩展载荷 |
+| `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName` 和可选 `outputPath` |
+
+通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析成果物文件夹动作。
 
 ## 枚举值
 
@@ -326,6 +330,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 13 | 给 `tasks` 增加 `analysis_audio_stream_index` |
 | 14 | 给 `tasks` 增加 `media_config_json` 和图片分析字段；给 `settings` 增加 `default_media_config_json` |
 | 15 | 给 `settings` 增加 `theme_mode`，保存浅色 / 深色主题偏好 |
+| 16 | 新增 `app_notifications` 表，持久化应用内通知历史 |
+| 17 | 给 `app_notifications` 增加 `kind`，支持类型化通知和动作扩展 |
+| 18 | 给 `settings` 增加 `hide_notification_badge`，持久化工作台通知角标显隐偏好 |
 
 ## 修改数据模型的约束
 

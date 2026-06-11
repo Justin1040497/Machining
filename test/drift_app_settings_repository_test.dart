@@ -28,6 +28,7 @@ void main() {
       defaultCompressionSmartPreset: 'chat',
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       themeMode: 'dark',
+      hideNotificationBadge: false,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -50,6 +51,7 @@ void main() {
       DefaultOutputFileNameTemplate.sourceFileNameCodec,
     );
     expect(settings.themeMode, AppThemeMode.dark);
+    expect(settings.hideNotificationBadge, isFalse);
   });
 
   test('settings row prefers default media config json over legacy fields', () {
@@ -74,6 +76,7 @@ void main() {
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       defaultMediaConfigJson: encodeMediaTaskConfig(mediaConfig),
       themeMode: 'light',
+      hideNotificationBadge: true,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -84,6 +87,7 @@ void main() {
     expect(settings.defaultSmartPreset, SmartCompressionPreset.balanced);
     expect(settings.defaultMediaConfig.image?.imageQuality, 67);
     expect(settings.themeMode, AppThemeMode.light);
+    expect(settings.hideNotificationBadge, isTrue);
   });
 
   test('settings row falls back to system theme for unknown theme values', () {
@@ -100,6 +104,7 @@ void main() {
       defaultCompressionSmartPreset: 'balanced',
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       themeMode: 'unexpected',
+      hideNotificationBadge: true,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -127,6 +132,7 @@ void main() {
         AppSettings.initial().copyWith(
           defaultMediaConfig: mediaConfig,
           themeMode: AppThemeMode.dark,
+          hideNotificationBadge: false,
         ),
       );
 
@@ -136,6 +142,7 @@ void main() {
       expect(row.defaultOutputVideoCodec, 'hevc');
       expect(row.defaultCompressionSmartPreset, 'chat');
       expect(row.themeMode, 'dark');
+      expect(row.hideNotificationBadge, isFalse);
       expect(savedConfig.video?.videoCodec, VideoCodec.hevc);
       expect(savedConfig.image?.imageQuality, 71);
     },

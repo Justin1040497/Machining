@@ -284,6 +284,8 @@ void main() {
       await harness.waitForTaskStatus('first', TaskStatus.completed);
 
       expect(harness.repository.taskById('first').status, TaskStatus.completed);
+      expect(harness.completedNotifications, ['first']);
+      expect(harness.failedNotifications, isEmpty);
       expect(harness.runner.foregroundTaskId, isNull);
       expect(harness.runner.queueStatus, FfmpegQueueStatus.idle);
     });
@@ -386,6 +388,7 @@ void main() {
         harness.repository.taskById('no-ffmpeg').errorMessage,
         'FFmpeg 不可用',
       );
+      expect(harness.failedNotifications, ['no-ffmpeg']);
     });
 
     test(
@@ -492,6 +495,8 @@ class QueueHarness {
   final FakeProcessController processController;
   final FakeProcessObserver processObserver;
   final Directory logDirectory;
+  final List<String> completedNotifications = [];
+  final List<String> failedNotifications = [];
   late final DefaultFfmpegTaskQueueRunner runner;
 
   QueueHarness({
@@ -531,6 +536,12 @@ class QueueHarness {
       processObserver: this.processObserver,
       createLogFilePath: (task, plan) async {
         return logFileFor(task.id).path;
+      },
+      onTaskCompleted: (task) async {
+        completedNotifications.add(task.id);
+      },
+      onTaskFailed: (task) async {
+        failedNotifications.add(task.id);
       },
       continuousExecutionEnabled: continuousExecutionEnabled,
       now: () async => DateTime.fromMillisecondsSinceEpoch(1000),

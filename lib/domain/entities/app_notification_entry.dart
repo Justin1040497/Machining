@@ -1,8 +1,10 @@
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 
 class AppNotificationEntry {
   const AppNotificationEntry({
     required this.id,
+    this.kind = AppNotificationKind.general,
     required this.level,
     required this.title,
     required this.message,
@@ -14,6 +16,7 @@ class AppNotificationEntry {
   });
 
   final String id;
+  final AppNotificationKind kind;
   final AppNotificationLevel level;
   final String title;
   final String message;
@@ -22,6 +25,10 @@ class AppNotificationEntry {
   final DateTime? readAt;
   final DateTime? dismissedAt;
   final String? payloadJson;
+
+  bool get isUnread => readAt == null;
+
+  bool get isDismissed => dismissedAt != null;
 
   String get displayMessage {
     final trimmedMessage = message.trim();

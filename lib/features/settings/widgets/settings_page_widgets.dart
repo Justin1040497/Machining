@@ -1,4 +1,4 @@
-part of '../app_settings_page.dart';
+part of '../pages/app_settings_page.dart';
 
 class _SettingsLoading extends StatelessWidget {
   const _SettingsLoading();

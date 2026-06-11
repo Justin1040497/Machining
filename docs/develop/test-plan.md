@@ -33,11 +33,14 @@ test/
   app_settings_page_test.dart
   app_settings_test.dart
   app_settings_use_cases_test.dart
+  app_notification_host_test.dart
+  app_notification_manager_test.dart
   bundled_proprietary_audio_adapter_registry_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
   compression_mode_mapper_test.dart
   drift_app_settings_repository_test.dart
+  drift_app_notification_repository_test.dart
   drift_media_task_repository_test.dart
   ffmpeg_command_builder_test.dart
   ffmpeg_encoder_capabilities_test.dart
@@ -53,6 +56,7 @@ test/
   media_task_notifier_test.dart
   media_task_use_case_helpers_test.dart
   native_ncm_audio_decoder_test.dart
+  notification_center_panel_test.dart
   preview_frame_generator_test.dart
   proprietary_audio_decoder_dispatcher_test.dart
   proprietary_audio_format_resolver_test.dart
@@ -67,6 +71,7 @@ test/
   workbench_dialog_style_test.dart
   workbench_external_link_opener_test.dart
   workbench_file_revealer_test.dart
+  workbench_notice_test.dart
   workbench_preview_notifier_test.dart
 ```
 
@@ -80,6 +85,7 @@ test/
 - `theme_mode` 可保存 / 读取；未知主题值回退跟随系统。
 - `theme_prefs.json` 作为首帧缓存镜像，读写失败或损坏时不影响启动；启动后 DB 与缓存不一致时以 `settings.theme_mode` 为准对齐应用状态并重写缓存。
 - 应用设置页面的侧边栏导航、三类默认媒体配置、缓存清理入口和保存返回行为。
+- “关闭通知角标”默认开启，可按应用设置分区独立保存、取消和持久化读取。
 - 底部栏设置入口和新任务默认配置应用。
 
 ### Application Use Cases
@@ -90,6 +96,18 @@ test/
 - 任务重排只持久化 `sort_order` 字段，失败时刷新仓储顺序，避免 UI 顺序和 DB 顺序分裂。
 - 队列启动、单任务开始 / 继续、暂停和清空时取消执行。
 - 预览帧生成通过 `GeneratePreviewFramesUseCase` 读取运行时并调用预览服务。
+- 应用通知先持久化再展示；设置保存离开页面后仍记录结果；FFmpeg 队列完成 / 失败直接产生类型化任务通知。
+
+### 通知中心
+
+- 通知仓储按创建时间倒序读取全部未归档通知，并支持批量已读和批量软归档。
+- 工作台通知按钮展示持久化未读数量角标。
+- 工作台在“关闭通知角标”开启时隐藏角标，但不清除未读数量或禁用通知中心入口。
+- 通知中心使用自制右侧浮层和滑入动画，不依赖 `Drawer` 或手势抽屉。
+- 打开通知中心批量标记已读；浮层打开期间新增通知自动已读；清扫后列表和角标同步清空。
+- 任务成功通知按类型化载荷显示成果物文件夹按钮；任务失败通知显示原因且不提供成果物动作。
+- 通知项副标题保留结果信息，并显示通知创建时间。
+- 浮层支持点击遮罩和 `Esc` 关闭；打开期间不会与根级临时通知叠加。
 
 ### 持久化兼容
 
@@ -246,8 +264,12 @@ test/
 - 顶部通知从右向左进入，并在关闭时播放退出动画。
 - 通知边距、颜色、圆角和阴影与工作台视觉风格一致。
 - Windows 顶部保留通知安全区，通知不遮挡单任务列表项右侧按钮。
+- 点击右上角通知按钮后，通知中心从窗口右侧向左滑入；再次点击、点击遮罩或按 `Esc` 可关闭。
+- 通知中心展示全部未归档通知，打开后角标归零；清扫按钮清空当前通知列表。
+- 应用设置默认隐藏通知角标；关闭“关闭通知角标”后，工作台按未读数量重新显示角标。
+- 任务成功通知右上角显示文件夹按钮，并能在 Finder / Explorer 中定位成果物。
 - 压缩确认、导入失败、清空任务和重命名弹窗使用统一工作台弹窗框架。
-- 首页右上角关于入口可打开关于弹窗，关于弹窗提供 GitHub 和 Gitee 项目入口。
+- 关于内容只在设置页面展示，工作台不再提供关于弹窗入口。
 
 ### 完成和结果处理
 

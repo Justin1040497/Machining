@@ -42,14 +42,65 @@ void main() {
 
     await manager.notify(
       level: AppNotificationLevel.success,
-      title: '设置修改并保存成功',
+      title: '应用主题已保存',
       source: 'settings',
     );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
 
-    expect(find.text('设置修改并保存成功'), findsOneWidget);
+    expect(find.text('应用主题已保存'), findsOneWidget);
+    final cardSize = tester.getSize(
+      find.byKey(const ValueKey('app-notification-card')),
+    );
+    expect(cardSize.width, inInclusiveRange(260, 270));
+    expect(cardSize.height, inInclusiveRange(52, 60));
     expect(tester.takeException(), isNull);
+
+    await manager.notify(
+      level: AppNotificationLevel.error,
+      title: '应用主题保存失败',
+      message: 'FFmpeg 路径无效，请重新选择可执行文件',
+      source: 'settings',
+    );
+    await tester.pump();
+
+    expect(find.text('应用主题已保存'), findsOneWidget);
+    expect(find.text('应用主题保存失败'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.text('应用主题已保存'), findsOneWidget);
+    expect(find.text('应用主题保存失败'), findsNothing);
+
+    await tester.pump(const Duration(milliseconds: 130));
+
+    expect(find.text('应用主题已保存'), findsNothing);
+    expect(find.text('应用主题保存失败'), findsOneWidget);
+    expect(find.text('FFmpeg 路径无效，请重新选择可执行文件'), findsOneWidget);
+    final failureCardSize = tester.getSize(
+      find.byKey(const ValueKey('app-notification-card')),
+    );
+    expect(failureCardSize.width, 300);
+    expect(failureCardSize.height, inInclusiveRange(58, 70));
+    expect(tester.takeException(), isNull);
+
+    await manager.notify(
+      level: AppNotificationLevel.info,
+      title: '第二条通知',
+      source: 'test',
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 80));
+    await manager.notify(
+      level: AppNotificationLevel.success,
+      title: '最新通知',
+      source: 'test',
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 150));
+
+    expect(find.text('应用主题保存失败'), findsNothing);
+    expect(find.text('第二条通知'), findsNothing);
+    expect(find.text('最新通知'), findsOneWidget);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
@@ -62,14 +113,20 @@ class FakeAppNotificationRepository implements AppNotificationRepository {
   Future<void> dismiss(String id, DateTime dismissedAt) async {}
 
   @override
+  Future<void> dismissAll(DateTime dismissedAt) async {}
+
+  @override
   Future<List<AppNotificationEntry>> loadRecentNotifications({
-    int limit = 50,
+    int? limit,
   }) async {
-    return savedNotifications.take(limit).toList();
+    return savedNotifications.take(limit ?? savedNotifications.length).toList();
   }
 
   @override
   Future<void> markAsRead(String id, DateTime readAt) async {}
+
+  @override
+  Future<void> markAllAsRead(DateTime readAt) async {}
 
   @override
   Future<void> saveNotification(AppNotificationEntry notification) async {
@@ -78,8 +135,8 @@ class FakeAppNotificationRepository implements AppNotificationRepository {
 
   @override
   Stream<List<AppNotificationEntry>> watchRecentNotifications({
-    int limit = 50,
+    int? limit,
   }) async* {
-    yield savedNotifications.take(limit).toList();
+    yield savedNotifications.take(limit ?? savedNotifications.length).toList();
   }
 }

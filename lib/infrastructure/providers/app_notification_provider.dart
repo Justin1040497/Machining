@@ -28,6 +28,16 @@ final appNotificationsProvider = StreamProvider<List<AppNotificationEntry>>((
       .watchRecentNotifications();
 });
 
+final appNotificationUnreadCountProvider = StreamProvider<int>((ref) {
+  return ref
+      .watch(appNotificationRepositoryProvider)
+      .watchRecentNotifications()
+      .map(
+        (notifications) =>
+            notifications.where((notification) => notification.isUnread).length,
+      );
+});
+
 final appNotificationPresentationsProvider =
     StreamProvider<AppNotificationPresentation>((ref) {
       return ref.watch(appNotificationManagerProvider).presentations;

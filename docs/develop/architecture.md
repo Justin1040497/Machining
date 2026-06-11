@@ -78,6 +78,10 @@ lib/
       ffmpeg_planning/
       execution/
   features/
+    notifications/
+      providers/
+      services/
+      widgets/
     workbench/
       pages/
         workbench_page/
@@ -145,6 +149,7 @@ Use Cases：
 
 - `LoadAppSettingsUseCase`、`SaveAppSettingsUseCase`：读取、校验并保存应用设置。
 - `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。
+- `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径等动作数据。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
 - `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
 - `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
@@ -196,9 +201,10 @@ Use Cases：
 `features/settings` 是全屏应用设置功能区：
 
 - `pages/app_settings_page.dart`：`/settings` 页面入口，负责加载和保存 `AppSettings`、接入缓存清理和 Windows 清理卸载入口。
-- `pages/sections/`：设置分区渲染和分区级保存 / 回滚逻辑，当前包含应用、关于、视频、图片、音频、输出和编码器配置。
-- `pages/widgets/`：设置页通用 UI 组件，例如侧边栏、表单容器、分区保存按钮、输入控件和关于页维护组件。
+- `sections/`：设置分区渲染和分区级保存 / 回滚逻辑，当前包含应用、关于、视频、图片、音频、输出和编码器配置。
+- `widgets/`：设置页通用 UI 组件，例如侧边栏、表单容器、分区保存按钮、输入控件和关于页维护组件。
 - 设置页复用 `features/workbench/widgets/form_controls/` 的路径输入和下拉控件，保持与工作台配置控件一致。
+- 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 
 工作台当前支持：
 
@@ -211,6 +217,16 @@ Use Cases：
 - 完成、失败和分析错误提示。
 - 缩略图和压缩前后预览帧。
 
+### features/notifications
+
+`features/notifications` 保存通知中心的 UI 状态、动作解析和右侧浮层：
+
+- `providers/notification_center_provider.dart`：保存通知中心开关状态，供工作台和根级临时通知 Host 共享。
+- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为“打开成果物所在位置”。
+- `widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
+- 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
+- 通知项副标题保留通知正文或失败原因，并使用同一副标题字体追加通知时间。
+
 ## Riverpod 组装方式
 
 FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。
@@ -222,6 +238,7 @@ FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。
 | `appDatabaseProvider` | `Provider<AppDatabase>` | 提供全局唯一数据库实例，容器释放时关闭 |
 | `mediaTaskRepositoryProvider` | `Provider<MediaTaskRepository>` | 提供 Drift 任务仓储 |
 | `appSettingsRepositoryProvider` | `Provider<AppSettingsRepository>` | 提供 Drift 设置仓储 |
+| `appSettingsProvider` | `FutureProvider<AppSettings>` | 提供当前持久化应用设置，供工作台读取通知角标偏好 |
 | `mediaKindResolverProvider` | `Provider<MediaKindResolver>` | 提供扩展名媒体类型识别实现 |
 | `sourceFileCheckerProvider` | `Provider<SourceFileChecker>` | 提供本地源文件存在检查 |
 | `sourceFileFingerprintReaderProvider` | `Provider<SourceFileFingerprintReader>` | 提供本地源文件指纹读取 |
@@ -346,6 +363,7 @@ start / startOrResumeTask
   -> FfmpegProcessController 负责暂停、继续和终止
   -> LocalFfmpegProcessObserver.observe()
   -> 根据退出结果 markCompleted() 或 markFailed()
+  -> AppNotificationManager 持久化任务完成 / 失败通知
   -> 清理两遍压缩临时文件
   -> continueAfterTask()
 ```

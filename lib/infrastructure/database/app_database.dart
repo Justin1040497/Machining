@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration {
@@ -247,6 +247,20 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 16) {
           await migrator.createTable(appNotificationRows);
+        }
+        if (from < 17) {
+          await _safeAddColumn(
+            migrator,
+            appNotificationRows,
+            appNotificationRows.kind,
+          );
+        }
+        if (from < 18) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.hideNotificationBadge,
+          );
         }
       },
     );

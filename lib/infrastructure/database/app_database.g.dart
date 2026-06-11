@@ -166,6 +166,21 @@ class $SettingsRowsTable extends SettingsRows
     requiredDuringInsert: false,
     defaultValue: const Constant('system'),
   );
+  static const VerificationMeta _hideNotificationBadgeMeta =
+      const VerificationMeta('hideNotificationBadge');
+  @override
+  late final GeneratedColumn<bool> hideNotificationBadge =
+      GeneratedColumn<bool>(
+        'hide_notification_badge',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("hide_notification_badge" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -203,6 +218,7 @@ class $SettingsRowsTable extends SettingsRows
     defaultOutputFileNameTemplate,
     defaultMediaConfigJson,
     themeMode,
+    hideNotificationBadge,
     createdAt,
     updatedAt,
   ];
@@ -326,6 +342,15 @@ class $SettingsRowsTable extends SettingsRows
         themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
       );
     }
+    if (data.containsKey('hide_notification_badge')) {
+      context.handle(
+        _hideNotificationBadgeMeta,
+        hideNotificationBadge.isAcceptableOrUnknown(
+          data['hide_notification_badge']!,
+          _hideNotificationBadgeMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -403,6 +428,10 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}theme_mode'],
       )!,
+      hideNotificationBadge: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}hide_notification_badge'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -434,6 +463,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String defaultOutputFileNameTemplate;
   final String? defaultMediaConfigJson;
   final String themeMode;
+  final bool hideNotificationBadge;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
@@ -450,6 +480,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.defaultOutputFileNameTemplate,
     this.defaultMediaConfigJson,
     required this.themeMode,
+    required this.hideNotificationBadge,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -493,6 +524,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       );
     }
     map['theme_mode'] = Variable<String>(themeMode);
+    map['hide_notification_badge'] = Variable<bool>(hideNotificationBadge);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -524,6 +556,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ? const Value.absent()
           : Value(defaultMediaConfigJson),
       themeMode: Value(themeMode),
+      hideNotificationBadge: Value(hideNotificationBadge),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -566,6 +599,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         json['defaultMediaConfigJson'],
       ),
       themeMode: serializer.fromJson<String>(json['themeMode']),
+      hideNotificationBadge: serializer.fromJson<bool>(
+        json['hideNotificationBadge'],
+      ),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -601,6 +637,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         defaultMediaConfigJson,
       ),
       'themeMode': serializer.toJson<String>(themeMode),
+      'hideNotificationBadge': serializer.toJson<bool>(hideNotificationBadge),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -620,6 +657,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     String? defaultOutputFileNameTemplate,
     Value<String?> defaultMediaConfigJson = const Value.absent(),
     String? themeMode,
+    bool? hideNotificationBadge,
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -650,6 +688,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         ? defaultMediaConfigJson.value
         : this.defaultMediaConfigJson,
     themeMode: themeMode ?? this.themeMode,
+    hideNotificationBadge: hideNotificationBadge ?? this.hideNotificationBadge,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -690,6 +729,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ? data.defaultMediaConfigJson.value
           : this.defaultMediaConfigJson,
       themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
+      hideNotificationBadge: data.hideNotificationBadge.present
+          ? data.hideNotificationBadge.value
+          : this.hideNotificationBadge,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -715,6 +757,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           )
           ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
           ..write('themeMode: $themeMode, ')
+          ..write('hideNotificationBadge: $hideNotificationBadge, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -736,6 +779,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     defaultOutputFileNameTemplate,
     defaultMediaConfigJson,
     themeMode,
+    hideNotificationBadge,
     createdAt,
     updatedAt,
   );
@@ -760,6 +804,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
               this.defaultOutputFileNameTemplate &&
           other.defaultMediaConfigJson == this.defaultMediaConfigJson &&
           other.themeMode == this.themeMode &&
+          other.hideNotificationBadge == this.hideNotificationBadge &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -778,6 +823,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String> defaultOutputFileNameTemplate;
   final Value<String?> defaultMediaConfigJson;
   final Value<String> themeMode;
+  final Value<bool> hideNotificationBadge;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
@@ -794,6 +840,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultOutputFileNameTemplate = const Value.absent(),
     this.defaultMediaConfigJson = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.hideNotificationBadge = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -811,6 +858,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultOutputFileNameTemplate = const Value.absent(),
     this.defaultMediaConfigJson = const Value.absent(),
     this.themeMode = const Value.absent(),
+    this.hideNotificationBadge = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -829,6 +877,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? defaultOutputFileNameTemplate,
     Expression<String>? defaultMediaConfigJson,
     Expression<String>? themeMode,
+    Expression<bool>? hideNotificationBadge,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -854,6 +903,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       if (defaultMediaConfigJson != null)
         'default_media_config_json': defaultMediaConfigJson,
       if (themeMode != null) 'theme_mode': themeMode,
+      if (hideNotificationBadge != null)
+        'hide_notification_badge': hideNotificationBadge,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -873,6 +924,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String>? defaultOutputFileNameTemplate,
     Value<String?>? defaultMediaConfigJson,
     Value<String>? themeMode,
+    Value<bool>? hideNotificationBadge,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -897,6 +949,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       defaultMediaConfigJson:
           defaultMediaConfigJson ?? this.defaultMediaConfigJson,
       themeMode: themeMode ?? this.themeMode,
+      hideNotificationBadge:
+          hideNotificationBadge ?? this.hideNotificationBadge,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -958,6 +1012,11 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     if (themeMode.present) {
       map['theme_mode'] = Variable<String>(themeMode.value);
     }
+    if (hideNotificationBadge.present) {
+      map['hide_notification_badge'] = Variable<bool>(
+        hideNotificationBadge.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -987,6 +1046,7 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           )
           ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
           ..write('themeMode: $themeMode, ')
+          ..write('hideNotificationBadge: $hideNotificationBadge, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -4622,6 +4682,16 @@ class $AppNotificationRowsTable extends AppNotificationRows
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+    'kind',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('general'),
+  );
   static const VerificationMeta _levelMeta = const VerificationMeta('level');
   @override
   late final GeneratedColumn<String> level = GeneratedColumn<String>(
@@ -4706,6 +4776,7 @@ class $AppNotificationRowsTable extends AppNotificationRows
   @override
   List<GeneratedColumn> get $columns => [
     id,
+    kind,
     level,
     title,
     message,
@@ -4731,6 +4802,12 @@ class $AppNotificationRowsTable extends AppNotificationRows
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
       context.missing(_idMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+        _kindMeta,
+        kind.isAcceptableOrUnknown(data['kind']!, _kindMeta),
+      );
     }
     if (data.containsKey('level')) {
       context.handle(
@@ -4807,6 +4884,10 @@ class $AppNotificationRowsTable extends AppNotificationRows
         DriftSqlType.string,
         data['${effectivePrefix}id'],
       )!,
+      kind: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}kind'],
+      )!,
       level: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}level'],
@@ -4851,6 +4932,7 @@ class $AppNotificationRowsTable extends AppNotificationRows
 class AppNotificationRow extends DataClass
     implements Insertable<AppNotificationRow> {
   final String id;
+  final String kind;
   final String level;
   final String title;
   final String message;
@@ -4861,6 +4943,7 @@ class AppNotificationRow extends DataClass
   final String? payloadJson;
   const AppNotificationRow({
     required this.id,
+    required this.kind,
     required this.level,
     required this.title,
     required this.message,
@@ -4874,6 +4957,7 @@ class AppNotificationRow extends DataClass
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
+    map['kind'] = Variable<String>(kind);
     map['level'] = Variable<String>(level);
     map['title'] = Variable<String>(title);
     map['message'] = Variable<String>(message);
@@ -4894,6 +4978,7 @@ class AppNotificationRow extends DataClass
   AppNotificationRowsCompanion toCompanion(bool nullToAbsent) {
     return AppNotificationRowsCompanion(
       id: Value(id),
+      kind: Value(kind),
       level: Value(level),
       title: Value(title),
       message: Value(message),
@@ -4918,6 +5003,7 @@ class AppNotificationRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AppNotificationRow(
       id: serializer.fromJson<String>(json['id']),
+      kind: serializer.fromJson<String>(json['kind']),
       level: serializer.fromJson<String>(json['level']),
       title: serializer.fromJson<String>(json['title']),
       message: serializer.fromJson<String>(json['message']),
@@ -4933,6 +5019,7 @@ class AppNotificationRow extends DataClass
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
       'id': serializer.toJson<String>(id),
+      'kind': serializer.toJson<String>(kind),
       'level': serializer.toJson<String>(level),
       'title': serializer.toJson<String>(title),
       'message': serializer.toJson<String>(message),
@@ -4946,6 +5033,7 @@ class AppNotificationRow extends DataClass
 
   AppNotificationRow copyWith({
     String? id,
+    String? kind,
     String? level,
     String? title,
     String? message,
@@ -4956,6 +5044,7 @@ class AppNotificationRow extends DataClass
     Value<String?> payloadJson = const Value.absent(),
   }) => AppNotificationRow(
     id: id ?? this.id,
+    kind: kind ?? this.kind,
     level: level ?? this.level,
     title: title ?? this.title,
     message: message ?? this.message,
@@ -4968,6 +5057,7 @@ class AppNotificationRow extends DataClass
   AppNotificationRow copyWithCompanion(AppNotificationRowsCompanion data) {
     return AppNotificationRow(
       id: data.id.present ? data.id.value : this.id,
+      kind: data.kind.present ? data.kind.value : this.kind,
       level: data.level.present ? data.level.value : this.level,
       title: data.title.present ? data.title.value : this.title,
       message: data.message.present ? data.message.value : this.message,
@@ -4987,6 +5077,7 @@ class AppNotificationRow extends DataClass
   String toString() {
     return (StringBuffer('AppNotificationRow(')
           ..write('id: $id, ')
+          ..write('kind: $kind, ')
           ..write('level: $level, ')
           ..write('title: $title, ')
           ..write('message: $message, ')
@@ -5002,6 +5093,7 @@ class AppNotificationRow extends DataClass
   @override
   int get hashCode => Object.hash(
     id,
+    kind,
     level,
     title,
     message,
@@ -5016,6 +5108,7 @@ class AppNotificationRow extends DataClass
       identical(this, other) ||
       (other is AppNotificationRow &&
           other.id == this.id &&
+          other.kind == this.kind &&
           other.level == this.level &&
           other.title == this.title &&
           other.message == this.message &&
@@ -5028,6 +5121,7 @@ class AppNotificationRow extends DataClass
 
 class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   final Value<String> id;
+  final Value<String> kind;
   final Value<String> level;
   final Value<String> title;
   final Value<String> message;
@@ -5039,6 +5133,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   final Value<int> rowid;
   const AppNotificationRowsCompanion({
     this.id = const Value.absent(),
+    this.kind = const Value.absent(),
     this.level = const Value.absent(),
     this.title = const Value.absent(),
     this.message = const Value.absent(),
@@ -5051,6 +5146,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   });
   AppNotificationRowsCompanion.insert({
     required String id,
+    this.kind = const Value.absent(),
     required String level,
     required String title,
     this.message = const Value.absent(),
@@ -5067,6 +5163,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
        createdAt = Value(createdAt);
   static Insertable<AppNotificationRow> custom({
     Expression<String>? id,
+    Expression<String>? kind,
     Expression<String>? level,
     Expression<String>? title,
     Expression<String>? message,
@@ -5079,6 +5176,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
+      if (kind != null) 'kind': kind,
       if (level != null) 'level': level,
       if (title != null) 'title': title,
       if (message != null) 'message': message,
@@ -5093,6 +5191,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
 
   AppNotificationRowsCompanion copyWith({
     Value<String>? id,
+    Value<String>? kind,
     Value<String>? level,
     Value<String>? title,
     Value<String>? message,
@@ -5105,6 +5204,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   }) {
     return AppNotificationRowsCompanion(
       id: id ?? this.id,
+      kind: kind ?? this.kind,
       level: level ?? this.level,
       title: title ?? this.title,
       message: message ?? this.message,
@@ -5122,6 +5222,9 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
     final map = <String, Expression>{};
     if (id.present) {
       map['id'] = Variable<String>(id.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
     }
     if (level.present) {
       map['level'] = Variable<String>(level.value);
@@ -5157,6 +5260,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   String toString() {
     return (StringBuffer('AppNotificationRowsCompanion(')
           ..write('id: $id, ')
+          ..write('kind: $kind, ')
           ..write('level: $level, ')
           ..write('title: $title, ')
           ..write('message: $message, ')
@@ -5204,6 +5308,7 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String> defaultOutputFileNameTemplate,
       Value<String?> defaultMediaConfigJson,
       Value<String> themeMode,
+      Value<bool> hideNotificationBadge,
       required int createdAt,
       required int updatedAt,
     });
@@ -5222,6 +5327,7 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String> defaultOutputFileNameTemplate,
       Value<String?> defaultMediaConfigJson,
       Value<String> themeMode,
+      Value<bool> hideNotificationBadge,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -5297,6 +5403,11 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get themeMode => $composableBuilder(
     column: $table.themeMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get hideNotificationBadge => $composableBuilder(
+    column: $table.hideNotificationBadge,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5387,6 +5498,11 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get hideNotificationBadge => $composableBuilder(
+    column: $table.hideNotificationBadge,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5470,6 +5586,11 @@ class $$SettingsRowsTableAnnotationComposer
   GeneratedColumn<String> get themeMode =>
       $composableBuilder(column: $table.themeMode, builder: (column) => column);
 
+  GeneratedColumn<bool> get hideNotificationBadge => $composableBuilder(
+    column: $table.hideNotificationBadge,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -5524,6 +5645,7 @@ class $$SettingsRowsTableTableManager
                     const Value.absent(),
                 Value<String?> defaultMediaConfigJson = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
+                Value<bool> hideNotificationBadge = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
@@ -5540,6 +5662,7 @@ class $$SettingsRowsTableTableManager
                 defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
                 defaultMediaConfigJson: defaultMediaConfigJson,
                 themeMode: themeMode,
+                hideNotificationBadge: hideNotificationBadge,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5561,6 +5684,7 @@ class $$SettingsRowsTableTableManager
                     const Value.absent(),
                 Value<String?> defaultMediaConfigJson = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
+                Value<bool> hideNotificationBadge = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
@@ -5577,6 +5701,7 @@ class $$SettingsRowsTableTableManager
                 defaultOutputFileNameTemplate: defaultOutputFileNameTemplate,
                 defaultMediaConfigJson: defaultMediaConfigJson,
                 themeMode: themeMode,
+                hideNotificationBadge: hideNotificationBadge,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -6970,6 +7095,7 @@ typedef $$TaskRowsTableProcessedTableManager =
 typedef $$AppNotificationRowsTableCreateCompanionBuilder =
     AppNotificationRowsCompanion Function({
       required String id,
+      Value<String> kind,
       required String level,
       required String title,
       Value<String> message,
@@ -6983,6 +7109,7 @@ typedef $$AppNotificationRowsTableCreateCompanionBuilder =
 typedef $$AppNotificationRowsTableUpdateCompanionBuilder =
     AppNotificationRowsCompanion Function({
       Value<String> id,
+      Value<String> kind,
       Value<String> level,
       Value<String> title,
       Value<String> message,
@@ -7005,6 +7132,11 @@ class $$AppNotificationRowsTableFilterComposer
   });
   ColumnFilters<String> get id => $composableBuilder(
     column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get kind => $composableBuilder(
+    column: $table.kind,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7063,6 +7195,11 @@ class $$AppNotificationRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get level => $composableBuilder(
     column: $table.level,
     builder: (column) => ColumnOrderings(column),
@@ -7115,6 +7252,9 @@ class $$AppNotificationRowsTableAnnotationComposer
   });
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
 
   GeneratedColumn<String> get level =>
       $composableBuilder(column: $table.level, builder: (column) => column);
@@ -7189,6 +7329,7 @@ class $$AppNotificationRowsTableTableManager
           updateCompanionCallback:
               ({
                 Value<String> id = const Value.absent(),
+                Value<String> kind = const Value.absent(),
                 Value<String> level = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String> message = const Value.absent(),
@@ -7200,6 +7341,7 @@ class $$AppNotificationRowsTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => AppNotificationRowsCompanion(
                 id: id,
+                kind: kind,
                 level: level,
                 title: title,
                 message: message,
@@ -7213,6 +7355,7 @@ class $$AppNotificationRowsTableTableManager
           createCompanionCallback:
               ({
                 required String id,
+                Value<String> kind = const Value.absent(),
                 required String level,
                 required String title,
                 Value<String> message = const Value.absent(),
@@ -7224,6 +7367,7 @@ class $$AppNotificationRowsTableTableManager
                 Value<int> rowid = const Value.absent(),
               }) => AppNotificationRowsCompanion.insert(
                 id: id,
+                kind: kind,
                 level: level,
                 title: title,
                 message: message,

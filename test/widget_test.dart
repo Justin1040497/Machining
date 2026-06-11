@@ -29,6 +29,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
@@ -887,6 +888,7 @@ void main() {
               onOpenNotifications: () {
                 notificationsTapped = true;
               },
+              unreadNotificationCount: 3,
               onClearTasks: () {},
               onPrimaryQueuePressed: () {},
             ),
@@ -900,6 +902,11 @@ void main() {
         greaterThanOrEqualTo(WorkbenchConstants.appTopBarHeight + 30),
       );
       expect(find.byTooltip('通知中心'), findsOneWidget);
+      expect(
+        find.byKey(const Key('notification-unread-badge')),
+        findsOneWidget,
+      );
+      expect(find.text('3'), findsOneWidget);
       expect(find.byTooltip('切换为深色模式'), findsOneWidget);
 
       await tester.tap(find.byTooltip('切换为深色模式'));
@@ -914,6 +921,27 @@ void main() {
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
+  });
+
+  testWidgets('notification badge can be hidden without losing unread count', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTopBar(
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenNotifications: () {},
+            unreadNotificationCount: 3,
+            showNotificationBadge: false,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('通知中心'), findsOneWidget);
+    expect(find.byKey(const Key('notification-unread-badge')), findsNothing);
   });
 
   testWidgets('task list drag handle starts reorder without layout exception', (

@@ -42,6 +42,9 @@ class AppSettings {
   /// 应用主题模式
   final AppThemeMode themeMode;
 
+  /// 是否关闭工作台通知未读角标
+  final bool hideNotificationBadge;
+
   AppSettings({
     this.defaultOutputDirectory,
     this.lastSelectedOutputDirectory,
@@ -57,6 +60,7 @@ class AppSettings {
     this.defaultOutputFileNameTemplate =
         DefaultOutputFileNameTemplate.sourceFileNameCodec,
     this.themeMode = AppThemeMode.system,
+    this.hideNotificationBadge = true,
   }) : defaultMediaConfig = resolveAppDefaultMediaConfig(
          defaultMediaConfig: defaultMediaConfig,
          compressionSettings: compressionSettings,
@@ -87,6 +91,7 @@ class AppSettings {
       defaultOutputFileNameTemplate:
           DefaultOutputFileNameTemplate.sourceFileNameCodec,
       themeMode: AppThemeMode.system,
+      hideNotificationBadge: true,
     );
   }
 
@@ -104,6 +109,7 @@ class AppSettings {
     SmartCompressionPreset? defaultSmartPreset,
     DefaultOutputFileNameTemplate? defaultOutputFileNameTemplate,
     AppThemeMode? themeMode,
+    bool? hideNotificationBadge,
   }) {
     return AppSettings(
       defaultOutputDirectory: identical(defaultOutputDirectory, _notProvided)
@@ -130,6 +136,8 @@ class AppSettings {
       defaultOutputFileNameTemplate:
           defaultOutputFileNameTemplate ?? this.defaultOutputFileNameTemplate,
       themeMode: themeMode ?? this.themeMode,
+      hideNotificationBadge:
+          hideNotificationBadge ?? this.hideNotificationBadge,
     );
   }
 

@@ -74,6 +74,7 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
               ),
             ),
             themeMode: Value(settings.themeMode.name),
+            hideNotificationBadge: Value(settings.hideNotificationBadge),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -102,6 +103,7 @@ extension SettingsRowMapper on SettingsRow {
           defaultOutputFileNameTemplate,
         ),
         themeMode: appThemeModeFromSettings(themeMode),
+        hideNotificationBadge: hideNotificationBadge,
       );
     }
 
@@ -128,6 +130,7 @@ extension SettingsRowMapper on SettingsRow {
         defaultOutputFileNameTemplate,
       ),
       themeMode: appThemeModeFromSettings(themeMode),
+      hideNotificationBadge: hideNotificationBadge,
     );
   }
 }
