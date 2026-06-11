@@ -29,6 +29,38 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-11｜v1.2.0｜No Release
+
+今天为通知中心接入打基础：将工作台右上角入口改为通知中心按钮，新增应用级持久化通知管理，并修复设置页分区保存 / 取消 / 离开页面的状态语义。
+
+### Added
+
+- 新增 `app_notifications` Drift 表和 `AppNotificationManager`，应用内提示会先写入本地通知历史，再由根级 `AppNotificationHost` 统一展示。
+- 新增通知持久化和设置页分区保存回归测试，覆盖保存成功、保存失败、页面离开后异步保存继续完成、分区切换 / 取消 / 返回只回滚不自动保存。
+- 新增 `AppNotificationHost` 回归测试，覆盖全局通知卡片在应用根层级展示时仍能正常使用 `Tooltip` / `Overlay`。
+
+### Changed
+
+- 工作台右上角“关于 FrameLean”按钮改为“通知中心”入口；关于内容只保留在设置页“关于”分区。
+- 工作台和任务日志的临时提示改为通过应用通知管理器发出，为后续右侧通知中心读取统一历史做准备。
+- 设置页保存成功 / 失败提示不再依赖设置页 `context`，保存事件进行中离开页面也会在完成后记录并展示通知。
+- 设置页代码结构拆分为 `pages/app_settings_page.dart`、`pages/sections/` 和 `pages/widgets/`，入口文件只保留加载、依赖注入和主视图状态骨架。
+
+### Fixed
+
+- 修复工作台旧关于弹窗仍引用已删除 `assets/icons/github.png` 导致全量 widget 测试失败的问题。
+- 修复根级通知提示放在 `MaterialApp.builder` 外层时缺少 `Overlay`，导致通知关闭按钮 `Tooltip` 抛出 `No Overlay widget found` 的问题。
+- 修复设置页保存失败被页面吞掉后仍把本地基准更新为“已保存”的问题。
+- 修复分区保存中返回按钮仍按旧 `saving` 状态判断、可能在保存中离开页面丢失提示的问题。
+
+### Verified
+
+- 通过 `flutter analyze`。
+- 通过 `flutter test test/app_notification_manager_test.dart test/drift_app_notification_repository_test.dart`。
+- 通过 `flutter test test/app_settings_page_test.dart`。
+- 通过 `flutter test test/widget_test.dart`。
+- 通过 `flutter test`。
+
 ## 2026-06-09｜v1.1.5｜No Release
 
 今天将应用设置从工作台弹窗迁移为全屏 `/settings` 路由页面，并按 v1.2.0 原型整理左侧设置导航、右侧配置内容和应用维护入口。

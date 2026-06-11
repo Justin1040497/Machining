@@ -1,3 +1,4 @@
+import 'package:framelean/infrastructure/database/app_notifications.dart';
 import 'package:framelean/infrastructure/database/settings.dart';
 import 'package:framelean/infrastructure/database/tasks.dart';
 import 'package:path/path.dart';
@@ -11,7 +12,7 @@ import 'package:path_provider/path_provider.dart';
 part 'app_database.g.dart';
 
 /// 数据库管理
-@DriftDatabase(tables: [SettingsRows, TaskRows])
+@DriftDatabase(tables: [SettingsRows, TaskRows, AppNotificationRows])
 class AppDatabase extends _$AppDatabase {
   /// 创建AppDatabase时 自动打开数据库
   AppDatabase() : super(openConnection());
@@ -38,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration {
@@ -243,6 +244,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 15) {
           await _safeAddColumn(migrator, settingsRows, settingsRows.themeMode);
+        }
+        if (from < 16) {
+          await migrator.createTable(appNotificationRows);
         }
       },
     );

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:framelean/app/notifications/app_notification_host.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
@@ -74,6 +75,9 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp> {
           themeMode: themeMode,
           themeAnimationDuration: const Duration(milliseconds: 200),
           themeAnimationCurve: Curves.easeIn,
+          builder: (context, child) {
+            return AppNotificationHost(child: child ?? const SizedBox.shrink());
+          },
         );
       },
     );

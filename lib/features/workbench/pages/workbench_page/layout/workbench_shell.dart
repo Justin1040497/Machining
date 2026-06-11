@@ -36,7 +36,7 @@ class WorkbenchShell extends StatelessWidget {
     required this.onOpenSettings,
     required this.themeMode,
     required this.onToggleThemeMode,
-    required this.onOpenAbout,
+    required this.onOpenNotifications,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
   });
@@ -63,7 +63,7 @@ class WorkbenchShell extends StatelessWidget {
   final VoidCallback onOpenSettings;
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
-  final VoidCallback onOpenAbout;
+  final VoidCallback onOpenNotifications;
   final VoidCallback onClearTasks;
   final VoidCallback onPrimaryQueuePressed;
 
@@ -120,7 +120,7 @@ class WorkbenchShell extends StatelessWidget {
                           child: WorkbenchTopBar(
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
-                            onOpenAbout: onOpenAbout,
+                            onOpenNotifications: onOpenNotifications,
                           ),
                         ),
                       if (defaultTargetPlatform == TargetPlatform.windows)
@@ -133,7 +133,7 @@ class WorkbenchShell extends StatelessWidget {
                           child: WorkbenchTopBar(
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
-                            onOpenAbout: onOpenAbout,
+                            onOpenNotifications: onOpenNotifications,
                             showBottomBorder: true,
                           ),
                         ),

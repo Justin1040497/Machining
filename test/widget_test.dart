@@ -853,7 +853,7 @@ void main() {
 
   testWidgets('windows shell reserves a top notice safe area', (tester) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-    var aboutTapped = false;
+    var notificationsTapped = false;
     var themeTapped = false;
     try {
       await tester.pumpWidget(
@@ -884,8 +884,8 @@ void main() {
               onToggleThemeMode: () {
                 themeTapped = true;
               },
-              onOpenAbout: () {
-                aboutTapped = true;
+              onOpenNotifications: () {
+                notificationsTapped = true;
               },
               onClearTasks: () {},
               onPrimaryQueuePressed: () {},
@@ -899,7 +899,7 @@ void main() {
         tester.getTopLeft(find.byType(MediaTaskListTile)).dy,
         greaterThanOrEqualTo(WorkbenchConstants.appTopBarHeight + 30),
       );
-      expect(find.byTooltip('关于 FrameLean'), findsOneWidget);
+      expect(find.byTooltip('通知中心'), findsOneWidget);
       expect(find.byTooltip('切换为深色模式'), findsOneWidget);
 
       await tester.tap(find.byTooltip('切换为深色模式'));
@@ -907,10 +907,10 @@ void main() {
 
       expect(themeTapped, isTrue);
 
-      await tester.tap(find.byTooltip('关于 FrameLean'));
+      await tester.tap(find.byTooltip('通知中心'));
       await tester.pumpAndSettle();
 
-      expect(aboutTapped, isTrue);
+      expect(notificationsTapped, isTrue);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }
@@ -955,7 +955,7 @@ void main() {
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
-            onOpenAbout: () {},
+            onOpenNotifications: () {},
             onClearTasks: () {},
             onPrimaryQueuePressed: () {},
           ),
