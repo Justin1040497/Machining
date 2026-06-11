@@ -21,6 +21,8 @@ import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
+import 'package:framelean/features/notifications/widgets/notification_center_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
@@ -41,6 +43,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_task
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
+import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
 import 'package:framelean/infrastructure/providers/execution_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
@@ -106,46 +109,66 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       (task) => task.status == TaskStatus.running,
     );
     final themeMode = ref.watch(appThemeModeProvider);
+    final unreadNotificationCount =
+        ref.watch(appNotificationUnreadCountProvider).asData?.value ?? 0;
+    final hideNotificationBadge =
+        ref.watch(appSettingsProvider).asData?.value.hideNotificationBadge ??
+        true;
+    final notificationCenterVisible = ref.watch(
+      notificationCenterVisibilityProvider,
+    );
 
     return Scaffold(
-      body: WorkbenchShell(
-        taskList: taskList,
-        selectedTask: selectedTask,
-        importEnabled: true,
-        importDragging: workbenchImportDragging,
-        hasRunningTask: hasRunningTask,
-        queueActionInFlight: queueActionInFlight,
-        thumbnailForTask: thumbnailForTask,
-        onImportDraggingChanged: (dragging) {
-          setState(() {
-            workbenchImportDragging = dragging;
-          });
-        },
-        onImportDrop: handleWorkbenchImportDrop,
-        onReorder: reorderTasks,
-        onOpenTask: openTask,
-        onStart: startOrResumeTask,
-        onPause: pauseTask,
-        onRemove: deleteTask,
-        onRetry: retryTask,
-        onRelink: relinkMissingSource,
-        onShowLog: showTaskLog,
-        onContextMenu: (task, position) {
-          unawaited(showTaskContextMenu(task, position));
-        },
-        onAddTask: pickAndAddTasks,
-        onOpenSettings: () {
-          unawaited(openSettingsPage());
-        },
-        themeMode: themeMode,
-        onToggleThemeMode: () {
-          unawaited(toggleThemeMode());
-        },
-        onOpenNotifications: openNotificationCenter,
-        onClearTasks: confirmClearTasks,
-        onPrimaryQueuePressed: () {
-          unawaited(handlePrimaryQueueAction(hasRunningTask));
-        },
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          WorkbenchShell(
+            taskList: taskList,
+            selectedTask: selectedTask,
+            importEnabled: true,
+            importDragging: workbenchImportDragging,
+            hasRunningTask: hasRunningTask,
+            queueActionInFlight: queueActionInFlight,
+            thumbnailForTask: thumbnailForTask,
+            onImportDraggingChanged: (dragging) {
+              setState(() {
+                workbenchImportDragging = dragging;
+              });
+            },
+            onImportDrop: handleWorkbenchImportDrop,
+            onReorder: reorderTasks,
+            onOpenTask: openTask,
+            onStart: startOrResumeTask,
+            onPause: pauseTask,
+            onRemove: deleteTask,
+            onRetry: retryTask,
+            onRelink: relinkMissingSource,
+            onShowLog: showTaskLog,
+            onContextMenu: (task, position) {
+              unawaited(showTaskContextMenu(task, position));
+            },
+            onAddTask: pickAndAddTasks,
+            onOpenSettings: () {
+              unawaited(openSettingsPage());
+            },
+            themeMode: themeMode,
+            onToggleThemeMode: () {
+              unawaited(toggleThemeMode());
+            },
+            onOpenNotifications: openNotificationCenter,
+            unreadNotificationCount: unreadNotificationCount,
+            showNotificationBadge: !hideNotificationBadge,
+            onClearTasks: confirmClearTasks,
+            onPrimaryQueuePressed: () {
+              unawaited(handlePrimaryQueueAction(hasRunningTask));
+            },
+          ),
+          NotificationCenterPanel(
+            visible: notificationCenterVisible,
+            onClose: closeNotificationCenter,
+            onRevealOutput: revealPathInFileManager,
+          ),
+        ],
       ),
     );
   }
@@ -471,11 +494,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> openSettingsPage() async {
     await runWorkbenchActionOnce('open-settings-page', () async {
+      closeNotificationCenter();
       await context.push<void>('/settings');
       if (!mounted) {
         return;
       }
 
+      ref.invalidate(appSettingsProvider);
       setState(() {
         workbenchImportDragging = false;
       });
@@ -525,7 +550,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  void openNotificationCenter() {}
+  void openNotificationCenter() {
+    ref.read(notificationCenterVisibilityProvider.notifier).toggle();
+  }
+
+  void closeNotificationCenter() {
+    ref.read(notificationCenterVisibilityProvider.notifier).close();
+  }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     await runWorkbenchActionOnce('show-task-configuration-dialog', () async {

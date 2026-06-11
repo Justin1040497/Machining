@@ -31,6 +31,9 @@ class SettingsRows extends Table {
       text().named('default_media_config_json').nullable()();
   TextColumn get themeMode =>
       text().named('theme_mode').withDefault(const Constant('system'))();
+  BoolColumn get hideNotificationBadge => boolean()
+      .named('hide_notification_badge')
+      .withDefault(const Constant(true))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

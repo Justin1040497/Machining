@@ -3,20 +3,25 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchNotice extends StatelessWidget {
   const WorkbenchNotice({
     super.key,
+    required this.title,
     required this.message,
+    required this.level,
     required this.visibleListenable,
     required this.onDismissed,
     this.actionLabel,
     this.onActionPressed,
   });
 
+  final String title;
   final String message;
+  final AppNotificationLevel level;
   final ValueListenable<bool> visibleListenable;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
@@ -26,14 +31,24 @@ class WorkbenchNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final compact = screenWidth < 520;
-    final horizontalMargin = compact ? 18.0 : 22.0;
+    final horizontalMargin = compact ? 14.0 : 18.0;
+    final hasDetails = message.trim().isNotEmpty;
+    final expanded = hasDetails || actionLabel != null;
+    final preferredMaxWidth = expanded ? 300.0 : 270.0;
+    final availableWidth = screenWidth - (horizontalMargin * 2);
+    final maxWidth = availableWidth < preferredMaxWidth
+        ? availableWidth
+        : preferredMaxWidth;
+    final preferredMinWidth = expanded ? 300.0 : 260.0;
+    final minWidth = compact || availableWidth < preferredMinWidth
+        ? 0.0
+        : preferredMinWidth;
     final top = defaultTargetPlatform == TargetPlatform.windows
         ? 14.0
-        : WorkbenchConstants.appTopBarHeight + 16;
+        : WorkbenchConstants.appTopBarHeight;
 
     return Positioned(
       top: top,
-      left: compact ? horizontalMargin : null,
       right: horizontalMargin,
       child: SafeArea(
         child: Align(
@@ -53,11 +68,13 @@ class WorkbenchNotice extends StatelessWidget {
             },
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: compact ? double.infinity : 390,
-                minWidth: compact ? 0 : 320,
+                minWidth: minWidth,
+                maxWidth: maxWidth,
               ),
               child: _NoticeCard(
+                title: title,
                 message: message,
+                level: level,
                 actionLabel: actionLabel,
                 onActionPressed: onActionPressed,
                 onDismissed: onDismissed,
@@ -70,84 +87,109 @@ class WorkbenchNotice extends StatelessWidget {
   }
 }
 
-class _NoticeCard extends StatelessWidget {
+class _NoticeCard extends StatefulWidget {
   const _NoticeCard({
+    required this.title,
     required this.message,
+    required this.level,
     required this.onDismissed,
     this.actionLabel,
     this.onActionPressed,
   });
 
+  final String title;
   final String message;
+  final AppNotificationLevel level;
   final String? actionLabel;
   final VoidCallback? onActionPressed;
   final VoidCallback onDismissed;
 
   @override
+  State<_NoticeCard> createState() => _NoticeCardState();
+}
+
+class _NoticeCardState extends State<_NoticeCard> {
+  bool hovered = false;
+
+  @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final style = _NoticeStyle.resolve(context, message);
+    final style = _NoticeStyle.resolve(context, widget.level);
+    final trimmedMessage = widget.message.trim();
+    final semanticsLabel = trimmedMessage.isEmpty
+        ? widget.title
+        : '${widget.title}：$trimmedMessage';
 
     return Semantics(
       container: true,
       liveRegion: true,
-      label: message,
-      child: Material(
-        color: Colors.transparent,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surface.withAlpha(242),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colors.border),
-                boxShadow: [
-                  BoxShadow(
-                    color: colors.shadow,
-                    blurRadius: 24,
-                    offset: Offset(0, 12),
-                  ),
-                  BoxShadow(
-                    color: colors.shadow.withAlpha(10),
-                    blurRadius: 4,
-                    offset: Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: IntrinsicHeight(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Container(width: 4, color: style.color),
-                    Flexible(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(14, 11, 9, 11),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _NoticeIcon(style: style),
-                            const SizedBox(width: 10),
-                            Expanded(child: _NoticeMessage(message: message)),
-                            if (actionLabel != null &&
-                                onActionPressed != null) ...[
-                              const SizedBox(width: 8),
-                              _NoticeActionButton(
-                                label: actionLabel!,
-                                color: style.color,
-                                onPressed: onActionPressed!,
-                              ),
-                            ],
-                            const SizedBox(width: 2),
-                            _NoticeCloseButton(onPressed: onDismissed),
-                          ],
-                        ),
-                      ),
+      label: semanticsLabel,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => hovered = true),
+        onExit: (_) => setState(() => hovered = false),
+        child: Material(
+          key: const ValueKey('app-notification-card'),
+          color: Colors.transparent,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: colors.surface.withAlpha(244),
+                  borderRadius: BorderRadius.circular(7),
+                  border: Border.all(color: colors.border),
+                  boxShadow: [
+                    BoxShadow(
+                      color: colors.shadow,
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
                     ),
                   ],
+                ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Container(width: 3, color: style.color),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(11, 12, 7, 12),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              _NoticeIcon(style: style),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: _NoticeContent(
+                                  title: widget.title,
+                                  message: trimmedMessage,
+                                ),
+                              ),
+                              if (widget.actionLabel != null &&
+                                  widget.onActionPressed != null) ...[
+                                const SizedBox(width: 7),
+                                _NoticeActionButton(
+                                  label: widget.actionLabel!,
+                                  color: style.color,
+                                  onPressed: widget.onActionPressed!,
+                                ),
+                              ],
+                              const SizedBox(width: 5),
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 120),
+                                opacity: hovered ? 1 : 0.48,
+                                child: _NoticeCloseButton(
+                                  onPressed: widget.onDismissed,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -166,40 +208,59 @@ class _NoticeIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 24,
-      height: 24,
+      width: 28,
+      height: 28,
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: style.backgroundColor,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Icon(style.icon, size: 15, color: style.color),
+      child: Icon(style.icon, size: 17, color: style.color),
     );
   }
 }
 
-class _NoticeMessage extends StatelessWidget {
-  const _NoticeMessage({required this.message});
+class _NoticeContent extends StatelessWidget {
+  const _NoticeContent({required this.title, required this.message});
 
+  final String title;
   final String message;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
+    final hasDetails = message.isNotEmpty;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 2),
-      child: Text(
-        message,
-        maxLines: 3,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: colors.textPrimary,
-          fontSize: 13.flSp,
-          height: 1.35,
-          fontWeight: FontWeight.w500,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 13.flSp,
+            height: 1.3,
+            fontWeight: FontWeight.w600,
+          ),
         ),
-      ),
+        if (hasDetails) ...[
+          const SizedBox(height: 3),
+          Text(
+            message,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12.flSp,
+              height: 1.3,
+              fontWeight: FontWeight.w400,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -217,21 +278,18 @@ class _NoticeActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 1),
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          backgroundColor: color.withAlpha(20),
-          foregroundColor: color,
-          minimumSize: const Size(44, 28),
-          padding: const EdgeInsets.symmetric(horizontal: 9),
-          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          textStyle: TextStyle(fontSize: 12.flSp, fontWeight: FontWeight.w700),
-        ),
-        child: Text(label),
+    return TextButton(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        backgroundColor: color.withAlpha(18),
+        foregroundColor: color,
+        minimumSize: const Size(40, 28),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        textStyle: TextStyle(fontSize: 11.flSp, fontWeight: FontWeight.w700),
       ),
+      child: Text(label),
     );
   }
 }
@@ -248,16 +306,19 @@ class _NoticeCloseButton extends StatelessWidget {
     return Tooltip(
       message: '关闭',
       child: IconButton(
+        key: const ValueKey('app-notification-close-button'),
         onPressed: onPressed,
-        icon: const Icon(Icons.close_rounded, size: 16),
+        icon: const Icon(Icons.close_rounded, size: 15),
         color: colors.iconMuted,
         padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+        constraints: const BoxConstraints.tightFor(width: 26, height: 28),
         visualDensity: VisualDensity.compact,
         style: IconButton.styleFrom(
+          minimumSize: const Size(26, 28),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           hoverColor: colors.surfaceMuted,
           highlightColor: colors.primarySoft,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(5)),
         ),
       ),
     );
@@ -275,55 +336,36 @@ class _NoticeStyle {
   final Color color;
   final Color backgroundColor;
 
-  static _NoticeStyle resolve(BuildContext context, String message) {
+  static _NoticeStyle resolve(
+    BuildContext context,
+    AppNotificationLevel level,
+  ) {
     final colors = context.frameLeanColors;
-    final normalized = message.toLowerCase();
-    if (_hasAny(normalized, const [
-      'error',
-      'exception',
-      'failed',
-      '失败',
-      '错误',
-      '不可用',
-      '不能为空',
-      '打开失败',
-    ])) {
-      return _NoticeStyle(
-        icon: Icons.error_outline_rounded,
-        color: colors.statusFailed,
-        backgroundColor: colors.failedSoft,
-      );
+    switch (level) {
+      case AppNotificationLevel.success:
+        return _NoticeStyle(
+          icon: Icons.check_rounded,
+          color: colors.primary,
+          backgroundColor: colors.primarySoft,
+        );
+      case AppNotificationLevel.warning:
+        return _NoticeStyle(
+          icon: Icons.warning_amber_rounded,
+          color: colors.statusRunning,
+          backgroundColor: colors.runningSoft,
+        );
+      case AppNotificationLevel.error:
+        return _NoticeStyle(
+          icon: Icons.error_outline_rounded,
+          color: colors.statusFailed,
+          backgroundColor: colors.failedSoft,
+        );
+      case AppNotificationLevel.info:
+        return _NoticeStyle(
+          icon: Icons.info_outline_rounded,
+          color: colors.primary,
+          backgroundColor: colors.primarySoft,
+        );
     }
-
-    if (_hasAny(normalized, const [
-      'success',
-      '完成',
-      '成功',
-      '已保存',
-      '已重新链接',
-      '导入成功',
-    ])) {
-      return _NoticeStyle(
-        icon: Icons.check_rounded,
-        color: colors.primary,
-        backgroundColor: colors.primarySoft,
-      );
-    }
-
-    return _NoticeStyle(
-      icon: Icons.info_outline_rounded,
-      color: colors.primary,
-      backgroundColor: colors.primarySoft,
-    );
-  }
-
-  static bool _hasAny(String message, List<String> tokens) {
-    for (final token in tokens) {
-      if (message.contains(token)) {
-        return true;
-      }
-    }
-
-    return false;
   }
 }

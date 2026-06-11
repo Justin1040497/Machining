@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 
 class AppNotificationRows extends Table {
   TextColumn get id => text()();
+  TextColumn get kind => text().withDefault(const Constant('general'))();
   TextColumn get level => text()();
   TextColumn get title => text()();
   TextColumn get message => text().withDefault(const Constant(''))();

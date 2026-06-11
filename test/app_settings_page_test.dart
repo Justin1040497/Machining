@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
+import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
@@ -29,11 +30,42 @@ void main() {
     expect(find.text('编码器配置'), findsOneWidget);
     expect(find.text('应用主题颜色'), findsOneWidget);
     expect(find.text('完成音频设置'), findsOneWidget);
+    expect(find.text('关闭通知角标'), findsOneWidget);
     expect(find.text('跟随系统'), findsOneWidget);
     expect(find.text('不通知'), findsOneWidget);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
   });
 
-  testWidgets('saves app theme from app settings section', (tester) async {
+  testWidgets('saves app preferences from app settings section', (
+    tester,
+  ) async {
+    AppSettings? savedSettings;
+    AppSettingsSaveTarget? savedTarget;
+
+    await pumpSettingsPage(
+      tester,
+      onSaveWithTarget: (settings, target) async {
+        savedSettings = settings;
+        savedTarget = target;
+      },
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('深色').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('关闭通知角标'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(savedSettings, isNotNull);
+    expect(savedSettings!.themeMode, AppThemeMode.dark);
+    expect(savedSettings!.hideNotificationBadge, isFalse);
+    expect(savedTarget, AppSettingsSaveTarget.application);
+  });
+
+  testWidgets('cancel restores notification badge preference', (tester) async {
     AppSettings? savedSettings;
 
     await pumpSettingsPage(
@@ -41,15 +73,15 @@ void main() {
       onSave: (settings) async => savedSettings = settings,
     );
 
-    await tester.tap(find.byType(DropdownButtonFormField<AppThemeMode>));
+    await tester.tap(find.text('关闭通知角标'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('深色').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+
+    await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
 
-    expect(savedSettings, isNotNull);
-    expect(savedSettings!.themeMode, AppThemeMode.dark);
+    expect(savedSettings, isNull);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
   });
 
   testWidgets('switching sections reverts unsaved edits without saving', (
@@ -382,6 +414,8 @@ Future<void> pumpSettingsPage(
   WidgetTester tester, {
   AppSettings? initialSettings,
   Future<void> Function(AppSettings settings)? onSave,
+  Future<void> Function(AppSettings settings, AppSettingsSaveTarget target)?
+  onSaveWithTarget,
   VoidCallback? onClose,
   AppCacheCleanupPreviewCallback? onPreviewAppCacheCleanup,
   AppSettingsExternalLinkCallback? onOpenExternalLink,
@@ -392,7 +426,13 @@ Future<void> pumpSettingsPage(
         body: AppSettingsView(
           initialSettings: initialSettings ?? AppSettings.initial(),
           fallbackDefaultDirectory: '/tmp/framelean-output',
-          onSave: onSave ?? (_) async {},
+          onSave: (settings, target) {
+            final scopedCallback = onSaveWithTarget;
+            if (scopedCallback != null) {
+              return scopedCallback(settings, target);
+            }
+            return (onSave ?? (_) async {})(settings);
+          },
           onPickOutputDirectory: () async => '/tmp/framelean-picked',
           onPickFfmpegPath: () async => '/usr/local/bin/ffmpeg',
           onPickFfprobePath: () async => '/usr/local/bin/ffprobe',

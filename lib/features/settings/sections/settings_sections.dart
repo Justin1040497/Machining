@@ -1,4 +1,4 @@
-part of '../app_settings_page.dart';
+part of '../pages/app_settings_page.dart';
 
 extension _AppSettingsViewSections on _AppSettingsViewState {
   Widget buildSelectedSection() {
@@ -40,6 +40,14 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               return;
             }
             updateViewState(() => completionSoundOption = value);
+          },
+        ),
+        const SizedBox(height: 18),
+        _SettingsCheckbox(
+          label: '关闭通知角标',
+          value: hideNotificationBadge,
+          onChanged: (value) {
+            updateViewState(() => hideNotificationBadge = value);
           },
         ),
         const SizedBox(height: 32),

@@ -2,7 +2,10 @@ import 'dart:async';
 
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 import 'package:uuid/uuid.dart';
 
 typedef AppNotificationActionCallback = void Function();
@@ -33,6 +36,7 @@ class AppNotificationManager {
       _presentationController.stream;
 
   Future<AppNotificationEntry> notify({
+    AppNotificationKind kind = AppNotificationKind.general,
     required AppNotificationLevel level,
     required String title,
     String message = '',
@@ -42,6 +46,7 @@ class AppNotificationManager {
   }) async {
     final notification = AppNotificationEntry(
       id: _uuid.v4(),
+      kind: kind,
       level: level,
       title: title,
       message: message,
@@ -58,7 +63,52 @@ class AppNotificationManager {
     return notification;
   }
 
+  Future<AppNotificationEntry> notifyTaskCompleted(MediaTask task) {
+    final payload = TaskNotificationPayload(
+      taskId: task.id,
+      fileName: task.fileName,
+      outputPath: task.outputPath,
+    );
+    return notify(
+      kind: AppNotificationKind.task,
+      level: AppNotificationLevel.success,
+      title: '${task.fileName} 处理完成',
+      message: task.outputPath?.trim().isNotEmpty == true
+          ? '已保存至 ${task.outputPath!.trim()}'
+          : '',
+      source: 'task',
+      payloadJson: payload.toJson(),
+    );
+  }
+
+  Future<AppNotificationEntry> notifyTaskFailed(MediaTask task) {
+    final payload = TaskNotificationPayload(
+      taskId: task.id,
+      fileName: task.fileName,
+      outputPath: task.outputPath,
+    );
+    return notify(
+      kind: AppNotificationKind.task,
+      level: AppNotificationLevel.error,
+      title: '${task.fileName} 处理失败',
+      message: task.errorMessage?.trim().isNotEmpty == true
+          ? task.errorMessage!.trim()
+          : '媒体处理未能完成',
+      source: 'task',
+      payloadJson: payload.toJson(),
+    );
+  }
+
+  Future<void> markAllAsRead() {
+    return repository.markAllAsRead(DateTime.now());
+  }
+
+  Future<void> dismissAll() {
+    return repository.dismissAll(DateTime.now());
+  }
+
   Future<T> track<T>({
+    AppNotificationKind kind = AppNotificationKind.general,
     required String source,
     required String successTitle,
     String successMessage = '',
@@ -69,6 +119,7 @@ class AppNotificationManager {
     try {
       final result = await operation();
       await notify(
+        kind: kind,
         level: AppNotificationLevel.success,
         title: successTitle,
         message: successMessage,
@@ -77,6 +128,7 @@ class AppNotificationManager {
       return result;
     } on Object catch (error) {
       await notify(
+        kind: kind,
         level: AppNotificationLevel.error,
         title: failureTitle,
         message: failureMessage?.call(error) ?? error.toString(),

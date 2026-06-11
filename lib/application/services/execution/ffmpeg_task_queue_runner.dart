@@ -108,6 +108,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Future<DateTime> Function() now;
   final Future<String> Function(MediaTask task, FfmpegCommandPlan plan)
   createLogFilePath;
+  final Future<void> Function(MediaTask task)? onTaskCompleted;
+  final Future<void> Function(MediaTask task)? onTaskFailed;
 
   final Map<String, TaskExecution> _executions = {};
   FfmpegQueueStatus _queueStatus = FfmpegQueueStatus.idle;
@@ -125,6 +127,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required this.processController,
     required this.processObserver,
     required this.createLogFilePath,
+    this.onTaskCompleted,
+    this.onTaskFailed,
     this.continuousExecutionEnabled = true,
     Future<DateTime> Function()? now,
   }) : now = now ?? (() async => DateTime.now());
@@ -412,6 +416,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (!runtime.canEncode || runtime.ffmpeg == null) {
       final failedTask = task.markFailed('FFmpeg 不可用');
       await repository.saveTask(failedTask);
+      await publishTaskFailed(failedTask);
       await continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.ffmpegUnavailable,
@@ -450,6 +455,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       }
       final failedTask = task.markFailed(error.toString());
       await repository.saveTask(failedTask);
+      await publishTaskFailed(failedTask);
       await continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.commandBuildFailed,
@@ -491,6 +497,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
       final failedTask = runningTask.markFailed('FFmpeg 启动失败: $error');
       await repository.saveTask(failedTask);
+      await publishTaskFailed(failedTask);
       await mediaInputPreparer.cleanup(executionInput);
       await continueAfterTask();
       return FfmpegQueueStartResult(
@@ -692,6 +699,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           failedAt: (await now()).millisecondsSinceEpoch,
         );
         await repository.saveTask(failedTask);
+        await publishTaskFailed(failedTask);
         await continueAfterTask();
       }
       return;
@@ -722,6 +730,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
 
       await repository.saveTask(completedTask);
+      await publishTaskCompleted(completedTask);
     } else {
       await appendExecutionLogFooter(
         execution.logFile,
@@ -734,11 +743,36 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         failedAt: (await now()).millisecondsSinceEpoch,
       );
       await repository.saveTask(failedTask);
+      await publishTaskFailed(failedTask);
     }
 
     await cleanupPlanFiles(execution.plan);
     await mediaInputPreparer.cleanup(execution.preparedInput);
     await continueAfterTask();
+  }
+
+  Future<void> publishTaskCompleted(MediaTask task) async {
+    final callback = onTaskCompleted;
+    if (callback == null) {
+      return;
+    }
+    try {
+      await callback(task);
+    } on Object {
+      // Notification persistence must not change a completed task result.
+    }
+  }
+
+  Future<void> publishTaskFailed(MediaTask task) async {
+    final callback = onTaskFailed;
+    if (callback == null) {
+      return;
+    }
+    try {
+      await callback(task);
+    } on Object {
+      // Notification persistence must not change a failed task result.
+    }
   }
 
   Future<int?> _getFileSize(String filePath) async {

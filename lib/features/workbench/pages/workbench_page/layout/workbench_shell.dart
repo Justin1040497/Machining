@@ -37,6 +37,8 @@ class WorkbenchShell extends StatelessWidget {
     required this.themeMode,
     required this.onToggleThemeMode,
     required this.onOpenNotifications,
+    this.unreadNotificationCount = 0,
+    this.showNotificationBadge = true,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
   });
@@ -64,6 +66,8 @@ class WorkbenchShell extends StatelessWidget {
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
   final VoidCallback onOpenNotifications;
+  final int unreadNotificationCount;
+  final bool showNotificationBadge;
   final VoidCallback onClearTasks;
   final VoidCallback onPrimaryQueuePressed;
 
@@ -121,6 +125,8 @@ class WorkbenchShell extends StatelessWidget {
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
                             onOpenNotifications: onOpenNotifications,
+                            unreadNotificationCount: unreadNotificationCount,
+                            showNotificationBadge: showNotificationBadge,
                           ),
                         ),
                       if (defaultTargetPlatform == TargetPlatform.windows)
@@ -134,6 +140,8 @@ class WorkbenchShell extends StatelessWidget {
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
                             onOpenNotifications: onOpenNotifications,
+                            unreadNotificationCount: unreadNotificationCount,
+                            showNotificationBadge: showNotificationBadge,
                             showBottomBorder: true,
                           ),
                         ),

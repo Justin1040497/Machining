@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice.dart';
 import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
 
@@ -32,12 +34,13 @@ class _AppNotificationLayer extends ConsumerStatefulWidget {
 }
 
 class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
-  static const _visibleDuration = Duration(seconds: 4);
   static const _animationDuration = Duration(milliseconds: 220);
 
   final ValueNotifier<bool> visible = ValueNotifier(false);
   ProviderSubscription<AsyncValue<AppNotificationPresentation>>? subscription;
+  ProviderSubscription<bool>? centerVisibilitySubscription;
   AppNotificationPresentation? presentation;
+  AppNotificationPresentation? pendingPresentation;
   Timer? hideTimer;
   Timer? removeTimer;
 
@@ -50,8 +53,19 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
         if (!next.hasValue) {
           return;
         }
+        if (ref.read(notificationCenterVisibilityProvider)) {
+          return;
+        }
         final event = next.requireValue;
         show(event);
+      },
+    );
+    centerVisibilitySubscription = ref.listenManual<bool>(
+      notificationCenterVisibilityProvider,
+      (_, centerVisible) {
+        if (centerVisible) {
+          hide(clearPending: true);
+        }
       },
     );
   }
@@ -61,37 +75,79 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
     hideTimer?.cancel();
     removeTimer?.cancel();
     subscription?.close();
+    centerVisibilitySubscription?.close();
     visible.dispose();
     super.dispose();
   }
 
   void show(AppNotificationPresentation nextPresentation) {
+    pendingPresentation = nextPresentation;
     hideTimer?.cancel();
-    removeTimer?.cancel();
-    setState(() {
-      presentation = nextPresentation;
-      visible.value = false;
-    });
+    hideTimer = null;
+
+    if (presentation == null && removeTimer == null) {
+      showPending();
+      return;
+    }
+
+    visible.value = false;
+    scheduleRemoval();
+  }
+
+  void showPending() {
+    final nextPresentation = pendingPresentation;
+    if (nextPresentation == null || !mounted) {
+      return;
+    }
+
+    pendingPresentation = null;
+    setState(() => presentation = nextPresentation);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || presentation != nextPresentation) {
+      if (!mounted ||
+          presentation != nextPresentation ||
+          pendingPresentation != null ||
+          removeTimer != null) {
         return;
       }
       visible.value = true;
     });
-    hideTimer = Timer(_visibleDuration, hide);
+    hideTimer = Timer(switch (nextPresentation.notification.level) {
+      AppNotificationLevel.error => const Duration(seconds: 6),
+      AppNotificationLevel.warning => const Duration(seconds: 5),
+      AppNotificationLevel.info ||
+      AppNotificationLevel.success => const Duration(seconds: 3),
+    }, hide);
   }
 
-  void hide() {
+  void hide({bool clearPending = false}) {
     hideTimer?.cancel();
     hideTimer = null;
+    if (clearPending) {
+      pendingPresentation = null;
+    }
+    if (presentation == null) {
+      return;
+    }
     visible.value = false;
-    removeTimer?.cancel();
-    removeTimer = Timer(_animationDuration, () {
-      removeTimer = null;
-      if (mounted) {
-        setState(() => presentation = null);
-      }
-    });
+    scheduleRemoval();
+  }
+
+  void scheduleRemoval() {
+    removeTimer ??= Timer(_animationDuration, completeRemoval);
+  }
+
+  void completeRemoval() {
+    removeTimer = null;
+    if (!mounted) {
+      return;
+    }
+
+    if (pendingPresentation != null) {
+      showPending();
+      return;
+    }
+
+    setState(() => presentation = null);
   }
 
   @override
@@ -103,7 +159,9 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
         widget.child,
         if (current != null)
           WorkbenchNotice(
-            message: current.notification.displayMessage,
+            title: current.notification.title,
+            message: current.notification.message,
+            level: current.notification.level,
             visibleListenable: visible,
             actionLabel: current.action?.label,
             onActionPressed: current.action == null

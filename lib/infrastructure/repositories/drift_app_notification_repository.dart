@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 
@@ -10,15 +11,16 @@ class DriftAppNotificationRepository implements AppNotificationRepository {
   final AppDatabase database;
 
   @override
-  Stream<List<AppNotificationEntry>> watchRecentNotifications({
-    int limit = 50,
-  }) {
+  Stream<List<AppNotificationEntry>> watchRecentNotifications({int? limit}) {
     final query = database.select(database.appNotificationRows)
+      ..where((table) => table.dismissedAt.isNull())
       ..orderBy([
         (table) =>
             OrderingTerm(expression: table.createdAt, mode: OrderingMode.desc),
-      ])
-      ..limit(limit);
+      ]);
+    if (limit != null) {
+      query.limit(limit);
+    }
     return query.watch().map(
       (rows) => rows.map((row) => row.toDomain()).toList(),
     );
@@ -26,14 +28,17 @@ class DriftAppNotificationRepository implements AppNotificationRepository {
 
   @override
   Future<List<AppNotificationEntry>> loadRecentNotifications({
-    int limit = 50,
+    int? limit,
   }) async {
     final query = database.select(database.appNotificationRows)
+      ..where((table) => table.dismissedAt.isNull())
       ..orderBy([
         (table) =>
             OrderingTerm(expression: table.createdAt, mode: OrderingMode.desc),
-      ])
-      ..limit(limit);
+      ]);
+    if (limit != null) {
+      query.limit(limit);
+    }
     final rows = await query.get();
     return rows.map((row) => row.toDomain()).toList();
   }
@@ -57,10 +62,33 @@ class DriftAppNotificationRepository implements AppNotificationRepository {
   }
 
   @override
+  Future<void> markAllAsRead(DateTime readAt) {
+    return (database.update(
+          database.appNotificationRows,
+        )..where((table) => table.dismissedAt.isNull() & table.readAt.isNull()))
+        .write(
+          AppNotificationRowsCompanion(
+            readAt: Value(readAt.millisecondsSinceEpoch),
+          ),
+        );
+  }
+
+  @override
   Future<void> dismiss(String id, DateTime dismissedAt) {
     return (database.update(
       database.appNotificationRows,
     )..where((table) => table.id.equals(id))).write(
+      AppNotificationRowsCompanion(
+        dismissedAt: Value(dismissedAt.millisecondsSinceEpoch),
+      ),
+    );
+  }
+
+  @override
+  Future<void> dismissAll(DateTime dismissedAt) {
+    return (database.update(
+      database.appNotificationRows,
+    )..where((table) => table.dismissedAt.isNull())).write(
       AppNotificationRowsCompanion(
         dismissedAt: Value(dismissedAt.millisecondsSinceEpoch),
       ),
@@ -72,6 +100,7 @@ extension AppNotificationRowMapper on AppNotificationRow {
   AppNotificationEntry toDomain() {
     return AppNotificationEntry(
       id: id,
+      kind: appNotificationKindFromPersistence(kind),
       level: appNotificationLevelFromPersistence(level),
       title: title,
       message: message,
@@ -92,6 +121,7 @@ extension AppNotificationEntryMapper on AppNotificationEntry {
   AppNotificationRowsCompanion toCompanion() {
     return AppNotificationRowsCompanion(
       id: Value(id),
+      kind: Value(kind.name),
       level: Value(level.name),
       title: Value(title),
       message: Value(message),
@@ -102,6 +132,15 @@ extension AppNotificationEntryMapper on AppNotificationEntry {
       payloadJson: Value(payloadJson),
     );
   }
+}
+
+AppNotificationKind appNotificationKindFromPersistence(String value) {
+  for (final kind in AppNotificationKind.values) {
+    if (kind.name == value) {
+      return kind;
+    }
+  }
+  return AppNotificationKind.general;
 }
 
 AppNotificationLevel appNotificationLevelFromPersistence(String value) {

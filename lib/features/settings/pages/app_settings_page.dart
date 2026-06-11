@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
 import 'package:framelean/application/services/app_maintenance/app_uninstaller.dart';
 import 'package:framelean/application/services/framelean_build_info.dart';
+import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/application/use_cases/app_maintenance/clear_app_cache_use_case.dart';
 import 'package:framelean/application/use_cases/app_maintenance/launch_clean_uninstaller_use_case.dart';
 import 'package:framelean/application/use_cases/app_maintenance/load_app_uninstall_availability_use_case.dart';
@@ -16,6 +17,7 @@ import 'package:framelean/application/use_cases/app_maintenance/preview_app_cach
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/default_output_file_name_template.dart';
@@ -37,18 +39,20 @@ import 'package:framelean/features/workbench/widgets/form_controls/config_dropdo
 import 'package:framelean/features/workbench/widgets/form_controls/path_field.dart';
 import 'package:framelean/infrastructure/providers/app_maintenance_provider.dart';
 import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
+import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
 import 'package:framelean/infrastructure/providers/app_settings_save_provider.dart';
 import 'package:framelean/infrastructure/providers/repository_provider.dart';
 import 'package:path/path.dart' as path;
 
-part 'sections/settings_sections.dart';
-part 'sections/settings_section_actions.dart';
-part 'sections/settings_section_state.dart';
-part 'widgets/settings_page_widgets.dart';
-part 'widgets/settings_form_widgets.dart';
-part 'widgets/settings_about_widgets.dart';
+part '../sections/settings_sections.dart';
+part '../sections/settings_section_actions.dart';
+part '../sections/settings_section_state.dart';
+part '../widgets/settings_page_widgets.dart';
+part '../widgets/settings_form_widgets.dart';
+part '../widgets/settings_about_widgets.dart';
 
-typedef AppSettingsSaveCallback = Future<void> Function(AppSettings settings);
+typedef AppSettingsSaveCallback =
+    Future<void> Function(AppSettings settings, AppSettingsSaveTarget target);
 typedef AppSettingsPathPicker = Future<String?> Function();
 typedef AppCacheCleanupPreviewCallback =
     Future<AppCacheCleanupPreview> Function();
@@ -100,8 +104,14 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
     context.go('/');
   }
 
-  Future<void> saveSettings(AppSettings settings) async {
-    await ref.read(appSettingsSaveCoordinatorProvider).save(settings);
+  Future<void> saveSettings(
+    AppSettings settings,
+    AppSettingsSaveTarget target,
+  ) async {
+    await ref
+        .read(appSettingsSaveCoordinatorProvider)
+        .save(settings, target: target);
+    ref.invalidate(appSettingsProvider);
   }
 
   Future<void> launchCleanUninstaller() async {
@@ -119,6 +129,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
     }
 
     await notificationManager.notify(
+      kind: AppNotificationKind.settings,
       level: AppNotificationLevel.error,
       title: '打开链接失败',
       message: result.message!,
@@ -240,6 +251,7 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   late _SettingsSection selectedSection;
   late AppThemeMode themeMode;
   late _CompletionSoundOption completionSoundOption;
+  late bool hideNotificationBadge;
   late bool saveOutputToSourceDirectory;
   late DefaultOutputFileNameTemplate outputFileNameTemplate;
   late MediaTaskConfig defaultMediaConfig;
@@ -276,6 +288,7 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     selectedSection = _SettingsSection.app;
     themeMode = widget.initialSettings.themeMode;
     completionSoundOption = _CompletionSoundOption.none;
+    hideNotificationBadge = widget.initialSettings.hideNotificationBadge;
     saveOutputToSourceDirectory =
         widget.initialSettings.saveOutputToSourceDirectory;
     outputFileNameTemplate =

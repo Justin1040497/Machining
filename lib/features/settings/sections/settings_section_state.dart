@@ -1,4 +1,4 @@
-part of '../app_settings_page.dart';
+part of '../pages/app_settings_page.dart';
 
 extension _AppSettingsViewSectionState on _AppSettingsViewState {
   void closePage() {
@@ -25,7 +25,9 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     };
   }
 
-  bool get _isAppSectionDirty => themeMode != savedSettings.themeMode;
+  bool get _isAppSectionDirty =>
+      themeMode != savedSettings.themeMode ||
+      hideNotificationBadge != savedSettings.hideNotificationBadge;
 
   bool get _isVideoSectionDirty {
     final current = videoConfig;
@@ -115,7 +117,10 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
   }
 
   void _revertAppSection() {
-    updateViewState(() => themeMode = savedSettings.themeMode);
+    updateViewState(() {
+      themeMode = savedSettings.themeMode;
+      hideNotificationBadge = savedSettings.hideNotificationBadge;
+    });
   }
 
   void _revertVideoSection() {
@@ -166,7 +171,7 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     updateViewState(() => savingSection = section);
     try {
       final updatedSettings = _buildSettingsForSection(section);
-      await widget.onSave(updatedSettings);
+      await widget.onSave(updatedSettings, section.saveTarget);
       if (!mounted) return;
       updateViewState(() => savedSettings = updatedSettings);
     } on Object {
@@ -182,7 +187,10 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     final base = savedSettings;
     switch (section) {
       case _SettingsSection.app:
-        return base.copyWith(themeMode: themeMode);
+        return base.copyWith(
+          themeMode: themeMode,
+          hideNotificationBadge: hideNotificationBadge,
+        );
       case _SettingsSection.video:
         final video = videoConfig;
         final updatedConfig = savedSettings.defaultMediaConfig.copyWith(
@@ -249,6 +257,20 @@ enum _SettingsSection {
 
   final String label;
   final IconData icon;
+}
+
+extension _SettingsSectionSaveTarget on _SettingsSection {
+  AppSettingsSaveTarget get saveTarget {
+    return switch (this) {
+      _SettingsSection.app => AppSettingsSaveTarget.application,
+      _SettingsSection.video => AppSettingsSaveTarget.videoTask,
+      _SettingsSection.image => AppSettingsSaveTarget.imageTask,
+      _SettingsSection.audio => AppSettingsSaveTarget.audioTask,
+      _SettingsSection.output => AppSettingsSaveTarget.output,
+      _SettingsSection.encoder => AppSettingsSaveTarget.encoder,
+      _SettingsSection.about => throw StateError('关于分区没有可保存的设置'),
+    };
+  }
 }
 
 extension _AppThemeModeSettingsLabel on AppThemeMode {

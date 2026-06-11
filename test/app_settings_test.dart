@@ -27,6 +27,7 @@ void main() {
     expect(settings.defaultMediaConfig.image?.imageQuality, 100);
     expect(settings.defaultMediaConfig.image?.preserveMetadata, isFalse);
     expect(settings.themeMode, AppThemeMode.system);
+    expect(settings.hideNotificationBadge, isTrue);
   });
 
   test('copyWith can clear nullable paths and update default fields', () {
@@ -37,6 +38,7 @@ void main() {
       defaultSmartPreset: SmartCompressionPreset.chat,
       defaultOutputVideoCodec: VideoCodec.hevc,
       themeMode: AppThemeMode.dark,
+      hideNotificationBadge: false,
     );
 
     final cleared = settings.copyWith(
@@ -51,6 +53,7 @@ void main() {
     expect(cleared.defaultSmartPreset, SmartCompressionPreset.chat);
     expect(cleared.defaultOutputVideoCodec, VideoCodec.hevc);
     expect(cleared.themeMode, AppThemeMode.dark);
+    expect(cleared.hideNotificationBadge, isFalse);
     expect(
       cleared.defaultMediaConfig.video?.smartPreset,
       SmartCompressionPreset.chat,

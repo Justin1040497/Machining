@@ -1,4 +1,4 @@
-part of '../app_settings_page.dart';
+part of '../pages/app_settings_page.dart';
 
 class _AboutTextBlock extends StatelessWidget {
   const _AboutTextBlock({required this.title, required this.body});
