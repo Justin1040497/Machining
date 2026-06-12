@@ -416,8 +416,8 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
-				"$(PROJECT_DIR)/../third_party/ffmpeg/macos-arm64/ffmpeg",
-				"$(PROJECT_DIR)/../third_party/ffmpeg/macos-arm64/ffprobe",
+				"$(PROJECT_DIR)/../third_party/ffmpeg/macos-universal/ffmpeg",
+				"$(PROJECT_DIR)/../third_party/ffmpeg/macos-universal/ffprobe",
 			);
 			name = "Bundle FFmpeg Runtime";
 			outputFileListPaths = (
@@ -428,7 +428,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\n\nSRC=\"${PROJECT_DIR}/../third_party/ffmpeg/macos-arm64\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ffmpeg\"\n\nif [ ! -x \"$SRC/ffmpeg\" ] || [ ! -x \"$SRC/ffprobe\" ]; then\n  echo \"warning: Bundled FFmpeg binaries not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nmkdir -p \"$DST\"\ninstall -m 755 \"$SRC/ffmpeg\" \"$DST/ffmpeg\"\ninstall -m 755 \"$SRC/ffprobe\" \"$DST/ffprobe\"\n";
+			shellScript = "set -eu\n\nSRC=\"${PROJECT_DIR}/../third_party/ffmpeg/macos-universal\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ffmpeg\"\n\nif [ ! -x \"$SRC/ffmpeg\" ] || [ ! -x \"$SRC/ffprobe\" ]; then\n  echo \"warning: Bundled Universal FFmpeg binaries not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nmkdir -p \"$DST\"\ninstall -m 755 \"$SRC/ffmpeg\" \"$DST/ffmpeg\"\ninstall -m 755 \"$SRC/ffprobe\" \"$DST/ffprobe\"\n";
 		};
 		A0FF00022026052000000001 /* Bundle Legal Materials */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -470,7 +470,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -eu\n\nSRC=\"${PROJECT_DIR}/../third_party/audio_adapters/qmc/macos-arm64\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/audio_adapters/qmc\"\n\nif [ ! -d \"$SRC\" ]; then\n  echo \"warning: QMC audio adapter directory not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nif [ ! -x \"$SRC/framelean-qmc-adapter\" ] && [ ! -x \"$SRC/qmc-decrypt\" ]; then\n  echo \"warning: QMC audio adapter binary not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nrm -rf \"$DST\"\nmkdir -p \"$DST\"\nditto \"$SRC\" \"$DST\"\nchmod +x \"$DST/framelean-qmc-adapter\" >/dev/null 2>&1 || true\nchmod +x \"$DST/qmc-decrypt\" >/dev/null 2>&1 || true\n";
+			shellScript = "set -eu\n\nSRC=\"${PROJECT_DIR}/../third_party/audio_adapters/qmc/macos-universal\"\nDST=\"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/audio_adapters/qmc\"\n\nif [ ! -d \"$SRC\" ]; then\n  echo \"warning: Universal QMC audio adapter directory not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nif [ ! -x \"$SRC/framelean-qmc-adapter\" ] && [ ! -x \"$SRC/qmc-decrypt\" ]; then\n  echo \"warning: Universal QMC audio adapter binary not found in $SRC. Skipping copy.\"\n  exit 0\nfi\n\nrm -rf \"$DST\"\nmkdir -p \"$DST\"\nditto \"$SRC\" \"$DST\"\nchmod +x \"$DST/framelean-qmc-adapter\" >/dev/null 2>&1 || true\nchmod +x \"$DST/qmc-decrypt\" >/dev/null 2>&1 || true\n";
 		};
 		EF40530F8DFD6F5F1F65CCF6 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;

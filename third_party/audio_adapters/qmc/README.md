@@ -30,19 +30,24 @@ Placement for development:
 
 ```text
 third_party/audio_adapters/qmc/macos-arm64/framelean-qmc-adapter
+third_party/audio_adapters/qmc/macos-x64/framelean-qmc-adapter
+third_party/audio_adapters/qmc/macos-universal/framelean-qmc-adapter
 third_party/audio_adapters/qmc/windows-x64/framelean-qmc-adapter.exe
 third_party/audio_adapters/qmc/macos-arm64/qmc-decrypt
+third_party/audio_adapters/qmc/macos-x64/qmc-decrypt
+third_party/audio_adapters/qmc/macos-universal/qmc-decrypt
 third_party/audio_adapters/qmc/windows-x64/qmc-decrypt.exe
 ```
 
 Build helpers:
 
 ```text
-scripts/build/build_qmc_decrypt_macos_arm64.sh
+scripts/build/build_qmc_decrypt_macos_arch.sh
+scripts/build/build_qmc_decrypt_macos_universal.sh
 scripts/build/build_qmc_decrypt_windows.ps1
 ```
 
-The helper scripts build `bczhc/qmc-decrypt` at commit `12d758a6a08635b4ab85b6dca05025fdbcc26520` and copy its license files next to the runtime.
+The helper scripts build `bczhc/qmc-decrypt` at commit `12d758a6a08635b4ab85b6dca05025fdbcc26520`, merge the macOS slices, and copy its license files next to the runtime.
 
 Adapter requirements:
 
@@ -51,4 +56,5 @@ Adapter requirements:
 - Write decoded standard audio only under the supplied output directory.
 - Include upstream source, build instructions, license, and notice material before packaging.
 
-No QMC adapter source or binary is currently vendored in this directory.
+The macOS release build packages an adapter only from `macos-universal`; a
+single-architecture adapter is never copied into the Universal app.

@@ -31,14 +31,18 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-12｜v1.2.0｜No Release
 
-今天闭环 Windows x64 安装器发布链：GitHub Actions 同时生成便携 ZIP 和 Inno
-Setup 安装器，发布包强制携带 Visual C++ Runtime，并统一 QMC 适配器构建与
-校验规则。
+今天闭环 Windows x64 安装器发布链，并将 macOS 发布目标扩展为 Universal
+2：Windows 发布包同时生成便携 ZIP 和 Inno Setup 安装器，macOS 建立 Intel
+x86_64 与 Apple Silicon arm64 双架构运行时构建、合并、全包验证和 CI
+打包链。
 
 ### Added
 
 - 新增 `scripts/README.md`，按第三方运行时构建和应用发布两类职责列出脚本，并明确 `build_windows.ps1` 是唯一 Windows 正式发布入口。
 - GitHub Actions Windows 构建新增锁定 commit 的 `qmc-decrypt` 构建步骤，产物和上游许可证会进入发布目录。
+- 新增 macOS FFmpeg / FFprobe 和 QMC 适配器按架构构建、Universal 合并脚本。
+- 新增 `.app` 全量 Mach-O 架构扫描脚本，要求所有原生文件同时包含 x86_64 和 arm64。
+- 新增 GitHub Actions macOS 双 runner 构建和单一 Universal DMG 发布流程。
 
 ### Changed
 
@@ -46,6 +50,9 @@ Setup 安装器，发布包强制携带 Visual C++ Runtime，并统一 QMC 适�
 - Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不再提供管理员安装切换，为后续无 UAC 静默覆盖更新保持稳定权限边界。
 - Windows Release 构建会从 Visual Studio x64 Redistributable 目录复制 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`，缺失时停止发布。
 - Windows 发布与安装器校验统一接受 `framelean-qmc-adapter.exe` 或 `qmc-decrypt.exe`。
+- Xcode Build Phase 和 DMG 脚本只消费 `macos-universal` 运行时。
+- DMG 流程改为先显式构建并验证 app，再执行签名、公证和镜像生成。
+- macOS 平台范围从 Apple Silicon 调整为 Intel 与 Apple Silicon 共用一个 Universal 2 DMG；Windows 继续只支持 x64。
 
 ### Verified
 
@@ -53,6 +60,12 @@ Setup 安装器，发布包强制携带 Visual C++ Runtime，并统一 QMC 适�
 - 通过 `flutter analyze`。
 - 通过 `flutter test`，共 226 项测试。
 - 待 GitHub Actions `windows-2022` runner 完成真实 ZIP、安装器和干净 Windows 安装验证。
+- 通过全部 macOS 构建与发布脚本的 Bash 语法检查。
+- 通过 workflow YAML 结构检查和 `git diff --check`。
+- 通过 `flutter analyze` 和全部 228 项 `flutter test`。
+- 本机 Release app 主体构建成功，Runner、Flutter、App 和插件框架共 6 个 Mach-O 文件均通过 x86_64 / arm64 扫描。
+- 使用合成架构切片跑通 FFmpeg / QMC Universal 合并脚本，并确认纯 arm64 文件会被发布校验拒绝。
+- 真实双架构 FFmpeg/QMC 产物合并、完整 DMG 和 Intel 真机验收等待双架构 CI。
 
 ## 2026-06-11｜v1.2.0｜No Release
 

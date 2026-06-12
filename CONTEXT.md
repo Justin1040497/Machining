@@ -55,7 +55,7 @@ features -> application -> domain
 
 | 平台 | 当前状态 |
 | --- | --- |
-| macOS Apple Silicon | 主要验证和发布平台 |
+| macOS Universal 2（Intel x86_64 + Apple Silicon arm64） | 主要验证和发布平台 |
 | Windows x64 | 主要验证和发布平台 |
 | Linux | Flutter 工程目录存在，不是当前发布目标 |
 | Web | Flutter 工程目录存在，不支持本地 FFmpeg 进程路线 |
