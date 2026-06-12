@@ -75,11 +75,12 @@ tools/audio_adapters/qmc/qmc-decrypt
 当前构建脚本：
 
 ```text
-scripts/build/build_qmc_decrypt_macos_arm64.sh
+scripts/build/build_qmc_decrypt_macos_arch.sh
+scripts/build/build_qmc_decrypt_macos_universal.sh
 scripts/build/build_qmc_decrypt_windows.ps1
 ```
 
-这两个脚本锁定 `bczhc/qmc-decrypt` commit `12d758a6a08635b4ab85b6dca05025fdbcc26520`，构建产物分别放入 `third_party/audio_adapters/qmc/macos-arm64/` 和 `third_party/audio_adapters/qmc/windows-x64/`。macOS / Windows 发布脚本会在对应产物存在时自动复制到应用包。
+这些脚本锁定 `bczhc/qmc-decrypt` commit `12d758a6a08635b4ab85b6dca05025fdbcc26520`。macOS 分别构建 `macos-arm64/` 和 `macos-x64/`，再合并到 `macos-universal/`；macOS 发布包只允许复制 Universal 适配器。Windows 构建产物放入 `windows-x64/`。
 
 Windows GitHub Actions 会在发布构建中调用
 `scripts/build/build_qmc_decrypt_windows.ps1`，因此 Windows ZIP 和 Inno Setup

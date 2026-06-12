@@ -7,7 +7,8 @@ libwebp source: https://storage.googleapis.com/downloads.webmproject.org/release
 Opus version: 1.5.2
 Opus source: https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz
 FFmpeg source: https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz
-Target: macOS arm64
+Target: macOS Universal 2
+Architectures: x86_64 arm64
 Configure flags:
   --enable-gpl
   --enable-version3

@@ -1,6 +1,6 @@
 # FrameLean（帧轻）
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20Apple%20Silicon%20%7C%20Windows%20x64-000000)](#平台范围)
+[![Platform](https://img.shields.io/badge/platform-macOS%20Universal%202%20%7C%20Windows%20x64-000000)](#平台范围)
 [![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](#项目结构)
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#ffmpeg--ffprobe-运行时)
 [![License](https://img.shields.io/badge/license-GPLv3%2B-C62828)](#许可说明)
@@ -23,10 +23,10 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
 
 当前主要支持和验证的平台：
 
-- macOS Apple Silicon
+- macOS 10.15+（Intel x86_64 与 Apple Silicon arm64）
 - Windows x64
 
-仓库中保留了 Flutter 默认生成的 Linux、Web 等工程目录，但当前发布和运行时打包说明以 macOS Apple Silicon 和 Windows x64 为准。
+仓库中保留了 Flutter 默认生成的 Linux、Web 等工程目录，但当前发布和运行时打包说明以 macOS Universal 2 和 Windows x64 为准。
 
 ## 功能
 
@@ -156,22 +156,26 @@ flutter test
 
 ### macOS
 
-准备 macOS arm64 FFmpeg / FFprobe：
+分别在原生 Apple Silicon 和 Intel Mac 上准备 FFmpeg / FFprobe 架构切片：
 
 ```bash
-scripts/build/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arch.sh arm64
+scripts/build/build_ffmpeg_macos_arch.sh x86_64
+scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-脚本会构建 FFmpeg 7.1.1 和 x264，并检查：
+脚本会构建 FFmpeg 7.1.1、x264、LAME、libwebp 和 Opus，合并为
+Universal 2 运行时，并检查：
 
 - 没有 Homebrew 动态库依赖。
-- `libx264` 编码器可用。
+- `ffmpeg` / `ffprobe` 同时包含 `x86_64` 和 `arm64`。
+- `libx264`、`libmp3lame`、`libwebp`、`libopus` 等能力可用。
 
 必须存在的运行时路径：
 
 ```text
-third_party/ffmpeg/macos-arm64/ffmpeg
-third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/macos-universal/ffmpeg
+third_party/ffmpeg/macos-universal/ffprobe
 ```
 
 Release DMG 构建：
@@ -180,8 +184,9 @@ Release DMG 构建：
 scripts/release/build_dmg_macos.sh
 ```
 
-脚本会检查并准备内置 FFmpeg / FFprobe，调用 `pubspec.yaml` 中的
-`dmg` 打包依赖，并验证 DMG、内置运行时和包内法律资料。DMG 文件名会读取
+脚本会检查并准备 Universal 2 FFmpeg / FFprobe，先构建和扫描整个 app，
+再调用 `pubspec.yaml` 中的 `dmg` 打包依赖，并验证 DMG、内置运行时和包内
+法律资料。DMG 文件名会读取
 `pubspec.yaml` 的语义化版本，不包含 `+build` 后缀。默认生成未签名、未公证
 的本地测试 DMG；需要签名或公证时，可把 `dmg` 参数直接传给脚本。
 
@@ -198,6 +203,7 @@ build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg
 APP="build/macos/Build/Products/Release/FrameLean.app"
 "$APP/Contents/Resources/ffmpeg/ffmpeg" -hide_banner -version
 "$APP/Contents/Resources/ffmpeg/ffprobe" -hide_banner -version
+scripts/release/verify_macos_universal.sh "$APP"
 test -f "$APP/Contents/Resources/legal/COPYING"
 ```
 
@@ -273,6 +279,10 @@ FrameLean 解析运行时时的优先级：
 ```text
 third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/macos-x64/ffmpeg
+third_party/ffmpeg/macos-x64/ffprobe
+third_party/ffmpeg/macos-universal/ffmpeg
+third_party/ffmpeg/macos-universal/ffprobe
 third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
 ```

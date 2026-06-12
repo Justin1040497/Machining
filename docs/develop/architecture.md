@@ -107,7 +107,7 @@ docs/
 .workspace/  本地 ignored 工作区，不进入版本库
 ```
 
-当前验证和发布重点是 macOS Apple Silicon 与 Windows x64。Linux 和 Web 目录来自 Flutter 工程模板，不代表已经完成产品级支持。
+当前验证和发布重点是 macOS Universal 2（Intel x86_64 + Apple Silicon arm64）与 Windows x64。Linux 和 Web 目录来自 Flutter 工程模板，不代表已经完成产品级支持。
 
 ## 核心模块解析
 
@@ -441,7 +441,7 @@ Drift 数据库只保存可恢复的业务状态：
 
 | 平台 | 当前状态 | 说明 |
 | --- | --- | --- |
-| macOS Apple Silicon | 主要验证平台 | 可内置 macOS arm64 FFmpeg，支持 VideoToolbox 自动优先级；高风险 Apple HDR / HVC1 / 10-bit MOV 会优先走可用软件编码 |
+| macOS Universal 2 | 主要验证平台 | app、FFmpeg、FFprobe 和可选 QMC 适配器同时包含 x86_64 / arm64；支持 VideoToolbox 自动优先级，不可用时回退软件编码 |
 | Windows x64 | 主要验证平台 | Release 构建要求内置 `ffmpeg.exe` / `ffprobe.exe`，支持 NVENC / QSV / AMF 自动优先级 |
 | Linux | 工程目录存在 | 本地工具路径解析有 Linux 分支，但不是当前发布目标 |
 | Web | 工程目录存在 | FFmpeg 本地进程路线不适用于 Web，当前不支持发布 |

@@ -7,6 +7,16 @@ import 'package:path/path.dart' as path;
 
 void main() {
   group('BundledProprietaryAudioAdapterRegistry', () {
+    test('uses the Universal adapter directory on macOS', () {
+      if (!Platform.isMacOS) {
+        return;
+      }
+
+      const registry = BundledProprietaryAudioAdapterRegistry();
+
+      expect(registry.currentPlatformDirectory(), 'macos-universal');
+    });
+
     test(
       'returns builtin runtime for ncm without probing external binaries',
       () async {

@@ -1,7 +1,7 @@
 # macOS arm64 FFmpeg Runtime
 
-This directory is the local drop point for the bundled macOS arm64 `ffmpeg` and
-`ffprobe` binaries.
+This directory is the build output for the macOS arm64 `ffmpeg` and `ffprobe`
+slice.
 
 The binaries are intentionally ignored by Git:
 
@@ -14,11 +14,11 @@ Build them with:
 scripts/build/build_ffmpeg_macos_arm64.sh
 ```
 
-The macOS Runner target copies these files into:
+The release app does not copy this directory directly. Merge it with the Intel
+slice first:
 
-```text
-FrameLean.app/Contents/Resources/ffmpeg/
+```bash
+scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-Release builds that include these binaries must follow the FFmpeg distribution
-notes in `docs/reference/ffmpeg-license-distribution.md`.
+The macOS Runner copies only `../macos-universal/` into the app.

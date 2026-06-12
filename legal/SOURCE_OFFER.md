@@ -23,11 +23,16 @@ clearly linked public source repository, for as long as required by GPLv3.
 Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264, LAME/libmp3lame,
 libwebp, and Opus/libopus enabled.
 
-The macOS arm64 build script is:
+The macOS architecture build and Universal 2 merge scripts are:
 
 ```text
-scripts/build/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arch.sh
+scripts/build/build_ffmpeg_macos_universal.sh
 ```
+
+The architecture script is run once on an Apple Silicon host with `arm64` and
+once on an Intel host with `x86_64`. The merge script creates the distributed
+Universal 2 runtime.
 
 The documented FFmpeg configure flags include:
 

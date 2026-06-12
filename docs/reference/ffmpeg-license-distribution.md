@@ -43,6 +43,10 @@ legal/third-party/
 ```text
 third_party/ffmpeg/macos-arm64/ffmpeg
 third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/macos-x64/ffmpeg
+third_party/ffmpeg/macos-x64/ffprobe
+third_party/ffmpeg/macos-universal/ffmpeg
+third_party/ffmpeg/macos-universal/ffprobe
 third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
 ```
@@ -52,8 +56,11 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 ```text
 third_party/ffmpeg/macos-arm64/README.md
 third_party/ffmpeg/macos-arm64/ffmpeg-build-info.txt
+third_party/ffmpeg/macos-x64/README.md
+third_party/ffmpeg/macos-universal/README.md
 third_party/ffmpeg/windows-x64/README.md
-scripts/build/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arch.sh
+scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
 ## 构建要求
@@ -67,12 +74,15 @@ brew install nasm pkg-config
 构建：
 
 ```bash
-scripts/build/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arch.sh arm64
+scripts/build/build_ffmpeg_macos_arch.sh x86_64
+scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-脚本必须通过两个自检：
+单架构构建在对应原生 macOS host 上执行。Universal 合并后必须通过：
 
 ```text
+Architectures: x86_64 arm64
 OK: no Homebrew dynamic library dependencies detected
 OK: libx264 encoder is available
 OK: libmp3lame encoder is available
@@ -98,7 +108,7 @@ macOS Release app 会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 FrameLean.app/Contents/Resources/legal/
 ```
 
-DMG 分发包包含该 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。
+DMG 分发包包含 Universal 2 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。FFmpeg / FFprobe 的两个架构切片必须使用相同依赖版本和许可证配置。
 
 Windows Release 产物会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 

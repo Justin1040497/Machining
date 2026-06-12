@@ -294,9 +294,11 @@ test/
 
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
+- `scripts/release/verify_macos_universal.sh FrameLean.app` 成功，包内 Mach-O 文件均包含 `x86_64` 和 `arm64`。
 - 生成 `build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg`。
 - 运行 Release app 后任务使用 app 包内 FFmpeg。
-- 在另一台 Apple Silicon Mac 上验证启动、导入、压缩和打开输出位置。
+- 在 Apple Silicon Mac 和 Intel Mac 上使用同一 DMG 验证启动、导入、压缩和打开输出位置。
+- 两种架构分别验证 VideoToolbox 探测与软件编码回退。
 
 ### Windows 构建验证
 

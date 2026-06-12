@@ -42,7 +42,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
-| macOS 打包 | Flutter macOS + Xcode build phase | 已使用 | Release app 可复制 macOS arm64 FFmpeg 运行时 |
+| macOS 打包 | Flutter macOS + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
@@ -118,7 +118,7 @@ scripts/
 third_party/
 ```
 
-当前主要验证平台是 macOS Apple Silicon 和 Windows x64。Linux 和 Web 目录来自 Flutter 工程结构，不代表已经完成发布支持。
+当前主要验证平台是 macOS Universal 2（Intel x86_64 + Apple Silicon arm64）和 Windows x64。Linux 和 Web 目录来自 Flutter 工程结构，不代表已经完成发布支持。
 
 ## 开发环境
 
@@ -182,6 +182,8 @@ FFmpeg 运行时说明位于：
 
 ```text
 third_party/ffmpeg/macos-arm64/README.md
+third_party/ffmpeg/macos-x64/README.md
+third_party/ffmpeg/macos-universal/README.md
 third_party/ffmpeg/windows-x64/README.md
 docs/reference/ffmpeg-license-distribution.md
 ```
@@ -233,13 +235,15 @@ ffmpeg -hide_banner -encoders
 
 ### macOS
 
-macOS FFmpeg 运行时目录：
+macOS FFmpeg 架构切片和正式运行时目录：
 
 ```text
 third_party/ffmpeg/macos-arm64/
+third_party/ffmpeg/macos-x64/
+third_party/ffmpeg/macos-universal/
 ```
 
-该目录应包含：
+每个目录保留对应构建信息；正式发布使用的 `macos-universal` 应包含：
 
 ```text
 ffmpeg
@@ -251,7 +255,8 @@ README.md
 运行时构建脚本：
 
 ```text
-scripts/build/build_ffmpeg_macos_arm64.sh
+scripts/build/build_ffmpeg_macos_arch.sh
+scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
 DMG 打包脚本：
@@ -272,7 +277,7 @@ Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LIC
 FrameLean.app/Contents/Resources/legal/
 ```
 
-当前 macOS FFmpeg build phase 在二进制缺失时会输出 warning 并跳过复制；`scripts/release/build_dmg_macos.sh` 会在打包前检查并准备运行时，打包后验证 Release app 中存在 `ffmpeg`、`ffprobe`、当前输出格式要求的关键编码器和法律资料。
+当前 macOS FFmpeg build phase 只读取 `macos-universal`。`scripts/release/build_dmg_macos.sh` 会在打包前验证 Universal FFmpeg，显式构建 Release app，扫描包内全部 Mach-O 文件均包含 x86_64 / arm64，再进入签名、公证和 DMG 生成步骤。
 
 ### Windows
 

@@ -233,7 +233,7 @@ v主版本.次版本.修订版本
 发布包名称从 `pubspec.yaml` 的语义化版本读取，不包含 `+build` 后缀。例如 `version: 1.1.5+3`：
 
 ```text
-FrameLean-v1.1.5.dmg
+FrameLean-v1.1.5.dmg（macOS Universal 2）
 FrameLean-v1.1.5-windows-x64.zip
 FrameLean-v1.1.5-windows-x64-setup.exe
 ```

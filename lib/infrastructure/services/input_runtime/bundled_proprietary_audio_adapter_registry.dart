@@ -228,7 +228,7 @@ class BundledProprietaryAudioAdapterRegistry
 
   String currentPlatformDirectory() {
     if (Platform.isMacOS) {
-      return 'macos-arm64';
+      return 'macos-universal';
     }
 
     if (Platform.isWindows) {
