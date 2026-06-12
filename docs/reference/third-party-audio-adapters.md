@@ -80,3 +80,9 @@ scripts/build/build_qmc_decrypt_windows.ps1
 ```
 
 这两个脚本锁定 `bczhc/qmc-decrypt` commit `12d758a6a08635b4ab85b6dca05025fdbcc26520`，构建产物分别放入 `third_party/audio_adapters/qmc/macos-arm64/` 和 `third_party/audio_adapters/qmc/windows-x64/`。macOS / Windows 发布脚本会在对应产物存在时自动复制到应用包。
+
+Windows GitHub Actions 会在发布构建中调用
+`scripts/build/build_qmc_decrypt_windows.ps1`，因此 Windows ZIP 和 Inno Setup
+安装器必须包含 `qmc-decrypt.exe`、构建信息和上游许可证。Windows 发布和
+安装器校验同时接受 `framelean-qmc-adapter.exe` 与 `qmc-decrypt.exe`，避免
+构建阶段和打包阶段使用不同的适配器文件名契约。

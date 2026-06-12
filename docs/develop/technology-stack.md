@@ -155,8 +155,20 @@ GitHub Actions Windows 打包：
 ```
 
 该 workflow 会在 Windows runner 上下载 `deps-ffmpeg-windows-x64-20260430`
-Release 中的 FFmpeg 运行时 zip，校验 SHA-256 后调用
-`scripts\release\build_windows.ps1` 生成 Windows x64 发布包。
+Release 中的 FFmpeg 运行时 zip 并校验 SHA-256，按锁定 commit 构建 Windows
+QMC 适配器，然后调用唯一发布入口 `scripts\release\build_windows.ps1`。一次
+Flutter Release 构建会生成便携 ZIP 和 Inno Setup 安装器，两个产物都会上传为
+Action artifact；Tag 构建还会把两个产物附加到 GitHub Release。
+
+Windows Release 脚本会从 Visual Studio Redistributable 目录装入
+`msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。三个 DLL 是 ZIP
+和安装器的必需文件，缺失时发布构建失败。
+
+Windows 安装器使用 `{localappdata}\Programs\FrameLean` 作为固定默认目录，
+并保持 `PrivilegesRequired=lowest`，不再允许切换管理员安装模式。该边界让
+后续自托管静默覆盖更新保持当前用户权限，避免正常升级流程触发 UAC。
+
+脚本职责和正式发布入口见 `scripts/README.md`。
 
 ## 核心依赖位置
 

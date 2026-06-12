@@ -302,10 +302,20 @@ test/
 
 - `PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1` 成功。
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
+- Release 目录存在 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。
+- Release 目录存在 `audio_adapters/qmc/qmc-decrypt.exe`，并包含上游许可证。
 - 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`。
+- 生成 `build/windows/x64/installer/FrameLean-v1.1.5-windows-x64-setup.exe`。
 - zip 解压后顶层目录为 `FrameLean-v1.1.5-windows-x64/`。
+- 在未预装 Visual C++ Redistributable 的干净 Windows x64 环境中，安装后可以启动应用。
+- 安装器默认安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不请求管理员权限，开始菜单快捷方式可以启动应用。
+- 使用 `/SILENT /SUPPRESSMSGBOXES /NORESTART` 覆盖安装时不触发 UAC，并返回可判断的安装器退出码。
+- 同一 `AppId` 的新版本可以覆盖升级，升级后应用和内置运行时正常。
+- 从 Windows“已安装的应用”卸载后，应用目录、注册表安装信息和用户数据按当前彻底卸载策略清理。
 - Windows app 可以启动、导入、压缩和打开输出位置。
+- MGG / MFLAC 输入能够调用安装包内的 `qmc-decrypt.exe`；需要 ekey 的变体显示可读错误。
 - GPU 编码器不可用时可以回退到软件编码。
+- GitHub Actions artifact 和 Tag Release 同时包含 ZIP 与 `setup.exe`。
 
 ## 内置 FFmpeg 验证
 

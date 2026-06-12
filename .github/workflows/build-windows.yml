@@ -29,7 +29,7 @@ env:
 
 jobs:
   build-windows:
-    name: Build Windows release package
+    name: Build Windows release packages
     runs-on: windows-2022
 
     defaults:
@@ -99,22 +99,29 @@ jobs:
           & (Join-Path $runtimeDir "ffmpeg.exe") -hide_banner -version | Select-Object -First 1
           & (Join-Path $runtimeDir "ffprobe.exe") -hide_banner -version | Select-Object -First 1
 
+      - name: Build Windows QMC adapter
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build\build_qmc_decrypt_windows.ps1
+
       - name: Show Flutter environment
         run: flutter doctor -v
 
-      - name: Build Windows package
+      - name: Build Windows zip and installer
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 
-      - name: Upload Windows package artifact
+      - name: Upload Windows release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: FrameLean-windows-x64
-          path: build/windows/x64/runner/FrameLean-v*-windows-x64.zip
+          path: |
+            build/windows/x64/runner/FrameLean-v*-windows-x64.zip
+            build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe
           if-no-files-found: error
           retention-days: 14
 
-      - name: Attach Windows package to tag release
+      - name: Attach Windows packages to tag release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: build/windows/x64/runner/FrameLean-v*-windows-x64.zip
+          files: |
+            build/windows/x64/runner/FrameLean-v*-windows-x64.zip
+            build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe
