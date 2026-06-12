@@ -29,6 +29,31 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-12｜v1.2.0｜No Release
+
+今天闭环 Windows x64 安装器发布链：GitHub Actions 同时生成便携 ZIP 和 Inno
+Setup 安装器，发布包强制携带 Visual C++ Runtime，并统一 QMC 适配器构建与
+校验规则。
+
+### Added
+
+- 新增 `scripts/README.md`，按第三方运行时构建和应用发布两类职责列出脚本，并明确 `build_windows.ps1` 是唯一 Windows 正式发布入口。
+- GitHub Actions Windows 构建新增锁定 commit 的 `qmc-decrypt` 构建步骤，产物和上游许可证会进入发布目录。
+
+### Changed
+
+- 合并 `build_windows.ps1` 和 `build_windows_installer.ps1`；单一脚本默认一次 Flutter 构建同时生成 `FrameLean-v*-windows-x64.zip` 和 `FrameLean-v*-windows-x64-setup.exe`，并支持按需跳过其中一种产物。
+- Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不再提供管理员安装切换，为后续无 UAC 静默覆盖更新保持稳定权限边界。
+- Windows Release 构建会从 Visual Studio x64 Redistributable 目录复制 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`，缺失时停止发布。
+- Windows 发布与安装器校验统一接受 `framelean-qmc-adapter.exe` 或 `qmc-decrypt.exe`。
+
+### Verified
+
+- 通过 GitHub Actions workflow YAML 解析和 `git diff --check`。
+- 通过 `flutter analyze`。
+- 通过 `flutter test`，共 226 项测试。
+- 待 GitHub Actions `windows-2022` runner 完成真实 ZIP、安装器和干净 Windows 安装验证。
+
 ## 2026-06-11｜v1.2.0｜No Release
 
 今天为通知中心接入打基础：将工作台右上角入口改为通知中心按钮，新增应用级持久化通知管理，并修复设置页分区保存 / 取消 / 离开页面的状态语义。

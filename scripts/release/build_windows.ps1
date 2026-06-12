@@ -1,8 +1,10 @@
 param(
   [switch]$SkipPubGet,
   [switch]$SkipZip,
+  [switch]$SkipInstaller,
   [string]$BuildName = "",
   [string]$BuildNumber = "",
+  [string]$IsccPath = "",
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$ExtraFlutterArgs
 )
@@ -45,21 +47,181 @@ function Invoke-Checked {
   }
 }
 
-function Assert-FfmpegEncoders {
+function Resolve-IsccPath {
+  param([string]$ExplicitPath)
+
+  if (-not [string]::IsNullOrWhiteSpace($ExplicitPath)) {
+    Require-File $ExplicitPath
+    return (Resolve-Path -LiteralPath $ExplicitPath).Path
+  }
+
+  $Command = Get-Command "ISCC.exe" -ErrorAction SilentlyContinue
+  if ($Command) {
+    return $Command.Source
+  }
+
+  $CandidatePaths = @(
+    "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe",
+    "${env:ProgramFiles}\Inno Setup 6\ISCC.exe"
+  )
+
+  foreach ($CandidatePath in $CandidatePaths) {
+    if (Test-Path -LiteralPath $CandidatePath -PathType Leaf) {
+      return $CandidatePath
+    }
+  }
+
+  throw "Missing required command: ISCC.exe. Install Inno Setup 6 or pass -IsccPath."
+}
+
+function Assert-FfmpegCapability {
+  param(
+    [string]$Output,
+    [string[]]$RequiredNames,
+    [string]$CapabilityName
+  )
+
+  foreach ($Name in $RequiredNames) {
+    if ($Output -notmatch [regex]::Escape($Name)) {
+      throw "Bundled FFmpeg runtime is missing required $CapabilityName`: $Name"
+    }
+  }
+}
+
+function Assert-FfmpegCapabilities {
   param([string]$FfmpegPath)
 
   $EncoderOutput = (& $FfmpegPath -hide_banner -encoders 2>$null) -join "`n"
-  $RequiredEncoders = @(
+  $DecoderOutput = (& $FfmpegPath -hide_banner -decoders 2>$null) -join "`n"
+  $DemuxerOutput = (& $FfmpegPath -hide_banner -demuxers 2>$null) -join "`n"
+
+  Assert-FfmpegCapability -Output $EncoderOutput -RequiredNames @(
     "libx264",
     "libmp3lame",
     "libwebp",
     "libopus"
+  ) -CapabilityName "encoder"
+  Assert-FfmpegCapability -Output $DecoderOutput -RequiredNames @(
+    "opus",
+    "vorbis"
+  ) -CapabilityName "decoder"
+  Assert-FfmpegCapability -Output $DemuxerOutput -RequiredNames @(
+    "ogg"
+  ) -CapabilityName "demuxer"
+}
+
+function Get-VcRuntimeCandidateDirectories {
+  $CandidateDirectories = @()
+
+  if (-not [string]::IsNullOrWhiteSpace($env:VCToolsRedistDir)) {
+    foreach ($CrtDirectoryName in @(
+      "Microsoft.VC143.CRT",
+      "Microsoft.VC142.CRT"
+    )) {
+      $CandidateDirectories += Join-Path `
+        (Join-Path $env:VCToolsRedistDir "x64") `
+        $CrtDirectoryName
+    }
+  }
+
+  $VswhereCandidates = @()
+  $VswhereCommand = Get-Command "vswhere.exe" -ErrorAction SilentlyContinue
+  if ($VswhereCommand) {
+    $VswhereCandidates += $VswhereCommand.Source
+  }
+
+  if (-not [string]::IsNullOrWhiteSpace(${env:ProgramFiles(x86)})) {
+    $VswhereCandidates += Join-Path `
+      ${env:ProgramFiles(x86)} `
+      "Microsoft Visual Studio\Installer\vswhere.exe"
+  }
+
+  foreach ($VswherePath in @($VswhereCandidates | Select-Object -Unique)) {
+    if (-not (Test-Path -LiteralPath $VswherePath -PathType Leaf)) {
+      continue
+    }
+
+    $InstallationPath = (
+      & $VswherePath `
+        -latest `
+        -products * `
+        -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 `
+        -property installationPath
+    ) | Select-Object -First 1
+    if ([string]::IsNullOrWhiteSpace($InstallationPath)) {
+      continue
+    }
+
+    $RedistRoot = Join-Path $InstallationPath "VC\Redist\MSVC"
+    if (-not (Test-Path -LiteralPath $RedistRoot -PathType Container)) {
+      continue
+    }
+
+    $VersionDirectories = Get-ChildItem -LiteralPath $RedistRoot -Directory |
+      Sort-Object Name -Descending
+    foreach ($VersionDirectory in $VersionDirectories) {
+      $X64Directory = Join-Path $VersionDirectory.FullName "x64"
+      if (-not (Test-Path -LiteralPath $X64Directory -PathType Container)) {
+        continue
+      }
+
+      $CrtDirectories = Get-ChildItem `
+        -LiteralPath $X64Directory `
+        -Directory `
+        -Filter "Microsoft.VC*.CRT" |
+        Sort-Object Name -Descending
+      foreach ($CrtDirectory in $CrtDirectories) {
+        $CandidateDirectories += $CrtDirectory.FullName
+      }
+    }
+  }
+
+  return @(
+    $CandidateDirectories |
+      Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+      Select-Object -Unique
+  )
+}
+
+function Install-VcRuntime {
+  param(
+    [string]$DestinationDirectory,
+    [string[]]$RequiredFiles
   )
 
-  foreach ($EncoderName in $RequiredEncoders) {
-    if ($EncoderOutput -notmatch [regex]::Escape($EncoderName)) {
-      throw "Bundled FFmpeg runtime is missing required encoder: $EncoderName"
+  $MissingFiles = @(
+    $RequiredFiles | Where-Object {
+      -not (Test-Path -LiteralPath (Join-Path $DestinationDirectory $_) -PathType Leaf)
     }
+  )
+  if ($MissingFiles.Count -eq 0) {
+    Write-Host "Visual C++ runtime is already bundled."
+    return
+  }
+
+  $SourceDirectory = $null
+  foreach ($CandidateDirectory in @(Get-VcRuntimeCandidateDirectories)) {
+    $ContainsAllFiles = @(
+      $RequiredFiles | Where-Object {
+        -not (Test-Path -LiteralPath (Join-Path $CandidateDirectory $_) -PathType Leaf)
+      }
+    ).Count -eq 0
+    if ($ContainsAllFiles) {
+      $SourceDirectory = $CandidateDirectory
+      break
+    }
+  }
+
+  if ([string]::IsNullOrWhiteSpace($SourceDirectory)) {
+    throw "Visual C++ x64 runtime files were not found. Install the Visual Studio C++ desktop workload with redistributable components."
+  }
+
+  Write-Host "Bundling Visual C++ runtime from: $SourceDirectory"
+  foreach ($FileName in $RequiredFiles) {
+    Copy-Item `
+      -LiteralPath (Join-Path $SourceDirectory $FileName) `
+      -Destination (Join-Path $DestinationDirectory $FileName) `
+      -Force
   }
 }
 
@@ -145,6 +307,9 @@ function Assert-ZipLayout {
     $RequiredEntries = @(
       "${RootPrefix}FrameLean.exe",
       "${RootPrefix}flutter_windows.dll",
+      "${RootPrefix}msvcp140.dll",
+      "${RootPrefix}vcruntime140.dll",
+      "${RootPrefix}vcruntime140_1.dll",
       "${RootPrefix}data/app.so",
       "${RootPrefix}ffmpeg/ffmpeg.exe",
       "${RootPrefix}ffmpeg/ffprobe.exe",
@@ -170,10 +335,23 @@ if ($env:OS -ne "Windows_NT") {
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $ReleaseDir = Join-Path $Root "build\windows\x64\runner\Release"
 $ZipDir = Join-Path $Root "build\windows\x64\runner"
+$InstallerDir = Join-Path $Root "build\windows\x64\installer"
 $FfmpegDir = Join-Path $Root "third_party\ffmpeg\windows-x64"
 $QmcAdapterDir = Join-Path $Root "third_party\audio_adapters\qmc\windows-x64"
 $LegalDir = Join-Path $Root "legal"
 $PubspecPath = Join-Path $Root "pubspec.yaml"
+$IssPath = Join-Path $Root "installer\windows\FrameLean.iss"
+$CleanupScriptPath = Join-Path $Root "installer\windows\FrameLean-Clean-Uninstall.ps1"
+$ReleaseToolsDir = Join-Path $ReleaseDir "tools"
+$QmcAdapterNames = @(
+  "framelean-qmc-adapter.exe",
+  "qmc-decrypt.exe"
+)
+$VcRuntimeFiles = @(
+  "msvcp140.dll",
+  "vcruntime140.dll",
+  "vcruntime140_1.dll"
+)
 
 Require-Command "flutter"
 Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
@@ -181,6 +359,18 @@ Require-File (Join-Path $FfmpegDir "ffprobe.exe")
 Require-Directory $LegalDir
 Require-File (Join-Path $Root "LICENSE")
 Require-File (Join-Path $LegalDir "NOTICE.md")
+
+$Iscc = $null
+if (-not $SkipInstaller) {
+  Require-File $IssPath
+  Require-File $CleanupScriptPath
+  $Iscc = Resolve-IsccPath -ExplicitPath $IsccPath
+}
+
+$Version = Get-PubspecVersion -Path $PubspecPath
+$PackageName = "FrameLean-v$Version-windows-x64"
+$ZipPath = Join-Path $ZipDir "$PackageName.zip"
+$SetupPath = Join-Path $InstallerDir "$PackageName-setup.exe"
 
 Push-Location $Root
 try {
@@ -212,64 +402,82 @@ try {
   Require-File (Join-Path $ReleaseDir "legal\COPYING")
   Require-File (Join-Path $ReleaseDir "legal\LICENSE")
   Require-File (Join-Path $ReleaseDir "legal\NOTICE.md")
+  Install-VcRuntime `
+    -DestinationDirectory $ReleaseDir `
+    -RequiredFiles $VcRuntimeFiles
+  foreach ($VcRuntimeFile in $VcRuntimeFiles) {
+    Require-File (Join-Path $ReleaseDir $VcRuntimeFile)
+  }
 
   $QmcAdapterSources = @(
-    Join-Path $QmcAdapterDir "framelean-qmc-adapter.exe",
-    Join-Path $QmcAdapterDir "qmc-decrypt.exe"
+    $QmcAdapterNames | ForEach-Object {
+      Join-Path $QmcAdapterDir $_
+    }
   )
   $HasQmcAdapterSource = @($QmcAdapterSources | Where-Object {
     Test-Path -LiteralPath $_ -PathType Leaf
   }).Count -gt 0
   if ($HasQmcAdapterSource) {
-    $QmcAdapterTargets = @(
-      Join-Path $ReleaseDir "audio_adapters\qmc\framelean-qmc-adapter.exe",
-      Join-Path $ReleaseDir "audio_adapters\qmc\qmc-decrypt.exe"
-    )
-    $HasQmcAdapterTarget = @($QmcAdapterTargets | Where-Object {
-      Test-Path -LiteralPath $_ -PathType Leaf
+    $ReleaseQmcDir = Join-Path $ReleaseDir "audio_adapters\qmc"
+    $HasQmcAdapterTarget = @($QmcAdapterNames | Where-Object {
+      Test-Path -LiteralPath (Join-Path $ReleaseQmcDir $_) -PathType Leaf
     }).Count -gt 0
     if (-not $HasQmcAdapterTarget) {
       throw "QMC audio adapter source exists but was not copied into the release directory."
     }
-  }
-
-  $VcRuntimeFiles = @(
-    "msvcp140.dll",
-    "vcruntime140.dll",
-    "vcruntime140_1.dll"
-  )
-  $MissingVcRuntimeFiles = @(
-    $VcRuntimeFiles | Where-Object {
-      -not (Test-Path -LiteralPath (Join-Path $ReleaseDir $_) -PathType Leaf)
-    }
-  )
-  if ($MissingVcRuntimeFiles.Count -gt 0) {
-    Write-Warning "Visual C++ runtime DLLs are not bundled next to the executable: $($MissingVcRuntimeFiles -join ', ')"
-    Write-Warning "For zip distribution, install the Visual C++ Redistributable on target machines or copy these DLLs into the Release directory before publishing."
+    Require-File (Join-Path $ReleaseQmcDir "LICENSE-MIT")
+    Require-File (Join-Path $ReleaseQmcDir "LICENSE-APACHE")
   }
 
   Write-Host "Validating bundled FFmpeg runtime..."
   $ReleaseFfmpegPath = Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe"
   & $ReleaseFfmpegPath -hide_banner -version | Select-Object -First 1
   & (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") -hide_banner -version | Select-Object -First 1
-  Assert-FfmpegEncoders -FfmpegPath $ReleaseFfmpegPath
+  if ($LASTEXITCODE -ne 0) {
+    throw "Bundled ffprobe.exe failed version validation."
+  }
+  Assert-FfmpegCapabilities -FfmpegPath $ReleaseFfmpegPath
+
+  if (Test-Path -LiteralPath $ReleaseToolsDir -PathType Container) {
+    Remove-Item -LiteralPath $ReleaseToolsDir -Recurse -Force
+  }
 
   if (-not $SkipZip) {
-    $Version = Get-PubspecVersion -Path $PubspecPath
-    $PackageName = "FrameLean-v$Version-windows-x64"
-    $ZipPath = Join-Path $ZipDir "$PackageName.zip"
-
     Write-Host "Creating zip package: $ZipPath"
     New-ReleaseZip -SourceDirectory $ReleaseDir -DestinationPath $ZipPath -RootEntryName $PackageName
     Require-File $ZipPath
     Assert-ZipLayout -Path $ZipPath -RootEntryName $PackageName
   }
 
+  if (-not $SkipInstaller) {
+    New-Item -ItemType Directory -Path $ReleaseToolsDir -Force | Out-Null
+    Copy-Item -LiteralPath $CleanupScriptPath `
+      -Destination (Join-Path $ReleaseToolsDir "FrameLean-Clean-Uninstall.ps1") `
+      -Force
+
+    New-Item -ItemType Directory -Path $InstallerDir -Force | Out-Null
+    if (Test-Path -LiteralPath $SetupPath -PathType Leaf) {
+      Remove-Item -LiteralPath $SetupPath -Force
+    }
+
+    & $Iscc $IssPath `
+      "/DAppVersion=$Version" `
+      "/DSourceDir=$ReleaseDir" `
+      "/DOutputDir=$InstallerDir"
+    if ($LASTEXITCODE -ne 0) {
+      throw "Inno Setup failed with exit code $LASTEXITCODE."
+    }
+    Require-File $SetupPath
+  }
+
   Write-Host ""
-  Write-Host "Windows release package is ready:"
+  Write-Host "Windows release packages are ready:"
   Write-Host $ReleaseDir
   if (-not $SkipZip) {
     Write-Host $ZipPath
+  }
+  if (-not $SkipInstaller) {
+    Write-Host $SetupPath
   }
 }
 finally {

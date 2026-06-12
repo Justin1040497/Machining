@@ -210,17 +210,23 @@ third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
 ```
 
-Release 构建：
+生成 Windows Release 目录、便携 ZIP 和 Inno Setup 安装器：
 
 ```powershell
 PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
+
+`build_windows.ps1` 是唯一的 Windows 正式发布入口。它只执行一次 Flutter
+Release 构建，默认同时生成 ZIP 和安装器，并验证 FFmpeg、FFprobe、Visual C++
+Runtime、法律材料和可选 QMC 适配器。特殊场景可以使用 `-SkipZip` 或
+`-SkipInstaller` 只生成一种分发产物。
 
 Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
 build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip
+build/windows/x64/installer/FrameLean-v1.1.5-windows-x64-setup.exe
 ```
 
 Windows CMake 会把运行时复制到：
@@ -233,12 +239,25 @@ Windows zip 文件名会读取 `pubspec.yaml` 的语义化版本，解压后顶�
 `FrameLean-v1.1.5-windows-x64/`。如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，
 Windows Release 构建会失败，避免产出缺少内置运行时的发布包。
 
+发布脚本会从 Visual Studio 的 x64 Redistributable 目录复制
+`msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。找不到这些运行时
+时构建直接失败，避免安装器在干净 Windows 机器上安装后无法启动。
+
+GitHub Actions 会额外调用 `scripts\build\build_qmc_decrypt_windows.ps1`，按
+锁定 commit 构建 `qmc-decrypt.exe`，再将它及上游许可证装入 ZIP 和安装器。
+
+安装器固定使用当前用户目录
+`%LOCALAPPDATA%\Programs\FrameLean`，不提供管理员安装模式，为后续无需 UAC
+的静默覆盖更新保持一致的安装权限和路径。
+
 验证 app 内置 FFmpeg：
 
 ```powershell
 build\windows\x64\runner\Release\ffmpeg\ffmpeg.exe -hide_banner -version
 build\windows\x64\runner\Release\ffmpeg\ffprobe.exe -hide_banner -version
 ```
+
+全部脚本职责见 `scripts/README.md`。
 
 ## FFmpeg / FFprobe 运行时
 
