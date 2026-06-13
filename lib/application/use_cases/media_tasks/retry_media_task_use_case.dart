@@ -49,6 +49,13 @@ class RetryMediaTaskUseCase {
             task: retryTask,
             settings: settings,
             now: DateTime.now(),
+            version: processingVersionForTask(
+              tasks: tasks,
+              inputPath: retryTask.inputPath,
+              mediaKind: retryTask.mediaKind,
+              purpose: retryTask.purpose,
+              taskId: retryTask.id,
+            ),
           ),
         )
         .copyWith(status: TaskStatus.analyzing);

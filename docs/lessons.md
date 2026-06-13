@@ -132,6 +132,32 @@
 - 发布脚本：`scripts/release/build_windows.ps1`
 - 测试计划：`docs/develop/test-plan.md`
 
+## Windows 用户可感知音效不要依赖 PowerShell
+
+经验：
+
+- 用户可感知的提示音如果通过 `powershell.exe` 启动脚本播放，可能被安全软件拦截，也会让发布包行为显得不可信。
+- 轻量完成音效应优先使用 Flutter 音频插件或原生 API 通道，保持 application 层只有 `TaskCompletionSoundPlayer` 抽象。
+- 播放失败仍应吞掉，不能影响任务完成通知、通知中心历史或队列收尾。
+
+关联：
+
+- 决策：`docs/decisions/260613-task-completion-sound-playback.md`
+- 版本事实：`docs/releases/v1.2.0/task-completion-sounds.md`
+
+## GitHub Actions artifact 解包目录不要硬编码
+
+经验：
+
+- `upload-artifact` 上传目录和 `download-artifact` 下载目录组合后，真实文件可能位于目标目录顶层，也可能多一层原始目录。
+- 合并架构 slice 的脚本应在下载目录下寻找包含目标可执行文件的真实目录，再做 `lipo` 和架构校验。
+- 报 `required executable not found` 时，不要只检查构建 slice 是否成功，也要检查 artifact 下载后的目录形状。
+
+关联：
+
+- 发布脚本：`scripts/build/build_ffmpeg_macos_universal.sh`
+- 发布脚本：`scripts/build/build_qmc_decrypt_macos_universal.sh`
+
 ## 保持原始选项不要写成伪格式枚举
 
 经验：

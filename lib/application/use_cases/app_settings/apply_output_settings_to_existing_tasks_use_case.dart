@@ -26,6 +26,13 @@ class ApplyOutputSettingsToExistingTasksUseCase {
           task: task,
           settings: settings,
           now: appliedAt,
+          version: processingVersionForTask(
+            tasks: tasks,
+            inputPath: task.inputPath,
+            mediaKind: task.mediaKind,
+            purpose: task.purpose,
+            taskId: task.id,
+          ),
         ),
       );
       await repository.saveTask(updatedTask);

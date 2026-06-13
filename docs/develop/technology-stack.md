@@ -38,8 +38,8 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
-| 任务完成音效 | Flutter assets + 系统播放器 | 已使用 | 内置 WAV 资源打包到 `assets/sounds/`；macOS 使用 `afplay`，Windows 使用 `SoundPlayer` |
-| 响应式尺寸 | flutter_screenutil | 已使用 | 工作台和主题文本使用桌面基准尺寸，允许小窗口缩小但不随大窗口放大 |
+| 任务完成音效 | Flutter assets + audioplayers | 已使用 | 内置 WAV 资源打包到 `assets/sounds/`，通过 Flutter 音频插件播放，不启动 PowerShell |
+| 响应式尺寸 | flutter_screenutil | 已使用 | 工作台和主题文本使用桌面基准尺寸，小窗口可缩小，4K / 大窗口可在上限内放大 |
 | 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
@@ -65,6 +65,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
 | `flutter_animate` | `^4.5.2` | 声明式 UI 动画，当前用于工作台通知浮层 |
 | `flutter_screenutil` | `^5.9.3` | 桌面 UI 文本和尺寸适配 |
+| `audioplayers` | `^6.7.1` | 播放内置任务完成提示音 |
 | `pointycastle` | `^4.0.0` | NCM 专有音频输入的本地加密/解密算法支持 |
 
 开发依赖：
@@ -322,7 +323,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | FFmpeg 执行日志 | 系统临时目录 `framelean/ffmpeg-logs` | 每次执行创建独立日志文件 |
 | 预览帧 | 系统临时目录 `framelean/previews/<taskId>` | 参数指纹变化后重新生成 |
 | 两遍压缩 pass log | 输出目录附近的隐藏前缀文件 | 任务完成或取消后 best-effort 清理 |
-| 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `-1`、`-2` 等后缀 |
+| 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `（1）`、`（2）` 等后缀 |
 
 ## 媒体类型边界
 

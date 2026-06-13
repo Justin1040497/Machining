@@ -31,7 +31,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-14｜v1.2.0｜Release
 
-完成 v1.2.0 发布准备。本版本从 v1.1.5 起扩展视频、图片和音频统一处理能力，加入专有音频输入、完整设置页、通知中心、输出文件名模板、任务完成提示音、HDR / SDR 色彩处理，以及 macOS Universal 2 和 Windows 安装器发布链。本次收口同时完成 P0-P2 架构治理：加入依赖方向守卫，将 Riverpod 组装迁入 app composition root，修正设置保存对工作台 feature 的反向依赖，并把文件选择、外链、文件管理器打开和主题缓存收敛为 application 端口与 infrastructure 实现。
+完成 v1.2.0 发布准备。本版本从 v1.1.5 起扩展视频、图片和音频统一处理能力，加入专有音频输入、完整设置页、通知中心、输出文件名模板、任务完成提示音、HDR / SDR 色彩处理，以及 macOS Universal 2 和 Windows 安装器发布链。本次收口同时完成 P0-P2 架构治理，并修复 v1.2.0 打包流水线与桌面体验校验问题。
 
 ### Added
 
@@ -43,6 +43,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增 HDR10 / HLG 转 SDR、受限保持 HDR 和 Dolby Vision 风险拦截。
 - 新增 macOS Universal 2、Windows ZIP + Inno Setup 安装器发布链。
 - 新增 Clean Architecture import 守卫测试。
+- 输出文件名模板新增 `{version}` 变量，首次处理渲染为 `v1`，同源同类型同目的重复导入会递增为 `v2`、`v3`。
 
 ### Changed
 
@@ -51,6 +52,9 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 文件选择、外链打开、文件管理器定位和主题缓存改为 application 抽象，由 infrastructure 提供桌面实现。
 - 跨 settings、notifications、workbench 复用的主题扩展、领域标签、表单控件、布局常量和百分比滑杆迁入 `app`。
 - 应用版本升级为 `1.2.0+4`，发布产物统一使用 `FrameLean-v1.2.0` 前缀。
+- 任务完成提示音改用 `audioplayers` 直接播放 Flutter asset，Windows 不再启动 PowerShell。
+- 输出文件路径冲突自动后缀从 `-1` / `-2` 调整为 `（1）` / `（2）`。
+- 桌面字体缩放允许 4K / 大窗口环境在上限内放大，不再固定压回基础字号。
 
 ### Fixed
 
@@ -58,12 +62,13 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复任务排序持久化、主题缓存一致性、macOS 首次点击、重复操作和 QMC 探测问题。
 - 修复非视频任务详情、保持原始格式 / 分辨率、输出命名和 HDR 色彩参数边界。
 - 修复 macOS Universal 2 CI 构建 zimg 时缺少 `aclocal` 的原生依赖声明，以及 Windows 打包脚本因截断 `ffprobe.exe -version` 管道而误判运行时版本校验失败的问题。
+- 修复 macOS Universal 合并脚本在 GitHub Actions artifact 下载后多一层目录时找不到 `ffmpeg` / `ffprobe` 或 QMC 适配器的问题。
 - 移除已无引用的旧设置弹窗组件和未使用的 `cupertino_icons` 依赖。
 
 ### Verified
 
 - 通过 `flutter analyze`。
-- 通过 `flutter test`，共 259 项测试。
+- 通过 `flutter test`，共 265 项测试。
 - 通过 `flutter test test/architecture_dependencies_test.dart`。
 - 通过 P0-P2 触达模块 76 项回归测试。
 - 通过 release workflow / 打包脚本语法检查。

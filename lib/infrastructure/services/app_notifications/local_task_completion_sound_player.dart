@@ -1,33 +1,16 @@
-import 'dart:async';
-import 'dart:io';
-
-import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:framelean/application/services/app_notifications/task_completion_sound_player.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
-typedef TaskCompletionSoundProcessStarter =
-    Future<Process> Function(String executable, List<String> arguments);
+typedef TaskCompletionSoundAssetPlayer =
+    Future<void> Function(String assetPath);
 
 class LocalTaskCompletionSoundPlayer implements TaskCompletionSoundPlayer {
-  LocalTaskCompletionSoundPlayer({
-    AssetBundle? assetBundle,
-    Future<Directory> Function()? loadTemporaryDirectory,
-    TaskCompletionSoundProcessStarter? startProcess,
-    bool? isMacOS,
-    bool? isWindows,
-  }) : _assetBundle = assetBundle ?? rootBundle,
-       _getTemporaryDirectory = loadTemporaryDirectory ?? getTemporaryDirectory,
-       _startProcess = startProcess ?? _startDetachedProcess,
-       _isMacOS = isMacOS ?? Platform.isMacOS,
-       _isWindows = isWindows ?? Platform.isWindows;
+  LocalTaskCompletionSoundPlayer({TaskCompletionSoundAssetPlayer? playAsset})
+    : _playAsset = playAsset;
 
-  final AssetBundle _assetBundle;
-  final Future<Directory> Function() _getTemporaryDirectory;
-  final TaskCompletionSoundProcessStarter _startProcess;
-  final bool _isMacOS;
-  final bool _isWindows;
+  final TaskCompletionSoundAssetPlayer? _playAsset;
+  AudioPlayer? _audioPlayer;
 
   @override
   Future<void> play(TaskCompletionSound sound) async {
@@ -37,50 +20,29 @@ class LocalTaskCompletionSoundPlayer implements TaskCompletionSoundPlayer {
     }
 
     try {
-      final filePath = await _materializeAsset(assetPath);
-      await _playFile(filePath);
+      final player = _playAsset ?? _playAssetWithAudioPlayer;
+      await player(taskCompletionSoundAudioplayersAssetPath(assetPath));
     } on Object {
       // Audio feedback should never block or fail the task notification path.
     }
   }
 
-  Future<String> _materializeAsset(String assetPath) async {
-    final data = await _assetBundle.load(assetPath);
-    final bytes = data.buffer.asUint8List(
-      data.offsetInBytes,
-      data.lengthInBytes,
-    );
-    final tempDirectory = await _getTemporaryDirectory();
-    final soundsDirectory = Directory(
-      path.join(tempDirectory.path, 'framelean', 'sounds'),
-    );
-    await soundsDirectory.create(recursive: true);
-
-    final file = File(
-      path.join(soundsDirectory.path, path.basename(assetPath)),
-    );
-    await file.writeAsBytes(bytes, flush: false);
-    return file.path;
-  }
-
-  Future<void> _playFile(String filePath) async {
-    if (_isMacOS) {
-      await _startProcess('afplay', [filePath]);
+  Future<void> _playAssetWithAudioPlayer(String assetPath) async {
+    final existingPlayer = _audioPlayer;
+    if (existingPlayer == null) {
+      final player = AudioPlayer();
+      _audioPlayer = player;
+      await player.play(AssetSource(assetPath));
       return;
     }
 
-    if (_isWindows) {
-      final escapedPath = filePath.replaceAll("'", "''");
-      await _startProcess('powershell.exe', [
-        '-NoProfile',
-        '-NonInteractive',
-        '-WindowStyle',
-        'Hidden',
-        '-Command',
-        "\$player = New-Object System.Media.SoundPlayer '$escapedPath'; "
-            r'$player.PlaySync()',
-      ]);
-    }
+    await existingPlayer.stop();
+    await existingPlayer.play(AssetSource(assetPath));
+  }
+
+  Future<void> dispose() async {
+    await _audioPlayer?.dispose();
+    _audioPlayer = null;
   }
 }
 
@@ -100,9 +62,11 @@ String? taskCompletionSoundAssetPath(TaskCompletionSound sound) {
   };
 }
 
-Future<Process> _startDetachedProcess(
-  String executable,
-  List<String> arguments,
-) {
-  return Process.start(executable, arguments, mode: ProcessStartMode.detached);
+String taskCompletionSoundAudioplayersAssetPath(String assetPath) {
+  const flutterAssetsPrefix = 'assets/';
+  if (assetPath.startsWith(flutterAssetsPrefix)) {
+    return assetPath.substring(flutterAssetsPrefix.length);
+  }
+
+  return assetPath;
 }

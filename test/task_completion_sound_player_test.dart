@@ -26,4 +26,31 @@ void main() {
       'assets/sounds/task_complete_servo_confirm.wav',
     );
   });
+
+  test('task completion sounds use audioplayers asset keys', () async {
+    final playedAssets = <String>[];
+    final player = LocalTaskCompletionSoundPlayer(
+      playAsset: (assetPath) async => playedAssets.add(assetPath),
+    );
+
+    await player.play(TaskCompletionSound.none);
+    await player.play(TaskCompletionSound.servoConfirm);
+
+    expect(playedAssets, ['sounds/task_complete_servo_confirm.wav']);
+  });
+
+  test('asset paths remove Flutter assets prefix for audioplayers', () {
+    expect(
+      taskCompletionSoundAudioplayersAssetPath(
+        'assets/sounds/task_complete_clean_success.wav',
+      ),
+      'sounds/task_complete_clean_success.wav',
+    );
+    expect(
+      taskCompletionSoundAudioplayersAssetPath(
+        'sounds/task_complete_clean_success.wav',
+      ),
+      'sounds/task_complete_clean_success.wav',
+    );
+  });
 }

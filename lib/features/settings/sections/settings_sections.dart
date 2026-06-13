@@ -657,6 +657,18 @@ class _OutputTemplateVariableHelp extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            '文件名模板会在导入或保存输出配置时生成默认导出名。'
+            '如果目标文件已存在，导出时会自动追加“（1）”“（2）”。',
+            style: style,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '示例：{source}-{date}-{action}-{version} '
+            '会生成 holiday-20260614-压缩-v1。',
+            style: style.copyWith(color: colors.textPrimary),
+          ),
+          const SizedBox(height: 10),
           _OutputTemplateVariableHelpRow(
             token: 'source',
             description: '源文件名',
@@ -665,6 +677,11 @@ class _OutputTemplateVariableHelp extends StatelessWidget {
           _OutputTemplateVariableHelpRow(
             token: 'date',
             description: '当前日期',
+            style: style,
+          ),
+          _OutputTemplateVariableHelpRow(
+            token: 'version',
+            description: '处理版本（v1 / v2 ...）',
             style: style,
           ),
           _OutputTemplateVariableHelpRow(
@@ -756,6 +773,10 @@ class _OutputFileNameTemplateOption {
 }
 
 const _outputFileNameTemplateOptions = [
+  _OutputFileNameTemplateOption(
+    label: '源文件名 + 时间 + 行为 + 版本',
+    template: '{source}-{date}-{action}-{version}',
+  ),
   _OutputFileNameTemplateOption(
     label: '源文件名 + 时间 + 行为',
     template: '{source}-{date}-{action}',
