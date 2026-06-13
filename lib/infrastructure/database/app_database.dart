@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration {
@@ -260,6 +260,57 @@ class AppDatabase extends _$AppDatabase {
             migrator,
             settingsRows,
             settingsRows.hideNotificationBadge,
+          );
+        }
+        if (from < 19) {
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisChromaLocation,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisMasteringDisplayMetadata,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisMasteringDisplayMaxLuminance,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisMaxContentLightLevel,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisMaxFrameAverageLightLevel,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisDolbyVisionProfile,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisDolbyVisionCompatibilityId,
+          );
+        }
+        if (from < 20) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.taskCompletionSound,
+          );
+        }
+        if (from < 21) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.showTaskCompletionDialog,
           );
         }
       },

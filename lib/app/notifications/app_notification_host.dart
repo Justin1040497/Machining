@@ -3,10 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice.dart';
 import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
+import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
 
 class AppNotificationHost extends StatelessWidget {
   const AppNotificationHost({super.key, required this.child});
@@ -53,10 +58,11 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
         if (!next.hasValue) {
           return;
         }
+        final event = next.requireValue;
+        playCompletionSoundIfNeeded(event);
         if (ref.read(notificationCenterVisibilityProvider)) {
           return;
         }
-        final event = next.requireValue;
         show(event);
       },
     );
@@ -94,6 +100,25 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
     scheduleRemoval();
   }
 
+  void playCompletionSoundIfNeeded(AppNotificationPresentation event) {
+    final notification = event.notification;
+    if (notification.kind != AppNotificationKind.task ||
+        notification.level != AppNotificationLevel.success) {
+      return;
+    }
+
+    unawaited(
+      ref
+          .read(appSettingsProvider.future)
+          .then((settings) {
+            return ref
+                .read(taskCompletionSoundPlayerProvider)
+                .play(settings.taskCompletionSound);
+          })
+          .catchError((_) {}),
+    );
+  }
+
   void showPending() {
     final nextPresentation = pendingPresentation;
     if (nextPresentation == null || !mounted) {
@@ -111,12 +136,67 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
       }
       visible.value = true;
     });
-    hideTimer = Timer(switch (nextPresentation.notification.level) {
+    hideTimer = Timer(displayDurationFor(nextPresentation), hide);
+  }
+
+  Duration displayDurationFor(AppNotificationPresentation presentation) {
+    final notification = presentation.notification;
+    if (isTaskCompletionNotification(notification)) {
+      final showCompletionDialog =
+          ref
+              .read(appSettingsProvider)
+              .asData
+              ?.value
+              .showTaskCompletionDialog ??
+          true;
+      if (!showCompletionDialog) {
+        return const Duration(seconds: 8);
+      }
+    }
+
+    return switch (notification.level) {
       AppNotificationLevel.error => const Duration(seconds: 6),
       AppNotificationLevel.warning => const Duration(seconds: 5),
       AppNotificationLevel.info ||
       AppNotificationLevel.success => const Duration(seconds: 3),
-    }, hide);
+    };
+  }
+
+  bool isTaskCompletionNotification(AppNotificationEntry notification) {
+    return notification.kind == AppNotificationKind.task &&
+        notification.level == AppNotificationLevel.success;
+  }
+
+  AppNotificationAction? fallbackActionFor(
+    AppNotificationPresentation presentation,
+  ) {
+    if (!isTaskCompletionNotification(presentation.notification)) {
+      return null;
+    }
+
+    final payload = TaskNotificationPayload.tryParse(
+      presentation.notification.payloadJson,
+    );
+    final outputPath = payload?.outputPath?.trim();
+    if (outputPath == null || outputPath.isEmpty) {
+      return null;
+    }
+
+    return AppNotificationAction(
+      label: '打开文件夹',
+      tooltip: '打开成果物所在位置',
+      icon: Icons.folder_outlined,
+      onPressed: () {
+        unawaited(WorkbenchFileRevealer.revealPath(outputPath));
+      },
+    );
+  }
+
+  void openCenterAndHighlight(AppNotificationPresentation presentation) {
+    ref
+        .read(notificationCenterHighlightProvider.notifier)
+        .highlight(presentation.notification.id);
+    ref.read(notificationCenterVisibilityProvider.notifier).open();
   }
 
   void hide({bool clearPending = false}) {
@@ -153,6 +233,9 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
   @override
   Widget build(BuildContext context) {
     final current = presentation;
+    final action = current == null
+        ? null
+        : current.action ?? fallbackActionFor(current);
     return Stack(
       fit: StackFit.expand,
       children: [
@@ -163,13 +246,19 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
             message: current.notification.message,
             level: current.notification.level,
             visibleListenable: visible,
-            actionLabel: current.action?.label,
-            onActionPressed: current.action == null
+            actionLabel: action?.label,
+            actionIcon: action?.icon,
+            actionTooltip: action?.tooltip,
+            onActionPressed: action == null
                 ? null
                 : () {
                     hide();
-                    current.action!.onPressed();
+                    action.onPressed();
                   },
+            onTap: () {
+              hide();
+              openCenterAndHighlight(current);
+            },
             onDismissed: hide,
           ),
       ],

@@ -2,7 +2,7 @@
 
 ## 当前选择
 
-FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264、LAME / libmp3lame、libwebp 和 Opus / libopus。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
+FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264、LAME / libmp3lame、libwebp、Opus / libopus 和 zimg / libzimg。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
 
 当前构建脚本启用：
 
@@ -13,6 +13,7 @@ FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目�
 --enable-libmp3lame
 --enable-libwebp
 --enable-libopus
+--enable-libzimg
 --enable-videotoolbox
 --enable-audiotoolbox
 --disable-shared
@@ -88,6 +89,8 @@ OK: libx264 encoder is available
 OK: libmp3lame encoder is available
 OK: libwebp encoder is available
 OK: libopus encoder is available
+OK: zscale filter is available
+OK: tonemap filter is available
 ```
 
 ## 发布要求
@@ -95,10 +98,10 @@ OK: libopus encoder is available
 公开分发包含 FFmpeg + x264 的 app 时，发布包会包含：
 
 - FrameLean 源码
-- FFmpeg、x264、LAME、libwebp 和 Opus 的源码获取方式
+- FFmpeg、x264、LAME、libwebp、Opus 和 zimg 的源码获取方式
 - FFmpeg 构建脚本和配置参数
 - GPLv3 许可证文本
-- FFmpeg / x264 / LAME / libwebp / Opus 的版权说明
+- FFmpeg / x264 / LAME / libwebp / Opus / zimg 的版权说明
 - 用户能够替换或重新构建运行时的说明
 - 发布包内许可证目录，包含 `LICENSE`、`legal/NOTICE.md`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 FFmpeg 构建元数据
 
@@ -118,7 +121,7 @@ FrameLean.exe directory/legal/
 
 ## 当前状态
 
-当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、MP3 / WebP / Opus 输出编码器校验、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
+当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、MP3 / WebP / Opus 输出编码器校验、HDR 转 SDR 所需 `zscale` / `tonemap` 滤镜校验、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
 
 ## 发布检查
 

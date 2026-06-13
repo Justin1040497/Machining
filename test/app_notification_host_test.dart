@@ -7,9 +7,14 @@ import 'package:framelean/app/theme/framelean_responsive.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/application/services/app_notifications/task_completion_sound_player.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
+import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
 
 void main() {
   testWidgets('presents notification without missing overlay errors', (
@@ -80,7 +85,7 @@ void main() {
       find.byKey(const ValueKey('app-notification-card')),
     );
     expect(failureCardSize.width, 300);
-    expect(failureCardSize.height, inInclusiveRange(58, 70));
+    expect(failureCardSize.height, inInclusiveRange(70, 84));
     expect(tester.takeException(), isNull);
 
     await manager.notify(
@@ -104,6 +109,68 @@ void main() {
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
+
+  testWidgets('plays selected sound for task completion notifications', (
+    tester,
+  ) async {
+    final repository = FakeAppNotificationRepository();
+    final manager = AppNotificationManager(repository: repository);
+    final player = FakeTaskCompletionSoundPlayer();
+    addTearDown(manager.dispose);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          appNotificationManagerProvider.overrideWithValue(manager),
+          taskCompletionSoundPlayerProvider.overrideWithValue(player),
+          appSettingsProvider.overrideWith((ref) {
+            return AppSettings.initial().copyWith(
+              taskCompletionSound: TaskCompletionSound.servoConfirm,
+            );
+          }),
+        ],
+        child: ScreenUtilInit(
+          designSize: frameLeanScreenDesignSize,
+          fontSizeResolver: frameLeanFontSizeResolver,
+          builder: (context, child) {
+            return MaterialApp(
+              theme: frameLeanLightTheme(),
+              builder: (context, child) {
+                return AppNotificationHost(
+                  child: child ?? const SizedBox.shrink(),
+                );
+              },
+              home: const Scaffold(body: Text('home')),
+            );
+          },
+        ),
+      ),
+    );
+
+    await manager.notify(
+      kind: AppNotificationKind.task,
+      level: AppNotificationLevel.success,
+      title: 'demo.mp4 处理完成',
+      source: 'task',
+    );
+    await tester.pump();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 250));
+
+    expect(player.playedSounds, [TaskCompletionSound.servoConfirm]);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump(const Duration(milliseconds: 250));
+  });
+}
+
+class FakeTaskCompletionSoundPlayer implements TaskCompletionSoundPlayer {
+  final playedSounds = <TaskCompletionSound>[];
+
+  @override
+  Future<void> play(TaskCompletionSound sound) async {
+    playedSounds.add(sound);
+  }
 }
 
 class FakeAppNotificationRepository implements AppNotificationRepository {

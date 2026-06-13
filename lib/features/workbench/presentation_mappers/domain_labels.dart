@@ -1,5 +1,4 @@
 import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
@@ -19,24 +18,6 @@ extension WorkbenchCompressionModeLabel on CompressionMode {
         return '推荐预设';
       case CompressionMode.targetSize:
         return '目标体积';
-    }
-  }
-}
-
-extension WorkbenchDefaultOutputFileNameTemplateLabel
-    on DefaultOutputFileNameTemplate {
-  String get label {
-    switch (this) {
-      case DefaultOutputFileNameTemplate.sourceFileNameCodec:
-        return '源文件名-压缩编码格式';
-      case DefaultOutputFileNameTemplate.sourceFileNameDateCodec:
-        return '源文件名-日期-压缩编码格式';
-      case DefaultOutputFileNameTemplate.sourceFileNameCompression:
-        return '源文件名-Compression';
-      case DefaultOutputFileNameTemplate.sourceFileNameCompressed:
-        return '源文件名-已压缩';
-      case DefaultOutputFileNameTemplate.sourceFileNameOnly:
-        return '源文件名';
     }
   }
 }

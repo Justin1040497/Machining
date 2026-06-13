@@ -12,10 +12,15 @@ import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 void main() {
   test('settings save targets expose event-specific notification titles', () {
     expect(AppSettingsSaveTarget.application.successTitle, '应用设置已保存');
-    expect(AppSettingsSaveTarget.videoTask.successTitle, '视频任务设置已保存');
-    expect(AppSettingsSaveTarget.imageTask.successTitle, '图片任务设置已保存');
-    expect(AppSettingsSaveTarget.audioTask.successTitle, '音频任务设置已保存');
+    expect(AppSettingsSaveTarget.videoTask.successTitle, '视频任务配置已保存');
+    expect(AppSettingsSaveTarget.videoTask.successMessage, '在下次导入任务时应用');
+    expect(AppSettingsSaveTarget.imageTask.successTitle, '图片任务配置已保存');
+    expect(AppSettingsSaveTarget.audioTask.successTitle, '音频任务配置已保存');
     expect(AppSettingsSaveTarget.output.successTitle, '输出配置已保存');
+    expect(
+      AppSettingsSaveTarget.output.successMessage,
+      '非运行状态的任务已更新；正在处理的任务将在下次处理时使用新配置',
+    );
     expect(AppSettingsSaveTarget.encoder.failureTitle, '编码器配置保存失败');
   });
 

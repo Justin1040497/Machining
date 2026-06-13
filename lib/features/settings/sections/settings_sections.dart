@@ -30,16 +30,24 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           },
         ),
         const SizedBox(height: 22),
-        _SettingsDropdown<_CompletionSoundOption>(
+        _SettingsDropdown<TaskCompletionSound>(
           label: '完成音频设置',
-          value: completionSoundOption,
-          values: _CompletionSoundOption.values,
-          itemLabel: (value) => value.label,
+          value: completionSound,
+          values: TaskCompletionSound.values,
+          itemLabel: (value) => value.settingsLabel,
           onChanged: (value) {
             if (value == null) {
               return;
             }
-            updateViewState(() => completionSoundOption = value);
+            updateViewState(() => completionSound = value);
+          },
+        ),
+        const SizedBox(height: 18),
+        _SettingsCheckbox(
+          label: '任务完成后以弹窗的形式提示',
+          value: showTaskCompletionDialog,
+          onChanged: (value) {
+            updateViewState(() => showTaskCompletionDialog = value);
           },
         ),
         const SizedBox(height: 18),
@@ -138,10 +146,28 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
       children: [
         _SettingsDropdown<CompressionMode>(
           label: '默认模式选择',
-          value: CompressionMode.preset,
-          values: const [CompressionMode.preset],
-          itemLabel: (value) => '推荐方案选项',
-          onChanged: (_) {},
+          value: defaultMediaConfig.compressionMode,
+          values: const [CompressionMode.preset, CompressionMode.targetSize],
+          itemLabel: (value) {
+            return switch (value) {
+              CompressionMode.preset => '推荐方案选项',
+              CompressionMode.targetSize => '自定义目标体积',
+            };
+          },
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() {
+              defaultMediaConfig = defaultMediaConfig.copyWith(
+                compressionMode: value,
+                targetSizeRatio: value == CompressionMode.targetSize
+                    ? WorkbenchConstants.defaultTargetSizeRatio
+                    : null,
+                targetSizeBytes: null,
+              );
+            });
+          },
         ),
         const SizedBox(height: 22),
         _SettingsDropdown<SmartCompressionPreset>(
@@ -157,20 +183,27 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           },
         ),
         const SizedBox(height: 22),
+        _SettingsOutputFormatField(
+          label: '默认输出格式',
+          keepOriginalLabel: '默认保持源文件视频格式',
+          value: config.outputFormat,
+          values: MediaOutputFormat.formatsFor(MediaKind.video),
+          keepOriginal: config.keepOriginalOutputFormat,
+          onKeepOriginalChanged: (value) {
+            updateVideoConfig(config.copyWith(keepOriginalOutputFormat: value));
+          },
+          onChanged: (value) {
+            updateVideoConfig(
+              config.copyWith(
+                outputFormat: value,
+                keepOriginalOutputFormat: false,
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 22),
         _TwoColumnFields(
           children: [
-            _SettingsDropdown<MediaOutputFormat>(
-              label: '默认输出格式',
-              value: config.outputFormat,
-              values: MediaOutputFormat.formatsFor(MediaKind.video),
-              itemLabel: (value) => value.label,
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                updateVideoConfig(config.copyWith(outputFormat: value));
-              },
-            ),
             _SettingsDropdown<VideoCodec>(
               label: '默认编码格式',
               value: config.videoCodec,
@@ -188,20 +221,26 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
                 );
               },
             ),
+            _SettingsDropdown<ResolutionPreset>(
+              label: '默认视频分辨率',
+              value: config.resolutionPreset,
+              values: ResolutionPreset.values,
+              itemLabel: (value) => value.label,
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                updateVideoConfig(config.copyWith(resolutionPreset: value));
+              },
+            ),
           ],
         ),
-        const SizedBox(height: 22),
-        _SettingsDropdown<ResolutionPreset>(
-          label: '默认视频分辨率',
-          width: 285,
-          value: config.resolutionPreset,
-          values: ResolutionPreset.values,
-          itemLabel: (value) => value.label,
+        const SizedBox(height: 16),
+        _SettingsCheckbox(
+          label: '保留视频元数据',
+          value: config.preserveMetadata,
           onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-            updateVideoConfig(config.copyWith(resolutionPreset: value));
+            updateVideoConfig(config.copyWith(preserveMetadata: value));
           },
         ),
         const SizedBox(height: 32),
@@ -221,33 +260,39 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
     return _SettingsForm(
       title: '图片任务默认值配置',
       children: [
-        _TwoColumnFields(
-          children: [
-            _SettingsDropdown<MediaOutputFormat>(
-              label: '默认输出格式',
-              value: config.outputFormat,
-              values: MediaOutputFormat.formatsFor(MediaKind.image),
-              itemLabel: (value) => value.label,
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                updateImageConfig(config.copyWith(outputFormat: value));
-              },
-            ),
-            _SettingsTextField(
-              label: '默认图片质量',
-              controller: imageQualityController,
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                final parsed = int.tryParse(value);
-                if (parsed == null || parsed < 1 || parsed > 100) {
-                  return;
-                }
-                updateImageConfig(config.copyWith(imageQuality: parsed));
-              },
-            ),
-          ],
+        _SettingsOutputFormatField(
+          label: '默认输出格式',
+          keepOriginalLabel: '默认保持源文件图片格式',
+          value: config.outputFormat,
+          values: MediaOutputFormat.formatsFor(MediaKind.image),
+          keepOriginal: config.keepOriginalOutputFormat,
+          onKeepOriginalChanged: (value) {
+            updateImageConfig(config.copyWith(keepOriginalOutputFormat: value));
+          },
+          onChanged: (value) {
+            updateImageConfig(
+              config.copyWith(
+                outputFormat: value,
+                keepOriginalOutputFormat: false,
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 22),
+        SizedBox(
+          width: 360,
+          child: WorkbenchPercentageSliderPanel(
+            title: '默认图片质量',
+            summaryBuilder: (ratio) => '${(ratio * 100).round()}%',
+            values: WorkbenchConstants.imageQualityRatios,
+            selectedValue: config.imageQuality.clamp(1, 100).toDouble() / 100,
+            showTickLabels: false,
+            onChanged: (value) {
+              updateImageConfig(
+                config.copyWith(imageQuality: (value * 100).round()),
+              );
+            },
+          ),
         ),
         const SizedBox(height: 22),
         _SettingsDropdown<ImageResizePreset>(
@@ -288,33 +333,37 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
     return _SettingsForm(
       title: '音频任务默认值配置',
       children: [
-        _TwoColumnFields(
-          children: [
-            _SettingsDropdown<MediaOutputFormat>(
-              label: '默认输出格式',
-              value: config.outputFormat,
-              values: MediaOutputFormat.formatsFor(MediaKind.audio),
-              itemLabel: (value) => value.label,
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                updateAudioConfig(config.copyWith(outputFormat: value));
-              },
-            ),
-            _SettingsDropdown<AudioBitratePreset>(
-              label: '默认码率',
-              value: config.bitratePreset,
-              values: AudioBitratePreset.values,
-              itemLabel: (value) => value.label,
-              onChanged: (value) {
-                if (value == null) {
-                  return;
-                }
-                updateAudioConfig(config.copyWith(bitratePreset: value));
-              },
-            ),
-          ],
+        _SettingsOutputFormatField(
+          label: '默认输出格式',
+          keepOriginalLabel: '默认保持源文件音频格式',
+          value: config.outputFormat,
+          values: MediaOutputFormat.formatsFor(MediaKind.audio),
+          keepOriginal: config.keepOriginalOutputFormat,
+          onKeepOriginalChanged: (value) {
+            updateAudioConfig(config.copyWith(keepOriginalOutputFormat: value));
+          },
+          onChanged: (value) {
+            updateAudioConfig(
+              config.copyWith(
+                outputFormat: value,
+                keepOriginalOutputFormat: false,
+              ),
+            );
+          },
+        ),
+        const SizedBox(height: 22),
+        _SettingsDropdown<AudioBitratePreset>(
+          label: '默认码率',
+          width: 285,
+          value: config.bitratePreset,
+          values: AudioBitratePreset.values,
+          itemLabel: (value) => value.label,
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateAudioConfig(config.copyWith(bitratePreset: value));
+          },
         ),
         const SizedBox(height: 22),
         _TwoColumnFields(
@@ -344,6 +393,14 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               },
             ),
           ],
+        ),
+        const SizedBox(height: 16),
+        _SettingsCheckbox(
+          label: '保留音频元数据',
+          value: config.preserveMetadata,
+          onChanged: (value) {
+            updateAudioConfig(config.copyWith(preserveMetadata: value));
+          },
         ),
         const SizedBox(height: 32),
         _SectionActions(
@@ -383,19 +440,21 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           onDropped: handleOutputDirectoryDrop,
         ),
         const SizedBox(height: 22),
-        _SettingsDropdown<DefaultOutputFileNameTemplate>(
-          label: '默认导出文件名',
-          width: 360,
-          value: outputFileNameTemplate,
-          values: DefaultOutputFileNameTemplate.values,
-          itemLabel: (value) => value.label,
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-            updateViewState(() => outputFileNameTemplate = value);
+        _OutputFileNameTemplateField(
+          controller: outputFileNameTemplateController,
+          onChanged: (_) {
+            updateViewState(() {});
+          },
+          onTemplateSelected: (template) {
+            updateViewState(() {
+              outputFileNameTemplateController.text = template;
+              outputFileNameTemplateController.selection =
+                  TextSelection.collapsed(offset: template.length);
+            });
           },
         ),
+        const SizedBox(height: 8),
+        const _OutputTemplateVariableHelp(),
         const SizedBox(height: 32),
         _SectionActions(
           dirty: isSectionDirty(_SettingsSection.output),
@@ -460,9 +519,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
   void updateImageConfig(ImageProcessingConfig config) {
     updateViewState(() {
       defaultMediaConfig = defaultMediaConfig.copyWith(image: config);
-      if (imageQualityController.text != config.imageQuality.toString()) {
-        imageQualityController.text = config.imageQuality.toString();
-      }
     });
   }
 
@@ -472,3 +528,253 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
     });
   }
 }
+
+class _OutputFileNameTemplateField extends StatelessWidget {
+  const _OutputFileNameTemplateField({
+    required this.controller,
+    required this.onChanged,
+    required this.onTemplateSelected,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onTemplateSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return SizedBox(
+      width: 360,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _FormFieldLabel('默认导出文件名模板'),
+          const SizedBox(height: 8),
+          Container(
+            height: _AppSettingsViewState._fieldHeight,
+            decoration: BoxDecoration(
+              color: colors.surface,
+              borderRadius: BorderRadius.circular(2),
+              border: Border.all(color: colors.border),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: controller,
+                    onChanged: onChanged,
+                    inputFormatters: const [
+                      _OutputTemplateTextInputFormatter(),
+                    ],
+                    maxLines: 1,
+                    style: TextStyle(
+                      color: colors.textPrimary,
+                      fontSize: 12.flSp,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: defaultOutputFileNameTemplatePattern,
+                      hintStyle: TextStyle(
+                        color: colors.textTertiary,
+                        fontSize: 12.flSp,
+                      ),
+                      border: InputBorder.none,
+                      isDense: true,
+                      contentPadding: const EdgeInsets.only(left: 14, right: 8),
+                    ),
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  tooltip: '选择常用模板',
+                  padding: EdgeInsets.zero,
+                  offset: const Offset(0, 2),
+                  color: colors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  onSelected: onTemplateSelected,
+                  itemBuilder: (context) {
+                    return [
+                      for (final option in _outputFileNameTemplateOptions)
+                        PopupMenuItem<String>(
+                          value: option.template,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                option.label,
+                                style: TextStyle(
+                                  color: colors.textPrimary,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                option.template,
+                                style: TextStyle(
+                                  color: colors.textSecondary,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ];
+                  },
+                  child: SizedBox(
+                    width: _AppSettingsViewState._fieldHeight,
+                    height: _AppSettingsViewState._fieldHeight,
+                    child: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 20,
+                      color: colors.iconMuted,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OutputTemplateVariableHelp extends StatelessWidget {
+  const _OutputTemplateVariableHelp();
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final style = TextStyle(
+      color: colors.textSecondary,
+      fontSize: 12,
+      height: 1.45,
+    );
+
+    return SelectionArea(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _OutputTemplateVariableHelpRow(
+            token: 'source',
+            description: '源文件名',
+            style: style,
+          ),
+          _OutputTemplateVariableHelpRow(
+            token: 'date',
+            description: '当前日期',
+            style: style,
+          ),
+          _OutputTemplateVariableHelpRow(
+            token: 'action',
+            description: '任务类型（压缩 / 转换 / 处理）',
+            style: style,
+          ),
+          _OutputTemplateVariableHelpRow(
+            token: 'codec',
+            description: '编码格式（h264 / h265）',
+            style: style,
+          ),
+          _OutputTemplateVariableHelpRow(
+            token: 'encoder',
+            description: '视频编码器（x264 / x265 / videotoolbox 等）',
+            style: style,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OutputTemplateVariableHelpRow extends StatelessWidget {
+  const _OutputTemplateVariableHelpRow({
+    required this.token,
+    required this.description,
+    required this.style,
+  });
+
+  final String token;
+  final String description;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: token),
+          TextSpan(text: ': $description'),
+        ],
+      ),
+      style: style,
+    );
+  }
+}
+
+class _OutputTemplateTextInputFormatter extends TextInputFormatter {
+  const _OutputTemplateTextInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final normalized = normalizeOutputFileNameTemplateText(newValue.text);
+    if (normalized == newValue.text) {
+      return newValue;
+    }
+
+    final baseOffset = normalizeOutputFileNameTemplateText(
+      newValue.text.substring(0, newValue.selection.baseOffset),
+    ).length;
+    final extentOffset = normalizeOutputFileNameTemplateText(
+      newValue.text.substring(0, newValue.selection.extentOffset),
+    ).length;
+
+    return TextEditingValue(
+      text: normalized,
+      selection: TextSelection(
+        baseOffset: baseOffset,
+        extentOffset: extentOffset,
+        affinity: newValue.selection.affinity,
+        isDirectional: newValue.selection.isDirectional,
+      ),
+    );
+  }
+}
+
+class _OutputFileNameTemplateOption {
+  const _OutputFileNameTemplateOption({
+    required this.label,
+    required this.template,
+  });
+
+  final String label;
+  final String template;
+}
+
+const _outputFileNameTemplateOptions = [
+  _OutputFileNameTemplateOption(
+    label: '源文件名 + 时间 + 行为',
+    template: '{source}-{date}-{action}',
+  ),
+  _OutputFileNameTemplateOption(
+    label: '源文件名 + 编码格式',
+    template: '{source}-{codec}',
+  ),
+  _OutputFileNameTemplateOption(
+    label: '源文件名 + 编码器',
+    template: '{source}-{encoder}',
+  ),
+  _OutputFileNameTemplateOption(
+    label: '源文件名 + 行为',
+    template: '{source}-{action}',
+  ),
+  _OutputFileNameTemplateOption(
+    label: '源文件名 + 时间',
+    template: '{source}-{date}',
+  ),
+  _OutputFileNameTemplateOption(label: '仅源文件名', template: '{source}'),
+];

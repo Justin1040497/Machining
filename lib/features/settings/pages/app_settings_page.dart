@@ -5,6 +5,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
 import 'package:framelean/application/services/app_maintenance/app_uninstaller.dart';
@@ -20,18 +21,19 @@ import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_external_link_opener.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
@@ -250,16 +252,16 @@ class _AppSettingsViewState extends State<AppSettingsView> {
 
   late _SettingsSection selectedSection;
   late AppThemeMode themeMode;
-  late _CompletionSoundOption completionSoundOption;
+  late TaskCompletionSound completionSound;
   late bool hideNotificationBadge;
+  late bool showTaskCompletionDialog;
   late bool saveOutputToSourceDirectory;
-  late DefaultOutputFileNameTemplate outputFileNameTemplate;
   late MediaTaskConfig defaultMediaConfig;
 
   late final TextEditingController outputDirectoryController;
+  late final TextEditingController outputFileNameTemplateController;
   late final TextEditingController ffmpegPathController;
   late final TextEditingController ffprobePathController;
-  late final TextEditingController imageQualityController;
 
   bool outputDirectoryDragging = false;
   bool ffmpegPathDragging = false;
@@ -287,12 +289,11 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     super.initState();
     selectedSection = _SettingsSection.app;
     themeMode = widget.initialSettings.themeMode;
-    completionSoundOption = _CompletionSoundOption.none;
+    completionSound = widget.initialSettings.taskCompletionSound;
     hideNotificationBadge = widget.initialSettings.hideNotificationBadge;
+    showTaskCompletionDialog = widget.initialSettings.showTaskCompletionDialog;
     saveOutputToSourceDirectory =
         widget.initialSettings.saveOutputToSourceDirectory;
-    outputFileNameTemplate =
-        widget.initialSettings.defaultOutputFileNameTemplate;
     defaultMediaConfig = _withAllMediaDefaults(
       widget.initialSettings.defaultMediaConfig,
     );
@@ -302,25 +303,24 @@ class _AppSettingsViewState extends State<AppSettingsView> {
           widget.initialSettings.defaultOutputDirectory ??
           widget.fallbackDefaultDirectory,
     );
+    outputFileNameTemplateController = TextEditingController(
+      text: widget.initialSettings.defaultOutputFileNameTemplate,
+    );
     ffmpegPathController = TextEditingController(
       text: widget.initialSettings.customFfmpegPath ?? '',
     );
     ffprobePathController = TextEditingController(
       text: widget.initialSettings.customFfprobePath ?? '',
     );
-    imageQualityController = TextEditingController(
-      text: imageConfig.imageQuality.toString(),
-    );
-
     savedSettings = widget.initialSettings;
   }
 
   @override
   void dispose() {
     outputDirectoryController.dispose();
+    outputFileNameTemplateController.dispose();
     ffmpegPathController.dispose();
     ffprobePathController.dispose();
-    imageQualityController.dispose();
     super.dispose();
   }
 

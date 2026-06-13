@@ -20,6 +20,13 @@ class MediaAnalysisResult {
   final String? colorSpace;
   final String? colorTransfer;
   final String? colorPrimaries;
+  final String? chromaLocation;
+  final String? masteringDisplayMetadata;
+  final double? masteringDisplayMaxLuminance;
+  final int? maxContentLightLevel;
+  final int? maxFrameAverageLightLevel;
+  final int? dolbyVisionProfile;
+  final int? dolbyVisionCompatibilityId;
 
   /// 帧率和显示比例信息
   final String? averageFrameRate;
@@ -78,6 +85,13 @@ class MediaAnalysisResult {
     this.colorSpace,
     this.colorTransfer,
     this.colorPrimaries,
+    this.chromaLocation,
+    this.masteringDisplayMetadata,
+    this.masteringDisplayMaxLuminance,
+    this.maxContentLightLevel,
+    this.maxFrameAverageLightLevel,
+    this.dolbyVisionProfile,
+    this.dolbyVisionCompatibilityId,
     this.averageFrameRate,
     this.realFrameRate,
     this.sampleAspectRatio,
@@ -113,6 +127,13 @@ class MediaAnalysisResult {
     String? colorSpace,
     String? colorTransfer,
     String? colorPrimaries,
+    String? chromaLocation,
+    String? masteringDisplayMetadata,
+    double? masteringDisplayMaxLuminance,
+    int? maxContentLightLevel,
+    int? maxFrameAverageLightLevel,
+    int? dolbyVisionProfile,
+    int? dolbyVisionCompatibilityId,
     String? averageFrameRate,
     String? realFrameRate,
     String? sampleAspectRatio,
@@ -147,6 +168,17 @@ class MediaAnalysisResult {
       colorSpace: colorSpace ?? this.colorSpace,
       colorTransfer: colorTransfer ?? this.colorTransfer,
       colorPrimaries: colorPrimaries ?? this.colorPrimaries,
+      chromaLocation: chromaLocation ?? this.chromaLocation,
+      masteringDisplayMetadata:
+          masteringDisplayMetadata ?? this.masteringDisplayMetadata,
+      masteringDisplayMaxLuminance:
+          masteringDisplayMaxLuminance ?? this.masteringDisplayMaxLuminance,
+      maxContentLightLevel: maxContentLightLevel ?? this.maxContentLightLevel,
+      maxFrameAverageLightLevel:
+          maxFrameAverageLightLevel ?? this.maxFrameAverageLightLevel,
+      dolbyVisionProfile: dolbyVisionProfile ?? this.dolbyVisionProfile,
+      dolbyVisionCompatibilityId:
+          dolbyVisionCompatibilityId ?? this.dolbyVisionCompatibilityId,
       averageFrameRate: averageFrameRate ?? this.averageFrameRate,
       realFrameRate: realFrameRate ?? this.realFrameRate,
       sampleAspectRatio: sampleAspectRatio ?? this.sampleAspectRatio,
@@ -187,5 +219,10 @@ class MediaAnalysisResult {
         space == 'bt2020nc' ||
         space == 'bt2020ncl' ||
         primaries == 'bt2020';
+  }
+
+  bool get isUnsupportedDolbyVisionProfile {
+    return dolbyVisionProfile == 5 ||
+        (dolbyVisionProfile == 10 && dolbyVisionCompatibilityId == 0);
   }
 }

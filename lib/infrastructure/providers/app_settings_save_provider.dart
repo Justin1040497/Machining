@@ -23,10 +23,10 @@ final appSettingsSaveCoordinatorProvider = Provider<AppSettingsSaveCoordinator>(
       invalidateRuntime: () {
         ref.invalidate(ffmpegRuntimeProvider);
       },
-      applySettingsToExistingTasks: (settings) {
+      applyOutputSettingsToExistingTasks: (settings) {
         return ref
             .read(mediaTaskListProvider.notifier)
-            .applySettingsToExistingTasks(settings);
+            .applyOutputSettingsToExistingTasks(settings);
       },
     );
   },

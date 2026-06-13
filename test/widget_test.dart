@@ -23,6 +23,7 @@ import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
+import 'package:framelean/features/workbench/pages/workbench_page.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
@@ -149,6 +150,50 @@ void main() {
 
     expect(find.text('已修改'), findsOneWidget);
   });
+
+  testWidgets('video source format option shows keep original label', (
+    tester,
+  ) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      task: testTask(fileName: 'source.mov'),
+      selectedOutputFormat: OutputFormat.mp4,
+    );
+
+    await tester.tap(find.byType(DropdownButtonFormField<OutputFormat>));
+    await tester.pumpAndSettle();
+
+    expect(find.text('MOV（保持原始）'), findsOneWidget);
+  });
+
+  test(
+    'non-video task configuration initial values do not require video config',
+    () {
+      final imageValues = resolveWorkbenchTaskConfigurationInitialValues(
+        task: imageTask(),
+        selectedQualityIndex: 5,
+        selectedOutputFormat: OutputFormat.mkv,
+        selectedVideoCodec: VideoCodec.hevc,
+        selectedEncoderBackend: EncoderBackend.videotoolbox,
+        selectedResolutionPreset: ResolutionPreset.p720,
+        selectedSmartPreset: SmartCompressionPreset.clear,
+      );
+      final audioValues = resolveWorkbenchTaskConfigurationInitialValues(
+        task: audioTask(),
+        selectedQualityIndex: 5,
+        selectedOutputFormat: OutputFormat.mkv,
+        selectedVideoCodec: VideoCodec.hevc,
+        selectedEncoderBackend: EncoderBackend.videotoolbox,
+        selectedResolutionPreset: ResolutionPreset.p720,
+        selectedSmartPreset: SmartCompressionPreset.clear,
+      );
+
+      expect(imageValues.outputFormat, OutputFormat.mkv);
+      expect(audioValues.outputFormat, OutputFormat.mkv);
+      expect(imageValues.encoderBackend, EncoderBackend.videotoolbox);
+      expect(audioValues.encoderBackend, EncoderBackend.videotoolbox);
+    },
+  );
 
   testWidgets('target size mode uses segmented ratio slider', (tester) async {
     final ratioChanges = <double>[];

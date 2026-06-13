@@ -1,5 +1,6 @@
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/media_processing_preset.dart';
@@ -109,11 +110,14 @@ class MediaTaskConfig {
         outputFormat: MediaOutputFormat.fromVideoOutputFormat(
           config.outputFormat,
         ),
+        keepOriginalOutputFormat: false,
         videoCodec: config.videoCodec,
         encoderBackend: config.encoderBackend,
+        hdrOutputMode: HdrOutputMode.convertToSdr,
         resolutionPreset: config.resolutionPreset,
         compressionCrf: config.compressionCrf,
         smartPreset: config.smartPreset,
+        preserveMetadata: true,
       ),
     );
   }
@@ -171,8 +175,12 @@ class MediaTaskConfig {
     ImageProcessingConfig? image,
     AudioProcessingConfig? audio,
     OutputFormat? outputFormat,
+    bool? keepOriginalOutputFormat,
     VideoCodec? videoCodec,
     EncoderBackend? encoderBackend,
+    HdrOutputMode? hdrOutputMode,
+    Object? videoCodecBeforePreserveHdr = _notProvided,
+    Object? encoderBackendBeforePreserveHdr = _notProvided,
     ResolutionPreset? resolutionPreset,
     int? compressionCrf,
     Object? smartPreset = _notProvided,
@@ -186,8 +194,12 @@ class MediaTaskConfig {
         video ??
         currentVideo?.copyWith(
           outputFormat: nextOutputFormat,
+          keepOriginalOutputFormat: keepOriginalOutputFormat,
           videoCodec: videoCodec,
           encoderBackend: encoderBackend,
+          hdrOutputMode: hdrOutputMode,
+          videoCodecBeforePreserveHdr: videoCodecBeforePreserveHdr,
+          encoderBackendBeforePreserveHdr: encoderBackendBeforePreserveHdr,
           resolutionPreset: resolutionPreset,
           compressionCrf: compressionCrf,
           smartPreset: nextSmartPreset,

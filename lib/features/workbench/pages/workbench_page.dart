@@ -50,6 +50,72 @@ import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
 const Object _configValueNotProvided = Object();
 
+@visibleForTesting
+class WorkbenchTaskConfigurationInitialValues {
+  const WorkbenchTaskConfigurationInitialValues({
+    required this.qualityIndex,
+    required this.outputFormat,
+    required this.videoCodec,
+    required this.encoderBackend,
+    required this.resolutionPreset,
+    required this.compressionMode,
+    required this.smartPreset,
+    required this.targetSizeRatio,
+  });
+
+  final int qualityIndex;
+  final OutputFormat outputFormat;
+  final VideoCodec videoCodec;
+  final EncoderBackend encoderBackend;
+  final ResolutionPreset resolutionPreset;
+  final CompressionMode compressionMode;
+  final SmartCompressionPreset smartPreset;
+  final double targetSizeRatio;
+}
+
+@visibleForTesting
+WorkbenchTaskConfigurationInitialValues
+resolveWorkbenchTaskConfigurationInitialValues({
+  required MediaTask task,
+  required int selectedQualityIndex,
+  required OutputFormat selectedOutputFormat,
+  required VideoCodec selectedVideoCodec,
+  required EncoderBackend selectedEncoderBackend,
+  required ResolutionPreset selectedResolutionPreset,
+  required SmartCompressionPreset selectedSmartPreset,
+}) {
+  final videoConfig = task.mediaKind == MediaKind.video
+      ? task.config.video
+      : null;
+  final isVideoTask = videoConfig != null;
+
+  return WorkbenchTaskConfigurationInitialValues(
+    qualityIndex: isVideoTask
+        ? WorkbenchQualityPolicy.initialQualityIndexForTask(task)
+        : selectedQualityIndex,
+    outputFormat: isVideoTask
+        ? videoConfig.outputFormat.toVideoOutputFormat()
+        : selectedOutputFormat,
+    videoCodec: isVideoTask ? videoConfig.videoCodec : selectedVideoCodec,
+    encoderBackend: isVideoTask
+        ? videoConfig.encoderBackend
+        : selectedEncoderBackend,
+    resolutionPreset: isVideoTask
+        ? videoConfig.resolutionPreset
+        : selectedResolutionPreset,
+    compressionMode: task.config.compressionMode,
+    smartPreset: isVideoTask
+        ? videoConfig.smartPreset ??
+              WorkbenchQualityPolicy.smartPresetForQualityIndex(
+                videoConfig.compressionCrf,
+              )
+        : selectedSmartPreset,
+    targetSizeRatio: isVideoTask
+        ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
+        : WorkbenchConstants.defaultTargetSizeRatio,
+  );
+}
+
 class WorkbenchPage extends ConsumerStatefulWidget {
   const WorkbenchPage({super.key});
 
@@ -310,7 +376,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       setState(() {
         selectedOutputFormat = config.outputFormat;
         selectedVideoCodec = config.videoCodec;
-        selectedEncoderBackend = EncoderBackend.auto;
+        selectedEncoderBackend = config.encoderBackend;
         selectedResolutionPreset = config.resolutionPreset;
         selectedCompressionMode = config.compressionMode;
         selectedSmartPreset =
@@ -398,8 +464,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         continue;
       }
 
-      unawaited(showTaskCompletedDialog(task));
+      unawaited(showCompletionFeedback(task));
     }
+  }
+
+  Future<void> showCompletionFeedback(MediaTask task) async {
+    final showCompletionDialog = await ref
+        .read(appSettingsProvider.future)
+        .then((settings) => settings.showTaskCompletionDialog)
+        .catchError((_) => true);
+    if (!showCompletionDialog) {
+      return;
+    }
+
+    await showTaskCompletedDialog(task);
   }
 
   Future<void> showTaskCompletedDialog(MediaTask task) async {
@@ -561,35 +639,25 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     await runWorkbenchActionOnce('show-task-configuration-dialog', () async {
       final isVideoTask = task.mediaKind == MediaKind.video;
-      final initialQualityIndex = isVideoTask
-          ? WorkbenchQualityPolicy.initialQualityIndexForTask(task)
-          : selectedQualityIndex;
-      final initialSmartPreset = isVideoTask
-          ? task.config.smartPreset ??
-                WorkbenchQualityPolicy.smartPresetForQualityIndex(
-                  task.config.compressionCrf,
-                )
-          : selectedSmartPreset;
-      final initialOutputFormat = isVideoTask
-          ? task.config.outputFormat
-          : selectedOutputFormat;
-      final initialVideoCodec = isVideoTask
-          ? task.config.videoCodec
-          : selectedVideoCodec;
-      final initialResolutionPreset = isVideoTask
-          ? task.config.resolutionPreset
-          : selectedResolutionPreset;
-      final initialCompressionMode = task.config.compressionMode;
+      final initialValues = resolveWorkbenchTaskConfigurationInitialValues(
+        task: task,
+        selectedQualityIndex: selectedQualityIndex,
+        selectedOutputFormat: selectedOutputFormat,
+        selectedVideoCodec: selectedVideoCodec,
+        selectedEncoderBackend: selectedEncoderBackend,
+        selectedResolutionPreset: selectedResolutionPreset,
+        selectedSmartPreset: selectedSmartPreset,
+      );
 
       setState(() {
         selectedTaskId = task.id;
-        selectedOutputFormat = initialOutputFormat;
-        selectedVideoCodec = initialVideoCodec;
-        selectedEncoderBackend = EncoderBackend.auto;
-        selectedResolutionPreset = initialResolutionPreset;
-        selectedCompressionMode = initialCompressionMode;
-        selectedSmartPreset = initialSmartPreset;
-        selectedQualityIndex = initialQualityIndex;
+        selectedOutputFormat = initialValues.outputFormat;
+        selectedVideoCodec = initialValues.videoCodec;
+        selectedEncoderBackend = initialValues.encoderBackend;
+        selectedResolutionPreset = initialValues.resolutionPreset;
+        selectedCompressionMode = initialValues.compressionMode;
+        selectedSmartPreset = initialValues.smartPreset;
+        selectedQualityIndex = initialValues.qualityIndex;
         syncedConfigTaskId = task.id;
         syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
       });
@@ -598,16 +666,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         context: context,
         task: task,
         thumbnail: thumbnailForTask(task),
-        selectedQualityIndex: initialQualityIndex,
-        selectedOutputFormat: initialOutputFormat,
-        selectedVideoCodec: initialVideoCodec,
-        selectedEncoderBackend: EncoderBackend.auto,
-        selectedResolutionPreset: initialResolutionPreset,
-        selectedCompressionMode: initialCompressionMode,
-        selectedSmartPreset: initialSmartPreset,
-        selectedTargetSizeRatio: isVideoTask
-            ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
-            : WorkbenchConstants.defaultTargetSizeRatio,
+        selectedQualityIndex: initialValues.qualityIndex,
+        selectedOutputFormat: initialValues.outputFormat,
+        selectedVideoCodec: initialValues.videoCodec,
+        selectedEncoderBackend: initialValues.encoderBackend,
+        selectedResolutionPreset: initialValues.resolutionPreset,
+        selectedCompressionMode: initialValues.compressionMode,
+        selectedSmartPreset: initialValues.smartPreset,
+        selectedTargetSizeRatio: initialValues.targetSizeRatio,
         onOpenSource: () {
           unawaited(revealPathInFileManager(task.inputPath));
         },
@@ -643,7 +709,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           );
 
       try {
-        await updateSelectedTaskConfig(
+        final updatedConfig = draft.config.copyWith(
           outputFormat: draft.outputFormat,
           videoCodec: draft.videoCodec,
           encoderBackend: draft.encoderBackend,
@@ -656,6 +722,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           targetSizeBytes: isTargetSize ? targetSizeBytes : null,
           targetSizeRatio: isTargetSize ? targetSizeRatio : null,
         );
+
+        await updateSelectedTaskConfig(config: updatedConfig);
 
         if (!mounted) {
           return;

@@ -1,3 +1,4 @@
+import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
@@ -14,11 +15,13 @@ class RetryMediaTaskResult {
 
 class RetryMediaTaskUseCase {
   final MediaTaskRepository repository;
+  final AppSettingsRepository settingsRepository;
   final SourceFileChecker sourceFileChecker;
   final SourceFileFingerprintReader fingerprintReader;
 
   const RetryMediaTaskUseCase({
     required this.repository,
+    required this.settingsRepository,
     required this.sourceFileChecker,
     required this.fingerprintReader,
   });
@@ -34,11 +37,20 @@ class RetryMediaTaskUseCase {
     }
 
     final fingerprint = await fingerprintReader.read(task.inputPath);
-    final analyzingTask = task
+    final settings = await settingsRepository.loadSettings();
+    final retryTask = task
         .markPendingForRetry()
         .clearError()
         .withSourceFileFingerprint(fingerprint)
-        .clearAnalysis()
+        .clearAnalysis();
+    final analyzingTask = retryTask
+        .copyWith(
+          config: buildOutputTaskConfigFromSettings(
+            task: retryTask,
+            settings: settings,
+            now: DateTime.now(),
+          ),
+        )
         .copyWith(status: TaskStatus.analyzing);
 
     await repository.saveTask(analyzingTask);

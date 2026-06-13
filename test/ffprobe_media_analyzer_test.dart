@@ -19,6 +19,8 @@ void main() {
       );
       expect(arguments.join(' '), contains('pix_fmt'));
       expect(arguments.join(' '), contains('color_transfer'));
+      expect(arguments.join(' '), contains('chroma_location'));
+      expect(arguments.join(' '), contains('stream_side_data=side_data_type'));
       expect(arguments.join(' '), contains('avg_frame_rate'));
       expect(arguments.join(' '), contains('stream_tags=rotate'));
       expect(arguments.last, inputPath);
@@ -41,6 +43,7 @@ void main() {
             'color_space': 'bt709',
             'color_transfer': 'bt709',
             'color_primaries': 'bt709',
+            'chroma_location': 'left',
             'avg_frame_rate': '30000/1001',
             'r_frame_rate': '30000/1001',
             'sample_aspect_ratio': '1:1',
@@ -68,6 +71,7 @@ void main() {
       expect(result.colorSpace, 'bt709');
       expect(result.colorTransfer, 'bt709');
       expect(result.colorPrimaries, 'bt709');
+      expect(result.chromaLocation, 'left');
       expect(result.averageFrameRate, '30000/1001');
       expect(result.realFrameRate, '30000/1001');
       expect(result.sampleAspectRatio, '1:1');
@@ -152,6 +156,29 @@ void main() {
             'color_primaries': 'bt2020',
             'side_data_list': [
               {'rotation': -90},
+              {
+                'side_data_type': 'Mastering display metadata',
+                'red_x': '34000/50000',
+                'red_y': '16000/50000',
+                'green_x': '13250/50000',
+                'green_y': '34500/50000',
+                'blue_x': '7500/50000',
+                'blue_y': '3000/50000',
+                'white_point_x': '15635/50000',
+                'white_point_y': '16450/50000',
+                'min_luminance': '50/10000',
+                'max_luminance': '10000000/10000',
+              },
+              {
+                'side_data_type': 'Content light level metadata',
+                'max_content': 1000,
+                'max_average': 400,
+              },
+              {
+                'side_data_type': 'DOVI configuration record',
+                'dv_profile': 8,
+                'dv_bl_signal_compatibility_id': 1,
+              },
             ],
           },
         ],
@@ -159,6 +186,12 @@ void main() {
 
       expect(result.videoBitDepth, 10);
       expect(result.videoRotationDegrees, -90);
+      expect(result.masteringDisplayMetadata, contains('red_x=34000/50000'));
+      expect(result.masteringDisplayMaxLuminance, 1000);
+      expect(result.maxContentLightLevel, 1000);
+      expect(result.maxFrameAverageLightLevel, 400);
+      expect(result.dolbyVisionProfile, 8);
+      expect(result.dolbyVisionCompatibilityId, 1);
       expect(result.isHdr, isTrue);
     });
 

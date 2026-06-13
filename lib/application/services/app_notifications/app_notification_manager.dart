@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -11,10 +12,17 @@ import 'package:uuid/uuid.dart';
 typedef AppNotificationActionCallback = void Function();
 
 class AppNotificationAction {
-  const AppNotificationAction({required this.label, required this.onPressed});
+  const AppNotificationAction({
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.tooltip,
+  });
 
   final String label;
   final AppNotificationActionCallback onPressed;
+  final IconData? icon;
+  final String? tooltip;
 }
 
 class AppNotificationPresentation {

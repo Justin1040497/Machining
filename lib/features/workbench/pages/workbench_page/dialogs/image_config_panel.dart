@@ -13,6 +13,9 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
     super.key,
     required this.config,
     required this.onChanged,
+    this.sourceOutputFormat,
+    this.sourceWidth,
+    this.sourceHeight,
     this.padding = const EdgeInsets.fromLTRB(20, 16, 20, 18),
     this.itemSpacing = 14,
     this.dropdownHeight,
@@ -23,6 +26,9 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
 
   final ImageProcessingConfig config;
   final ValueChanged<ImageProcessingConfig> onChanged;
+  final MediaOutputFormat? sourceOutputFormat;
+  final int? sourceWidth;
+  final int? sourceHeight;
   final EdgeInsetsGeometry padding;
   final double itemSpacing;
   final double? dropdownHeight;
@@ -33,6 +39,13 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final imageFormats = MediaOutputFormat.formatsFor(MediaKind.image);
+    final selectedOutputFormat = imageFormats.contains(config.outputFormat)
+        ? config.outputFormat
+        : MediaOutputFormat.jpg;
+    final resizeValues = _resizeValues();
+    final selectedResizePreset = resizeValues.contains(config.resizePreset)
+        ? config.resizePreset
+        : ImageResizePreset.original;
 
     return SingleChildScrollView(
       padding: padding,
@@ -48,27 +61,32 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
           SizedBox(height: itemSpacing),
           ConfigDropdown<MediaOutputFormat>(
             label: '图片格式',
-            trailingText: config.outputFormat.label,
-            value: config.outputFormat,
+            trailingText: _formatLabel(selectedOutputFormat),
+            value: selectedOutputFormat,
             values: imageFormats,
-            itemLabel: (value) => value.label,
+            itemLabel: _formatLabel,
             height: dropdownHeight,
             showTrailingText: showTrailingText,
             labelFontSize: labelFontSize,
             valueFontSize: valueFontSize,
             onChanged: (value) {
               if (value != null) {
-                onChanged(config.copyWith(outputFormat: value));
+                onChanged(
+                  config.copyWith(
+                    outputFormat: value,
+                    keepOriginalOutputFormat: value == sourceOutputFormat,
+                  ),
+                );
               }
             },
           ),
           SizedBox(height: itemSpacing),
           ConfigDropdown<ImageResizePreset>(
             label: '分辨率',
-            trailingText: config.resizePreset.label,
-            value: config.resizePreset,
-            values: ImageResizePreset.values,
-            itemLabel: (value) => value.label,
+            trailingText: _resizeLabel(selectedResizePreset),
+            value: selectedResizePreset,
+            values: resizeValues,
+            itemLabel: _resizeLabel,
             height: dropdownHeight,
             showTrailingText: showTrailingText,
             labelFontSize: labelFontSize,
@@ -93,6 +111,55 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatLabel(MediaOutputFormat value) {
+    if (value == sourceOutputFormat ||
+        (config.keepOriginalOutputFormat && value == config.outputFormat)) {
+      return '${value.label}（保持原始）';
+    }
+
+    return value.label;
+  }
+
+  String _resizeLabel(ImageResizePreset value) {
+    if (value == ImageResizePreset.original &&
+        sourceWidth != null &&
+        sourceHeight != null) {
+      return '$sourceWidth × $sourceHeight（保持原始）';
+    }
+
+    return value.label;
+  }
+
+  List<ImageResizePreset> _resizeValues() {
+    final sourceSize = (width: sourceWidth, height: sourceHeight);
+    return ImageResizePreset.values.where((preset) {
+      if (preset == ImageResizePreset.original) {
+        return true;
+      }
+
+      final presetSize = _resizePresetSize(preset);
+      if (presetSize == null ||
+          sourceSize.width == null ||
+          sourceSize.height == null) {
+        return true;
+      }
+
+      return sourceSize.width != presetSize.width ||
+          sourceSize.height != presetSize.height;
+    }).toList();
+  }
+
+  ({int width, int height})? _resizePresetSize(ImageResizePreset preset) {
+    return switch (preset) {
+      ImageResizePreset.original => null,
+      ImageResizePreset.longEdge3840 => (width: 3840, height: 2160),
+      ImageResizePreset.longEdge2560 => (width: 2560, height: 1440),
+      ImageResizePreset.longEdge1920 => (width: 1920, height: 1080),
+      ImageResizePreset.longEdge1280 => (width: 1280, height: 720),
+      ImageResizePreset.longEdge720 => (width: 720, height: 720),
+    };
   }
 }
 

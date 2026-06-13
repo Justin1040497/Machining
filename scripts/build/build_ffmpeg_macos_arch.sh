@@ -25,6 +25,7 @@ FFMPEG_VERSION="${FFMPEG_VERSION:-7.1.1}"
 LAME_VERSION="${LAME_VERSION:-3.100}"
 LIBWEBP_VERSION="${LIBWEBP_VERSION:-1.5.0}"
 OPUS_VERSION="${OPUS_VERSION:-1.5.2}"
+ZIMG_VERSION="${ZIMG_VERSION:-3.0.6}"
 MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.15}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 ARCH_FLAGS="-arch ${ARCH} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
@@ -125,6 +126,32 @@ make -j"$JOBS"
 make install
 
 cd "$SRC_DIR"
+if [[ ! -f "zimg-release-${ZIMG_VERSION}.tar.gz" ]]; then
+  curl -L \
+    "https://github.com/sekrit-twc/zimg/archive/refs/tags/release-${ZIMG_VERSION}.tar.gz" \
+    -o "zimg-release-${ZIMG_VERSION}.tar.gz"
+fi
+
+rm -rf "zimg-release-${ZIMG_VERSION}"
+tar -xf "zimg-release-${ZIMG_VERSION}.tar.gz"
+
+cd "$SRC_DIR/zimg-release-${ZIMG_VERSION}"
+make distclean >/dev/null 2>&1 || true
+if [[ ! -x ./configure ]]; then
+  require_command autoreconf
+  bash ./autogen.sh
+fi
+CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
+  CC=clang \
+  CXX=clang++ \
+  ./configure \
+    --prefix="$PREFIX" \
+    --disable-shared \
+    --enable-static
+make -j"$JOBS"
+make install
+
+cd "$SRC_DIR"
 if [[ ! -d x264 ]]; then
   git clone https://code.videolan.org/videolan/x264.git
 fi
@@ -166,6 +193,7 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-libmp3lame \
   --enable-libwebp \
   --enable-libopus \
+  --enable-libzimg \
   --enable-videotoolbox \
   --enable-audiotoolbox \
   --disable-shared \
@@ -205,6 +233,8 @@ libwebp version: ${LIBWEBP_VERSION}
 libwebp source: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz
 Opus version: ${OPUS_VERSION}
 Opus source: https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz
+zimg version: ${ZIMG_VERSION}
+zimg source: https://github.com/sekrit-twc/zimg/archive/refs/tags/release-${ZIMG_VERSION}.tar.gz
 FFmpeg source: https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
 Target: macOS ${ARCH}
 Minimum macOS: ${MACOSX_DEPLOYMENT_TARGET}
@@ -237,6 +267,7 @@ require_capability() {
 encoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -encoders 2>/dev/null)"
 decoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -decoders 2>/dev/null)"
 demuxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -demuxers 2>/dev/null)"
+filter_output="$("$OUT_DIR/ffmpeg" -hide_banner -filters 2>/dev/null)"
 
 for encoder_name in libx264 libmp3lame libwebp libopus; do
   require_capability "$encoder_output" "$encoder_name" "encoder"
@@ -245,6 +276,9 @@ for decoder_name in opus vorbis; do
   require_capability "$decoder_output" "$decoder_name" "decoder"
 done
 require_capability "$demuxer_output" "ogg" "demuxer"
+for filter_name in zscale tonemap; do
+  require_capability "$filter_output" "$filter_name" "filter"
+done
 
 echo
 echo "Built macOS $ARCH FFmpeg runtime:"

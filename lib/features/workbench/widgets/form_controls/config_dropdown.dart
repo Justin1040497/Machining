@@ -12,8 +12,10 @@ class ConfigDropdown<T> extends StatelessWidget {
     required this.onChanged,
     this.height,
     this.showTrailingText = true,
+    this.showLabel = true,
     this.labelFontSize = 13,
     this.valueFontSize = 13,
+    this.enabled = true,
   });
 
   final String label;
@@ -24,8 +26,10 @@ class ConfigDropdown<T> extends StatelessWidget {
   final ValueChanged<T?> onChanged;
   final double? height;
   final bool showTrailingText;
+  final bool showLabel;
   final double labelFontSize;
   final double valueFontSize;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -34,28 +38,30 @@ class ConfigDropdown<T> extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: labelFontSize.flSp,
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            if (showTrailingText)
+        if (showLabel) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
               Text(
-                trailingText,
+                label,
                 style: TextStyle(
-                  fontSize: valueFontSize.flSp,
+                  fontSize: labelFontSize.flSp,
                   color: colors.textPrimary,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-          ],
-        ),
-        const SizedBox(height: 9),
+              if (showTrailingText)
+                Text(
+                  trailingText,
+                  style: TextStyle(
+                    fontSize: valueFontSize.flSp,
+                    color: colors.textPrimary,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 9),
+        ],
         SizedBox(
           height: height,
           child: DropdownButtonFormField<T>(
@@ -64,7 +70,7 @@ class ConfigDropdown<T> extends StatelessWidget {
             isDense: true,
             style: TextStyle(
               fontSize: valueFontSize.flSp,
-              color: colors.textPrimary,
+              color: enabled ? colors.textPrimary : colors.textTertiary,
             ),
             items: values.map((item) {
               return DropdownMenuItem<T>(
@@ -73,16 +79,16 @@ class ConfigDropdown<T> extends StatelessWidget {
                   itemLabel(item),
                   style: TextStyle(
                     fontSize: valueFontSize.flSp,
-                    color: colors.textPrimary,
+                    color: enabled ? colors.textPrimary : colors.textTertiary,
                     height: 1.2,
                   ),
                 ),
               );
             }).toList(),
-            onChanged: onChanged,
+            onChanged: enabled ? onChanged : null,
             icon: Icon(
               Icons.keyboard_arrow_down_rounded,
-              color: colors.iconMuted,
+              color: enabled ? colors.iconMuted : colors.textTertiary,
               size: 20,
             ),
             decoration: InputDecoration(

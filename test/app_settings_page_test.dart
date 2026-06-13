@@ -6,9 +6,9 @@ import 'package:framelean/application/services/app_maintenance/app_cache_cleaner
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/features/settings/pages/app_settings_page.dart';
@@ -30,10 +30,16 @@ void main() {
     expect(find.text('编码器配置'), findsOneWidget);
     expect(find.text('应用主题颜色'), findsOneWidget);
     expect(find.text('完成音频设置'), findsOneWidget);
+    expect(find.text('任务完成后以弹窗的形式提示'), findsOneWidget);
     expect(find.text('关闭通知角标'), findsOneWidget);
     expect(find.text('跟随系统'), findsOneWidget);
     expect(find.text('不通知'), findsOneWidget);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    expect(
+      tester
+          .widgetList<Checkbox>(find.byType(Checkbox))
+          .map((widget) => widget.value),
+      everyElement(isTrue),
+    );
   });
 
   testWidgets('saves app preferences from app settings section', (
@@ -54,6 +60,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('深色').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.byType(DropdownButtonFormField<TaskCompletionSound>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('柔云提示').last);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('关闭通知角标'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
@@ -61,6 +71,10 @@ void main() {
 
     expect(savedSettings, isNotNull);
     expect(savedSettings!.themeMode, AppThemeMode.dark);
+    expect(
+      savedSettings!.taskCompletionSound,
+      TaskCompletionSound.originalSoftA,
+    );
     expect(savedSettings!.hideNotificationBadge, isFalse);
     expect(savedTarget, AppSettingsSaveTarget.application);
   });
@@ -75,13 +89,13 @@ void main() {
 
     await tester.tap(find.text('关闭通知角标'));
     await tester.pumpAndSettle();
-    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isFalse);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
 
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
 
     expect(savedSettings, isNull);
-    expect(tester.widget<Checkbox>(find.byType(Checkbox)).value, isTrue);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isTrue);
   });
 
   testWidgets('switching sections reverts unsaved edits without saving', (
@@ -210,7 +224,9 @@ void main() {
     expect(savedSettings?.themeMode, AppThemeMode.dark);
   });
 
-  testWidgets('saves output directory and file name template', (tester) async {
+  testWidgets('saves output directory and file name template text', (
+    tester,
+  ) async {
     AppSettings? savedSettings;
 
     await pumpSettingsPage(
@@ -227,11 +243,38 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byType(DropdownButtonFormField<DefaultOutputFileNameTemplate>),
+    expect(find.byType(SelectionArea), findsOneWidget);
+    expect(find.text('source: 源文件名'), findsOneWidget);
+    expect(find.text('date: 当前日期'), findsOneWidget);
+    expect(find.text('action: 任务类型（压缩 / 转换 / 处理）'), findsOneWidget);
+    expect(find.text('codec: 编码格式（h264 / h265）'), findsOneWidget);
+    expect(
+      find.text('encoder: 视频编码器（x264 / x265 / videotoolbox 等）'),
+      findsOneWidget,
     );
+
+    await tester.tap(find.byTooltip('选择常用模板'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('源文件名-日期-压缩编码格式').last);
+    expect(find.text('源文件名 + 编码格式'), findsOneWidget);
+    expect(find.text('{source}-{codec}'), findsOneWidget);
+    expect(find.text('源文件名 + 编码器'), findsOneWidget);
+    expect(find.text('{source}-{encoder}'), findsOneWidget);
+    await tester.tap(find.text('{source}-{codec}').last);
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<TextField>(find.byType(TextField).last).controller!.text,
+      '{source}-{codec}',
+    );
+
+    await tester.enterText(find.byType(TextField).last, '{source}-custom');
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('选择常用模板'));
+    await tester.pumpAndSettle();
+    expect(find.text('{source}-{codec}'), findsOneWidget);
+    await tester.tap(find.text('{source}-{codec}'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField).last, '{source}-custom');
     await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
@@ -239,9 +282,35 @@ void main() {
     expect(savedSettings, isNotNull);
     expect(savedSettings!.saveOutputToSourceDirectory, isFalse);
     expect(savedSettings!.defaultOutputDirectory, '/tmp/framelean-picked');
+    expect(savedSettings!.defaultOutputFileNameTemplate, '{source}-custom');
+  });
+
+  testWidgets('normalizes numeric x separators without changing x264', (
+    tester,
+  ) async {
+    AppSettings? savedSettings;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async => savedSettings = settings,
+    );
+
+    await tester.tap(find.text('输出配置'));
+    await tester.pumpAndSettle();
+    final templateField = find.byType(TextField).last;
+    await tester.enterText(templateField, '{source}-1920x1080-x{encoder}-x264');
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.widget<TextField>(templateField).controller!.text,
+      '{source}-1920×1080-{encoder}-x264',
+    );
+
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
     expect(
       savedSettings!.defaultOutputFileNameTemplate,
-      DefaultOutputFileNameTemplate.sourceFileNameDateCodec,
+      '{source}-1920×1080-{encoder}-x264',
     );
   });
 
@@ -287,6 +356,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('H.265 / HEVC').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('保留视频元数据'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
@@ -294,6 +365,7 @@ void main() {
     expect(savedSettings, isNotNull);
     expect(video?.smartPreset, SmartCompressionPreset.clear);
     expect(video?.videoCodec, VideoCodec.hevc);
+    expect(video?.preserveMetadata, isFalse);
     expect(savedSettings!.defaultOutputVideoCodec, VideoCodec.hevc);
     expect(savedSettings!.defaultSmartPreset, SmartCompressionPreset.clear);
   });
@@ -314,7 +386,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('PNG').last);
     await tester.pumpAndSettle();
-    await tester.enterText(find.byType(TextField), '82');
+    tester.widget<Slider>(find.byType(Slider)).onChanged!(7);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保留图片元数据'));
     await tester.pumpAndSettle();
@@ -324,7 +396,7 @@ void main() {
     final image = savedSettings!.defaultMediaConfig.image;
     expect(savedSettings, isNotNull);
     expect(image?.outputFormat, MediaOutputFormat.png);
-    expect(image?.imageQuality, 82);
+    expect(image?.imageQuality, 80);
     expect(image?.preserveMetadata, isTrue);
   });
 
@@ -346,6 +418,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('单声道').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('保留音频元数据'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
 
@@ -353,6 +427,7 @@ void main() {
     expect(savedSettings, isNotNull);
     expect(audio?.bitratePreset, AudioBitratePreset.k128);
     expect(audio?.channels, AudioChannelsPreset.mono);
+    expect(audio?.preserveMetadata, isFalse);
   });
 
   testWidgets('about section shows version and cache cleanup action', (

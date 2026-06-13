@@ -35,21 +35,24 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('error notice keeps one readable detail line', (tester) async {
+  testWidgets('error notice keeps two readable detail lines', (tester) async {
+    const detail = '输出配置已保存，非运行状态的任务已更新；正在处理的任务将在下次处理时使用新配置';
     await pumpNotice(
       tester,
-      title: '应用主题保存失败',
-      message: 'FFmpeg 路径无效，请重新选择可执行文件',
-      level: AppNotificationLevel.error,
+      title: '输出配置已保存',
+      message: detail,
+      level: AppNotificationLevel.success,
     );
 
-    expect(find.text('应用主题保存失败'), findsOneWidget);
-    expect(find.text('FFmpeg 路径无效，请重新选择可执行文件'), findsOneWidget);
+    expect(find.text('输出配置已保存'), findsOneWidget);
+    expect(find.text(detail), findsOneWidget);
+    final detailText = tester.widget<Text>(find.text(detail));
+    expect(detailText.maxLines, 2);
     final cardSize = tester.getSize(
       find.byKey(const ValueKey('app-notification-card')),
     );
     expect(cardSize.width, 300);
-    expect(cardSize.height, inInclusiveRange(58, 70));
+    expect(cardSize.height, inInclusiveRange(70, 84));
     expect(tester.takeException(), isNull);
   });
 }

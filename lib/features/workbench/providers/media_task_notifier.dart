@@ -139,6 +139,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final tasks = state.requireValue;
     final result = await RetryMediaTaskUseCase(
       repository: repository,
+      settingsRepository: ref.read(appSettingsRepositoryProvider),
       sourceFileChecker: sourceFileChecker,
       fingerprintReader: fingerprintReader,
     ).call(taskId);
@@ -162,13 +163,14 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     unawaited(syncFfmpegQueueStatus());
   }
 
-  Future<void> applySettingsToExistingTasks(AppSettings settings) async {
+  Future<void> applyOutputSettingsToExistingTasks(AppSettings settings) async {
     if (!state.hasValue) {
       return;
     }
 
     final repository = ref.read(mediaTaskRepositoryProvider);
     final tasks = state.requireValue;
+    final now = DateTime.now();
 
     for (final task in tasks) {
       if (task.status != TaskStatus.pending &&
@@ -177,11 +179,10 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
         continue;
       }
 
-      final newConfig = buildInitialTaskConfigFromSettings(
-        sourceFileName: task.fileName,
-        mediaKind: task.mediaKind,
+      final newConfig = buildOutputTaskConfigFromSettings(
+        task: task,
         settings: settings,
-        now: DateTime.now(),
+        now: now,
       );
       final updatedTask = task.copyWith(config: newConfig);
       await repository.saveTask(updatedTask);

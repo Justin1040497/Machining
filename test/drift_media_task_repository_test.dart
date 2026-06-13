@@ -29,6 +29,13 @@ void main() {
           colorSpace: 'bt709',
           colorTransfer: 'bt709',
           colorPrimaries: 'bt709',
+          chromaLocation: 'left',
+          masteringDisplayMetadata: 'red_x=34000/50000',
+          masteringDisplayMaxLuminance: 1000,
+          maxContentLightLevel: 1000,
+          maxFrameAverageLightLevel: 400,
+          dolbyVisionProfile: 8,
+          dolbyVisionCompatibilityId: 1,
           averageFrameRate: '30000/1001',
           realFrameRate: '30000/1001',
           sampleAspectRatio: '1:1',
@@ -49,6 +56,16 @@ void main() {
       expect(companion.analysisColorSpace.value, 'bt709');
       expect(companion.analysisColorTransfer.value, 'bt709');
       expect(companion.analysisColorPrimaries.value, 'bt709');
+      expect(companion.analysisChromaLocation.value, 'left');
+      expect(
+        companion.analysisMasteringDisplayMetadata.value,
+        'red_x=34000/50000',
+      );
+      expect(companion.analysisMasteringDisplayMaxLuminance.value, 1000);
+      expect(companion.analysisMaxContentLightLevel.value, 1000);
+      expect(companion.analysisMaxFrameAverageLightLevel.value, 400);
+      expect(companion.analysisDolbyVisionProfile.value, 8);
+      expect(companion.analysisDolbyVisionCompatibilityId.value, 1);
       expect(companion.analysisAverageFrameRate.value, '30000/1001');
       expect(companion.analysisRealFrameRate.value, '30000/1001');
       expect(companion.analysisSampleAspectRatio.value, '1:1');
@@ -71,6 +88,13 @@ void main() {
       expect(analysis.colorSpace, 'bt2020nc');
       expect(analysis.colorTransfer, 'smpte2084');
       expect(analysis.colorPrimaries, 'bt2020');
+      expect(analysis.chromaLocation, 'left');
+      expect(analysis.masteringDisplayMetadata, 'red_x=34000/50000');
+      expect(analysis.masteringDisplayMaxLuminance, 1000);
+      expect(analysis.maxContentLightLevel, 1000);
+      expect(analysis.maxFrameAverageLightLevel, 400);
+      expect(analysis.dolbyVisionProfile, 8);
+      expect(analysis.dolbyVisionCompatibilityId, 1);
       expect(analysis.averageFrameRate, '60000/1001');
       expect(analysis.realFrameRate, '60000/1001');
       expect(analysis.sampleAspectRatio, '1:1');
@@ -230,6 +254,13 @@ TaskRow taskRow({
     analysisColorSpace: 'bt2020nc',
     analysisColorTransfer: 'smpte2084',
     analysisColorPrimaries: 'bt2020',
+    analysisChromaLocation: 'left',
+    analysisMasteringDisplayMetadata: 'red_x=34000/50000',
+    analysisMasteringDisplayMaxLuminance: 1000,
+    analysisMaxContentLightLevel: 1000,
+    analysisMaxFrameAverageLightLevel: 400,
+    analysisDolbyVisionProfile: 8,
+    analysisDolbyVisionCompatibilityId: 1,
     analysisAverageFrameRate: '60000/1001',
     analysisRealFrameRate: '60000/1001',
     analysisSampleAspectRatio: '1:1',

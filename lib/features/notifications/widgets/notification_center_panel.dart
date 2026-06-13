@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
+import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
@@ -118,6 +120,9 @@ class _NotificationCenterPanelState
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
     final notifications = ref.watch(appNotificationsProvider);
+    final highlightedNotificationId = ref.watch(
+      notificationCenterHighlightProvider,
+    );
 
     return Positioned.fill(
       child: IgnorePointer(
@@ -191,6 +196,8 @@ class _NotificationCenterPanelState
                                 data: (items) => _NotificationList(
                                   notifications: items,
                                   onRevealOutput: widget.onRevealOutput,
+                                  highlightedNotificationId:
+                                      highlightedNotificationId,
                                 ),
                                 loading: () => Center(
                                   child: SizedBox(
@@ -283,10 +290,12 @@ class _NotificationList extends StatelessWidget {
   const _NotificationList({
     required this.notifications,
     required this.onRevealOutput,
+    required this.highlightedNotificationId,
   });
 
   final List<AppNotificationEntry> notifications;
   final Future<void> Function(String outputPath) onRevealOutput;
+  final String? highlightedNotificationId;
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +319,7 @@ class _NotificationList extends StatelessWidget {
           notification: notification,
           action: action,
           onRevealOutput: onRevealOutput,
+          highlighted: notification.id == highlightedNotificationId,
         );
       },
     );
@@ -322,11 +332,13 @@ class _NotificationListItem extends StatelessWidget {
     required this.notification,
     required this.action,
     required this.onRevealOutput,
+    required this.highlighted,
   });
 
   final AppNotificationEntry notification;
   final NotificationCenterActionDescriptor? action;
   final Future<void> Function(String outputPath) onRevealOutput;
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
@@ -338,78 +350,99 @@ class _NotificationListItem extends StatelessWidget {
       AppNotificationLevel.success => colors.primary,
     };
 
-    return Semantics(
-      container: true,
-      label: notification.displayMessage,
-      child: Container(
-        key: const Key('notification-center-item'),
-        decoration: BoxDecoration(
-          color: colors.surface,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: colors.border),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 9, 8, 9),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 1),
-                child: Container(
-                  key: const Key('notification-center-accent'),
-                  width: 2,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: accentColor,
-                    borderRadius: BorderRadius.circular(1),
-                  ),
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('${notification.id}-$highlighted'),
+      tween: Tween(begin: 0, end: highlighted ? 1 : 0),
+      duration: highlighted
+          ? const Duration(milliseconds: 1500)
+          : const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        final pulse = highlighted ? math.sin(value * math.pi * 3).abs() : 0.0;
+        final highlightColor = Color.lerp(
+          colors.surface,
+          colors.primarySoft,
+          pulse * 0.55,
+        )!;
+        final borderColor = Color.lerp(
+          colors.border,
+          colors.primary,
+          pulse * 0.45,
+        )!;
+
+        return Semantics(
+          container: true,
+          label: notification.displayMessage,
+          child: Container(
+            key: const Key('notification-center-item'),
+            decoration: BoxDecoration(
+              color: highlightColor,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: borderColor),
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 9, 8, 9),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 1),
+              child: Container(
+                key: const Key('notification-center-accent'),
+                width: 2,
+                height: 14,
+                decoration: BoxDecoration(
+                  color: accentColor,
+                  borderRadius: BorderRadius.circular(1),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            notification.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 12,
-                              height: 1.25,
-                              fontWeight: FontWeight.w600,
-                            ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          notification.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: colors.textPrimary,
+                            fontSize: 12,
+                            height: 1.25,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                        if (action != null)
-                          _NotificationActionButton(
-                            action: action!,
-                            onRevealOutput: onRevealOutput,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Text(
-                      _notificationSubtitle(notification),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: colors.textTertiary,
-                        fontSize: 10,
-                        height: 1.3,
-                        fontWeight: FontWeight.w400,
                       ),
+                      if (action != null)
+                        _NotificationActionButton(
+                          action: action!,
+                          onRevealOutput: onRevealOutput,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    _notificationSubtitle(notification),
+                    style: TextStyle(
+                      color: colors.textTertiary,
+                      fontSize: 10,
+                      height: 1.3,
+                      fontWeight: FontWeight.w400,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

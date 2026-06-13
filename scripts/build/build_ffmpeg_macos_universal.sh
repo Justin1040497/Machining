@@ -64,6 +64,7 @@ done
 encoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -encoders 2>/dev/null)"
 decoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -decoders 2>/dev/null)"
 demuxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -demuxers 2>/dev/null)"
+filter_output="$("$OUT_DIR/ffmpeg" -hide_banner -filters 2>/dev/null)"
 for encoder_name in libx264 libmp3lame libwebp libopus; do
   if ! grep "$encoder_name" <<<"$encoder_output" >/dev/null; then
     echo "error: Universal FFmpeg is missing encoder: $encoder_name" >&2
@@ -80,6 +81,12 @@ if ! grep "ogg" <<<"$demuxer_output" >/dev/null; then
   echo "error: Universal FFmpeg is missing demuxer: ogg" >&2
   exit 1
 fi
+for filter_name in zscale tonemap; do
+  if ! grep "$filter_name" <<<"$filter_output" >/dev/null; then
+    echo "error: Universal FFmpeg is missing filter: $filter_name" >&2
+    exit 1
+  fi
+done
 
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
 Target: macOS Universal 2

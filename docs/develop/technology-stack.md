@@ -29,15 +29,16 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 15 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 20 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
-| 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频和封装信息 |
-| 媒体处理 | FFmpeg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换 |
+| 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
+| 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |
 | 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片、音频和部分专有音频输入扩展名会进入任务流程 |
 | 专有音频输入 | Dart 原生 NCM + 外部 QMC 适配器 | 已使用 | NCM 使用本地 Dart 解密；MGG / MFLAC 等 QMC 输入通过适配器或 `qmc-decrypt` 预处理 |
 | 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
+| 任务完成音效 | Flutter assets + 系统播放器 | 已使用 | 内置 WAV 资源打包到 `assets/sounds/`；macOS 使用 `afplay`，Windows 使用 `SoundPlayer` |
 | 响应式尺寸 | flutter_screenutil | 已使用 | 工作台和主题文本使用桌面基准尺寸，允许小窗口缩小但不随大窗口放大 |
 | 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
@@ -127,7 +128,7 @@ third_party/
 | 环境 | 说明 |
 | --- | --- |
 | Flutter SDK | 需要满足 Dart SDK `^3.11.0` |
-| macOS 开发 | 需要 Xcode Command Line Tools；构建内置 FFmpeg 时需要 Homebrew、`nasm`、`pkg-config` |
+| macOS 开发 | 需要 Xcode Command Line Tools；构建内置 FFmpeg 时需要 Homebrew、`nasm`、`pkg-config`；zimg tag archive 如缺少 `configure`，还需要 `autoconf` / `automake` / `libtool` |
 | Windows 开发 | 需要 Visual Studio C++ 桌面构建工具和 Flutter Windows 桌面支持 |
 | FFmpeg / FFprobe | 开发运行可使用 custom、bundled、known system 或 PATH 中的工具；发布包应包含内置运行时 |
 
@@ -231,6 +232,13 @@ ffmpeg -hide_banner -encoders
 
 图片和音频输出命令按目标格式推导编码器；其中 WebP 依赖 `libwebp`，MP3 依赖 `libmp3lame`，Opus / Ogg Opus 依赖 `libopus`。如果当前 FFmpeg 缺少目标格式对应的编码器，命令规划会在启动 FFmpeg 前失败并给出可读提示。
 
+视频色彩处理规则：
+
+- SDR 源优先保留 FFprobe 读取到的 range、matrix、transfer 和 primaries；缺失时按分辨率推断 BT.709 或 SD 的 SMPTE 170M，不再统一硬贴 BT.709。
+- HDR10 / HLG 源通过 `zscale + tonemap` 转为 SDR BT.709 输出，依赖 FFmpeg 启用 `libzimg` 并暴露 `zscale`、`tonemap` 滤镜。
+- Dolby Vision Profile 5 或缺少 HDR10 兼容层的 Dolby Vision 首版直接拒绝命令构造，避免输出变黑、偏紫或严重偏色。
+- 硬件编码器质量参数独立映射：CRF、NVENC CQ、QSV global quality、AMF QP 和 VideoToolbox `q:v` 不再共用同一个数值。
+
 ## 平台打包事实
 
 ### macOS
@@ -301,7 +309,7 @@ README.md
 <FrameLean.exe 所在目录>/ffmpeg/
 ```
 
-Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。`scripts/release/build_windows.ps1` 会在构建后检查 Release 目录内 FFmpeg 是否包含 `libx264`、`libmp3lame`、`libwebp`、`libopus`。
+Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。`scripts/release/build_windows.ps1` 会在构建后检查 Release 目录内 FFmpeg 是否包含 `libx264`、`libmp3lame`、`libwebp`、`libopus`，以及 HDR 转 SDR 需要的 `zscale`、`tonemap` 滤镜。
 
 ## 数据与文件存储
 

@@ -63,6 +63,7 @@ lib/
   application/
     repositories/
     services/
+      app_notifications/
       input_runtime/
       ffmpeg_planning/
       execution/
@@ -74,6 +75,7 @@ lib/
     providers/
     repositories/
     services/
+      app_notifications/
       input_runtime/
       ffmpeg_planning/
       execution/
@@ -117,7 +119,8 @@ docs/
 
 - `FrameLeanApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
 - `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，`/settings` 指向全屏应用设置页。
-- `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示。
+- `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
+- `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏，但通知仍会先持久化。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
 ### domain
@@ -148,8 +151,11 @@ docs/
 Use Cases：
 
 - `LoadAppSettingsUseCase`、`SaveAppSettingsUseCase`：读取、校验并保存应用设置。
-- `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。
-- `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径等动作数据。
+- `AppSettingsSaveCoordinator`：协调设置保存后的主题缓存、运行时刷新、输出配置回填和通知记录；调用方必须传入设置保存目标，避免保存链路丢失“哪个分区触发”的业务语义。
+- `AppSettingsSaveTarget`：设置保存的结构化事件类型。应用设置、视频 / 图片 / 音频默认任务配置、输出配置和编码器配置拥有各自通知标题；只有输出配置保存会刷新非运行状态任务，任务默认配置只影响后续导入。
+- `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
+- `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径等动作数据；任务通知标题包含文件名，失败原因保留在通知正文。
+- `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，按平台调用系统播放器。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
 - `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
 - `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
@@ -176,6 +182,7 @@ Use Cases：
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
 - `services/execution/`：本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
+- `services/app_notifications/`：本地任务完成提示音播放实现，读取内置 Flutter asset，缓存到临时目录后交给系统播放器。
 
 持久化兼容层集中在：
 
@@ -205,6 +212,7 @@ Use Cases：
 - `widgets/`：设置页通用 UI 组件，例如侧边栏、表单容器、分区保存按钮、输入控件和关于页维护组件。
 - 设置页复用 `features/workbench/widgets/form_controls/` 的路径输入和下拉控件，保持与工作台配置控件一致。
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
+- 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
 
 工作台当前支持：
 
@@ -226,6 +234,8 @@ Use Cases：
 - `widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
 - 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
 - 通知项副标题保留通知正文或失败原因，并使用同一副标题字体追加通知时间。
+- 右上角临时通知只承载即时反馈，通知中心承载完整历史。临时通知为中等密度卡片，关闭按钮固定在尾部，详情最多两行；成功 / 信息、警告、失败使用不同停留时长。
+- 任务成功临时通知展示前会读取应用设置并触发完成提示音；通知中心打开时临时通知会隐藏，但完成提示音仍会触发。
 
 ## Riverpod 组装方式
 

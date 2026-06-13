@@ -3,6 +3,7 @@ import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
+import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchAudioConfigPanel extends StatelessWidget {
@@ -10,6 +11,7 @@ class WorkbenchAudioConfigPanel extends StatelessWidget {
     super.key,
     required this.config,
     required this.onChanged,
+    this.sourceOutputFormat,
     this.padding = const EdgeInsets.fromLTRB(20, 16, 20, 18),
     this.itemSpacing = 14,
     this.dropdownHeight,
@@ -20,6 +22,7 @@ class WorkbenchAudioConfigPanel extends StatelessWidget {
 
   final AudioProcessingConfig config;
   final ValueChanged<AudioProcessingConfig> onChanged;
+  final MediaOutputFormat? sourceOutputFormat;
   final EdgeInsetsGeometry padding;
   final double itemSpacing;
   final double? dropdownHeight;
@@ -30,6 +33,9 @@ class WorkbenchAudioConfigPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final audioFormats = MediaOutputFormat.formatsFor(MediaKind.audio);
+    final selectedOutputFormat = audioFormats.contains(config.outputFormat)
+        ? config.outputFormat
+        : MediaOutputFormat.m4a;
 
     return SingleChildScrollView(
       padding: padding,
@@ -38,17 +44,22 @@ class WorkbenchAudioConfigPanel extends StatelessWidget {
         children: [
           ConfigDropdown<MediaOutputFormat>(
             label: '音频格式',
-            trailingText: config.outputFormat.label,
-            value: config.outputFormat,
+            trailingText: _formatLabel(selectedOutputFormat),
+            value: selectedOutputFormat,
             values: audioFormats,
-            itemLabel: (value) => value.label,
+            itemLabel: _formatLabel,
             height: dropdownHeight,
             showTrailingText: showTrailingText,
             labelFontSize: labelFontSize,
             valueFontSize: valueFontSize,
             onChanged: (value) {
               if (value != null) {
-                onChanged(config.copyWith(outputFormat: value));
+                onChanged(
+                  config.copyWith(
+                    outputFormat: value,
+                    keepOriginalOutputFormat: value == sourceOutputFormat,
+                  ),
+                );
               }
             },
           ),
@@ -102,6 +113,85 @@ class WorkbenchAudioConfigPanel extends StatelessWidget {
                 onChanged(config.copyWith(channels: value));
               }
             },
+          ),
+          SizedBox(height: itemSpacing),
+          _AudioConfigSwitch(
+            label: '保留元数据',
+            value: config.preserveMetadata,
+            height: dropdownHeight,
+            labelFontSize: labelFontSize,
+            valueFontSize: valueFontSize,
+            onChanged: (value) {
+              onChanged(config.copyWith(preserveMetadata: value));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatLabel(MediaOutputFormat value) {
+    if (value == sourceOutputFormat ||
+        (config.keepOriginalOutputFormat && value == config.outputFormat)) {
+      return '${value.label}（保持原始）';
+    }
+
+    return value.label;
+  }
+}
+
+class _AudioConfigSwitch extends StatelessWidget {
+  const _AudioConfigSwitch({
+    required this.label,
+    required this.value,
+    required this.height,
+    required this.labelFontSize,
+    required this.valueFontSize,
+    required this.onChanged,
+  });
+
+  final String label;
+  final bool value;
+  final double? height;
+  final double labelFontSize;
+  final double valueFontSize;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return SizedBox(
+      height: height ?? 34,
+      child: Row(
+        children: [
+          Transform.scale(
+            scale: 0.78,
+            child: Switch(
+              padding: EdgeInsets.zero,
+              value: value,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              onChanged: onChanged,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: labelFontSize.flSp,
+                color: colors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            value ? '开启' : '关闭',
+            style: TextStyle(
+              fontSize: valueFontSize.flSp,
+              color: colors.textPrimary,
+            ),
           ),
         ],
       ),
