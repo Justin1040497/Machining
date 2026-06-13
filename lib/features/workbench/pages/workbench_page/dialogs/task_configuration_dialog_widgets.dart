@@ -210,6 +210,7 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
     required this.values,
     required this.selectedValue,
     required this.onChanged,
+    this.showTickLabels = true,
   }) : assert(values.length >= 2);
 
   final String title;
@@ -217,6 +218,7 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
   final List<double> values;
   final double selectedValue;
   final ValueChanged<double> onChanged;
+  final bool showTickLabels;
 
   @override
   Widget build(BuildContext context) {
@@ -293,29 +295,31 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                for (final value in values)
-                  Text(
-                    '${(value * 100).round()}%',
-                    style: TextStyle(
-                      color: value == selectedPanelValue
-                          ? colors.primary
-                          : colors.textTertiary,
-                      fontSize: 8.flSp,
-                      height: 1,
-                      fontWeight: value == selectedPanelValue
-                          ? FontWeight.w700
-                          : FontWeight.w500,
+          if (showTickLabels) ...[
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final value in values)
+                    Text(
+                      '${(value * 100).round()}%',
+                      style: TextStyle(
+                        color: value == selectedPanelValue
+                            ? colors.primary
+                            : colors.textTertiary,
+                        fontSize: 8.flSp,
+                        height: 1,
+                        fontWeight: value == selectedPanelValue
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
+            const SizedBox(height: 8),
+          ],
         ],
       ),
     );

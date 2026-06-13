@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/application/services/ffmpeg_planning/compression_estimator.dart';
+import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
@@ -11,6 +14,7 @@ import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/audio_config_panel.dart';
@@ -69,6 +73,13 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   var draftSmartPreset = selectedSmartPreset;
   var draftTargetSizeRatio = selectedTargetSizeRatio;
   var draftConfig = task.config;
+  final sourceOutputFormat = mediaOutputFormatForSourceFileName(
+    sourceFileName: task.inputPath,
+    mediaKind: task.mediaKind,
+  );
+  final sourceVideoOutputFormat = task.mediaKind == MediaKind.video
+      ? sourceOutputFormat?.toVideoOutputFormat()
+      : null;
 
   return showDialog<WorkbenchTaskConfigurationDraft>(
     context: context,
@@ -90,6 +101,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             selectedCompressionMode: draftCompressionMode,
             selectedSmartPreset: draftSmartPreset,
             selectedTargetSizeRatio: draftTargetSizeRatio,
+            selectedVideoConfig: draftConfig.video,
             selectedImageConfig: draftConfig.image,
             selectedAudioConfig: draftConfig.audio,
             availableEncoderBackends:
@@ -158,10 +170,18 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             onOutputFormatChanged: (value) {
               updateDialogState(() {
                 draftOutputFormat = value;
-                draftConfig = draftConfig.copyWith(outputFormat: value);
+                draftConfig = draftConfig.copyWith(
+                  outputFormat: value,
+                  keepOriginalOutputFormat: value == sourceVideoOutputFormat,
+                );
               });
             },
             onVideoCodecChanged: (value) {
+              final preservingHdr =
+                  draftConfig.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+              if (preservingHdr) {
+                value = VideoCodec.hevc;
+              }
               final nextEncoderBackend =
                   WorkbenchEncoderPolicy.isBackendCompatibleWithCodec(
                     draftEncoderBackend,
@@ -182,6 +202,63 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
               updateDialogState(() {
                 draftEncoderBackend = value;
                 draftConfig = draftConfig.copyWith(encoderBackend: value);
+              });
+            },
+            onPreserveHdrChanged: (value) {
+              updateDialogState(() {
+                final currentVideo =
+                    draftConfig.video ?? VideoProcessingConfig.initial();
+                if (value) {
+                  draftVideoCodec = VideoCodec.hevc;
+                  final nextBackend =
+                      WorkbenchEncoderPolicy.isBackendCompatibleWithCodec(
+                        draftEncoderBackend,
+                        VideoCodec.hevc,
+                      )
+                      ? draftEncoderBackend
+                      : EncoderBackend.auto;
+                  draftEncoderBackend = nextBackend;
+                  draftConfig = draftConfig.copyWith(
+                    videoCodec: VideoCodec.hevc,
+                    encoderBackend: nextBackend,
+                    hdrOutputMode: HdrOutputMode.preserveHdr,
+                    videoCodecBeforePreserveHdr: currentVideo.videoCodec,
+                    encoderBackendBeforePreserveHdr:
+                        currentVideo.encoderBackend,
+                  );
+                  return;
+                }
+
+                final restoredCodec =
+                    currentVideo.videoCodecBeforePreserveHdr ?? VideoCodec.h264;
+                final restoredBackend =
+                    currentVideo.encoderBackendBeforePreserveHdr ??
+                    EncoderBackend.auto;
+                final nextBackend =
+                    WorkbenchEncoderPolicy.isBackendCompatibleWithCodec(
+                      restoredBackend,
+                      restoredCodec,
+                    )
+                    ? restoredBackend
+                    : EncoderBackend.auto;
+                draftVideoCodec = restoredCodec;
+                draftEncoderBackend = nextBackend;
+                draftConfig = draftConfig.copyWith(
+                  videoCodec: restoredCodec,
+                  encoderBackend: nextBackend,
+                  hdrOutputMode: HdrOutputMode.convertToSdr,
+                  videoCodecBeforePreserveHdr: null,
+                  encoderBackendBeforePreserveHdr: null,
+                );
+              });
+            },
+            onVideoPreserveMetadataChanged: (value) {
+              updateDialogState(() {
+                final currentVideo =
+                    draftConfig.video ?? VideoProcessingConfig.initial();
+                draftConfig = draftConfig.copyWith(
+                  video: currentVideo.copyWith(preserveMetadata: value),
+                );
               });
             },
             onResolutionPresetChanged: (value) {
@@ -220,6 +297,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.selectedCompressionMode,
     required this.selectedSmartPreset,
     required this.selectedTargetSizeRatio,
+    this.selectedVideoConfig,
     this.selectedImageConfig,
     this.selectedAudioConfig,
     required this.availableEncoderBackends,
@@ -234,6 +312,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.onVideoCodecChanged,
     required this.onEncoderBackendChanged,
     required this.onResolutionPresetChanged,
+    this.onPreserveHdrChanged,
+    this.onVideoPreserveMetadataChanged,
     this.onImageConfigChanged,
     this.onAudioConfigChanged,
   });
@@ -248,6 +328,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final CompressionMode selectedCompressionMode;
   final SmartCompressionPreset selectedSmartPreset;
   final double selectedTargetSizeRatio;
+  final VideoProcessingConfig? selectedVideoConfig;
   final ImageProcessingConfig? selectedImageConfig;
   final AudioProcessingConfig? selectedAudioConfig;
   final List<EncoderBackend> availableEncoderBackends;
@@ -261,6 +342,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final ValueChanged<OutputFormat> onOutputFormatChanged;
   final ValueChanged<VideoCodec> onVideoCodecChanged;
   final ValueChanged<EncoderBackend> onEncoderBackendChanged;
+  final ValueChanged<bool>? onPreserveHdrChanged;
+  final ValueChanged<bool>? onVideoPreserveMetadataChanged;
   final ValueChanged<ResolutionPreset> onResolutionPresetChanged;
   final ValueChanged<ImageProcessingConfig>? onImageConfigChanged;
   final ValueChanged<AudioProcessingConfig>? onAudioConfigChanged;
@@ -423,11 +506,22 @@ class _WorkbenchTaskConfigurationDialogState
   }
 
   Widget _buildMediaConfigPanel() {
+    final sourceOutputFormat = _sourceOutputFormat();
+
     switch (widget.task.mediaKind) {
       case MediaKind.video:
+        final videoConfig =
+            widget.selectedVideoConfig ??
+            widget.task.config.video ??
+            VideoProcessingConfig.initial();
+        final preserveHdr =
+            videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
+            widget.task.analysisResult?.isHdr == true;
         return WorkbenchVideoConfigPanel(
           selectedOutputFormat: widget.selectedOutputFormat,
-          selectedVideoCodec: widget.selectedVideoCodec,
+          selectedVideoCodec: preserveHdr
+              ? VideoCodec.hevc
+              : widget.selectedVideoCodec,
           selectedEncoderBackend: widget.selectedEncoderBackend,
           selectedResolutionPreset: widget.selectedResolutionPreset,
           availableEncoderBackends: widget.availableEncoderBackends,
@@ -435,7 +529,19 @@ class _WorkbenchTaskConfigurationDialogState
           onVideoCodecChanged: widget.onVideoCodecChanged,
           onEncoderBackendChanged: widget.onEncoderBackendChanged,
           onResolutionPresetChanged: widget.onResolutionPresetChanged,
+          sourceOutputFormat: sourceOutputFormat?.toVideoOutputFormat(),
+          keepOriginalOutputFormat: videoConfig.keepOriginalOutputFormat,
+          showPreserveHdrOption: widget.task.analysisResult?.isHdr == true,
+          preserveHdr: preserveHdr,
+          onPreserveHdrChanged: widget.onPreserveHdrChanged,
+          preserveMetadata: videoConfig.preserveMetadata,
+          onPreserveMetadataChanged: widget.onVideoPreserveMetadataChanged,
+          videoCodecValues: preserveHdr
+              ? const [VideoCodec.hevc]
+              : const [VideoCodec.h264, VideoCodec.hevc],
+          videoCodecEnabled: !preserveHdr,
           showEncoderBackend: false,
+          resolutionValues: _resolutionValues(),
           padding: EdgeInsets.zero,
           itemSpacing: 8,
           dropdownHeight: 34,
@@ -452,6 +558,13 @@ class _WorkbenchTaskConfigurationDialogState
         return WorkbenchImageConfigPanel(
           config: imageConfig,
           onChanged: widget.onImageConfigChanged ?? (_) {},
+          sourceOutputFormat: sourceOutputFormat,
+          sourceWidth:
+              widget.task.analysisResult?.imageWidth ??
+              widget.task.analysisResult?.videoWidth,
+          sourceHeight:
+              widget.task.analysisResult?.imageHeight ??
+              widget.task.analysisResult?.videoHeight,
           padding: EdgeInsets.zero,
           itemSpacing: 8,
           dropdownHeight: 34,
@@ -467,6 +580,7 @@ class _WorkbenchTaskConfigurationDialogState
         return WorkbenchAudioConfigPanel(
           config: audioConfig,
           onChanged: widget.onAudioConfigChanged ?? (_) {},
+          sourceOutputFormat: sourceOutputFormat,
           padding: EdgeInsets.zero,
           itemSpacing: 8,
           dropdownHeight: 34,
@@ -480,12 +594,19 @@ class _WorkbenchTaskConfigurationDialogState
   bool _isModified() {
     switch (widget.task.mediaKind) {
       case MediaKind.video:
-        return WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
-          task: widget.task,
-          outputFormat: widget.selectedOutputFormat,
-          videoCodec: widget.selectedVideoCodec,
-          resolutionPreset: widget.selectedResolutionPreset,
-        );
+        final adjustedFromSource =
+            WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
+              task: widget.task,
+              outputFormat: widget.selectedOutputFormat,
+              videoCodec: widget.selectedVideoCodec,
+              resolutionPreset: widget.selectedResolutionPreset,
+            );
+        final initial = widget.task.config.video;
+        final current = widget.selectedVideoConfig;
+        return adjustedFromSource ||
+            (initial != null &&
+                current != null &&
+                _videoConfigChanged(initial, current));
       case MediaKind.image:
         final initial = widget.task.config.image;
         final current = widget.selectedImageConfig;
@@ -511,6 +632,21 @@ class _WorkbenchTaskConfigurationDialogState
         initial.preserveMetadata != current.preserveMetadata;
   }
 
+  bool _videoConfigChanged(
+    VideoProcessingConfig initial,
+    VideoProcessingConfig current,
+  ) {
+    return initial.outputFormat != current.outputFormat ||
+        initial.keepOriginalOutputFormat != current.keepOriginalOutputFormat ||
+        initial.videoCodec != current.videoCodec ||
+        initial.encoderBackend != current.encoderBackend ||
+        initial.hdrOutputMode != current.hdrOutputMode ||
+        initial.resolutionPreset != current.resolutionPreset ||
+        initial.compressionCrf != current.compressionCrf ||
+        initial.smartPreset != current.smartPreset ||
+        initial.preserveMetadata != current.preserveMetadata;
+  }
+
   bool _audioConfigChanged(
     AudioProcessingConfig initial,
     AudioProcessingConfig current,
@@ -518,7 +654,8 @@ class _WorkbenchTaskConfigurationDialogState
     return initial.outputFormat != current.outputFormat ||
         initial.bitratePreset != current.bitratePreset ||
         initial.sampleRate != current.sampleRate ||
-        initial.channels != current.channels;
+        initial.channels != current.channels ||
+        initial.preserveMetadata != current.preserveMetadata;
   }
 
   String _estimatedOutputSizeForPreset(WorkbenchCompressionPreset preset) {
@@ -544,10 +681,50 @@ class _WorkbenchTaskConfigurationDialogState
       final width = widget.task.analysisResult?.videoWidth;
       final height = widget.task.analysisResult?.videoHeight;
       if (width != null && height != null) {
-        return '$width * $height';
+        return '$width × $height（保持原始）';
       }
     }
 
-    return value.label.replaceAll('x', ' * ');
+    return value.label.replaceAll('x', ' × ');
+  }
+
+  MediaOutputFormat? _sourceOutputFormat() {
+    return mediaOutputFormatForSourceFileName(
+      sourceFileName: widget.task.inputPath,
+      mediaKind: widget.task.mediaKind,
+    );
+  }
+
+  List<ResolutionPreset> _resolutionValues() {
+    final width = widget.task.analysisResult?.videoWidth;
+    final height = widget.task.analysisResult?.videoHeight;
+    return const [
+      ResolutionPreset.original,
+      ResolutionPreset.p2160,
+      ResolutionPreset.p1080,
+      ResolutionPreset.p720,
+      ResolutionPreset.p480,
+    ].where((preset) {
+      if (preset == ResolutionPreset.original) {
+        return true;
+      }
+
+      final size = _resolutionPresetSize(preset);
+      if (width == null || height == null || size == null) {
+        return true;
+      }
+
+      return width != size.width || height != size.height;
+    }).toList();
+  }
+
+  ({int width, int height})? _resolutionPresetSize(ResolutionPreset preset) {
+    return switch (preset) {
+      ResolutionPreset.original => null,
+      ResolutionPreset.p2160 => (width: 3840, height: 2160),
+      ResolutionPreset.p1080 => (width: 1920, height: 1080),
+      ResolutionPreset.p720 => (width: 1280, height: 720),
+      ResolutionPreset.p480 => (width: 854, height: 480),
+    };
   }
 }
