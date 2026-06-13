@@ -8,6 +8,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
@@ -21,6 +22,7 @@ import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page.dart';
@@ -82,6 +84,93 @@ void main() {
       SmartCompressionPreset.compact,
     ]);
     expect(resolutionChanges, isEmpty);
+  });
+
+  testWidgets('preserve HDR disables target size and risky presets', (
+    tester,
+  ) async {
+    final modeChanges = <CompressionMode>[];
+    final smartPresetChanges = <SmartCompressionPreset>[];
+    final videoConfig = VideoProcessingConfig.initial().copyWith(
+      videoCodec: VideoCodec.hevc,
+      hdrOutputMode: HdrOutputMode.preserveHdr,
+      smartPreset: SmartCompressionPreset.clear,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: MediaTask(
+              id: 'task-hdr',
+              inputPath: '/videos/hdr.mov',
+              fileName: 'hdr.mov',
+              mediaKind: MediaKind.video,
+              purpose: TaskPurpose.compression,
+              status: TaskStatus.pending,
+              config: MediaTaskConfig.initialVideo().copyWith(
+                video: videoConfig,
+              ),
+              progress: 0,
+              sortOrder: 0,
+              createdAt: 1,
+              sourceFileFingerprint: const SourceFileFingerprint(
+                fileSize: 100 * 1024 * 1024,
+                lastModifiedAt: 1,
+              ),
+              analysisResult: MediaAnalysisResult(
+                durationMs: 60000,
+                videoWidth: 3840,
+                videoHeight: 2160,
+                videoCodec: 'hevc',
+                videoBitrate: 12000000,
+                videoBitDepth: 10,
+                colorSpace: 'bt2020nc',
+                colorTransfer: 'smpte2084',
+                colorPrimaries: 'bt2020',
+              ),
+            ),
+            thumbnail: null,
+            selectedQualityIndex: 3,
+            selectedOutputFormat: OutputFormat.mov,
+            selectedVideoCodec: VideoCodec.hevc,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.preset,
+            selectedSmartPreset: SmartCompressionPreset.clear,
+            selectedTargetSizeRatio: 0.6,
+            selectedVideoConfig: videoConfig,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: modeChanges.add,
+            onSmartPresetChanged: smartPresetChanges.add,
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('自定义目标体积'));
+    await tester.pumpAndSettle();
+    expect(modeChanges, isEmpty);
+    expect(find.text('目标体积'), findsNothing);
+
+    await tester.tap(find.text('微信发送'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('体积优先'));
+    await tester.pumpAndSettle();
+    expect(smartPresetChanges, isEmpty);
+
+    await tester.tap(find.text('均衡推荐'));
+    await tester.pumpAndSettle();
+    expect(smartPresetChanges, [SmartCompressionPreset.balanced]);
   });
 
   testWidgets('source matching config does not mark preset modified', (

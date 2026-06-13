@@ -167,6 +167,25 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
         notification.level == AppNotificationLevel.success;
   }
 
+  String transientMessageFor(AppNotificationEntry notification) {
+    if (notification.kind != AppNotificationKind.task) {
+      return notification.message;
+    }
+
+    final payload = TaskNotificationPayload.tryParse(notification.payloadJson);
+    final fileName = payload?.fileName.trim();
+    if (fileName == null || fileName.isEmpty) {
+      return notification.message;
+    }
+
+    return switch (notification.level) {
+      AppNotificationLevel.success => '$fileName 已处理完成',
+      AppNotificationLevel.error => '$fileName 处理失败，点击查看详情',
+      AppNotificationLevel.info ||
+      AppNotificationLevel.warning => notification.message,
+    };
+  }
+
   AppNotificationAction? fallbackActionFor(
     AppNotificationPresentation presentation,
   ) {
@@ -243,7 +262,7 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
         if (current != null)
           WorkbenchNotice(
             title: current.notification.title,
-            message: current.notification.message,
+            message: transientMessageFor(current.notification),
             level: current.notification.level,
             visibleListenable: visible,
             actionLabel: action?.label,

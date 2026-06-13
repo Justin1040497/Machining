@@ -104,8 +104,8 @@ void main() {
 
     expect(notification.kind, AppNotificationKind.task);
     expect(notification.level, AppNotificationLevel.success);
-    expect(notification.title, 'demo.mp4 处理完成');
-    expect(notification.message, '已保存至 /output/demo.mp4');
+    expect(notification.title, '任务成功');
+    expect(notification.message, 'demo.mp4\n已保存至 /output/demo.mp4');
     expect(payload?.taskId, completedTask.id);
     expect(payload?.outputPath, '/output/demo.mp4');
   });
@@ -125,8 +125,8 @@ void main() {
 
     expect(notification.kind, AppNotificationKind.task);
     expect(notification.level, AppNotificationLevel.error);
-    expect(notification.title, 'demo.mp4 处理失败');
-    expect(notification.message, '编码器不可用');
+    expect(notification.title, '任务失败');
+    expect(notification.message, 'demo.mp4\n编码器不可用');
   });
 }
 

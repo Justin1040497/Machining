@@ -140,7 +140,11 @@ class _NotificationCenterPanelState
           },
           child: LayoutBuilder(
             builder: (context, _) {
-              const panelWidth = 249.0;
+              final availablePanelWidth = MediaQuery.sizeOf(context).width - 36;
+              final panelWidth = math.min(
+                380.0,
+                math.max(249.0, availablePanelWidth),
+              );
               return Stack(
                 children: [
                   Positioned.fill(
@@ -385,7 +389,7 @@ class _NotificationListItem extends StatelessWidget {
         );
       },
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 9, 8, 9),
+        padding: const EdgeInsets.fromLTRB(10, 10, 9, 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -412,11 +416,11 @@ class _NotificationListItem extends StatelessWidget {
                       Expanded(
                         child: Text(
                           notification.title,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                             color: colors.textPrimary,
-                            fontSize: 12,
+                            fontSize: 13,
                             height: 1.25,
                             fontWeight: FontWeight.w600,
                           ),
@@ -431,7 +435,7 @@ class _NotificationListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 5),
                   Text(
-                    _notificationSubtitle(notification),
+                    _formatNotificationTime(notification.createdAt),
                     style: TextStyle(
                       color: colors.textTertiary,
                       fontSize: 10,
@@ -439,6 +443,20 @@ class _NotificationListItem extends StatelessWidget {
                       fontWeight: FontWeight.w400,
                     ),
                   ),
+                  if (notification.message.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    SelectionArea(
+                      child: Text(
+                        notification.message.trim(),
+                        style: TextStyle(
+                          color: colors.textSecondary,
+                          fontSize: 11,
+                          height: 1.35,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -447,12 +465,6 @@ class _NotificationListItem extends StatelessWidget {
       ),
     );
   }
-}
-
-String _notificationSubtitle(AppNotificationEntry notification) {
-  final time = _formatNotificationTime(notification.createdAt);
-  final message = notification.message.trim();
-  return message.isEmpty ? time : '$message · $time';
 }
 
 String _formatNotificationTime(DateTime value) {

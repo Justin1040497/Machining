@@ -9,7 +9,7 @@
 - FFprobe 分析结果必须读取并持久化色度位置、HDR10 静态元数据、MaxCLL / MaxFALL、Dolby Vision Profile 和兼容 ID。
 - SDR 源优先保留或按源信息正确转换色彩元数据，不再统一硬贴 BT.709。
 - HDR10 / HLG 源默认通过 FFmpeg `zscale + tonemap` 转为 SDR BT.709，内置 FFmpeg 运行时必须启用 `libzimg` 并校验 `zscale` / `tonemap` 滤镜。
-- 用户显式开启“保持 HDR”时，视频编码固定为 HEVC，使用 10-bit Main10 输出并保留基础 BT.2020 / PQ / HLG 色彩标记；该模式不承诺保留 Dolby Vision RPU 动态元数据。
+- 用户显式开启“保持 HDR”时，视频编码固定为 HEVC，使用 10-bit Main10 输出并保留基础 BT.2020 / PQ / HLG 色彩标记；任务配置限定为推荐方案并默认清晰优先，不允许自定义目标体积、微信发送或体积优先；该模式不承诺保留 Dolby Vision RPU 动态元数据。
 - Dolby Vision Profile 5 或缺少 HDR10 兼容层的 Dolby Vision 首版直接拒绝命令构造，避免生成变黑、偏紫或严重偏色的输出。
 - 压缩质量校准与色彩修复分开处理；CRF、NVENC CQ、QSV global quality、AMF QP 和 VideoToolbox `q:v` 不共用同一数值。
 
@@ -23,6 +23,7 @@
 ## 约束
 
 - 当前实现不处理 Dolby Vision RPU 重建、Profile 5 到 SDR 的高级映射，也不引入 `libplacebo`、`dovi_tool` 或独立 `libdovi`。
+- 保持 HDR 输出的缩放滤镜不得把 `bt2020nc` 传给 `scale` 的 `out_color_matrix`，BT.2020 / PQ / HLG 通过输出色彩 metadata 表达。
 - 内置 FFmpeg 更新时，macOS 和 Windows 发布脚本必须校验 `zscale` / `tonemap`。
 - 后续调整 CRF / CQ / `q:v` 映射时，需要用样片和暗部渐变素材单独验证色带、暗部细节和体积变化。
 
