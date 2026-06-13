@@ -287,6 +287,18 @@ void main() {
       expect(plan.outputPath, '/input/folder/demo_compressed.mp4');
     });
 
+    test('fallback output name uses source path instead of task title', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/source.mp4',
+        fileName: '1.mp4',
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/videos/source_compressed.mp4');
+    });
+
     test('uses custom output file name with selected format extension', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
@@ -304,6 +316,38 @@ void main() {
 
       expect(plan.outputPath, '/exports/final-cut.mkv');
       expect(plan.args.last, '/exports/final-cut.mkv');
+    });
+
+    test('keeps dots from template-generated output stems', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/input/folder/demo.mp4',
+        fileName: 'demo.mp4',
+        config: VideoTaskConfig.initial().copyWith(
+          outputFileName: 'demo.v2-20260612-压缩',
+          videoCodec: VideoCodec.h264,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/input/folder/demo.v2-20260612-压缩.mp4');
+    });
+
+    test('keeps short dot suffixes from template-generated output stems', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/input/folder/source.mp4',
+        fileName: 'source.mp4',
+        config: VideoTaskConfig.initial().copyWith(
+          outputFileName: 'demo.v2',
+          videoCodec: VideoCodec.h264,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/input/folder/demo.v2.mp4');
     });
 
     test(
@@ -371,7 +415,7 @@ void main() {
       );
     });
 
-    test('uses VideoToolbox HDR to SDR scale filter for HDR sources', () {
+    test('uses zscale tone mapping for HDR sources', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
         inputPath: '/videos/hdr.mov',
@@ -388,6 +432,7 @@ void main() {
           colorSpace: 'bt2020nc',
           colorTransfer: 'smpte2084',
           colorPrimaries: 'bt2020',
+          maxContentLightLevel: 1000,
         ),
       );
 
@@ -403,13 +448,47 @@ void main() {
         plan.args,
         containsAllInOrder([
           '-vf',
-          'scale_vt=w=-2:h=trunc(min(1080\\,ih)/2)*2:'
-              'color_matrix=bt709:color_primaries=bt709:'
-              'color_transfer=bt709,format=yuv420p,setsar=1',
+          'zscale=t=linear:npl=100,format=gbrpf32le,'
+              'tonemap=tonemap=hable:desat=0:peak=10,'
+              'zscale=p=bt709:t=bt709:m=bt709:r=tv,'
+              'scale=-2:trunc(min(1080\\,ih)/2)*2:flags=lanczos,'
+              'format=yuv420p,setsar=1',
         ]),
       );
       expect(plan.args, containsAllInOrder(['-color_trc', 'bt709']));
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
+    });
+
+    test('preserves SDR source color metadata instead of forcing bt709', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/dvd.mp4',
+        fileName: 'dvd.mp4',
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 576,
+          videoBitrate: 3000000,
+          colorRange: 'tv',
+          colorSpace: 'smpte170m',
+          colorTransfer: 'smpte170m',
+          colorPrimaries: 'smpte170m',
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-vf',
+          'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos:'
+              'in_range=auto:out_range=tv:'
+              'in_color_matrix=auto:out_color_matrix=smpte170m,'
+              'format=yuv420p,setsar=1',
+        ]),
+      );
+      expect(plan.args, containsAllInOrder(['-colorspace', 'smpte170m']));
+      expect(plan.args, containsAllInOrder(['-color_trc', 'smpte170m']));
+      expect(plan.args, containsAllInOrder(['-color_primaries', 'smpte170m']));
     });
 
     test('builds preview segment without progress output', () {
@@ -507,6 +586,26 @@ void main() {
       expect(plan.args, containsAllInOrder(['-map_metadata', '0:g']));
     });
 
+    test('strips video metadata when preservation is disabled', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final baseTask = videoTask(
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoBitrate: 3000000,
+        ),
+      );
+      final task = baseTask.copyWith(
+        config: baseTask.config.copyWith(
+          video: baseTask.config.video!.copyWith(preserveMetadata: false),
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, containsAllInOrder(['-map_metadata', '-1']));
+      expect(plan.args, isNot(containsAllInOrder(['-map_metadata', '0:g'])));
+    });
+
     test('uses explicit HEVC codec even when source is H.264', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
@@ -592,13 +691,47 @@ void main() {
         plan.args,
         containsAllInOrder([
           '-vf',
-          'scale=-2:trunc(min(1080\\,ih)/2)*2:flags=lanczos:'
-              'in_range=auto:out_range=tv:'
-              'in_color_matrix=auto:out_color_matrix=bt709,'
+          'zscale=t=linear:npl=100,format=gbrpf32le,'
+              'tonemap=tonemap=hable:desat=0:peak=100,'
+              'zscale=p=bt709:t=bt709:m=bt709:r=tv,'
+              'scale=-2:trunc(min(1080\\,ih)/2)*2:flags=lanczos,'
               'format=yuv420p,setsar=1',
         ]),
       );
     });
+
+    test(
+      'rejects Dolby Vision profile 5 instead of outputting wrong colors',
+      () {
+        final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+        final task = videoTask(
+          inputPath: '/videos/dolby-vision-profile5.mp4',
+          fileName: 'dolby-vision-profile5.mp4',
+          analysisResult: MediaAnalysisResult(
+            videoCodec: 'hevc',
+            videoHeight: 2160,
+            videoBitrate: 30000000,
+            videoBitDepth: 10,
+            colorSpace: 'bt2020nc',
+            colorTransfer: 'smpte2084',
+            colorPrimaries: 'bt2020',
+            dolbyVisionProfile: 5,
+            dolbyVisionCompatibilityId: 0,
+          ),
+        );
+
+        expect(
+          () => builder.build(task),
+          throwsA(
+            isA<FfmpegCommandBuildException>().having(
+              (error) => error.message,
+              'message',
+              contains('Dolby Vision Profile 5'),
+            ),
+          ),
+        );
+      },
+    );
 
     test('configured hardware smart mode uses a capped bitrate', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
@@ -625,6 +758,33 @@ void main() {
       expect(plan.args, containsAllInOrder(['-b:v', '2064k']));
       expect(plan.args, isNot(contains('-crf')));
     });
+
+    test(
+      'maps quality independently for hardware encoders without bitrate',
+      () {
+        final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+        final task = videoTask(
+          config: VideoTaskConfig.initial().copyWith(
+            videoCodec: VideoCodec.h264,
+            encoderBackend: EncoderBackend.videotoolbox,
+            compressionCrf: 28,
+          ),
+          analysisResult: MediaAnalysisResult(videoHeight: 1080),
+        );
+
+        final plan = builder.build(
+          task,
+          encoderCapabilities: const FfmpegEncoderCapabilities(
+            encoderNames: {'libx264', 'h264_videotoolbox'},
+            autoBackendPriority: [EncoderBackend.videotoolbox],
+          ),
+        );
+
+        expect(plan.args, containsAllInOrder(['-c:v', 'h264_videotoolbox']));
+        expect(plan.args, containsAllInOrder(['-q:v', '55']));
+        expect(plan.args, isNot(containsAllInOrder(['-q:v', '28'])));
+      },
+    );
 
     test(
       'smart auto falls back to capped hardware when HEVC software is absent',
@@ -907,6 +1067,30 @@ void main() {
       expect(plan.args, containsAllInOrder(['-ac', '2']));
       expect(plan.args, containsAllInOrder(['-progress', 'pipe:1']));
       expect(plan.args.last, '/audio/source_compressed.mp3');
+    });
+
+    test('strips audio metadata when preservation is disabled', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-audio',
+        inputPath: '/audio/source.wav',
+        fileName: 'source.wav',
+        mediaKind: MediaKind.audio,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialAudio().copyWith(
+          audio: AudioProcessingConfig.initial().copyWith(
+            preserveMetadata: false,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, containsAllInOrder(['-map_metadata', '-1']));
     });
 
     test('rejects MP3 output when FFmpeg lacks libmp3lame', () {

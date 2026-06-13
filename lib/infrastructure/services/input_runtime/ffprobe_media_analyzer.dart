@@ -54,8 +54,14 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
           'pix_fmt,bits_per_raw_sample,color_range,color_space,'
           'color_transfer,color_primaries,avg_frame_rate,r_frame_rate,'
           'sample_aspect_ratio,display_aspect_ratio,field_order,'
+          'chroma_location,'
           'channels,channel_layout,sample_rate:'
-          'stream_tags=rotate:stream_side_data=rotation',
+          'stream_tags=rotate:'
+          'stream_side_data=side_data_type,rotation,'
+          'red_x,red_y,green_x,green_y,blue_x,blue_y,'
+          'white_point_x,white_point_y,min_luminance,max_luminance,'
+          'max_content,max_average,dv_profile,'
+          'dv_bl_signal_compatibility_id',
       inputPath,
     ];
   }
@@ -82,6 +88,12 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     final rotationDegrees = videoStream == null
         ? null
         : parseVideoRotationDegrees(videoStream);
+    final sideDataList = videoStream == null
+        ? const <Map<String, dynamic>>[]
+        : parseSideDataList(videoStream);
+    final masteringDisplayMetadata = parseMasteringDisplayMetadata(
+      sideDataList,
+    );
 
     return MediaAnalysisResult(
       durationMs: durationMs,
@@ -95,6 +107,21 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       colorSpace: parseString(videoStream?['color_space']),
       colorTransfer: parseString(videoStream?['color_transfer']),
       colorPrimaries: parseString(videoStream?['color_primaries']),
+      chromaLocation: parseString(videoStream?['chroma_location']),
+      masteringDisplayMetadata: masteringDisplayMetadata,
+      masteringDisplayMaxLuminance: parseMasteringDisplayMaxLuminance(
+        sideDataList,
+      ),
+      maxContentLightLevel: parseContentLightValue(sideDataList, 'max_content'),
+      maxFrameAverageLightLevel: parseContentLightValue(
+        sideDataList,
+        'max_average',
+      ),
+      dolbyVisionProfile: parseDolbyVisionValue(sideDataList, 'dv_profile'),
+      dolbyVisionCompatibilityId: parseDolbyVisionValue(
+        sideDataList,
+        'dv_bl_signal_compatibility_id',
+      ),
       averageFrameRate: parseString(videoStream?['avg_frame_rate']),
       realFrameRate: parseString(videoStream?['r_frame_rate']),
       sampleAspectRatio: parseString(videoStream?['sample_aspect_ratio']),
@@ -267,5 +294,125 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
     }
 
     return null;
+  }
+
+  List<Map<String, dynamic>> parseSideDataList(
+    Map<String, dynamic> videoStream,
+  ) {
+    final sideDataList = videoStream['side_data_list'];
+    if (sideDataList is! List) {
+      return const [];
+    }
+
+    return sideDataList.whereType<Map<String, dynamic>>().toList();
+  }
+
+  String? parseMasteringDisplayMetadata(
+    List<Map<String, dynamic>> sideDataList,
+  ) {
+    final sideData = findSideData(sideDataList, 'mastering display');
+    if (sideData == null) {
+      return null;
+    }
+
+    final fields = [
+      'red_x',
+      'red_y',
+      'green_x',
+      'green_y',
+      'blue_x',
+      'blue_y',
+      'white_point_x',
+      'white_point_y',
+      'min_luminance',
+      'max_luminance',
+    ];
+    final parts = <String>[];
+    for (final field in fields) {
+      final value = parseString(sideData[field]);
+      if (value != null) {
+        parts.add('$field=$value');
+      }
+    }
+
+    if (parts.isEmpty) {
+      return null;
+    }
+
+    return parts.join(',');
+  }
+
+  double? parseMasteringDisplayMaxLuminance(
+    List<Map<String, dynamic>> sideDataList,
+  ) {
+    final sideData = findSideData(sideDataList, 'mastering display');
+    if (sideData == null) {
+      return null;
+    }
+
+    return parseRationalDouble(sideData['max_luminance']);
+  }
+
+  int? parseContentLightValue(
+    List<Map<String, dynamic>> sideDataList,
+    String key,
+  ) {
+    final sideData = findSideData(sideDataList, 'content light');
+    if (sideData == null) {
+      return null;
+    }
+
+    return parseInt(sideData[key]);
+  }
+
+  int? parseDolbyVisionValue(
+    List<Map<String, dynamic>> sideDataList,
+    String key,
+  ) {
+    final sideData =
+        findSideData(sideDataList, 'dovi configuration') ??
+        findSideData(sideDataList, 'dolby vision');
+    if (sideData == null) {
+      return null;
+    }
+
+    return parseInt(sideData[key]);
+  }
+
+  Map<String, dynamic>? findSideData(
+    List<Map<String, dynamic>> sideDataList,
+    String typeNeedle,
+  ) {
+    final needle = typeNeedle.toLowerCase();
+    for (final sideData in sideDataList) {
+      final type = parseString(sideData['side_data_type'])?.toLowerCase();
+      if (type != null && type.contains(needle)) {
+        return sideData;
+      }
+    }
+
+    return null;
+  }
+
+  double? parseRationalDouble(Object? value) {
+    if (value == null) {
+      return null;
+    }
+
+    if (value is num) {
+      return value.toDouble();
+    }
+
+    final text = value.toString();
+    final parts = text.split('/');
+    if (parts.length == 2) {
+      final numerator = double.tryParse(parts[0]);
+      final denominator = double.tryParse(parts[1]);
+      if (numerator != null && denominator != null && denominator != 0) {
+        return numerator / denominator;
+      }
+    }
+
+    return double.tryParse(text);
   }
 }

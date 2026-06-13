@@ -30,10 +30,12 @@ bundled_ffmpeg_has_required_capabilities() {
   local encoder_output
   local decoder_output
   local demuxer_output
+  local filter_output
 
   encoder_output="$("$ffmpeg_path" -hide_banner -encoders 2>/dev/null || true)"
   decoder_output="$("$ffmpeg_path" -hide_banner -decoders 2>/dev/null || true)"
   demuxer_output="$("$ffmpeg_path" -hide_banner -demuxers 2>/dev/null || true)"
+  filter_output="$("$ffmpeg_path" -hide_banner -filters 2>/dev/null || true)"
 
   for encoder_name in libx264 libmp3lame libwebp libopus; do
     if ! grep "$encoder_name" <<<"$encoder_output" >/dev/null; then
@@ -53,6 +55,13 @@ bundled_ffmpeg_has_required_capabilities() {
     echo "Universal FFmpeg runtime is missing demuxer: ogg"
     return 1
   fi
+
+  for filter_name in zscale tonemap; do
+    if ! grep "$filter_name" <<<"$filter_output" >/dev/null; then
+      echo "Universal FFmpeg runtime is missing filter: $filter_name"
+      return 1
+    fi
+  done
 
   return 0
 }

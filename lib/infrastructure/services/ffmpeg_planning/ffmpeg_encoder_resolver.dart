@@ -3,6 +3,7 @@ import 'package:framelean/application/services/ffmpeg_planning/media_codec_norma
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
@@ -28,6 +29,10 @@ class FfmpegEncoderResolver {
   }
 
   VideoCodec resolveTargetVideoCodec(MediaTask task) {
+    if (shouldPreserveHdr(task)) {
+      return VideoCodec.hevc;
+    }
+
     final configuredCodec = task.config.videoCodec;
     if (configuredCodec != VideoCodec.source) {
       return configuredCodec;
@@ -108,6 +113,14 @@ class FfmpegEncoderResolver {
     required EncoderBackend backend,
     required FfmpegEncoderCapabilities encoderCapabilities,
   }) {
+    if (shouldPreserveHdr(task) &&
+        encoderCapabilities.supportsEncoder(
+          targetCodec: VideoCodec.hevc,
+          backend: EncoderBackend.libx265,
+        )) {
+      return EncoderBackend.libx265;
+    }
+
     if (backend != EncoderBackend.auto ||
         !isHighRiskAppleHdrSource(task) ||
         !encoderCapabilities.supportsEncoder(
@@ -118,6 +131,11 @@ class FfmpegEncoderResolver {
     }
 
     return softwareBackendFor(targetCodec);
+  }
+
+  bool shouldPreserveHdr(MediaTask task) {
+    return task.analysisResult?.isHdr == true &&
+        task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
   }
 
   bool isHighRiskAppleHdrSource(MediaTask task) {

@@ -178,6 +178,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       task.inputPath,
       '-vn',
       ...buildAudioOutputArgs(config, encoderCapabilities),
+      ...buildAudioMetadataArgs(config),
       '-progress',
       'pipe:1',
       outputPath,
@@ -372,6 +373,10 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
 
     return args;
+  }
+
+  List<String> buildAudioMetadataArgs(AudioProcessingConfig config) {
+    return config.preserveMetadata ? const [] : const ['-map_metadata', '-1'];
   }
 
   String audioEncoderName(MediaOutputFormat outputFormat) {
