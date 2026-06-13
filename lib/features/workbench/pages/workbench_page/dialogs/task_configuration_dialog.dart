@@ -81,6 +81,42 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
       ? sourceOutputFormat?.toVideoOutputFormat()
       : null;
 
+  bool preserveHdrActiveForDraft() {
+    return task.mediaKind == MediaKind.video &&
+        task.analysisResult?.isHdr == true &&
+        draftConfig.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+  }
+
+  bool isHdrCompatibleSmartPreset(SmartCompressionPreset preset) {
+    return preset == SmartCompressionPreset.balanced ||
+        preset == SmartCompressionPreset.clear;
+  }
+
+  void applyHdrRecommendedPreset() {
+    draftCompressionMode = CompressionMode.preset;
+    draftSmartPreset = SmartCompressionPreset.clear;
+    draftQualityIndex = WorkbenchQualityPolicy.qualityIndexForSmartPreset(
+      SmartCompressionPreset.clear,
+    );
+    draftConfig = draftConfig.copyWith(
+      compressionMode: CompressionMode.preset,
+      smartPreset: SmartCompressionPreset.clear,
+    );
+  }
+
+  void normalizeHdrRestrictedChoices() {
+    if (!preserveHdrActiveForDraft()) {
+      return;
+    }
+
+    if (draftCompressionMode == CompressionMode.targetSize ||
+        !isHdrCompatibleSmartPreset(draftSmartPreset)) {
+      applyHdrRecommendedPreset();
+    }
+  }
+
+  normalizeHdrRestrictedChoices();
+
   return showDialog<WorkbenchTaskConfigurationDraft>(
     context: context,
     builder: (dialogContext) {
@@ -127,6 +163,10 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
               );
             },
             onCompressionModeChanged: (value) {
+              if (preserveHdrActiveForDraft() &&
+                  value == CompressionMode.targetSize) {
+                return;
+              }
               updateDialogState(() {
                 draftCompressionMode = value == CompressionMode.targetSize
                     ? CompressionMode.targetSize
@@ -141,6 +181,10 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
               });
             },
             onSmartPresetChanged: (value) {
+              if (preserveHdrActiveForDraft() &&
+                  !isHdrCompatibleSmartPreset(value)) {
+                return;
+              }
               updateDialogState(() {
                 draftSmartPreset = value;
                 draftConfig = draftConfig.copyWith(smartPreset: value);
@@ -226,6 +270,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     encoderBackendBeforePreserveHdr:
                         currentVideo.encoderBackend,
                   );
+                  applyHdrRecommendedPreset();
                   return;
                 }
 
@@ -388,12 +433,36 @@ class _WorkbenchTaskConfigurationDialogState
   @override
   void initState() {
     super.initState();
-    _mode = widget.selectedCompressionMode == CompressionMode.targetSize
-        ? CompressionMode.targetSize
-        : CompressionMode.preset;
+    _mode = _effectiveMode(widget.selectedCompressionMode);
     _activePresetTitle = _presetForSmartPreset(
       widget.selectedSmartPreset,
     ).title;
+  }
+
+  @override
+  void didUpdateWidget(WorkbenchTaskConfigurationDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextMode = _effectiveMode(widget.selectedCompressionMode);
+    if (_mode != nextMode) {
+      _mode = nextMode;
+    }
+
+    final nextPresetTitle = _presetForSmartPreset(
+      widget.selectedSmartPreset,
+    ).title;
+    if (_activePresetTitle != nextPresetTitle) {
+      _activePresetTitle = nextPresetTitle;
+    }
+  }
+
+  CompressionMode _effectiveMode(CompressionMode mode) {
+    if (_preserveHdrActive()) {
+      return CompressionMode.preset;
+    }
+
+    return mode == CompressionMode.targetSize
+        ? CompressionMode.targetSize
+        : CompressionMode.preset;
   }
 
   WorkbenchCompressionPreset _presetForSmartPreset(
@@ -409,6 +478,10 @@ class _WorkbenchTaskConfigurationDialogState
   }
 
   void _applyPreset(WorkbenchCompressionPreset preset) {
+    if (!_isPresetEnabled(preset)) {
+      return;
+    }
+
     setState(() {
       _mode = CompressionMode.preset;
       _activePresetTitle = preset.title;
@@ -426,6 +499,7 @@ class _WorkbenchTaskConfigurationDialogState
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
     final isVideoTask = widget.task.mediaKind == MediaKind.video;
+    final preserveHdr = _preserveHdrActive();
     final modified = _isModified();
     final compressed =
         isVideoTask &&
@@ -476,7 +550,12 @@ class _WorkbenchTaskConfigurationDialogState
                     activePresetTitle: _activePresetTitle,
                     selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
                     estimatedSizeForPreset: _estimatedOutputSizeForPreset,
+                    targetSizeModeEnabled: !preserveHdr,
+                    isPresetEnabled: _isPresetEnabled,
                     onModeChanged: (mode) {
+                      if (preserveHdr && mode == CompressionMode.targetSize) {
+                        return;
+                      }
                       setState(() {
                         _mode = mode;
                       });
@@ -503,6 +582,24 @@ class _WorkbenchTaskConfigurationDialogState
         ),
       ),
     );
+  }
+
+  bool _preserveHdrActive() {
+    final videoConfig =
+        widget.selectedVideoConfig ??
+        widget.task.config.video ??
+        VideoProcessingConfig.initial();
+    return videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
+        widget.task.analysisResult?.isHdr == true;
+  }
+
+  bool _isPresetEnabled(WorkbenchCompressionPreset preset) {
+    if (!_preserveHdrActive()) {
+      return true;
+    }
+
+    return preset.smartPreset == SmartCompressionPreset.balanced ||
+        preset.smartPreset == SmartCompressionPreset.clear;
   }
 
   Widget _buildMediaConfigPanel() {

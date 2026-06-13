@@ -14,12 +14,14 @@ class WorkbenchSegmentedSwitch<T> extends StatelessWidget {
     required this.value,
     required this.segments,
     required this.onChanged,
+    this.isSegmentEnabled,
     this.height = 34,
   }) : assert(segments.length >= 2);
 
   final T value;
   final List<WorkbenchSegment<T>> segments;
   final ValueChanged<T> onChanged;
+  final bool Function(T value)? isSegmentEnabled;
   final double height;
 
   @override
@@ -40,6 +42,7 @@ class WorkbenchSegmentedSwitch<T> extends StatelessWidget {
               child: _WorkbenchSegmentButton<T>(
                 segment: segment,
                 selected: segment.value == value,
+                enabled: isSegmentEnabled?.call(segment.value) ?? true,
                 onTap: () => onChanged(segment.value),
               ),
             ),
@@ -53,11 +56,13 @@ class _WorkbenchSegmentButton<T> extends StatelessWidget {
   const _WorkbenchSegmentButton({
     required this.segment,
     required this.selected,
+    required this.enabled,
     required this.onTap,
   });
 
   final WorkbenchSegment<T> segment;
   final bool selected;
+  final bool enabled;
   final VoidCallback onTap;
 
   @override
@@ -66,7 +71,7 @@ class _WorkbenchSegmentButton<T> extends StatelessWidget {
 
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 140),
         alignment: Alignment.center,
@@ -88,7 +93,9 @@ class _WorkbenchSegmentButton<T> extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: TextStyle(
-            color: selected ? colors.textPrimary : colors.textSecondary,
+            color: enabled
+                ? (selected ? colors.textPrimary : colors.textSecondary)
+                : colors.textTertiary,
             fontSize: 12.flSp,
             height: 1,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,

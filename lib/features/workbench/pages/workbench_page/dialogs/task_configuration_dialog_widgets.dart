@@ -42,6 +42,8 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
     required this.onModeChanged,
     required this.onPresetSelected,
     required this.onTargetSizeRatioChanged,
+    this.targetSizeModeEnabled = true,
+    this.isPresetEnabled,
   });
 
   final CompressionMode mode;
@@ -54,12 +56,18 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
   final ValueChanged<CompressionMode> onModeChanged;
   final ValueChanged<WorkbenchCompressionPreset> onPresetSelected;
   final ValueChanged<double> onTargetSizeRatioChanged;
+  final bool targetSizeModeEnabled;
+  final bool Function(WorkbenchCompressionPreset preset)? isPresetEnabled;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _CompressionModeSwitch(mode: mode, onChanged: onModeChanged),
+        _CompressionModeSwitch(
+          mode: mode,
+          targetSizeModeEnabled: targetSizeModeEnabled,
+          onChanged: onModeChanged,
+        ),
         const SizedBox(height: 10),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 140),
@@ -72,6 +80,7 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
                   selectedQualityIndex: selectedQualityIndex,
                   activePresetTitle: activePresetTitle,
                   estimatedSizeForPreset: estimatedSizeForPreset,
+                  isPresetEnabled: isPresetEnabled,
                   onSelected: onPresetSelected,
                 )
               : _TargetSizePanel(
@@ -341,9 +350,14 @@ class WorkbenchPercentageSliderPanel extends StatelessWidget {
 }
 
 class _CompressionModeSwitch extends StatelessWidget {
-  const _CompressionModeSwitch({required this.mode, required this.onChanged});
+  const _CompressionModeSwitch({
+    required this.mode,
+    required this.targetSizeModeEnabled,
+    required this.onChanged,
+  });
 
   final CompressionMode mode;
+  final bool targetSizeModeEnabled;
   final ValueChanged<CompressionMode> onChanged;
 
   @override
@@ -358,6 +372,8 @@ class _CompressionModeSwitch extends StatelessWidget {
         WorkbenchSegment(value: CompressionMode.preset, label: '推荐方案选项'),
         WorkbenchSegment(value: CompressionMode.targetSize, label: '自定义目标体积'),
       ],
+      isSegmentEnabled: (value) =>
+          value != CompressionMode.targetSize || targetSizeModeEnabled,
       onChanged: onChanged,
     );
   }
@@ -370,6 +386,7 @@ class _RecommendedPresetRow extends StatelessWidget {
     required this.selectedQualityIndex,
     required this.activePresetTitle,
     required this.estimatedSizeForPreset,
+    required this.isPresetEnabled,
     required this.onSelected,
   });
 
@@ -378,6 +395,7 @@ class _RecommendedPresetRow extends StatelessWidget {
   final String? activePresetTitle;
   final String Function(WorkbenchCompressionPreset preset)
   estimatedSizeForPreset;
+  final bool Function(WorkbenchCompressionPreset preset)? isPresetEnabled;
   final ValueChanged<WorkbenchCompressionPreset> onSelected;
 
   @override
@@ -391,6 +409,7 @@ class _RecommendedPresetRow extends StatelessWidget {
           Expanded(
             child: _RecommendedPresetCard(
               preset: presets[index],
+              enabled: isPresetEnabled?.call(presets[index]) ?? true,
               selected: hasActivePreset
                   ? presets[index].title == activePresetTitle
                   : presets[index].qualityIndex == selectedQualityIndex,
@@ -407,12 +426,14 @@ class _RecommendedPresetRow extends StatelessWidget {
 class _RecommendedPresetCard extends StatelessWidget {
   const _RecommendedPresetCard({
     required this.preset,
+    required this.enabled,
     required this.selected,
     required this.estimatedSize,
     required this.onTap,
   });
 
   final WorkbenchCompressionPreset preset;
+  final bool enabled;
   final bool selected;
   final String estimatedSize;
   final VoidCallback onTap;
@@ -422,11 +443,11 @@ class _RecommendedPresetCard extends StatelessWidget {
     final colors = context.frameLeanColors;
 
     return Tooltip(
-      message: '${preset.title}：${preset.subtitle}',
+      message: enabled ? '${preset.title}：${preset.subtitle}' : '保持 HDR 时不可用',
       waitDuration: const Duration(milliseconds: 500),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: onTap,
+        onTap: enabled ? onTap : null,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 140),
           height: 72,
@@ -435,7 +456,11 @@ class _RecommendedPresetCard extends StatelessWidget {
             color: selected ? colors.primarySoft : colors.surface,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: selected ? colors.primary : colors.border,
+              color: selected
+                  ? colors.primary
+                  : enabled
+                  ? colors.border
+                  : colors.surfaceDisabled,
               width: selected ? 1.3 : 1,
             ),
             boxShadow: selected
@@ -456,7 +481,9 @@ class _RecommendedPresetCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: selected ? colors.primary : colors.textPrimary,
+                  color: enabled
+                      ? (selected ? colors.primary : colors.textPrimary)
+                      : colors.textTertiary,
                   fontSize: 11.flSp,
                   height: 1,
                   fontWeight: FontWeight.w700,
@@ -468,7 +495,7 @@ class _RecommendedPresetCard extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                  color: colors.textTertiary,
+                  color: enabled ? colors.textTertiary : colors.iconMuted,
                   fontSize: 9.flSp,
                   height: 1,
                   fontWeight: FontWeight.w500,
@@ -483,7 +510,9 @@ class _RecommendedPresetCard extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: selected ? colors.primary : colors.textTertiary,
+                        color: enabled
+                            ? (selected ? colors.primary : colors.textTertiary)
+                            : colors.iconMuted,
                         fontSize: 9.flSp,
                         height: 1,
                         fontWeight: FontWeight.w600,

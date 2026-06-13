@@ -4,6 +4,7 @@ import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capa
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
@@ -17,6 +18,7 @@ import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_output_path_builder.dart';
@@ -457,6 +459,62 @@ void main() {
       );
       expect(plan.args, containsAllInOrder(['-color_trc', 'bt709']));
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
+    });
+
+    test('preserves HDR without passing BT.2020 matrix through scale', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/hdr.mov',
+        fileName: 'hdr.mov',
+        config: MediaTaskConfig.initialVideo().copyWith(
+          videoCodec: VideoCodec.hevc,
+          encoderBackend: EncoderBackend.auto,
+          hdrOutputMode: HdrOutputMode.preserveHdr,
+          smartPreset: SmartCompressionPreset.clear,
+          video: VideoProcessingConfig.initial().copyWith(
+            videoCodec: VideoCodec.hevc,
+            hdrOutputMode: HdrOutputMode.preserveHdr,
+            smartPreset: SmartCompressionPreset.clear,
+          ),
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 2160,
+          videoCodec: 'hevc',
+          videoBitrate: 30000000,
+          videoBitDepth: 10,
+          colorRange: 'tv',
+          colorSpace: 'bt2020nc',
+          colorTransfer: 'smpte2084',
+          colorPrimaries: 'bt2020',
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'libx265', 'aac'},
+          autoBackendPriority: [],
+        ),
+      );
+
+      expect(plan.args, containsAllInOrder(['-c:v', 'libx265']));
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-vf',
+          'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos,'
+              'format=yuv420p10le,setsar=1',
+        ]),
+      );
+      expect(
+        plan.args.where((arg) => arg.contains('out_color_matrix=bt2020nc')),
+        isEmpty,
+      );
+      expect(plan.args, containsAllInOrder(['-pix_fmt', 'yuv420p10le']));
+      expect(plan.args, containsAllInOrder(['-colorspace', 'bt2020nc']));
+      expect(plan.args, containsAllInOrder(['-color_trc', 'smpte2084']));
+      expect(plan.args, containsAllInOrder(['-color_primaries', 'bt2020']));
+      expect(plan.args, containsAllInOrder(['-profile:v', 'main10']));
     });
 
     test('preserves SDR source color metadata instead of forcing bt709', () {
@@ -1256,7 +1314,7 @@ MediaTask videoTask({
   String fileName = 'source.mov',
   MediaKind mediaKind = MediaKind.video,
   TaskPurpose purpose = TaskPurpose.compression,
-  VideoTaskConfig? config,
+  Object? config,
   MediaAnalysisResult? analysisResult,
   int? sourceFileSize,
 }) {

@@ -282,9 +282,9 @@ class FfmpegVideoArgumentBuilder {
   }
 
   String buildPreserveHdrFilter(ResolutionPreset preset, MediaTask task) {
-    final colorProfile = resolveOutputColorProfile(task);
-    final scaleFilter = buildSoftwareScaleFilter(preset, colorProfile);
-    return '$scaleFilter,format=yuv420p10le,setsar=1';
+    final size = scaleSizeExpression(preset);
+    return 'scale=${size.width}:${size.height}:flags=lanczos,'
+        'format=yuv420p10le,setsar=1';
   }
 
   ({String width, String height}) scaleSizeExpression(ResolutionPreset preset) {

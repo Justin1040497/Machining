@@ -121,6 +121,12 @@ class FfmpegEncoderResolver {
       return EncoderBackend.libx265;
     }
 
+    if (shouldPreserveHdr(task)) {
+      throw const FfmpegCommandBuildException(
+        '保持 HDR 输出需要当前 FFmpeg 支持 libx265 HEVC Main10 编码。',
+      );
+    }
+
     if (backend != EncoderBackend.auto ||
         !isHighRiskAppleHdrSource(task) ||
         !encoderCapabilities.supportsEncoder(

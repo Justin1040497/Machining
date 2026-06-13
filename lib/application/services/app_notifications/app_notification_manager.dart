@@ -80,10 +80,10 @@ class AppNotificationManager {
     return notify(
       kind: AppNotificationKind.task,
       level: AppNotificationLevel.success,
-      title: '${task.fileName} 处理完成',
+      title: '任务成功',
       message: task.outputPath?.trim().isNotEmpty == true
-          ? '已保存至 ${task.outputPath!.trim()}'
-          : '',
+          ? '${task.fileName}\n已保存至 ${task.outputPath!.trim()}'
+          : '${task.fileName} 已处理完成',
       source: 'task',
       payloadJson: payload.toJson(),
     );
@@ -98,10 +98,10 @@ class AppNotificationManager {
     return notify(
       kind: AppNotificationKind.task,
       level: AppNotificationLevel.error,
-      title: '${task.fileName} 处理失败',
+      title: '任务失败',
       message: task.errorMessage?.trim().isNotEmpty == true
-          ? task.errorMessage!.trim()
-          : '媒体处理未能完成',
+          ? '${task.fileName}\n${task.errorMessage!.trim()}'
+          : '${task.fileName}\n媒体处理未能完成',
       source: 'task',
       payloadJson: payload.toJson(),
     );
