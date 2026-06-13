@@ -15,7 +15,10 @@ class WorkbenchNotice extends StatelessWidget {
     required this.level,
     required this.visibleListenable,
     required this.onDismissed,
+    this.onTap,
     this.actionLabel,
+    this.actionIcon,
+    this.actionTooltip,
     this.onActionPressed,
   });
 
@@ -23,7 +26,10 @@ class WorkbenchNotice extends StatelessWidget {
   final String message;
   final AppNotificationLevel level;
   final ValueListenable<bool> visibleListenable;
+  final VoidCallback? onTap;
   final String? actionLabel;
+  final IconData? actionIcon;
+  final String? actionTooltip;
   final VoidCallback? onActionPressed;
   final VoidCallback onDismissed;
 
@@ -33,7 +39,7 @@ class WorkbenchNotice extends StatelessWidget {
     final compact = screenWidth < 520;
     final horizontalMargin = compact ? 14.0 : 18.0;
     final hasDetails = message.trim().isNotEmpty;
-    final expanded = hasDetails || actionLabel != null;
+    final expanded = hasDetails || actionLabel != null || actionIcon != null;
     final preferredMaxWidth = expanded ? 300.0 : 270.0;
     final availableWidth = screenWidth - (horizontalMargin * 2);
     final maxWidth = availableWidth < preferredMaxWidth
@@ -76,8 +82,11 @@ class WorkbenchNotice extends StatelessWidget {
                 message: message,
                 level: level,
                 actionLabel: actionLabel,
+                actionIcon: actionIcon,
+                actionTooltip: actionTooltip,
                 onActionPressed: onActionPressed,
                 onDismissed: onDismissed,
+                onTap: onTap,
               ),
             ),
           ),
@@ -93,14 +102,20 @@ class _NoticeCard extends StatefulWidget {
     required this.message,
     required this.level,
     required this.onDismissed,
+    this.onTap,
     this.actionLabel,
+    this.actionIcon,
+    this.actionTooltip,
     this.onActionPressed,
   });
 
   final String title;
   final String message;
   final AppNotificationLevel level;
+  final VoidCallback? onTap;
   final String? actionLabel;
+  final IconData? actionIcon;
+  final String? actionTooltip;
   final VoidCallback? onActionPressed;
   final VoidCallback onDismissed;
 
@@ -162,16 +177,23 @@ class _NoticeCardState extends State<_NoticeCard> {
                               _NoticeIcon(style: style),
                               const SizedBox(width: 10),
                               Expanded(
-                                child: _NoticeContent(
-                                  title: widget.title,
-                                  message: trimmedMessage,
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: widget.onTap,
+                                  child: _NoticeContent(
+                                    title: widget.title,
+                                    message: trimmedMessage,
+                                  ),
                                 ),
                               ),
-                              if (widget.actionLabel != null &&
-                                  widget.onActionPressed != null) ...[
+                              if (widget.onActionPressed != null &&
+                                  (widget.actionLabel != null ||
+                                      widget.actionIcon != null)) ...[
                                 const SizedBox(width: 7),
                                 _NoticeActionButton(
-                                  label: widget.actionLabel!,
+                                  label: widget.actionLabel,
+                                  icon: widget.actionIcon,
+                                  tooltip: widget.actionTooltip,
                                   color: style.color,
                                   onPressed: widget.onActionPressed!,
                                 ),
@@ -250,7 +272,7 @@ class _NoticeContent extends StatelessWidget {
           const SizedBox(height: 3),
           Text(
             message,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: colors.textSecondary,
@@ -268,16 +290,44 @@ class _NoticeContent extends StatelessWidget {
 class _NoticeActionButton extends StatelessWidget {
   const _NoticeActionButton({
     required this.label,
+    required this.icon,
+    required this.tooltip,
     required this.color,
     required this.onPressed,
   });
 
-  final String label;
+  final String? label;
+  final IconData? icon;
+  final String? tooltip;
   final Color color;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
+    final actionIcon = icon;
+    if (actionIcon != null) {
+      return Tooltip(
+        message: tooltip ?? label ?? '操作',
+        child: IconButton(
+          onPressed: onPressed,
+          icon: Icon(actionIcon, size: 15),
+          color: color,
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(width: 26, height: 28),
+          visualDensity: VisualDensity.compact,
+          style: IconButton.styleFrom(
+            minimumSize: const Size(26, 28),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            hoverColor: color.withAlpha(18),
+            highlightColor: color.withAlpha(30),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+        ),
+      );
+    }
+
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
@@ -289,7 +339,7 @@ class _NoticeActionButton extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         textStyle: TextStyle(fontSize: 11.flSp, fontWeight: FontWeight.w700),
       ),
-      child: Text(label),
+      child: Text(label ?? '操作'),
     );
   }
 }

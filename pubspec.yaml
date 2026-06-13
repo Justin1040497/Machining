@@ -85,6 +85,7 @@ flutter:
   assets:
     - assets/app_icon/
     - assets/icons/
+    - assets/sounds/
 
   fonts:
     - family: AlibabaPuHuiTi

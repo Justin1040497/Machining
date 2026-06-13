@@ -47,7 +47,7 @@ void main() {
           kind: AppNotificationKind.task,
           level: AppNotificationLevel.success,
           title: '任务完成',
-          message: 'demo.mp4 已处理完成',
+          message: 'demo.mp4 已处理完成，输出配置已保存，非运行状态的任务已更新；正在处理的任务将在下次处理时使用新配置',
           source: 'task',
           createdAt: DateTime(2026, 6, 11, 10, 30),
           payloadJson: const TaskNotificationPayload(
@@ -113,7 +113,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('通知中心'), findsOneWidget);
       expect(find.text('任务完成'), findsOneWidget);
-      expect(find.textContaining('demo.mp4 已处理完成'), findsOneWidget);
+      final subtitleFinder = find.textContaining('demo.mp4 已处理完成');
+      expect(subtitleFinder, findsOneWidget);
+      final subtitle = tester.widget<Text>(subtitleFinder);
+      expect(subtitle.maxLines, isNull);
+      expect(subtitle.overflow, isNull);
       expect(find.textContaining('10:30'), findsOneWidget);
       expect(tester.getSize(panelFinder).width, 249);
       expect(repository.markAllAsReadCalls, greaterThan(0));
