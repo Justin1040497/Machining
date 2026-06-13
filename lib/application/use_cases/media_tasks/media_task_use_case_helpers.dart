@@ -64,6 +64,7 @@ MediaTaskConfig buildInitialTaskConfigFromSettings({
   required AppSettings settings,
   required DateTime now,
   TaskPurpose purpose = TaskPurpose.compression,
+  int version = 1,
 }) {
   final mediaConfig = resolveSourceOutputFormatForConfig(
     config: settings.defaultMediaConfig.forKind(mediaKind),
@@ -80,6 +81,7 @@ MediaTaskConfig buildInitialTaskConfigFromSettings({
       purpose: purpose,
       mediaConfig: mediaConfig,
       now: now,
+      version: version,
     ),
   );
 
@@ -173,6 +175,7 @@ MediaTaskConfig buildOutputTaskConfigFromSettings({
   required MediaTask task,
   required AppSettings settings,
   required DateTime now,
+  int version = 1,
 }) {
   return task.config.copyWith(
     outputDirectory: buildOutputDirectoryFromSettings(settings),
@@ -183,8 +186,45 @@ MediaTaskConfig buildOutputTaskConfigFromSettings({
       purpose: task.purpose,
       mediaConfig: task.config,
       now: now,
+      version: version,
     ),
   );
+}
+
+int processingVersionForTask({
+  required List<MediaTask> tasks,
+  required String inputPath,
+  required MediaKind mediaKind,
+  required TaskPurpose purpose,
+  String? taskId,
+}) {
+  final matchingTasks =
+      tasks.where((task) {
+        return task.mediaKind == mediaKind &&
+            task.purpose == purpose &&
+            path.equals(
+              path.normalize(task.inputPath),
+              path.normalize(inputPath),
+            );
+      }).toList()..sort((first, second) {
+        final createdOrder = first.createdAt.compareTo(second.createdAt);
+        if (createdOrder != 0) {
+          return createdOrder;
+        }
+
+        return first.sortOrder.compareTo(second.sortOrder);
+      });
+
+  if (taskId == null) {
+    return matchingTasks.length + 1;
+  }
+
+  final taskIndex = matchingTasks.indexWhere((task) => task.id == taskId);
+  if (taskIndex == -1) {
+    return matchingTasks.length + 1;
+  }
+
+  return taskIndex + 1;
 }
 
 String buildOutputDirectoryFromSettings(AppSettings settings) {
@@ -200,8 +240,10 @@ String buildDefaultOutputFileName({
   required TaskPurpose purpose,
   required DateTime now,
   MediaTaskConfig? mediaConfig,
+  int version = 1,
 }) {
   final baseName = path.basenameWithoutExtension(sourceFileName).trim();
+  final normalizedVersion = version < 1 ? 1 : version;
   final dateStr = [
     now.year.toString().padLeft(4, '0'),
     now.month.toString().padLeft(2, '0'),
@@ -210,6 +252,7 @@ String buildDefaultOutputFileName({
   final tokens = {
     'source': baseName,
     'date': dateStr,
+    'version': 'v$normalizedVersion',
     'action': actionFileNameToken(mediaKind: mediaKind, purpose: purpose),
     'codec': codecFileNameToken(
       mediaKind: mediaKind,

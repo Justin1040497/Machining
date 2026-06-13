@@ -100,6 +100,35 @@ void main() {
     });
 
     test(
+      'increments output template version for repeated source imports',
+      () async {
+        final existingTask = readyVideoTask(id: 'source', sortOrder: 0);
+        final repository = FakeMediaTaskRepository([existingTask]);
+        final container = testContainer(
+          repository: repository,
+          sourceFileChecker: FakeSourceFileChecker(
+            existingPaths: {existingTask.inputPath},
+          ),
+          fingerprintReader: FakeSourceFileFingerprintReader(
+            fingerprint: testFingerprint,
+          ),
+          appSettingsRepository: FakeAppSettingsRepository(
+            AppSettings.initial().copyWith(
+              defaultOutputFileNameTemplate: '{source}-{version}',
+            ),
+          ),
+        );
+
+        await container.read(mediaTaskListProvider.future);
+        final task = await container
+            .read(mediaTaskListProvider.notifier)
+            .createDraftFromPath(existingTask.inputPath);
+
+        expect(task.config.outputFileName, 'source-v2');
+      },
+    );
+
+    test(
       'applies output settings to retryable tasks without resetting media config',
       () async {
         final renamedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(

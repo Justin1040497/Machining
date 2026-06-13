@@ -244,8 +244,14 @@ void main() {
     await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(SelectionArea), findsOneWidget);
+    expect(find.textContaining('文件名模板会在导入或保存输出配置时生成默认导出名'), findsOneWidget);
+    expect(
+      find.textContaining('{source}-{date}-{action}-{version}'),
+      findsOneWidget,
+    );
     expect(find.text('source: 源文件名'), findsOneWidget);
     expect(find.text('date: 当前日期'), findsOneWidget);
+    expect(find.text('version: 处理版本（v1 / v2 ...）'), findsOneWidget);
     expect(find.text('action: 任务类型（压缩 / 转换 / 处理）'), findsOneWidget);
     expect(find.text('codec: 编码格式（h264 / h265）'), findsOneWidget);
     expect(
@@ -255,6 +261,8 @@ void main() {
 
     await tester.tap(find.byTooltip('选择常用模板'));
     await tester.pumpAndSettle();
+    expect(find.text('源文件名 + 时间 + 行为 + 版本'), findsOneWidget);
+    expect(find.text('{source}-{date}-{action}-{version}'), findsOneWidget);
     expect(find.text('源文件名 + 编码格式'), findsOneWidget);
     expect(find.text('{source}-{codec}'), findsOneWidget);
     expect(find.text('源文件名 + 编码器'), findsOneWidget);

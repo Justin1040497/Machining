@@ -13,12 +13,52 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for command_name in chmod grep lipo mkdir otool; do
+for command_name in chmod find grep lipo mkdir otool; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "error: missing required command: $command_name" >&2
     exit 1
   fi
 done
+
+slice_dir_has_binaries() {
+  local dir="$1"
+  shift
+
+  for binary_name in "$@"; do
+    if [[ ! -x "$dir/$binary_name" ]]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+resolve_slice_dir() {
+  local root_dir="$1"
+  shift
+  local first_binary_name="$1"
+
+  if slice_dir_has_binaries "$root_dir" "$@"; then
+    echo "$root_dir"
+    return
+  fi
+
+  if [[ ! -d "$root_dir" ]]; then
+    echo "$root_dir"
+    return
+  fi
+
+  local candidate
+  while IFS= read -r candidate; do
+    local candidate_dir="${candidate%/*}"
+    if slice_dir_has_binaries "$candidate_dir" "$@"; then
+      echo "$candidate_dir"
+      return
+    fi
+  done < <(find "$root_dir" -type f -name "$first_binary_name" -print)
+
+  echo "$root_dir"
+}
 
 require_single_arch_binary() {
   local path="$1"
@@ -37,16 +77,19 @@ require_single_arch_binary() {
   fi
 }
 
+ARM64_SLICE_DIR="$(resolve_slice_dir "$ARM64_DIR" ffmpeg ffprobe)"
+X64_SLICE_DIR="$(resolve_slice_dir "$X64_DIR" ffmpeg ffprobe)"
+
 for binary_name in ffmpeg ffprobe; do
-  require_single_arch_binary "$ARM64_DIR/$binary_name" arm64
-  require_single_arch_binary "$X64_DIR/$binary_name" x86_64
+  require_single_arch_binary "$ARM64_SLICE_DIR/$binary_name" arm64
+  require_single_arch_binary "$X64_SLICE_DIR/$binary_name" x86_64
 done
 
 mkdir -p "$OUT_DIR"
 for binary_name in ffmpeg ffprobe; do
   lipo -create \
-    "$ARM64_DIR/$binary_name" \
-    "$X64_DIR/$binary_name" \
+    "$ARM64_SLICE_DIR/$binary_name" \
+    "$X64_SLICE_DIR/$binary_name" \
     -output "$OUT_DIR/$binary_name"
   chmod 755 "$OUT_DIR/$binary_name"
 done
@@ -91,8 +134,8 @@ done
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
 Target: macOS Universal 2
 Architectures: x86_64 arm64
-arm64 source: ${ARM64_DIR}
-x86_64 source: ${X64_DIR}
+arm64 source: ${ARM64_SLICE_DIR}
+x86_64 source: ${X64_SLICE_DIR}
 Merged by: scripts/build/build_ffmpeg_macos_universal.sh
 EOF
 

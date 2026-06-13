@@ -167,7 +167,7 @@ Use Cases：
 - `AppSettingsSaveTarget`：设置保存的结构化事件类型。应用设置、视频 / 图片 / 音频默认任务配置、输出配置和编码器配置拥有各自通知标题；只有输出配置保存会刷新非运行状态任务，任务默认配置只影响后续导入。
 - `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
 - `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径等动作数据；任务通知标题直接表达任务成功或失败，文件名、输出路径和失败原因保留在通知正文。
-- `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，按平台调用系统播放器。
+- `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，使用 `audioplayers` 播放内置 Flutter asset。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
 - `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
 - `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
@@ -194,7 +194,7 @@ Use Cases：
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
 - `services/execution/`：本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
-- `services/app_notifications/`：本地任务完成提示音播放实现，读取内置 Flutter asset，缓存到临时目录后交给系统播放器。
+- `services/app_notifications/`：本地任务完成提示音播放实现，使用 `audioplayers` 播放内置 Flutter asset。
 - `services/platform/`：桌面文件选择、Finder / Explorer 定位、系统外链打开和主题缓存实现。
 
 持久化兼容层集中在：
@@ -362,7 +362,7 @@ main()
 - `EncoderBackend.auto` 会根据 FFmpeg 实际支持和平台优先级选择硬件编码或软件编码。
 - 输出目录为空时使用源文件目录。
 - 自定义输出文件名会取 basename 并替换扩展名。
-- 如果输出路径和源文件相同，或目标文件已存在，会自动追加 `-1`、`-2` 等后缀。
+- 如果输出路径和源文件相同，或目标文件已存在，会自动追加 `（1）`、`（2）` 等后缀。
 - `targetSize` 模式在软件编码下使用两遍压缩，在硬件编码下使用目标码率单遍策略。
 
 ### 队列执行

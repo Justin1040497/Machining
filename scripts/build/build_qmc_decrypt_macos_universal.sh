@@ -13,12 +13,52 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for command_name in chmod install lipo mkdir; do
+for command_name in chmod find install lipo mkdir; do
   if ! command -v "$command_name" >/dev/null 2>&1; then
     echo "error: missing required command: $command_name" >&2
     exit 1
   fi
 done
+
+slice_dir_has_binaries() {
+  local dir="$1"
+  shift
+
+  for binary_name in "$@"; do
+    if [[ ! -x "$dir/$binary_name" ]]; then
+      return 1
+    fi
+  done
+
+  return 0
+}
+
+resolve_slice_dir() {
+  local root_dir="$1"
+  shift
+  local first_binary_name="$1"
+
+  if slice_dir_has_binaries "$root_dir" "$@"; then
+    echo "$root_dir"
+    return
+  fi
+
+  if [[ ! -d "$root_dir" ]]; then
+    echo "$root_dir"
+    return
+  fi
+
+  local candidate
+  while IFS= read -r candidate; do
+    local candidate_dir="${candidate%/*}"
+    if slice_dir_has_binaries "$candidate_dir" "$@"; then
+      echo "$candidate_dir"
+      return
+    fi
+  done < <(find "$root_dir" -type f -name "$first_binary_name" -print)
+
+  echo "$root_dir"
+}
 
 require_single_arch_binary() {
   local path="$1"
@@ -37,19 +77,22 @@ require_single_arch_binary() {
   fi
 }
 
-require_single_arch_binary "$ARM64_DIR/qmc-decrypt" arm64
-require_single_arch_binary "$X64_DIR/qmc-decrypt" x86_64
+ARM64_SLICE_DIR="$(resolve_slice_dir "$ARM64_DIR" qmc-decrypt)"
+X64_SLICE_DIR="$(resolve_slice_dir "$X64_DIR" qmc-decrypt)"
+
+require_single_arch_binary "$ARM64_SLICE_DIR/qmc-decrypt" arm64
+require_single_arch_binary "$X64_SLICE_DIR/qmc-decrypt" x86_64
 
 mkdir -p "$OUT_DIR"
 lipo -create \
-  "$ARM64_DIR/qmc-decrypt" \
-  "$X64_DIR/qmc-decrypt" \
+  "$ARM64_SLICE_DIR/qmc-decrypt" \
+  "$X64_SLICE_DIR/qmc-decrypt" \
   -output "$OUT_DIR/qmc-decrypt"
 chmod 755 "$OUT_DIR/qmc-decrypt"
 
 for file_name in LICENSE-MIT LICENSE-APACHE README-upstream.md; do
-  if [[ -f "$ARM64_DIR/$file_name" ]]; then
-    install -m 644 "$ARM64_DIR/$file_name" "$OUT_DIR/$file_name"
+  if [[ -f "$ARM64_SLICE_DIR/$file_name" ]]; then
+    install -m 644 "$ARM64_SLICE_DIR/$file_name" "$OUT_DIR/$file_name"
   fi
 done
 
@@ -59,8 +102,8 @@ done
 cat > "$OUT_DIR/qmc-decrypt-build-info.txt" <<EOF
 Target: macOS Universal 2
 Architectures: x86_64 arm64
-arm64 source: ${ARM64_DIR}
-x86_64 source: ${X64_DIR}
+arm64 source: ${ARM64_SLICE_DIR}
+x86_64 source: ${X64_SLICE_DIR}
 Merged by: scripts/build/build_qmc_decrypt_macos_universal.sh
 EOF
 

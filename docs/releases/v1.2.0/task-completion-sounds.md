@@ -9,14 +9,13 @@ FrameLean 在 v1.2.0 开发期接入任务完成提示音。用户可以在设�
 ## 播放边界
 
 - 音效资源放在 `assets/sounds/`，通过 `pubspec.yaml` 随应用打包。
-- 播放前把 Flutter asset 写入系统临时目录 `framelean/sounds/`。
-- macOS 使用系统 `afplay` 播放。
-- Windows 使用系统 `SoundPlayer` 播放。
+- 本地播放实现使用 `audioplayers` 直接播放 Flutter asset。
+- Windows 不再启动 PowerShell 或脚本命令播放提示音。
 - 播放失败不会影响任务完成通知、通知中心历史或任务状态。
 
 ## 验证范围
 
 - 设置模型、Drift 设置映射和设置页保存 / 取消语义。
 - 根级任务完成通知触发选中音效。
-- 内置音效枚举和 asset 路径映射。
+- 内置音效枚举、asset 路径映射和 `audioplayers` asset key 映射。
 - `flutter analyze` 和全量 `flutter test`。

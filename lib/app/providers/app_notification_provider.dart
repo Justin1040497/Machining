@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
@@ -25,7 +27,11 @@ final appNotificationManagerProvider = Provider<AppNotificationManager>((ref) {
 final taskCompletionSoundPlayerProvider = Provider<TaskCompletionSoundPlayer>((
   ref,
 ) {
-  return LocalTaskCompletionSoundPlayer();
+  final player = LocalTaskCompletionSoundPlayer();
+  ref.onDispose(() {
+    unawaited(player.dispose());
+  });
+  return player;
 });
 
 final appNotificationsProvider = StreamProvider<List<AppNotificationEntry>>((

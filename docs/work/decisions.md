@@ -9,7 +9,7 @@
 | 260613 | Windows 使用当前用户 Inno Setup 安装器作为自托管更新载荷，ZIP 仅作为便携分发备用 | 有效 | `docs/decisions/260613-windows-installer-update-payload.md` | `CONTEXT.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |
 | 260613 | 输出文件名使用英文变量模板，输出配置保存刷新非运行任务，运行中任务保留执行快照 | 有效 | `docs/decisions/260613-output-template-settings-application.md` | `docs/releases/v1.2.0/output-settings-and-file-name-template.md` |
 | 260613 | 媒体任务保持原始只保存真实源格式和布尔模式，视频 / 音频元数据默认保留以兼容旧行为 | 有效 | `docs/decisions/260613-media-task-source-format-and-metadata.md` | `docs/releases/v1.2.0/media-task-defaults-and-metadata.md` |
-| 260613 | 任务完成音效使用系统播放器播放缓存后的内置 WAV，不引入音频插件或额外原生通道 | 有效 | `docs/decisions/260613-task-completion-sound-playback.md` | `docs/releases/v1.2.0/task-completion-sounds.md` |
+| 260613 | 任务完成音效使用 Flutter 音频插件播放内置 WAV，不启动 PowerShell | 有效 | `docs/decisions/260613-task-completion-sound-playback.md` | `docs/releases/v1.2.0/task-completion-sounds.md` |
 | 260613 | 视频色彩修复默认采用 zimg HDR 转 SDR，保持 HDR 限定为 HDR10/HLG HEVC Main10 | 有效 | `docs/decisions/260613-video-color-hdr-sdr-boundary.md` | `docs/releases/v1.2.0/video-color-hdr-sdr.md` |
 | 260612 | macOS 使用单一 Universal 2 DMG 支持 x86_64 / arm64，Windows 继续只支持 x64 | 有效 | `docs/decisions/260612-macos-universal2-distribution.md` | `docs/releases/v1.2.0/macos-universal2.md` |
 | 260608 | 项目级 skills 从阶段拆分改为职责拆分，临时计划进入 `.workspace/` | 有效 | `docs/decisions/260608-project-skill-workflow.md` | `docs/releases/v1.1.5/project-skills-workflow.md` |

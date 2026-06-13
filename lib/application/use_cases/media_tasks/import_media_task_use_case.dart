@@ -4,6 +4,7 @@ import 'package:framelean/application/services/input_runtime/media_kind_resolver
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:path/path.dart' as path;
 
@@ -29,11 +30,18 @@ class ImportMediaTaskUseCase {
     final fingerprint = await fingerprintReader.read(inputPath);
     final fileName = path.basename(inputPath);
     final settings = await settingsRepository.loadSettings();
+    final version = processingVersionForTask(
+      tasks: tasks,
+      inputPath: inputPath,
+      mediaKind: mediaKind,
+      purpose: TaskPurpose.compression,
+    );
     final initialConfig = buildInitialTaskConfigFromSettings(
       sourceFileName: fileName,
       mediaKind: mediaKind,
       settings: settings,
       now: now(),
+      version: version,
     );
 
     final task =

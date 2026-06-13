@@ -82,7 +82,7 @@ class FfmpegOutputPathBuilder {
 
     var index = 1;
     while (true) {
-      final candidate = path.join(directory, '$baseName-$index$extension');
+      final candidate = path.join(directory, '$baseName（$index）$extension');
       if (!isUnsafeOutputPath(candidate, inputPath)) {
         return candidate;
       }

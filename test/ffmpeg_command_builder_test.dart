@@ -373,15 +373,15 @@ void main() {
 
         final plan = builder.build(task);
 
-        expect(plan.outputPath, '/videos/clip-1.mov');
-        expect(plan.args.last, '/videos/clip-1.mov');
+        expect(plan.outputPath, '/videos/clip（1）.mov');
+        expect(plan.args.last, '/videos/clip（1）.mov');
       },
     );
 
     test('adds numeric suffix when output path already exists', () {
       final existingPaths = {
         '/videos/source_compressed.mp4',
-        '/videos/source_compressed-1.mp4',
+        '/videos/source_compressed（1）.mp4',
       };
       final builder = DefaultFfmpegCommandBuilder(
         pathExists: existingPaths.contains,
@@ -390,7 +390,7 @@ void main() {
 
       final plan = builder.build(task);
 
-      expect(plan.outputPath, '/videos/source_compressed-2.mp4');
+      expect(plan.outputPath, '/videos/source_compressed（2）.mp4');
     });
 
     test('adds scale args when resolution preset is not original', () {
