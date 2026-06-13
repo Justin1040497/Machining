@@ -38,7 +38,7 @@ flowchart LR
 - `application` 定义 Use Cases、服务抽象、仓储接口和核心流程，可以依赖 `domain`。
 - `infrastructure` 实现数据库、文件系统、FFmpeg / FFprobe 和平台差异，可以依赖 `application` 抽象和 `domain`。
 - `features` 是 UI 和页面状态协调层，通过 Riverpod notifier 调用 application 用例，不直接拼装数据库或 FFmpeg 实现。
-- `app` 只负责应用入口、主题和路由，不承载业务规则。
+- `app` 负责应用入口、主题、路由、共享展示组件和 Riverpod composition root，不承载领域业务规则。
 
 ## 为什么使用这个架构
 
@@ -56,6 +56,11 @@ lib/
   app/
     app.dart
     app_router.dart
+    notifications/
+    presentation/
+    providers/
+    theme/
+    widgets/
   domain/
     entities/
     enums/
@@ -64,6 +69,7 @@ lib/
     repositories/
     services/
       app_notifications/
+      platform/
       input_runtime/
       ffmpeg_planning/
       execution/
@@ -72,10 +78,10 @@ lib/
       media_tasks/
   infrastructure/
     database/
-    providers/
     repositories/
     services/
       app_notifications/
+      platform/
       input_runtime/
       ffmpeg_planning/
       execution/
@@ -84,12 +90,15 @@ lib/
       providers/
       services/
       widgets/
+    settings/
+      pages/
+      sections/
+      widgets/
     workbench/
       pages/
         workbench_page/
       providers/
       widgets/
-        form_controls/
         media_task_list/
 ```
 
@@ -115,12 +124,14 @@ docs/
 
 ### app
 
-`app` 保存应用外壳：
+`app` 保存应用外壳、共享展示能力和依赖组装：
 
 - `FrameLeanApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
 - `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，`/settings` 指向全屏应用设置页。
 - `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏，但通知仍会先持久化。
+- `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
+- `presentation/`、`widgets/`：settings、notifications、workbench 共同使用的布局常量、领域标签、表单控件和百分比滑杆。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
 ### domain
@@ -151,6 +162,7 @@ docs/
 Use Cases：
 
 - `LoadAppSettingsUseCase`、`SaveAppSettingsUseCase`：读取、校验并保存应用设置。
+- `ApplyOutputSettingsToExistingTasksUseCase`：只更新等待中、失败和已取消任务的输出目录与文件名，不覆盖媒体处理配置。
 - `AppSettingsSaveCoordinator`：协调设置保存后的主题缓存、运行时刷新、输出配置回填和通知记录；调用方必须传入设置保存目标，避免保存链路丢失“哪个分区触发”的业务语义。
 - `AppSettingsSaveTarget`：设置保存的结构化事件类型。应用设置、视频 / 图片 / 音频默认任务配置、输出配置和编码器配置拥有各自通知标题；只有输出配置保存会刷新非运行状态任务，任务默认配置只影响后续导入。
 - `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
@@ -171,18 +183,19 @@ Use Cases：
 - `services/input_runtime/`：`MediaAnalyzer`、`SourceFileChecker`、`MediaKindResolver`、`SourceFileFingerprintReader`、`FfmpegLocator`、`FfmpegRuntime`、`FfmpegEncoderCapabilities`。
 - `services/ffmpeg_planning/`：`CompressionAdvisor`、`CompressionEstimator`、`FfmpegCommandBuilder` 和默认压缩建议实现。
 - `services/execution/`：`FfmpegTaskQueueRunner`、`FfmpegProcessStarter`、`FfmpegProcessController`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
+- `services/platform/`：`FileSelectionService`、`FileRevealer`、`ExternalLinkOpener`、`ThemePreferencesCache`。
 
 ### infrastructure
 
 `infrastructure` 保存 application 抽象的本地实现：
 
 - `database/`：Drift + SQLite 表、迁移、数据库连接和持久化兼容常量。
-- `providers/`：Riverpod 依赖装配入口，按数据库、仓储、输入运行时、FFmpeg 规划和执行拆分。
 - `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
 - `services/execution/`：本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
 - `services/app_notifications/`：本地任务完成提示音播放实现，读取内置 Flutter asset，缓存到临时目录后交给系统播放器。
+- `services/platform/`：桌面文件选择、Finder / Explorer 定位、系统外链打开和主题缓存实现。
 
 持久化兼容层集中在：
 
@@ -196,9 +209,8 @@ Use Cases：
 - `pages/workbench_page.dart`：工作台入口页面，负责组装页面状态、任务操作和工作台弹窗流程。
 - `pages/workbench_page/layout/`：顶部栏、底部栏、任务列表容器和工作台外壳。
 - `pages/workbench_page/dialogs/`：任务配置、完成、失败、清空、重命名、压缩确认等工作台弹窗。
-- `pages/workbench_page/overlays/`：拖拽覆盖层和右上角通知浮层。
+- `pages/workbench_page/overlays/`：工作台拖拽覆盖层。
 - `pages/workbench_page/configuration/`：工作台常量、格式化、轻量模型和 UI 判断策略。
-- `widgets/form_controls/`：可复用表单控件，例如路径输入和配置下拉。
 - `widgets/media_task_list/`：任务列表项、状态徽标、操作按钮和缩略图组件。
 - `MediaTaskListNotifier`：任务管理和任务状态管理入口，通过 media task use cases 进入 application。
 - `WorkbenchPreviewNotifier`：预览状态入口，通过 `GeneratePreviewFramesUseCase` 进入 application。
@@ -210,7 +222,7 @@ Use Cases：
 - `pages/app_settings_page.dart`：`/settings` 页面入口，负责加载和保存 `AppSettings`、接入缓存清理和 Windows 清理卸载入口。
 - `sections/`：设置分区渲染和分区级保存 / 回滚逻辑，当前包含应用、关于、视频、图片、音频、输出和编码器配置。
 - `widgets/`：设置页通用 UI 组件，例如侧边栏、表单容器、分区保存按钮、输入控件和关于页维护组件。
-- 设置页复用 `features/workbench/widgets/form_controls/` 的路径输入和下拉控件，保持与工作台配置控件一致。
+- 设置页和工作台共同复用 `app/widgets/` 的路径输入、下拉控件和百分比滑杆。
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
 
@@ -239,7 +251,7 @@ Use Cases：
 
 ## Riverpod 组装方式
 
-FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。
+FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。依赖装配统一位于 `lib/app/providers/`；`infrastructure` 只保留 application 抽象的具体实现。
 
 核心 provider：
 
@@ -249,6 +261,10 @@ FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。
 | `mediaTaskRepositoryProvider` | `Provider<MediaTaskRepository>` | 提供 Drift 任务仓储 |
 | `appSettingsRepositoryProvider` | `Provider<AppSettingsRepository>` | 提供 Drift 设置仓储 |
 | `appSettingsProvider` | `FutureProvider<AppSettings>` | 提供当前持久化应用设置，供工作台读取通知角标偏好 |
+| `fileSelectionServiceProvider` | `Provider<FileSelectionService>` | 提供桌面文件和目录选择 |
+| `fileRevealerProvider` | `Provider<FileRevealer>` | 在 Finder / Explorer / 文件管理器中定位文件 |
+| `externalLinkOpenerProvider` | `Provider<ExternalLinkOpener>` | 使用系统默认程序打开外链 |
+| `themePreferencesCacheProvider` | `Provider<ThemePreferencesCache>` | 提供首帧主题轻量缓存 |
 | `mediaKindResolverProvider` | `Provider<MediaKindResolver>` | 提供扩展名媒体类型识别实现 |
 | `sourceFileCheckerProvider` | `Provider<SourceFileChecker>` | 提供本地源文件存在检查 |
 | `sourceFileFingerprintReaderProvider` | `Provider<SourceFileFingerprintReader>` | 提供本地源文件指纹读取 |
@@ -266,6 +282,8 @@ FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。
 | `workbenchPreviewProvider` | `NotifierProvider` | 工作台预览帧生成、对比比例和选中帧状态入口 |
 
 服务实现通过 provider 暴露 application 抽象接口，UI 只调用 notifier 或用例，不直接创建 Drift、FFmpeg 进程或文件系统实现。
+
+`test/architecture_dependencies_test.dart` 会扫描源码 import，阻止 domain / application / infrastructure / features 出现违反依赖方向的新引用。
 
 ## 主要流程
 

@@ -1,15 +1,15 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
+import 'package:framelean/infrastructure/services/platform/local_file_revealer.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
-  group('WorkbenchFileRevealer', () {
+  group('LocalFileRevealer', () {
     test('builds Windows select command with path as separate argument', () {
       const targetPath = r'C:\Users\left\Videos\第二节课 实操.mp4';
 
-      final command = WorkbenchFileRevealer.buildRevealCommand(
+      final command = LocalFileRevealer.buildRevealCommand(
         targetPath: targetPath,
         targetIsDirectory: false,
         operatingSystem: 'windows',
@@ -23,7 +23,7 @@ void main() {
     test('opens Windows directory directly', () {
       const targetPath = r'C:\Users\left\Videos';
 
-      final command = WorkbenchFileRevealer.buildRevealCommand(
+      final command = LocalFileRevealer.buildRevealCommand(
         targetPath: targetPath,
         targetIsDirectory: true,
         operatingSystem: 'windows',
@@ -37,7 +37,7 @@ void main() {
     test('builds macOS reveal command for files', () {
       const targetPath = '/Users/left/Videos/source.mp4';
 
-      final command = WorkbenchFileRevealer.buildRevealCommand(
+      final command = LocalFileRevealer.buildRevealCommand(
         targetPath: targetPath,
         targetIsDirectory: false,
         operatingSystem: 'macos',
@@ -51,7 +51,7 @@ void main() {
     test('opens macOS directory directly', () {
       const targetPath = '/Users/left/Videos';
 
-      final command = WorkbenchFileRevealer.buildRevealCommand(
+      final command = LocalFileRevealer.buildRevealCommand(
         targetPath: targetPath,
         targetIsDirectory: true,
         operatingSystem: 'macos',
@@ -65,7 +65,7 @@ void main() {
     test('opens Linux parent directory for files', () {
       const targetPath = '/home/left/Videos/source.mp4';
 
-      final command = WorkbenchFileRevealer.buildRevealCommand(
+      final command = LocalFileRevealer.buildRevealCommand(
         targetPath: targetPath,
         targetIsDirectory: false,
         operatingSystem: 'linux',
@@ -84,7 +84,7 @@ void main() {
       try {
         final missingTarget = path.join(tempDirectory.path, 'missing.mp4');
 
-        final target = WorkbenchFileRevealer.resolveRevealTarget(missingTarget);
+        final target = LocalFileRevealer.resolveRevealTarget(missingTarget);
 
         expect(target, isNotNull);
         expect(target!.path, tempDirectory.path);

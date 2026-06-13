@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class TaskCompletedDialog extends StatelessWidget {
   const TaskCompletedDialog({

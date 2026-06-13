@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
+import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
@@ -36,17 +38,14 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_picker.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
-import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
-import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
-import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/app_settings_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 
 const Object _configValueNotProvided = Object();
 
@@ -112,7 +111,7 @@ resolveWorkbenchTaskConfigurationInitialValues({
         : selectedSmartPreset,
     targetSizeRatio: isVideoTask
         ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
-        : WorkbenchConstants.defaultTargetSizeRatio,
+        : MediaConfigurationUiConstants.defaultTargetSizeRatio,
   );
 }
 
@@ -619,7 +618,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         repository: repository,
       ).call();
       await repository.saveSettings(settings.copyWith(themeMode: nextMode));
-      unawaited(ThemePrefsCache.write(nextMode));
+      unawaited(ref.read(themePreferencesCacheProvider).write(nextMode));
     } on Object catch (error) {
       ref.read(appThemeModeProvider.notifier).setThemeMode(oldMode);
       showWorkbenchSnackBar('主题切换失败: $error');
@@ -783,11 +782,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   Future<void> pickAndAddTasks() async {
     await runWorkbenchActionOnce('pick-and-add-tasks', () async {
       try {
-        final files = await WorkbenchFilePicker.pickMediaFiles();
-        final paths = files
-            .map((file) => file.path)
-            .where((path) => path.trim().isNotEmpty)
-            .toList();
+        final paths =
+            (await ref.read(fileSelectionServiceProvider).pickMediaFiles())
+                .where((path) => path.trim().isNotEmpty)
+                .toList();
         if (paths.isEmpty) {
           return;
         }
@@ -908,8 +906,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> relinkMissingSource(MediaTask task) async {
     await runWorkbenchActionOnce('relink-missing-source:${task.id}', () async {
-      final file = await WorkbenchFilePicker.pickMediaFile();
-      final newInputPath = file?.path.trim();
+      final newInputPath =
+          (await ref.read(fileSelectionServiceProvider).pickMediaFile())
+              ?.trim();
       if (newInputPath == null || newInputPath.isEmpty) {
         return;
       }
@@ -965,14 +964,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> revealTaskInFileManager(MediaTask task) async {
-    final result = await WorkbenchFileRevealer.revealTask(task);
+    final targetPath = task.outputPath?.trim().isNotEmpty == true
+        ? task.outputPath!.trim()
+        : task.inputPath;
+    final result = await ref.read(fileRevealerProvider).revealPath(targetPath);
     if (!result.succeeded) {
       showWorkbenchSnackBar(result.message!);
     }
   }
 
   Future<void> revealPathInFileManager(String targetPath) async {
-    final result = await WorkbenchFileRevealer.revealPath(targetPath);
+    final result = await ref.read(fileRevealerProvider).revealPath(targetPath);
     if (!result.succeeded) {
       showWorkbenchSnackBar(result.message!);
     }

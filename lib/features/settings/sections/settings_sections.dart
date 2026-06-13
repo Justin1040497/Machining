@@ -162,7 +162,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               defaultMediaConfig = defaultMediaConfig.copyWith(
                 compressionMode: value,
                 targetSizeRatio: value == CompressionMode.targetSize
-                    ? WorkbenchConstants.defaultTargetSizeRatio
+                    ? MediaConfigurationUiConstants.defaultTargetSizeRatio
                     : null,
                 targetSizeBytes: null,
               );
@@ -281,10 +281,10 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         const SizedBox(height: 22),
         SizedBox(
           width: 360,
-          child: WorkbenchPercentageSliderPanel(
+          child: PercentageSliderPanel(
             title: '默认图片质量',
             summaryBuilder: (ratio) => '${(ratio * 100).round()}%',
-            values: WorkbenchConstants.imageQualityRatios,
+            values: MediaConfigurationUiConstants.imageQualityRatios,
             selectedValue: config.imageQuality.clamp(1, 100).toDouble() / 100,
             showTickLabels: false,
             onChanged: (value) {

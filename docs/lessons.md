@@ -2,6 +2,21 @@
 
 这个文件只记录可复用经验，不写每日日志。条目应能帮助后续避免同类错误。
 
+## 依赖装配不要伪装成 infrastructure
+
+经验：
+
+- Riverpod Provider 同时连接 application、infrastructure 和 features 时，本质上属于应用 composition root，不是基础设施实现。
+- 文件选择、外链打开、文件定位和主题缓存等平台行为，应先在 application 定义 port，再由 infrastructure 提供实现，由 `app/providers` 完成装配。
+- 设置页、通知中心和工作台共同使用的展示组件应提升到 `app`，避免 feature 之间横向依赖。
+- 分层约束需要自动化测试守住；仅靠目录命名和代码评审，依赖方向会在功能迭代中逐渐漂移。
+
+关联：
+
+- 决策：`docs/decisions/260614-clean-architecture-composition-root.md`
+- 架构：`docs/develop/architecture.md`
+- 测试计划：`docs/develop/test-plan.md`
+
 ## Drift 迁移新增列要幂等
 
 经验：

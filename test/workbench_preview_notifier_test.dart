@@ -12,8 +12,8 @@ import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/providers/workbench_preview_notifier.dart';
-import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
+import 'package:framelean/app/providers/input_runtime_provider.dart';
 
 void main() {
   group('WorkbenchPreviewNotifier', () {

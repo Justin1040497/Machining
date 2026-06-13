@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -65,7 +66,7 @@ abstract final class WorkbenchQualityPolicy {
   static int qualityIndexForTargetSizeRatio(double? targetSizeRatio) {
     if (targetSizeRatio == null || targetSizeRatio <= 0) {
       return qualityIndexForTargetSizeRatio(
-        WorkbenchConstants.defaultTargetSizeRatio,
+        MediaConfigurationUiConstants.defaultTargetSizeRatio,
       );
     }
 
@@ -119,10 +120,10 @@ abstract final class WorkbenchQualityPolicy {
 
   static double normalizeTargetSizeRatio(double? targetSizeRatio) {
     if (targetSizeRatio == null || targetSizeRatio <= 0) {
-      return WorkbenchConstants.defaultTargetSizeRatio;
+      return MediaConfigurationUiConstants.defaultTargetSizeRatio;
     }
 
-    var nearestRatio = WorkbenchConstants.defaultTargetSizeRatio;
+    var nearestRatio = MediaConfigurationUiConstants.defaultTargetSizeRatio;
     var nearestDistance = double.infinity;
     for (final ratio in WorkbenchConstants.targetSizeRatios) {
       final distance = (ratio - targetSizeRatio).abs();

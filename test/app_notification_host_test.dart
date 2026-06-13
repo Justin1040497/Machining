@@ -13,8 +13,8 @@ import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
-import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/app_settings_provider.dart';
 
 void main() {
   testWidgets('presents notification without missing overlay errors', (

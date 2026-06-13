@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class WorkbenchDialogFrame extends StatelessWidget {
   const WorkbenchDialogFrame({

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +15,10 @@ import 'package:framelean/application/use_cases/app_maintenance/launch_clean_uni
 import 'package:framelean/application/use_cases/app_maintenance/load_app_uninstall_availability_use_case.dart';
 import 'package:framelean/application/use_cases/app_maintenance/preview_app_cache_cleanup_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
+import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
+import 'package:framelean/app/widgets/percentage_slider_panel.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
@@ -32,19 +35,15 @@ import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_external_link_opener.dart';
-import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
-import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
-import 'package:framelean/features/workbench/widgets/form_controls/path_field.dart';
-import 'package:framelean/infrastructure/providers/app_maintenance_provider.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
-import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
-import 'package:framelean/infrastructure/providers/app_settings_save_provider.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
-import 'package:path/path.dart' as path;
+import 'package:framelean/app/presentation/domain_labels.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/widgets/form_controls/path_field.dart';
+import 'package:framelean/app/providers/app_maintenance_provider.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/app_settings_provider.dart';
+import 'package:framelean/app/providers/app_settings_save_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 
 part '../sections/settings_sections.dart';
 part '../sections/settings_section_actions.dart';
@@ -125,7 +124,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
 
   Future<void> openExternalLink(String url) async {
     final notificationManager = ref.read(appNotificationManagerProvider);
-    final result = await WorkbenchExternalLinkOpener.open(url);
+    final result = await ref.read(externalLinkOpenerProvider).open(url);
     if (result.succeeded) {
       return;
     }
@@ -142,6 +141,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
+    final fileSelectionService = ref.read(fileSelectionServiceProvider);
     return Scaffold(
       backgroundColor: colors.surface,
       body: FutureBuilder<AppSettings>(
@@ -150,10 +150,10 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
           if (snapshot.hasData) {
             return AppSettingsView(
               initialSettings: snapshot.requireData,
-              fallbackDefaultDirectory: _SettingsFilePicker.defaultExportPath,
-              onPickOutputDirectory: _SettingsFilePicker.pickOutputDirectory,
-              onPickFfmpegPath: _SettingsFilePicker.pickExecutablePath,
-              onPickFfprobePath: _SettingsFilePicker.pickExecutablePath,
+              fallbackDefaultDirectory: fileSelectionService.defaultExportPath,
+              onPickOutputDirectory: fileSelectionService.pickOutputDirectory,
+              onPickFfmpegPath: fileSelectionService.pickExecutablePath,
+              onPickFfprobePath: fileSelectionService.pickExecutablePath,
               onPreviewAppCacheCleanup: () {
                 return PreviewAppCacheCleanupUseCase(
                   cacheCleaner: ref.read(appCacheCleanerProvider),
@@ -188,27 +188,6 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
         },
       ),
     );
-  }
-}
-
-abstract final class _SettingsFilePicker {
-  static Future<String?> pickOutputDirectory() {
-    return getDirectoryPath(confirmButtonText: '选择导出文件夹');
-  }
-
-  static Future<String?> pickExecutablePath() async {
-    final file = await openFile();
-    return file?.path;
-  }
-
-  static String get defaultExportPath {
-    final home =
-        Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
-    if (home == null || home.trim().isEmpty) {
-      return Directory.current.path;
-    }
-
-    return path.join(home, 'Desktop');
   }
 }
 

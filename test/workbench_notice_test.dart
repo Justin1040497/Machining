@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/theme/framelean_responsive.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice.dart';
+import 'package:framelean/app/notifications/app_notification_notice.dart';
 
 void main() {
   testWidgets('success notice uses balanced desktop dimensions', (
@@ -76,7 +76,7 @@ Future<void> pumpNotice(
           home: Scaffold(
             body: Stack(
               children: [
-                WorkbenchNotice(
+                AppNotificationNotice(
                   title: title,
                   message: message,
                   level: level,

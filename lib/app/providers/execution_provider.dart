@@ -10,10 +10,10 @@ import 'package:framelean/application/services/execution/preview_frame_generator
 import 'package:framelean/application/services/execution/video_thumbnail_generator.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
-import 'package:framelean/infrastructure/providers/ffmpeg_planning_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/ffmpeg_planning_provider.dart';
+import 'package:framelean/app/providers/input_runtime_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
 import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_starter.dart';
 import 'package:framelean/infrastructure/services/execution/local_preview_frame_generator.dart';

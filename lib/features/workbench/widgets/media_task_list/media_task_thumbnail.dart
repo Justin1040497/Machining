@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/features/workbench/presentation_mappers/media_kind_icons.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class MediaTaskThumbnail extends StatelessWidget {
   const MediaTaskThumbnail({

@@ -29,7 +29,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务和设置，当前 schema version 为 20 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 21 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
 | 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |
@@ -66,7 +66,6 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `flutter_animate` | `^4.5.2` | 声明式 UI 动画，当前用于工作台通知浮层 |
 | `flutter_screenutil` | `^5.9.3` | 桌面 UI 文本和尺寸适配 |
 | `pointycastle` | `^4.0.0` | NCM 专有音频输入的本地加密/解密算法支持 |
-| `cupertino_icons` | `^1.0.8` | Flutter 默认图标依赖 |
 
 开发依赖：
 
@@ -86,9 +85,13 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 ```text
 lib/
   app/
+    presentation/
+    providers/
+    widgets/
   domain/
   application/
     repositories/
+    services/platform/
     services/input_runtime/
     services/ffmpeg_planning/
     services/execution/
@@ -96,8 +99,8 @@ lib/
     use_cases/media_tasks/
   infrastructure/
     database/
-    providers/
     repositories/
+    services/platform/
     services/input_runtime/
     services/ffmpeg_planning/
     services/execution/
@@ -341,6 +344,8 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 功能 | 主要代码 |
 | --- | --- |
 | 工作台 UI | `lib/features/workbench/pages/workbench_page.dart` 和 `lib/features/workbench/pages/workbench_page/` 下的布局、弹窗、覆盖层与配置组件 |
+| 依赖组装 | `lib/app/providers/`，把 application 抽象绑定到 infrastructure 实现 |
+| 桌面平台能力 | `lib/application/services/platform/` 抽象，`lib/infrastructure/services/platform/` 实现 |
 | 任务列表状态入口 | `lib/features/workbench/providers/media_task_notifier.dart`，通过 media task use cases 进入 application |
 | 预览状态入口 | `lib/features/workbench/providers/workbench_preview_notifier.dart`，通过 `GeneratePreviewFramesUseCase` 进入 application |
 | 任务仓储 | `lib/application/repositories/media_task_repository.dart`、`lib/infrastructure/repositories/drift_media_task_repository.dart` |
@@ -391,7 +396,7 @@ docs/develop/test-plan.md
 - 当前产品实现仍以本地媒体处理为主，暂不包含云端转码、账号体系或多设备同步。
 - 视频任务是最完整的能力面；图片和音频已支持基础本地处理，但暂不包含图片高级编辑、音频波形、试听、多轨或字幕能力。
 - Linux 和 Web 目录不是当前发布目标；涉及平台行为时不要默认它们已经可用。
-- 应用设置通过工作台弹窗打开，不保留未完成设置页占位路由。
+- 应用设置通过 `/settings` 全屏路由打开，按应用、关于、视频、图片、音频、输出和编码器分区独立保存或取消。
 - FFmpeg 二进制通常不应提交到 Git；本地和发布构建需要按 `third_party/ffmpeg/*/README.md` 准备运行时。
 - 内置 FFmpeg + x264 的发布路线需要遵守 GPL 相关分发要求，见 `docs/reference/ffmpeg-license-distribution.md`。
 

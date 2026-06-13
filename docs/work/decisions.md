@@ -4,6 +4,7 @@
 
 | 日期 | 决策 | 状态 | 正文 | 关联事实 |
 | --- | --- | --- | --- | --- |
+| 260614 | Riverpod 依赖装配归属 `app` composition root，平台能力通过 application port 接入，跨功能展示组件归属 `app` | 有效 | `docs/decisions/260614-clean-architecture-composition-root.md` | `docs/develop/architecture.md`、`docs/develop/test-plan.md` |
 | 260613 | 应用通知统一由 `AppNotificationManager` 持久化，临时浮层和通知中心分离 | 有效 | `docs/decisions/260613-app-notification-center-boundary.md` | `docs/develop/architecture.md`、`docs/develop/data-model.md` |
 | 260613 | Windows 使用当前用户 Inno Setup 安装器作为自托管更新载荷，ZIP 仅作为便携分发备用 | 有效 | `docs/decisions/260613-windows-installer-update-payload.md` | `CONTEXT.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |
 | 260613 | 输出文件名使用英文变量模板，输出配置保存刷新非运行任务，运行中任务保留执行快照 | 有效 | `docs/decisions/260613-output-template-settings-application.md` | `docs/releases/v1.2.0/output-settings-and-file-name-template.md` |

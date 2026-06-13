@@ -11,7 +11,7 @@ import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 
-extension WorkbenchCompressionModeLabel on CompressionMode {
+extension FrameLeanCompressionModeLabel on CompressionMode {
   String get label {
     switch (this) {
       case CompressionMode.preset:
@@ -22,7 +22,7 @@ extension WorkbenchCompressionModeLabel on CompressionMode {
   }
 }
 
-extension WorkbenchEncoderBackendLabel on EncoderBackend {
+extension FrameLeanEncoderBackendLabel on EncoderBackend {
   String get label {
     switch (this) {
       case EncoderBackend.auto:
@@ -43,7 +43,7 @@ extension WorkbenchEncoderBackendLabel on EncoderBackend {
   }
 }
 
-extension WorkbenchMediaKindLabel on MediaKind {
+extension FrameLeanMediaKindLabel on MediaKind {
   String get label {
     switch (this) {
       case MediaKind.video:
@@ -56,7 +56,7 @@ extension WorkbenchMediaKindLabel on MediaKind {
   }
 }
 
-extension WorkbenchOutputFormatLabel on OutputFormat {
+extension FrameLeanOutputFormatLabel on OutputFormat {
   String get label {
     switch (this) {
       case OutputFormat.mp4:
@@ -69,7 +69,7 @@ extension WorkbenchOutputFormatLabel on OutputFormat {
   }
 }
 
-extension WorkbenchMediaOutputFormatLabel on MediaOutputFormat {
+extension FrameLeanMediaOutputFormatLabel on MediaOutputFormat {
   String get label {
     return switch (this) {
       MediaOutputFormat.mp4 => 'MP4',
@@ -94,7 +94,7 @@ extension WorkbenchMediaOutputFormatLabel on MediaOutputFormat {
   }
 }
 
-extension WorkbenchImageResizePresetLabel on ImageResizePreset {
+extension FrameLeanImageResizePresetLabel on ImageResizePreset {
   String get label {
     return switch (this) {
       ImageResizePreset.original => '保持原始分辨率',
@@ -107,7 +107,7 @@ extension WorkbenchImageResizePresetLabel on ImageResizePreset {
   }
 }
 
-extension WorkbenchAudioBitratePresetLabel on AudioBitratePreset {
+extension FrameLeanAudioBitratePresetLabel on AudioBitratePreset {
   String get label {
     return switch (this) {
       AudioBitratePreset.source => '保持原始',
@@ -120,7 +120,7 @@ extension WorkbenchAudioBitratePresetLabel on AudioBitratePreset {
   }
 }
 
-extension WorkbenchAudioSampleRatePresetLabel on AudioSampleRatePreset {
+extension FrameLeanAudioSampleRatePresetLabel on AudioSampleRatePreset {
   String get label {
     return switch (this) {
       AudioSampleRatePreset.source => '保持原始',
@@ -131,7 +131,7 @@ extension WorkbenchAudioSampleRatePresetLabel on AudioSampleRatePreset {
   }
 }
 
-extension WorkbenchAudioChannelsPresetLabel on AudioChannelsPreset {
+extension FrameLeanAudioChannelsPresetLabel on AudioChannelsPreset {
   String get label {
     return switch (this) {
       AudioChannelsPreset.source => '保持原始',
@@ -141,7 +141,7 @@ extension WorkbenchAudioChannelsPresetLabel on AudioChannelsPreset {
   }
 }
 
-extension WorkbenchResolutionPresetLabel on ResolutionPreset {
+extension FrameLeanResolutionPresetLabel on ResolutionPreset {
   String get label {
     switch (this) {
       case ResolutionPreset.original:
@@ -158,7 +158,7 @@ extension WorkbenchResolutionPresetLabel on ResolutionPreset {
   }
 }
 
-extension WorkbenchSmartCompressionPresetLabel on SmartCompressionPreset {
+extension FrameLeanSmartCompressionPresetLabel on SmartCompressionPreset {
   String get label {
     switch (this) {
       case SmartCompressionPreset.balanced:
@@ -186,7 +186,7 @@ extension WorkbenchSmartCompressionPresetLabel on SmartCompressionPreset {
   }
 }
 
-extension WorkbenchTaskPurposeLabel on TaskPurpose {
+extension FrameLeanTaskPurposeLabel on TaskPurpose {
   String get label {
     switch (this) {
       case TaskPurpose.compression:
@@ -197,7 +197,7 @@ extension WorkbenchTaskPurposeLabel on TaskPurpose {
   }
 }
 
-extension WorkbenchTaskStatusLabel on TaskStatus {
+extension FrameLeanTaskStatusLabel on TaskStatus {
   String get label {
     switch (this) {
       case TaskStatus.pending:
@@ -220,7 +220,7 @@ extension WorkbenchTaskStatusLabel on TaskStatus {
   }
 }
 
-extension WorkbenchVideoCodecLabel on VideoCodec {
+extension FrameLeanVideoCodecLabel on VideoCodec {
   String get label {
     switch (this) {
       case VideoCodec.source:

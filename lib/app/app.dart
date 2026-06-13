@@ -4,13 +4,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/notifications/app_notification_host.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/app/theme/framelean_responsive.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
-import 'package:framelean/infrastructure/services/theme_prefs_cache.dart';
 
 import 'app_router.dart';
 
@@ -45,7 +45,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp> {
         },
         writeCache: (mode) async {
           if (mounted && ref.read(appThemeModeProvider) == mode) {
-            await ThemePrefsCache.write(mode);
+            await ref.read(themePreferencesCacheProvider).write(mode);
           }
         },
       );

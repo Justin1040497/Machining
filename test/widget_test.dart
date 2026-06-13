@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -24,7 +25,6 @@ import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
@@ -33,7 +33,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
-import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 void main() {
@@ -1033,7 +1033,7 @@ void main() {
       expect(find.byKey(const Key('windows-notice-safe-area')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byType(MediaTaskListTile)).dy,
-        greaterThanOrEqualTo(WorkbenchConstants.appTopBarHeight + 30),
+        greaterThanOrEqualTo(AppLayoutConstants.topBarHeight + 30),
       );
       expect(find.byTooltip('通知中心'), findsOneWidget);
       expect(

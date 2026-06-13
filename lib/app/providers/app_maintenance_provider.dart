@@ -7,6 +7,7 @@ import 'package:framelean/infrastructure/services/app_maintenance/local_app_cach
 import 'package:framelean/infrastructure/services/app_maintenance/noop_app_uninstaller.dart';
 import 'package:framelean/infrastructure/services/app_maintenance/windows_clean_app_uninstaller.dart';
 
+// Application composition root for platform maintenance implementations.
 final appCacheCleanerProvider = Provider<AppCacheCleaner>((ref) {
   return LocalAppCacheCleaner();
 });

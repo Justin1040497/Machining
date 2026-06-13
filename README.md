@@ -194,7 +194,7 @@ Release app 和 DMG 位置：
 
 ```text
 build/macos/Build/Products/Release/FrameLean.app
-build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg
+build/macos/Build/Products/Release/FrameLean-v1.2.0.dmg
 ```
 
 验证 app 内置 FFmpeg 和法律资料：
@@ -231,8 +231,8 @@ Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip
-build/windows/x64/installer/FrameLean-v1.1.5-windows-x64-setup.exe
+build/windows/x64/runner/FrameLean-v1.2.0-windows-x64.zip
+build/windows/x64/installer/FrameLean-v1.2.0-windows-x64-setup.exe
 ```
 
 Windows CMake 会把运行时复制到：
@@ -242,7 +242,7 @@ build/windows/x64/runner/Release/ffmpeg/
 ```
 
 Windows zip 文件名会读取 `pubspec.yaml` 的语义化版本，解压后顶层目录应为
-`FrameLean-v1.1.5-windows-x64/`。如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，
+`FrameLean-v1.2.0-windows-x64/`。如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，
 Windows Release 构建会失败，避免产出缺少内置运行时的发布包。
 
 发布脚本会从 Visual Studio 的 x64 Redistributable 目录复制
@@ -361,7 +361,7 @@ lib/
 - [docs/work/active.md](docs/work/active.md)：当前正在推进的任务。
 - [docs/work/backlog.md](docs/work/backlog.md)：候选任务池。
 - [docs/work/decisions.md](docs/work/decisions.md)：仍有效的重要决策索引。
-- [docs/releases/v1.1.5/overview.md](docs/releases/v1.1.5/overview.md)：当前版本事实设计说明。
+- [docs/releases/v1.2.0/release.md](docs/releases/v1.2.0/release.md)：当前发布说明。
 - [docs/develop/architecture.md](docs/develop/architecture.md)：项目架构和模块边界。
 - [docs/develop/technology-stack.md](docs/develop/technology-stack.md)：技术栈、依赖和平台范围。
 - [docs/develop/data-model.md](docs/develop/data-model.md)：数据库 schema、任务模型和设置模型。

@@ -11,7 +11,7 @@ FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具。�
 当前应用版本来自 `pubspec.yaml`：
 
 ```text
-1.1.5+3
+1.2.0+4
 ```
 
 FrameLean 更名后的主要版本事实：
@@ -50,7 +50,7 @@ features -> application -> domain
 - `application` 保存用例、仓储接口和服务抽象，描述应用流程。
 - `infrastructure` 实现 Drift、FFmpeg / FFprobe、文件系统、进程控制、平台差异和本地服务。
 - `features/workbench` 是 UI 和状态协调层，通过 Riverpod notifier 调用 application 用例。
-- `app` 负责入口、主题和路由。
+- `app` 负责入口、主题、路由、共享展示组件和 Riverpod composition root。
 
 当前架构事实见 `docs/develop/architecture.md`，数据模型见 `docs/develop/data-model.md`。
 

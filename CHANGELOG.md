@@ -29,6 +29,45 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-14｜v1.2.0｜Release
+
+完成 v1.2.0 发布准备。本版本从 v1.1.5 起扩展视频、图片和音频统一处理能力，加入专有音频输入、完整设置页、通知中心、输出文件名模板、任务完成提示音、HDR / SDR 色彩处理，以及 macOS Universal 2 和 Windows 安装器发布链。本次收口同时完成 P0-P2 架构治理：加入依赖方向守卫，将 Riverpod 组装迁入 app composition root，修正设置保存对工作台 feature 的反向依赖，并把文件选择、外链、文件管理器打开和主题缓存收敛为 application 端口与 infrastructure 实现。
+
+### Added
+
+- 新增图片 / 音频统一任务模型、分类型配置、FFprobe 分析和基础 FFmpeg 处理。
+- 新增 NCM 本地解密和 QMC 外部适配器输入链路。
+- 新增全屏应用设置、分区保存 / 取消、缓存清理和 Windows 清理卸载入口。
+- 新增持久化通知中心、任务完成提示音和成果物文件夹动作。
+- 新增输出文件名模板、媒体默认值、保持原始格式和元数据保留配置。
+- 新增 HDR10 / HLG 转 SDR、受限保持 HDR 和 Dolby Vision 风险拦截。
+- 新增 macOS Universal 2、Windows ZIP + Inno Setup 安装器发布链。
+- 新增 Clean Architecture import 守卫测试。
+
+### Changed
+
+- Riverpod provider 从 `infrastructure/providers` 迁移到 `app/providers` composition root。
+- 输出配置刷新既有任务改由 application use case 执行，feature notifier 不再被 infrastructure 反向调用。
+- 文件选择、外链打开、文件管理器定位和主题缓存改为 application 抽象，由 infrastructure 提供桌面实现。
+- 跨 settings、notifications、workbench 复用的主题扩展、领域标签、表单控件、布局常量和百分比滑杆迁入 `app`。
+- 应用版本升级为 `1.2.0+4`，发布产物统一使用 `FrameLean-v1.2.0` 前缀。
+
+### Fixed
+
+- 修复 Drift 新增列迁移可能重复添加列的问题。
+- 修复任务排序持久化、主题缓存一致性、macOS 首次点击、重复操作和 QMC 探测问题。
+- 修复非视频任务详情、保持原始格式 / 分辨率、输出命名和 HDR 色彩参数边界。
+- 移除已无引用的旧设置弹窗组件和未使用的 `cupertino_icons` 依赖。
+
+### Verified
+
+- 通过 `flutter analyze`。
+- 通过 `flutter test`，共 259 项测试。
+- 通过 `flutter test test/architecture_dependencies_test.dart`。
+- 通过 P0-P2 触达模块 76 项回归测试。
+- 通过 `git diff --check`。
+- 最终 macOS DMG 签名 / 公证、Intel 真机与 Windows x64 安装器真机验收仍需在发布环境完成。
+
 ## 2026-06-13｜v1.2.0｜No Release
 
 今天接入任务完成提示音：设置页可以选择内置短提示音，设置会持久化到本地数据库，任务完成通知发出时会按当前设置播放对应音效。同时完成视频压缩底层色彩修复第一阶段：扩展 FFprobe 色彩 / HDR / Dolby Vision 分析字段，HDR10 / HLG 通过 `zscale + tonemap` 转 SDR，SDR 不再统一硬贴 BT.709，并将硬件编码器质量参数从 CRF 数值中拆开映射。媒体任务配置也同步完善“保持原始”、默认值和元数据语义：设置页默认值只影响后续导入任务，任务详情里显示真实源格式加“保持原始”提示，不向底层格式枚举写入 `source` 伪值。

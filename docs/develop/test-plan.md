@@ -30,11 +30,14 @@ flutter test test/ffmpeg_command_builder_test.dart
 
 ```text
 test/
-  app_settings_page_test.dart
-  app_settings_test.dart
-  app_settings_use_cases_test.dart
+  app_cache_cleaner_test.dart
   app_notification_host_test.dart
   app_notification_manager_test.dart
+  app_settings_page_test.dart
+  app_settings_save_coordinator_test.dart
+  app_settings_test.dart
+  app_settings_use_cases_test.dart
+  architecture_dependencies_test.dart
   bundled_proprietary_audio_adapter_registry_test.dart
   compression_advisor_test.dart
   compression_estimator_test.dart
@@ -62,10 +65,10 @@ test/
   proprietary_audio_format_resolver_test.dart
   reorder_media_tasks_use_case_test.dart
   standard_cli_proprietary_audio_decoder_test.dart
+  task_completion_sound_player_test.dart
   theme_prefs_reconciler_test.dart
   video_thumbnail_generator_test.dart
   widget_test.dart
-  workbench_about_dialog_test.dart
   workbench_bottom_bar_test.dart
   workbench_constants_test.dart
   workbench_dialog_style_test.dart
@@ -93,12 +96,20 @@ test/
 ### Application Use Cases
 
 - 导入任务时套用应用默认设置、识别视频 / 图片 / 音频媒体类型并写入分析中状态。
+- 输出设置保存后只批量刷新等待中、失败和已取消任务，运行中、已暂停和已完成任务保留当前执行快照。
 - 启动恢复时校正源文件丢失、指纹变化和缺失分析结果。
 - 重新指定源文件、失败重试、删除、清空和排序。
 - 任务重排只持久化 `sort_order` 字段，失败时刷新仓储顺序，避免 UI 顺序和 DB 顺序分裂。
 - 队列启动、单任务开始 / 继续、暂停和清空时取消执行。
 - 预览帧生成通过 `GeneratePreviewFramesUseCase` 读取运行时并调用预览服务。
 - 应用通知先持久化再展示；设置保存离开页面后仍记录结果；FFmpeg 队列完成 / 失败直接产生类型化任务通知。
+
+### 架构依赖护栏
+
+- `domain` 只能依赖领域层与 Dart 基础库，不得依赖 Flutter、Drift 或 `dart:io`。
+- `application` 不得反向依赖 `app`、`features` 或 `infrastructure`，平台行为通过 application port 表达。
+- `infrastructure` 不得导入 `features`，Riverpod 依赖装配统一放在 `app/providers`。
+- `features` 不得直接依赖 `infrastructure`，跨功能共享展示组件统一放在 `app`。
 
 ### 通知中心
 
@@ -315,7 +326,7 @@ test/
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
 - `scripts/release/verify_macos_universal.sh FrameLean.app` 成功，包内 Mach-O 文件均包含 `x86_64` 和 `arm64`。
-- 生成 `build/macos/Build/Products/Release/FrameLean-v1.1.5.dmg`。
+- 生成 `build/macos/Build/Products/Release/FrameLean-v1.2.0.dmg`。
 - 运行 Release app 后任务使用 app 包内 FFmpeg。
 - 在 Apple Silicon Mac 和 Intel Mac 上使用同一 DMG 验证启动、导入、压缩和打开输出位置。
 - 两种架构分别验证 VideoToolbox 探测与软件编码回退。
@@ -326,9 +337,9 @@ test/
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
 - Release 目录存在 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。
 - Release 目录存在 `audio_adapters/qmc/qmc-decrypt.exe`，并包含上游许可证。
-- 生成 `build/windows/x64/runner/FrameLean-v1.1.5-windows-x64.zip`。
-- 生成 `build/windows/x64/installer/FrameLean-v1.1.5-windows-x64-setup.exe`。
-- zip 解压后顶层目录为 `FrameLean-v1.1.5-windows-x64/`。
+- 生成 `build/windows/x64/runner/FrameLean-v1.2.0-windows-x64.zip`。
+- 生成 `build/windows/x64/installer/FrameLean-v1.2.0-windows-x64-setup.exe`。
+- zip 解压后顶层目录为 `FrameLean-v1.2.0-windows-x64/`。
 - 在未预装 Visual C++ Redistributable 的干净 Windows x64 环境中，安装后可以启动应用。
 - 安装器默认安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不请求管理员权限，开始菜单快捷方式可以启动应用。
 - 使用 `/SILENT /SUPPRESSMSGBOXES /NORESTART` 覆盖安装时不触发 UAC，并返回可判断的安装器退出码。

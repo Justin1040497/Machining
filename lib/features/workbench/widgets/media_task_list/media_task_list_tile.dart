@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';

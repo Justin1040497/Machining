@@ -5,6 +5,7 @@ import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
+import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -16,9 +17,9 @@ import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
-import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
+import 'package:framelean/app/providers/input_runtime_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 
 void main() {
   group('MediaTaskListNotifier', () {
@@ -141,32 +142,16 @@ void main() {
           cancelledTask,
           runningTask,
         ]);
-        final container = testContainer(
+        await ApplyOutputSettingsToExistingTasksUseCase(
           repository: repository,
-          sourceFileChecker: FakeSourceFileChecker(
-            existingPaths: {
-              renamedTask.inputPath,
-              failedTask.inputPath,
-              cancelledTask.inputPath,
-              runningTask.inputPath,
-            },
-          ),
-          fingerprintReader: FakeSourceFileFingerprintReader(
-            fingerprint: testFingerprint,
+        ).call(
+          AppSettings.initial().copyWith(
+            defaultOutputDirectory: '/exports',
+            saveOutputToSourceDirectory: false,
+            defaultOutputFileNameTemplate: '{source}-{codec}',
+            defaultOutputVideoCodec: VideoCodec.hevc,
           ),
         );
-
-        await container.read(mediaTaskListProvider.future);
-        await container
-            .read(mediaTaskListProvider.notifier)
-            .applyOutputSettingsToExistingTasks(
-              AppSettings.initial().copyWith(
-                defaultOutputDirectory: '/exports',
-                saveOutputToSourceDirectory: false,
-                defaultOutputFileNameTemplate: '{source}-{codec}',
-                defaultOutputVideoCodec: VideoCodec.hevc,
-              ),
-            );
 
         final updatedTask = repository.taskById(renamedTask.id);
         expect(updatedTask.config.outputDirectory, '/exports');

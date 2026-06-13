@@ -1,6 +1,6 @@
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class PathField extends StatelessWidget {
   const PathField({
