@@ -69,7 +69,7 @@ scripts/build/build_ffmpeg_macos_universal.sh
 构建前安装：
 
 ```bash
-brew install nasm pkg-config
+brew install autoconf automake libtool nasm pkg-config
 ```
 
 构建：

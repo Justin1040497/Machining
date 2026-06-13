@@ -57,6 +57,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复 Drift 新增列迁移可能重复添加列的问题。
 - 修复任务排序持久化、主题缓存一致性、macOS 首次点击、重复操作和 QMC 探测问题。
 - 修复非视频任务详情、保持原始格式 / 分辨率、输出命名和 HDR 色彩参数边界。
+- 修复 macOS Universal 2 CI 构建 zimg 时缺少 `aclocal` 的原生依赖声明，以及 Windows 打包脚本因截断 `ffprobe.exe -version` 管道而误判运行时版本校验失败的问题。
 - 移除已无引用的旧设置弹窗组件和未使用的 `cupertino_icons` 依赖。
 
 ### Verified
@@ -65,6 +66,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `flutter test`，共 259 项测试。
 - 通过 `flutter test test/architecture_dependencies_test.dart`。
 - 通过 P0-P2 触达模块 76 项回归测试。
+- 通过 release workflow / 打包脚本语法检查。
 - 通过 `git diff --check`。
 - 最终 macOS DMG 签名 / 公证、Intel 真机与 Windows x64 安装器真机验收仍需在发布环境完成。
 

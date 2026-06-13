@@ -60,6 +60,18 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path $runtimeDir, $downloadDir, $extractDir | Out-Null
 
+          function Show-NativeVersion {
+            param([string]$Path)
+
+            $output = & $Path -hide_banner -version 2>&1
+            $exitCode = $LASTEXITCODE
+            if ($exitCode -ne 0) {
+              throw "$Path -version failed with exit code $exitCode.`n$($output -join "`n")"
+            }
+
+            $output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -First 1
+          }
+
           if (Test-Path -LiteralPath $assetPath) {
             Remove-Item -LiteralPath $assetPath -Force
           }
@@ -96,8 +108,8 @@ jobs:
           Copy-Item -LiteralPath $ffmpeg.FullName -Destination (Join-Path $runtimeDir "ffmpeg.exe") -Force
           Copy-Item -LiteralPath $ffprobe.FullName -Destination (Join-Path $runtimeDir "ffprobe.exe") -Force
 
-          & (Join-Path $runtimeDir "ffmpeg.exe") -hide_banner -version | Select-Object -First 1
-          & (Join-Path $runtimeDir "ffprobe.exe") -hide_banner -version | Select-Object -First 1
+          Show-NativeVersion (Join-Path $runtimeDir "ffmpeg.exe")
+          Show-NativeVersion (Join-Path $runtimeDir "ffprobe.exe")
 
       - name: Build Windows QMC adapter
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build\build_qmc_decrypt_windows.ps1

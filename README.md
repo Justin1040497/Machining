@@ -68,7 +68,7 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
 - Flutter / Dart，当前项目使用 Dart SDK `^3.11.0`。
 - macOS 开发需要 Xcode Command Line Tools。
 - Windows 开发需要 Visual Studio C++ Desktop Build Tools。
-- macOS 构建 FFmpeg 运行时需要 Homebrew、`nasm`、`pkg-config`。
+- macOS 构建 FFmpeg 运行时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`。
 
 安装 Flutter 依赖：
 
@@ -79,7 +79,7 @@ flutter pub get
 macOS 安装 FFmpeg 构建依赖：
 
 ```bash
-brew install nasm pkg-config
+brew install autoconf automake libtool nasm pkg-config
 ```
 
 运行 macOS 开发版：
