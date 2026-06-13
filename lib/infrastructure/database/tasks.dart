@@ -39,6 +39,20 @@ class TaskRows extends Table {
       text().named('analysis_color_transfer').nullable()();
   TextColumn get analysisColorPrimaries =>
       text().named('analysis_color_primaries').nullable()();
+  TextColumn get analysisChromaLocation =>
+      text().named('analysis_chroma_location').nullable()();
+  TextColumn get analysisMasteringDisplayMetadata =>
+      text().named('analysis_mastering_display_metadata').nullable()();
+  RealColumn get analysisMasteringDisplayMaxLuminance =>
+      real().named('analysis_mastering_display_max_luminance').nullable()();
+  IntColumn get analysisMaxContentLightLevel =>
+      integer().named('analysis_max_content_light_level').nullable()();
+  IntColumn get analysisMaxFrameAverageLightLevel =>
+      integer().named('analysis_max_frame_average_light_level').nullable()();
+  IntColumn get analysisDolbyVisionProfile =>
+      integer().named('analysis_dolby_vision_profile').nullable()();
+  IntColumn get analysisDolbyVisionCompatibilityId =>
+      integer().named('analysis_dolby_vision_compatibility_id').nullable()();
   TextColumn get analysisAverageFrameRate =>
       text().named('analysis_average_frame_rate').nullable()();
   TextColumn get analysisRealFrameRate =>

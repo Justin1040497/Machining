@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
@@ -19,7 +19,7 @@ void main() {
     expect(settings.saveOutputToSourceDirectory, isTrue);
     expect(
       settings.defaultOutputFileNameTemplate,
-      DefaultOutputFileNameTemplate.sourceFileNameCodec,
+      defaultOutputFileNameTemplatePattern,
     );
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.video), isTrue);
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.image), isTrue);
@@ -28,6 +28,7 @@ void main() {
     expect(settings.defaultMediaConfig.image?.preserveMetadata, isFalse);
     expect(settings.themeMode, AppThemeMode.system);
     expect(settings.hideNotificationBadge, isTrue);
+    expect(settings.taskCompletionSound, TaskCompletionSound.none);
   });
 
   test('copyWith can clear nullable paths and update default fields', () {
@@ -39,6 +40,7 @@ void main() {
       defaultOutputVideoCodec: VideoCodec.hevc,
       themeMode: AppThemeMode.dark,
       hideNotificationBadge: false,
+      taskCompletionSound: TaskCompletionSound.originalSoftA,
     );
 
     final cleared = settings.copyWith(
@@ -54,6 +56,7 @@ void main() {
     expect(cleared.defaultOutputVideoCodec, VideoCodec.hevc);
     expect(cleared.themeMode, AppThemeMode.dark);
     expect(cleared.hideNotificationBadge, isFalse);
+    expect(cleared.taskCompletionSound, TaskCompletionSound.originalSoftA);
     expect(
       cleared.defaultMediaConfig.video?.smartPreset,
       SmartCompressionPreset.chat,
@@ -80,5 +83,31 @@ void main() {
     expect(settings.defaultSmartPreset, SmartCompressionPreset.chat);
     expect(imageConfig.video, isNull);
     expect(imageConfig.image?.imageQuality, 64);
+  });
+
+  test(
+    'normalizes empty output file name templates to the default pattern',
+    () {
+      final settings = AppSettings.initial().copyWith(
+        defaultOutputFileNameTemplate: '   ',
+      );
+
+      expect(
+        settings.defaultOutputFileNameTemplate,
+        defaultOutputFileNameTemplatePattern,
+      );
+    },
+  );
+
+  test('normalizes dimension separators and duplicate token prefixes', () {
+    final settings = AppSettings.initial().copyWith(
+      defaultOutputFileNameTemplate:
+          '{source}-1920x1080-4 X 3-x{codec}-x{encoder}-x264',
+    );
+
+    expect(
+      settings.defaultOutputFileNameTemplate,
+      '{source}-1920×1080-4 × 3-{codec}-{encoder}-x264',
+    );
   });
 }

@@ -78,6 +78,7 @@ class _SettingsDropdown<T> extends StatelessWidget {
     required this.itemLabel,
     required this.onChanged,
     this.width = 235,
+    this.enabled = true,
   });
 
   final String label;
@@ -86,15 +87,18 @@ class _SettingsDropdown<T> extends StatelessWidget {
   final String Function(T value) itemLabel;
   final ValueChanged<T?> onChanged;
   final double width;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
+    final selectedValue = values.contains(value) ? value : values.first;
+
     return SizedBox(
       width: width,
       child: ConfigDropdown<T>(
         label: label,
-        trailingText: itemLabel(value),
-        value: value,
+        trailingText: itemLabel(selectedValue),
+        value: selectedValue,
         values: values,
         itemLabel: itemLabel,
         onChanged: onChanged,
@@ -102,6 +106,67 @@ class _SettingsDropdown<T> extends StatelessWidget {
         showTrailingText: false,
         labelFontSize: 12,
         valueFontSize: 12,
+        enabled: enabled,
+      ),
+    );
+  }
+}
+
+class _SettingsOutputFormatField extends StatelessWidget {
+  const _SettingsOutputFormatField({
+    required this.label,
+    required this.keepOriginalLabel,
+    required this.value,
+    required this.values,
+    required this.keepOriginal,
+    required this.onKeepOriginalChanged,
+    required this.onChanged,
+  });
+
+  final String label;
+  final String keepOriginalLabel;
+  final MediaOutputFormat value;
+  final List<MediaOutputFormat> values;
+  final bool keepOriginal;
+  final ValueChanged<bool> onKeepOriginalChanged;
+  final ValueChanged<MediaOutputFormat> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedValue = values.contains(value) ? value : values.first;
+
+    return SizedBox(
+      width: 360,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _FormFieldLabel(label),
+          const SizedBox(height: 8),
+          _SettingsCheckbox(
+            label: keepOriginalLabel,
+            value: keepOriginal,
+            onChanged: onKeepOriginalChanged,
+          ),
+          const SizedBox(height: 8),
+          ConfigDropdown<MediaOutputFormat>(
+            label: label,
+            trailingText: selectedValue.label,
+            value: selectedValue,
+            values: values,
+            itemLabel: (value) => value.label,
+            onChanged: (value) {
+              if (value != null) {
+                onChanged(value);
+              }
+            },
+            height: _AppSettingsViewState._fieldHeight,
+            showLabel: false,
+            showTrailingText: false,
+            labelFontSize: 12,
+            valueFontSize: 12,
+            enabled: !keepOriginal,
+          ),
+        ],
       ),
     );
   }
@@ -145,61 +210,6 @@ class _SettingsPathField extends StatelessWidget {
         onTrailingTap: onTrailingTap,
         onDraggingChanged: onDraggingChanged,
         onDropped: onDropped,
-      ),
-    );
-  }
-}
-
-class _SettingsTextField extends StatelessWidget {
-  const _SettingsTextField({
-    required this.label,
-    required this.controller,
-    required this.onChanged,
-    this.keyboardType,
-  });
-
-  final String label;
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-  final TextInputType? keyboardType;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-    return SizedBox(
-      width: 235,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _FormFieldLabel(label),
-          const SizedBox(height: 8),
-          SizedBox(
-            height: _AppSettingsViewState._fieldHeight,
-            child: TextField(
-              controller: controller,
-              keyboardType: keyboardType,
-              onChanged: onChanged,
-              style: TextStyle(color: colors.textPrimary, fontSize: 12),
-              decoration: InputDecoration(
-                isDense: true,
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 9,
-                ),
-                filled: true,
-                fillColor: colors.surface,
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide(color: colors.border),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(4),
-                  borderSide: BorderSide(color: colors.primary),
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

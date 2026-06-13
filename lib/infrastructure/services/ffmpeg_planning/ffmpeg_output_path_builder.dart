@@ -37,19 +37,38 @@ class FfmpegOutputPathBuilder {
     final customName = task.config.outputFileName.trim();
     if (customName.isNotEmpty) {
       final safeName = path.basename(customName);
-      final baseName = path.basenameWithoutExtension(safeName).trim();
+      final baseName = outputFileNameStem(safeName, extension);
       if (baseName.isNotEmpty) {
         return '$baseName$extension';
       }
     }
 
-    final inputBaseName = path.basenameWithoutExtension(task.fileName);
+    final inputBaseName = path.basenameWithoutExtension(task.inputPath);
     final suffix = switch (task.purpose) {
       TaskPurpose.compression => 'compressed',
       TaskPurpose.conversion => 'converted',
     };
 
     return '${inputBaseName}_$suffix$extension';
+  }
+
+  String outputFileNameStem(String safeName, String targetExtension) {
+    final trimmed = safeName.trim();
+    final existingExtension = path.extension(trimmed);
+    if (existingExtension.isEmpty) {
+      return trimmed;
+    }
+
+    if (existingExtension.toLowerCase() == targetExtension.toLowerCase() ||
+        isKnownMediaFileExtension(existingExtension)) {
+      return path.basenameWithoutExtension(trimmed).trim();
+    }
+
+    return trimmed;
+  }
+
+  bool isKnownMediaFileExtension(String extension) {
+    return _mediaFileExtensions.contains(extension.toLowerCase());
   }
 
   String uniqueOutputPath(String preferredPath, String inputPath) {
@@ -125,3 +144,24 @@ class FfmpegOutputPathBuilder {
     };
   }
 }
+
+const _mediaFileExtensions = {
+  '.mp4',
+  '.mov',
+  '.mkv',
+  '.jpg',
+  '.png',
+  '.webp',
+  '.bmp',
+  '.tiff',
+  '.gif',
+  '.mp3',
+  '.m4a',
+  '.aac',
+  '.wav',
+  '.flac',
+  '.aiff',
+  '.wma',
+  '.opus',
+  '.ogg',
+};

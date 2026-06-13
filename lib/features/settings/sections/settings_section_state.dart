@@ -27,18 +27,23 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
 
   bool get _isAppSectionDirty =>
       themeMode != savedSettings.themeMode ||
+      completionSound != savedSettings.taskCompletionSound ||
+      showTaskCompletionDialog != savedSettings.showTaskCompletionDialog ||
       hideNotificationBadge != savedSettings.hideNotificationBadge;
 
   bool get _isVideoSectionDirty {
     final current = videoConfig;
-    final savedVideo = _withAllMediaDefaults(
-      savedSettings.defaultMediaConfig,
-    ).video;
+    final savedConfig = _withAllMediaDefaults(savedSettings.defaultMediaConfig);
+    final savedVideo = savedConfig.video;
     if (savedVideo == null) return false;
-    return current.outputFormat != savedVideo.outputFormat ||
+    return defaultMediaConfig.compressionMode != savedConfig.compressionMode ||
+        current.outputFormat != savedVideo.outputFormat ||
+        current.keepOriginalOutputFormat !=
+            savedVideo.keepOriginalOutputFormat ||
         current.videoCodec != savedVideo.videoCodec ||
         current.resolutionPreset != savedVideo.resolutionPreset ||
-        current.smartPreset != savedVideo.smartPreset;
+        current.smartPreset != savedVideo.smartPreset ||
+        current.preserveMetadata != savedVideo.preserveMetadata;
   }
 
   bool get _isImageSectionDirty {
@@ -48,6 +53,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     ).image;
     if (savedImage == null) return false;
     return current.outputFormat != savedImage.outputFormat ||
+        current.keepOriginalOutputFormat !=
+            savedImage.keepOriginalOutputFormat ||
         current.imageQuality != savedImage.imageQuality ||
         current.resizePreset != savedImage.resizePreset ||
         current.preserveMetadata != savedImage.preserveMetadata;
@@ -60,9 +67,12 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     ).audio;
     if (savedAudio == null) return false;
     return current.outputFormat != savedAudio.outputFormat ||
+        current.keepOriginalOutputFormat !=
+            savedAudio.keepOriginalOutputFormat ||
         current.bitratePreset != savedAudio.bitratePreset ||
         current.sampleRate != savedAudio.sampleRate ||
-        current.channels != savedAudio.channels;
+        current.channels != savedAudio.channels ||
+        current.preserveMetadata != savedAudio.preserveMetadata;
   }
 
   bool get _isOutputSectionDirty {
@@ -70,7 +80,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
         savedSettings.saveOutputToSourceDirectory) {
       return true;
     }
-    if (outputFileNameTemplate != savedSettings.defaultOutputFileNameTemplate) {
+    if (outputFileNameTemplateController.text.trim() !=
+        savedSettings.defaultOutputFileNameTemplate) {
       return true;
     }
     if (!saveOutputToSourceDirectory) {
@@ -119,16 +130,18 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
   void _revertAppSection() {
     updateViewState(() {
       themeMode = savedSettings.themeMode;
+      completionSound = savedSettings.taskCompletionSound;
+      showTaskCompletionDialog = savedSettings.showTaskCompletionDialog;
       hideNotificationBadge = savedSettings.hideNotificationBadge;
     });
   }
 
   void _revertVideoSection() {
-    final savedVideo = _withAllMediaDefaults(
-      savedSettings.defaultMediaConfig,
-    ).video;
-    if (savedVideo == null) return;
-    updateVideoConfig(savedVideo);
+    updateViewState(() {
+      defaultMediaConfig = _withAllMediaDefaults(
+        savedSettings.defaultMediaConfig,
+      );
+    });
   }
 
   void _revertImageSection() {
@@ -150,7 +163,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
   void _revertOutputSection() {
     updateViewState(() {
       saveOutputToSourceDirectory = savedSettings.saveOutputToSourceDirectory;
-      outputFileNameTemplate = savedSettings.defaultOutputFileNameTemplate;
+      outputFileNameTemplateController.text =
+          savedSettings.defaultOutputFileNameTemplate;
       outputDirectoryController.text =
           savedSettings.defaultOutputDirectory ??
           widget.fallbackDefaultDirectory;
@@ -173,7 +187,13 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       final updatedSettings = _buildSettingsForSection(section);
       await widget.onSave(updatedSettings, section.saveTarget);
       if (!mounted) return;
-      updateViewState(() => savedSettings = updatedSettings);
+      updateViewState(() {
+        savedSettings = updatedSettings;
+        if (section == _SettingsSection.output) {
+          outputFileNameTemplateController.text =
+              updatedSettings.defaultOutputFileNameTemplate;
+        }
+      });
     } on Object {
       // The global notification manager records and presents the failure.
     } finally {
@@ -189,13 +209,13 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       case _SettingsSection.app:
         return base.copyWith(
           themeMode: themeMode,
+          taskCompletionSound: completionSound,
+          showTaskCompletionDialog: showTaskCompletionDialog,
           hideNotificationBadge: hideNotificationBadge,
         );
       case _SettingsSection.video:
         final video = videoConfig;
-        final updatedConfig = savedSettings.defaultMediaConfig.copyWith(
-          video: video,
-        );
+        final updatedConfig = defaultMediaConfig.copyWith(video: video);
         return base.copyWith(
           defaultMediaConfig: updatedConfig,
           defaultOutputVideoCodec: video.videoCodec,
@@ -221,7 +241,7 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
               : outputDirectory.isEmpty
               ? null
               : outputDirectory,
-          defaultOutputFileNameTemplate: outputFileNameTemplate,
+          defaultOutputFileNameTemplate: outputFileNameTemplateController.text,
         );
       case _SettingsSection.encoder:
         final ffmpegPath = ffmpegPathController.text.trim();
@@ -234,14 +254,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
         return base;
     }
   }
-}
-
-enum _CompletionSoundOption {
-  none;
-
-  String get label => switch (this) {
-    _CompletionSoundOption.none => '不通知',
-  };
 }
 
 enum _SettingsSection {
@@ -269,6 +281,19 @@ extension _SettingsSectionSaveTarget on _SettingsSection {
       _SettingsSection.output => AppSettingsSaveTarget.output,
       _SettingsSection.encoder => AppSettingsSaveTarget.encoder,
       _SettingsSection.about => throw StateError('关于分区没有可保存的设置'),
+    };
+  }
+}
+
+extension _TaskCompletionSoundSettingsLabel on TaskCompletionSound {
+  String get settingsLabel {
+    return switch (this) {
+      TaskCompletionSound.none => '不通知',
+      TaskCompletionSound.cleanSuccess => '清脆完成',
+      TaskCompletionSound.mechanicalKey => '轻触机械',
+      TaskCompletionSound.originalSoftA => '柔云提示',
+      TaskCompletionSound.originalSoftB => '轻柔回响',
+      TaskCompletionSound.servoConfirm => '伺服确认',
     };
   }
 }

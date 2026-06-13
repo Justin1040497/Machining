@@ -2,8 +2,8 @@ import 'package:drift/drift.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
@@ -66,7 +66,7 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
               settings.defaultSmartPreset.name,
             ),
             defaultOutputFileNameTemplate: Value(
-              settings.defaultOutputFileNameTemplate.name,
+              settings.defaultOutputFileNameTemplate,
             ),
             defaultMediaConfigJson: Value(
               media_config_json.encodeMediaTaskConfig(
@@ -75,6 +75,8 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             ),
             themeMode: Value(settings.themeMode.name),
             hideNotificationBadge: Value(settings.hideNotificationBadge),
+            showTaskCompletionDialog: Value(settings.showTaskCompletionDialog),
+            taskCompletionSound: Value(settings.taskCompletionSound.id),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -98,12 +100,13 @@ extension SettingsRowMapper on SettingsRow {
         defaultMediaConfig: media_config_json.decodeMediaTaskConfig(
           defaultMediaConfig,
         ),
-        defaultOutputFileNameTemplate: enumValueByNameInSettings(
-          DefaultOutputFileNameTemplate.values,
+        defaultOutputFileNameTemplate: outputFileNameTemplateFromSettings(
           defaultOutputFileNameTemplate,
         ),
         themeMode: appThemeModeFromSettings(themeMode),
         hideNotificationBadge: hideNotificationBadge,
+        showTaskCompletionDialog: showTaskCompletionDialog,
+        taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
       );
     }
 
@@ -125,12 +128,13 @@ extension SettingsRowMapper on SettingsRow {
           defaultCompressionSmartPreset,
         ),
       ),
-      defaultOutputFileNameTemplate: enumValueByNameInSettings(
-        DefaultOutputFileNameTemplate.values,
+      defaultOutputFileNameTemplate: outputFileNameTemplateFromSettings(
         defaultOutputFileNameTemplate,
       ),
       themeMode: appThemeModeFromSettings(themeMode),
       hideNotificationBadge: hideNotificationBadge,
+      showTaskCompletionDialog: showTaskCompletionDialog,
+      taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
     );
   }
 }
@@ -153,4 +157,15 @@ T enumValueByNameInSettings<T extends Enum>(List<T> values, String name) {
   }
 
   throw StateError('未知的枚举值: $name');
+}
+
+String outputFileNameTemplateFromSettings(String value) {
+  return switch (value) {
+    'sourceFileNameCodec' => defaultOutputFileNameTemplatePattern,
+    'sourceFileNameDateCodec' => defaultOutputFileNameTemplatePattern,
+    'sourceFileNameCompression' => '{source}-{action}',
+    'sourceFileNameCompressed' => '{source}-{action}',
+    'sourceFileNameOnly' => '{source}',
+    _ => normalizeDefaultOutputFileNameTemplate(value),
+  };
 }

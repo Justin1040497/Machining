@@ -141,7 +141,7 @@ class $SettingsRowsTable extends SettingsRows
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('sourceFileNameCodec'),
+        defaultValue: const Constant('{source}-{date}-{action}'),
       );
   static const VerificationMeta _defaultMediaConfigJsonMeta =
       const VerificationMeta('defaultMediaConfigJson');
@@ -181,6 +181,33 @@ class $SettingsRowsTable extends SettingsRows
         ),
         defaultValue: const Constant(true),
       );
+  static const VerificationMeta _showTaskCompletionDialogMeta =
+      const VerificationMeta('showTaskCompletionDialog');
+  @override
+  late final GeneratedColumn<bool> showTaskCompletionDialog =
+      GeneratedColumn<bool>(
+        'show_task_completion_dialog',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_task_completion_dialog" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _taskCompletionSoundMeta =
+      const VerificationMeta('taskCompletionSound');
+  @override
+  late final GeneratedColumn<String> taskCompletionSound =
+      GeneratedColumn<String>(
+        'task_completion_sound',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('none'),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -219,6 +246,8 @@ class $SettingsRowsTable extends SettingsRows
     defaultMediaConfigJson,
     themeMode,
     hideNotificationBadge,
+    showTaskCompletionDialog,
+    taskCompletionSound,
     createdAt,
     updatedAt,
   ];
@@ -351,6 +380,24 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('show_task_completion_dialog')) {
+      context.handle(
+        _showTaskCompletionDialogMeta,
+        showTaskCompletionDialog.isAcceptableOrUnknown(
+          data['show_task_completion_dialog']!,
+          _showTaskCompletionDialogMeta,
+        ),
+      );
+    }
+    if (data.containsKey('task_completion_sound')) {
+      context.handle(
+        _taskCompletionSoundMeta,
+        taskCompletionSound.isAcceptableOrUnknown(
+          data['task_completion_sound']!,
+          _taskCompletionSoundMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -432,6 +479,14 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.bool,
         data['${effectivePrefix}hide_notification_badge'],
       )!,
+      showTaskCompletionDialog: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_task_completion_dialog'],
+      )!,
+      taskCompletionSound: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_completion_sound'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -464,6 +519,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String? defaultMediaConfigJson;
   final String themeMode;
   final bool hideNotificationBadge;
+  final bool showTaskCompletionDialog;
+  final String taskCompletionSound;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
@@ -481,6 +538,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     this.defaultMediaConfigJson,
     required this.themeMode,
     required this.hideNotificationBadge,
+    required this.showTaskCompletionDialog,
+    required this.taskCompletionSound,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -525,6 +584,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     }
     map['theme_mode'] = Variable<String>(themeMode);
     map['hide_notification_badge'] = Variable<bool>(hideNotificationBadge);
+    map['show_task_completion_dialog'] = Variable<bool>(
+      showTaskCompletionDialog,
+    );
+    map['task_completion_sound'] = Variable<String>(taskCompletionSound);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -557,6 +620,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           : Value(defaultMediaConfigJson),
       themeMode: Value(themeMode),
       hideNotificationBadge: Value(hideNotificationBadge),
+      showTaskCompletionDialog: Value(showTaskCompletionDialog),
+      taskCompletionSound: Value(taskCompletionSound),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -602,6 +667,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       hideNotificationBadge: serializer.fromJson<bool>(
         json['hideNotificationBadge'],
       ),
+      showTaskCompletionDialog: serializer.fromJson<bool>(
+        json['showTaskCompletionDialog'],
+      ),
+      taskCompletionSound: serializer.fromJson<String>(
+        json['taskCompletionSound'],
+      ),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -638,6 +709,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       ),
       'themeMode': serializer.toJson<String>(themeMode),
       'hideNotificationBadge': serializer.toJson<bool>(hideNotificationBadge),
+      'showTaskCompletionDialog': serializer.toJson<bool>(
+        showTaskCompletionDialog,
+      ),
+      'taskCompletionSound': serializer.toJson<String>(taskCompletionSound),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -658,6 +733,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     Value<String?> defaultMediaConfigJson = const Value.absent(),
     String? themeMode,
     bool? hideNotificationBadge,
+    bool? showTaskCompletionDialog,
+    String? taskCompletionSound,
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -689,6 +766,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         : this.defaultMediaConfigJson,
     themeMode: themeMode ?? this.themeMode,
     hideNotificationBadge: hideNotificationBadge ?? this.hideNotificationBadge,
+    showTaskCompletionDialog:
+        showTaskCompletionDialog ?? this.showTaskCompletionDialog,
+    taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -732,6 +812,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       hideNotificationBadge: data.hideNotificationBadge.present
           ? data.hideNotificationBadge.value
           : this.hideNotificationBadge,
+      showTaskCompletionDialog: data.showTaskCompletionDialog.present
+          ? data.showTaskCompletionDialog.value
+          : this.showTaskCompletionDialog,
+      taskCompletionSound: data.taskCompletionSound.present
+          ? data.taskCompletionSound.value
+          : this.taskCompletionSound,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -758,6 +844,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
           ..write('themeMode: $themeMode, ')
           ..write('hideNotificationBadge: $hideNotificationBadge, ')
+          ..write('showTaskCompletionDialog: $showTaskCompletionDialog, ')
+          ..write('taskCompletionSound: $taskCompletionSound, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -780,6 +868,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     defaultMediaConfigJson,
     themeMode,
     hideNotificationBadge,
+    showTaskCompletionDialog,
+    taskCompletionSound,
     createdAt,
     updatedAt,
   );
@@ -805,6 +895,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.defaultMediaConfigJson == this.defaultMediaConfigJson &&
           other.themeMode == this.themeMode &&
           other.hideNotificationBadge == this.hideNotificationBadge &&
+          other.showTaskCompletionDialog == this.showTaskCompletionDialog &&
+          other.taskCompletionSound == this.taskCompletionSound &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -824,6 +916,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String?> defaultMediaConfigJson;
   final Value<String> themeMode;
   final Value<bool> hideNotificationBadge;
+  final Value<bool> showTaskCompletionDialog;
+  final Value<String> taskCompletionSound;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
@@ -841,6 +935,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultMediaConfigJson = const Value.absent(),
     this.themeMode = const Value.absent(),
     this.hideNotificationBadge = const Value.absent(),
+    this.showTaskCompletionDialog = const Value.absent(),
+    this.taskCompletionSound = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -859,6 +955,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultMediaConfigJson = const Value.absent(),
     this.themeMode = const Value.absent(),
     this.hideNotificationBadge = const Value.absent(),
+    this.showTaskCompletionDialog = const Value.absent(),
+    this.taskCompletionSound = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -878,6 +976,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? defaultMediaConfigJson,
     Expression<String>? themeMode,
     Expression<bool>? hideNotificationBadge,
+    Expression<bool>? showTaskCompletionDialog,
+    Expression<String>? taskCompletionSound,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -905,6 +1005,10 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       if (themeMode != null) 'theme_mode': themeMode,
       if (hideNotificationBadge != null)
         'hide_notification_badge': hideNotificationBadge,
+      if (showTaskCompletionDialog != null)
+        'show_task_completion_dialog': showTaskCompletionDialog,
+      if (taskCompletionSound != null)
+        'task_completion_sound': taskCompletionSound,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -925,6 +1029,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String?>? defaultMediaConfigJson,
     Value<String>? themeMode,
     Value<bool>? hideNotificationBadge,
+    Value<bool>? showTaskCompletionDialog,
+    Value<String>? taskCompletionSound,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -951,6 +1057,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       themeMode: themeMode ?? this.themeMode,
       hideNotificationBadge:
           hideNotificationBadge ?? this.hideNotificationBadge,
+      showTaskCompletionDialog:
+          showTaskCompletionDialog ?? this.showTaskCompletionDialog,
+      taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1017,6 +1126,16 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         hideNotificationBadge.value,
       );
     }
+    if (showTaskCompletionDialog.present) {
+      map['show_task_completion_dialog'] = Variable<bool>(
+        showTaskCompletionDialog.value,
+      );
+    }
+    if (taskCompletionSound.present) {
+      map['task_completion_sound'] = Variable<String>(
+        taskCompletionSound.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -1047,6 +1166,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('defaultMediaConfigJson: $defaultMediaConfigJson, ')
           ..write('themeMode: $themeMode, ')
           ..write('hideNotificationBadge: $hideNotificationBadge, ')
+          ..write('showTaskCompletionDialog: $showTaskCompletionDialog, ')
+          ..write('taskCompletionSound: $taskCompletionSound, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1303,6 +1424,83 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         aliasedName,
         true,
         type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisChromaLocationMeta =
+      const VerificationMeta('analysisChromaLocation');
+  @override
+  late final GeneratedColumn<String> analysisChromaLocation =
+      GeneratedColumn<String>(
+        'analysis_chroma_location',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisMasteringDisplayMetadataMeta =
+      const VerificationMeta('analysisMasteringDisplayMetadata');
+  @override
+  late final GeneratedColumn<String> analysisMasteringDisplayMetadata =
+      GeneratedColumn<String>(
+        'analysis_mastering_display_metadata',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisMasteringDisplayMaxLuminanceMeta =
+      const VerificationMeta('analysisMasteringDisplayMaxLuminance');
+  @override
+  late final GeneratedColumn<double> analysisMasteringDisplayMaxLuminance =
+      GeneratedColumn<double>(
+        'analysis_mastering_display_max_luminance',
+        aliasedName,
+        true,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisMaxContentLightLevelMeta =
+      const VerificationMeta('analysisMaxContentLightLevel');
+  @override
+  late final GeneratedColumn<int> analysisMaxContentLightLevel =
+      GeneratedColumn<int>(
+        'analysis_max_content_light_level',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisMaxFrameAverageLightLevelMeta =
+      const VerificationMeta('analysisMaxFrameAverageLightLevel');
+  @override
+  late final GeneratedColumn<int> analysisMaxFrameAverageLightLevel =
+      GeneratedColumn<int>(
+        'analysis_max_frame_average_light_level',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisDolbyVisionProfileMeta =
+      const VerificationMeta('analysisDolbyVisionProfile');
+  @override
+  late final GeneratedColumn<int> analysisDolbyVisionProfile =
+      GeneratedColumn<int>(
+        'analysis_dolby_vision_profile',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisDolbyVisionCompatibilityIdMeta =
+      const VerificationMeta('analysisDolbyVisionCompatibilityId');
+  @override
+  late final GeneratedColumn<int> analysisDolbyVisionCompatibilityId =
+      GeneratedColumn<int>(
+        'analysis_dolby_vision_compatibility_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.int,
         requiredDuringInsert: false,
       );
   static const VerificationMeta _analysisAverageFrameRateMeta =
@@ -1745,6 +1943,13 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     analysisColorSpace,
     analysisColorTransfer,
     analysisColorPrimaries,
+    analysisChromaLocation,
+    analysisMasteringDisplayMetadata,
+    analysisMasteringDisplayMaxLuminance,
+    analysisMaxContentLightLevel,
+    analysisMaxFrameAverageLightLevel,
+    analysisDolbyVisionProfile,
+    analysisDolbyVisionCompatibilityId,
     analysisAverageFrameRate,
     analysisRealFrameRate,
     analysisSampleAspectRatio,
@@ -1982,6 +2187,69 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         analysisColorPrimaries.isAcceptableOrUnknown(
           data['analysis_color_primaries']!,
           _analysisColorPrimariesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_chroma_location')) {
+      context.handle(
+        _analysisChromaLocationMeta,
+        analysisChromaLocation.isAcceptableOrUnknown(
+          data['analysis_chroma_location']!,
+          _analysisChromaLocationMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_mastering_display_metadata')) {
+      context.handle(
+        _analysisMasteringDisplayMetadataMeta,
+        analysisMasteringDisplayMetadata.isAcceptableOrUnknown(
+          data['analysis_mastering_display_metadata']!,
+          _analysisMasteringDisplayMetadataMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_mastering_display_max_luminance')) {
+      context.handle(
+        _analysisMasteringDisplayMaxLuminanceMeta,
+        analysisMasteringDisplayMaxLuminance.isAcceptableOrUnknown(
+          data['analysis_mastering_display_max_luminance']!,
+          _analysisMasteringDisplayMaxLuminanceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_max_content_light_level')) {
+      context.handle(
+        _analysisMaxContentLightLevelMeta,
+        analysisMaxContentLightLevel.isAcceptableOrUnknown(
+          data['analysis_max_content_light_level']!,
+          _analysisMaxContentLightLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_max_frame_average_light_level')) {
+      context.handle(
+        _analysisMaxFrameAverageLightLevelMeta,
+        analysisMaxFrameAverageLightLevel.isAcceptableOrUnknown(
+          data['analysis_max_frame_average_light_level']!,
+          _analysisMaxFrameAverageLightLevelMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_dolby_vision_profile')) {
+      context.handle(
+        _analysisDolbyVisionProfileMeta,
+        analysisDolbyVisionProfile.isAcceptableOrUnknown(
+          data['analysis_dolby_vision_profile']!,
+          _analysisDolbyVisionProfileMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_dolby_vision_compatibility_id')) {
+      context.handle(
+        _analysisDolbyVisionCompatibilityIdMeta,
+        analysisDolbyVisionCompatibilityId.isAcceptableOrUnknown(
+          data['analysis_dolby_vision_compatibility_id']!,
+          _analysisDolbyVisionCompatibilityIdMeta,
         ),
       );
     }
@@ -2428,6 +2696,34 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}analysis_color_primaries'],
       ),
+      analysisChromaLocation: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_chroma_location'],
+      ),
+      analysisMasteringDisplayMetadata: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_mastering_display_metadata'],
+      ),
+      analysisMasteringDisplayMaxLuminance: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}analysis_mastering_display_max_luminance'],
+      ),
+      analysisMaxContentLightLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_max_content_light_level'],
+      ),
+      analysisMaxFrameAverageLightLevel: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_max_frame_average_light_level'],
+      ),
+      analysisDolbyVisionProfile: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_dolby_vision_profile'],
+      ),
+      analysisDolbyVisionCompatibilityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_dolby_vision_compatibility_id'],
+      ),
       analysisAverageFrameRate: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}analysis_average_frame_rate'],
@@ -2614,6 +2910,13 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String? analysisColorSpace;
   final String? analysisColorTransfer;
   final String? analysisColorPrimaries;
+  final String? analysisChromaLocation;
+  final String? analysisMasteringDisplayMetadata;
+  final double? analysisMasteringDisplayMaxLuminance;
+  final int? analysisMaxContentLightLevel;
+  final int? analysisMaxFrameAverageLightLevel;
+  final int? analysisDolbyVisionProfile;
+  final int? analysisDolbyVisionCompatibilityId;
   final String? analysisAverageFrameRate;
   final String? analysisRealFrameRate;
   final String? analysisSampleAspectRatio;
@@ -2676,6 +2979,13 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.analysisColorSpace,
     this.analysisColorTransfer,
     this.analysisColorPrimaries,
+    this.analysisChromaLocation,
+    this.analysisMasteringDisplayMetadata,
+    this.analysisMasteringDisplayMaxLuminance,
+    this.analysisMaxContentLightLevel,
+    this.analysisMaxFrameAverageLightLevel,
+    this.analysisDolbyVisionProfile,
+    this.analysisDolbyVisionCompatibilityId,
     this.analysisAverageFrameRate,
     this.analysisRealFrameRate,
     this.analysisSampleAspectRatio,
@@ -2773,6 +3083,41 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     if (!nullToAbsent || analysisColorPrimaries != null) {
       map['analysis_color_primaries'] = Variable<String>(
         analysisColorPrimaries,
+      );
+    }
+    if (!nullToAbsent || analysisChromaLocation != null) {
+      map['analysis_chroma_location'] = Variable<String>(
+        analysisChromaLocation,
+      );
+    }
+    if (!nullToAbsent || analysisMasteringDisplayMetadata != null) {
+      map['analysis_mastering_display_metadata'] = Variable<String>(
+        analysisMasteringDisplayMetadata,
+      );
+    }
+    if (!nullToAbsent || analysisMasteringDisplayMaxLuminance != null) {
+      map['analysis_mastering_display_max_luminance'] = Variable<double>(
+        analysisMasteringDisplayMaxLuminance,
+      );
+    }
+    if (!nullToAbsent || analysisMaxContentLightLevel != null) {
+      map['analysis_max_content_light_level'] = Variable<int>(
+        analysisMaxContentLightLevel,
+      );
+    }
+    if (!nullToAbsent || analysisMaxFrameAverageLightLevel != null) {
+      map['analysis_max_frame_average_light_level'] = Variable<int>(
+        analysisMaxFrameAverageLightLevel,
+      );
+    }
+    if (!nullToAbsent || analysisDolbyVisionProfile != null) {
+      map['analysis_dolby_vision_profile'] = Variable<int>(
+        analysisDolbyVisionProfile,
+      );
+    }
+    if (!nullToAbsent || analysisDolbyVisionCompatibilityId != null) {
+      map['analysis_dolby_vision_compatibility_id'] = Variable<int>(
+        analysisDolbyVisionCompatibilityId,
       );
     }
     if (!nullToAbsent || analysisAverageFrameRate != null) {
@@ -2951,6 +3296,33 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisColorPrimaries: analysisColorPrimaries == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisColorPrimaries),
+      analysisChromaLocation: analysisChromaLocation == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisChromaLocation),
+      analysisMasteringDisplayMetadata:
+          analysisMasteringDisplayMetadata == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisMasteringDisplayMetadata),
+      analysisMasteringDisplayMaxLuminance:
+          analysisMasteringDisplayMaxLuminance == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisMasteringDisplayMaxLuminance),
+      analysisMaxContentLightLevel:
+          analysisMaxContentLightLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisMaxContentLightLevel),
+      analysisMaxFrameAverageLightLevel:
+          analysisMaxFrameAverageLightLevel == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisMaxFrameAverageLightLevel),
+      analysisDolbyVisionProfile:
+          analysisDolbyVisionProfile == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisDolbyVisionProfile),
+      analysisDolbyVisionCompatibilityId:
+          analysisDolbyVisionCompatibilityId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisDolbyVisionCompatibilityId),
       analysisAverageFrameRate: analysisAverageFrameRate == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisAverageFrameRate),
@@ -3103,6 +3475,27 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisColorPrimaries: serializer.fromJson<String?>(
         json['analysisColorPrimaries'],
       ),
+      analysisChromaLocation: serializer.fromJson<String?>(
+        json['analysisChromaLocation'],
+      ),
+      analysisMasteringDisplayMetadata: serializer.fromJson<String?>(
+        json['analysisMasteringDisplayMetadata'],
+      ),
+      analysisMasteringDisplayMaxLuminance: serializer.fromJson<double?>(
+        json['analysisMasteringDisplayMaxLuminance'],
+      ),
+      analysisMaxContentLightLevel: serializer.fromJson<int?>(
+        json['analysisMaxContentLightLevel'],
+      ),
+      analysisMaxFrameAverageLightLevel: serializer.fromJson<int?>(
+        json['analysisMaxFrameAverageLightLevel'],
+      ),
+      analysisDolbyVisionProfile: serializer.fromJson<int?>(
+        json['analysisDolbyVisionProfile'],
+      ),
+      analysisDolbyVisionCompatibilityId: serializer.fromJson<int?>(
+        json['analysisDolbyVisionCompatibilityId'],
+      ),
       analysisAverageFrameRate: serializer.fromJson<String?>(
         json['analysisAverageFrameRate'],
       ),
@@ -3216,6 +3609,27 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'analysisColorPrimaries': serializer.toJson<String?>(
         analysisColorPrimaries,
       ),
+      'analysisChromaLocation': serializer.toJson<String?>(
+        analysisChromaLocation,
+      ),
+      'analysisMasteringDisplayMetadata': serializer.toJson<String?>(
+        analysisMasteringDisplayMetadata,
+      ),
+      'analysisMasteringDisplayMaxLuminance': serializer.toJson<double?>(
+        analysisMasteringDisplayMaxLuminance,
+      ),
+      'analysisMaxContentLightLevel': serializer.toJson<int?>(
+        analysisMaxContentLightLevel,
+      ),
+      'analysisMaxFrameAverageLightLevel': serializer.toJson<int?>(
+        analysisMaxFrameAverageLightLevel,
+      ),
+      'analysisDolbyVisionProfile': serializer.toJson<int?>(
+        analysisDolbyVisionProfile,
+      ),
+      'analysisDolbyVisionCompatibilityId': serializer.toJson<int?>(
+        analysisDolbyVisionCompatibilityId,
+      ),
       'analysisAverageFrameRate': serializer.toJson<String?>(
         analysisAverageFrameRate,
       ),
@@ -3305,6 +3719,13 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<String?> analysisColorSpace = const Value.absent(),
     Value<String?> analysisColorTransfer = const Value.absent(),
     Value<String?> analysisColorPrimaries = const Value.absent(),
+    Value<String?> analysisChromaLocation = const Value.absent(),
+    Value<String?> analysisMasteringDisplayMetadata = const Value.absent(),
+    Value<double?> analysisMasteringDisplayMaxLuminance = const Value.absent(),
+    Value<int?> analysisMaxContentLightLevel = const Value.absent(),
+    Value<int?> analysisMaxFrameAverageLightLevel = const Value.absent(),
+    Value<int?> analysisDolbyVisionProfile = const Value.absent(),
+    Value<int?> analysisDolbyVisionCompatibilityId = const Value.absent(),
     Value<String?> analysisAverageFrameRate = const Value.absent(),
     Value<String?> analysisRealFrameRate = const Value.absent(),
     Value<String?> analysisSampleAspectRatio = const Value.absent(),
@@ -3393,6 +3814,29 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisColorPrimaries: analysisColorPrimaries.present
         ? analysisColorPrimaries.value
         : this.analysisColorPrimaries,
+    analysisChromaLocation: analysisChromaLocation.present
+        ? analysisChromaLocation.value
+        : this.analysisChromaLocation,
+    analysisMasteringDisplayMetadata: analysisMasteringDisplayMetadata.present
+        ? analysisMasteringDisplayMetadata.value
+        : this.analysisMasteringDisplayMetadata,
+    analysisMasteringDisplayMaxLuminance:
+        analysisMasteringDisplayMaxLuminance.present
+        ? analysisMasteringDisplayMaxLuminance.value
+        : this.analysisMasteringDisplayMaxLuminance,
+    analysisMaxContentLightLevel: analysisMaxContentLightLevel.present
+        ? analysisMaxContentLightLevel.value
+        : this.analysisMaxContentLightLevel,
+    analysisMaxFrameAverageLightLevel: analysisMaxFrameAverageLightLevel.present
+        ? analysisMaxFrameAverageLightLevel.value
+        : this.analysisMaxFrameAverageLightLevel,
+    analysisDolbyVisionProfile: analysisDolbyVisionProfile.present
+        ? analysisDolbyVisionProfile.value
+        : this.analysisDolbyVisionProfile,
+    analysisDolbyVisionCompatibilityId:
+        analysisDolbyVisionCompatibilityId.present
+        ? analysisDolbyVisionCompatibilityId.value
+        : this.analysisDolbyVisionCompatibilityId,
     analysisAverageFrameRate: analysisAverageFrameRate.present
         ? analysisAverageFrameRate.value
         : this.analysisAverageFrameRate,
@@ -3537,6 +3981,31 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisColorPrimaries: data.analysisColorPrimaries.present
           ? data.analysisColorPrimaries.value
           : this.analysisColorPrimaries,
+      analysisChromaLocation: data.analysisChromaLocation.present
+          ? data.analysisChromaLocation.value
+          : this.analysisChromaLocation,
+      analysisMasteringDisplayMetadata:
+          data.analysisMasteringDisplayMetadata.present
+          ? data.analysisMasteringDisplayMetadata.value
+          : this.analysisMasteringDisplayMetadata,
+      analysisMasteringDisplayMaxLuminance:
+          data.analysisMasteringDisplayMaxLuminance.present
+          ? data.analysisMasteringDisplayMaxLuminance.value
+          : this.analysisMasteringDisplayMaxLuminance,
+      analysisMaxContentLightLevel: data.analysisMaxContentLightLevel.present
+          ? data.analysisMaxContentLightLevel.value
+          : this.analysisMaxContentLightLevel,
+      analysisMaxFrameAverageLightLevel:
+          data.analysisMaxFrameAverageLightLevel.present
+          ? data.analysisMaxFrameAverageLightLevel.value
+          : this.analysisMaxFrameAverageLightLevel,
+      analysisDolbyVisionProfile: data.analysisDolbyVisionProfile.present
+          ? data.analysisDolbyVisionProfile.value
+          : this.analysisDolbyVisionProfile,
+      analysisDolbyVisionCompatibilityId:
+          data.analysisDolbyVisionCompatibilityId.present
+          ? data.analysisDolbyVisionCompatibilityId.value
+          : this.analysisDolbyVisionCompatibilityId,
       analysisAverageFrameRate: data.analysisAverageFrameRate.present
           ? data.analysisAverageFrameRate.value
           : this.analysisAverageFrameRate,
@@ -3674,6 +4143,23 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('analysisColorSpace: $analysisColorSpace, ')
           ..write('analysisColorTransfer: $analysisColorTransfer, ')
           ..write('analysisColorPrimaries: $analysisColorPrimaries, ')
+          ..write('analysisChromaLocation: $analysisChromaLocation, ')
+          ..write(
+            'analysisMasteringDisplayMetadata: $analysisMasteringDisplayMetadata, ',
+          )
+          ..write(
+            'analysisMasteringDisplayMaxLuminance: $analysisMasteringDisplayMaxLuminance, ',
+          )
+          ..write(
+            'analysisMaxContentLightLevel: $analysisMaxContentLightLevel, ',
+          )
+          ..write(
+            'analysisMaxFrameAverageLightLevel: $analysisMaxFrameAverageLightLevel, ',
+          )
+          ..write('analysisDolbyVisionProfile: $analysisDolbyVisionProfile, ')
+          ..write(
+            'analysisDolbyVisionCompatibilityId: $analysisDolbyVisionCompatibilityId, ',
+          )
           ..write('analysisAverageFrameRate: $analysisAverageFrameRate, ')
           ..write('analysisRealFrameRate: $analysisRealFrameRate, ')
           ..write('analysisSampleAspectRatio: $analysisSampleAspectRatio, ')
@@ -3743,6 +4229,13 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisColorSpace,
     analysisColorTransfer,
     analysisColorPrimaries,
+    analysisChromaLocation,
+    analysisMasteringDisplayMetadata,
+    analysisMasteringDisplayMaxLuminance,
+    analysisMaxContentLightLevel,
+    analysisMaxFrameAverageLightLevel,
+    analysisDolbyVisionProfile,
+    analysisDolbyVisionCompatibilityId,
     analysisAverageFrameRate,
     analysisRealFrameRate,
     analysisSampleAspectRatio,
@@ -3809,6 +4302,18 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.analysisColorSpace == this.analysisColorSpace &&
           other.analysisColorTransfer == this.analysisColorTransfer &&
           other.analysisColorPrimaries == this.analysisColorPrimaries &&
+          other.analysisChromaLocation == this.analysisChromaLocation &&
+          other.analysisMasteringDisplayMetadata ==
+              this.analysisMasteringDisplayMetadata &&
+          other.analysisMasteringDisplayMaxLuminance ==
+              this.analysisMasteringDisplayMaxLuminance &&
+          other.analysisMaxContentLightLevel ==
+              this.analysisMaxContentLightLevel &&
+          other.analysisMaxFrameAverageLightLevel ==
+              this.analysisMaxFrameAverageLightLevel &&
+          other.analysisDolbyVisionProfile == this.analysisDolbyVisionProfile &&
+          other.analysisDolbyVisionCompatibilityId ==
+              this.analysisDolbyVisionCompatibilityId &&
           other.analysisAverageFrameRate == this.analysisAverageFrameRate &&
           other.analysisRealFrameRate == this.analysisRealFrameRate &&
           other.analysisSampleAspectRatio == this.analysisSampleAspectRatio &&
@@ -3874,6 +4379,13 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<String?> analysisColorSpace;
   final Value<String?> analysisColorTransfer;
   final Value<String?> analysisColorPrimaries;
+  final Value<String?> analysisChromaLocation;
+  final Value<String?> analysisMasteringDisplayMetadata;
+  final Value<double?> analysisMasteringDisplayMaxLuminance;
+  final Value<int?> analysisMaxContentLightLevel;
+  final Value<int?> analysisMaxFrameAverageLightLevel;
+  final Value<int?> analysisDolbyVisionProfile;
+  final Value<int?> analysisDolbyVisionCompatibilityId;
   final Value<String?> analysisAverageFrameRate;
   final Value<String?> analysisRealFrameRate;
   final Value<String?> analysisSampleAspectRatio;
@@ -3937,6 +4449,13 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisColorSpace = const Value.absent(),
     this.analysisColorTransfer = const Value.absent(),
     this.analysisColorPrimaries = const Value.absent(),
+    this.analysisChromaLocation = const Value.absent(),
+    this.analysisMasteringDisplayMetadata = const Value.absent(),
+    this.analysisMasteringDisplayMaxLuminance = const Value.absent(),
+    this.analysisMaxContentLightLevel = const Value.absent(),
+    this.analysisMaxFrameAverageLightLevel = const Value.absent(),
+    this.analysisDolbyVisionProfile = const Value.absent(),
+    this.analysisDolbyVisionCompatibilityId = const Value.absent(),
     this.analysisAverageFrameRate = const Value.absent(),
     this.analysisRealFrameRate = const Value.absent(),
     this.analysisSampleAspectRatio = const Value.absent(),
@@ -4001,6 +4520,13 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisColorSpace = const Value.absent(),
     this.analysisColorTransfer = const Value.absent(),
     this.analysisColorPrimaries = const Value.absent(),
+    this.analysisChromaLocation = const Value.absent(),
+    this.analysisMasteringDisplayMetadata = const Value.absent(),
+    this.analysisMasteringDisplayMaxLuminance = const Value.absent(),
+    this.analysisMaxContentLightLevel = const Value.absent(),
+    this.analysisMaxFrameAverageLightLevel = const Value.absent(),
+    this.analysisDolbyVisionProfile = const Value.absent(),
+    this.analysisDolbyVisionCompatibilityId = const Value.absent(),
     this.analysisAverageFrameRate = const Value.absent(),
     this.analysisRealFrameRate = const Value.absent(),
     this.analysisSampleAspectRatio = const Value.absent(),
@@ -4076,6 +4602,13 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? analysisColorSpace,
     Expression<String>? analysisColorTransfer,
     Expression<String>? analysisColorPrimaries,
+    Expression<String>? analysisChromaLocation,
+    Expression<String>? analysisMasteringDisplayMetadata,
+    Expression<double>? analysisMasteringDisplayMaxLuminance,
+    Expression<int>? analysisMaxContentLightLevel,
+    Expression<int>? analysisMaxFrameAverageLightLevel,
+    Expression<int>? analysisDolbyVisionProfile,
+    Expression<int>? analysisDolbyVisionCompatibilityId,
     Expression<String>? analysisAverageFrameRate,
     Expression<String>? analysisRealFrameRate,
     Expression<String>? analysisSampleAspectRatio,
@@ -4152,6 +4685,23 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         'analysis_color_transfer': analysisColorTransfer,
       if (analysisColorPrimaries != null)
         'analysis_color_primaries': analysisColorPrimaries,
+      if (analysisChromaLocation != null)
+        'analysis_chroma_location': analysisChromaLocation,
+      if (analysisMasteringDisplayMetadata != null)
+        'analysis_mastering_display_metadata': analysisMasteringDisplayMetadata,
+      if (analysisMasteringDisplayMaxLuminance != null)
+        'analysis_mastering_display_max_luminance':
+            analysisMasteringDisplayMaxLuminance,
+      if (analysisMaxContentLightLevel != null)
+        'analysis_max_content_light_level': analysisMaxContentLightLevel,
+      if (analysisMaxFrameAverageLightLevel != null)
+        'analysis_max_frame_average_light_level':
+            analysisMaxFrameAverageLightLevel,
+      if (analysisDolbyVisionProfile != null)
+        'analysis_dolby_vision_profile': analysisDolbyVisionProfile,
+      if (analysisDolbyVisionCompatibilityId != null)
+        'analysis_dolby_vision_compatibility_id':
+            analysisDolbyVisionCompatibilityId,
       if (analysisAverageFrameRate != null)
         'analysis_average_frame_rate': analysisAverageFrameRate,
       if (analysisRealFrameRate != null)
@@ -4239,6 +4789,13 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<String?>? analysisColorSpace,
     Value<String?>? analysisColorTransfer,
     Value<String?>? analysisColorPrimaries,
+    Value<String?>? analysisChromaLocation,
+    Value<String?>? analysisMasteringDisplayMetadata,
+    Value<double?>? analysisMasteringDisplayMaxLuminance,
+    Value<int?>? analysisMaxContentLightLevel,
+    Value<int?>? analysisMaxFrameAverageLightLevel,
+    Value<int?>? analysisDolbyVisionProfile,
+    Value<int?>? analysisDolbyVisionCompatibilityId,
     Value<String?>? analysisAverageFrameRate,
     Value<String?>? analysisRealFrameRate,
     Value<String?>? analysisSampleAspectRatio,
@@ -4307,6 +4864,24 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           analysisColorTransfer ?? this.analysisColorTransfer,
       analysisColorPrimaries:
           analysisColorPrimaries ?? this.analysisColorPrimaries,
+      analysisChromaLocation:
+          analysisChromaLocation ?? this.analysisChromaLocation,
+      analysisMasteringDisplayMetadata:
+          analysisMasteringDisplayMetadata ??
+          this.analysisMasteringDisplayMetadata,
+      analysisMasteringDisplayMaxLuminance:
+          analysisMasteringDisplayMaxLuminance ??
+          this.analysisMasteringDisplayMaxLuminance,
+      analysisMaxContentLightLevel:
+          analysisMaxContentLightLevel ?? this.analysisMaxContentLightLevel,
+      analysisMaxFrameAverageLightLevel:
+          analysisMaxFrameAverageLightLevel ??
+          this.analysisMaxFrameAverageLightLevel,
+      analysisDolbyVisionProfile:
+          analysisDolbyVisionProfile ?? this.analysisDolbyVisionProfile,
+      analysisDolbyVisionCompatibilityId:
+          analysisDolbyVisionCompatibilityId ??
+          this.analysisDolbyVisionCompatibilityId,
       analysisAverageFrameRate:
           analysisAverageFrameRate ?? this.analysisAverageFrameRate,
       analysisRealFrameRate:
@@ -4443,6 +5018,41 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     if (analysisColorPrimaries.present) {
       map['analysis_color_primaries'] = Variable<String>(
         analysisColorPrimaries.value,
+      );
+    }
+    if (analysisChromaLocation.present) {
+      map['analysis_chroma_location'] = Variable<String>(
+        analysisChromaLocation.value,
+      );
+    }
+    if (analysisMasteringDisplayMetadata.present) {
+      map['analysis_mastering_display_metadata'] = Variable<String>(
+        analysisMasteringDisplayMetadata.value,
+      );
+    }
+    if (analysisMasteringDisplayMaxLuminance.present) {
+      map['analysis_mastering_display_max_luminance'] = Variable<double>(
+        analysisMasteringDisplayMaxLuminance.value,
+      );
+    }
+    if (analysisMaxContentLightLevel.present) {
+      map['analysis_max_content_light_level'] = Variable<int>(
+        analysisMaxContentLightLevel.value,
+      );
+    }
+    if (analysisMaxFrameAverageLightLevel.present) {
+      map['analysis_max_frame_average_light_level'] = Variable<int>(
+        analysisMaxFrameAverageLightLevel.value,
+      );
+    }
+    if (analysisDolbyVisionProfile.present) {
+      map['analysis_dolby_vision_profile'] = Variable<int>(
+        analysisDolbyVisionProfile.value,
+      );
+    }
+    if (analysisDolbyVisionCompatibilityId.present) {
+      map['analysis_dolby_vision_compatibility_id'] = Variable<int>(
+        analysisDolbyVisionCompatibilityId.value,
       );
     }
     if (analysisAverageFrameRate.present) {
@@ -4621,6 +5231,23 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('analysisColorSpace: $analysisColorSpace, ')
           ..write('analysisColorTransfer: $analysisColorTransfer, ')
           ..write('analysisColorPrimaries: $analysisColorPrimaries, ')
+          ..write('analysisChromaLocation: $analysisChromaLocation, ')
+          ..write(
+            'analysisMasteringDisplayMetadata: $analysisMasteringDisplayMetadata, ',
+          )
+          ..write(
+            'analysisMasteringDisplayMaxLuminance: $analysisMasteringDisplayMaxLuminance, ',
+          )
+          ..write(
+            'analysisMaxContentLightLevel: $analysisMaxContentLightLevel, ',
+          )
+          ..write(
+            'analysisMaxFrameAverageLightLevel: $analysisMaxFrameAverageLightLevel, ',
+          )
+          ..write('analysisDolbyVisionProfile: $analysisDolbyVisionProfile, ')
+          ..write(
+            'analysisDolbyVisionCompatibilityId: $analysisDolbyVisionCompatibilityId, ',
+          )
           ..write('analysisAverageFrameRate: $analysisAverageFrameRate, ')
           ..write('analysisRealFrameRate: $analysisRealFrameRate, ')
           ..write('analysisSampleAspectRatio: $analysisSampleAspectRatio, ')
@@ -5309,6 +5936,8 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String?> defaultMediaConfigJson,
       Value<String> themeMode,
       Value<bool> hideNotificationBadge,
+      Value<bool> showTaskCompletionDialog,
+      Value<String> taskCompletionSound,
       required int createdAt,
       required int updatedAt,
     });
@@ -5328,6 +5957,8 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String?> defaultMediaConfigJson,
       Value<String> themeMode,
       Value<bool> hideNotificationBadge,
+      Value<bool> showTaskCompletionDialog,
+      Value<String> taskCompletionSound,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -5408,6 +6039,16 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<bool> get hideNotificationBadge => $composableBuilder(
     column: $table.hideNotificationBadge,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showTaskCompletionDialog => $composableBuilder(
+    column: $table.showTaskCompletionDialog,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get taskCompletionSound => $composableBuilder(
+    column: $table.taskCompletionSound,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -5503,6 +6144,16 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get showTaskCompletionDialog => $composableBuilder(
+    column: $table.showTaskCompletionDialog,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get taskCompletionSound => $composableBuilder(
+    column: $table.taskCompletionSound,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -5591,6 +6242,16 @@ class $$SettingsRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<bool> get showTaskCompletionDialog => $composableBuilder(
+    column: $table.showTaskCompletionDialog,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get taskCompletionSound => $composableBuilder(
+    column: $table.taskCompletionSound,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -5646,6 +6307,8 @@ class $$SettingsRowsTableTableManager
                 Value<String?> defaultMediaConfigJson = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
                 Value<bool> hideNotificationBadge = const Value.absent(),
+                Value<bool> showTaskCompletionDialog = const Value.absent(),
+                Value<String> taskCompletionSound = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
@@ -5663,6 +6326,8 @@ class $$SettingsRowsTableTableManager
                 defaultMediaConfigJson: defaultMediaConfigJson,
                 themeMode: themeMode,
                 hideNotificationBadge: hideNotificationBadge,
+                showTaskCompletionDialog: showTaskCompletionDialog,
+                taskCompletionSound: taskCompletionSound,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5685,6 +6350,8 @@ class $$SettingsRowsTableTableManager
                 Value<String?> defaultMediaConfigJson = const Value.absent(),
                 Value<String> themeMode = const Value.absent(),
                 Value<bool> hideNotificationBadge = const Value.absent(),
+                Value<bool> showTaskCompletionDialog = const Value.absent(),
+                Value<String> taskCompletionSound = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
@@ -5702,6 +6369,8 @@ class $$SettingsRowsTableTableManager
                 defaultMediaConfigJson: defaultMediaConfigJson,
                 themeMode: themeMode,
                 hideNotificationBadge: hideNotificationBadge,
+                showTaskCompletionDialog: showTaskCompletionDialog,
+                taskCompletionSound: taskCompletionSound,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -5755,6 +6424,13 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<String?> analysisColorSpace,
       Value<String?> analysisColorTransfer,
       Value<String?> analysisColorPrimaries,
+      Value<String?> analysisChromaLocation,
+      Value<String?> analysisMasteringDisplayMetadata,
+      Value<double?> analysisMasteringDisplayMaxLuminance,
+      Value<int?> analysisMaxContentLightLevel,
+      Value<int?> analysisMaxFrameAverageLightLevel,
+      Value<int?> analysisDolbyVisionProfile,
+      Value<int?> analysisDolbyVisionCompatibilityId,
       Value<String?> analysisAverageFrameRate,
       Value<String?> analysisRealFrameRate,
       Value<String?> analysisSampleAspectRatio,
@@ -5820,6 +6496,13 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<String?> analysisColorSpace,
       Value<String?> analysisColorTransfer,
       Value<String?> analysisColorPrimaries,
+      Value<String?> analysisChromaLocation,
+      Value<String?> analysisMasteringDisplayMetadata,
+      Value<double?> analysisMasteringDisplayMaxLuminance,
+      Value<int?> analysisMaxContentLightLevel,
+      Value<int?> analysisMaxFrameAverageLightLevel,
+      Value<int?> analysisDolbyVisionProfile,
+      Value<int?> analysisDolbyVisionCompatibilityId,
       Value<String?> analysisAverageFrameRate,
       Value<String?> analysisRealFrameRate,
       Value<String?> analysisSampleAspectRatio,
@@ -5984,6 +6667,45 @@ class $$TaskRowsTableFilterComposer
     column: $table.analysisColorPrimaries,
     builder: (column) => ColumnFilters(column),
   );
+
+  ColumnFilters<String> get analysisChromaLocation => $composableBuilder(
+    column: $table.analysisChromaLocation,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisMasteringDisplayMetadata =>
+      $composableBuilder(
+        column: $table.analysisMasteringDisplayMetadata,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<double> get analysisMasteringDisplayMaxLuminance =>
+      $composableBuilder(
+        column: $table.analysisMasteringDisplayMaxLuminance,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<int> get analysisMaxContentLightLevel => $composableBuilder(
+    column: $table.analysisMaxContentLightLevel,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisMaxFrameAverageLightLevel =>
+      $composableBuilder(
+        column: $table.analysisMaxFrameAverageLightLevel,
+        builder: (column) => ColumnFilters(column),
+      );
+
+  ColumnFilters<int> get analysisDolbyVisionProfile => $composableBuilder(
+    column: $table.analysisDolbyVisionProfile,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisDolbyVisionCompatibilityId =>
+      $composableBuilder(
+        column: $table.analysisDolbyVisionCompatibilityId,
+        builder: (column) => ColumnFilters(column),
+      );
 
   ColumnFilters<String> get analysisAverageFrameRate => $composableBuilder(
     column: $table.analysisAverageFrameRate,
@@ -6300,6 +7022,45 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get analysisChromaLocation => $composableBuilder(
+    column: $table.analysisChromaLocation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisMasteringDisplayMetadata =>
+      $composableBuilder(
+        column: $table.analysisMasteringDisplayMetadata,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<double> get analysisMasteringDisplayMaxLuminance =>
+      $composableBuilder(
+        column: $table.analysisMasteringDisplayMaxLuminance,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<int> get analysisMaxContentLightLevel => $composableBuilder(
+    column: $table.analysisMaxContentLightLevel,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisMaxFrameAverageLightLevel =>
+      $composableBuilder(
+        column: $table.analysisMaxFrameAverageLightLevel,
+        builder: (column) => ColumnOrderings(column),
+      );
+
+  ColumnOrderings<int> get analysisDolbyVisionProfile => $composableBuilder(
+    column: $table.analysisDolbyVisionProfile,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisDolbyVisionCompatibilityId =>
+      $composableBuilder(
+        column: $table.analysisDolbyVisionCompatibilityId,
+        builder: (column) => ColumnOrderings(column),
+      );
+
   ColumnOrderings<String> get analysisAverageFrameRate => $composableBuilder(
     column: $table.analysisAverageFrameRate,
     builder: (column) => ColumnOrderings(column),
@@ -6599,6 +7360,45 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get analysisChromaLocation => $composableBuilder(
+    column: $table.analysisChromaLocation,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisMasteringDisplayMetadata =>
+      $composableBuilder(
+        column: $table.analysisMasteringDisplayMetadata,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<double> get analysisMasteringDisplayMaxLuminance =>
+      $composableBuilder(
+        column: $table.analysisMasteringDisplayMaxLuminance,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get analysisMaxContentLightLevel => $composableBuilder(
+    column: $table.analysisMaxContentLightLevel,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisMaxFrameAverageLightLevel =>
+      $composableBuilder(
+        column: $table.analysisMaxFrameAverageLightLevel,
+        builder: (column) => column,
+      );
+
+  GeneratedColumn<int> get analysisDolbyVisionProfile => $composableBuilder(
+    column: $table.analysisDolbyVisionProfile,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisDolbyVisionCompatibilityId =>
+      $composableBuilder(
+        column: $table.analysisDolbyVisionCompatibilityId,
+        builder: (column) => column,
+      );
+
   GeneratedColumn<String> get analysisAverageFrameRate => $composableBuilder(
     column: $table.analysisAverageFrameRate,
     builder: (column) => column,
@@ -6835,6 +7635,17 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisColorSpace = const Value.absent(),
                 Value<String?> analysisColorTransfer = const Value.absent(),
                 Value<String?> analysisColorPrimaries = const Value.absent(),
+                Value<String?> analysisChromaLocation = const Value.absent(),
+                Value<String?> analysisMasteringDisplayMetadata =
+                    const Value.absent(),
+                Value<double?> analysisMasteringDisplayMaxLuminance =
+                    const Value.absent(),
+                Value<int?> analysisMaxContentLightLevel = const Value.absent(),
+                Value<int?> analysisMaxFrameAverageLightLevel =
+                    const Value.absent(),
+                Value<int?> analysisDolbyVisionProfile = const Value.absent(),
+                Value<int?> analysisDolbyVisionCompatibilityId =
+                    const Value.absent(),
                 Value<String?> analysisAverageFrameRate = const Value.absent(),
                 Value<String?> analysisRealFrameRate = const Value.absent(),
                 Value<String?> analysisSampleAspectRatio = const Value.absent(),
@@ -6900,6 +7711,17 @@ class $$TaskRowsTableTableManager
                 analysisColorSpace: analysisColorSpace,
                 analysisColorTransfer: analysisColorTransfer,
                 analysisColorPrimaries: analysisColorPrimaries,
+                analysisChromaLocation: analysisChromaLocation,
+                analysisMasteringDisplayMetadata:
+                    analysisMasteringDisplayMetadata,
+                analysisMasteringDisplayMaxLuminance:
+                    analysisMasteringDisplayMaxLuminance,
+                analysisMaxContentLightLevel: analysisMaxContentLightLevel,
+                analysisMaxFrameAverageLightLevel:
+                    analysisMaxFrameAverageLightLevel,
+                analysisDolbyVisionProfile: analysisDolbyVisionProfile,
+                analysisDolbyVisionCompatibilityId:
+                    analysisDolbyVisionCompatibilityId,
                 analysisAverageFrameRate: analysisAverageFrameRate,
                 analysisRealFrameRate: analysisRealFrameRate,
                 analysisSampleAspectRatio: analysisSampleAspectRatio,
@@ -6965,6 +7787,17 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisColorSpace = const Value.absent(),
                 Value<String?> analysisColorTransfer = const Value.absent(),
                 Value<String?> analysisColorPrimaries = const Value.absent(),
+                Value<String?> analysisChromaLocation = const Value.absent(),
+                Value<String?> analysisMasteringDisplayMetadata =
+                    const Value.absent(),
+                Value<double?> analysisMasteringDisplayMaxLuminance =
+                    const Value.absent(),
+                Value<int?> analysisMaxContentLightLevel = const Value.absent(),
+                Value<int?> analysisMaxFrameAverageLightLevel =
+                    const Value.absent(),
+                Value<int?> analysisDolbyVisionProfile = const Value.absent(),
+                Value<int?> analysisDolbyVisionCompatibilityId =
+                    const Value.absent(),
                 Value<String?> analysisAverageFrameRate = const Value.absent(),
                 Value<String?> analysisRealFrameRate = const Value.absent(),
                 Value<String?> analysisSampleAspectRatio = const Value.absent(),
@@ -7030,6 +7863,17 @@ class $$TaskRowsTableTableManager
                 analysisColorSpace: analysisColorSpace,
                 analysisColorTransfer: analysisColorTransfer,
                 analysisColorPrimaries: analysisColorPrimaries,
+                analysisChromaLocation: analysisChromaLocation,
+                analysisMasteringDisplayMetadata:
+                    analysisMasteringDisplayMetadata,
+                analysisMasteringDisplayMaxLuminance:
+                    analysisMasteringDisplayMaxLuminance,
+                analysisMaxContentLightLevel: analysisMaxContentLightLevel,
+                analysisMaxFrameAverageLightLevel:
+                    analysisMaxFrameAverageLightLevel,
+                analysisDolbyVisionProfile: analysisDolbyVisionProfile,
+                analysisDolbyVisionCompatibilityId:
+                    analysisDolbyVisionCompatibilityId,
                 analysisAverageFrameRate: analysisAverageFrameRate,
                 analysisRealFrameRate: analysisRealFrameRate,
                 analysisSampleAspectRatio: analysisSampleAspectRatio,

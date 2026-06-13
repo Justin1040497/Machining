@@ -95,7 +95,139 @@ void main() {
       expect(task.config.videoCodec, VideoCodec.hevc);
       expect(task.config.smartPreset, SmartCompressionPreset.chat);
       expect(task.config.outputFileName, contains('source'));
-      expect(task.config.outputFileName, contains('hevc'));
+      expect(task.config.outputFileName, contains('压缩'));
+    });
+
+    test(
+      'applies output settings to retryable tasks without resetting media config',
+      () async {
+        final renamedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
+          fileName: '1.mp4',
+          config: VideoTaskConfig.initial().copyWith(
+            outputDirectory: '/old',
+            outputFileName: 'old',
+            videoCodec: VideoCodec.h264,
+          ),
+        );
+        final failedTask = readyVideoTask(id: 'failed', sortOrder: 1).copyWith(
+          status: TaskStatus.failed,
+          config: VideoTaskConfig.initial().copyWith(
+            outputDirectory: '/old',
+            outputFileName: 'old',
+            videoCodec: VideoCodec.h264,
+          ),
+        );
+        final cancelledTask = readyVideoTask(id: 'cancelled', sortOrder: 2)
+            .copyWith(
+              status: TaskStatus.cancelled,
+              config: VideoTaskConfig.initial().copyWith(
+                outputDirectory: '/old',
+                outputFileName: 'old',
+                videoCodec: VideoCodec.h264,
+              ),
+            );
+        final runningTask = readyVideoTask(id: 'running', sortOrder: 3)
+            .copyWith(
+              status: TaskStatus.running,
+              config: VideoTaskConfig.initial().copyWith(
+                outputDirectory: '/old',
+                outputFileName: 'old',
+                videoCodec: VideoCodec.h264,
+              ),
+            );
+        final repository = FakeMediaTaskRepository([
+          renamedTask,
+          failedTask,
+          cancelledTask,
+          runningTask,
+        ]);
+        final container = testContainer(
+          repository: repository,
+          sourceFileChecker: FakeSourceFileChecker(
+            existingPaths: {
+              renamedTask.inputPath,
+              failedTask.inputPath,
+              cancelledTask.inputPath,
+              runningTask.inputPath,
+            },
+          ),
+          fingerprintReader: FakeSourceFileFingerprintReader(
+            fingerprint: testFingerprint,
+          ),
+        );
+
+        await container.read(mediaTaskListProvider.future);
+        await container
+            .read(mediaTaskListProvider.notifier)
+            .applyOutputSettingsToExistingTasks(
+              AppSettings.initial().copyWith(
+                defaultOutputDirectory: '/exports',
+                saveOutputToSourceDirectory: false,
+                defaultOutputFileNameTemplate: '{source}-{codec}',
+                defaultOutputVideoCodec: VideoCodec.hevc,
+              ),
+            );
+
+        final updatedTask = repository.taskById(renamedTask.id);
+        expect(updatedTask.config.outputDirectory, '/exports');
+        expect(updatedTask.config.outputFileName, 'source-h264');
+        expect(updatedTask.config.videoCodec, VideoCodec.h264);
+        expect(updatedTask.config.outputFileName, isNot(contains('1-')));
+        expect(
+          repository.taskById(failedTask.id).config.outputDirectory,
+          '/exports',
+        );
+        expect(
+          repository.taskById(cancelledTask.id).config.outputDirectory,
+          '/exports',
+        );
+        expect(
+          repository.taskById(runningTask.id).config.outputDirectory,
+          '/old',
+        );
+      },
+    );
+
+    test('retry applies the latest output settings', () async {
+      final failedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
+        fileName: '1.mp4',
+        status: TaskStatus.failed,
+        config: VideoTaskConfig.initial().copyWith(
+          outputDirectory: '/old',
+          outputFileName: 'old',
+          videoCodec: VideoCodec.h264,
+        ),
+      );
+      final repository = FakeMediaTaskRepository([failedTask]);
+      final container = testContainer(
+        repository: repository,
+        sourceFileChecker: FakeSourceFileChecker(
+          existingPaths: {failedTask.inputPath},
+        ),
+        fingerprintReader: FakeSourceFileFingerprintReader(
+          fingerprint: testFingerprint,
+        ),
+        appSettingsRepository: FakeAppSettingsRepository(
+          AppSettings.initial().copyWith(
+            defaultOutputDirectory: '/retry-output',
+            saveOutputToSourceDirectory: false,
+            defaultOutputFileNameTemplate: '{source}-{codec}',
+            defaultOutputVideoCodec: VideoCodec.hevc,
+          ),
+        ),
+      );
+
+      await container.read(mediaTaskListProvider.future);
+      await container
+          .read(mediaTaskListProvider.notifier)
+          .retryTaskById(failedTask.id);
+
+      final updatedTask = repository.taskById(failedTask.id);
+      expect(updatedTask.status, TaskStatus.analyzing);
+      expect(updatedTask.config.outputDirectory, '/retry-output');
+      expect(updatedTask.config.outputFileName, 'source-h264');
+      expect(updatedTask.config.videoCodec, VideoCodec.h264);
+      expect(updatedTask.config.outputFileName, isNot(contains('1-')));
     });
 
     test(

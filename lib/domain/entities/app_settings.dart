@@ -1,11 +1,60 @@
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 
 const Object _notProvided = Object();
+const String defaultOutputFileNameTemplatePattern = '{source}-{date}-{action}';
+
+String normalizeDefaultOutputFileNameTemplate(String? template) {
+  final trimmed = template?.trim() ?? '';
+  if (trimmed.isEmpty) {
+    return defaultOutputFileNameTemplatePattern;
+  }
+
+  return normalizeOutputFileNameTemplateText(trimmed);
+}
+
+String normalizeOutputFileNameTemplateText(String template) {
+  final characters = template.split('');
+
+  for (var index = 0; index < characters.length; index += 1) {
+    final character = characters[index];
+    if (character != 'x' && character != 'X') {
+      continue;
+    }
+
+    var previousIndex = index - 1;
+    while (previousIndex >= 0 && characters[previousIndex].trim().isEmpty) {
+      previousIndex -= 1;
+    }
+
+    var nextIndex = index + 1;
+    while (nextIndex < characters.length &&
+        characters[nextIndex].trim().isEmpty) {
+      nextIndex += 1;
+    }
+
+    if (previousIndex >= 0 &&
+        nextIndex < characters.length &&
+        _isAsciiDigit(characters[previousIndex]) &&
+        _isAsciiDigit(characters[nextIndex])) {
+      characters[index] = '×';
+    }
+  }
+
+  return characters.join().replaceAllMapped(
+    RegExp(r'x(\{\s*(?:codec|encoder)\s*\})', caseSensitive: false),
+    (match) => match.group(1)!,
+  );
+}
+
+bool _isAsciiDigit(String character) {
+  final codeUnit = character.codeUnitAt(0);
+  return codeUnit >= 0x30 && codeUnit <= 0x39;
+}
 
 /// 应用全局设置
 class AppSettings {
@@ -37,13 +86,19 @@ class AppSettings {
   final MediaTaskConfig defaultMediaConfig;
 
   /// 应用级默认导出文件名模板
-  final DefaultOutputFileNameTemplate defaultOutputFileNameTemplate;
+  final String defaultOutputFileNameTemplate;
 
   /// 应用主题模式
   final AppThemeMode themeMode;
 
   /// 是否关闭工作台通知未读角标
   final bool hideNotificationBadge;
+
+  /// 任务完成后是否弹窗提示。
+  final bool showTaskCompletionDialog;
+
+  /// 任务完成后播放的提示音
+  final TaskCompletionSound taskCompletionSound;
 
   AppSettings({
     this.defaultOutputDirectory,
@@ -57,11 +112,15 @@ class AppSettings {
     MediaTaskConfig? defaultMediaConfig,
     VideoCodec? defaultOutputVideoCodec,
     SmartCompressionPreset? defaultSmartPreset,
-    this.defaultOutputFileNameTemplate =
-        DefaultOutputFileNameTemplate.sourceFileNameCodec,
+    String? defaultOutputFileNameTemplate,
     this.themeMode = AppThemeMode.system,
     this.hideNotificationBadge = true,
-  }) : defaultMediaConfig = resolveAppDefaultMediaConfig(
+    this.showTaskCompletionDialog = true,
+    this.taskCompletionSound = TaskCompletionSound.none,
+  }) : defaultOutputFileNameTemplate = normalizeDefaultOutputFileNameTemplate(
+         defaultOutputFileNameTemplate,
+       ),
+       defaultMediaConfig = resolveAppDefaultMediaConfig(
          defaultMediaConfig: defaultMediaConfig,
          compressionSettings: compressionSettings,
          defaultOutputVideoCodec: defaultOutputVideoCodec,
@@ -88,10 +147,11 @@ class AppSettings {
       showAdvancedOptions: false,
       compressionSettings: AppCompressionSettings.initial(),
       defaultMediaConfig: MediaTaskConfig.initialDefaults(),
-      defaultOutputFileNameTemplate:
-          DefaultOutputFileNameTemplate.sourceFileNameCodec,
+      defaultOutputFileNameTemplate: defaultOutputFileNameTemplatePattern,
       themeMode: AppThemeMode.system,
       hideNotificationBadge: true,
+      showTaskCompletionDialog: true,
+      taskCompletionSound: TaskCompletionSound.none,
     );
   }
 
@@ -107,9 +167,11 @@ class AppSettings {
     MediaTaskConfig? defaultMediaConfig,
     VideoCodec? defaultOutputVideoCodec,
     SmartCompressionPreset? defaultSmartPreset,
-    DefaultOutputFileNameTemplate? defaultOutputFileNameTemplate,
+    String? defaultOutputFileNameTemplate,
     AppThemeMode? themeMode,
     bool? hideNotificationBadge,
+    bool? showTaskCompletionDialog,
+    TaskCompletionSound? taskCompletionSound,
   }) {
     return AppSettings(
       defaultOutputDirectory: identical(defaultOutputDirectory, _notProvided)
@@ -138,6 +200,9 @@ class AppSettings {
       themeMode: themeMode ?? this.themeMode,
       hideNotificationBadge:
           hideNotificationBadge ?? this.hideNotificationBadge,
+      showTaskCompletionDialog:
+          showTaskCompletionDialog ?? this.showTaskCompletionDialog,
+      taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
     );
   }
 

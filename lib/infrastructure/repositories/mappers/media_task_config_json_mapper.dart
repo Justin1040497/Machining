@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/media_processing_preset.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
@@ -69,11 +70,17 @@ Map<String, Object?>? videoConfigToJson(VideoProcessingConfig? config) {
 
   return {
     'outputFormat': config.outputFormat.name,
+    'keepOriginalOutputFormat': config.keepOriginalOutputFormat,
     'videoCodec': config.videoCodec.name,
     'encoderBackend': config.encoderBackend.name,
+    'hdrOutputMode': config.hdrOutputMode.name,
+    'videoCodecBeforePreserveHdr': config.videoCodecBeforePreserveHdr?.name,
+    'encoderBackendBeforePreserveHdr':
+        config.encoderBackendBeforePreserveHdr?.name,
     'resolutionPreset': config.resolutionPreset.name,
     'compressionCrf': config.compressionCrf,
     'smartPreset': config.smartPreset?.name,
+    'preserveMetadata': config.preserveMetadata,
   };
 }
 
@@ -89,6 +96,8 @@ VideoProcessingConfig? videoConfigFromJson(Map<String, dynamic>? json) {
           stringValue(json['outputFormat']),
         ) ??
         MediaOutputFormat.mp4,
+    keepOriginalOutputFormat:
+        boolValue(json['keepOriginalOutputFormat']) ?? false,
     videoCodec:
         nullableEnumValueByName(
           VideoCodec.values,
@@ -101,6 +110,20 @@ VideoProcessingConfig? videoConfigFromJson(Map<String, dynamic>? json) {
           stringValue(json['encoderBackend']),
         ) ??
         EncoderBackend.auto,
+    hdrOutputMode:
+        nullableEnumValueByName(
+          HdrOutputMode.values,
+          stringValue(json['hdrOutputMode']),
+        ) ??
+        HdrOutputMode.convertToSdr,
+    videoCodecBeforePreserveHdr: nullableEnumValueByName(
+      VideoCodec.values,
+      stringValue(json['videoCodecBeforePreserveHdr']),
+    ),
+    encoderBackendBeforePreserveHdr: nullableEnumValueByName(
+      EncoderBackend.values,
+      stringValue(json['encoderBackendBeforePreserveHdr']),
+    ),
     resolutionPreset:
         nullableEnumValueByName(
           ResolutionPreset.values,
@@ -112,6 +135,7 @@ VideoProcessingConfig? videoConfigFromJson(Map<String, dynamic>? json) {
       SmartCompressionPreset.values,
       stringValue(json['smartPreset']),
     ),
+    preserveMetadata: boolValue(json['preserveMetadata']) ?? true,
   );
 }
 
@@ -122,6 +146,7 @@ Map<String, Object?>? imageConfigToJson(ImageProcessingConfig? config) {
 
   return {
     'outputFormat': config.outputFormat.name,
+    'keepOriginalOutputFormat': config.keepOriginalOutputFormat,
     'imageQuality': config.imageQuality,
     'resizePreset': config.resizePreset.name,
     'preserveMetadata': config.preserveMetadata,
@@ -140,6 +165,8 @@ ImageProcessingConfig? imageConfigFromJson(Map<String, dynamic>? json) {
           stringValue(json['outputFormat']),
         ) ??
         MediaOutputFormat.jpg,
+    keepOriginalOutputFormat:
+        boolValue(json['keepOriginalOutputFormat']) ?? false,
     imageQuality: intValue(json['imageQuality']) ?? 100,
     resizePreset:
         nullableEnumValueByName(
@@ -158,9 +185,11 @@ Map<String, Object?>? audioConfigToJson(AudioProcessingConfig? config) {
 
   return {
     'outputFormat': config.outputFormat.name,
+    'keepOriginalOutputFormat': config.keepOriginalOutputFormat,
     'bitratePreset': config.bitratePreset.name,
     'sampleRate': config.sampleRate.name,
     'channels': config.channels.name,
+    'preserveMetadata': config.preserveMetadata,
   };
 }
 
@@ -176,6 +205,8 @@ AudioProcessingConfig? audioConfigFromJson(Map<String, dynamic>? json) {
           stringValue(json['outputFormat']),
         ) ??
         MediaOutputFormat.m4a,
+    keepOriginalOutputFormat:
+        boolValue(json['keepOriginalOutputFormat']) ?? false,
     bitratePreset:
         nullableEnumValueByName(
           AudioBitratePreset.values,
@@ -194,6 +225,7 @@ AudioProcessingConfig? audioConfigFromJson(Map<String, dynamic>? json) {
           stringValue(json['channels']),
         ) ??
         AudioChannelsPreset.source,
+    preserveMetadata: boolValue(json['preserveMetadata']) ?? true,
   );
 }
 

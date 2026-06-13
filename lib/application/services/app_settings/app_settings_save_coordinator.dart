@@ -18,7 +18,7 @@ class AppSettingsSaveCoordinator {
     required this.setThemeMode,
     required this.writeThemeCache,
     required this.invalidateRuntime,
-    required this.applySettingsToExistingTasks,
+    required this.applyOutputSettingsToExistingTasks,
   });
 
   final SaveAppSettingsUseCase saveSettingsUseCase;
@@ -26,7 +26,7 @@ class AppSettingsSaveCoordinator {
   final AppThemeModeSetter setThemeMode;
   final AppThemeCacheWriter writeThemeCache;
   final AppRuntimeInvalidator invalidateRuntime;
-  final ExistingTasksSettingsApplier applySettingsToExistingTasks;
+  final ExistingTasksSettingsApplier applyOutputSettingsToExistingTasks;
 
   Future<void> save(
     AppSettings settings, {
@@ -36,13 +36,16 @@ class AppSettingsSaveCoordinator {
       kind: AppNotificationKind.settings,
       source: 'settings',
       successTitle: target.successTitle,
+      successMessage: target.successMessage,
       failureTitle: target.failureTitle,
       operation: () async {
         await saveSettingsUseCase.call(settings);
         setThemeMode(settings.themeMode);
         await writeThemeCache(settings.themeMode);
         invalidateRuntime();
-        await applySettingsToExistingTasks(settings);
+        if (target.refreshesExistingTasks) {
+          await applyOutputSettingsToExistingTasks(settings);
+        }
       },
     );
   }

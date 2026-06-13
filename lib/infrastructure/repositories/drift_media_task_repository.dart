@@ -118,6 +118,21 @@ extension MediaTaskMapper on MediaTask {
       analysisColorSpace: Value(analysisResult?.colorSpace),
       analysisColorTransfer: Value(analysisResult?.colorTransfer),
       analysisColorPrimaries: Value(analysisResult?.colorPrimaries),
+      analysisChromaLocation: Value(analysisResult?.chromaLocation),
+      analysisMasteringDisplayMetadata: Value(
+        analysisResult?.masteringDisplayMetadata,
+      ),
+      analysisMasteringDisplayMaxLuminance: Value(
+        analysisResult?.masteringDisplayMaxLuminance,
+      ),
+      analysisMaxContentLightLevel: Value(analysisResult?.maxContentLightLevel),
+      analysisMaxFrameAverageLightLevel: Value(
+        analysisResult?.maxFrameAverageLightLevel,
+      ),
+      analysisDolbyVisionProfile: Value(analysisResult?.dolbyVisionProfile),
+      analysisDolbyVisionCompatibilityId: Value(
+        analysisResult?.dolbyVisionCompatibilityId,
+      ),
       analysisAverageFrameRate: Value(analysisResult?.averageFrameRate),
       analysisRealFrameRate: Value(analysisResult?.realFrameRate),
       analysisSampleAspectRatio: Value(analysisResult?.sampleAspectRatio),
@@ -215,6 +230,13 @@ extension TaskRowMapper on TaskRow {
         analysisColorSpace != null ||
         analysisColorTransfer != null ||
         analysisColorPrimaries != null ||
+        analysisChromaLocation != null ||
+        analysisMasteringDisplayMetadata != null ||
+        analysisMasteringDisplayMaxLuminance != null ||
+        analysisMaxContentLightLevel != null ||
+        analysisMaxFrameAverageLightLevel != null ||
+        analysisDolbyVisionProfile != null ||
+        analysisDolbyVisionCompatibilityId != null ||
         analysisAverageFrameRate != null ||
         analysisRealFrameRate != null ||
         analysisSampleAspectRatio != null ||
@@ -252,6 +274,13 @@ extension TaskRowMapper on TaskRow {
       colorSpace: analysisColorSpace,
       colorTransfer: analysisColorTransfer,
       colorPrimaries: analysisColorPrimaries,
+      chromaLocation: analysisChromaLocation,
+      masteringDisplayMetadata: analysisMasteringDisplayMetadata,
+      masteringDisplayMaxLuminance: analysisMasteringDisplayMaxLuminance,
+      maxContentLightLevel: analysisMaxContentLightLevel,
+      maxFrameAverageLightLevel: analysisMaxFrameAverageLightLevel,
+      dolbyVisionProfile: analysisDolbyVisionProfile,
+      dolbyVisionCompatibilityId: analysisDolbyVisionCompatibilityId,
       averageFrameRate: analysisAverageFrameRate,
       realFrameRate: analysisRealFrameRate,
       sampleAspectRatio: analysisSampleAspectRatio,

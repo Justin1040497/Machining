@@ -26,7 +26,7 @@ class SettingsRows extends Table {
       .withDefault(const Constant('balanced'))();
   TextColumn get defaultOutputFileNameTemplate => text()
       .named('default_output_file_name_template')
-      .withDefault(const Constant('sourceFileNameCodec'))();
+      .withDefault(const Constant('{source}-{date}-{action}'))();
   TextColumn get defaultMediaConfigJson =>
       text().named('default_media_config_json').nullable()();
   TextColumn get themeMode =>
@@ -34,6 +34,12 @@ class SettingsRows extends Table {
   BoolColumn get hideNotificationBadge => boolean()
       .named('hide_notification_badge')
       .withDefault(const Constant(true))();
+  BoolColumn get showTaskCompletionDialog => boolean()
+      .named('show_task_completion_dialog')
+      .withDefault(const Constant(true))();
+  TextColumn get taskCompletionSound => text()
+      .named('task_completion_sound')
+      .withDefault(const Constant('none'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

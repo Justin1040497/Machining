@@ -2,9 +2,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/default_output_file_name_template.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
@@ -29,6 +29,8 @@ void main() {
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       themeMode: 'dark',
       hideNotificationBadge: false,
+      showTaskCompletionDialog: true,
+      taskCompletionSound: 'original_soft_a',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -48,10 +50,12 @@ void main() {
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.audio), isTrue);
     expect(
       settings.defaultOutputFileNameTemplate,
-      DefaultOutputFileNameTemplate.sourceFileNameCodec,
+      defaultOutputFileNameTemplatePattern,
     );
     expect(settings.themeMode, AppThemeMode.dark);
     expect(settings.hideNotificationBadge, isFalse);
+    expect(settings.showTaskCompletionDialog, isTrue);
+    expect(settings.taskCompletionSound, TaskCompletionSound.originalSoftA);
   });
 
   test('settings row prefers default media config json over legacy fields', () {
@@ -77,6 +81,8 @@ void main() {
       defaultMediaConfigJson: encodeMediaTaskConfig(mediaConfig),
       themeMode: 'light',
       hideNotificationBadge: true,
+      showTaskCompletionDialog: false,
+      taskCompletionSound: 'servo_confirm',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -88,6 +94,8 @@ void main() {
     expect(settings.defaultMediaConfig.image?.imageQuality, 67);
     expect(settings.themeMode, AppThemeMode.light);
     expect(settings.hideNotificationBadge, isTrue);
+    expect(settings.showTaskCompletionDialog, isFalse);
+    expect(settings.taskCompletionSound, TaskCompletionSound.servoConfirm);
   });
 
   test('settings row falls back to system theme for unknown theme values', () {
@@ -105,6 +113,8 @@ void main() {
       defaultOutputFileNameTemplate: 'sourceFileNameCodec',
       themeMode: 'unexpected',
       hideNotificationBadge: true,
+      showTaskCompletionDialog: true,
+      taskCompletionSound: 'unknown',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -112,7 +122,45 @@ void main() {
     final settings = row.toDomain();
 
     expect(settings.themeMode, AppThemeMode.system);
+    expect(settings.taskCompletionSound, TaskCompletionSound.none);
   });
+
+  test(
+    'settings row maps legacy output template values to string patterns',
+    () {
+      final compressedRow = SettingsRow(
+        id: 1,
+        defaultOutputDirectory: null,
+        lastSelectedOutputDirectory: null,
+        saveOutputToSourceDirectory: true,
+        customFfmpegPath: null,
+        customFfprobePath: null,
+        showRawLog: false,
+        showAdvancedOptions: false,
+        defaultOutputVideoCodec: 'h264',
+        defaultCompressionSmartPreset: 'balanced',
+        defaultOutputFileNameTemplate: 'sourceFileNameCompressed',
+        themeMode: 'system',
+        hideNotificationBadge: true,
+        showTaskCompletionDialog: true,
+        taskCompletionSound: 'none',
+        createdAt: 1,
+        updatedAt: 2,
+      );
+      final sourceOnlyRow = compressedRow.copyWith(
+        defaultOutputFileNameTemplate: 'sourceFileNameOnly',
+      );
+
+      expect(
+        compressedRow.toDomain().defaultOutputFileNameTemplate,
+        '{source}-{action}',
+      );
+      expect(
+        sourceOnlyRow.toDomain().defaultOutputFileNameTemplate,
+        '{source}',
+      );
+    },
+  );
 
   test(
     'repository saves default media config json and legacy video fields',
@@ -133,6 +181,8 @@ void main() {
           defaultMediaConfig: mediaConfig,
           themeMode: AppThemeMode.dark,
           hideNotificationBadge: false,
+          showTaskCompletionDialog: false,
+          taskCompletionSound: TaskCompletionSound.mechanicalKey,
         ),
       );
 
@@ -141,8 +191,14 @@ void main() {
 
       expect(row.defaultOutputVideoCodec, 'hevc');
       expect(row.defaultCompressionSmartPreset, 'chat');
+      expect(
+        row.defaultOutputFileNameTemplate,
+        defaultOutputFileNameTemplatePattern,
+      );
       expect(row.themeMode, 'dark');
       expect(row.hideNotificationBadge, isFalse);
+      expect(row.showTaskCompletionDialog, isFalse);
+      expect(row.taskCompletionSound, 'mechanical_key');
       expect(savedConfig.video?.videoCodec, VideoCodec.hevc);
       expect(savedConfig.image?.imageQuality, 71);
     },
