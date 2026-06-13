@@ -323,6 +323,7 @@ test/
 
 ### macOS 构建验证
 
+- GitHub Actions `build-macos.yml` 安装 `autoconf`、`automake`、`libtool`、`nasm` 和 `pkg-config`。
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
 - `scripts/release/verify_macos_universal.sh FrameLean.app` 成功，包内 Mach-O 文件均包含 `x86_64` 和 `arm64`。
@@ -335,6 +336,7 @@ test/
 
 - `PowerShell -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1` 成功。
 - Release 目录存在 `ffmpeg/ffmpeg.exe` 和 `ffmpeg/ffprobe.exe`。
+- 发布脚本完整收集 `ffmpeg.exe -version` 和 `ffprobe.exe -version` 输出后检查 exit code，不通过提前截断管道判断原生命令状态。
 - Release 目录存在 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。
 - Release 目录存在 `audio_adapters/qmc/qmc-decrypt.exe`，并包含上游许可证。
 - 生成 `build/windows/x64/runner/FrameLean-v1.2.0-windows-x64.zip`。

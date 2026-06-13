@@ -138,7 +138,9 @@ tar -xf "zimg-release-${ZIMG_VERSION}.tar.gz"
 cd "$SRC_DIR/zimg-release-${ZIMG_VERSION}"
 make distclean >/dev/null 2>&1 || true
 if [[ ! -x ./configure ]]; then
-  require_command autoreconf
+  for command_name in autoreconf aclocal automake glibtoolize; do
+    require_command "$command_name"
+  done
   bash ./autogen.sh
 fi
 CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \

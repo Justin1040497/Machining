@@ -106,6 +106,32 @@
 - 技术栈：`docs/develop/technology-stack.md`
 - 测试计划：`docs/develop/test-plan.md`
 
+## 第三方源码 autogen 依赖要在 CI 中完整固定
+
+经验：
+
+- 只安装 `autoconf` 不等于具备完整 autotools 构建环境；`autoreconf` 可能继续调用 `aclocal`、`automake` 和 GNU libtool。
+- 使用上游 tag archive 时，即使大多数依赖包带有 `configure`，仍要按实际源码包验证是否需要 `autogen.sh`。
+- CI workflow 和本地 README 的依赖列表要和脚本的 `require_command` 保持一致，否则 runner 会在第三方源码构建中途失败。
+
+关联：
+
+- 技术栈：`docs/develop/technology-stack.md`
+- 发布脚本：`scripts/build/build_ffmpeg_macos_arch.sh`
+
+## PowerShell 校验原生命令不要提前截断管道
+
+经验：
+
+- `native.exe -version | Select-Object -First 1` 可能在拿到首行后提前关闭管道，让原生命令留下非 0 exit code。
+- 版本校验应先完整收集命令输出并保存 `$LASTEXITCODE`，确认成功后再只打印首行。
+- 看到日志已经输出版本行但脚本仍报版本校验失败时，要优先怀疑管道截断或 `$LASTEXITCODE` 被后续命令污染。
+
+关联：
+
+- 发布脚本：`scripts/release/build_windows.ps1`
+- 测试计划：`docs/develop/test-plan.md`
+
 ## 保持原始选项不要写成伪格式枚举
 
 经验：

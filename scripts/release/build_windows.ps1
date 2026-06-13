@@ -115,6 +115,28 @@ function Assert-FfmpegCapabilities {
   ) -CapabilityName "filter"
 }
 
+function Assert-NativeVersionOutput {
+  param(
+    [string]$Path,
+    [string]$Name
+  )
+
+  $Output = & $Path -hide_banner -version 2>&1
+  $ExitCode = $LASTEXITCODE
+  if ($ExitCode -ne 0) {
+    throw "Bundled $Name failed version validation with exit code $ExitCode.`n$($Output -join "`n")"
+  }
+
+  $FirstLine = @(
+    $Output | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+  ) | Select-Object -First 1
+  if ([string]::IsNullOrWhiteSpace($FirstLine)) {
+    throw "Bundled $Name produced no version output."
+  }
+
+  Write-Host $FirstLine
+}
+
 function Get-VcRuntimeCandidateDirectories {
   $CandidateDirectories = @()
 
@@ -436,11 +458,10 @@ try {
 
   Write-Host "Validating bundled FFmpeg runtime..."
   $ReleaseFfmpegPath = Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe"
-  & $ReleaseFfmpegPath -hide_banner -version | Select-Object -First 1
-  & (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") -hide_banner -version | Select-Object -First 1
-  if ($LASTEXITCODE -ne 0) {
-    throw "Bundled ffprobe.exe failed version validation."
-  }
+  Assert-NativeVersionOutput -Path $ReleaseFfmpegPath -Name "ffmpeg.exe"
+  Assert-NativeVersionOutput `
+    -Path (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") `
+    -Name "ffprobe.exe"
   Assert-FfmpegCapabilities -FfmpegPath $ReleaseFfmpegPath
 
   if (Test-Path -LiteralPath $ReleaseToolsDir -PathType Container) {

@@ -131,7 +131,7 @@ third_party/
 | 环境 | 说明 |
 | --- | --- |
 | Flutter SDK | 需要满足 Dart SDK `^3.11.0` |
-| macOS 开发 | 需要 Xcode Command Line Tools；构建内置 FFmpeg 时需要 Homebrew、`nasm`、`pkg-config`；zimg tag archive 如缺少 `configure`，还需要 `autoconf` / `automake` / `libtool` |
+| macOS 开发 | 需要 Xcode Command Line Tools；构建内置 FFmpeg 时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
 | Windows 开发 | 需要 Visual Studio C++ 桌面构建工具和 Flutter Windows 桌面支持 |
 | FFmpeg / FFprobe | 开发运行可使用 custom、bundled、known system 或 PATH 中的工具；发布包应包含内置运行时 |
 
