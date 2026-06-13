@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `18`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `21`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -36,7 +36,7 @@ lib/infrastructure/database/app_database.dart
 | `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量和元数据保留配置 |
 | `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、码率、采样率和声道配置 |
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
-| `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频和封装信息 |
+| `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频、封装、色彩和 HDR / Dolby Vision 元数据 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
@@ -129,9 +129,11 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `configVersion` | 当前为 `1` |
 | `outputDirectory` / `outputFileName` | 通用输出目录和文件名 |
 | `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
-| `video` | 视频格式、编码器、后端、分辨率、CRF 和旧推荐预设 |
-| `image` | 图片格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
-| `audio` | 音频格式、码率、采样率和声道；当前输出格式包含 `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`，输出编码由后台按音频格式推导 |
+| `video` | 视频格式、是否保持源格式、编码器、后端、HDR 输出模式、HDR 开启前的编码恢复值、分辨率、CRF、元数据保留开关和旧推荐预设 |
+| `image` | 图片格式、是否保持源格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
+| `audio` | 音频格式、是否保持源格式、码率、采样率、声道和元数据保留开关；当前输出格式包含 `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`，输出编码由后台按音频格式推导 |
+
+`keepOriginalOutputFormat` 不保存伪格式。导入任务时会按源文件扩展名解析成真实 `MediaOutputFormat`，例如 `.mp4` 写入 `mp4`、`.mov` 写入 `mov`、`.png` 写入 `png`、`.ogg` 写入 `oggOpus`；不支持的源格式会回退到默认输出格式并关闭保持状态。视频 `hdrOutputMode` 当前支持 `convertToSdr` 和 `preserveHdr`。`preserveHdr` 只承诺 HDR10 / HLG 基础 10-bit HEVC 输出和基础色彩标记，不承诺保留 Dolby Vision 动态元数据。视频和音频 `preserveMetadata` 缺省为 `true` 以保持旧任务兼容；图片 `preserveMetadata` 缺省为 `false`，继续保持图片任务原有行为。
 
 ### 源文件指纹字段
 
@@ -159,6 +161,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_color_space` | text | 是 | `null` | `colorSpace` | 视频色彩矩阵 / colorspace，例如 `bt709`、`bt2020nc` |
 | `analysis_color_transfer` | text | 是 | `null` | `colorTransfer` | 视频传递曲线，例如 `bt709`、`smpte2084`、`arib-std-b67` |
 | `analysis_color_primaries` | text | 是 | `null` | `colorPrimaries` | 视频色彩原色，例如 `bt709`、`bt2020` |
+| `analysis_chroma_location` | text | 是 | `null` | `chromaLocation` | 视频色度采样位置，例如 `left`、`center` |
+| `analysis_mastering_display_metadata` | text | 是 | `null` | `masteringDisplayMetadata` | HDR10 Mastering Display 原始关键字段摘要 |
+| `analysis_mastering_display_max_luminance` | real | 是 | `null` | `masteringDisplayMaxLuminance` | HDR10 Mastering Display 最大亮度，单位 nits |
+| `analysis_max_content_light_level` | integer | 是 | `null` | `maxContentLightLevel` | HDR10 MaxCLL，单位 nits |
+| `analysis_max_frame_average_light_level` | integer | 是 | `null` | `maxFrameAverageLightLevel` | HDR10 MaxFALL，单位 nits |
+| `analysis_dolby_vision_profile` | integer | 是 | `null` | `dolbyVisionProfile` | Dolby Vision Profile，例如 `5`、`8` |
+| `analysis_dolby_vision_compatibility_id` | integer | 是 | `null` | `dolbyVisionCompatibilityId` | Dolby Vision BL signal compatibility id，用于判断是否有 HDR10 兼容层 |
 | `analysis_average_frame_rate` | text | 是 | `null` | `averageFrameRate` | FFprobe `avg_frame_rate` 原始值 |
 | `analysis_real_frame_rate` | text | 是 | `null` | `realFrameRate` | FFprobe `r_frame_rate` 原始值 |
 | `analysis_sample_aspect_ratio` | text | 是 | `null` | `sampleAspectRatio` | 视频像素宽高比 |
@@ -205,10 +214,12 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `show_advanced_options` | boolean | 否 | `false` | `showAdvancedOptions` | 是否展示高级选项 |
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
 | `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
-| `default_output_file_name_template` | text | 否 | `sourceFileNameCodec` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板 |
+| `default_output_file_name_template` | text | 否 | `{source}-{date}-{action}` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板字符串；支持 `{source}`、`{date}`、`{action}`、`{codec}`、`{encoder}`；`codec` 输出 `h264 / h265`，`encoder` 输出 `x264 / x265 / videotoolbox / nvenc / qsv / amf` 等实际编码器 token，`auto` 会按目标编码保守解析为 `x264` 或 `x265`；数字之间的 `x / X` 会规范化为 `×`，历史枚举值由仓储读取时兼容映射 |
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
 | `theme_mode` | text | 否 | `system` | `themeMode` | 应用主题偏好；当前支持 `system`、`light`、`dark`，是主题设置的 source of truth |
 | `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
+| `show_task_completion_dialog` | boolean | 否 | `true` | `showTaskCompletionDialog` | 任务完成后是否弹出完成提示弹窗；关闭后仍保存任务通知并使用停留更久的临时通知承接完成反馈 |
+| `task_completion_sound` | text | 否 | `none` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -333,6 +344,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 16 | 新增 `app_notifications` 表，持久化应用内通知历史 |
 | 17 | 给 `app_notifications` 增加 `kind`，支持类型化通知和动作扩展 |
 | 18 | 给 `settings` 增加 `hide_notification_badge`，持久化工作台通知角标显隐偏好 |
+| 19 | 给 `tasks` 增加 HDR10 静态元数据、色度位置和 Dolby Vision profile / 兼容 ID 分析字段 |
+| 20 | 给 `settings` 增加 `task_completion_sound`，持久化任务完成提示音选择 |
+| 21 | 给 `settings` 增加 `show_task_completion_dialog`，持久化任务完成后是否弹窗提示 |
 
 ## 修改数据模型的约束
 

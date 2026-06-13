@@ -29,6 +29,49 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-13｜v1.2.0｜No Release
+
+今天接入任务完成提示音：设置页可以选择内置短提示音，设置会持久化到本地数据库，任务完成通知发出时会按当前设置播放对应音效。同时完成视频压缩底层色彩修复第一阶段：扩展 FFprobe 色彩 / HDR / Dolby Vision 分析字段，HDR10 / HLG 通过 `zscale + tonemap` 转 SDR，SDR 不再统一硬贴 BT.709，并将硬件编码器质量参数从 CRF 数值中拆开映射。媒体任务配置也同步完善“保持原始”、默认值和元数据语义：设置页默认值只影响后续导入任务，任务详情里显示真实源格式加“保持原始”提示，不向底层格式枚举写入 `source` 伪值。
+
+### Added
+
+- 新增 `assets/sounds/` 内置任务完成音效资源声明，并在设置页“完成音频设置”中提供“不通知”和 5 个命名提示音选项。
+- 新增 `settings.task_completion_sound` 持久化字段，保存任务完成提示音偏好。
+- 新增桌面端任务完成音效播放服务：macOS 使用 `afplay`，Windows 使用系统 `SoundPlayer` 播放缓存到临时目录的内置 WAV。
+- FFprobe 分析结果新增 chroma location、HDR10 Mastering Display、MaxCLL / MaxFALL、Dolby Vision Profile 和兼容 ID，并通过 Drift schema 19 迁移持久化这些字段。
+- macOS FFmpeg 构建脚本新增 zimg / libzimg 静态构建和 `--enable-libzimg`，发布脚本新增 `zscale` / `tonemap` 滤镜能力校验。
+- 新增 HDR / SDR 色彩命令构造、Dolby Vision Profile 5 拒绝处理、硬件质量映射和新分析字段持久化回归测试。
+- 视频和音频任务配置新增元数据保留开关，默认保持既有行为；用户关闭后 FFmpeg 命令会显式剥离输出元数据。
+- 应用设置新增任务完成后是否弹窗提示的即时生效选项；关闭弹窗后任务完成改为更长停留的临时通知，并提供打开输出文件夹入口。
+
+### Changed
+
+- HDR10 / HLG 视频压缩输出改为通过 `zscale + tonemap` 转 SDR BT.709，不再依赖 VideoToolbox `scale_vt` 做粗略转换。
+- SDR 输出优先保留源文件 range、matrix、transfer 和 primaries；缺失时才按分辨率推断 BT.709 或 SMPTE 170M。
+- VideoToolbox `q:v`、NVENC CQ、QSV global quality 和 AMF QP 改为独立质量映射，不再直接复用 CRF 数值。
+- 图片 / 视频 / 音频默认输出格式在设置页改为独立行展示，保持源格式复选框开启时禁用下方固定格式选择；图片默认质量独立成行并复用任务详情质量滑杆。
+- 任务详情弹窗移除单独的“保持源文件格式”开关行，格式下拉中的真实源格式选项直接显示 `（保持原始）` 提示，例如 `MOV（保持原始）`。
+- HDR 源视频开启“保持 HDR”后自动切换到 HEVC 并禁用编码选择，关闭后恢复用户开启前的编码选项。
+- FFmpeg 许可、源码分发、第三方声明、技术栈、数据模型和测试计划文档同步记录 zimg 与 HDR 转 SDR 边界。
+
+### Fixed
+
+- Dolby Vision Profile 5 或无 HDR10 兼容层的 Dolby Vision 首版会在命令构造阶段失败，避免输出变黑、偏紫或严重偏色。
+- 修复 SDR BT.601 / SMPTE 170M 等源素材被统一写成 BT.709 metadata 的风险。
+- 修复图片和音频任务列表项点击后读取视频专属配置导致任务详情弹窗打不开或抛错的问题。
+- 修复 MOV 等源格式在任务详情格式下拉中未显示 `（保持原始）`，以及源分辨率选项同时出现普通值和保持原始值的重复展示问题。
+- 修复输出文件名模板提示文本可选中但不能通过 Command / Control + C 复制的问题。
+- 修复 `{source}-{encoder}` 这类模板在用户需要实际编码器信息时显示 `auto` 的语义偏差，输出命名现在按任务实际解析后的编码器后端生成。
+
+### Verified
+
+- 通过 `dart run build_runner build --delete-conflicting-outputs`。
+- 通过本次触达 Dart 文件格式化。
+- 通过 `flutter analyze`。
+- 通过 `flutter test test/ffprobe_media_analyzer_test.dart test/ffmpeg_command_builder_test.dart test/drift_media_task_repository_test.dart`。
+- 通过 `flutter test`，共 256 项测试。
+- 通过 `bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`bash -n scripts/build/build_ffmpeg_macos_universal.sh`、`bash -n scripts/release/build_dmg_macos.sh` 和 `git diff --check`。
+
 ## 2026-06-12｜v1.2.0｜No Release
 
 今天闭环 Windows x64 安装器发布链，并将 macOS 发布目标扩展为 Universal
@@ -46,6 +89,8 @@ x86_64 与 Apple Silicon arm64 双架构运行时构建、合并、全包验证�
 
 ### Changed
 
+- 输出配置中的默认导出文件名从固定下拉项改为模板输入框，默认模板为 `{source}-{date}-{action}`，支持 `source`、`date`、`action`、`codec`、`encoder` 英文变量；`codec` 使用 `h264 / h265`，`encoder` 使用 `auto / x264 / x265 / videotoolbox / nvenc / qsv / amf`，数字之间输入的 `x / X` 会自动替换为 `×`，并兼容清理 `x{codec}` / `x{encoder}` 前缀避免生成 `xh264` 或 `xx264`；输入框右侧提供常用模板菜单，选择模板只替换当前输入内容，用户仍可继续自由编辑。
+- 设置保存语义区分默认任务配置和输出配置：视频 / 图片 / 音频任务配置保存后作为后续导入默认值；输出配置保存后会立即刷新未开始、失败和已取消任务的输出目录与文件名，运行中任务保留当前执行快照并在重来时读取最新输出配置。
 - 合并 `build_windows.ps1` 和 `build_windows_installer.ps1`；单一脚本默认一次 Flutter 构建同时生成 `FrameLean-v*-windows-x64.zip` 和 `FrameLean-v*-windows-x64-setup.exe`，并支持按需跳过其中一种产物。
 - Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不再提供管理员安装切换，为后续无 UAC 静默覆盖更新保持稳定权限边界。
 - Windows Release 构建会从 Visual Studio x64 Redistributable 目录复制 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`，缺失时停止发布。
@@ -67,6 +112,10 @@ x86_64 与 Apple Silicon arm64 双架构运行时构建、合并、全包验证�
 - 使用合成架构切片跑通 FFmpeg / QMC Universal 合并脚本，并确认纯 arm64 文件会被发布校验拒绝。
 - 真实双架构 FFmpeg/QMC 产物合并、完整 DMG 和 Intel 真机验收等待双架构 CI。
 
+### Fixed
+
+- 修复任务重命名后再次套用输出设置会把导出文件名误生成为重命名标题（例如 `1.mp4`）的问题；模板中的 `{source}` 现在始终来自源文件路径。
+
 ## 2026-06-11｜v1.2.0｜No Release
 
 今天为通知中心接入打基础：将工作台右上角入口改为通知中心按钮，新增应用级持久化通知管理，并修复设置页分区保存 / 取消 / 离开页面的状态语义。
@@ -87,7 +136,11 @@ x86_64 与 Apple Silicon arm64 双架构运行时构建、合并、全包验证�
 - 工作台和任务日志的临时提示改为通过应用通知管理器发出，为后续右侧通知中心读取统一历史做准备。
 - FFmpeg 队列完成或失败后直接发布持久化任务通知，不再依赖工作台页面是否仍然可见。
 - 通知模型新增 `general`、`settings`、`task` 类型扩展入口，后续更新通知可在不改通知中心主体的前提下新增类型和动作解析。
-- 根级临时通知调整为紧凑的分层标题样式；通知中心打开期间暂停临时通知展示，避免两个右上角浮层重叠。
+- 根级临时通知调整为中等密度的分层标题样式：右上角展示、状态图标带浅色底、关闭按钮固定在通知尾部，详情最多展示两行。
+- 根级临时通知支持替换动画：新通知到达时先让当前通知退出，再显示最新通知；短时间连续通知只保留最后一条展示。
+- 临时通知标题改为真实事件文案：设置保存按分区显示“应用设置已保存 / 输出配置已保存”等，任务通知将文件名提升到标题，例如“demo.mp4 处理失败”。
+- 设置保存目标通过结构化枚举区分；视频 / 图片 / 音频默认配置只影响后续导入任务，输出配置保存后才刷新非运行状态任务。
+- 通知中心打开期间暂停临时通知展示，避免两个右上角浮层重叠。
 - 通知中心面板和通知项按设计稿收敛为白底、细边框、小圆角、内部状态线与紧凑两级文字；通知副标题保留结果信息并显示通知时间。
 - 设置页保存成功 / 失败提示不再依赖设置页 `context`，保存事件进行中离开页面也会在完成后记录并展示通知。
 - 设置页代码结构拆分为 `pages/app_settings_page.dart`、`sections/` 和 `widgets/`，分区与通用组件提升到 feature 根目录，入口文件只保留加载、依赖注入和主视图状态骨架。

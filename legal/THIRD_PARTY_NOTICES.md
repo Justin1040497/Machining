@@ -24,7 +24,8 @@ See the root LICENSE file and legal/COPYING in this repository.
 - Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
 - Current FrameLean configuration: GPLv3-or-later route, because the runtime is
   built with `--enable-gpl`, `--enable-version3`, `--enable-libx264`,
-  `--enable-libmp3lame`, `--enable-libwebp`, and `--enable-libopus`.
+  `--enable-libmp3lame`, `--enable-libwebp`, `--enable-libopus`, and
+  `--enable-libzimg`.
 - Nonfree configuration: `--enable-nonfree` must not be enabled for distributed
   builds.
 - Local build reference: `scripts/build/build_ffmpeg_macos_arm64.sh`
@@ -66,6 +67,15 @@ libwebp provides WebP image encoding support for the bundled FFmpeg runtime.
 
 Opus provides Opus and Ogg Opus audio encoding support for the bundled FFmpeg
 runtime.
+
+### zimg / libzimg
+
+- Upstream: <https://github.com/sekrit-twc/zimg>
+- Source for current documented runtime: <https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz>
+- Used by FrameLean through the FFmpeg runtime via `--enable-libzimg`.
+
+zimg provides the `zscale` filter used by FrameLean's HDR10 / HLG to SDR
+conversion path.
 
 ## Flutter and Dart
 

@@ -17,7 +17,8 @@ third_party/ffmpeg/windows-x64/ffprobe.exe
 
 The release script validates that `ffmpeg.exe` includes the output encoders
 required by the current app surface: `libx264`, `libmp3lame`, `libwebp`, and
-`libopus`.
+`libopus`. It also validates the HDR-to-SDR filters required by video color
+repair: `zscale` and `tonemap`.
 
 The Windows CMake install step copies these files into:
 

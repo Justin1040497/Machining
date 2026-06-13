@@ -78,6 +78,32 @@
 
 - 版本事实：`docs/releases/v1.1.5/media-processing.md`
 
+## HDR 转 SDR 需要同时校验滤镜能力
+
+经验：
+
+- HDR10 / HLG 正确转 SDR 不能只靠 `scale` 或输出色彩标签，命令链路需要 `zscale` 和 `tonemap`。
+- 如果 FFmpeg 没有启用 `libzimg`，HDR 转 SDR 会在运行时失败；发布脚本应像校验编码器一样校验 `zscale` / `tonemap`。
+- Dolby Vision Profile 5 没有可直接当作 HDR10 使用的兼容层，首版应拒绝处理，避免生成变黑、偏紫或严重偏色的输出。
+
+关联：
+
+- 技术栈：`docs/develop/technology-stack.md`
+- 测试计划：`docs/develop/test-plan.md`
+
+## 保持原始选项不要写成伪格式枚举
+
+经验：
+
+- “保持原始”是任务配置模式，不是媒体输出格式本身。
+- 下拉框可以展示 `MOV（保持原始）` 或 `3840 × 2160（保持原始）`，但底层应保存真实格式 / 分辨率值和独立布尔状态。
+- 初始化任务详情时要按媒体类型读取对应配置；图片和音频任务不能触碰视频专属编码器状态。
+
+关联：
+
+- 决策：`docs/decisions/260613-media-task-source-format-and-metadata.md`
+- 版本事实：`docs/releases/v1.2.0/media-task-defaults-and-metadata.md`
+
 ## Windows 进程控制不能照搬 Unix signal
 
 经验：

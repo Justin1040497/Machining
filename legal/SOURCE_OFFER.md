@@ -21,7 +21,7 @@ clearly linked public source repository, for as long as required by GPLv3.
 ## FFmpeg Runtime
 
 Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264, LAME/libmp3lame,
-libwebp, and Opus/libopus enabled.
+libwebp, Opus/libopus, and zimg/libzimg enabled.
 
 The macOS architecture build and Universal 2 merge scripts are:
 
@@ -43,6 +43,7 @@ The documented FFmpeg configure flags include:
 --enable-libmp3lame
 --enable-libwebp
 --enable-libopus
+--enable-libzimg
 --enable-videotoolbox
 --enable-audiotoolbox
 --disable-shared
@@ -64,8 +65,9 @@ The documented FFmpeg configure flags include:
 - LAME source: <https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz>
 - libwebp source: <https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.5.0.tar.gz>
 - Opus source: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
+- zimg source: <https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz>
 
-If a release uses different FFmpeg, x264, LAME, libwebp, or Opus versions,
+If a release uses different FFmpeg, x264, LAME, libwebp, Opus, or zimg versions,
 update this file and the runtime build metadata before distributing that
 release.
 
