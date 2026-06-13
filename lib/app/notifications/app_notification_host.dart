@@ -3,15 +3,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_file_revealer.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/overlays/workbench_notice.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
-import 'package:framelean/infrastructure/providers/app_settings_provider.dart';
+import 'package:framelean/app/notifications/app_notification_notice.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/app_settings_provider.dart';
 
 class AppNotificationHost extends StatelessWidget {
   const AppNotificationHost({super.key, required this.child});
@@ -186,9 +186,16 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
     };
   }
 
-  AppNotificationAction? fallbackActionFor(
-    AppNotificationPresentation presentation,
-  ) {
+  _NotificationViewAction? actionFor(AppNotificationPresentation presentation) {
+    final action = presentation.action;
+    if (action != null) {
+      return _NotificationViewAction(
+        label: action.label,
+        tooltip: action.tooltip,
+        onPressed: action.onPressed,
+      );
+    }
+
     if (!isTaskCompletionNotification(presentation.notification)) {
       return null;
     }
@@ -201,12 +208,12 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
       return null;
     }
 
-    return AppNotificationAction(
+    return _NotificationViewAction(
       label: '打开文件夹',
       tooltip: '打开成果物所在位置',
       icon: Icons.folder_outlined,
       onPressed: () {
-        unawaited(WorkbenchFileRevealer.revealPath(outputPath));
+        unawaited(ref.read(fileRevealerProvider).revealPath(outputPath));
       },
     );
   }
@@ -252,15 +259,13 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
   @override
   Widget build(BuildContext context) {
     final current = presentation;
-    final action = current == null
-        ? null
-        : current.action ?? fallbackActionFor(current);
+    final action = current == null ? null : actionFor(current);
     return Stack(
       fit: StackFit.expand,
       children: [
         widget.child,
         if (current != null)
-          WorkbenchNotice(
+          AppNotificationNotice(
             title: current.notification.title,
             message: transientMessageFor(current.notification),
             level: current.notification.level,
@@ -283,4 +288,18 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
       ],
     );
   }
+}
+
+class _NotificationViewAction {
+  const _NotificationViewAction({
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.tooltip,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final IconData? icon;
+  final String? tooltip;
 }

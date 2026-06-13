@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/workbench_external_link_opener.dart';
+import 'package:framelean/infrastructure/services/platform/local_external_link_opener.dart';
 
 void main() {
-  group('WorkbenchExternalLinkOpener', () {
+  group('LocalExternalLinkOpener', () {
     test('builds macOS open command', () {
-      final command = WorkbenchExternalLinkOpener.buildOpenCommand(
+      final command = LocalExternalLinkOpener.buildOpenCommand(
         'https://github.com/zhouycheng/FrameLean',
         operatingSystem: 'macos',
       );
@@ -15,7 +15,7 @@ void main() {
     });
 
     test('builds Windows URL command', () {
-      final command = WorkbenchExternalLinkOpener.buildOpenCommand(
+      final command = LocalExternalLinkOpener.buildOpenCommand(
         'https://github.com/zhouycheng/FrameLean',
         operatingSystem: 'windows',
       );
@@ -29,7 +29,7 @@ void main() {
     });
 
     test('builds Linux xdg-open command', () {
-      final command = WorkbenchExternalLinkOpener.buildOpenCommand(
+      final command = LocalExternalLinkOpener.buildOpenCommand(
         'https://github.com/zhouycheng/FrameLean',
         operatingSystem: 'linux',
       );

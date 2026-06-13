@@ -22,8 +22,8 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/image_
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/presentation/domain_labels.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 @immutable
 class WorkbenchTaskConfigurationDraft {

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class WorkbenchSegment<T> {
   const WorkbenchSegment({required this.value, required this.label});

@@ -1,14 +1,17 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_coordinator.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
+import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/entities/media_task.dart';
 
 void main() {
   test('task setting save does not refresh existing tasks', () async {
@@ -19,7 +22,7 @@ void main() {
       target: AppSettingsSaveTarget.videoTask,
     );
 
-    expect(coordinator.appliedOutputSettings, isEmpty);
+    expect(coordinator.outputSettingsAppliedCount, 0);
     expect(
       coordinator.notificationRepository.savedNotifications.single.title,
       '视频任务配置已保存',
@@ -39,7 +42,7 @@ void main() {
 
     await coordinator.save(settings, target: AppSettingsSaveTarget.output);
 
-    expect(coordinator.appliedOutputSettings, [settings]);
+    expect(coordinator.outputSettingsAppliedCount, 1);
     expect(
       coordinator.notificationRepository.savedNotifications.single.title,
       '输出配置已保存',
@@ -57,7 +60,7 @@ _CoordinatorHarness _buildCoordinator() {
   final notificationManager = AppNotificationManager(
     repository: notificationRepository,
   );
-  final appliedOutputSettings = <AppSettings>[];
+  var outputSettingsAppliedCount = 0;
   addTearDown(notificationManager.dispose);
 
   final coordinator = AppSettingsSaveCoordinator(
@@ -69,15 +72,18 @@ _CoordinatorHarness _buildCoordinator() {
     setThemeMode: (_) {},
     writeThemeCache: (_) async {},
     invalidateRuntime: () {},
-    applyOutputSettingsToExistingTasks: (settings) async {
-      appliedOutputSettings.add(settings);
+    applyOutputSettingsUseCase: ApplyOutputSettingsToExistingTasksUseCase(
+      repository: _FakeMediaTaskRepository(),
+    ),
+    onOutputSettingsApplied: () {
+      outputSettingsAppliedCount += 1;
     },
   );
 
   return _CoordinatorHarness(
     coordinator: coordinator,
     notificationRepository: notificationRepository,
-    appliedOutputSettings: appliedOutputSettings,
+    readOutputSettingsAppliedCount: () => outputSettingsAppliedCount,
   );
 }
 
@@ -85,12 +91,14 @@ class _CoordinatorHarness {
   const _CoordinatorHarness({
     required this.coordinator,
     required this.notificationRepository,
-    required this.appliedOutputSettings,
+    required this.readOutputSettingsAppliedCount,
   });
 
   final AppSettingsSaveCoordinator coordinator;
   final _FakeAppNotificationRepository notificationRepository;
-  final List<AppSettings> appliedOutputSettings;
+  final int Function() readOutputSettingsAppliedCount;
+
+  int get outputSettingsAppliedCount => readOutputSettingsAppliedCount();
 
   Future<void> save(
     AppSettings settings, {
@@ -114,6 +122,25 @@ class _FakeAppSettingsRepository implements AppSettingsRepository {
   Future<void> saveSettings(AppSettings settings) async {
     this.settings = settings;
   }
+}
+
+class _FakeMediaTaskRepository implements MediaTaskRepository {
+  @override
+  Future<void> deleteTaskById(String taskId) async {}
+
+  @override
+  Future<List<MediaTask>> loadAllTasks() async => const [];
+
+  @override
+  Future<void> replaceAllTasks(List<MediaTask> tasks) async {}
+
+  @override
+  Future<void> saveTask(MediaTask task) async {}
+
+  @override
+  Future<void> updateTaskSortOrders(
+    List<MediaTaskSortOrderUpdate> updates,
+  ) async {}
 }
 
 class _FakeFfmpegLocator implements FfmpegLocator {

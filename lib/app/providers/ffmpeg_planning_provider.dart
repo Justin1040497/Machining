@@ -4,6 +4,7 @@ import 'package:framelean/application/services/ffmpeg_planning/default_compressi
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 
+// Binds FFmpeg planning abstractions to local implementations.
 /// 压缩策略建议服务，决定压缩画像、码率和 CRF 等参数
 final compressionAdvisorProvider = Provider<CompressionAdvisor>((ref) {
   return DefaultCompressionAdvisor();

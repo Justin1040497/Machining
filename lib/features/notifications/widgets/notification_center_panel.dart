@@ -4,13 +4,13 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
+import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
 
 class NotificationCenterPanel extends ConsumerStatefulWidget {
   const NotificationCenterPanel({
@@ -165,7 +165,7 @@ class _NotificationCenterPanelState
                     ),
                   ),
                   Positioned(
-                    top: WorkbenchConstants.appTopBarHeight + 10,
+                    top: AppLayoutConstants.topBarHeight + 10,
                     right: 18,
                     bottom: 74,
                     width: panelWidth,

@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
+import 'package:framelean/app/widgets/percentage_slider_panel.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
-import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
-import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/presentation/domain_labels.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchImageConfigPanel extends StatelessWidget {
   const WorkbenchImageConfigPanel({
@@ -173,10 +173,10 @@ class _ImageQualitySelector extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedQualityRatio = quality.clamp(1, 100) / 100;
 
-    return WorkbenchPercentageSliderPanel(
+    return PercentageSliderPanel(
       title: '质量',
       summaryBuilder: (ratio) => '保留${(ratio * 100).round()}%的质量',
-      values: WorkbenchConstants.imageQualityRatios,
+      values: MediaConfigurationUiConstants.imageQualityRatios,
       selectedValue: selectedQualityRatio,
       onChanged: (value) => onChanged((value * 100).round()),
     );

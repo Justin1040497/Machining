@@ -14,13 +14,12 @@ import 'package:framelean/application/use_cases/media_tasks/replace_missing_sour
 import 'package:framelean/application/use_cases/media_tasks/retry_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
+import 'package:framelean/app/providers/input_runtime_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 
 /// 工作台任务列表状态
 final mediaTaskListProvider =
@@ -160,35 +159,6 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call();
 
     state = AsyncData(tasks);
-    unawaited(syncFfmpegQueueStatus());
-  }
-
-  Future<void> applyOutputSettingsToExistingTasks(AppSettings settings) async {
-    if (!state.hasValue) {
-      return;
-    }
-
-    final repository = ref.read(mediaTaskRepositoryProvider);
-    final tasks = state.requireValue;
-    final now = DateTime.now();
-
-    for (final task in tasks) {
-      if (task.status != TaskStatus.pending &&
-          task.status != TaskStatus.failed &&
-          task.status != TaskStatus.cancelled) {
-        continue;
-      }
-
-      final newConfig = buildOutputTaskConfigFromSettings(
-        task: task,
-        settings: settings,
-        now: now,
-      );
-      final updatedTask = task.copyWith(config: newConfig);
-      await repository.saveTask(updatedTask);
-    }
-
-    await refreshTasksFromRepository();
     unawaited(syncFfmpegQueueStatus());
   }
 

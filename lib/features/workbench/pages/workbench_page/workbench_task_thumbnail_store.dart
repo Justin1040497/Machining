@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/execution/video_thumbnail_generator.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/infrastructure/providers/execution_provider.dart';
-import 'package:framelean/infrastructure/providers/input_runtime_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
+import 'package:framelean/app/providers/input_runtime_provider.dart';
 import 'package:path/path.dart' as path;
 
 class WorkbenchTaskThumbnailStore {

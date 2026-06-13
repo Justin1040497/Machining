@@ -90,7 +90,6 @@ The project currently declares these direct runtime dependencies in
 
 | Package | License observed in local package cache | Role |
 | --- | --- | --- |
-| `cupertino_icons` | MIT | Cupertino icon font |
 | `flutter_riverpod` | MIT | State management |
 | `go_router` | BSD-style | Navigation |
 | `uuid` | MIT | UUID generation |

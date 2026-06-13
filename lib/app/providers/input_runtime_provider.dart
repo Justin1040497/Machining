@@ -9,7 +9,7 @@ import 'package:framelean/application/services/input_runtime/proprietary_audio_d
 import 'package:framelean/application/services/input_runtime/proprietary_audio_format_resolver.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
-import 'package:framelean/infrastructure/providers/repository_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:framelean/infrastructure/services/input_runtime/bundled_proprietary_audio_adapter_registry.dart';
 import 'package:framelean/infrastructure/services/input_runtime/default_media_input_preparer.dart';
 import 'package:framelean/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';

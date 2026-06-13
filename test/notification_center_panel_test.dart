@@ -13,7 +13,7 @@ import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
 import 'package:framelean/features/notifications/widgets/notification_center_panel.dart';
-import 'package:framelean/infrastructure/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/app_notification_provider.dart';
 
 void main() {
   test('only successful task notifications expose an output action', () {

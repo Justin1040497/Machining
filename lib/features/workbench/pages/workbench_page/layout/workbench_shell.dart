@@ -2,14 +2,15 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/drop_overlay.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
 class WorkbenchShell extends StatelessWidget {
   const WorkbenchShell({
@@ -78,7 +79,7 @@ class WorkbenchShell extends StatelessWidget {
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows;
     final topInset = reserveTopNoticeArea
-        ? WorkbenchConstants.appTopBarHeight
+        ? AppLayoutConstants.topBarHeight
         : 0.0;
 
     return DropTarget(
@@ -135,7 +136,7 @@ class WorkbenchShell extends StatelessWidget {
                           left: 0,
                           top: 0,
                           right: 0,
-                          height: WorkbenchConstants.appTopBarHeight,
+                          height: AppLayoutConstants.topBarHeight,
                           child: WorkbenchTopBar(
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,

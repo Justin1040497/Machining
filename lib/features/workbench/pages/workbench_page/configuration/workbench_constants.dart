@@ -1,113 +1,8 @@
-import 'package:file_selector/file_selector.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 
 abstract final class WorkbenchConstants {
-  static const double appTopBarHeight = 52;
   static const double minWorkbenchWidth = 685;
   static const double minWorkbenchHeight = 640;
-
-  static const videoTypeGroup = XTypeGroup(
-    label: '视频文件',
-    extensions: [
-      'mp4',
-      'mov',
-      'mkv',
-      'm4v',
-      'avi',
-      'webm',
-      'flv',
-      'wmv',
-      'mpg',
-      'mpeg',
-      'ts',
-      'm2ts',
-      'mts',
-      '3gp',
-      '3g2',
-      'vob',
-      'ogv',
-      'dv',
-      'asf',
-    ],
-    uniformTypeIdentifiers: [
-      'public.movie',
-      'public.video',
-      'public.mpeg-4',
-      'com.apple.quicktime-movie',
-      'org.matroska.mkv',
-    ],
-  );
-
-  static const imageTypeGroup = XTypeGroup(
-    label: '图片文件',
-    extensions: [
-      'jpg',
-      'jpeg',
-      'png',
-      'webp',
-      'bmp',
-      'gif',
-      'tif',
-      'tiff',
-      'heic',
-      'heif',
-      'avif',
-      'ico',
-      'tga',
-    ],
-    uniformTypeIdentifiers: [
-      'public.image',
-      'public.jpeg',
-      'public.png',
-      'org.webmproject.webp',
-    ],
-  );
-
-  static const audioTypeGroup = XTypeGroup(
-    label: '音频文件',
-    extensions: [
-      'mp3',
-      'wav',
-      'aac',
-      'flac',
-      'm4a',
-      'ogg',
-      'oga',
-      'opus',
-      'weba',
-      'aiff',
-      'aif',
-      'aifc',
-      'wma',
-      'amr',
-      'ape',
-      'alac',
-      'caf',
-      'au',
-      'wv',
-      'tta',
-      'ncm',
-      'mgg',
-      'mgg0',
-      'mgg1',
-      'mggl',
-      'mflac',
-      'mflac0',
-      'qmcflac',
-    ],
-    uniformTypeIdentifiers: [
-      'public.audio',
-      'public.mp3',
-      'public.mpeg-4-audio',
-      'com.microsoft.waveform-audio',
-    ],
-  );
-
-  static const mediaTypeGroups = [
-    videoTypeGroup,
-    imageTypeGroup,
-    audioTypeGroup,
-  ];
 
   static const qualityOptions = [
     QualityOption(label: '高质量', crf: 24, targetRatio: 0.95),
@@ -132,19 +27,4 @@ abstract final class WorkbenchConstants {
     0.80,
     0.90,
   ];
-
-  static const imageQualityRatios = [
-    0.10,
-    0.20,
-    0.30,
-    0.40,
-    0.50,
-    0.60,
-    0.70,
-    0.80,
-    0.90,
-    1.00,
-  ];
-
-  static const defaultTargetSizeRatio = 0.60;
 }

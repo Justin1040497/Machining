@@ -1,80 +1,57 @@
 import 'dart:io';
 
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/application/services/platform/file_revealer.dart';
 import 'package:path/path.dart' as path;
 
-class WorkbenchFileRevealResult {
-  const WorkbenchFileRevealResult._({required this.message});
-
-  const WorkbenchFileRevealResult.success() : this._(message: null);
-
-  const WorkbenchFileRevealResult.failure(String message)
-    : this._(message: message);
-
-  final String? message;
-
-  bool get succeeded => message == null;
-}
-
-class WorkbenchFileRevealTarget {
-  const WorkbenchFileRevealTarget({
-    required this.path,
-    required this.isDirectory,
-  });
+class FileRevealTarget {
+  const FileRevealTarget({required this.path, required this.isDirectory});
 
   final String path;
   final bool isDirectory;
 }
 
-class WorkbenchFileManagerCommand {
-  const WorkbenchFileManagerCommand({
-    required this.executable,
-    required this.arguments,
-  });
+class FileManagerCommand {
+  const FileManagerCommand({required this.executable, required this.arguments});
 
   final String executable;
   final List<String> arguments;
 }
 
-abstract final class WorkbenchFileRevealer {
-  static Future<WorkbenchFileRevealResult> revealTask(MediaTask task) {
-    final targetPath = task.outputPath?.trim().isNotEmpty == true
-        ? task.outputPath!.trim()
-        : task.inputPath;
-    return revealPath(targetPath);
-  }
+class LocalFileRevealer implements FileRevealer {
+  const LocalFileRevealer();
 
-  static Future<WorkbenchFileRevealResult> revealPath(String targetPath) async {
+  @override
+  Future<FileRevealResult> revealPath(String targetPath) async {
     final trimmedPath = targetPath.trim();
     if (trimmedPath.isEmpty) {
-      return const WorkbenchFileRevealResult.failure('没有可打开的文件位置');
+      return const FileRevealResult.failure('没有可打开的文件位置');
     }
 
     try {
       final target = resolveRevealTarget(trimmedPath);
       if (target == null) {
-        return WorkbenchFileRevealResult.failure('文件位置不存在: $trimmedPath');
+        return FileRevealResult.failure('文件位置不存在: $trimmedPath');
       }
 
       final result = await runRevealInFileManager(target);
       if (result.exitCode != 0) {
-        return WorkbenchFileRevealResult.failure(failureMessageFor(result));
+        return FileRevealResult.failure(failureMessageFor(result));
       }
     } on Object catch (error) {
-      return WorkbenchFileRevealResult.failure('打开文件所在位置失败: $error');
+      return FileRevealResult.failure('打开文件所在位置失败: $error');
     }
 
-    return const WorkbenchFileRevealResult.success();
+    return const FileRevealResult.success();
   }
 
-  static WorkbenchFileRevealTarget? resolveRevealTarget(String targetPath) {
+  static FileRevealTarget? resolveRevealTarget(String targetPath) {
     final targetType = FileSystemEntity.typeSync(targetPath);
     if (targetType == FileSystemEntityType.directory) {
-      return WorkbenchFileRevealTarget(path: targetPath, isDirectory: true);
+      return FileRevealTarget(path: targetPath, isDirectory: true);
     }
 
     if (targetType != FileSystemEntityType.notFound) {
-      return WorkbenchFileRevealTarget(path: targetPath, isDirectory: false);
+      return FileRevealTarget(path: targetPath, isDirectory: false);
     }
 
     final parentPath = path.dirname(targetPath);
@@ -84,14 +61,14 @@ abstract final class WorkbenchFileRevealer {
 
     final parentType = FileSystemEntity.typeSync(parentPath);
     if (parentType == FileSystemEntityType.directory) {
-      return WorkbenchFileRevealTarget(path: parentPath, isDirectory: true);
+      return FileRevealTarget(path: parentPath, isDirectory: true);
     }
 
     return null;
   }
 
   static Future<ProcessResult> runRevealInFileManager(
-    WorkbenchFileRevealTarget target,
+    FileRevealTarget target,
   ) async {
     final command = buildRevealCommand(
       targetPath: target.path,
@@ -113,7 +90,7 @@ abstract final class WorkbenchFileRevealer {
     return Process.run(command.executable, command.arguments);
   }
 
-  static WorkbenchFileManagerCommand? buildRevealCommand({
+  static FileManagerCommand? buildRevealCommand({
     required String targetPath,
     required bool targetIsDirectory,
     String? operatingSystem,
@@ -121,14 +98,14 @@ abstract final class WorkbenchFileRevealer {
     final currentOperatingSystem = operatingSystem ?? Platform.operatingSystem;
 
     if (currentOperatingSystem == 'macos') {
-      return WorkbenchFileManagerCommand(
+      return FileManagerCommand(
         executable: 'open',
         arguments: targetIsDirectory ? [targetPath] : ['-R', targetPath],
       );
     }
 
     if (currentOperatingSystem == 'windows') {
-      return WorkbenchFileManagerCommand(
+      return FileManagerCommand(
         executable: 'explorer.exe',
         arguments: targetIsDirectory ? [targetPath] : ['/select,', targetPath],
       );
@@ -136,7 +113,7 @@ abstract final class WorkbenchFileRevealer {
 
     if (currentOperatingSystem == 'linux') {
       final linuxPathContext = path.Context(style: path.Style.posix);
-      return WorkbenchFileManagerCommand(
+      return FileManagerCommand(
         executable: 'xdg-open',
         arguments: [
           targetIsDirectory ? targetPath : linuxPathContext.dirname(targetPath),

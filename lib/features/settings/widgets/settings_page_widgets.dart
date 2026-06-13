@@ -149,7 +149,7 @@ class _SettingsSidebar extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           21,
-          WorkbenchConstants.appTopBarHeight,
+          AppLayoutConstants.topBarHeight,
           20,
           18,
         ),

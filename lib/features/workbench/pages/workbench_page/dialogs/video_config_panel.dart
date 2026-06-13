@@ -3,9 +3,9 @@ import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/features/workbench/presentation_mappers/domain_labels.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
-import 'package:framelean/features/workbench/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/presentation/domain_labels.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchVideoConfigPanel extends StatelessWidget {
   const WorkbenchVideoConfigPanel({

@@ -3,12 +3,12 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
-import 'package:framelean/features/workbench/theme/workbench_theme_context.dart';
 
-class WorkbenchNotice extends StatelessWidget {
-  const WorkbenchNotice({
+class AppNotificationNotice extends StatelessWidget {
+  const AppNotificationNotice({
     super.key,
     required this.title,
     required this.message,
@@ -51,7 +51,7 @@ class WorkbenchNotice extends StatelessWidget {
         : preferredMinWidth;
     final top = defaultTargetPlatform == TargetPlatform.windows
         ? 14.0
-        : WorkbenchConstants.appTopBarHeight;
+        : AppLayoutConstants.topBarHeight;
 
     return Positioned(
       top: top,
