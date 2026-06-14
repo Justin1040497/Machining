@@ -27,9 +27,9 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 桌面客户端 | Flutter Desktop | 已使用 | 当前主应用框架 |
 | 客户端语言 | Dart 3.11 约束 | 已使用 | `pubspec.yaml` 中 `environment.sdk: ^3.11.0` |
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
-| 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
+| 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过 `/settings` 全屏页面打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 21 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 23 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
 | 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |
@@ -43,7 +43,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
-| macOS 打包 | Flutter macOS + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时 |
+| macOS 打包 | Flutter macOS + Swift Package Manager + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；macOS 插件原生依赖走 SwiftPM，不保留 CocoaPods 工程集成 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
@@ -132,7 +132,7 @@ third_party/
 | 环境 | 说明 |
 | --- | --- |
 | Flutter SDK | 需要满足 Dart SDK `^3.11.0` |
-| macOS 开发 | 需要 Xcode Command Line Tools；构建内置 FFmpeg 时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
+| macOS 开发 | 需要 Xcode Command Line Tools；Release CI 使用 Flutter stable 并显式启用 Swift Package Manager；构建内置 FFmpeg 时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
 | Windows 开发 | 需要 Visual Studio C++ 桌面构建工具和 Flutter Windows 桌面支持 |
 | FFmpeg / FFprobe | 开发运行可使用 custom、bundled、known system 或 PATH 中的工具；发布包应包含内置运行时 |
 
@@ -290,6 +290,8 @@ FrameLean.app/Contents/Resources/legal/
 ```
 
 当前 macOS FFmpeg build phase 只读取 `macos-universal`。`scripts/release/build_dmg_macos.sh` 会在打包前验证 Universal FFmpeg，显式构建 Release app，扫描包内全部 Mach-O 文件均包含 x86_64 / arm64，再进入签名、公证和 DMG 生成步骤。
+
+macOS Flutter 插件原生依赖使用 Swift Package Manager。仓库中的 `macos/` 工程不保留 `Podfile`、`Podfile.lock`、`Pods.xcodeproj` workspace 引用、`Pods-Runner` xcconfig include 或 `[CP]` Build Phase。GitHub Actions 会显式执行 `flutter config --enable-swift-package-manager`，`scripts/release/build_dmg_macos.sh` 也会在构建前后拦截 CocoaPods 残留并强制 UTF-8 locale，避免 release runner 回落到 `pod install`。
 
 ### Windows
 

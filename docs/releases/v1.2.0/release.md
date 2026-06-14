@@ -11,8 +11,8 @@ v1.2.0 汇总 `v1.1.5..release/v1.2.0` 的全部变更。版本重点是把 Fram
 - 工作台支持深浅主题、启动主题缓存、响应式布局、任务拖拽排序和运行期间调整后续执行顺序。
 - 应用设置迁移到 `/settings` 全屏页面，支持分区独立保存 / 取消、默认媒体配置、输出模板、通知偏好、缓存清理和 Windows 清理卸载。
 - 新增持久化通知中心、统一应用通知、任务完成提示音、成果物文件夹动作和完成弹窗开关。
-- 默认输出文件名改为可编辑模板，支持 `{source}`、`{date}`、`{version}`、`{action}`、`{codec}`、`{encoder}`；重复导入同一源文件时 `{version}` 会从 `v1` 递增。
-- 新增视频 / 音频元数据保留开关、真实源格式“保持原始”语义和输出配置刷新非运行任务的规则。
+- 默认输出文件名改为可编辑模板，默认模板为 `{source}-{action}`，支持 `{source}`、`{date}`、`{version}`、`{action}`、`{codec}`、`{encoder}`；重复导入同一源文件时 `{version}` 会从 `v1` 递增，重复导出已有 `v1` 文件时优先输出 `v2` / `v3`。
+- 新增视频 / 图片 / 音频元数据保留开关、真实源格式“保持原始”语义和输出配置刷新非运行任务的规则；三类媒体默认保持源格式并保留元数据，图片默认质量为 80%。
 - FFprobe 扩展色彩、HDR10 和 Dolby Vision 元数据；HDR10 / HLG 使用 `zscale + tonemap` 转 SDR，保持 HDR 限定为 HEVC Main10 基础链路。
 - macOS 发布目标升级为单一 Universal 2 DMG；Windows x64 同时提供便携 ZIP 和当前用户 Inno Setup 安装器。
 - 文档、项目级 skills、release / delivery 工作流和法律材料目录完成治理。
@@ -27,7 +27,9 @@ v1.2.0 汇总 `v1.1.5..release/v1.2.0` 的全部变更。版本重点是把 Fram
 - 修复设置分区保存失败、离开页面后的异步通知、通知 Overlay 和通知历史读取边界。
 - 修复图片 / 音频任务详情误读视频配置、保持原始选项重复、输出模板来源和 HDR 色彩参数问题。
 - 修复 macOS Universal 2 CI 构建 zimg 时缺少 Automake / Libtool 依赖，以及 Windows 打包脚本误把 `ffprobe.exe -version` 管道截断当作版本校验失败的问题。
-- 修复 macOS Universal artifact 解包目录不稳定导致合并脚本找不到运行时可执行文件的问题。
+- 修复 macOS Universal artifact 解包目录不稳定和 artifact zip 丢失可执行权限导致合并脚本找不到或无法执行运行时文件的问题。
+- 修复 macOS Universal DMG 打包仍保留 CocoaPods 集成导致 Flutter SwiftPM 构建继续触发 `pod install`，并在 Ruby ASCII-8BIT locale 下失败的问题；macOS 工程改为 SwiftPM-only，release 脚本加入 UTF-8 和 CocoaPods 残留护栏。
+- Windows CI artifact 改为分别上传便携 ZIP 与 `setup.exe` 安装器，不再把两个发布包混在同一个 artifact zip 中。
 - 修复 Windows 完成提示音依赖 PowerShell 播放的风险，改为 Flutter 音频插件播放内置 asset。
 - 修复 Windows / 4K 大窗口场景字体被固定压回基础字号导致显示偏小的问题。
 - 移除未引用的旧设置弹窗组件和未使用的 `cupertino_icons`。
@@ -35,11 +37,12 @@ v1.2.0 汇总 `v1.1.5..release/v1.2.0` 的全部变更。版本重点是把 Fram
 ## 验证与兼容
 
 - 发布前通过 `flutter analyze`。
-- 发布前通过全量 `flutter test`，共 265 项。
+- 发布前通过全量 `flutter test`，共 267 项。
 - 新增并通过 Clean Architecture import 守卫测试。
 - P0-P2 触达模块 76 项回归测试通过。
 - 发布 workflow 和打包脚本已补齐 macOS autotools 依赖与 Windows 原生命令版本校验保护；正式 CI 需重新触发确认产物上传。
-- 数据库当前 schema version 为 21；旧视频列、历史压缩模式映射和 `media_config_json` 回退仍保留。
+- macOS 发布链已移除 CocoaPods 工程集成，正式 CI 需确认 SwiftPM 生成的插件包参与构建且不再运行 `pod install`。
+- 数据库当前 schema version 为 23；旧视频列、历史压缩模式映射和 `media_config_json` 回退仍保留。
 - 主要发布平台为 macOS Universal 2 和 Windows x64；Linux / Web 不在本版本支持范围。
 - 最终签名 / 公证 DMG、Intel 真机和干净 Windows x64 安装器验收需在正式发布环境完成。
 
@@ -53,7 +56,7 @@ FrameLean-v1.2.0-windows-x64.zip
 FrameLean-v1.2.0-windows-x64-setup.exe
 ```
 
-本次本地收口未生成签名、公证或 Windows 安装器产物；由对应发布脚本和 CI 在发布环境生成并验收。
+macOS DMG（`FrameLean-v1.2.0.dmg`，84 MB）已在本地构建并通过 Universal 2 校验：包内 7 个 Mach-O 文件（主二进制、FlutterMacOS、objective_c、libswift_Concurrency、ffmpeg、ffprobe、qmc-decrypt）全部同时包含 x86_64 和 arm64 架构。签名、公证和 Windows 产物由对应发布脚本和 CI 在发布环境生成并验收。
 
 ## 已知风险
 

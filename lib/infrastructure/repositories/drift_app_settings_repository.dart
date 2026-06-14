@@ -2,10 +2,19 @@ import 'package:drift/drift.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/domain/enums/hdr_output_mode.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
+import 'package:framelean/domain/enums/media_processing_preset.dart';
+import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
+import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 import 'package:framelean/infrastructure/repositories/mappers/media_task_config_json_mapper.dart'
     as media_config_json;
@@ -89,6 +98,9 @@ extension SettingsRowMapper on SettingsRow {
   AppSettings toDomain() {
     final defaultMediaConfig = defaultMediaConfigJson;
     if (defaultMediaConfig != null && defaultMediaConfig.isNotEmpty) {
+      final decodedDefaultMediaConfig = media_config_json.decodeMediaTaskConfig(
+        defaultMediaConfig,
+      );
       return AppSettings(
         defaultOutputDirectory: defaultOutputDirectory,
         lastSelectedOutputDirectory: lastSelectedOutputDirectory,
@@ -97,8 +109,8 @@ extension SettingsRowMapper on SettingsRow {
         customFfprobePath: customFfprobePath,
         showRawLog: showRawLog,
         showAdvancedOptions: showAdvancedOptions,
-        defaultMediaConfig: media_config_json.decodeMediaTaskConfig(
-          defaultMediaConfig,
+        defaultMediaConfig: upgradeLegacyInitialDefaultMediaConfig(
+          decodedDefaultMediaConfig,
         ),
         defaultOutputFileNameTemplate: outputFileNameTemplateFromSettings(
           defaultOutputFileNameTemplate,
@@ -137,6 +149,52 @@ extension SettingsRowMapper on SettingsRow {
       taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
     );
   }
+}
+
+MediaTaskConfig upgradeLegacyInitialDefaultMediaConfig(MediaTaskConfig config) {
+  if (!_isLegacyInitialDefaultMediaConfig(config)) {
+    return config;
+  }
+
+  return MediaTaskConfig.initialDefaults();
+}
+
+bool _isLegacyInitialDefaultMediaConfig(MediaTaskConfig config) {
+  final video = config.video;
+  final image = config.image;
+  final audio = config.audio;
+
+  return config.outputDirectory.isEmpty &&
+      config.outputFileName.isEmpty &&
+      config.compressionMode == CompressionMode.preset &&
+      config.preset == MediaProcessingPreset.balanced &&
+      config.targetSizeBytes == null &&
+      config.targetSizeRatio == null &&
+      video != null &&
+      video.outputFormat == MediaOutputFormat.mp4 &&
+      !video.keepOriginalOutputFormat &&
+      video.videoCodec == VideoCodec.h264 &&
+      video.encoderBackend == EncoderBackend.auto &&
+      video.hdrOutputMode == HdrOutputMode.convertToSdr &&
+      video.videoCodecBeforePreserveHdr == null &&
+      video.encoderBackendBeforePreserveHdr == null &&
+      video.resolutionPreset == ResolutionPreset.original &&
+      video.compressionCrf == 28 &&
+      video.smartPreset == SmartCompressionPreset.balanced &&
+      video.preserveMetadata &&
+      image != null &&
+      image.outputFormat == MediaOutputFormat.jpg &&
+      !image.keepOriginalOutputFormat &&
+      image.imageQuality == 100 &&
+      image.resizePreset == ImageResizePreset.original &&
+      !image.preserveMetadata &&
+      audio != null &&
+      audio.outputFormat == MediaOutputFormat.m4a &&
+      !audio.keepOriginalOutputFormat &&
+      audio.bitratePreset == AudioBitratePreset.k192 &&
+      audio.sampleRate == AudioSampleRatePreset.source &&
+      audio.channels == AudioChannelsPreset.source &&
+      audio.preserveMetadata;
 }
 
 AppThemeMode appThemeModeFromSettings(String name) {

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 const frameLeanScreenDesignSize = Size(685, 640);
-const _maxDesktopFontScale = 1.24;
+const _maxDesktopFontScale = 1.34;
 
 double frameLeanFontSizeResolver(num fontSize, ScreenUtil instance) {
   final scaledSize = fontSize * instance.scaleText;

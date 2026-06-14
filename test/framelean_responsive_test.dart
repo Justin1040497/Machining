@@ -29,7 +29,7 @@ void main() {
       ),
     );
 
-    expect(resolvedFontSize, closeTo(14 * 1.24, 0.001));
+    expect(resolvedFontSize, closeTo(14 * 1.34, 0.001));
   });
 
   testWidgets('desktop font scale can shrink in compact windows', (

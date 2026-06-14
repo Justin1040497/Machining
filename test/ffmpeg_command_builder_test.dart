@@ -393,6 +393,25 @@ void main() {
       expect(plan.outputPath, '/videos/source_compressed（2）.mp4');
     });
 
+    test('increments trailing version token before adding numeric suffix', () {
+      final existingPaths = {'/videos/source-v1.mp4', '/videos/source-v2.mp4'};
+      final builder = DefaultFfmpegCommandBuilder(
+        pathExists: existingPaths.contains,
+      );
+      final task = videoTask(
+        inputPath: '/videos/source.mov',
+        config: VideoTaskConfig.initial().copyWith(
+          outputFileName: 'source-v1',
+          videoCodec: VideoCodec.h264,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/videos/source-v3.mp4');
+      expect(plan.args.last, '/videos/source-v3.mp4');
+    });
+
     test('adds scale args when resolution preset is not original', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = videoTask(
@@ -968,7 +987,6 @@ void main() {
       expect(plan.args, contains('-vf'));
       expect(plan.args, containsAllInOrder(['-c:v', 'libwebp']));
       expect(plan.args, containsAllInOrder(['-quality', '76']));
-      expect(plan.args, containsAllInOrder(['-map_metadata', '-1']));
       expect(plan.args.last, '/images/source_compressed.webp');
     });
 

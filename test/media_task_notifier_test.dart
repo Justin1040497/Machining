@@ -96,7 +96,7 @@ void main() {
       expect(task.config.videoCodec, VideoCodec.hevc);
       expect(task.config.smartPreset, SmartCompressionPreset.chat);
       expect(task.config.outputFileName, contains('source'));
-      expect(task.config.outputFileName, contains('压缩'));
+      expect(task.config.outputFileName, isNot(contains('压缩')));
     });
 
     test(

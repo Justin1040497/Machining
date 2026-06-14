@@ -29,10 +29,10 @@ class ImageProcessingConfig {
   factory ImageProcessingConfig.initial() {
     return const ImageProcessingConfig(
       outputFormat: MediaOutputFormat.jpg,
-      keepOriginalOutputFormat: false,
-      imageQuality: 100,
+      keepOriginalOutputFormat: true,
+      imageQuality: 80,
       resizePreset: ImageResizePreset.original,
-      preserveMetadata: false,
+      preserveMetadata: true,
     );
   }
 

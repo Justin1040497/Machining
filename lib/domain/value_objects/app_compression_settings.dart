@@ -16,7 +16,7 @@ class AppCompressionSettings {
   factory AppCompressionSettings.initial() {
     return const AppCompressionSettings(
       defaultOutputVideoCodec: VideoCodec.h264,
-      defaultSmartPreset: SmartCompressionPreset.balanced,
+      defaultSmartPreset: SmartCompressionPreset.chat,
     );
   }
 

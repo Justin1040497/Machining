@@ -5,7 +5,7 @@
 [![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](#ffmpeg--ffprobe-运行时)
 [![License](https://img.shields.io/badge/license-GPLv3%2B-C62828)](#许可说明)
 
-FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具，基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。它把常用的视频、图片、音频分析、压缩、格式输出配置和任务队列能力封装成图形界面，让用户不用手写 FFmpeg 命令也能处理本地媒体文件。
+FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具，基于 Flutter、FFmpeg / FFprobe、Riverpod等技术构建。可以处理常用的视频、图片、音频等媒体任务，对齐进行压缩、格式转换，让用户不用手写 FFmpeg 命令也能处理本地媒体文件。
 
 FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后执行 FFmpeg 任务。图片和音频已进入同一任务模型，支持导入、分析、分类型配置、基础输出处理和完成结果展示。
 
@@ -13,11 +13,16 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
 
 ## 产品截图
 
-![FrameLean 产品截图：视频压缩工作台](https://www.helloimg.com/i/2026/05/28/6a17cc2de7f8e.png)
-
-![FrameLean 产品截图：任务压缩配置](https://www.helloimg.com/i/2026/05/28/6a17cc2cd489c.png)
-
-![FrameLean 产品截图：任务处理结果](https://www.helloimg.com/i/2026/05/28/6a17cc2c76374.png)
+<table>
+<tr>
+  <td><img src="https://www.helloimg.com/i/2026/06/14/6a2e7ed00daf1.png" alt="工作台页面" width="100%"></td>
+  <td><img src="https://www.helloimg.com/i/2026/06/14/6a2e7ed031349.png" alt="任务详情设置" width="100%"></td>
+</tr>
+<tr>
+  <td><img src="https://www.helloimg.com/i/2026/06/14/6a2e7eced7133.png" alt="应用设置页面" width="100%"></td>
+  <td><img src="https://www.helloimg.com/i/2026/06/14/6a2e7ed04b5e7.png" alt="通知中心页面" width="100%"></td>
+</tr>
+</table>
 
 ## 平台范围
 
@@ -26,28 +31,35 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
 - macOS 10.15+（Intel x86_64 与 Apple Silicon arm64）
 - Windows x64
 
-仓库中保留了 Flutter 默认生成的 Linux、Web 等工程目录，但当前发布和运行时打包说明以 macOS Universal 2 和 Windows x64 为准。
+当前发布和运行时打包说明以 macOS Universal 2 和 Windows x64 为准。
 
 ## 功能
 
 - 拖拽或选择导入本地视频、图片、音频和部分专有音频输入文件。
 - 使用 FFprobe 分析媒体信息：视频时长、分辨率、编码、码率、色彩信息；图片尺寸、编码和像素信息；音频时长、编码、声道、采样率和码率。
-- 视频任务支持缩略图、预览帧、推荐方案、自定义目标体积、输出封装、视频编码、编码后端和分辨率配置。
-- 图片任务支持输出格式、分辨率、质量和元数据保留配置，支持 JPEG、PNG、WebP、BMP、TIFF、GIF 等输出方向。
-- 音频任务支持输出格式、码率、采样率和声道配置，支持 MP3、M4A/AAC、WAV、FLAC、AIFF、WMA、Opus、Ogg Opus 等输出方向。
+- 三种类型的媒体任务都支持保留元数据
+- 支持识别的媒体格式：
+  - 19 种视频格式（MP4、MOV、MKV、AVI、WEBM、M4V、FLV、WMV、MPG/MPEG、TS、M2TS/MTS、3GP/3G2、VOB、OGV、DV、ASF）
+  - 13 种图片格式（JPG/JPEG、PNG、WebP、GIF、BMP、TIF/TIFF、HEIC/HEIF、AVIF、ICO、TGA）
+  - 20 种音频格式（MP3、WAV、AAC、FLAC、M4A、OGG/OGA、Opus、WEBM、AIFF/AIF/AIFC、WMA、AMR、APE、ALAC、CAF、AU、WV、TTA），以及 NCM、MGG、MFLAC 等专有音频格式。
+
+- 视频任务支持缩略图、预览帧、推荐方案、自定义目标体积、输出封装（MP4 / MOV / MKV）、视频编码（H.264 / H.265 / HEVC）、编码处理器（ libx264 / libx265 / VideoToolbox / NVENC / QSV / AMF）和分辨率配置（保持原始 / 2160p / 1080p / 720p / 480p）。
+- 图片任务支持输出格式、分辨率、质量，支持 JPEG、PNG、WebP、BMP、TIFF、GIF 等输出方向。
+- 音频任务支持输出格式、码率、采样率、声道，支持 MP3、M4A/AAC、WAV、FLAC、AIFF、WMA、Opus、Ogg Opus 等输出方向。
 - NCM 输入使用本地 Dart 解密适配；MGG、MFLAC 等 QMC 变体通过外部适配器或直接放置的 `qmc-decrypt` 运行时接入。
-- 串行执行任务队列，支持开始、暂停、继续、取消、删除、重试、重来、重命名和清空。
+- 串行执行任务队列，支持开始、暂停、继续、取消、删除、重试等操作。
 - 任务列表支持拖拽排序，并将顺序持久化到本地 SQLite。
 - 应用重启后从本地 SQLite 恢复任务、设置、默认媒体配置和主题偏好。
 - 源文件丢失或变更后提示重新指定或重新分析。
-- 压缩完成后显示输出路径，并打开文件所在位置。
 - 内置或自动查找 FFmpeg / FFprobe，并检测当前运行时可用的视频、图片和音频编码器。
 - 工作台支持深浅主题切换；启动前读取已保存主题，避免打开后从浅色闪到深色。
-- 工作台 UI 使用统一主题色 token 和 `flutter_screenutil` 控制桌面尺寸适配。
+- 应用通知中心：工作台右上角统一入口，未读角标、右向左滑入浮层、按类型展示、批量已读和清扫全部通知。
+- 输出文件名模板：支持 `{source}`、`{date}`、`{action}`、`{codec}`、`{encoder}`、`{version}` 变量，输入框自由编辑，右侧常用模板菜单快速切换。
+- HDR10 / HLG 视频自动通过 `zscale + tonemap` 转 SDR；保持 HDR 输出限定为 HEVC Main10，Dolby Vision Profile 5 风险拦截。
 
 ## 怎么用
 
-1. 打开 FrameLean。
+1. 打开 FrameLean，按需进入左下角设置页面配置默认媒体格式、输出路径和通知偏好。
 2. 将媒体文件拖入窗口，或使用导入按钮选择本地文件。
 3. 在任务列表中选择任务，查看源文件信息、缩略图或媒体摘要。
 4. 打开任务详情设置，按媒体类型调整配置：
@@ -59,7 +71,7 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
 6. 点击开始处理，任务进入本地 FFmpeg 队列。
 7. 处理完成后，在完成弹窗或任务信息中打开输出文件所在位置。
 
-如果任务失败，可以查看任务状态和错误提示后重试。若源文件被移动或删除，应用会将任务标记为源文件丢失，需要重新指定文件。
+如果任务失败，可以查看任务状态和错误提示后重试。若源文件被移动或删除，应用会将任务标记为源文件丢失，需要重新指定文件，如果您想处理的媒体不被支持，可以多多提Issues，作者很需要你的建议！🤗
 
 ## 开发环境
 
@@ -164,7 +176,7 @@ scripts/build/build_ffmpeg_macos_arch.sh x86_64
 scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-脚本会构建 FFmpeg 7.1.1、x264、LAME、libwebp 和 Opus，合并为
+脚本会构建 zimg、FFmpeg 7.1.1、x264、LAME、libwebp 和 Opus，合并为
 Universal 2 运行时，并检查：
 
 - 没有 Homebrew 动态库依赖。
@@ -316,6 +328,8 @@ macOS 自动选择优先级：
 ```text
 VideoToolbox -> libx264 / libx265
 ```
+
+HDR / HVC1 / 10-bit 等高危源优先使用软件编码，显式选择 VideoToolbox 时仍尊重用户选择。
 
 Windows 自动选择优先级：
 

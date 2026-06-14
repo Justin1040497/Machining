@@ -120,15 +120,23 @@ jobs:
       - name: Build Windows zip and installer
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 
-      - name: Upload Windows release artifacts
+      - name: Upload Windows portable zip artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FrameLean-windows-x64
-          path: |
-            build/windows/x64/runner/FrameLean-v*-windows-x64.zip
-            build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe
+          name: FrameLean-windows-x64-portable
+          path: build/windows/x64/runner/FrameLean-v*-windows-x64.zip
           if-no-files-found: error
           retention-days: 14
+          compression-level: 0
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FrameLean-windows-x64-installer
+          path: build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
 
       - name: Attach Windows packages to tag release
         if: startsWith(github.ref, 'refs/tags/v')

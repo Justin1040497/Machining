@@ -15,7 +15,10 @@ x86_64 + arm64
 ## 构建边界
 
 - Flutter macOS Release app 必须包含 x86_64 和 arm64。
+- macOS 插件原生依赖使用 Flutter Swift Package Manager；工程中不保留 CocoaPods 的 `Podfile`、`Podfile.lock`、`Pods.xcodeproj`、`Pods-Runner` include 或 `[CP]` Build Phase。
+- GitHub Actions 在打包 job 中显式启用 SwiftPM；DMG 脚本使用 UTF-8 locale 并在构建前后拦截 CocoaPods 残留，避免回落到 `pod install`。
 - FFmpeg、FFprobe 和随包 QMC 适配器必须分别在原生架构 host 上构建，再使用 `lipo` 合并。
+- CI 上传架构 slice 时使用 tar.gz 封装，避免 GitHub Actions artifact zip 丢失 macOS 可执行位；下载后先解包再合并。
 - Xcode Build Phase 只从 `macos-universal` 目录复制运行时。
 - DMG 构建先生成 app，再扫描包内全部 Mach-O 文件，验证通过后才能进入签名、公证和 DMG 生成。
 - QMC 是可选能力；没有 Universal QMC 时可以不随包发布，但不能回退携带纯 arm64 适配器。
