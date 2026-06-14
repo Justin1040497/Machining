@@ -325,6 +325,8 @@ test/
 ### macOS 构建验证
 
 - GitHub Actions `build-macos.yml` 安装 `autoconf`、`automake`、`libtool`、`nasm` 和 `pkg-config`。
+- GitHub Actions `build-macos.yml` 显式启用 Flutter Swift Package Manager；`macos/` 工程不应包含 `Podfile`、`Podfile.lock`、`Pods.xcodeproj`、`Pods-Runner` 或 `[CP]` Build Phase。
+- `scripts/release/build_dmg_macos.sh` 使用 UTF-8 locale，并在 `flutter build macos --release` 前后检查 CocoaPods 残留，避免 release runner 继续触发 `pod install`。
 - macOS 运行时 slice 通过 tar.gz 上传 / 下载，避免 GitHub Actions artifact zip 丢失可执行权限；Universal 合并脚本能在必要时修复可执行位，并找到真实架构 slice 下的 `ffmpeg`、`ffprobe` 和 QMC 适配器。
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-export LC_ALL=C
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RELEASE_DIR="${ROOT}/build/macos/Build/Products/Release"
@@ -21,6 +22,33 @@ MERGE_QMC_SCRIPT="${ROOT}/scripts/build/build_qmc_decrypt_macos_universal.sh"
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "error: missing required command: $1" >&2
+    exit 1
+  fi
+}
+
+assert_macos_swiftpm_project() {
+  local stale_ref_files=()
+
+  if [[ -e "$ROOT/macos/Podfile" || -e "$ROOT/macos/Podfile.lock" ]]; then
+    echo "error: macOS CocoaPods integration is still present." >&2
+    echo "Remove macos/Podfile and macos/Podfile.lock; the macOS project should use Flutter Swift Package Manager." >&2
+    exit 1
+  fi
+
+  for path in \
+    "$ROOT/macos/Flutter/Flutter-Debug.xcconfig" \
+    "$ROOT/macos/Flutter/Flutter-Release.xcconfig" \
+    "$ROOT/macos/Runner.xcodeproj/project.pbxproj" \
+    "$ROOT/macos/Runner.xcworkspace/contents.xcworkspacedata"; do
+    if [[ -f "$path" ]] && grep -E 'Pods-Runner|Pods_Runner|\[CP\]|Pods/Pods\.xcodeproj' "$path" >/dev/null; then
+      stale_ref_files+=("${path#$ROOT/}")
+    fi
+  done
+
+  if [[ "${#stale_ref_files[@]}" -gt 0 ]]; then
+    echo "error: macOS project still contains CocoaPods references:" >&2
+    printf '  %s\n' "${stale_ref_files[@]}" >&2
+    echo "Remove CocoaPods references before building the Universal 2 DMG." >&2
     exit 1
   fi
 }
@@ -133,10 +161,13 @@ fi
 echo "Building Universal 2 macOS app..."
 cd "$ROOT"
 rm -rf "${ROOT}/build/macos"
+flutter config --enable-swift-package-manager
+assert_macos_swiftpm_project
 flutter build macos \
   --release \
   --obfuscate \
   --split-debug-info=build/debug-macos-info
+assert_macos_swiftpm_project
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "error: Release app was not generated: $APP_PATH" >&2

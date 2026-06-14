@@ -28,6 +28,7 @@ v1.2.0 汇总 `v1.1.5..release/v1.2.0` 的全部变更。版本重点是把 Fram
 - 修复图片 / 音频任务详情误读视频配置、保持原始选项重复、输出模板来源和 HDR 色彩参数问题。
 - 修复 macOS Universal 2 CI 构建 zimg 时缺少 Automake / Libtool 依赖，以及 Windows 打包脚本误把 `ffprobe.exe -version` 管道截断当作版本校验失败的问题。
 - 修复 macOS Universal artifact 解包目录不稳定和 artifact zip 丢失可执行权限导致合并脚本找不到或无法执行运行时文件的问题。
+- 修复 macOS Universal DMG 打包仍保留 CocoaPods 集成导致 Flutter SwiftPM 构建继续触发 `pod install`，并在 Ruby ASCII-8BIT locale 下失败的问题；macOS 工程改为 SwiftPM-only，release 脚本加入 UTF-8 和 CocoaPods 残留护栏。
 - Windows CI artifact 改为分别上传便携 ZIP 与 `setup.exe` 安装器，不再把两个发布包混在同一个 artifact zip 中。
 - 修复 Windows 完成提示音依赖 PowerShell 播放的风险，改为 Flutter 音频插件播放内置 asset。
 - 修复 Windows / 4K 大窗口场景字体被固定压回基础字号导致显示偏小的问题。
@@ -40,6 +41,7 @@ v1.2.0 汇总 `v1.1.5..release/v1.2.0` 的全部变更。版本重点是把 Fram
 - 新增并通过 Clean Architecture import 守卫测试。
 - P0-P2 触达模块 76 项回归测试通过。
 - 发布 workflow 和打包脚本已补齐 macOS autotools 依赖与 Windows 原生命令版本校验保护；正式 CI 需重新触发确认产物上传。
+- macOS 发布链已移除 CocoaPods 工程集成，正式 CI 需确认 SwiftPM 生成的插件包参与构建且不再运行 `pod install`。
 - 数据库当前 schema version 为 23；旧视频列、历史压缩模式映射和 `media_config_json` 回退仍保留。
 - 主要发布平台为 macOS Universal 2 和 Windows x64；Linux / Web 不在本版本支持范围。
 - 最终签名 / 公证 DMG、Intel 真机和干净 Windows x64 安装器验收需在正式发布环境完成。

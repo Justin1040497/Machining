@@ -65,6 +65,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复非视频任务详情、保持原始格式 / 分辨率、输出命名和 HDR 色彩参数边界。
 - 修复 macOS Universal 2 CI 构建 zimg 时缺少 `aclocal` 的原生依赖声明，以及 Windows 打包脚本因截断 `ffprobe.exe -version` 管道而误判运行时版本校验失败的问题。
 - 修复 macOS Universal 合并脚本在 GitHub Actions artifact 下载后多一层目录、以及 artifact zip 丢失可执行权限时找不到或无法执行 `ffmpeg` / `ffprobe` 或 QMC 适配器的问题。
+- 修复 macOS Universal DMG 构建仍保留 CocoaPods 集成导致 Flutter SwiftPM 路径继续触发 `pod install`，并在 CI Ruby ASCII-8BIT locale 下失败的问题；macOS 工程改为只保留 Swift Package Manager 集成，发布脚本强制 UTF-8 并拦截 CocoaPods 残留。
 - 修复输出文件名模板包含 `{version}` 时重复处理仍输出 `filename-v1（1）` 的问题；现在已有 `v1` 时优先输出 `v2` / `v3`。
 - 修复输出配置中“保存到原文件旁”的错字，统一为“保存到源文件旁”。
 - 移除已无引用的旧设置弹窗组件和未使用的 `cupertino_icons` 依赖。
