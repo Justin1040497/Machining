@@ -78,7 +78,8 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 P0-P2 触达模块 76 项回归测试。
 - 通过 release workflow / 打包脚本语法检查。
 - 通过 `git diff --check`。
-- 最终 macOS DMG 签名 / 公证、Intel 真机与 Windows x64 安装器真机验收仍需在发布环境完成。
+- macOS DMG 已本地构建并通过 Universal 2 校验（7 个 Mach-O 全部 arm64 + x86_64）；签名、公证和 Windows 安装器验收仍需在发布环境完成。
+- 图片和音频端到端验收已通过 macOS 和 Windows。
 
 ## 2026-06-13｜v1.2.0｜No Release
 

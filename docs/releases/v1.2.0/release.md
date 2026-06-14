@@ -56,7 +56,7 @@ FrameLean-v1.2.0-windows-x64.zip
 FrameLean-v1.2.0-windows-x64-setup.exe
 ```
 
-本次本地收口未生成签名、公证或 Windows 安装器产物；由对应发布脚本和 CI 在发布环境生成并验收。
+macOS DMG（`FrameLean-v1.2.0.dmg`，84 MB）已在本地构建并通过 Universal 2 校验：包内 7 个 Mach-O 文件（主二进制、FlutterMacOS、objective_c、libswift_Concurrency、ffmpeg、ffprobe、qmc-decrypt）全部同时包含 x86_64 和 arm64 架构。签名、公证和 Windows 产物由对应发布脚本和 CI 在发布环境生成并验收。
 
 ## 已知风险
 
