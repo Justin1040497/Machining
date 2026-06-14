@@ -219,8 +219,7 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
         return base.copyWith(
           defaultMediaConfig: updatedConfig,
           defaultOutputVideoCodec: video.videoCodec,
-          defaultSmartPreset:
-              video.smartPreset ?? SmartCompressionPreset.balanced,
+          defaultSmartPreset: video.smartPreset ?? SmartCompressionPreset.chat,
         );
       case _SettingsSection.image:
         final updatedConfig = savedSettings.defaultMediaConfig.copyWith(

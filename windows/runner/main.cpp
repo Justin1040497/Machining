@@ -10,6 +10,45 @@
 
 namespace {
 
+constexpr unsigned int kDefaultWindowWidth = 940;
+constexpr unsigned int kDefaultWindowHeight = 720;
+constexpr double kWindowWidthRatio = 0.62;
+constexpr double kWindowHeightRatio = 0.76;
+constexpr double kWindowMargin = 32.0;
+constexpr double kMaxWindowWidth = 1320.0;
+constexpr double kMaxWindowHeight = 920.0;
+
+Win32Window::Size AdaptivePrimaryMonitorSize() {
+  POINT primary_point = {0, 0};
+  HMONITOR monitor = MonitorFromPoint(primary_point, MONITOR_DEFAULTTOPRIMARY);
+
+  MONITORINFO monitor_info;
+  monitor_info.cbSize = sizeof(MONITORINFO);
+  if (!GetMonitorInfo(monitor, &monitor_info)) {
+    return Win32Window::Size(kDefaultWindowWidth, kDefaultWindowHeight);
+  }
+
+  const UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+  const double scale_factor = dpi / 96.0;
+  const RECT work_area = monitor_info.rcWork;
+  const double logical_width =
+      (work_area.right - work_area.left) / scale_factor;
+  const double logical_height =
+      (work_area.bottom - work_area.top) / scale_factor;
+  const double usable_width = std::max(360.0, logical_width - kWindowMargin);
+  const double usable_height = std::max(360.0, logical_height - kWindowMargin);
+  const double target_width =
+      std::clamp(logical_width * kWindowWidthRatio,
+                 static_cast<double>(kDefaultWindowWidth), kMaxWindowWidth);
+  const double target_height =
+      std::clamp(logical_height * kWindowHeightRatio,
+                 static_cast<double>(kDefaultWindowHeight), kMaxWindowHeight);
+
+  return Win32Window::Size(
+      static_cast<unsigned int>(std::min(target_width, usable_width)),
+      static_cast<unsigned int>(std::min(target_height, usable_height)));
+}
+
 Win32Window::Point CenteredPrimaryMonitorOrigin(
     const Win32Window::Size& size) {
   POINT primary_point = {0, 0};
@@ -60,7 +99,7 @@ int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
   project.set_dart_entrypoint_arguments(std::move(command_line_arguments));
 
   FlutterWindow window(project);
-  Win32Window::Size size(685, 685);
+  Win32Window::Size size = AdaptivePrimaryMonitorSize();
   Win32Window::Point origin = CenteredPrimaryMonitorOrigin(size);
   if (!window.Create(L"FrameLean", origin, size)) {
     return EXIT_FAILURE;

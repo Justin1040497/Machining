@@ -90,7 +90,7 @@ test/
 - 应用设置页面的侧边栏导航、三类默认媒体配置、缓存清理入口和保存返回行为。
 - “关闭通知角标”默认开启，可按应用设置分区独立保存、取消和持久化读取。
 - “任务完成后以弹窗的形式提示”默认开启；关闭后任务完成不再打开完成弹窗，但仍写入通知中心并显示停留更久的临时通知。
-- 任务完成提示音默认不播放，可在应用设置分区选择、保存、取消和持久化读取；本地播放通过 `audioplayers` 播放 Flutter asset，不启动 PowerShell。
+- 任务完成提示音默认使用“清脆完成”，可在应用设置分区选择、保存、取消和持久化读取；本地播放通过 `audioplayers` 播放 Flutter asset，不启动 PowerShell。
 - 底部栏设置入口和新任务默认配置应用。
 
 ### Application Use Cases
@@ -154,7 +154,7 @@ test/
 - 目标体积 / 目标码率压缩命令。
 - 智能预设和 CRF 参数。
 - 输出格式、视频编码、分辨率预设。
-- 输出目录、输出文件名、`{version}` 模板变量和路径冲突中文括号后缀。
+- 输出目录、输出文件名、`{version}` 模板变量、`v1` 已存在时优先递增到 `v2` / `v3` 的路径冲突规则，以及无版本 token 时的中文括号后缀。
 - 预览片段命令和预览帧命令。
 - 硬件编码和软件编码参数差异。
 - SDR 源色彩元数据按 FFprobe 结果保留；未知 SDR 才按分辨率推断，不再统一硬贴 BT.709。
@@ -274,7 +274,7 @@ test/
 - “已修改”和“已压缩”显示在弹窗底部按钮同排左侧，不显示在推荐方案或目标体积区域内。
 - 图片任务通过 10% 到 100% 的分段质量滑杆修改质量；滑杆标题同排右侧显示保留质量百分比。
 - 图片、视频和音频任务配置面板可修改分类型处理配置；非视频任务打开任务详情时不得读取视频专属编码器状态。
-- 图片、视频和音频任务都可配置元数据保留策略，其中视频 / 音频默认保留，图片默认不保留。
+- 图片、视频和音频任务都可配置元数据保留策略，三类媒体默认均保留元数据。
 
 ### 队列和任务控制
 
@@ -325,7 +325,7 @@ test/
 ### macOS 构建验证
 
 - GitHub Actions `build-macos.yml` 安装 `autoconf`、`automake`、`libtool`、`nasm` 和 `pkg-config`。
-- macOS Universal 合并脚本能处理 GitHub Actions artifact 下载后多一层目录的情况，并找到真实架构 slice 下的 `ffmpeg`、`ffprobe` 和 QMC 适配器。
+- macOS 运行时 slice 通过 tar.gz 上传 / 下载，避免 GitHub Actions artifact zip 丢失可执行权限；Universal 合并脚本能在必要时修复可执行位，并找到真实架构 slice 下的 `ffmpeg`、`ffprobe` 和 QMC 适配器。
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
 - `scripts/release/verify_macos_universal.sh FrameLean.app` 成功，包内 Mach-O 文件均包含 `x86_64` 和 `arm64`。
@@ -352,7 +352,7 @@ test/
 - Windows app 可以启动、导入、压缩和打开输出位置。
 - MGG / MFLAC 输入能够调用安装包内的 `qmc-decrypt.exe`；需要 ekey 的变体显示可读错误。
 - GPU 编码器不可用时可以回退到软件编码。
-- GitHub Actions artifact 和 Tag Release 同时包含 ZIP 与 `setup.exe`。
+- GitHub Actions artifact 分别上传便携 ZIP 和 `setup.exe` 安装器；Tag Release 同时附加两个发布包。
 
 ## 内置 FFmpeg 验证
 

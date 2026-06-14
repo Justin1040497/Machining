@@ -139,7 +139,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
 
   Widget buildVideoSection() {
     final config = videoConfig;
-    final smartPreset = config.smartPreset ?? SmartCompressionPreset.balanced;
+    final smartPreset = config.smartPreset ?? SmartCompressionPreset.chat;
 
     return _SettingsForm(
       title: '视频任务默认值配置',
@@ -420,7 +420,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         _FormFieldLabel('默认导出地址'),
         const SizedBox(height: 8),
         _SettingsCheckbox(
-          label: '保存到原文件旁',
+          label: '保存到源文件旁',
           value: saveOutputToSourceDirectory,
           onChanged: (value) {
             updateViewState(() => saveOutputToSourceDirectory = value);
@@ -657,15 +657,10 @@ class _OutputTemplateVariableHelp extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '文件名模板会在导入或保存输出配置时生成默认导出名。'
-            '如果目标文件已存在，导出时会自动追加“（1）”“（2）”。',
-            style: style,
-          ),
+          Text('文件名模板用于生成默认导出名。没有 {version} 时，重名会追加“（1）”“（2）”。', style: style),
           const SizedBox(height: 8),
           Text(
-            '示例：{source}-{date}-{action}-{version} '
-            '会生成 holiday-20260614-压缩-v1。',
+            '如果模板包含 {version}，重复导出会优先递增为 v2、v3，再继续处理重名。',
             style: style.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: 10),
@@ -676,12 +671,12 @@ class _OutputTemplateVariableHelp extends StatelessWidget {
           ),
           _OutputTemplateVariableHelpRow(
             token: 'date',
-            description: '当前日期',
+            description: '当前日期（yyyyMMdd）',
             style: style,
           ),
           _OutputTemplateVariableHelpRow(
             token: 'version',
-            description: '处理版本（v1 / v2 ...）',
+            description: '输出版本（v1 / v2 ...）',
             style: style,
           ),
           _OutputTemplateVariableHelpRow(
@@ -774,6 +769,10 @@ class _OutputFileNameTemplateOption {
 
 const _outputFileNameTemplateOptions = [
   _OutputFileNameTemplateOption(
+    label: '源文件名 + 行为',
+    template: '{source}-{action}',
+  ),
+  _OutputFileNameTemplateOption(
     label: '源文件名 + 时间 + 行为 + 版本',
     template: '{source}-{date}-{action}-{version}',
   ),
@@ -788,10 +787,6 @@ const _outputFileNameTemplateOptions = [
   _OutputFileNameTemplateOption(
     label: '源文件名 + 编码器',
     template: '{source}-{encoder}',
-  ),
-  _OutputFileNameTemplateOption(
-    label: '源文件名 + 行为',
-    template: '{source}-{action}',
   ),
   _OutputFileNameTemplateOption(
     label: '源文件名 + 时间',

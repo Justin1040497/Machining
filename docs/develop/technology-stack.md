@@ -27,9 +27,9 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 桌面客户端 | Flutter Desktop | 已使用 | 当前主应用框架 |
 | 客户端语言 | Dart 3.11 约束 | 已使用 | `pubspec.yaml` 中 `environment.sdk: ^3.11.0` |
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
-| 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过工作台弹窗打开 |
+| 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过 `/settings` 全屏页面打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 21 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 23 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
 | 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |

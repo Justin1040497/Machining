@@ -4,7 +4,7 @@
 
 FrameLean 在 v1.2.0 开发期接入任务完成提示音。用户可以在设置页的“应用设置”分区选择“不通知”或 5 个内置短提示音。
 
-提示音设置保存到 `settings.task_completion_sound`，默认值为 `none`。任务完成后，FFmpeg 队列仍只负责发布类型化任务成功通知；根级 `AppNotificationHost` 根据当前设置触发音效播放。
+提示音设置保存到 `settings.task_completion_sound`，默认值为 `clean_success`（清脆完成）。任务完成后，FFmpeg 队列仍只负责发布类型化任务成功通知；根级 `AppNotificationHost` 根据当前设置触发音效播放。
 
 ## 播放边界
 

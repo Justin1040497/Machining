@@ -15,7 +15,7 @@ void main() {
     final settings = AppSettings.initial();
 
     expect(settings.defaultOutputVideoCodec, VideoCodec.h264);
-    expect(settings.defaultSmartPreset, SmartCompressionPreset.balanced);
+    expect(settings.defaultSmartPreset, SmartCompressionPreset.chat);
     expect(settings.saveOutputToSourceDirectory, isTrue);
     expect(
       settings.defaultOutputFileNameTemplate,
@@ -24,11 +24,18 @@ void main() {
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.video), isTrue);
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.image), isTrue);
     expect(settings.defaultMediaConfig.isValidFor(MediaKind.audio), isTrue);
-    expect(settings.defaultMediaConfig.image?.imageQuality, 100);
-    expect(settings.defaultMediaConfig.image?.preserveMetadata, isFalse);
+    expect(settings.defaultMediaConfig.video?.keepOriginalOutputFormat, isTrue);
+    expect(
+      settings.defaultMediaConfig.video?.smartPreset,
+      SmartCompressionPreset.chat,
+    );
+    expect(settings.defaultMediaConfig.image?.keepOriginalOutputFormat, isTrue);
+    expect(settings.defaultMediaConfig.image?.imageQuality, 80);
+    expect(settings.defaultMediaConfig.image?.preserveMetadata, isTrue);
+    expect(settings.defaultMediaConfig.audio?.keepOriginalOutputFormat, isTrue);
     expect(settings.themeMode, AppThemeMode.system);
     expect(settings.hideNotificationBadge, isTrue);
-    expect(settings.taskCompletionSound, TaskCompletionSound.none);
+    expect(settings.taskCompletionSound, TaskCompletionSound.cleanSuccess);
   });
 
   test('copyWith can clear nullable paths and update default fields', () {

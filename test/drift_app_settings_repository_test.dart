@@ -98,6 +98,55 @@ void main() {
     expect(settings.taskCompletionSound, TaskCompletionSound.servoConfirm);
   });
 
+  test('settings row upgrades exact legacy media defaults', () {
+    final legacyMediaConfig = MediaTaskConfig.initialDefaults().copyWith(
+      video: VideoProcessingConfig.initial().copyWith(
+        keepOriginalOutputFormat: false,
+        smartPreset: SmartCompressionPreset.balanced,
+      ),
+      image: ImageProcessingConfig.initial().copyWith(
+        keepOriginalOutputFormat: false,
+        imageQuality: 100,
+        preserveMetadata: false,
+      ),
+      audio: MediaTaskConfig.initialDefaults().audio!.copyWith(
+        keepOriginalOutputFormat: false,
+      ),
+    );
+    final row = SettingsRow(
+      id: 1,
+      defaultOutputDirectory: null,
+      lastSelectedOutputDirectory: null,
+      saveOutputToSourceDirectory: true,
+      customFfmpegPath: null,
+      customFfprobePath: null,
+      showRawLog: false,
+      showAdvancedOptions: false,
+      defaultOutputVideoCodec: 'h264',
+      defaultCompressionSmartPreset: 'balanced',
+      defaultOutputFileNameTemplate: '{source}-{date}-{action}',
+      defaultMediaConfigJson: encodeMediaTaskConfig(legacyMediaConfig),
+      themeMode: 'system',
+      hideNotificationBadge: true,
+      showTaskCompletionDialog: true,
+      taskCompletionSound: 'none',
+      createdAt: 1,
+      updatedAt: 2,
+    );
+
+    final settings = row.toDomain();
+
+    expect(settings.defaultSmartPreset, SmartCompressionPreset.chat);
+    expect(settings.defaultMediaConfig.video?.keepOriginalOutputFormat, isTrue);
+    expect(
+      settings.defaultMediaConfig.video?.smartPreset,
+      SmartCompressionPreset.chat,
+    );
+    expect(settings.defaultMediaConfig.image?.imageQuality, 80);
+    expect(settings.defaultMediaConfig.image?.preserveMetadata, isTrue);
+    expect(settings.defaultMediaConfig.audio?.keepOriginalOutputFormat, isTrue);
+  });
+
   test('settings row falls back to system theme for unknown theme values', () {
     final row = SettingsRow(
       id: 1,

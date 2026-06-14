@@ -26,8 +26,8 @@ constexpr const wchar_t kGetPreferredBrightnessRegKey[] =
   L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize";
 constexpr const wchar_t kGetPreferredBrightnessRegValue[] = L"AppsUseLightTheme";
 
-constexpr int kMinWindowWidth = 685;
-constexpr int kMinWindowHeight = 685;
+constexpr int kMinWindowWidth = 760;
+constexpr int kMinWindowHeight = 620;
 
 // The number of Win32Window objects that currently exist.
 static int g_active_window_count = 0;

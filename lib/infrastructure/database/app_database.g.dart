@@ -129,7 +129,7 @@ class $SettingsRowsTable extends SettingsRows
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('balanced'),
+        defaultValue: const Constant('chat'),
       );
   static const VerificationMeta _defaultOutputFileNameTemplateMeta =
       const VerificationMeta('defaultOutputFileNameTemplate');
@@ -141,7 +141,7 @@ class $SettingsRowsTable extends SettingsRows
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('{source}-{date}-{action}'),
+        defaultValue: const Constant('{source}-{action}'),
       );
   static const VerificationMeta _defaultMediaConfigJsonMeta =
       const VerificationMeta('defaultMediaConfigJson');
@@ -206,7 +206,7 @@ class $SettingsRowsTable extends SettingsRows
         false,
         type: DriftSqlType.string,
         requiredDuringInsert: false,
-        defaultValue: const Constant('none'),
+        defaultValue: const Constant('clean_success'),
       );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',

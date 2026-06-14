@@ -91,7 +91,7 @@ void main() {
       );
 
       expect(config.outputDirectory, '/tmp/output');
-      expect(config.outputFileName, 'photo-20260101-处理');
+      expect(config.outputFileName, 'photo-处理');
       expect(config.video, isNull);
       expect(config.audio, isNull);
       expect(config.image?.imageQuality, 61);
@@ -114,7 +114,7 @@ void main() {
       );
 
       expect(config.outputDirectory, isEmpty);
-      expect(config.outputFileName, 'track-20260101-处理');
+      expect(config.outputFileName, 'track-处理');
       expect(config.video, isNull);
       expect(config.image, isNull);
       expect(config.audio?.bitratePreset, AudioBitratePreset.k128);
@@ -207,9 +207,11 @@ void main() {
         defaultMediaConfig: MediaTaskConfig.initialDefaults().copyWith(
           image: ImageProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
           ),
           audio: AudioProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.oggOpus,
+            keepOriginalOutputFormat: false,
           ),
         ),
       );
@@ -233,7 +235,7 @@ void main() {
   });
 
   group('buildDefaultOutputFileName', () {
-    test('renders the default source date action template', () {
+    test('renders the default source action template', () {
       final fileName = buildDefaultOutputFileName(
         sourceFileName: 'holiday.mov',
         mediaKind: MediaKind.video,
@@ -242,7 +244,7 @@ void main() {
         now: DateTime(2026, 6, 12),
       );
 
-      expect(fileName, 'holiday-20260612-压缩');
+      expect(fileName, 'holiday-压缩');
     });
 
     test('uses conversion as the action for conversion tasks', () {

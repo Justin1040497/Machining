@@ -42,19 +42,25 @@ jobs:
       - name: Build QMC adapter
         run: scripts/build/build_qmc_decrypt_macos_arch.sh ${{ matrix.arch }}
 
+      - name: Archive FFmpeg runtime slice
+        run: tar -C third_party/ffmpeg/macos-${{ matrix.output_label }} -czf "$RUNNER_TEMP/framelean-ffmpeg-macos-${{ matrix.output_label }}.tar.gz" .
+
       - name: Upload FFmpeg runtime slice
         uses: actions/upload-artifact@v4
         with:
           name: framelean-ffmpeg-macos-${{ matrix.output_label }}
-          path: third_party/ffmpeg/macos-${{ matrix.output_label }}
+          path: ${{ runner.temp }}/framelean-ffmpeg-macos-${{ matrix.output_label }}.tar.gz
           if-no-files-found: error
           retention-days: 14
+
+      - name: Archive QMC adapter slice
+        run: tar -C third_party/audio_adapters/qmc/macos-${{ matrix.output_label }} -czf "$RUNNER_TEMP/framelean-qmc-macos-${{ matrix.output_label }}.tar.gz" .
 
       - name: Upload QMC adapter slice
         uses: actions/upload-artifact@v4
         with:
           name: framelean-qmc-macos-${{ matrix.output_label }}
-          path: third_party/audio_adapters/qmc/macos-${{ matrix.output_label }}
+          path: ${{ runner.temp }}/framelean-qmc-macos-${{ matrix.output_label }}.tar.gz
           if-no-files-found: error
           retention-days: 14
 
@@ -80,25 +86,37 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: framelean-ffmpeg-macos-arm64
-          path: third_party/ffmpeg/macos-arm64
+          path: ${{ runner.temp }}/framelean-runtime-slices/ffmpeg-arm64
 
       - name: Download x86_64 FFmpeg runtime
         uses: actions/download-artifact@v4
         with:
           name: framelean-ffmpeg-macos-x64
-          path: third_party/ffmpeg/macos-x64
+          path: ${{ runner.temp }}/framelean-runtime-slices/ffmpeg-x64
 
       - name: Download arm64 QMC adapter
         uses: actions/download-artifact@v4
         with:
           name: framelean-qmc-macos-arm64
-          path: third_party/audio_adapters/qmc/macos-arm64
+          path: ${{ runner.temp }}/framelean-runtime-slices/qmc-arm64
 
       - name: Download x86_64 QMC adapter
         uses: actions/download-artifact@v4
         with:
           name: framelean-qmc-macos-x64
-          path: third_party/audio_adapters/qmc/macos-x64
+          path: ${{ runner.temp }}/framelean-runtime-slices/qmc-x64
+
+      - name: Restore downloaded runtime slices
+        run: |
+          mkdir -p \
+            third_party/ffmpeg/macos-arm64 \
+            third_party/ffmpeg/macos-x64 \
+            third_party/audio_adapters/qmc/macos-arm64 \
+            third_party/audio_adapters/qmc/macos-x64
+          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/ffmpeg-arm64/framelean-ffmpeg-macos-arm64.tar.gz" -C third_party/ffmpeg/macos-arm64
+          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/ffmpeg-x64/framelean-ffmpeg-macos-x64.tar.gz" -C third_party/ffmpeg/macos-x64
+          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/qmc-arm64/framelean-qmc-macos-arm64.tar.gz" -C third_party/audio_adapters/qmc/macos-arm64
+          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/qmc-x64/framelean-qmc-macos-x64.tar.gz" -C third_party/audio_adapters/qmc/macos-x64
 
       - name: Merge Universal runtimes
         run: |

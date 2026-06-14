@@ -76,6 +76,11 @@ class FfmpegOutputPathBuilder {
       return preferredPath;
     }
 
+    final nextVersionedPath = nextVersionedOutputPath(preferredPath, inputPath);
+    if (nextVersionedPath != null) {
+      return nextVersionedPath;
+    }
+
     final directory = path.dirname(preferredPath);
     final baseName = path.basenameWithoutExtension(preferredPath);
     final extension = path.extension(preferredPath);
@@ -87,6 +92,34 @@ class FfmpegOutputPathBuilder {
         return candidate;
       }
       index += 1;
+    }
+  }
+
+  String? nextVersionedOutputPath(String preferredPath, String inputPath) {
+    final directory = path.dirname(preferredPath);
+    final baseName = path.basenameWithoutExtension(preferredPath);
+    final extension = path.extension(preferredPath);
+    final match = RegExp(
+      r'^(.*?)(v)(\d+)$',
+      caseSensitive: false,
+    ).firstMatch(baseName);
+    if (match == null) {
+      return null;
+    }
+
+    final prefix = match.group(1)!;
+    final currentVersion = int.tryParse(match.group(3)!);
+    if (currentVersion == null) {
+      return null;
+    }
+
+    var version = currentVersion + 1;
+    while (true) {
+      final candidate = path.join(directory, '${prefix}v$version$extension');
+      if (!isUnsafeOutputPath(candidate, inputPath)) {
+        return candidate;
+      }
+      version += 1;
     }
   }
 

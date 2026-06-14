@@ -23,10 +23,10 @@ class SettingsRows extends Table {
       .withDefault(const Constant('h264'))();
   TextColumn get defaultCompressionSmartPreset => text()
       .named('default_compression_smart_preset')
-      .withDefault(const Constant('balanced'))();
+      .withDefault(const Constant('chat'))();
   TextColumn get defaultOutputFileNameTemplate => text()
       .named('default_output_file_name_template')
-      .withDefault(const Constant('{source}-{date}-{action}'))();
+      .withDefault(const Constant('{source}-{action}'))();
   TextColumn get defaultMediaConfigJson =>
       text().named('default_media_config_json').nullable()();
   TextColumn get themeMode =>
@@ -39,7 +39,7 @@ class SettingsRows extends Table {
       .withDefault(const Constant(true))();
   TextColumn get taskCompletionSound => text()
       .named('task_completion_sound')
-      .withDefault(const Constant('none'))();
+      .withDefault(const Constant('clean_success'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

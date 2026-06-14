@@ -25,7 +25,7 @@ slice_dir_has_binaries() {
   shift
 
   for binary_name in "$@"; do
-    if [[ ! -x "$dir/$binary_name" ]]; then
+    if [[ ! -f "$dir/$binary_name" ]]; then
       return 1
     fi
   done
@@ -64,8 +64,17 @@ require_single_arch_binary() {
   local path="$1"
   local expected_arch="$2"
 
-  if [[ ! -x "$path" ]]; then
+  if [[ ! -f "$path" ]]; then
     echo "error: required executable not found: $path" >&2
+    exit 1
+  fi
+
+  if [[ ! -x "$path" ]]; then
+    chmod 755 "$path"
+  fi
+
+  if [[ ! -x "$path" ]]; then
+    echo "error: required executable is not executable: $path" >&2
     exit 1
   fi
 

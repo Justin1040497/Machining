@@ -6,7 +6,7 @@ import 'package:framelean/domain/value_objects/app_compression_settings.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 
 const Object _notProvided = Object();
-const String defaultOutputFileNameTemplatePattern = '{source}-{date}-{action}';
+const String defaultOutputFileNameTemplatePattern = '{source}-{action}';
 
 String normalizeDefaultOutputFileNameTemplate(String? template) {
   final trimmed = template?.trim() ?? '';
@@ -116,7 +116,7 @@ class AppSettings {
     this.themeMode = AppThemeMode.system,
     this.hideNotificationBadge = true,
     this.showTaskCompletionDialog = true,
-    this.taskCompletionSound = TaskCompletionSound.none,
+    this.taskCompletionSound = TaskCompletionSound.cleanSuccess,
   }) : defaultOutputFileNameTemplate = normalizeDefaultOutputFileNameTemplate(
          defaultOutputFileNameTemplate,
        ),
@@ -151,7 +151,7 @@ class AppSettings {
       themeMode: AppThemeMode.system,
       hideNotificationBadge: true,
       showTaskCompletionDialog: true,
-      taskCompletionSound: TaskCompletionSound.none,
+      taskCompletionSound: TaskCompletionSound.cleanSuccess,
     );
   }
 
@@ -260,6 +260,6 @@ AppCompressionSettings compressionSettingsFromDefaultMediaConfig(
   final video = config.video ?? MediaTaskConfig.initialDefaults().video!;
   return AppCompressionSettings(
     defaultOutputVideoCodec: video.videoCodec,
-    defaultSmartPreset: video.smartPreset ?? SmartCompressionPreset.balanced,
+    defaultSmartPreset: video.smartPreset ?? SmartCompressionPreset.chat,
   );
 }

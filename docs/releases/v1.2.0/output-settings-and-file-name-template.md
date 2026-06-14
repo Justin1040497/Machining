@@ -5,7 +5,7 @@
 FrameLean 在 v1.2.0 开发期将“默认导出文件名”从固定选项改为可编辑模板。默认模板为：
 
 ```text
-{source}-{date}-{action}
+{source}-{action}
 ```
 
 对应长期决策见 `docs/decisions/260613-output-template-settings-application.md`。
@@ -19,7 +19,7 @@ FrameLean 在 v1.2.0 开发期将“默认导出文件名”从固定选项改�
 - `{encoder}` 表示视频编码器后端；输出为 `auto`、`x264`、`x265`、`videotoolbox`、`nvenc`、`qsv` 或 `amf`。
 - 数字之间的 `x / X` 自动规范化为 `×`，例如 `1920x1080`。
 - `x{codec}` 和 `x{encoder}` 会移除多余前缀，避免生成 `xh264` 或 `xx264`。
-- 目标文件已存在或与源文件同名时，导出路径自动追加 `（1）`、`（2）`，不再使用 `-1`、`-2`。
+- 目标文件已存在或与源文件同名时，若文件名末尾已有 `v1` / `v2` 版本 token，导出路径优先递增到下一个可用版本；没有版本 token 时自动追加 `（1）`、`（2）`，不再使用 `-1`、`-2`。
 
 ## 设置生效边界
 

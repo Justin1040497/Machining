@@ -54,7 +54,9 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 应用版本升级为 `1.2.0+4`，发布产物统一使用 `FrameLean-v1.2.0` 前缀。
 - 任务完成提示音改用 `audioplayers` 直接播放 Flutter asset，Windows 不再启动 PowerShell。
 - 输出文件路径冲突自动后缀从 `-1` / `-2` 调整为 `（1）` / `（2）`。
-- 桌面字体缩放允许 4K / 大窗口环境在上限内放大，不再固定压回基础字号。
+- 默认设置收敛为跟随系统主题、清脆完成提示音、三类媒体默认保持源格式并保留元数据、视频默认微信发送、图片质量 80%、默认导出到源文件旁和 `{source}-{action}` 文件名模板。
+- 桌面字体缩放允许 4K / 大窗口环境在上限内放大，Windows 启动窗口按主屏工作区和 DPI 自适应放大，不再固定压回基础尺寸。
+- Windows Actions 分别上传便携 ZIP 和 `setup.exe` 安装器 artifact，不再把两个发布包混进同一个 artifact zip。
 
 ### Fixed
 
@@ -62,13 +64,15 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复任务排序持久化、主题缓存一致性、macOS 首次点击、重复操作和 QMC 探测问题。
 - 修复非视频任务详情、保持原始格式 / 分辨率、输出命名和 HDR 色彩参数边界。
 - 修复 macOS Universal 2 CI 构建 zimg 时缺少 `aclocal` 的原生依赖声明，以及 Windows 打包脚本因截断 `ffprobe.exe -version` 管道而误判运行时版本校验失败的问题。
-- 修复 macOS Universal 合并脚本在 GitHub Actions artifact 下载后多一层目录时找不到 `ffmpeg` / `ffprobe` 或 QMC 适配器的问题。
+- 修复 macOS Universal 合并脚本在 GitHub Actions artifact 下载后多一层目录、以及 artifact zip 丢失可执行权限时找不到或无法执行 `ffmpeg` / `ffprobe` 或 QMC 适配器的问题。
+- 修复输出文件名模板包含 `{version}` 时重复处理仍输出 `filename-v1（1）` 的问题；现在已有 `v1` 时优先输出 `v2` / `v3`。
+- 修复输出配置中“保存到原文件旁”的错字，统一为“保存到源文件旁”。
 - 移除已无引用的旧设置弹窗组件和未使用的 `cupertino_icons` 依赖。
 
 ### Verified
 
 - 通过 `flutter analyze`。
-- 通过 `flutter test`，共 265 项测试。
+- 通过 `flutter test`，共 267 项测试。
 - 通过 `flutter test test/architecture_dependencies_test.dart`。
 - 通过 P0-P2 触达模块 76 项回归测试。
 - 通过 release workflow / 打包脚本语法检查。

@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 21;
+  int get schemaVersion => 23;
 
   @override
   MigrationStrategy get migration {
@@ -311,6 +311,26 @@ class AppDatabase extends _$AppDatabase {
             migrator,
             settingsRows,
             settingsRows.showTaskCompletionDialog,
+          );
+        }
+        if (from < 22) {
+          await customStatement(
+            "UPDATE settings SET default_compression_smart_preset = 'chat' "
+            "WHERE default_compression_smart_preset = 'balanced'",
+          );
+          await customStatement(
+            "UPDATE settings SET default_output_file_name_template = '{source}-{action}' "
+            "WHERE default_output_file_name_template = '{source}-{date}-{action}'",
+          );
+          await customStatement(
+            "UPDATE settings SET task_completion_sound = 'clean_success' "
+            "WHERE task_completion_sound = 'none'",
+          );
+        }
+        if (from < 23) {
+          await customStatement(
+            "UPDATE settings SET default_output_file_name_template = '{source}-{action}' "
+            "WHERE default_output_file_name_template = '{source}-{date}'",
           );
         }
       },

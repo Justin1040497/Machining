@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `21`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `23`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -118,7 +118,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 输出目录 | 空字符串，表示源文件目录 |
 | CRF | `28` |
 | 压缩模式 | `preset` |
-| 推荐方案预设 | `balanced` |
+| 推荐方案预设 | `chat` |
 | 目标体积 | `null` |
 | 自定义文件名 | 空字符串 |
 
@@ -133,7 +133,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `image` | 图片格式、是否保持源格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
 | `audio` | 音频格式、是否保持源格式、码率、采样率、声道和元数据保留开关；当前输出格式包含 `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`，输出编码由后台按音频格式推导 |
 
-`keepOriginalOutputFormat` 不保存伪格式。导入任务时会按源文件扩展名解析成真实 `MediaOutputFormat`，例如 `.mp4` 写入 `mp4`、`.mov` 写入 `mov`、`.png` 写入 `png`、`.ogg` 写入 `oggOpus`；不支持的源格式会回退到默认输出格式并关闭保持状态。视频 `hdrOutputMode` 当前支持 `convertToSdr` 和 `preserveHdr`。`preserveHdr` 只承诺 HDR10 / HLG 基础 10-bit HEVC 输出和基础色彩标记，不承诺保留 Dolby Vision 动态元数据。视频和音频 `preserveMetadata` 缺省为 `true` 以保持旧任务兼容；图片 `preserveMetadata` 缺省为 `false`，继续保持图片任务原有行为。
+`keepOriginalOutputFormat` 不保存伪格式。导入任务时会按源文件扩展名解析成真实 `MediaOutputFormat`，例如 `.mp4` 写入 `mp4`、`.mov` 写入 `mov`、`.png` 写入 `png`、`.ogg` 写入 `oggOpus`；不支持的源格式会回退到默认输出格式并关闭保持状态。应用默认设置中视频、图片、音频均默认开启保持源文件格式。视频 `hdrOutputMode` 当前支持 `convertToSdr` 和 `preserveHdr`。`preserveHdr` 只承诺 HDR10 / HLG 基础 10-bit HEVC 输出和基础色彩标记，不承诺保留 Dolby Vision 动态元数据。视频、图片和音频 `preserveMetadata` 缺省均为 `true`。
 
 ### 源文件指纹字段
 
@@ -213,13 +213,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `show_raw_log` | boolean | 否 | `false` | `showRawLog` | 是否显示原始日志 |
 | `show_advanced_options` | boolean | 否 | `false` | `showAdvancedOptions` | 是否展示高级选项 |
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
-| `default_compression_smart_preset` | text | 否 | `balanced` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
-| `default_output_file_name_template` | text | 否 | `{source}-{date}-{action}` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板字符串；支持 `{source}`、`{date}`、`{action}`、`{codec}`、`{encoder}`；`codec` 输出 `h264 / h265`，`encoder` 输出 `x264 / x265 / videotoolbox / nvenc / qsv / amf` 等实际编码器 token，`auto` 会按目标编码保守解析为 `x264` 或 `x265`；数字之间的 `x / X` 会规范化为 `×`，历史枚举值由仓储读取时兼容映射 |
+| `default_compression_smart_preset` | text | 否 | `chat` | `compressionSettings.defaultSmartPreset` | 新任务默认推荐方案；字段名保留 `smart` 是历史命名 |
+| `default_output_file_name_template` | text | 否 | `{source}-{action}` | `defaultOutputFileNameTemplate` | 新任务默认导出文件名模板字符串；支持 `{source}`、`{date}`、`{version}`、`{action}`、`{codec}`、`{encoder}`；`codec` 输出 `h264 / h265`，`encoder` 输出 `x264 / x265 / videotoolbox / nvenc / qsv / amf` 等实际编码器 token，`auto` 会按目标编码保守解析为 `x264` 或 `x265`；数字之间的 `x / X` 会规范化为 `×`，历史枚举值由仓储读取时兼容映射 |
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
 | `theme_mode` | text | 否 | `system` | `themeMode` | 应用主题偏好；当前支持 `system`、`light`、`dark`，是主题设置的 source of truth |
 | `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
 | `show_task_completion_dialog` | boolean | 否 | `true` | `showTaskCompletionDialog` | 任务完成后是否弹出完成提示弹窗；关闭后仍保存任务通知并使用停留更久的临时通知承接完成反馈 |
-| `task_completion_sound` | text | 否 | `none` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
+| `task_completion_sound` | text | 否 | `clean_success` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -347,6 +347,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 19 | 给 `tasks` 增加 HDR10 静态元数据、色度位置和 Dolby Vision profile / 兼容 ID 分析字段 |
 | 20 | 给 `settings` 增加 `task_completion_sound`，持久化任务完成提示音选择 |
 | 21 | 给 `settings` 增加 `show_task_completion_dialog`，持久化任务完成后是否弹窗提示 |
+| 22 | 将仍停留在旧默认值的设置升级到新默认：推荐方案 `chat`、输出模板 `{source}-{action}`、完成提示音 `clean_success` |
+| 23 | 将已停留在 `{source}-{date}` 过渡默认值的设置升级到 `{source}-{action}` |
 
 ## 修改数据模型的约束
 

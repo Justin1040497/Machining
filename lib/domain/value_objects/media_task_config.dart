@@ -53,7 +53,7 @@ class MediaTaskConfig {
       outputDirectory: '',
       outputFileName: '',
       compressionMode: CompressionMode.preset,
-      preset: MediaProcessingPreset.balanced,
+      preset: MediaProcessingPreset.smaller,
       targetSizeBytes: null,
       targetSizeRatio: null,
       video: video,

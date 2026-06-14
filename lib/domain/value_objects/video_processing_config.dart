@@ -38,13 +38,13 @@ class VideoProcessingConfig {
   factory VideoProcessingConfig.initial() {
     return const VideoProcessingConfig(
       outputFormat: MediaOutputFormat.mp4,
-      keepOriginalOutputFormat: false,
+      keepOriginalOutputFormat: true,
       videoCodec: VideoCodec.h264,
       encoderBackend: EncoderBackend.auto,
       hdrOutputMode: HdrOutputMode.convertToSdr,
       resolutionPreset: ResolutionPreset.original,
       compressionCrf: 28,
-      smartPreset: SmartCompressionPreset.balanced,
+      smartPreset: SmartCompressionPreset.chat,
       preserveMetadata: true,
     );
   }

@@ -27,7 +27,7 @@ class AudioProcessingConfig {
   factory AudioProcessingConfig.initial() {
     return const AudioProcessingConfig(
       outputFormat: MediaOutputFormat.m4a,
-      keepOriginalOutputFormat: false,
+      keepOriginalOutputFormat: true,
       bitratePreset: AudioBitratePreset.k192,
       sampleRate: AudioSampleRatePreset.source,
       channels: AudioChannelsPreset.source,

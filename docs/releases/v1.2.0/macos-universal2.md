@@ -16,6 +16,7 @@ x86_64 + arm64
 
 - Flutter macOS Release app 必须包含 x86_64 和 arm64。
 - FFmpeg、FFprobe 和随包 QMC 适配器必须分别在原生架构 host 上构建，再使用 `lipo` 合并。
+- CI 上传架构 slice 时使用 tar.gz 封装，避免 GitHub Actions artifact zip 丢失 macOS 可执行位；下载后先解包再合并。
 - Xcode Build Phase 只从 `macos-universal` 目录复制运行时。
 - DMG 构建先生成 app，再扫描包内全部 Mach-O 文件，验证通过后才能进入签名、公证和 DMG 生成。
 - QMC 是可选能力；没有 Universal QMC 时可以不随包发布，但不能回退携带纯 arm64 适配器。

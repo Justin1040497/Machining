@@ -33,7 +33,7 @@ void main() {
     expect(find.text('任务完成后以弹窗的形式提示'), findsOneWidget);
     expect(find.text('关闭通知角标'), findsOneWidget);
     expect(find.text('跟随系统'), findsOneWidget);
-    expect(find.text('不通知'), findsOneWidget);
+    expect(find.text('清脆完成'), findsOneWidget);
     expect(
       tester
           .widgetList<Checkbox>(find.byType(Checkbox))
@@ -239,19 +239,16 @@ void main() {
 
     await tester.tap(find.text('输出配置'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存到原文件旁'));
+    await tester.tap(find.text('保存到源文件旁'));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_horiz_rounded));
     await tester.pumpAndSettle();
     expect(find.byType(SelectionArea), findsOneWidget);
-    expect(find.textContaining('文件名模板会在导入或保存输出配置时生成默认导出名'), findsOneWidget);
-    expect(
-      find.textContaining('{source}-{date}-{action}-{version}'),
-      findsOneWidget,
-    );
+    expect(find.textContaining('文件名模板用于生成默认导出名'), findsOneWidget);
+    expect(find.textContaining('重复导出会优先递增为 v2、v3'), findsOneWidget);
     expect(find.text('source: 源文件名'), findsOneWidget);
-    expect(find.text('date: 当前日期'), findsOneWidget);
-    expect(find.text('version: 处理版本（v1 / v2 ...）'), findsOneWidget);
+    expect(find.text('date: 当前日期（yyyyMMdd）'), findsOneWidget);
+    expect(find.text('version: 输出版本（v1 / v2 ...）'), findsOneWidget);
     expect(find.text('action: 任务类型（压缩 / 转换 / 处理）'), findsOneWidget);
     expect(find.text('codec: 编码格式（h264 / h265）'), findsOneWidget);
     expect(
@@ -261,12 +258,16 @@ void main() {
 
     await tester.tap(find.byTooltip('选择常用模板'));
     await tester.pumpAndSettle();
+    expect(find.text('源文件名 + 行为'), findsOneWidget);
+    expect(find.text('{source}-{action}'), findsWidgets);
     expect(find.text('源文件名 + 时间 + 行为 + 版本'), findsOneWidget);
     expect(find.text('{source}-{date}-{action}-{version}'), findsOneWidget);
     expect(find.text('源文件名 + 编码格式'), findsOneWidget);
     expect(find.text('{source}-{codec}'), findsOneWidget);
     expect(find.text('源文件名 + 编码器'), findsOneWidget);
     expect(find.text('{source}-{encoder}'), findsOneWidget);
+    expect(find.text('源文件名 + 时间'), findsOneWidget);
+    expect(find.text('{source}-{date}'), findsOneWidget);
     await tester.tap(find.text('{source}-{codec}').last);
     await tester.pumpAndSettle();
     expect(
@@ -388,6 +389,8 @@ void main() {
 
     await tester.tap(find.text('图片任务'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('默认保持源文件图片格式'));
+    await tester.pumpAndSettle();
     await tester.tap(
       find.byType(DropdownButtonFormField<MediaOutputFormat>).first,
     );
@@ -405,7 +408,7 @@ void main() {
     expect(savedSettings, isNotNull);
     expect(image?.outputFormat, MediaOutputFormat.png);
     expect(image?.imageQuality, 80);
-    expect(image?.preserveMetadata, isTrue);
+    expect(image?.preserveMetadata, isFalse);
   });
 
   testWidgets('saves audio defaults', (tester) async {
