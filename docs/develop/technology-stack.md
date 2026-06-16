@@ -29,7 +29,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过 `/settings` 全屏页面打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 23 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 24 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
 | 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |
@@ -67,6 +67,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `flutter_screenutil` | `^5.9.3` | 桌面 UI 文本和尺寸适配 |
 | `audioplayers` | `^6.7.1` | 播放内置任务完成提示音 |
 | `pointycastle` | `^4.0.0` | NCM 专有音频输入的本地加密/解密算法支持 |
+| `crypto` | `^3.0.6` | 自托管更新包 SHA-256 校验 |
 
 开发依赖：
 
@@ -78,6 +79,13 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `build_runner` | `^2.14.1` | 代码生成执行器 |
 | `flutter_launcher_icons` | `^0.14.4` | macOS / Windows 应用图标生成 |
 | `dmg` | `^0.1.8` | macOS DMG 打包辅助依赖 |
+
+服务端直接依赖：
+
+| 依赖 | 用途 |
+| --- | --- |
+| `spring-boot-starter-data-redis` | Redis 连接，用于更新票据、限流计数和 latest cache |
+| `spring-boot-testcontainers` | Spring Boot Testcontainers `@ServiceConnection` 测试支持 |
 
 ## 项目目录结构
 
@@ -168,6 +176,11 @@ Action artifact；Tag 构建还会把两个产物附加到 GitHub Release。
 Windows Release 脚本会从 Visual Studio Redistributable 目录装入
 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。三个 DLL 是 ZIP
 和安装器的必需文件，缺失时发布构建失败。
+
+Windows Release 脚本会从 `tool/windows_updater_helper.dart` 编译
+`FrameLeanUpdaterHelper.exe` 并放入 Release 根目录。客户端完成下载和
+SHA-256 校验后启动该 helper，helper 等待主进程退出、静默运行 Inno Setup
+安装器、检查安装器退出码并重启应用。
 
 Windows 安装器使用 `{localappdata}\Programs\FrameLean` 作为固定默认目录，
 并保持 `PrivilegesRequired=lowest`，不再允许切换管理员安装模式。该边界让
@@ -326,6 +339,16 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 预览帧 | 系统临时目录 `framelean/previews/<taskId>` | 参数指纹变化后重新生成 |
 | 两遍压缩 pass log | 输出目录附近的隐藏前缀文件 | 任务完成或取消后 best-effort 清理 |
 | 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `（1）`、`（2）` 等后缀 |
+| 更新安装包缓存 | 应用支持目录 `updates/<version>/<platform>/` | 自托管更新下载器保存安装包，支持断点续传和完成后 SHA-256 校验 |
+
+服务端数据边界：
+
+| 数据 | 位置 / 机制 | 说明 |
+| --- | --- | --- |
+| release / package / notes | PostgreSQL | 长期发布事实 |
+| download event | PostgreSQL | 下载统计和审计 |
+| download ticket | Redis | 10 分钟 TTL，resolve 后签发 COS 短期 URL |
+| rate limit / latest cache | Redis | 限流窗口和短期最新版本缓存 |
 
 ## 媒体类型边界
 

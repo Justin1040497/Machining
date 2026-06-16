@@ -29,6 +29,37 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-16｜v1.2.1｜No Release
+
+今天接入自托管更新 v1.2.1 客户端主流程和 server v1.0.0 更新服务加固：设置页关于栏可以自动 / 手动检查更新并进入下载、暂停、继续和待重启状态，通知中心支持单版本更新通知和双动作，工作台顶部在存在更新时持续显示入口，版本日志页面和日志弹窗开始承接 Markdown 日志。服务端加入 Redis，用于下载票据、限流和 latest cache，并修复平台包过滤、发布前校验、测试依赖和 validation 400 返回。
+
+### Added
+
+- 新增客户端更新状态模型、更新服务抽象、HTTP 更新客户端、断点下载器、安装 ID 存储和 Windows updater helper launcher。
+- 新增 `app_notifications.dedupe_key`，更新通知使用 `update:{platform}:{version}:{buildNumber}` 去重。
+- 新增设置关于栏 `检查更新` / `现在更新` / 进度 / `重启更新` 固定尺寸按钮和 `版本日志` 入口。
+- 新增工作台顶部持续更新入口、更新日志弹窗和 `/settings/release-notes` 版本日志页面。
+- 服务端新增 Redis 依赖、Redis 限流、短期下载票据创建 / resolve 接口和版本日志列表接口。
+
+### Changed
+
+- 应用版本升级为 `1.2.1+5`，`FrameLeanBuildInfo` 同步为 `1.2.1` / build `5`。
+- 更新检查最新版本查询改为按平台可用包过滤，避免无当前平台包的新 release 挡住旧可用版本。
+- 服务端发布 release 前校验 notes、package、COS object key、size、sha256 和 signature。
+
+### Fixed
+
+- 修复服务端 `@ServiceConnection` 测试依赖缺失问题，补 `spring-boot-testcontainers`。
+- 修复 Kotlin Spring final class 可能影响事务代理的问题，启用 Kotlin Spring all-open compiler plugin。
+- 修复 validation / 参数错误落入通用 500 的问题。
+
+### Verified
+
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `cd server && mvn -DskipTests package`。
+- 通过 `cd server && mvn test`；当前无 Docker 环境下 Testcontainers smoke test 自动跳过。
+
 ## 2026-06-14｜v1.2.0｜Release
 
 完成 v1.2.0 发布准备。本版本从 v1.1.5 起扩展视频、图片和音频统一处理能力，加入专有音频输入、完整设置页、通知中心、输出文件名模板、任务完成提示音、HDR / SDR 色彩处理，以及 macOS Universal 2 和 Windows 安装器发布链。本次收口同时完成 P0-P2 架构治理，并修复 v1.2.0 打包流水线与桌面体验校验问题。

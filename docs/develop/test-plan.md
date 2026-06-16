@@ -119,6 +119,7 @@ test/
 - 通知中心使用自制右侧浮层和滑入动画，不依赖 `Drawer` 或手势抽屉。
 - 打开通知中心批量标记已读；浮层打开期间新增通知自动已读；清扫后列表和角标同步清空。
 - 任务成功通知按类型化载荷显示成果物文件夹按钮；任务失败通知显示原因且不提供成果物动作。
+- 版本更新通知按 `dedupe_key` 保证一个版本只展示一条；当前更新通知提供 `前往` 和下载 icon 两个动作，历史更新通知提供日志查看动作。
 - 点击任务完成临时通知会打开通知中心，并让对应通知项轻微高亮闪烁；临时通知的成果物文件夹图标可直接定位输出位置。
 - 根级临时通知在已有通知展示时收到新通知，会先播放当前通知退出动画，再展示最新通知；快速连续通知只展示最后一条。
 - 设置保存通知使用分区级真实事件文案；媒体任务通知标题直接表达“任务成功 / 任务失败”，文件名、输出路径和失败原因保留在正文。
@@ -301,6 +302,9 @@ test/
 - 在设置页选择非“不开启”完成提示音后，任务处理完成时播放一次短提示音；Windows 播放时不启动 `powershell.exe`。
 - 压缩确认、导入失败、清空任务和重命名弹窗使用统一工作台弹窗框架。
 - 关于内容只在设置页面展示，工作台不再提供关于弹窗入口。
+- 关于栏更新按钮在 `检查更新`、`检查中`、`现在更新`、下载百分比、暂停 / 继续和 `重启更新` 状态间切换时保持固定尺寸。
+- 工作台顶部在存在更新、下载中、暂停或待重启时显示持续更新入口；下载中显示圆形进度，点击打开版本日志弹窗。
+- 下载完成待重启时，如果存在运行中、暂停中、等待中或分析中任务，先显示项目风格警告弹窗，确认后暂停任务并启动 updater helper。
 
 ### 完成和结果处理
 
@@ -331,7 +335,7 @@ test/
 - `flutter build macos --release` 成功。
 - `FrameLean.app` 中存在内置 FFmpeg / FFprobe。
 - `scripts/release/verify_macos_universal.sh FrameLean.app` 成功，包内 Mach-O 文件均包含 `x86_64` 和 `arm64`。
-- 生成 `build/macos/Build/Products/Release/FrameLean-v1.2.0.dmg`。
+- 生成 `build/macos/Build/Products/Release/FrameLean-v1.2.1.dmg`。
 - 运行 Release app 后任务使用 app 包内 FFmpeg。
 - 在 Apple Silicon Mac 和 Intel Mac 上使用同一 DMG 验证启动、导入、压缩和打开输出位置。
 - 两种架构分别验证 VideoToolbox 探测与软件编码回退。
@@ -343,13 +347,14 @@ test/
 - 发布脚本完整收集 `ffmpeg.exe -version` 和 `ffprobe.exe -version` 输出后检查 exit code，不通过提前截断管道判断原生命令状态。
 - Release 目录存在 `msvcp140.dll`、`vcruntime140.dll` 和 `vcruntime140_1.dll`。
 - Release 目录存在 `audio_adapters/qmc/qmc-decrypt.exe`，并包含上游许可证。
-- 生成 `build/windows/x64/runner/FrameLean-v1.2.0-windows-x64.zip`。
-- 生成 `build/windows/x64/installer/FrameLean-v1.2.0-windows-x64-setup.exe`。
-- zip 解压后顶层目录为 `FrameLean-v1.2.0-windows-x64/`。
+- 生成 `build/windows/x64/runner/FrameLean-v1.2.1-windows-x64.zip`。
+- 生成 `build/windows/x64/installer/FrameLean-v1.2.1-windows-x64-setup.exe`。
+- zip 解压后顶层目录为 `FrameLean-v1.2.1-windows-x64/`。
 - 在未预装 Visual C++ Redistributable 的干净 Windows x64 环境中，安装后可以启动应用。
 - 安装器默认安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不请求管理员权限，开始菜单快捷方式可以启动应用。
 - 使用 `/SILENT /SUPPRESSMSGBOXES /NORESTART` 覆盖安装时不触发 UAC，并返回可判断的安装器退出码。
 - 同一 `AppId` 的新版本可以覆盖升级，升级后应用和内置运行时正常。
+- 自托管更新 helper 随包提供 `FrameLeanUpdaterHelper.exe`，主应用下载并校验安装器后启动 helper 并退出；helper 负责等待主程序退出、运行安装器、检查安装器退出码并重启应用。
 - 从 Windows“已安装的应用”卸载后，应用目录、注册表安装信息和用户数据按当前彻底卸载策略清理。
 - Windows app 可以启动、导入、压缩和打开输出位置。
 - MGG / MFLAC 输入能够调用安装包内的 `qmc-decrypt.exe`；需要 ekey 的变体显示可读错误。

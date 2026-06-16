@@ -131,6 +131,7 @@ docs/
 - `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏，但通知仍会先持久化。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
+- `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部入口、通知中心和版本日志弹窗提供检查、下载、暂停、继续和安装 helper 启动动作。
 - `presentation/`、`widgets/`：settings、notifications、workbench 共同使用的布局常量、领域标签、表单控件和百分比滑杆。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
@@ -167,6 +168,7 @@ Use Cases：
 - `AppSettingsSaveTarget`：设置保存的结构化事件类型。应用设置、视频 / 图片 / 音频默认任务配置、输出配置和编码器配置拥有各自通知标题；只有输出配置保存会刷新非运行状态任务，任务默认配置只影响后续导入。
 - `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
 - `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径等动作数据；任务通知标题直接表达任务成功或失败，文件名、输出路径和失败原因保留在通知正文。
+- `AppNotificationManager` 提供 update 通知 upsert 能力，版本更新通知通过 `dedupeKey` 保证一个版本只在通知中心保留一条记录。
 - `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，使用 `audioplayers` 播放内置 Flutter asset。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
 - `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
@@ -225,6 +227,8 @@ Use Cases：
 - 设置页和工作台共同复用 `app/widgets/` 的路径输入、下拉控件和百分比滑杆。
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
+- 关于栏承载自托管更新主入口：`检查更新` / `检查中` / `现在更新` / 下载百分比 / `重启更新` 保持固定按钮尺寸；旁边的 `版本日志` 打开 `/settings/release-notes`。
+- `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志。
 
 工作台当前支持：
 
@@ -244,6 +248,7 @@ Use Cases：
 - `providers/notification_center_provider.dart`：保存通知中心开关状态，供工作台和根级临时通知 Host 共享。
 - `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为“打开成果物所在位置”。
 - `widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
+- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知尾部可以同时展示 `前往` 和下载 icon；历史完成通知展示日志查看动作。
 - 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
 - 通知项按标题、创建时间和正文分层展示；任务失败原因和输出路径保留在正文中，避免和时间揉成单行摘要。
 - 右上角临时通知只承载即时反馈，通知中心承载完整历史。临时通知为中等密度卡片，关闭按钮固定在尾部，详情最多两行；成功 / 信息、警告、失败使用不同停留时长。

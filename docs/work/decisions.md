@@ -4,6 +4,7 @@
 
 | 日期 | 决策 | 状态 | 正文 | 关联事实 |
 | --- | --- | --- | --- | --- |
+| 260616 | 自托管更新入口采用设置关于栏、通知中心和工作台顶部持续入口，服务端 Redis 只保存短期更新协作状态 | 有效 | `docs/decisions/260616-self-hosted-update-client-server-flow.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/develop/data-model.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |
 | 260614 | Riverpod 依赖装配归属 `app` composition root，平台能力通过 application port 接入，跨功能展示组件归属 `app` | 有效 | `docs/decisions/260614-clean-architecture-composition-root.md` | `docs/develop/architecture.md`、`docs/develop/test-plan.md` |
 | 260613 | 应用通知统一由 `AppNotificationManager` 持久化，临时浮层和通知中心分离 | 有效 | `docs/decisions/260613-app-notification-center-boundary.md` | `docs/develop/architecture.md`、`docs/develop/data-model.md` |
 | 260613 | Windows 使用当前用户 Inno Setup 安装器作为自托管更新载荷，ZIP 仅作为便携分发备用 | 有效 | `docs/decisions/260613-windows-installer-update-payload.md` | `CONTEXT.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |

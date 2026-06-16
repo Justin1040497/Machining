@@ -11,7 +11,7 @@ FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具。�
 当前应用版本来自 `pubspec.yaml`：
 
 ```text
-1.2.0+4
+1.2.1+5
 ```
 
 FrameLean 更名后的主要版本事实：
@@ -22,6 +22,7 @@ FrameLean 更名后的主要版本事实：
 | `v1.1.0` | Windows 运行时和进程控制修复、FFmpeg 输出参数优化、项目 workflow 初始规范 |
 | `v1.1.5` | 媒体处理扩展、专有音频输入适配、工作台主题和任务排序、仓库结构治理 |
 | `v1.2.0` | macOS Universal 2 发布链、输出文件名模板和输出配置生效语义、任务完成音效、媒体默认值与保持原始语义、视频色彩与 HDR 转 SDR 边界 |
+| `v1.2.1` | 自托管更新客户端体验接入：设置关于栏检查 / 下载入口、通知中心单版本通知、工作台顶部持续更新入口、版本日志页面、断点下载和 Windows updater helper 启动边界 |
 
 版本事实说明见 `docs/releases/`。
 
@@ -69,7 +70,9 @@ features -> application -> domain
 - Windows 发布只覆盖 x64；正式发布入口生成便携 ZIP 和 Inno Setup 安装器。
 - Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不提供管理员安装切换，避免后续静默覆盖更新触发 UAC。
 - Windows 自托管更新的首选下载载荷是签名后的 `FrameLean-v*-windows-x64-setup.exe`；ZIP 只保留为便携分发或手动下载备用。
-- 自托管更新客户端 / 服务端当前不属于已完成能力；后续实现时应由主应用完成下载和校验，再交给独立 updater helper 退出应用、执行安装器、检查退出码并重启应用。
+- 自托管更新客户端从 v1.2.1 开始接入主流程：应用启动自动静默检查一次，设置关于栏可手动检查和启动下载，通知中心按版本去重展示更新通知，工作台顶部在存在更新时持续显示入口。
+- Windows 自托管更新由主应用完成下载、断点续传和 SHA-256 校验，再交给随包提供的独立 `FrameLeanUpdaterHelper.exe` 退出应用、执行安装器、检查退出码并重启应用。
+- 更新服务端版本为 `server v1.0.0`，使用 PostgreSQL 保存 release / package / download event 长期数据，使用 Redis 保存短期下载票据、限流计数和 latest cache。
 
 ## 文档阅读入口
 

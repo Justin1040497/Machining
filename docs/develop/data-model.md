@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `23`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `24`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -41,6 +41,7 @@ lib/infrastructure/database/app_database.dart
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 | `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含类型、级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
+| `AppReleaseInfo` / `AppUpdateState` | `lib/domain/value_objects/app_release_info.dart`、`lib/domain/value_objects/app_update_state.dart` | 自托管更新的可用版本、安装包元数据、下载进度和安装状态 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 
@@ -232,17 +233,18 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | `id` | text | 否 | 无 | `id` | UUID 字符串，主键 |
-| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`；后续可扩展更新等类型 |
+| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`、`update` |
 | `level` | text | 否 | 无 | `level` | 通知级别：`info`、`success`、`warning`、`error` |
 | `title` | text | 否 | 无 | `title` | 通知标题 |
 | `message` | text | 否 | `''` | `message` | 通知正文或失败原因 |
 | `source` | text | 否 | 无 | `source` | 通知来源，例如 `settings`、`workbench` |
+| `dedupe_key` | text | 是 | `null` | `dedupeKey` | 通知去重键；版本更新通知使用 `update:{platform}:{version}:{buildNumber}` |
 | `created_at` | integer | 否 | 无 | `createdAt` | 通知创建时间，毫秒时间戳 |
 | `read_at` | integer | 是 | `null` | `readAt` | 通知被标记为已读的时间 |
 | `dismissed_at` | integer | 是 | `null` | `dismissedAt` | 通知被关闭或归档的时间 |
 | `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName` 和可选 `outputPath` |
 
-通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析成果物文件夹动作。
+通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析成果物文件夹动作。版本更新通知通过 `kind = update`、`dedupe_key` 和 `payload_json` 中的版本、平台、构建号、更新状态和日志摘要解析 `前往`、下载和历史日志动作。
 
 ## 枚举值
 
@@ -349,6 +351,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 21 | 给 `settings` 增加 `show_task_completion_dialog`，持久化任务完成后是否弹窗提示 |
 | 22 | 将仍停留在旧默认值的设置升级到新默认：推荐方案 `chat`、输出模板 `{source}-{action}`、完成提示音 `clean_success` |
 | 23 | 将已停留在 `{source}-{date}` 过渡默认值的设置升级到 `{source}-{action}` |
+| 24 | 给 `app_notifications` 增加 `dedupe_key`，并为非空去重键创建唯一索引 |
 
 ## 修改数据模型的约束
 
