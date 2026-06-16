@@ -39,7 +39,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 24;
 
   @override
   MigrationStrategy get migration {
@@ -331,6 +331,17 @@ class AppDatabase extends _$AppDatabase {
           await customStatement(
             "UPDATE settings SET default_output_file_name_template = '{source}-{action}' "
             "WHERE default_output_file_name_template = '{source}-{date}'",
+          );
+        }
+        if (from < 24) {
+          await _safeAddColumn(
+            migrator,
+            appNotificationRows,
+            appNotificationRows.dedupeKey,
+          );
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_app_notifications_dedupe_key '
+            'ON app_notifications (dedupe_key) WHERE dedupe_key IS NOT NULL',
           );
         }
       },

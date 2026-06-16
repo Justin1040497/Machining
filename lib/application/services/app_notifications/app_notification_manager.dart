@@ -5,7 +5,10 @@ import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/domain/enums/app_update_status.dart';
+import 'package:framelean/domain/value_objects/app_release_info.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
+import 'package:framelean/domain/value_objects/update_notification_payload.dart';
 import 'package:uuid/uuid.dart';
 
 typedef AppNotificationActionCallback = void Function();
@@ -46,6 +49,7 @@ class AppNotificationManager {
     required String title,
     String message = '',
     required String source,
+    String? dedupeKey,
     String? payloadJson,
     AppNotificationAction? action,
   }) async {
@@ -57,6 +61,7 @@ class AppNotificationManager {
       message: message,
       source: source,
       createdAt: DateTime.now(),
+      dedupeKey: dedupeKey,
       payloadJson: payloadJson,
     );
     await repository.saveNotification(notification);
@@ -66,6 +71,73 @@ class AppNotificationManager {
       );
     }
     return notification;
+  }
+
+  Future<AppNotificationEntry> upsert({
+    AppNotificationKind kind = AppNotificationKind.general,
+    required AppNotificationLevel level,
+    required String title,
+    String message = '',
+    required String source,
+    required String dedupeKey,
+    String? payloadJson,
+    AppNotificationAction? action,
+  }) async {
+    final notification = AppNotificationEntry(
+      id: _uuid.v4(),
+      kind: kind,
+      level: level,
+      title: title,
+      message: message,
+      source: source,
+      createdAt: DateTime.now(),
+      dedupeKey: dedupeKey,
+      payloadJson: payloadJson,
+    );
+    final saved = await repository.upsertNotificationByDedupeKey(notification);
+    if (!_presentationController.isClosed && !saved.isDismissed) {
+      _presentationController.add(
+        AppNotificationPresentation(notification: saved, action: action),
+      );
+    }
+    return saved;
+  }
+
+  Future<AppNotificationEntry> notifyUpdateAvailable(AppReleaseInfo release) {
+    final payload = UpdateNotificationPayload.fromRelease(
+      release,
+      status: AppUpdateStatus.available,
+    );
+    return upsert(
+      kind: AppNotificationKind.update,
+      level: AppNotificationLevel.warning,
+      title: '有 ${release.version} 更新',
+      message: release.releaseNotesSummary,
+      source: 'update',
+      dedupeKey: release.notificationDedupeKey,
+      payloadJson: payload.toJson(),
+    );
+  }
+
+  Future<AppNotificationEntry> updateUpdateNotification({
+    required AppReleaseInfo release,
+    required AppUpdateStatus status,
+    required String title,
+    AppNotificationLevel level = AppNotificationLevel.info,
+  }) {
+    final payload = UpdateNotificationPayload.fromRelease(
+      release,
+      status: status,
+    );
+    return upsert(
+      kind: AppNotificationKind.update,
+      level: level,
+      title: title,
+      message: release.releaseNotesSummary,
+      source: 'update',
+      dedupeKey: release.notificationDedupeKey,
+      payloadJson: payload.toJson(),
+    );
   }
 
   Future<AppNotificationEntry> notifyTaskCompleted(MediaTask task) {

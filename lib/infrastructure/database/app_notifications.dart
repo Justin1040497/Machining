@@ -7,6 +7,7 @@ class AppNotificationRows extends Table {
   TextColumn get title => text()();
   TextColumn get message => text().withDefault(const Constant(''))();
   TextColumn get source => text()();
+  TextColumn get dedupeKey => text().named('dedupe_key').nullable()();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get readAt => integer().named('read_at').nullable()();
   IntColumn get dismissedAt => integer().named('dismissed_at').nullable()();
@@ -17,4 +18,9 @@ class AppNotificationRows extends Table {
 
   @override
   Set<Column> get primaryKey => {id};
+
+  @override
+  List<Set<Column>> get uniqueKeys => [
+    {dedupeKey},
+  ];
 }

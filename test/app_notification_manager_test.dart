@@ -160,6 +160,18 @@ class FakeAppNotificationRepository implements AppNotificationRepository {
   }
 
   @override
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  ) async {
+    savedNotifications.removeWhere(
+      (item) =>
+          item.dedupeKey != null && item.dedupeKey == notification.dedupeKey,
+    );
+    savedNotifications.add(notification);
+    return notification;
+  }
+
+  @override
   Stream<List<AppNotificationEntry>> watchRecentNotifications({
     int? limit,
   }) async* {

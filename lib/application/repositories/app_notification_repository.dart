@@ -7,6 +7,10 @@ abstract class AppNotificationRepository {
 
   Future<void> saveNotification(AppNotificationEntry notification);
 
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  );
+
   Future<void> markAsRead(String id, DateTime readAt);
 
   Future<void> markAllAsRead(DateTime readAt);

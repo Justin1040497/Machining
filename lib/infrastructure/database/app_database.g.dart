@@ -5358,6 +5358,17 @@ class $AppNotificationRowsTable extends AppNotificationRows
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _dedupeKeyMeta = const VerificationMeta(
+    'dedupeKey',
+  );
+  @override
+  late final GeneratedColumn<String> dedupeKey = GeneratedColumn<String>(
+    'dedupe_key',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -5408,6 +5419,7 @@ class $AppNotificationRowsTable extends AppNotificationRows
     title,
     message,
     source,
+    dedupeKey,
     createdAt,
     readAt,
     dismissedAt,
@@ -5466,6 +5478,12 @@ class $AppNotificationRowsTable extends AppNotificationRows
     } else if (isInserting) {
       context.missing(_sourceMeta);
     }
+    if (data.containsKey('dedupe_key')) {
+      context.handle(
+        _dedupeKeyMeta,
+        dedupeKey.isAcceptableOrUnknown(data['dedupe_key']!, _dedupeKeyMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -5504,6 +5522,10 @@ class $AppNotificationRowsTable extends AppNotificationRows
   @override
   Set<GeneratedColumn> get $primaryKey => {id};
   @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+    {dedupeKey},
+  ];
+  @override
   AppNotificationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return AppNotificationRow(
@@ -5531,6 +5553,10 @@ class $AppNotificationRowsTable extends AppNotificationRows
         DriftSqlType.string,
         data['${effectivePrefix}source'],
       )!,
+      dedupeKey: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}dedupe_key'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -5564,6 +5590,7 @@ class AppNotificationRow extends DataClass
   final String title;
   final String message;
   final String source;
+  final String? dedupeKey;
   final int createdAt;
   final int? readAt;
   final int? dismissedAt;
@@ -5575,6 +5602,7 @@ class AppNotificationRow extends DataClass
     required this.title,
     required this.message,
     required this.source,
+    this.dedupeKey,
     required this.createdAt,
     this.readAt,
     this.dismissedAt,
@@ -5589,6 +5617,9 @@ class AppNotificationRow extends DataClass
     map['title'] = Variable<String>(title);
     map['message'] = Variable<String>(message);
     map['source'] = Variable<String>(source);
+    if (!nullToAbsent || dedupeKey != null) {
+      map['dedupe_key'] = Variable<String>(dedupeKey);
+    }
     map['created_at'] = Variable<int>(createdAt);
     if (!nullToAbsent || readAt != null) {
       map['read_at'] = Variable<int>(readAt);
@@ -5610,6 +5641,9 @@ class AppNotificationRow extends DataClass
       title: Value(title),
       message: Value(message),
       source: Value(source),
+      dedupeKey: dedupeKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(dedupeKey),
       createdAt: Value(createdAt),
       readAt: readAt == null && nullToAbsent
           ? const Value.absent()
@@ -5635,6 +5669,7 @@ class AppNotificationRow extends DataClass
       title: serializer.fromJson<String>(json['title']),
       message: serializer.fromJson<String>(json['message']),
       source: serializer.fromJson<String>(json['source']),
+      dedupeKey: serializer.fromJson<String?>(json['dedupeKey']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       readAt: serializer.fromJson<int?>(json['readAt']),
       dismissedAt: serializer.fromJson<int?>(json['dismissedAt']),
@@ -5651,6 +5686,7 @@ class AppNotificationRow extends DataClass
       'title': serializer.toJson<String>(title),
       'message': serializer.toJson<String>(message),
       'source': serializer.toJson<String>(source),
+      'dedupeKey': serializer.toJson<String?>(dedupeKey),
       'createdAt': serializer.toJson<int>(createdAt),
       'readAt': serializer.toJson<int?>(readAt),
       'dismissedAt': serializer.toJson<int?>(dismissedAt),
@@ -5665,6 +5701,7 @@ class AppNotificationRow extends DataClass
     String? title,
     String? message,
     String? source,
+    Value<String?> dedupeKey = const Value.absent(),
     int? createdAt,
     Value<int?> readAt = const Value.absent(),
     Value<int?> dismissedAt = const Value.absent(),
@@ -5676,6 +5713,7 @@ class AppNotificationRow extends DataClass
     title: title ?? this.title,
     message: message ?? this.message,
     source: source ?? this.source,
+    dedupeKey: dedupeKey.present ? dedupeKey.value : this.dedupeKey,
     createdAt: createdAt ?? this.createdAt,
     readAt: readAt.present ? readAt.value : this.readAt,
     dismissedAt: dismissedAt.present ? dismissedAt.value : this.dismissedAt,
@@ -5689,6 +5727,7 @@ class AppNotificationRow extends DataClass
       title: data.title.present ? data.title.value : this.title,
       message: data.message.present ? data.message.value : this.message,
       source: data.source.present ? data.source.value : this.source,
+      dedupeKey: data.dedupeKey.present ? data.dedupeKey.value : this.dedupeKey,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       readAt: data.readAt.present ? data.readAt.value : this.readAt,
       dismissedAt: data.dismissedAt.present
@@ -5709,6 +5748,7 @@ class AppNotificationRow extends DataClass
           ..write('title: $title, ')
           ..write('message: $message, ')
           ..write('source: $source, ')
+          ..write('dedupeKey: $dedupeKey, ')
           ..write('createdAt: $createdAt, ')
           ..write('readAt: $readAt, ')
           ..write('dismissedAt: $dismissedAt, ')
@@ -5725,6 +5765,7 @@ class AppNotificationRow extends DataClass
     title,
     message,
     source,
+    dedupeKey,
     createdAt,
     readAt,
     dismissedAt,
@@ -5740,6 +5781,7 @@ class AppNotificationRow extends DataClass
           other.title == this.title &&
           other.message == this.message &&
           other.source == this.source &&
+          other.dedupeKey == this.dedupeKey &&
           other.createdAt == this.createdAt &&
           other.readAt == this.readAt &&
           other.dismissedAt == this.dismissedAt &&
@@ -5753,6 +5795,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   final Value<String> title;
   final Value<String> message;
   final Value<String> source;
+  final Value<String?> dedupeKey;
   final Value<int> createdAt;
   final Value<int?> readAt;
   final Value<int?> dismissedAt;
@@ -5765,6 +5808,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
     this.title = const Value.absent(),
     this.message = const Value.absent(),
     this.source = const Value.absent(),
+    this.dedupeKey = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.readAt = const Value.absent(),
     this.dismissedAt = const Value.absent(),
@@ -5778,6 +5822,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
     required String title,
     this.message = const Value.absent(),
     required String source,
+    this.dedupeKey = const Value.absent(),
     required int createdAt,
     this.readAt = const Value.absent(),
     this.dismissedAt = const Value.absent(),
@@ -5795,6 +5840,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
     Expression<String>? title,
     Expression<String>? message,
     Expression<String>? source,
+    Expression<String>? dedupeKey,
     Expression<int>? createdAt,
     Expression<int>? readAt,
     Expression<int>? dismissedAt,
@@ -5808,6 +5854,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
       if (title != null) 'title': title,
       if (message != null) 'message': message,
       if (source != null) 'source': source,
+      if (dedupeKey != null) 'dedupe_key': dedupeKey,
       if (createdAt != null) 'created_at': createdAt,
       if (readAt != null) 'read_at': readAt,
       if (dismissedAt != null) 'dismissed_at': dismissedAt,
@@ -5823,6 +5870,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
     Value<String>? title,
     Value<String>? message,
     Value<String>? source,
+    Value<String?>? dedupeKey,
     Value<int>? createdAt,
     Value<int?>? readAt,
     Value<int?>? dismissedAt,
@@ -5836,6 +5884,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
       title: title ?? this.title,
       message: message ?? this.message,
       source: source ?? this.source,
+      dedupeKey: dedupeKey ?? this.dedupeKey,
       createdAt: createdAt ?? this.createdAt,
       readAt: readAt ?? this.readAt,
       dismissedAt: dismissedAt ?? this.dismissedAt,
@@ -5865,6 +5914,9 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
     if (source.present) {
       map['source'] = Variable<String>(source.value);
     }
+    if (dedupeKey.present) {
+      map['dedupe_key'] = Variable<String>(dedupeKey.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -5892,6 +5944,7 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
           ..write('title: $title, ')
           ..write('message: $message, ')
           ..write('source: $source, ')
+          ..write('dedupeKey: $dedupeKey, ')
           ..write('createdAt: $createdAt, ')
           ..write('readAt: $readAt, ')
           ..write('dismissedAt: $dismissedAt, ')
@@ -7944,6 +7997,7 @@ typedef $$AppNotificationRowsTableCreateCompanionBuilder =
       required String title,
       Value<String> message,
       required String source,
+      Value<String?> dedupeKey,
       required int createdAt,
       Value<int?> readAt,
       Value<int?> dismissedAt,
@@ -7958,6 +8012,7 @@ typedef $$AppNotificationRowsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String> message,
       Value<String> source,
+      Value<String?> dedupeKey,
       Value<int> createdAt,
       Value<int?> readAt,
       Value<int?> dismissedAt,
@@ -8001,6 +8056,11 @@ class $$AppNotificationRowsTableFilterComposer
 
   ColumnFilters<String> get source => $composableBuilder(
     column: $table.source,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8064,6 +8124,11 @@ class $$AppNotificationRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get dedupeKey => $composableBuilder(
+    column: $table.dedupeKey,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -8111,6 +8176,9 @@ class $$AppNotificationRowsTableAnnotationComposer
 
   GeneratedColumn<String> get source =>
       $composableBuilder(column: $table.source, builder: (column) => column);
+
+  GeneratedColumn<String> get dedupeKey =>
+      $composableBuilder(column: $table.dedupeKey, builder: (column) => column);
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -8178,6 +8246,7 @@ class $$AppNotificationRowsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String> message = const Value.absent(),
                 Value<String> source = const Value.absent(),
+                Value<String?> dedupeKey = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int?> readAt = const Value.absent(),
                 Value<int?> dismissedAt = const Value.absent(),
@@ -8190,6 +8259,7 @@ class $$AppNotificationRowsTableTableManager
                 title: title,
                 message: message,
                 source: source,
+                dedupeKey: dedupeKey,
                 createdAt: createdAt,
                 readAt: readAt,
                 dismissedAt: dismissedAt,
@@ -8204,6 +8274,7 @@ class $$AppNotificationRowsTableTableManager
                 required String title,
                 Value<String> message = const Value.absent(),
                 required String source,
+                Value<String?> dedupeKey = const Value.absent(),
                 required int createdAt,
                 Value<int?> readAt = const Value.absent(),
                 Value<int?> dismissedAt = const Value.absent(),
@@ -8216,6 +8287,7 @@ class $$AppNotificationRowsTableTableManager
                 title: title,
                 message: message,
                 source: source,
+                dedupeKey: dedupeKey,
                 createdAt: createdAt,
                 readAt: readAt,
                 dismissedAt: dismissedAt,

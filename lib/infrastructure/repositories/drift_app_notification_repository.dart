@@ -51,6 +51,46 @@ class DriftAppNotificationRepository implements AppNotificationRepository {
   }
 
   @override
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  ) async {
+    final dedupeKey = notification.dedupeKey?.trim();
+    if (dedupeKey == null || dedupeKey.isEmpty) {
+      await saveNotification(notification);
+      return notification;
+    }
+
+    final existing = await (database.select(
+      database.appNotificationRows,
+    )..where((table) => table.dedupeKey.equals(dedupeKey))).getSingleOrNull();
+
+    if (existing == null) {
+      await saveNotification(notification);
+      return notification;
+    }
+
+    final updated = AppNotificationEntry(
+      id: existing.id,
+      kind: notification.kind,
+      level: notification.level,
+      title: notification.title,
+      message: notification.message,
+      source: notification.source,
+      createdAt: notification.createdAt,
+      dedupeKey: dedupeKey,
+      readAt: existing.readAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(existing.readAt!),
+      dismissedAt: existing.dismissedAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(existing.dismissedAt!),
+      payloadJson: notification.payloadJson,
+    );
+    await saveNotification(updated);
+    return updated;
+  }
+
+  @override
   Future<void> markAsRead(String id, DateTime readAt) {
     return (database.update(
       database.appNotificationRows,
@@ -106,6 +146,7 @@ extension AppNotificationRowMapper on AppNotificationRow {
       message: message,
       source: source,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
+      dedupeKey: dedupeKey,
       readAt: readAt == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(readAt!),
@@ -126,6 +167,7 @@ extension AppNotificationEntryMapper on AppNotificationEntry {
       title: Value(title),
       message: Value(message),
       source: Value(source),
+      dedupeKey: Value(dedupeKey),
       createdAt: Value(createdAt.millisecondsSinceEpoch),
       readAt: Value(readAt?.millisecondsSinceEpoch),
       dismissedAt: Value(dismissedAt?.millisecondsSinceEpoch),
