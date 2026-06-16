@@ -8,6 +8,7 @@ import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
@@ -18,11 +19,15 @@ class NotificationCenterPanel extends ConsumerStatefulWidget {
     required this.visible,
     required this.onClose,
     required this.onRevealOutput,
+    this.onOpenUpdateLog,
+    this.onStartUpdateDownload,
   });
 
   final bool visible;
   final VoidCallback onClose;
   final Future<void> Function(String outputPath) onRevealOutput;
+  final Future<void> Function(String target)? onOpenUpdateLog;
+  final Future<void> Function(String target)? onStartUpdateDownload;
 
   @override
   ConsumerState<NotificationCenterPanel> createState() =>
@@ -200,6 +205,9 @@ class _NotificationCenterPanelState
                                 data: (items) => _NotificationList(
                                   notifications: items,
                                   onRevealOutput: widget.onRevealOutput,
+                                  onOpenUpdateLog: widget.onOpenUpdateLog,
+                                  onStartUpdateDownload:
+                                      widget.onStartUpdateDownload,
                                   highlightedNotificationId:
                                       highlightedNotificationId,
                                 ),
@@ -294,11 +302,15 @@ class _NotificationList extends StatelessWidget {
   const _NotificationList({
     required this.notifications,
     required this.onRevealOutput,
+    required this.onOpenUpdateLog,
+    required this.onStartUpdateDownload,
     required this.highlightedNotificationId,
   });
 
   final List<AppNotificationEntry> notifications;
   final Future<void> Function(String outputPath) onRevealOutput;
+  final Future<void> Function(String target)? onOpenUpdateLog;
+  final Future<void> Function(String target)? onStartUpdateDownload;
   final String? highlightedNotificationId;
 
   @override
@@ -317,12 +329,16 @@ class _NotificationList extends StatelessWidget {
       separatorBuilder: (_, _) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final notification = notifications[index];
-        final action = NotificationCenterActionResolver.resolve(notification);
+        final actions = NotificationCenterActionResolver.resolveAll(
+          notification,
+        );
         return _NotificationListItem(
           key: ValueKey(notification.id),
           notification: notification,
-          action: action,
+          actions: actions,
           onRevealOutput: onRevealOutput,
+          onOpenUpdateLog: onOpenUpdateLog,
+          onStartUpdateDownload: onStartUpdateDownload,
           highlighted: notification.id == highlightedNotificationId,
         );
       },
@@ -334,14 +350,18 @@ class _NotificationListItem extends StatelessWidget {
   const _NotificationListItem({
     super.key,
     required this.notification,
-    required this.action,
+    required this.actions,
     required this.onRevealOutput,
+    required this.onOpenUpdateLog,
+    required this.onStartUpdateDownload,
     required this.highlighted,
   });
 
   final AppNotificationEntry notification;
-  final NotificationCenterActionDescriptor? action;
+  final List<NotificationCenterActionDescriptor> actions;
   final Future<void> Function(String outputPath) onRevealOutput;
+  final Future<void> Function(String target)? onOpenUpdateLog;
+  final Future<void> Function(String target)? onStartUpdateDownload;
   final bool highlighted;
 
   @override
@@ -374,7 +394,7 @@ class _NotificationListItem extends StatelessWidget {
           pulse * 0.45,
         )!;
 
-        return Semantics(
+        final item = Semantics(
           container: true,
           label: notification.displayMessage,
           child: Container(
@@ -386,6 +406,26 @@ class _NotificationListItem extends StatelessWidget {
             ),
             child: child,
           ),
+        );
+        if (notification.kind != AppNotificationKind.update ||
+            onOpenUpdateLog == null) {
+          return item;
+        }
+        return InkWell(
+          borderRadius: BorderRadius.circular(4),
+          onTap: () {
+            final target = actions
+                .where(
+                  (action) =>
+                      action.type == NotificationCenterActionType.openUpdateLog,
+                )
+                .firstOrNull
+                ?.target;
+            if (target != null) {
+              unawaited(onOpenUpdateLog!(target));
+            }
+          },
+          child: item,
         );
       },
       child: Padding(
@@ -426,10 +466,12 @@ class _NotificationListItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (action != null)
-                        _NotificationActionButton(
-                          action: action!,
+                      if (actions.isNotEmpty)
+                        _NotificationActionButtons(
+                          actions: actions,
                           onRevealOutput: onRevealOutput,
+                          onOpenUpdateLog: onOpenUpdateLog,
+                          onStartUpdateDownload: onStartUpdateDownload,
                         ),
                     ],
                   ),
@@ -483,38 +525,128 @@ String _formatNotificationTime(DateTime value) {
       '${local.day.toString().padLeft(2, '0')} $time';
 }
 
+class _NotificationActionButtons extends StatelessWidget {
+  const _NotificationActionButtons({
+    required this.actions,
+    required this.onRevealOutput,
+    required this.onOpenUpdateLog,
+    required this.onStartUpdateDownload,
+  });
+
+  final List<NotificationCenterActionDescriptor> actions;
+  final Future<void> Function(String outputPath) onRevealOutput;
+  final Future<void> Function(String target)? onOpenUpdateLog;
+  final Future<void> Function(String target)? onStartUpdateDownload;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final action in actions) ...[
+          _NotificationActionButton(
+            action: action,
+            onRevealOutput: onRevealOutput,
+            onOpenUpdateLog: onOpenUpdateLog,
+            onStartUpdateDownload: onStartUpdateDownload,
+          ),
+          if (action != actions.last) const SizedBox(width: 4),
+        ],
+      ],
+    );
+  }
+}
+
 class _NotificationActionButton extends StatelessWidget {
   const _NotificationActionButton({
     required this.action,
     required this.onRevealOutput,
+    required this.onOpenUpdateLog,
+    required this.onStartUpdateDownload,
   });
 
   final NotificationCenterActionDescriptor action;
   final Future<void> Function(String outputPath) onRevealOutput;
+  final Future<void> Function(String target)? onOpenUpdateLog;
+  final Future<void> Function(String target)? onStartUpdateDownload;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
+    final label = action.label;
     return Tooltip(
-      message: '打开成果物所在位置',
-      child: IconButton(
-        key: const Key('notification-reveal-output'),
-        onPressed: () {
-          switch (action.type) {
-            case NotificationCenterActionType.revealOutput:
-              unawaited(onRevealOutput(action.target));
-          }
-        },
-        icon: const Icon(Icons.folder_outlined, size: 15),
-        color: colors.textPrimary,
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints.tightFor(width: 24, height: 24),
-        style: IconButton.styleFrom(
-          hoverColor: colors.surfaceMuted,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-        ),
-      ),
+      message: action.tooltip,
+      child: label == null
+          ? IconButton(
+              key: Key(_keyForIconAction(action.type)),
+              onPressed: _onPressed,
+              icon: Icon(_iconForAction(action.type), size: 15),
+              color: colors.textPrimary,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints.tightFor(width: 24, height: 24),
+              style: IconButton.styleFrom(
+                hoverColor: colors.surfaceMuted,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            )
+          : TextButton(
+              key: const Key('notification-text-action'),
+              onPressed: _onPressed,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(36, 24),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                foregroundColor: colors.primary,
+                textStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              child: Text(label),
+            ),
     );
+  }
+
+  VoidCallback? get _onPressed {
+    return switch (action.type) {
+      NotificationCenterActionType.revealOutput => () {
+        unawaited(onRevealOutput(action.target));
+      },
+      NotificationCenterActionType.openUpdateLog =>
+        onOpenUpdateLog == null
+            ? null
+            : () {
+                unawaited(onOpenUpdateLog!(action.target));
+              },
+      NotificationCenterActionType.startUpdateDownload =>
+        onStartUpdateDownload == null
+            ? null
+            : () {
+                unawaited(onStartUpdateDownload!(action.target));
+              },
+    };
+  }
+
+  IconData _iconForAction(NotificationCenterActionType type) {
+    return switch (type) {
+      NotificationCenterActionType.revealOutput => Icons.folder_outlined,
+      NotificationCenterActionType.openUpdateLog => Icons.article_outlined,
+      NotificationCenterActionType.startUpdateDownload =>
+        Icons.file_download_outlined,
+    };
+  }
+
+  String _keyForIconAction(NotificationCenterActionType type) {
+    return switch (type) {
+      NotificationCenterActionType.revealOutput => 'notification-reveal-output',
+      NotificationCenterActionType.openUpdateLog => 'notification-update-log',
+      NotificationCenterActionType.startUpdateDownload =>
+        'notification-update-download',
+    };
   }
 }
 

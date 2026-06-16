@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/enums/app_update_status.dart';
+import 'package:framelean/domain/value_objects/app_update_state.dart';
 
 class WorkbenchTopBar extends StatelessWidget {
   const WorkbenchTopBar({
@@ -9,6 +11,8 @@ class WorkbenchTopBar extends StatelessWidget {
     required this.themeMode,
     required this.onToggleThemeMode,
     required this.onOpenNotifications,
+    this.updateState,
+    this.onOpenUpdate,
     this.unreadNotificationCount = 0,
     this.showNotificationBadge = true,
     this.showBottomBorder = false,
@@ -17,6 +21,8 @@ class WorkbenchTopBar extends StatelessWidget {
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
   final VoidCallback onOpenNotifications;
+  final AppUpdateState? updateState;
+  final VoidCallback? onOpenUpdate;
   final int unreadNotificationCount;
   final bool showNotificationBadge;
   final bool showBottomBorder;
@@ -42,6 +48,13 @@ class WorkbenchTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (updateState?.isActive == true && onOpenUpdate != null) ...[
+                  _UpdateTopBarButton(
+                    state: updateState!,
+                    onPressed: onOpenUpdate!,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 _TopBarIconButton(
                   tooltip: isDark ? '切换为浅色模式' : '切换为深色模式',
                   icon: isDark
@@ -59,6 +72,54 @@ class WorkbenchTopBar extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _UpdateTopBarButton extends StatelessWidget {
+  const _UpdateTopBarButton({required this.state, required this.onPressed});
+
+  final AppUpdateState state;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final downloading =
+        state.status == AppUpdateStatus.downloading ||
+        state.status == AppUpdateStatus.paused;
+
+    return SizedBox(
+      width: 32,
+      height: 32,
+      child: IconButton(
+        key: const Key('workbench-update-topbar-button'),
+        tooltip: '版本更新',
+        onPressed: onPressed,
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          foregroundColor: colors.primary,
+          hoverColor: colors.primarySoft,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+        icon: downloading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  value: state.progress,
+                  strokeWidth: 2.4,
+                  color: colors.primary,
+                  backgroundColor: colors.primarySoft,
+                ),
+              )
+            : Icon(
+                state.status == AppUpdateStatus.downloaded
+                    ? Icons.system_update_alt_rounded
+                    : Icons.file_download_outlined,
+                size: 20,
+              ),
       ),
     );
   }

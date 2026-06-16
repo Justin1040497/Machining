@@ -165,6 +165,130 @@ class _MaintenanceButton extends StatelessWidget {
   }
 }
 
+class _UpdateMaintenanceButton extends StatelessWidget {
+  const _UpdateMaintenanceButton({
+    required this.state,
+    required this.color,
+    required this.foregroundColor,
+    required this.onCheckUpdate,
+    required this.onStartOrResumeDownload,
+    required this.onPauseDownload,
+    required this.onInstallUpdate,
+  });
+
+  final AppUpdateState state;
+  final Color color;
+  final Color foregroundColor;
+  final Future<void> Function()? onCheckUpdate;
+  final Future<void> Function()? onStartOrResumeDownload;
+  final VoidCallback? onPauseDownload;
+  final Future<void> Function()? onInstallUpdate;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final label = _labelForState(state);
+    final onPressed = _actionForState();
+    final showProgress =
+        state.status == AppUpdateStatus.downloading ||
+        state.status == AppUpdateStatus.paused ||
+        state.status == AppUpdateStatus.downloaded;
+
+    return SizedBox(
+      width: 122,
+      height: 28,
+      child: FilledButton(
+        style: FilledButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: foregroundColor,
+          disabledBackgroundColor: colors.surfaceDisabled,
+          disabledForegroundColor: colors.textTertiary,
+          padding: EdgeInsets.zero,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        onPressed: onPressed,
+        child: showProgress
+            ? ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FractionallySizedBox(
+                        widthFactor: state.progress.clamp(0, 1),
+                        child: ColoredBox(
+                          color: colors.primarySoft.withAlpha(120),
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+      ),
+    );
+  }
+
+  String _labelForState(AppUpdateState state) {
+    return switch (state.status) {
+      AppUpdateStatus.checking => '检查中',
+      AppUpdateStatus.available => '现在更新',
+      AppUpdateStatus.downloading => '${state.progressPercent}%',
+      AppUpdateStatus.paused => '继续 ${state.progressPercent}%',
+      AppUpdateStatus.downloaded => '重启更新',
+      AppUpdateStatus.installing => '安装中',
+      AppUpdateStatus.failed => state.hasUpdate ? '重试更新' : '检查更新',
+      _ => '检查更新',
+    };
+  }
+
+  VoidCallback? _actionForState() {
+    return switch (state.status) {
+      AppUpdateStatus.checking || AppUpdateStatus.installing => null,
+      AppUpdateStatus.available || AppUpdateStatus.paused =>
+        onStartOrResumeDownload == null
+            ? null
+            : () {
+                unawaited(onStartOrResumeDownload!());
+              },
+      AppUpdateStatus.failed =>
+        state.hasUpdate
+            ? onStartOrResumeDownload == null
+                  ? null
+                  : () {
+                      unawaited(onStartOrResumeDownload!());
+                    }
+            : onCheckUpdate == null
+            ? null
+            : () {
+                unawaited(onCheckUpdate!());
+              },
+      AppUpdateStatus.downloading => onPauseDownload,
+      AppUpdateStatus.downloaded =>
+        onInstallUpdate == null
+            ? null
+            : () {
+                unawaited(onInstallUpdate!());
+              },
+      _ =>
+        onCheckUpdate == null
+            ? null
+            : () {
+                unawaited(onCheckUpdate!());
+              },
+    };
+  }
+}
+
 class _ConfirmMaintenanceDialog extends StatelessWidget {
   const _ConfirmMaintenanceDialog({
     required this.title,

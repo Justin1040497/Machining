@@ -211,6 +211,7 @@ class FakeNotificationCenterRepository implements AppNotificationRepository {
           message: notification.message,
           source: notification.source,
           createdAt: notification.createdAt,
+          dedupeKey: notification.dedupeKey,
           readAt: readAt,
           dismissedAt: notification.dismissedAt,
           payloadJson: notification.payloadJson,
@@ -223,6 +224,21 @@ class FakeNotificationCenterRepository implements AppNotificationRepository {
   Future<void> saveNotification(AppNotificationEntry notification) async {
     _notifications = [notification, ..._notifications];
     _emit();
+  }
+
+  @override
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  ) async {
+    _notifications = [
+      notification,
+      ..._notifications.where(
+        (item) =>
+            item.dedupeKey == null || item.dedupeKey != notification.dedupeKey,
+      ),
+    ];
+    _emit();
+    return notification;
   }
 
   @override

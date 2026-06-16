@@ -6,6 +6,7 @@ import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
@@ -38,6 +39,8 @@ class WorkbenchShell extends StatelessWidget {
     required this.themeMode,
     required this.onToggleThemeMode,
     required this.onOpenNotifications,
+    this.updateState,
+    this.onOpenUpdate,
     this.unreadNotificationCount = 0,
     this.showNotificationBadge = true,
     required this.onClearTasks,
@@ -67,6 +70,8 @@ class WorkbenchShell extends StatelessWidget {
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
   final VoidCallback onOpenNotifications;
+  final AppUpdateState? updateState;
+  final VoidCallback? onOpenUpdate;
   final int unreadNotificationCount;
   final bool showNotificationBadge;
   final VoidCallback onClearTasks;
@@ -126,6 +131,8 @@ class WorkbenchShell extends StatelessWidget {
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
                             onOpenNotifications: onOpenNotifications,
+                            updateState: updateState,
+                            onOpenUpdate: onOpenUpdate,
                             unreadNotificationCount: unreadNotificationCount,
                             showNotificationBadge: showNotificationBadge,
                           ),
@@ -141,6 +148,8 @@ class WorkbenchShell extends StatelessWidget {
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
                             onOpenNotifications: onOpenNotifications,
+                            updateState: updateState,
+                            onOpenUpdate: onOpenUpdate,
                             unreadNotificationCount: unreadNotificationCount,
                             showNotificationBadge: showNotificationBadge,
                             showBottomBorder: true,

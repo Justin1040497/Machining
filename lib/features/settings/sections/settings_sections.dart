@@ -118,6 +118,21 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           spacing: 22,
           runSpacing: 12,
           children: [
+            _UpdateMaintenanceButton(
+              state: widget.updateState,
+              color: colors.primary,
+              foregroundColor: colors.onPrimary,
+              onCheckUpdate: widget.onCheckUpdate,
+              onStartOrResumeDownload: widget.onStartOrResumeUpdateDownload,
+              onPauseDownload: widget.onPauseUpdateDownload,
+              onInstallUpdate: widget.onInstallUpdate,
+            ),
+            _MaintenanceButton(
+              label: '版本日志',
+              color: colors.statusPending,
+              foregroundColor: colors.onWarning,
+              onPressed: widget.onOpenReleaseNotes,
+            ),
             _MaintenanceButton(
               label: clearingCache ? '正在清理' : '清空应用缓存',
               color: colors.statusRunning,

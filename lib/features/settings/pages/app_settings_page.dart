@@ -19,9 +19,12 @@ import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/widgets/percentage_slider_panel.dart';
+import 'package:framelean/app/widgets/update_restart_warning_dialog.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
+import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
@@ -30,10 +33,12 @@ import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
+import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
@@ -43,6 +48,8 @@ import 'package:framelean/app/providers/app_maintenance_provider.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';
 import 'package:framelean/app/providers/app_settings_save_provider.dart';
+import 'package:framelean/app/providers/app_update_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
 
 part '../sections/settings_sections.dart';
@@ -122,6 +129,23 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
     exit(0);
   }
 
+  Future<void> installUpdateWithTaskCheck() async {
+    final tasks = await ref.read(mediaTaskRepositoryProvider).loadAllTasks();
+    final hasUnfinishedTasks = tasks.any(_taskNeedsUpdateRestartWarning);
+    if (hasUnfinishedTasks && mounted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => const UpdateRestartWarningDialog(),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      await ref.read(ffmpegTaskQueueRunnerProvider).pauseAllRunningTasks();
+    }
+
+    await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
+  }
+
   Future<void> openExternalLink(String url) async {
     final notificationManager = ref.read(appNotificationManagerProvider);
     final result = await ref.read(externalLinkOpenerProvider).open(url);
@@ -148,9 +172,13 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
         future: settingsFuture,
         builder: (context, snapshot) {
           if (snapshot.hasData) {
+            final updateState =
+                ref.watch(appUpdateProvider).asData?.value ??
+                AppUpdateState.initial();
             return AppSettingsView(
               initialSettings: snapshot.requireData,
               fallbackDefaultDirectory: fileSelectionService.defaultExportPath,
+              updateState: updateState,
               onPickOutputDirectory: fileSelectionService.pickOutputDirectory,
               onPickFfmpegPath: fileSelectionService.pickExecutablePath,
               onPickFfprobePath: fileSelectionService.pickExecutablePath,
@@ -171,6 +199,21 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
               },
               onLaunchCleanUninstaller: launchCleanUninstaller,
               onOpenExternalLink: openExternalLink,
+              onCheckUpdate: () {
+                return ref.read(appUpdateProvider.notifier).checkForUpdate();
+              },
+              onStartOrResumeUpdateDownload: () {
+                return ref
+                    .read(appUpdateProvider.notifier)
+                    .startOrResumeDownload();
+              },
+              onPauseUpdateDownload: () {
+                ref.read(appUpdateProvider.notifier).pauseDownload();
+              },
+              onInstallUpdate: installUpdateWithTaskCheck,
+              onOpenReleaseNotes: () {
+                context.push('/settings/release-notes');
+              },
               onClose: () => returnToWorkbench(),
               onSave: saveSettings,
             );
@@ -191,11 +234,19 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
   }
 }
 
+bool _taskNeedsUpdateRestartWarning(MediaTask task) {
+  return task.status == TaskStatus.running ||
+      task.status == TaskStatus.paused ||
+      task.status == TaskStatus.pending ||
+      task.status == TaskStatus.analyzing;
+}
+
 class AppSettingsView extends StatefulWidget {
   const AppSettingsView({
     super.key,
     required this.initialSettings,
     required this.fallbackDefaultDirectory,
+    required this.updateState,
     required this.onPickOutputDirectory,
     required this.onPickFfmpegPath,
     required this.onPickFfprobePath,
@@ -206,10 +257,16 @@ class AppSettingsView extends StatefulWidget {
     this.onLoadAppUninstallAvailability,
     this.onLaunchCleanUninstaller,
     this.onOpenExternalLink,
+    this.onCheckUpdate,
+    this.onStartOrResumeUpdateDownload,
+    this.onPauseUpdateDownload,
+    this.onInstallUpdate,
+    this.onOpenReleaseNotes,
   });
 
   final AppSettings initialSettings;
   final String fallbackDefaultDirectory;
+  final AppUpdateState updateState;
   final AppSettingsPathPicker onPickOutputDirectory;
   final AppSettingsPathPicker onPickFfmpegPath;
   final AppSettingsPathPicker onPickFfprobePath;
@@ -220,6 +277,11 @@ class AppSettingsView extends StatefulWidget {
   final AppUninstallAvailabilityCallback? onLoadAppUninstallAvailability;
   final AppUninstallLaunchCallback? onLaunchCleanUninstaller;
   final AppSettingsExternalLinkCallback? onOpenExternalLink;
+  final Future<void> Function()? onCheckUpdate;
+  final Future<void> Function()? onStartOrResumeUpdateDownload;
+  final VoidCallback? onPauseUpdateDownload;
+  final Future<void> Function()? onInstallUpdate;
+  final VoidCallback? onOpenReleaseNotes;
 
   @override
   State<AppSettingsView> createState() => _AppSettingsViewState();

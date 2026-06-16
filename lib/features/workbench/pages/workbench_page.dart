@@ -7,6 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
+import 'package:framelean/app/providers/app_update_provider.dart';
+import 'package:framelean/app/widgets/update_restart_warning_dialog.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
@@ -23,6 +25,8 @@ import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/app_release_notes.dart';
+import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/features/notifications/widgets/notification_center_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
@@ -37,6 +41,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_c
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/update_release_notes_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
@@ -182,6 +187,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     final notificationCenterVisible = ref.watch(
       notificationCenterVisibilityProvider,
     );
+    final updateState =
+        ref.watch(appUpdateProvider).asData?.value ?? AppUpdateState.initial();
 
     return Scaffold(
       body: Stack(
@@ -221,6 +228,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               unawaited(toggleThemeMode());
             },
             onOpenNotifications: openNotificationCenter,
+            updateState: updateState,
+            onOpenUpdate: () {
+              unawaited(showCurrentUpdateDialog());
+            },
             unreadNotificationCount: unreadNotificationCount,
             showNotificationBadge: !hideNotificationBadge,
             onClearTasks: confirmClearTasks,
@@ -232,6 +243,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             visible: notificationCenterVisible,
             onClose: closeNotificationCenter,
             onRevealOutput: revealPathInFileManager,
+            onOpenUpdateLog: openUpdateLogFromNotification,
+            onStartUpdateDownload: startUpdateDownloadFromNotification,
           ),
         ],
       ),
@@ -633,6 +646,115 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   void closeNotificationCenter() {
     ref.read(notificationCenterVisibilityProvider.notifier).close();
+  }
+
+  Future<void> openUpdateLogFromNotification(String target) async {
+    closeNotificationCenter();
+    final current = ref.read(appUpdateProvider).asData?.value;
+    final release = current?.release;
+    if (release != null &&
+        target ==
+            '${release.platform}:${release.version}:${release.buildNumber}') {
+      await showCurrentUpdateDialog();
+      return;
+    }
+
+    final notes = await _findReleaseNotesForTarget(target);
+    if (!mounted) {
+      return;
+    }
+    if (notes == null) {
+      context.push('/settings/release-notes');
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => UpdateReleaseNotesDialog.history(
+        notes: notes,
+        onOpenMore: () {
+          Navigator.of(context).pop();
+          context.push('/settings/release-notes?version=${notes.version}');
+        },
+      ),
+    );
+  }
+
+  Future<void> startUpdateDownloadFromNotification(String target) async {
+    closeNotificationCenter();
+    await ref.read(appUpdateProvider.notifier).startOrResumeDownload();
+  }
+
+  Future<AppReleaseNotes?> _findReleaseNotesForTarget(String target) async {
+    final parts = target.split(':');
+    if (parts.length < 3) {
+      return null;
+    }
+    final version = parts[1];
+    final notes = await ref.read(appReleaseNotesProvider.future);
+    for (final item in notes) {
+      if (item.version == version) {
+        return item;
+      }
+    }
+    return null;
+  }
+
+  Future<void> showCurrentUpdateDialog() async {
+    final updateState = ref.read(appUpdateProvider).asData?.value;
+    if (!mounted || updateState?.release == null) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (dialogContext, ref, _) {
+            final liveState =
+                ref.watch(appUpdateProvider).asData?.value ?? updateState!;
+            return UpdateReleaseNotesDialog.current(
+              updateState: liveState,
+              onStartDownload: () {
+                unawaited(
+                  ref.read(appUpdateProvider.notifier).startOrResumeDownload(),
+                );
+              },
+              onPauseDownload: () {
+                ref.read(appUpdateProvider.notifier).pauseDownload();
+              },
+              onInstallUpdate: () {
+                unawaited(installUpdateWithTaskCheck());
+              },
+              onOpenMore: () {
+                Navigator.of(dialogContext).pop();
+                final release = liveState.release;
+                context.push(
+                  '/settings/release-notes?version=${release!.version}',
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> installUpdateWithTaskCheck() async {
+    final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+    final hasUnfinishedTasks = tasks.any(_taskNeedsUpdateRestartWarning);
+    if (hasUnfinishedTasks && mounted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => const UpdateRestartWarningDialog(),
+      );
+      if (confirmed != true) {
+        return;
+      }
+      await ref.read(mediaTaskListProvider.notifier).pauseAllRunningTasks();
+    }
+
+    await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
   }
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
@@ -1223,4 +1345,11 @@ AppNotificationLevel notificationLevelForWorkbenchMessage(String message) {
     return AppNotificationLevel.success;
   }
   return AppNotificationLevel.info;
+}
+
+bool _taskNeedsUpdateRestartWarning(MediaTask task) {
+  return task.status == TaskStatus.running ||
+      task.status == TaskStatus.paused ||
+      task.status == TaskStatus.pending ||
+      task.status == TaskStatus.analyzing;
 }

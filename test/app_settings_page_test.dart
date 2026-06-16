@@ -11,6 +11,7 @@ import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/features/settings/pages/app_settings_page.dart';
 
 void main() {
@@ -512,6 +513,7 @@ Future<void> pumpSettingsPage(
         body: AppSettingsView(
           initialSettings: initialSettings ?? AppSettings.initial(),
           fallbackDefaultDirectory: '/tmp/framelean-output',
+          updateState: AppUpdateState.initial(),
           onSave: (settings, target) {
             final scopedCallback = onSaveWithTarget;
             if (scopedCallback != null) {
