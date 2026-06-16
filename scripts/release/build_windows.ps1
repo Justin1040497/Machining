@@ -333,6 +333,7 @@ function Assert-ZipLayout {
 
     $RequiredEntries = @(
       "${RootPrefix}FrameLean.exe",
+      "${RootPrefix}FrameLeanUpdaterHelper.exe",
       "${RootPrefix}flutter_windows.dll",
       "${RootPrefix}msvcp140.dll",
       "${RootPrefix}vcruntime140.dll",
@@ -369,6 +370,7 @@ $LegalDir = Join-Path $Root "legal"
 $PubspecPath = Join-Path $Root "pubspec.yaml"
 $IssPath = Join-Path $Root "installer\windows\FrameLean.iss"
 $CleanupScriptPath = Join-Path $Root "installer\windows\FrameLean-Clean-Uninstall.ps1"
+$UpdaterHelperSourcePath = Join-Path $Root "tool\windows_updater_helper.dart"
 $ReleaseToolsDir = Join-Path $ReleaseDir "tools"
 $QmcAdapterNames = @(
   "framelean-qmc-adapter.exe",
@@ -381,11 +383,13 @@ $VcRuntimeFiles = @(
 )
 
 Require-Command "flutter"
+Require-Command "dart"
 Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
 Require-File (Join-Path $FfmpegDir "ffprobe.exe")
 Require-Directory $LegalDir
 Require-File (Join-Path $Root "LICENSE")
 Require-File (Join-Path $LegalDir "NOTICE.md")
+Require-File $UpdaterHelperSourcePath
 
 $Iscc = $null
 if (-not $SkipInstaller) {
@@ -435,6 +439,16 @@ try {
   foreach ($VcRuntimeFile in $VcRuntimeFiles) {
     Require-File (Join-Path $ReleaseDir $VcRuntimeFile)
   }
+
+  Write-Host "Building updater helper..."
+  Invoke-Checked "dart" @(
+    "compile",
+    "exe",
+    $UpdaterHelperSourcePath,
+    "-o",
+    (Join-Path $ReleaseDir "FrameLeanUpdaterHelper.exe")
+  )
+  Require-File (Join-Path $ReleaseDir "FrameLeanUpdaterHelper.exe")
 
   $QmcAdapterSources = @(
     $QmcAdapterNames | ForEach-Object {

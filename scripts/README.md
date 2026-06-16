@@ -23,7 +23,7 @@ These scripts prepare dependencies. They do not package the FrameLean app.
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
 | `release/build_dmg_macos.sh` | macOS | Build and validate the release app and DMG | `build/macos/Build/Products/Release/FrameLean-v*.dmg` |
-| `release/build_windows.ps1` | Windows x64 | Canonical Windows publishing entry point. Builds the release directory once, bundles and validates all runtimes, then creates both the portable zip and Inno Setup installer by default | `build/windows/x64/runner/FrameLean-v*-windows-x64.zip` and `build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe` |
+| `release/build_windows.ps1` | Windows x64 | Canonical Windows publishing entry point. Builds the release directory once, compiles the updater helper, bundles and validates all runtimes, then creates both the portable zip and Inno Setup installer by default | `build/windows/x64/runner/FrameLean-v*-windows-x64.zip` and `build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe` |
 
 Use `build_windows.ps1` for a normal Windows release:
 
