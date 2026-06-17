@@ -86,6 +86,9 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | --- | --- |
 | `spring-boot-starter-data-redis` | Redis 连接，用于更新票据、限流计数和 latest cache |
 | `spring-boot-testcontainers` | Spring Boot Testcontainers `@ServiceConnection` 测试支持 |
+| Tencent COS Java SDK `cos_api` | 服务端生成上传 / 下载预签名 URL，并通过官方 Java SDK 管理分片上传生命周期 |
+| React + Vite + Ant Design | 服务端 Admin Web，源码位于 `server/admin-web`，构建后由 Spring Boot 托管 `/web` |
+| `argon2-browser` | Admin Web 主密码派生密钥，用于加密 / 解密本地生成的管理员私钥信封 |
 
 ## 项目目录结构
 
@@ -345,8 +348,14 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 | 数据 | 位置 / 机制 | 说明 |
 | --- | --- | --- |
-| release / package / notes | PostgreSQL | 长期发布事实 |
+| release / package / notes | PostgreSQL | 长期发布事实；`release_packages.client_visible` 区分客户端更新包和官网 / Admin 留存包 |
+| release artifact files / notes md | 腾讯云 COS | Admin Web 通过服务端预签名分片上传写入 `releases/...`，客户端只通过下载 ticket 获取可见平台包的短期下载 URL |
+| release artifact requirement | PostgreSQL | Admin 端配置的每个版本必填平台成果物 |
+| update check event | PostgreSQL | 检查更新审计、IP 筛选和封禁依据 |
 | download event | PostgreSQL | 下载统计和审计 |
+| admin auth envelope | PostgreSQL | 唯一管理员的 Argon2id 参数、加密私钥和公钥；不保存主密码或密码哈希 |
+| admin session / challenge | Redis | Admin Web 登录 challenge、HttpOnly Cookie 会话和 CSRF token |
+| ip block rule | PostgreSQL | 管理端维护的 IP 屏蔽规则 |
 | download ticket | Redis | 10 分钟 TTL，resolve 后签发 COS 短期 URL |
 | rate limit / latest cache | Redis | 限流窗口和短期最新版本缓存 |
 

@@ -29,6 +29,42 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-17｜v1.2.1｜No Release
+
+今天为 server v1.0.0 增加内置 Admin 管理端第一版：`/web` 由 Spring Boot 直接托管 React + Ant Design 后台，支持下载统计、检查更新审计、下载 IP 记录、IP 屏蔽，以及版本成果物管理。管理端采用唯一管理员主密码机制，主密码只在浏览器本地用于解密私钥并签名登录 challenge，服务端不保存密码或密码哈希。
+
+### Added
+
+- 新增 `server/admin-web` React + Vite + Ant Design 管理端，使用深蓝侧边栏、白色内容区、灰色分割线和蓝色主色。
+- 新增 Admin Web 首次初始化、主密码登录、HttpOnly Cookie 会话和 CSRF 校验。
+- 新增 `admin_auth_config`、`release_artifact_requirements`、`update_check_events` 和 `ip_block_rules` 数据表。
+- 新增 Admin dashboard、检查更新审计、下载审计、IP 屏蔽和版本详情 / 必填成果物接口。
+- 新增 `/web` 静态入口，Dockerfile 多阶段构建会把 Admin Web dist 打包进后端 jar。
+- 新增 Admin 版本草稿创建流程：一次拖拽上传 Windows x64、Windows 直装版、macOS Universal 和版本日志 md，上传完成后进入草稿确认页。
+- 新增 COS 分片上传管理接口，Admin Web 通过服务端预签名 URL 支持大文件断点续传。
+- 新增 `release_packages.client_visible` 和 `releases.notes_object_key`，区分客户端更新成果物、官网留存成果物和日志 md 的 COS 对象。
+
+### Changed
+
+- 管理接口保留 `X-Api-Key` 脚本鉴权，同时支持 Admin Web Cookie 会话。
+- 检查更新和下载 ticket 创建统一读取反代后的真实 IP，并在 IP 被屏蔽时拒绝继续。
+- 发布前校验扩展为按版本配置的必填平台成果物逐项检查。
+- Admin 版本创建不再填写 Build，服务端在 `server v1.0.0` / 后端 `v1` 线内自动递增内部 build number。
+- Admin 版本成果物从“先建版本、再单独上传包”改为“创建草稿、草稿确认、点击发行”。
+- 客户端更新接口只接受 `windows-x64` 和 `macos-universal2`；Windows 直装版仅上传留存，不会进入检查更新或下载 ticket。
+
+### Fixed
+
+- 修复 Admin Web 页面标题在浏览器顶部被裁切的问题，根节点、Header 和内容滚动区重新分离。
+- 修复新建版本弹窗过长且无法上传成果物文件的问题，改为可滚动的四槽位拖拽上传表单。
+
+### Verified
+
+- 通过 `cd server && mvn -DskipTests package`。
+- 通过 `cd server && mvn test`；当前无 Docker 环境下 Testcontainers smoke test 自动跳过。
+- 通过 `cd server/admin-web && npm run build`。
+- `docker build -t framelean-backend-admin-web:test .` 未执行成功：本机 Docker daemon 未运行，无法连接 `/Users/leftzhou/.docker/run/docker.sock`。
+
 ## 2026-06-16｜v1.2.1｜No Release
 
 今天接入自托管更新 v1.2.1 客户端主流程和 server v1.0.0 更新服务加固：设置页关于栏可以自动 / 手动检查更新并进入下载、暂停、继续和待重启状态，通知中心支持单版本更新通知和双动作，工作台顶部在存在更新时持续显示入口，版本日志页面和日志弹窗开始承接 Markdown 日志。服务端加入 Redis，用于下载票据、限流和 latest cache，并修复平台包过滤、发布前校验、测试依赖和 validation 400 返回。

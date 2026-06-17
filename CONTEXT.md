@@ -69,10 +69,10 @@ features -> application -> domain
 - macOS 发布使用单一 Universal 2 DMG，同时覆盖 Intel x86_64 和 Apple Silicon arm64。
 - Windows 发布只覆盖 x64；正式发布入口生成便携 ZIP 和 Inno Setup 安装器。
 - Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不提供管理员安装切换，避免后续静默覆盖更新触发 UAC。
-- Windows 自托管更新的首选下载载荷是签名后的 `FrameLean-v*-windows-x64-setup.exe`；ZIP 只保留为便携分发或手动下载备用。
+- 自托管更新客户端只消费 `windows-x64` 和 `macos-universal2` 平台包；Windows 直装版安装器作为 Admin / COS 留存成果物，后续供产品官网分发，不会出现在客户端检查更新或下载 ticket 中。
 - 自托管更新客户端从 v1.2.1 开始接入主流程：应用启动自动静默检查一次，设置关于栏可手动检查和启动下载，通知中心按版本去重展示更新通知，工作台顶部在存在更新时持续显示入口。
 - Windows 自托管更新由主应用完成下载、断点续传和 SHA-256 校验，再交给随包提供的独立 `FrameLeanUpdaterHelper.exe` 退出应用、执行安装器、检查退出码并重启应用。
-- 更新服务端版本为 `server v1.0.0`，使用 PostgreSQL 保存 release / package / download event 长期数据，使用 Redis 保存短期下载票据、限流计数和 latest cache。
+- 更新服务端发布前仍处于 `server v1.0.0` / 后端 `v1` 线；v1 线内数据库演进使用 `V*__v1_database_*` 迁移命名，PostgreSQL 保存 release / package / download event 长期数据，Redis 保存短期下载票据、限流计数和 latest cache。
 
 ## 文档阅读入口
 
