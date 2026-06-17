@@ -21,7 +21,7 @@ class HttpAppUpdateClient implements AppUpdateClient {
     required String channel,
   }) async {
     final uri = _resolve(
-      '/api/v1/updates/check',
+      '/api/v1/releases/latest',
       queryParameters: {
         'currentVersion': currentVersion,
         'currentBuild': currentBuild.toString(),
@@ -63,7 +63,7 @@ class HttpAppUpdateClient implements AppUpdateClient {
     required String installId,
   }) async {
     final createJson = await _readJsonObject(
-      _resolve('/api/v1/updates/download-ticket'),
+      _resolve('/api/v1/releases/download-ticket'),
       method: 'POST',
       body: {
         'version': release.version,
@@ -74,7 +74,7 @@ class HttpAppUpdateClient implements AppUpdateClient {
     final ticketId = createJson['ticketId'] as String;
     final json = await _readJsonObject(
       _resolve(
-        '/api/v1/updates/download-ticket/${Uri.encodeComponent(ticketId)}/resolve',
+        '/api/v1/releases/download-ticket/${Uri.encodeComponent(ticketId)}/resolve',
       ),
       method: 'POST',
     );

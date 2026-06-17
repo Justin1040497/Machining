@@ -40,7 +40,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增 `admin_auth_config`、`release_artifact_requirements`、`update_check_events` 和 `ip_block_rules` 数据表。
 - 新增 Admin dashboard、检查更新审计、下载审计、IP 屏蔽和版本详情 / 必填成果物接口。
 - 新增 `/web` 静态入口，Dockerfile 多阶段构建会把 Admin Web dist 打包进后端 jar。
-- 新增 Admin 版本草稿创建流程：一次拖拽上传 Windows x64、Windows 直装版、macOS Universal 和版本日志 md，上传完成后进入草稿确认页。
+- 新增 Admin 版本草稿创建流程：一次拖拽上传 Windows x64、macOS Universal 和版本日志 md，可选上传 Windows 直装版留存包，上传完成后进入草稿确认页。
 - 新增 COS 分片上传管理接口，Admin Web 通过服务端预签名 URL 支持大文件断点续传。
 - 新增 `release_packages.client_visible` 和 `releases.notes_object_key`，区分客户端更新成果物、官网留存成果物和日志 md 的 COS 对象。
 
@@ -48,15 +48,17 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 - 管理接口保留 `X-Api-Key` 脚本鉴权，同时支持 Admin Web Cookie 会话。
 - 检查更新和下载 ticket 创建统一读取反代后的真实 IP，并在 IP 被屏蔽时拒绝继续。
-- 发布前校验扩展为按版本配置的必填平台成果物逐项检查。
+- 发布前校验扩展为按版本配置的必填平台成果物逐项检查，Windows 直装版成果物在服务端归一化为可选。
 - Admin 版本创建不再填写 Build，服务端在 `server v1.0.0` / 后端 `v1` 线内自动递增内部 build number。
 - Admin 版本成果物从“先建版本、再单独上传包”改为“创建草稿、草稿确认、点击发行”。
+- 客户端更新检查和下载 ticket 接口切换到 `/api/v1/releases/latest` 与 `/api/v1/releases/download-ticket` 路径。
 - 客户端更新接口只接受 `windows-x64` 和 `macos-universal2`；Windows 直装版仅上传留存，不会进入检查更新或下载 ticket。
 
 ### Fixed
 
 - 修复 Admin Web 页面标题在浏览器顶部被裁切的问题，根节点、Header 和内容滚动区重新分离。
 - 修复新建版本弹窗过长且无法上传成果物文件的问题，改为可滚动的四槽位拖拽上传表单。
+- 修复新建版本时 Windows 直装版留存包被强制上传，导致无直装版时不能完成草稿创建和发行确认的问题。
 
 ### Verified
 

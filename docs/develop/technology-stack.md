@@ -350,7 +350,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | --- | --- | --- |
 | release / package / notes | PostgreSQL | 长期发布事实；`release_packages.client_visible` 区分客户端更新包和官网 / Admin 留存包 |
 | release artifact files / notes md | 腾讯云 COS | Admin Web 通过服务端预签名分片上传写入 `releases/...`，客户端只通过下载 ticket 获取可见平台包的短期下载 URL |
-| release artifact requirement | PostgreSQL | Admin 端配置的每个版本必填平台成果物 |
+| release artifact requirement | PostgreSQL | Admin 端配置的每个版本平台成果物要求及必填状态，Windows 直装版留存包默认为可选 |
 | update check event | PostgreSQL | 检查更新审计、IP 筛选和封禁依据 |
 | download event | PostgreSQL | 下载统计和审计 |
 | admin auth envelope | PostgreSQL | 唯一管理员的 Argon2id 参数、加密私钥和公钥；不保存主密码或密码哈希 |
