@@ -80,6 +80,10 @@ third_party/audio_adapters/qmc/macos-universal/qmc-decrypt
 # Server (separate repo: FrameLean-Backend)
 /server/
 
+# AI agent runtime data
+/.codegraph/
+/.reasonix/
+
 # git
 /worktrees/
 .folderslice.assetmeta/
