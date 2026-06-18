@@ -288,6 +288,21 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
     List<MediaTaskSortOrderUpdate> updates,
   ) async {}
 
+  @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+      tasks[index] = tasks[index].copyWith(
+        folderSortOrder: update.folderSortOrder,
+      );
+    }
+  }
+
   MediaTask taskById(String id) {
     return tasks.singleWhere((task) => task.id == id);
   }
@@ -317,6 +332,26 @@ class FakeTaskFolderRepository implements TaskFolderRepository {
       return;
     }
     folders[index] = folder;
+  }
+
+  @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = folders.indexWhere(
+        (folder) => folder.id == update.folderId,
+      );
+      if (index == -1) {
+        continue;
+      }
+      folders[index] = folders[index].copyWith(sortOrder: update.sortOrder);
+    }
+  }
+
+  @override
+  Future<void> clearAllFolders() async {
+    folders.clear();
   }
 
   TaskFolder folderById(String id) {

@@ -54,7 +54,6 @@ void main() {
     );
     expect(settings.themeMode, AppThemeMode.dark);
     expect(settings.hideNotificationBadge, isFalse);
-    expect(settings.showTaskCompletionDialog, isTrue);
     expect(settings.taskCompletionSound, TaskCompletionSound.originalSoftA);
   });
 
@@ -94,7 +93,6 @@ void main() {
     expect(settings.defaultMediaConfig.image?.imageQuality, 67);
     expect(settings.themeMode, AppThemeMode.light);
     expect(settings.hideNotificationBadge, isTrue);
-    expect(settings.showTaskCompletionDialog, isFalse);
     expect(settings.taskCompletionSound, TaskCompletionSound.servoConfirm);
   });
 
@@ -230,7 +228,6 @@ void main() {
           defaultMediaConfig: mediaConfig,
           themeMode: AppThemeMode.dark,
           hideNotificationBadge: false,
-          showTaskCompletionDialog: false,
           taskCompletionSound: TaskCompletionSound.mechanicalKey,
         ),
       );
@@ -246,7 +243,7 @@ void main() {
       );
       expect(row.themeMode, 'dark');
       expect(row.hideNotificationBadge, isFalse);
-      expect(row.showTaskCompletionDialog, isFalse);
+      expect(row.showTaskCompletionDialog, isTrue);
       expect(row.taskCompletionSound, 'mechanical_key');
       expect(savedConfig.video?.videoCodec, VideoCodec.hevc);
       expect(savedConfig.image?.imageQuality, 71);

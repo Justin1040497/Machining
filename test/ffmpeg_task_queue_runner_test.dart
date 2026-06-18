@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
@@ -13,12 +14,53 @@ import 'package:framelean/application/services/execution/ffmpeg_task_queue_runne
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 
 void main() {
   group('DefaultFfmpegTaskQueueRunner', () {
+    test('expanded execution order unfolds folders in top-level order', () {
+      final firstFolder = taskFolder(id: 'folder-a', sortOrder: 0);
+      final secondFolder = taskFolder(id: 'folder-b', sortOrder: 2);
+      final firstFolderSecond = videoTask(
+        id: 'folder-a-second',
+        sortOrder: 8,
+      ).copyWith(folderId: firstFolder.id, folderSortOrder: 1);
+      final looseTask = videoTask(id: 'loose', sortOrder: 1);
+      final firstFolderFirst = videoTask(
+        id: 'folder-a-first',
+        sortOrder: 9,
+      ).copyWith(folderId: firstFolder.id, folderSortOrder: 0);
+      final secondFolderTask = videoTask(
+        id: 'folder-b-task',
+        sortOrder: 10,
+      ).copyWith(folderId: secondFolder.id, folderSortOrder: 0);
+      final harness = QueueHarness(
+        tasks: [
+          looseTask,
+          firstFolderSecond,
+          secondFolderTask,
+          firstFolderFirst,
+        ],
+        folders: [firstFolder, secondFolder],
+      );
+
+      final ordered = harness.runner.expandedExecutionOrder(
+        harness.repository.tasks,
+        harness.taskFolderRepository.folders,
+      );
+
+      expect(ordered.map((task) => task.id), [
+        'folder-a-first',
+        'folder-a-second',
+        'loose',
+        'folder-b-task',
+      ]);
+    });
+
     test('refreshStatus returns ready when pending tasks exist', () async {
       final harness = QueueHarness(tasks: [videoTask(sortOrder: 0)]);
 
@@ -622,6 +664,7 @@ void main() {
 
 class QueueHarness {
   final FakeMediaTaskRepository repository;
+  final FakeTaskFolderRepository taskFolderRepository;
   final FakeProcessStarter processStarter;
   final FakeProcessController processController;
   final FakeProcessObserver processObserver;
@@ -646,7 +689,9 @@ class QueueHarness {
     FakeProcessController? processController,
     FakeProcessObserver? processObserver,
     bool continuousExecutionEnabled = true,
+    List<TaskFolder> folders = const [],
   }) : repository = FakeMediaTaskRepository(tasks),
+       taskFolderRepository = FakeTaskFolderRepository(folders),
        processStarter = processStarter ?? FakeProcessStarter(),
        processController = processController ?? FakeProcessController(),
        processObserver = processObserver ?? FakeProcessObserver(),
@@ -655,6 +700,7 @@ class QueueHarness {
        ) {
     runner = DefaultFfmpegTaskQueueRunner(
       repository: repository,
+      taskFolderRepository: taskFolderRepository,
       sourceFileChecker: FakeSourceFileChecker(
         existingPaths:
             existingPaths ?? tasks.map((task) => task.inputPath).toSet(),
@@ -668,10 +714,10 @@ class QueueHarness {
       createLogFilePath: (task, plan) async {
         return logFileFor(task.id).path;
       },
-      onTaskCompleted: (task) async {
+      onTaskCompleted: (task, [summary]) async {
         completedNotifications.add(task.id);
       },
-      onTaskFailed: (task) async {
+      onTaskFailed: (task, [summary]) async {
         failedNotifications.add(task.id);
       },
       continuousExecutionEnabled: continuousExecutionEnabled,
@@ -765,6 +811,18 @@ MediaTask videoTask({String id = 'task', required int sortOrder}) {
     mediaKind: MediaKind.video,
     sortOrder: sortOrder,
   ).copyWith(id: id);
+}
+
+TaskFolder taskFolder({required String id, required int sortOrder}) {
+  return TaskFolder(
+    id: id,
+    name: id,
+    mediaKind: MediaKind.video,
+    sortOrder: sortOrder,
+    defaultConfig: MediaTaskConfig.initialVideo(),
+    createdAt: sortOrder,
+    updatedAt: sortOrder,
+  );
 }
 
 MediaTask imageTask({
@@ -873,6 +931,22 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(
+        folderSortOrder: update.folderSortOrder,
+      );
+    }
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     final index = tasks.indexWhere(
       (existingTask) => existingTask.id == task.id,
@@ -887,6 +961,59 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
 
   MediaTask taskById(String id) {
     return tasks.singleWhere((task) => task.id == id);
+  }
+}
+
+class FakeTaskFolderRepository implements TaskFolderRepository {
+  FakeTaskFolderRepository([List<TaskFolder> initialFolders = const []])
+    : folders = [...initialFolders];
+
+  final List<TaskFolder> folders;
+
+  @override
+  Future<void> clearAllFolders() async {
+    folders.clear();
+  }
+
+  @override
+  Future<void> deleteFolderById(String folderId) async {
+    folders.removeWhere((folder) => folder.id == folderId);
+  }
+
+  @override
+  Future<List<TaskFolder>> loadAllFolders() async {
+    return [...folders]..sort((first, second) {
+      final order = first.sortOrder.compareTo(second.sortOrder);
+      if (order != 0) {
+        return order;
+      }
+      return first.createdAt.compareTo(second.createdAt);
+    });
+  }
+
+  @override
+  Future<void> saveFolder(TaskFolder folder) async {
+    final index = folders.indexWhere((existing) => existing.id == folder.id);
+    if (index == -1) {
+      folders.add(folder);
+      return;
+    }
+    folders[index] = folder;
+  }
+
+  @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = folders.indexWhere(
+        (folder) => folder.id == update.folderId,
+      );
+      if (index == -1) {
+        continue;
+      }
+      folders[index] = folders[index].copyWith(sortOrder: update.sortOrder);
+    }
   }
 }
 

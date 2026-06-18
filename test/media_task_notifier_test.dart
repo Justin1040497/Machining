@@ -2,12 +2,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
@@ -327,6 +329,9 @@ ProviderContainer testContainer({
             FakeAppSettingsRepository(AppSettings.initial()),
       ),
       mediaTaskRepositoryProvider.overrideWithValue(repository),
+      taskFolderRepositoryProvider.overrideWithValue(
+        FakeTaskFolderRepository(),
+      ),
       sourceFileCheckerProvider.overrideWithValue(sourceFileChecker),
       sourceFileFingerprintReaderProvider.overrideWithValue(fingerprintReader),
       ffmpegTaskQueueRunnerProvider.overrideWithValue(
@@ -429,6 +434,22 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(
+        folderSortOrder: update.folderSortOrder,
+      );
+    }
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     final index = tasks.indexWhere((existingTask) {
       return existingTask.id == task.id;
@@ -443,6 +464,48 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
 
   MediaTask taskById(String id) {
     return tasks.singleWhere((task) => task.id == id);
+  }
+}
+
+class FakeTaskFolderRepository implements TaskFolderRepository {
+  final List<TaskFolder> folders = [];
+
+  @override
+  Future<void> clearAllFolders() async {
+    folders.clear();
+  }
+
+  @override
+  Future<void> deleteFolderById(String folderId) async {
+    folders.removeWhere((folder) => folder.id == folderId);
+  }
+
+  @override
+  Future<List<TaskFolder>> loadAllFolders() async => [...folders];
+
+  @override
+  Future<void> saveFolder(TaskFolder folder) async {
+    final index = folders.indexWhere((existing) => existing.id == folder.id);
+    if (index == -1) {
+      folders.add(folder);
+      return;
+    }
+    folders[index] = folder;
+  }
+
+  @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = folders.indexWhere(
+        (folder) => folder.id == update.folderId,
+      );
+      if (index == -1) {
+        continue;
+      }
+      folders[index] = folders[index].copyWith(sortOrder: update.sortOrder);
+    }
   }
 }
 

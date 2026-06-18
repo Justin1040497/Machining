@@ -27,7 +27,6 @@ import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
@@ -973,47 +972,6 @@ void main() {
     expect(find.byIcon(Icons.audiotrack_rounded), findsOneWidget);
   });
 
-  testWidgets('completed dialog focuses on size and output path', (
-    tester,
-  ) async {
-    final outputPath =
-        '/exports/a/very/long/path/that/should/scroll/in/a/single/line/result.mp4';
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TaskCompletedDialog(
-            outputPath: outputPath,
-            sourceFileSize: 100 * 1024 * 1024,
-            outputFileSize: 25 * 1024 * 1024,
-            onClose: () {},
-            onReveal: () {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('处理完成'), findsOneWidget);
-    expect(find.text('源文件'), findsOneWidget);
-    expect(find.text('100MB'), findsOneWidget);
-    expect(find.text('输出文件'), findsOneWidget);
-    expect(find.text('25MB'), findsOneWidget);
-    expect(find.text('导出位置'), findsOneWidget);
-    expect(find.text(outputPath), findsOneWidget);
-    expect(find.text('取消'), findsOneWidget);
-    expect(find.text('打开文件存放位置'), findsOneWidget);
-    expect(find.text('重来'), findsNothing);
-    expect(find.text('知道了'), findsNothing);
-
-    final pathScroll = tester.widget<SingleChildScrollView>(
-      find.ancestor(
-        of: find.text(outputPath),
-        matching: find.byType(SingleChildScrollView),
-      ),
-    );
-    expect(pathScroll.scrollDirection, Axis.horizontal);
-  });
-
   testWidgets('restart unelevated dialog warns about active tasks', (
     tester,
   ) async {
@@ -1056,10 +1014,11 @@ void main() {
               onRetry: (_) {},
               onRelink: (_) {},
               onShowLog: (_) {},
+              onRevealOutput: (_) {},
               onContextMenu: (_, _) {},
               onToggleSelectionMode: () {},
               onToggleTaskSelection: (_) {},
-              onSelectTasksWithRectangle: (_) {},
+              onSelectTasksWithRectangle: (_, {toggle = false}) {},
               onCreateFolderFromSelection: () {},
               onMoveTaskToFolder: (_, _) {},
               onRejectTaskFolderDrop: (_, _) {},
@@ -1161,10 +1120,11 @@ void main() {
             onRetry: (_) {},
             onRelink: (_) {},
             onShowLog: (_) {},
+            onRevealOutput: (_) {},
             onContextMenu: (_, _) {},
             onToggleSelectionMode: () {},
             onToggleTaskSelection: (_) {},
-            onSelectTasksWithRectangle: (_) {},
+            onSelectTasksWithRectangle: (_, {toggle = false}) {},
             onCreateFolderFromSelection: () {},
             onMoveTaskToFolder: (_, _) {},
             onRejectTaskFolderDrop: (_, _) {},
@@ -1251,6 +1211,8 @@ void main() {
                 onRetry: (_) {},
                 onRelink: (_) {},
                 onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (_, _) {},
               ),
             ],
           ),
@@ -1301,12 +1263,13 @@ void main() {
             onRetry: (_) {},
             onRelink: (_) {},
             onShowLog: (_) {},
+            onRevealOutput: (_) {},
             onContextMenu: (_, _) {},
             onToggleSelectionMode: () {
               toggleModeCount += 1;
             },
             onToggleTaskSelection: (_) {},
-            onSelectTasksWithRectangle: (_) {},
+            onSelectTasksWithRectangle: (_, {toggle = false}) {},
             onCreateFolderFromSelection: () {
               createFolderCount += 1;
             },
@@ -1344,10 +1307,70 @@ void main() {
     expect(createFolderCount, 1);
   });
 
-  testWidgets('dragging a loose task into matching folder triggers move', (
+  testWidgets(
+    'task drag handle dropped on matching folder body moves instead of reorders',
+    (tester) async {
+      final moveCalls = <String>[];
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（1）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final folderTask = testTask(
+        fileName: 'inside.mp4',
+      ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+      final looseTask = testTask(
+        fileName: 'outside.mp4',
+      ).copyWith(id: 'outside', sortOrder: 1);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [folderTask, looseTask],
+        folders: [folder],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+        onMoveTaskToFolder: (task, folder) {
+          moveCalls.add('${task.id}->${folder.id}');
+        },
+      );
+
+      final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
+      final folderBody = find.byKey(
+        const ValueKey('task-folder-drop-state-folder-1'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(taskDragHandle),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(folderBody));
+      await tester.pump();
+
+      final ghostedFolder = tester.widget<AnimatedOpacity>(folderBody);
+      final hoverOverlay = tester.widget<AnimatedOpacity>(
+        find.byKey(const ValueKey('task-folder-hover-overlay-folder-1')),
+      );
+      expect(ghostedFolder.opacity, 0);
+      expect(hoverOverlay.opacity, 1);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveCalls, ['outside->folder-1']);
+      expect(reorderCalls, isEmpty);
+    },
+  );
+
+  testWidgets('task drag handle dropped on folder edge keeps reorder', (
     tester,
   ) async {
     final moveCalls = <String>[];
+    final reorderCalls = <(int oldIndex, int newIndex)>[];
     final folder = TaskFolder(
       id: 'folder-1',
       name: '视频任务夹（1）',
@@ -1364,69 +1387,95 @@ void main() {
       fileName: 'outside.mp4',
     ).copyWith(id: 'outside', sortOrder: 1);
 
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: WorkbenchShell(
-            taskList: AsyncData([folderTask, looseTask]),
-            taskFolders: AsyncData([folder]),
-            selectedTask: null,
-            selectedTaskIds: const {},
-            selectionMode: false,
-            importEnabled: true,
-            importDragging: false,
-            hasRunningTask: false,
-            queueActionInFlight: false,
-            thumbnailForTask: (_) => null,
-            onImportDraggingChanged: (_) {},
-            onImportDrop: (_) {},
-            onReorder: (_, _) {},
-            onOpenTask: (_) {},
-            onStart: (_) {},
-            onPause: (_) {},
-            onRemove: (_) {},
-            onRetry: (_) {},
-            onRelink: (_) {},
-            onShowLog: (_) {},
-            onContextMenu: (_, _) {},
-            onToggleSelectionMode: () {},
-            onToggleTaskSelection: (_) {},
-            onSelectTasksWithRectangle: (_) {},
-            onCreateFolderFromSelection: () {},
-            onMoveTaskToFolder: (task, folder) {
-              moveCalls.add('${task.id}->${folder.id}');
-            },
-            onRejectTaskFolderDrop: (_, _) {},
-            onOpenFolderSettings: (_) {},
-            onOpenFolderContents: (_) {},
-            onStartFolder: (_) {},
-            onPauseFolder: (_) {},
-            onRetryFolder: (_) {},
-            onRelinkFolder: (_) {},
-            onShowFolderLog: (_) {},
-            onDeleteFolder: (_) {},
-            onAddTask: () {},
-            onOpenSettings: () {},
-            themeMode: AppThemeMode.light,
-            onToggleThemeMode: () {},
-            onOpenNotifications: () {},
-            onClearTasks: () {},
-            onPrimaryQueuePressed: () {},
-          ),
-        ),
-      ),
+    await _pumpWorkbenchShellForDragTest(
+      tester,
+      tasks: [folderTask, looseTask],
+      folders: [folder],
+      onReorder: (oldIndex, newIndex) {
+        reorderCalls.add((oldIndex, newIndex));
+      },
+      onMoveTaskToFolder: (task, folder) {
+        moveCalls.add('${task.id}->${folder.id}');
+      },
     );
 
-    final dragHandle = find.byIcon(Icons.drag_indicator_rounded).first;
-    final target = find.text('视频任务夹（1）');
-    await tester.dragFrom(
-      tester.getCenter(dragHandle),
-      tester.getCenter(target) - tester.getCenter(dragHandle),
+    final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
+    final folderRect = tester.getRect(
+      find.byKey(const ValueKey('task-folder-drop-state-folder-1')),
     );
+    final folderTopEdge = Offset(folderRect.center.dx, folderRect.top + 8);
+    final gesture = await tester.startGesture(tester.getCenter(taskDragHandle));
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(folderTopEdge);
+    await tester.pump();
+    await gesture.up();
     await tester.pumpAndSettle();
 
-    expect(moveCalls, ['outside->folder-1']);
+    expect(moveCalls, isEmpty);
+    expect(reorderCalls, isNotEmpty);
   });
+
+  testWidgets(
+    'different-kind folder disables drop and remains a reorder target',
+    (tester) async {
+      final moveCalls = <String>[];
+      final rejectCalls = <String>[];
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final folder = TaskFolder(
+        id: 'image-folder',
+        name: '图片任务夹（1）',
+        mediaKind: MediaKind.image,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialImage(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final folderTask = imageTask().copyWith(
+        id: 'inside-image',
+        folderId: folder.id,
+        folderSortOrder: 0,
+      );
+      final looseTask = testTask(
+        fileName: 'outside.mp4',
+      ).copyWith(id: 'outside', sortOrder: 1);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [folderTask, looseTask],
+        folders: [folder],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+        onMoveTaskToFolder: (task, folder) {
+          moveCalls.add('${task.id}->${folder.id}');
+        },
+        onRejectTaskFolderDrop: (task, folder) {
+          rejectCalls.add('${task.id}->${folder.id}');
+        },
+      );
+
+      final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
+      final folderBody = find.byKey(
+        const ValueKey('task-folder-drop-state-image-folder'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(taskDragHandle),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(folderBody));
+      await tester.pump();
+
+      final disabledState = tester.widget<AnimatedOpacity>(folderBody);
+      expect(disabledState.opacity, lessThan(1));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveCalls, isEmpty);
+      expect(rejectCalls, isEmpty);
+      expect(reorderCalls, isNotEmpty);
+    },
+  );
 
   testWidgets('notification badge can be hidden without losing unread count', (
     tester,
@@ -1486,10 +1535,11 @@ void main() {
             onRetry: (_) {},
             onRelink: (_) {},
             onShowLog: (_) {},
+            onRevealOutput: (_) {},
             onContextMenu: (_, _) {},
             onToggleSelectionMode: () {},
             onToggleTaskSelection: (_) {},
-            onSelectTasksWithRectangle: (_) {},
+            onSelectTasksWithRectangle: (_, {toggle = false}) {},
             onCreateFolderFromSelection: () {},
             onMoveTaskToFolder: (_, _) {},
             onRejectTaskFolderDrop: (_, _) {},
@@ -1526,6 +1576,70 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(reorderCalls, isNotEmpty);
   });
+}
+
+Future<void> _pumpWorkbenchShellForDragTest(
+  WidgetTester tester, {
+  required List<MediaTask> tasks,
+  required List<TaskFolder> folders,
+  MediaTask? selectedTask,
+  Set<String> selectedTaskIds = const {},
+  bool selectionMode = false,
+  void Function(int oldIndex, int newIndex)? onReorder,
+  void Function(MediaTask task, TaskFolder folder)? onMoveTaskToFolder,
+  void Function(MediaTask task, TaskFolder folder)? onRejectTaskFolderDrop,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: WorkbenchShell(
+          taskList: AsyncData(tasks),
+          taskFolders: AsyncData(folders),
+          selectedTask: selectedTask,
+          selectedTaskIds: selectedTaskIds,
+          selectionMode: selectionMode,
+          importEnabled: true,
+          importDragging: false,
+          hasRunningTask: false,
+          queueActionInFlight: false,
+          thumbnailForTask: (_) => null,
+          onImportDraggingChanged: (_) {},
+          onImportDrop: (_) {},
+          onReorder: onReorder ?? (_, _) {},
+          onOpenTask: (_) {},
+          onStart: (_) {},
+          onPause: (_) {},
+          onRemove: (_) {},
+          onRetry: (_) {},
+          onRelink: (_) {},
+          onShowLog: (_) {},
+          onRevealOutput: (_) {},
+          onContextMenu: (_, _) {},
+          onToggleSelectionMode: () {},
+          onToggleTaskSelection: (_) {},
+          onSelectTasksWithRectangle: (_, {toggle = false}) {},
+          onCreateFolderFromSelection: () {},
+          onMoveTaskToFolder: onMoveTaskToFolder ?? (_, _) {},
+          onRejectTaskFolderDrop: onRejectTaskFolderDrop ?? (_, _) {},
+          onOpenFolderSettings: (_) {},
+          onOpenFolderContents: (_) {},
+          onStartFolder: (_) {},
+          onPauseFolder: (_) {},
+          onRetryFolder: (_) {},
+          onRelinkFolder: (_) {},
+          onShowFolderLog: (_) {},
+          onDeleteFolder: (_) {},
+          onAddTask: () {},
+          onOpenSettings: () {},
+          themeMode: AppThemeMode.light,
+          onToggleThemeMode: () {},
+          onOpenNotifications: () {},
+          onClearTasks: () {},
+          onPrimaryQueuePressed: () {},
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _pumpTaskConfigurationDialog(

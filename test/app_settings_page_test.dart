@@ -31,7 +31,7 @@ void main() {
     expect(find.text('编码器配置'), findsOneWidget);
     expect(find.text('应用主题颜色'), findsOneWidget);
     expect(find.text('完成音频设置'), findsOneWidget);
-    expect(find.text('任务完成后以弹窗的形式提示'), findsOneWidget);
+    expect(find.text('任务完成后以弹窗的形式提示'), findsNothing);
     expect(find.text('关闭通知角标'), findsOneWidget);
     expect(find.text('跟随系统'), findsOneWidget);
     expect(find.text('清脆完成'), findsOneWidget);

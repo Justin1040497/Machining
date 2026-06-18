@@ -141,6 +141,11 @@ class _FakeMediaTaskRepository implements MediaTaskRepository {
   Future<void> updateTaskSortOrders(
     List<MediaTaskSortOrderUpdate> updates,
   ) async {}
+
+  @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {}
 }
 
 class _FakeFfmpegLocator implements FfmpegLocator {
