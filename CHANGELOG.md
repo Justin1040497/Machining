@@ -29,6 +29,30 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-18｜v1.2.1｜No Release
+
+今天收口自托管更新和 Admin 版本制品管理近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。
+
+### Added
+
+- 新增 `docs/releases/v1.2.1/` 版本事实文档，记录自托管更新客户端、server 更新服务和 Admin Web 版本管理边界。
+- 新增 `test/app_update_provider_test.dart`，覆盖自动检查更新、下载完成和 Windows updater helper 启动状态流。
+- 新增 server `UpdateServiceTest`，覆盖按平台可见包过滤 latest、下载 ticket resolve 签发 COS URL、下载审计事件和 IP 屏蔽审计。
+- 新增 Admin 删除登记版本入口：删除 release 登记时会同步删除版本日志和 package 对应的 COS 对象，并清理 download events、packages、requirements 和 release 记录。
+
+### Changed
+
+- 优化 Admin Web 版本制品页信息结构，将版本索引、基础信息、制品列表、版本日志和发布操作重新整理为更清晰的工作区。
+- server README 同步记录 `DELETE /api/v1/admin/releases/{v}` 删除登记版本接口。
+
+### Verified
+
+- 通过 `flutter analyze`。
+- 通过 `flutter test`，共 271 项测试。
+- 通过 `cd server && mvn test`，12 项运行，2 项在无 Docker 环境下跳过。
+- 通过 `cd server/admin-web && npm run build`；仍保留 Vite 大 chunk 提示。
+- 通过主项目和 server 的 `git diff --check`。
+
 ## 2026-06-17｜v1.2.1｜No Release
 
 今天为 server v1.0.0 增加内置 Admin 管理端第一版：`/web` 由 Spring Boot 直接托管 React + Ant Design 后台，支持下载统计、检查更新审计、下载 IP 记录、IP 屏蔽，以及版本成果物管理。管理端采用唯一管理员主密码机制，主密码只在浏览器本地用于解密私钥并签名登录 challenge，服务端不保存密码或密码哈希。
@@ -59,6 +83,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复 Admin Web 页面标题在浏览器顶部被裁切的问题，根节点、Header 和内容滚动区重新分离。
 - 修复新建版本弹窗过长且无法上传成果物文件的问题，改为可滚动的四槽位拖拽上传表单。
 - 修复新建版本时 Windows 直装版留存包被强制上传，导致无直装版时不能完成草稿创建和发行确认的问题。
+- 修复 Admin Web 上传成果物时按文件名强制校验平台和架构，导致旧版 macOS 包无法进入草稿的问题；草稿基础信息改为展示包架构支持标签。
 
 ### Verified
 
