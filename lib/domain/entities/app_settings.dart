@@ -94,9 +94,6 @@ class AppSettings {
   /// 是否关闭工作台通知未读角标
   final bool hideNotificationBadge;
 
-  /// 任务完成后是否弹窗提示。
-  final bool showTaskCompletionDialog;
-
   /// 任务完成后播放的提示音
   final TaskCompletionSound taskCompletionSound;
 
@@ -115,7 +112,6 @@ class AppSettings {
     String? defaultOutputFileNameTemplate,
     this.themeMode = AppThemeMode.system,
     this.hideNotificationBadge = true,
-    this.showTaskCompletionDialog = true,
     this.taskCompletionSound = TaskCompletionSound.cleanSuccess,
   }) : defaultOutputFileNameTemplate = normalizeDefaultOutputFileNameTemplate(
          defaultOutputFileNameTemplate,
@@ -150,7 +146,6 @@ class AppSettings {
       defaultOutputFileNameTemplate: defaultOutputFileNameTemplatePattern,
       themeMode: AppThemeMode.system,
       hideNotificationBadge: true,
-      showTaskCompletionDialog: true,
       taskCompletionSound: TaskCompletionSound.cleanSuccess,
     );
   }
@@ -170,7 +165,6 @@ class AppSettings {
     String? defaultOutputFileNameTemplate,
     AppThemeMode? themeMode,
     bool? hideNotificationBadge,
-    bool? showTaskCompletionDialog,
     TaskCompletionSound? taskCompletionSound,
   }) {
     return AppSettings(
@@ -200,8 +194,6 @@ class AppSettings {
       themeMode: themeMode ?? this.themeMode,
       hideNotificationBadge:
           hideNotificationBadge ?? this.hideNotificationBadge,
-      showTaskCompletionDialog:
-          showTaskCompletionDialog ?? this.showTaskCompletionDialog,
       taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
     );
   }

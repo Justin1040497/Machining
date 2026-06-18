@@ -45,6 +45,130 @@ class TaskLogDialog extends ConsumerStatefulWidget {
   }
 }
 
+class TaskFolderLogDialog extends StatelessWidget {
+  const TaskFolderLogDialog({
+    super.key,
+    required this.title,
+    required this.tasks,
+    required this.logStore,
+  });
+
+  final String title;
+  final List<MediaTask> tasks;
+  final ExecutionLogStore logStore;
+
+  static Future<void> show(
+    BuildContext context, {
+    required String title,
+    required List<MediaTask> tasks,
+    required ExecutionLogStore logStore,
+  }) {
+    return showDialog(
+      context: context,
+      builder: (context) =>
+          TaskFolderLogDialog(title: title, tasks: tasks, logStore: logStore),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: _loadAggregatedLog(),
+      builder: (context, snapshot) {
+        final content = snapshot.data ?? '正在读取日志...';
+        return WorkbenchDialogFrame(
+          maxWidth: 900,
+          padding: const EdgeInsets.fromLTRB(24, 22, 24, 21),
+          child: SizedBox(
+            height: 600,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                WorkbenchDialogBackHeader(
+                  title: title,
+                  onClose: () => Navigator.of(context).pop(),
+                ),
+                const SizedBox(height: 16),
+                Expanded(child: _FolderLogContent(content: content)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Spacer(),
+                    WorkbenchDialogActionButton(
+                      label: '关闭',
+                      backgroundColor: context.frameLeanColors.primary,
+                      onPressed: () => Navigator.of(context).pop(),
+                      width: 75,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<String> _loadAggregatedLog() async {
+    final sections = <String>[];
+    for (final task in tasks) {
+      final snapshot = await logStore.readLatestForTask(task.id);
+      final log = snapshot.content.trim();
+      sections.add(
+        [
+          '===== ${task.fileName} · ${_statusLabel(task.status)} =====',
+          log.isEmpty ? '暂无日志' : log,
+        ].join('\n'),
+      );
+    }
+    return sections.join('\n\n');
+  }
+
+  String _statusLabel(TaskStatus status) {
+    return switch (status) {
+      TaskStatus.pending => '等待中',
+      TaskStatus.analyzing => '分析中',
+      TaskStatus.running => '处理中',
+      TaskStatus.paused => '已暂停',
+      TaskStatus.completed => '已完成',
+      TaskStatus.failed => '失败',
+      TaskStatus.cancelled => '已取消',
+      TaskStatus.missingSource => '源文件丢失',
+    };
+  }
+}
+
+class _FolderLogContent extends StatelessWidget {
+  const _FolderLogContent({required this.content});
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceMuted,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: colors.border),
+      ),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: SelectableText(
+          content,
+          style: TextStyle(
+            fontFamily: 'Courier New',
+            fontSize: 12.flSp,
+            color: colors.textPrimary,
+            height: 1.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
   final ScrollController _scrollController = ScrollController();
   StreamSubscription<ExecutionLogSnapshot>? _logSubscription;

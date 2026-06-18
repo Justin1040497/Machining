@@ -74,6 +74,7 @@ final outputPreflightServiceProvider = Provider<LocalOutputPreflightService>((
 final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
   return DefaultFfmpegTaskQueueRunner(
     repository: ref.read(mediaTaskRepositoryProvider),
+    taskFolderRepository: ref.read(taskFolderRepositoryProvider),
     sourceFileChecker: ref.read(sourceFileCheckerProvider),
     readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
     commandBuilder: ref.read(ffmpegCommandBuilderProvider),

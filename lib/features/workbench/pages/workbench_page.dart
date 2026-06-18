@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +37,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
@@ -168,7 +166,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   final WorkbenchTaskThumbnailStore thumbnailStore =
       WorkbenchTaskThumbnailStore();
   final Set<String> notifiedAnalysisErrorKeys = {};
-  final Set<String> notifiedCompletedTaskKeys = {};
   final Set<String> workbenchActionsInFlight = {};
   bool windowsPrivilegeNoticeShown = false;
   bool themeModeChangeInFlight = false;
@@ -201,6 +198,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     final folders = taskFolders.asData?.value ?? const <TaskFolder>[];
     final selectedTask = resolveSelectedTask(tasks);
     final openedFolder = resolveOpenedTaskFolder(folders);
+    syncOpenedTaskFolderAfterBuild(openedFolder);
     final openedFolderTasks = resolveOpenedTaskFolderTasks(
       tasks: tasks,
       openedFolder: openedFolder,
@@ -251,6 +249,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onRetry: retryTask,
             onRelink: relinkMissingSource,
             onShowLog: showTaskLog,
+            onRevealOutput: revealTaskOutput,
             onContextMenu: (task, position) {
               unawaited(showTaskContextMenu(task, position));
             },
@@ -323,6 +322,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onRetry: retryTask,
             onRelink: relinkMissingSource,
             onShowLog: showTaskLog,
+            onRevealOutput: revealTaskOutput,
+            onReorder: reorderOpenedTaskFolderTasks,
           ),
         ],
       ),
@@ -335,7 +336,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   ) {
     if (previous != null) {
       notifyAnalysisErrors(next.asData?.value);
-      notifyCompletedTasks(previous.asData?.value, next.asData?.value);
     }
 
     final tasks = next.asData?.value ?? const <MediaTask>[];
@@ -369,6 +369,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         if (selectedTaskIds.isEmpty) {
           taskSelectionMode = false;
         }
+      });
+    });
+  }
+
+  void syncOpenedTaskFolderAfterBuild(TaskFolder? openedFolder) {
+    if (openedTaskFolderId == null || openedFolder != null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || openedTaskFolderId == null) {
+        return;
+      }
+      setState(() {
+        openedTaskFolderId = null;
       });
     });
   }
@@ -553,95 +567,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       }
 
       showWorkbenchSnackBar('${task.fileName}: $message');
-    }
-  }
-
-  void notifyCompletedTasks(
-    List<MediaTask>? previousTasks,
-    List<MediaTask>? nextTasks,
-  ) {
-    if (previousTasks == null || nextTasks == null) {
-      return;
-    }
-
-    final previousStatusById = {
-      for (final task in previousTasks) task.id: task.status,
-    };
-
-    for (final task in nextTasks) {
-      if (task.status != TaskStatus.completed) {
-        continue;
-      }
-
-      if (previousStatusById[task.id] == TaskStatus.completed) {
-        continue;
-      }
-
-      final key = '${task.id}:${task.outputPath}:${task.completedAt}';
-      if (!notifiedCompletedTaskKeys.add(key)) {
-        continue;
-      }
-
-      unawaited(showCompletionFeedback(task));
-    }
-  }
-
-  Future<void> showCompletionFeedback(MediaTask task) async {
-    final showCompletionDialog = await ref
-        .read(appSettingsProvider.future)
-        .then((settings) => settings.showTaskCompletionDialog)
-        .catchError((_) => true);
-    if (!showCompletionDialog) {
-      return;
-    }
-
-    await showTaskCompletedDialog(task);
-  }
-
-  Future<void> showTaskCompletedDialog(MediaTask task) async {
-    if (!mounted) {
-      return;
-    }
-
-    final outputPath = task.outputPath?.trim();
-    final outputFileSize = await readOutputFileSize(outputPath);
-    if (!mounted) {
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return TaskCompletedDialog(
-          outputPath: outputPath,
-          sourceFileSize: task.sourceFileFingerprint?.fileSize,
-          outputFileSize: outputFileSize,
-          onClose: () => Navigator.of(context).pop(),
-          onReveal: outputPath == null || outputPath.isEmpty
-              ? null
-              : () {
-                  Navigator.of(context).pop();
-                  unawaited(revealPathInFileManager(outputPath));
-                },
-        );
-      },
-    );
-  }
-
-  Future<int?> readOutputFileSize(String? outputPath) async {
-    if (outputPath == null || outputPath.isEmpty) {
-      return null;
-    }
-
-    try {
-      final outputFile = File(outputPath);
-      if (!await outputFile.exists()) {
-        return null;
-      }
-
-      return outputFile.length();
-    } on Object {
-      return null;
     }
   }
 
@@ -1086,6 +1011,19 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   void openTask(MediaTask task) {
+    if (task.status == TaskStatus.analyzing) {
+      unawaited(
+        ref
+            .read(appNotificationManagerProvider)
+            .notifyInteraction(
+              title: '正在分析，请稍等',
+              message: task.fileName,
+              source: 'workbench',
+            ),
+      );
+      return;
+    }
+
     if (task.status == TaskStatus.missingSource) {
       unawaited(relinkMissingSource(task));
       return;
@@ -1119,15 +1057,23 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
-  void selectTasksWithRectangle(Set<String> taskIds) {
+  void selectTasksWithRectangle(Set<String> taskIds, {bool toggle = false}) {
     if (taskIds.isEmpty) {
       return;
     }
     setState(() {
       taskSelectionMode = true;
-      selectedTaskIds
-        ..clear()
-        ..addAll(taskIds);
+      if (toggle) {
+        for (final taskId in taskIds) {
+          if (!selectedTaskIds.add(taskId)) {
+            selectedTaskIds.remove(taskId);
+          }
+        }
+      } else {
+        selectedTaskIds
+          ..clear()
+          ..addAll(taskIds);
+      }
     });
   }
 
@@ -1427,6 +1373,16 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
+  Future<void> revealTaskOutput(MediaTask task) async {
+    final outputPath = task.outputPath?.trim();
+    if (outputPath == null || outputPath.isEmpty) {
+      showWorkbenchSnackBar('任务还没有完成文件');
+      return;
+    }
+
+    await revealPathInFileManager(outputPath);
+  }
+
   Future<void> revealPathInFileManager(String targetPath) async {
     final result = await ref.read(fileRevealerProvider).revealPath(targetPath);
     if (!result.succeeded) {
@@ -1629,6 +1585,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
+  void reorderOpenedTaskFolderTasks(int oldIndex, int newIndex) {
+    final folderId = openedTaskFolderId;
+    if (folderId == null) {
+      return;
+    }
+    unawaited(
+      ref
+          .read(mediaTaskListProvider.notifier)
+          .reorderFolderTasks(
+            folderId: folderId,
+            oldIndex: oldIndex,
+            newIndex: newIndex,
+          ),
+    );
+  }
+
   void deleteTaskFolder(TaskFolder folder) {
     unawaited(
       runWorkbenchActionOnce('delete-task-folder:${folder.id}', () async {
@@ -1727,15 +1699,21 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> showTaskFolderLog(TaskFolder folder) async {
     await runWorkbenchActionOnce('show-task-folder-log:${folder.id}', () async {
-      final task = firstTaskInFolderWhere(
-        folder: folder,
-        predicate: _isTaskLoggable,
+      final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+      final folderTasks = resolveOpenedTaskFolderTasks(
+        tasks: tasks,
+        openedFolder: folder,
       );
-      if (task == null) {
-        showWorkbenchSnackBar('任务夹内没有可查看日志的任务');
+      if (folderTasks.isEmpty) {
+        showWorkbenchSnackBar('任务夹内没有任务');
         return;
       }
-      await showTaskLog(task);
+      await TaskFolderLogDialog.show(
+        context,
+        title: '${folder.name} 日志',
+        tasks: folderTasks,
+        logStore: ref.read(executionLogStoreProvider),
+      );
     });
   }
 
@@ -1856,11 +1834,4 @@ bool _taskNeedsUpdateRestartWarning(MediaTask task) {
       task.status == TaskStatus.paused ||
       task.status == TaskStatus.pending ||
       task.status == TaskStatus.analyzing;
-}
-
-bool _isTaskLoggable(MediaTask task) {
-  return task.status == TaskStatus.running ||
-      task.status == TaskStatus.completed ||
-      task.status == TaskStatus.failed ||
-      task.status == TaskStatus.paused;
 }

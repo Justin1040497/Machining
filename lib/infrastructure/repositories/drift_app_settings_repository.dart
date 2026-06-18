@@ -84,7 +84,6 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             ),
             themeMode: Value(settings.themeMode.name),
             hideNotificationBadge: Value(settings.hideNotificationBadge),
-            showTaskCompletionDialog: Value(settings.showTaskCompletionDialog),
             taskCompletionSound: Value(settings.taskCompletionSound.id),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
@@ -117,7 +116,6 @@ extension SettingsRowMapper on SettingsRow {
         ),
         themeMode: appThemeModeFromSettings(themeMode),
         hideNotificationBadge: hideNotificationBadge,
-        showTaskCompletionDialog: showTaskCompletionDialog,
         taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
       );
     }
@@ -145,7 +143,6 @@ extension SettingsRowMapper on SettingsRow {
       ),
       themeMode: appThemeModeFromSettings(themeMode),
       hideNotificationBadge: hideNotificationBadge,
-      showTaskCompletionDialog: showTaskCompletionDialog,
       taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
     );
   }

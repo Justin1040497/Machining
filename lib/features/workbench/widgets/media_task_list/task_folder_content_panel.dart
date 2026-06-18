@@ -3,6 +3,7 @@ import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
+import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
 class TaskFolderContentPanel extends StatelessWidget {
@@ -19,6 +20,8 @@ class TaskFolderContentPanel extends StatelessWidget {
     required this.onRetry,
     required this.onRelink,
     required this.onShowLog,
+    required this.onRevealOutput,
+    required this.onReorder,
   });
 
   final bool visible;
@@ -32,6 +35,8 @@ class TaskFolderContentPanel extends StatelessWidget {
   final ValueChanged<MediaTask> onRetry;
   final ValueChanged<MediaTask> onRelink;
   final ValueChanged<MediaTask> onShowLog;
+  final ValueChanged<MediaTask> onRevealOutput;
+  final ReorderCallback onReorder;
 
   @override
   Widget build(BuildContext context) {
@@ -126,24 +131,49 @@ class TaskFolderContentPanel extends StatelessWidget {
                     ),
                     Divider(height: 1, color: colors.border),
                     Expanded(
-                      child: ListView.separated(
+                      child: ReorderableListView.builder(
                         padding: const EdgeInsets.all(12),
+                        buildDefaultDragHandles: false,
                         itemCount: tasks.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 8),
+                        onReorder: onReorder,
+                        proxyDecorator: (child, index, animation) {
+                          return Material(
+                            color: Colors.transparent,
+                            child: ScaleTransition(
+                              scale: Tween<double>(
+                                begin: 1,
+                                end: 1.015,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
                         itemBuilder: (context, index) {
                           final task = tasks[index];
-                          return MediaTaskListTile(
-                            task: task,
-                            thumbnail: thumbnailForTask(task),
-                            onStart: () => onStart(task),
-                            onPause: () => onPause(task),
-                            onRetry: () => onRetry(task),
-                            onRelink: () => onRelink(task),
-                            onShowLog: () => onShowLog(task),
-                            onRemove: () => onRemoveTask(task),
-                            removeTooltip: '移出任务夹',
-                            removeIcon: Icons.remove_circle_outline_rounded,
-                            tooltipsEnabled: false,
+                          final dragEnabled = task.status != TaskStatus.running;
+                          return Padding(
+                            key: ValueKey('folder-task-${task.id}'),
+                            padding: EdgeInsets.only(
+                              bottom: index == tasks.length - 1 ? 0 : 8,
+                            ),
+                            child: MediaTaskListTile(
+                              task: task,
+                              thumbnail: thumbnailForTask(task),
+                              onStart: () => onStart(task),
+                              onPause: () => onPause(task),
+                              onRetry: () => onRetry(task),
+                              onRelink: () => onRelink(task),
+                              onShowLog: () => onShowLog(task),
+                              onRevealOutput: () => onRevealOutput(task),
+                              onRemove: () => onRemoveTask(task),
+                              removeTooltip: '移出任务夹',
+                              removeIcon: Icons.remove_circle_outline_rounded,
+                              dragHandle: _FolderTaskDragHandle(
+                                index: index,
+                                enabled: dragEnabled,
+                              ),
+                              tooltipsEnabled: false,
+                            ),
                           );
                         },
                       ),
@@ -155,6 +185,35 @@ class TaskFolderContentPanel extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FolderTaskDragHandle extends StatelessWidget {
+  const _FolderTaskDragHandle({required this.index, required this.enabled});
+
+  final int index;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final handle = SizedBox(
+      width: 24,
+      height: 48,
+      child: Icon(
+        Icons.drag_indicator_rounded,
+        color: enabled ? colors.iconMuted : colors.statusCancelled,
+        size: 18,
+      ),
+    );
+    if (!enabled) {
+      return handle;
+    }
+    return ReorderableDragStartListener(
+      index: index,
+      enabled: enabled,
+      child: handle,
     );
   }
 }

@@ -9,7 +9,7 @@ import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_
 import 'package:framelean/application/use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
-import 'package:framelean/application/use_cases/media_tasks/reorder_media_tasks_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/reorder_workbench_items_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/replace_missing_source_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/retry_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
@@ -57,6 +57,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       unawaited(analyzeTasksInBackground(result.taskIdsNeedingAnalysis));
     }
 
+    await pruneEmptyTaskFolders();
     unawaited(syncFfmpegQueueStatus());
     return result.tasks;
   }
@@ -156,7 +157,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final tasks = await RemoveTaskFromFolderUseCase(
       repository: ref.read(mediaTaskRepositoryProvider),
     ).call(taskId);
+    await pruneEmptyTaskFolders();
     state = AsyncData(tasks);
+    ref.invalidate(taskFolderListProvider);
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -229,12 +232,14 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<void> deleteTaskById(String taskId) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final tasks = await DeleteMediaTaskUseCase(
+    await DeleteMediaTaskUseCase(
       repository: repository,
       queueRunner: queueRunner,
     ).call(taskId);
+    await pruneEmptyTaskFolders();
 
-    state = AsyncData(tasks);
+    state = AsyncData(await repository.loadAllTasks());
+    ref.invalidate(taskFolderListProvider);
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -262,11 +267,23 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     final tasks = await ClearMediaTasksUseCase(
       repository: repository,
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
       queueRunner: queueRunner,
     ).call();
 
     state = AsyncData(tasks);
+    ref.invalidate(taskFolderListProvider);
     unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<void> pruneEmptyTaskFolders() async {
+    final deletedFolderIds = await PruneEmptyTaskFoldersUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+    ).call();
+    if (deletedFolderIds.isNotEmpty) {
+      ref.invalidate(taskFolderListProvider);
+    }
   }
 
   Future<FfmpegQueueStartResult> startExecutionQueue({
@@ -432,29 +449,24 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     required int oldIndex,
     required int newIndex,
   }) async {
-    final tasks = state.requireValue;
-    final reorderedTasks = reorderMediaTasksInMemory(
-      tasks,
-      oldIndex: oldIndex,
-      newIndex: newIndex,
-    );
-    if (identical(reorderedTasks, tasks)) {
-      return;
-    }
+    final tasks = await ReorderWorkbenchTopLevelItemsUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+    ).call(oldIndex: oldIndex, newIndex: newIndex);
+    state = AsyncData(tasks);
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+  }
 
-    // 乐观更新：立即更新 UI，再异步持久化
-    state = AsyncData(reorderedTasks);
-
-    final repository = ref.read(mediaTaskRepositoryProvider);
-    try {
-      await repository.updateTaskSortOrders(
-        mediaTaskSortOrderUpdatesFor(reorderedTasks),
-      );
-    } on Object {
-      await refreshTasksFromRepository();
-      rethrow;
-    }
-
+  Future<void> reorderFolderTasks({
+    required String folderId,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    final tasks = await ReorderFolderTasksUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+    ).call(folderId: folderId, oldIndex: oldIndex, newIndex: newIndex);
+    state = AsyncData(tasks);
     unawaited(syncFfmpegQueueStatus());
   }
 

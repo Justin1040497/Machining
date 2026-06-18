@@ -88,6 +88,25 @@ class DriftMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    if (updates.isEmpty) {
+      return;
+    }
+
+    await database.transaction(() async {
+      for (final update in updates) {
+        await (database.update(
+          database.taskRows,
+        )..where((table) => table.id.equals(update.taskId))).write(
+          TaskRowsCompanion(folderSortOrder: Value(update.folderSortOrder)),
+        );
+      }
+    });
+  }
+
+  @override
   Future<void> deleteTaskById(String taskId) async {
     await (database.delete(
       database.taskRows,
@@ -381,10 +400,32 @@ class DriftTaskFolderRepository implements TaskFolderRepository {
   }
 
   @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {
+    if (updates.isEmpty) {
+      return;
+    }
+
+    await database.transaction(() async {
+      for (final update in updates) {
+        await (database.update(database.taskFolderRows)
+              ..where((table) => table.id.equals(update.folderId)))
+            .write(TaskFolderRowsCompanion(sortOrder: Value(update.sortOrder)));
+      }
+    });
+  }
+
+  @override
   Future<void> deleteFolderById(String folderId) async {
     await (database.delete(
       database.taskFolderRows,
     )..where((table) => table.id.equals(folderId))).go();
+  }
+
+  @override
+  Future<void> clearAllFolders() async {
+    await database.delete(database.taskFolderRows).go();
   }
 }
 

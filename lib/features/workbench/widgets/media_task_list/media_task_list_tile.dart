@@ -17,6 +17,7 @@ class MediaTaskListTile extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onRelink;
   final VoidCallback? onShowLog;
+  final VoidCallback? onRevealOutput;
   final VoidCallback? onRemove;
   final String removeTooltip;
   final IconData removeIcon;
@@ -35,6 +36,7 @@ class MediaTaskListTile extends StatelessWidget {
     this.onRetry,
     this.onRelink,
     this.onShowLog,
+    this.onRevealOutput,
     this.onRemove,
     this.removeTooltip = '移除任务',
     this.removeIcon = Icons.close_rounded,
@@ -53,6 +55,13 @@ class MediaTaskListTile extends StatelessWidget {
         task.status == TaskStatus.paused;
   }
 
+  bool get _shouldShowOutputButton {
+    final outputPath = task.outputPath?.trim();
+    return task.status == TaskStatus.completed &&
+        outputPath != null &&
+        outputPath.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
@@ -68,10 +77,6 @@ class MediaTaskListTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? colors.borderStrong : colors.border,
-              width: 1,
-            ),
             boxShadow: [
               BoxShadow(
                 color: colors.shadow,
@@ -79,6 +84,13 @@ class MediaTaskListTile extends StatelessWidget {
                 offset: const Offset(0, 1),
               ),
             ],
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected ? colors.primary : colors.border,
+              width: selected ? 1.4 : 1,
+            ),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -121,6 +133,15 @@ class MediaTaskListTile extends StatelessWidget {
                       icon: Icons.description_outlined,
                       tooltipsEnabled: tooltipsEnabled,
                     ),
+                  if (_shouldShowOutputButton) ...[
+                    const SizedBox(width: 4),
+                    MediaTaskIconButton(
+                      tooltip: '打开完成文件位置',
+                      onPressed: onRevealOutput,
+                      icon: Icons.file_open_outlined,
+                      tooltipsEnabled: tooltipsEnabled,
+                    ),
+                  ],
                   const SizedBox(width: 4),
                   MediaTaskIconButton(
                     tooltip: removeTooltip,

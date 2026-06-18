@@ -18,8 +18,11 @@ class TaskFolderListTile extends StatelessWidget {
     this.onRetry,
     this.onRelink,
     this.onShowLog,
+    this.dragHandle,
     this.dropHighlighted = false,
-    this.dropRejected = false,
+    this.dropDisabled = false,
+    this.dropGhosted = false,
+    this.dropStateKey,
   });
 
   final TaskFolder folder;
@@ -32,8 +35,11 @@ class TaskFolderListTile extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onRelink;
   final VoidCallback? onShowLog;
+  final Widget? dragHandle;
   final bool dropHighlighted;
-  final bool dropRejected;
+  final bool dropDisabled;
+  final bool dropGhosted;
+  final Key? dropStateKey;
 
   @override
   Widget build(BuildContext context) {
@@ -49,137 +55,143 @@ class TaskFolderListTile extends StatelessWidget {
         : tasks.map((task) => task.progress).reduce((a, b) => a + b) /
               tasks.length;
     final primaryAction = _resolvePrimaryAction();
-    final hasMissingSource = tasks.any(
-      (task) => task.status == TaskStatus.missingSource,
-    );
+    final missingSourceCount = tasks
+        .where((task) => task.status == TaskStatus.missingSource)
+        .length;
     final hasLoggableTask = tasks.any(_isLoggableTask);
 
-    final borderColor = dropRejected
-        ? colors.statusFailed
-        : dropHighlighted
+    final activeDrop = dropHighlighted && !dropDisabled;
+    final borderColor = dropDisabled
+        ? colors.border
+        : activeDrop
         ? colors.primary
         : colors.borderStrong;
+    final folderColor = dropDisabled ? colors.iconMuted : colors.primary;
+    final titleColor = dropDisabled ? colors.textTertiary : colors.textPrimary;
+    final subtitleColor = dropDisabled ? colors.iconMuted : colors.textTertiary;
+    final contentOpacity = dropGhosted
+        ? 0.0
+        : dropDisabled
+        ? 0.48
+        : 1.0;
 
-    return AnimatedScale(
+    return AnimatedOpacity(
+      key: dropStateKey ?? ValueKey('task-folder-drop-state-${folder.id}'),
       duration: const Duration(milliseconds: 140),
       curve: Curves.easeOutCubic,
-      scale: dropHighlighted ? 1.018 : 1,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(10),
-          onTap: onOpenSettings,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 140),
-            height: 86,
-            decoration: BoxDecoration(
-              color: colors.surface,
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: borderColor,
-                width: dropHighlighted ? 2 : 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: colors.shadow,
-                  blurRadius: dropHighlighted ? 7 : 1,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: FractionallySizedBox(
-                    alignment: Alignment.centerLeft,
-                    widthFactor: progress.clamp(0, 1).toDouble(),
-                    child: ColoredBox(color: colors.progress),
+      opacity: contentOpacity,
+      child: AnimatedScale(
+        duration: const Duration(milliseconds: 140),
+        curve: Curves.easeOutCubic,
+        scale: activeDrop ? 1.018 : 1,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onOpenSettings,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              height: 86,
+              decoration: BoxDecoration(
+                color: colors.surface,
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: colors.shadow,
+                    blurRadius: activeDrop ? 7 : 1,
+                    offset: const Offset(0, 1),
                   ),
+                ],
+              ),
+              foregroundDecoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: borderColor,
+                  width: activeDrop ? 2 : 1,
                 ),
-                Row(
-                  children: [
-                    const SizedBox(width: 15),
-                    Icon(
-                      Icons.folder_rounded,
-                      color: dropRejected
-                          ? colors.statusFailed
-                          : colors.primary,
-                      size: 28,
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: FractionallySizedBox(
+                      alignment: Alignment.centerLeft,
+                      widthFactor: progress.clamp(0, 1).toDouble(),
+                      child: ColoredBox(color: colors.progress),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            folder.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: colors.textPrimary,
-                              fontSize: 14.flSp,
-                              fontWeight: FontWeight.w600,
+                  ),
+                  Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      dragHandle ?? const SizedBox(width: 24),
+                      const SizedBox(width: 5),
+                      Icon(Icons.folder_rounded, color: folderColor, size: 28),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              folder.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: titleColor,
+                                fontSize: 14.flSp,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 5),
-                          Text(
-                            _subtitle(
-                              completedCount: completedCount,
-                              failedCount: failedCount,
+                            const SizedBox(height: 5),
+                            Text(
+                              _subtitle(
+                                completedCount: completedCount,
+                                failedCount: failedCount,
+                                missingSourceCount: missingSourceCount,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: subtitleColor,
+                                fontSize: 11.flSp,
+                              ),
                             ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: dropRejected
-                                  ? colors.statusFailed
-                                  : colors.textTertiary,
-                              fontSize: 11.flSp,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    if (primaryAction != null)
-                      MediaTaskIconButton(
-                        tooltip: primaryAction.tooltip,
-                        onPressed: primaryAction.onPressed,
-                        icon: primaryAction.icon,
-                      )
-                    else
-                      const SizedBox(width: 36, height: 36),
-                    const SizedBox(width: 4),
-                    if (hasMissingSource)
-                      MediaTaskIconButton(
-                        tooltip: '重新链接夹内缺失源文件',
-                        onPressed: onRelink,
-                        icon: Icons.link_rounded,
-                      ),
-                    if (hasLoggableTask) ...[
+                      if (primaryAction != null)
+                        MediaTaskIconButton(
+                          tooltip: primaryAction.tooltip,
+                          onPressed: primaryAction.onPressed,
+                          icon: primaryAction.icon,
+                        )
+                      else
+                        const SizedBox(width: 36, height: 36),
+                      if (hasLoggableTask) ...[
+                        const SizedBox(width: 4),
+                        MediaTaskIconButton(
+                          tooltip: '查看夹内任务日志',
+                          onPressed: onShowLog,
+                          icon: Icons.description_outlined,
+                        ),
+                      ],
                       const SizedBox(width: 4),
                       MediaTaskIconButton(
-                        tooltip: '查看夹内任务日志',
-                        onPressed: onShowLog,
-                        icon: Icons.description_outlined,
+                        tooltip: '查看夹内任务',
+                        onPressed: onOpenContents,
+                        icon: Icons.folder_open_rounded,
                       ),
+                      const SizedBox(width: 4),
+                      MediaTaskIconButton(
+                        tooltip: '删除任务夹并释放任务',
+                        onPressed: onDelete,
+                        icon: Icons.delete_outline_rounded,
+                      ),
+                      const SizedBox(width: 8),
                     ],
-                    const SizedBox(width: 4),
-                    MediaTaskIconButton(
-                      tooltip: '查看夹内任务',
-                      onPressed: onOpenContents,
-                      icon: Icons.folder_open_rounded,
-                    ),
-                    const SizedBox(width: 4),
-                    MediaTaskIconButton(
-                      tooltip: '删除任务夹并释放任务',
-                      onPressed: onDelete,
-                      icon: Icons.delete_outline_rounded,
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -215,11 +227,15 @@ class TaskFolderListTile extends StatelessWidget {
     return null;
   }
 
-  String _subtitle({required int completedCount, required int failedCount}) {
-    if (dropRejected) {
-      return '任务夹只接受同类型媒体';
-    }
-    return '${tasks.length} 个任务 · 已完成 $completedCount · 失败 $failedCount';
+  String _subtitle({
+    required int completedCount,
+    required int failedCount,
+    required int missingSourceCount,
+  }) {
+    final missingPart = missingSourceCount > 0
+        ? ' · 源文件丢失 $missingSourceCount'
+        : '';
+    return '${tasks.length} 个任务 · 已完成 $completedCount · 失败 $failedCount$missingPart';
   }
 
   bool _isStartableTask(MediaTask task) {

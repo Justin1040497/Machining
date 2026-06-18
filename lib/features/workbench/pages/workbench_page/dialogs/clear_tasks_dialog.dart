@@ -16,7 +16,7 @@ class ClearTasksDialog extends StatelessWidget {
         children: [
           const WorkbenchDialogTitle('清空列表'),
           const SizedBox(height: 14),
-          const WorkbenchDialogBodyText('确定要清空列表吗？'),
+          const WorkbenchDialogBodyText('确定要清空所有任务和任务夹吗？'),
           const SizedBox(height: 22),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,

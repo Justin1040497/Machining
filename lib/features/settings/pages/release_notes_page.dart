@@ -43,7 +43,7 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
           ),
           error: (error, _) => _ReleaseNotesEmptyState(
             message: '版本日志读取失败\n$error',
-            onBack: () => context.go('/settings'),
+            onBack: () => _goBack(context),
           ),
         ),
       ),
@@ -55,7 +55,7 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
     if (notes.isEmpty) {
       return _ReleaseNotesEmptyState(
         message: '暂无版本日志',
-        onBack: () => context.go('/settings'),
+        onBack: () => _goBack(context),
       );
     }
 
@@ -76,7 +76,7 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
                       padding: const EdgeInsets.only(left: 16),
                       child: IconButton(
                         tooltip: '返回设置',
-                        onPressed: () => context.go('/settings'),
+                        onPressed: () => _goBack(context),
                         icon: const Icon(Icons.keyboard_arrow_left_rounded),
                         color: colors.textPrimary,
                       ),
@@ -149,6 +149,14 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
       }
     }
     return notes.first;
+  }
+
+  void _goBack(BuildContext context) {
+    if (context.canPop()) {
+      context.pop();
+      return;
+    }
+    context.go('/settings');
   }
 }
 

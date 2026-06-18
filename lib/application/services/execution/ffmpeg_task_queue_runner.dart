@@ -2,15 +2,18 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/execution/output_preflight_service.dart';
+import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
@@ -100,6 +103,7 @@ abstract class FfmpegTaskQueueRunner {
 
 class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final MediaTaskRepository repository;
+  final TaskFolderRepository taskFolderRepository;
   final SourceFileChecker sourceFileChecker;
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
@@ -112,8 +116,16 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Future<DateTime> Function() now;
   final Future<String> Function(MediaTask task, FfmpegCommandPlan plan)
   createLogFilePath;
-  final Future<void> Function(MediaTask task)? onTaskCompleted;
-  final Future<void> Function(MediaTask task)? onTaskFailed;
+  final Future<void> Function(
+    MediaTask task, [
+    TaskExecutionNotificationSummary? summary,
+  ])?
+  onTaskCompleted;
+  final Future<void> Function(
+    MediaTask task, [
+    TaskExecutionNotificationSummary? summary,
+  ])?
+  onTaskFailed;
 
   final Map<String, TaskExecution> _executions = {};
   FfmpegQueueStatus _queueStatus = FfmpegQueueStatus.idle;
@@ -123,6 +135,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   DefaultFfmpegTaskQueueRunner({
     required this.repository,
+    required this.taskFolderRepository,
     required this.sourceFileChecker,
     required this.readRuntime,
     required this.commandBuilder,
@@ -384,7 +397,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     bool allowExtremeCompression = false,
   }) async {
     final tasks = await repository.loadAllTasks();
-    final task = nextStartableTask(tasks);
+    final folders = await taskFolderRepository.loadAllFolders();
+    final task = nextStartableTask(tasks, folders: folders);
     if (task == null) {
       await refreshStatus();
       _queueRunIntentActive = false;
@@ -421,7 +435,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (!runtime.canEncode || runtime.ffmpeg == null) {
       final failedTask = task.markFailed('FFmpeg 不可用');
       await repository.saveTask(failedTask);
-      await publishTaskFailed(failedTask);
+      await publishTaskFailed(failedTask, failureSummary(failedTask));
       await continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.ffmpegUnavailable,
@@ -467,7 +481,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       }
       final failedTask = task.markFailed(error.toString());
       await repository.saveTask(failedTask);
-      await publishTaskFailed(failedTask);
+      await publishTaskFailed(failedTask, failureSummary(failedTask));
       await continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.commandBuildFailed,
@@ -509,7 +523,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
       final failedTask = runningTask.markFailed('FFmpeg 启动失败: $error');
       await repository.saveTask(failedTask);
-      await publishTaskFailed(failedTask);
+      await publishTaskFailed(failedTask, failureSummary(failedTask));
       await mediaInputPreparer.cleanup(executionInput);
       await continueAfterTask();
       return FfmpegQueueStartResult(
@@ -695,6 +709,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       if (outputIsSmaller == true) {
         completeCurrentPlan = true;
       } else {
+        final ineffectiveOutputSize = currentStep.outputPath == null
+            ? null
+            : await _getFileSize(currentStep.outputPath!);
         await deleteStepOutput(currentStep);
         final message = outputIsSmaller == null
             ? '图片压缩结果无法验证，未保留本次输出。'
@@ -725,7 +742,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
               )
               .copyWith(clearOutputPath: true);
           await repository.saveTask(failedTask);
-          await publishTaskFailed(failedTask);
+          await publishTaskFailed(
+            failedTask,
+            failureSummary(failedTask, outputFileSize: ineffectiveOutputSize),
+          );
           await cleanupPlanFiles(execution.plan);
           await mediaInputPreparer.cleanup(execution.preparedInput);
           await continueAfterTask();
@@ -772,7 +792,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           failedAt: (await now()).millisecondsSinceEpoch,
         );
         await repository.saveTask(failedTask);
-        await publishTaskFailed(failedTask);
+        await publishTaskFailed(failedTask, failureSummary(failedTask));
         await continueAfterTask();
       }
       return;
@@ -803,7 +823,15 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
 
       await repository.saveTask(completedTask);
-      await publishTaskCompleted(completedTask);
+      await publishTaskCompleted(
+        completedTask,
+        TaskExecutionNotificationSummary(
+          sourceFileSize: task.sourceFileFingerprint?.fileSize,
+          outputFileSize: outputSize,
+          durationMs: durationMs,
+          outputPath: task.outputPath,
+        ),
+      );
     } else {
       await appendExecutionLogFooter(
         execution.logFile,
@@ -816,7 +844,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         failedAt: (await now()).millisecondsSinceEpoch,
       );
       await repository.saveTask(failedTask);
-      await publishTaskFailed(failedTask);
+      await publishTaskFailed(failedTask, failureSummary(failedTask));
     }
 
     await cleanupPlanFiles(execution.plan);
@@ -824,28 +852,61 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     await continueAfterTask();
   }
 
-  Future<void> publishTaskCompleted(MediaTask task) async {
+  Future<void> publishTaskCompleted(
+    MediaTask task, [
+    TaskExecutionNotificationSummary? summary,
+  ]) async {
     final callback = onTaskCompleted;
     if (callback == null) {
       return;
     }
     try {
-      await callback(task);
+      await callback(task, summary);
     } on Object {
       // Notification persistence must not change a completed task result.
     }
   }
 
-  Future<void> publishTaskFailed(MediaTask task) async {
+  Future<void> publishTaskFailed(
+    MediaTask task, [
+    TaskExecutionNotificationSummary? summary,
+  ]) async {
     final callback = onTaskFailed;
     if (callback == null) {
       return;
     }
     try {
-      await callback(task);
+      await callback(task, summary);
     } on Object {
       // Notification persistence must not change a failed task result.
     }
+  }
+
+  TaskExecutionNotificationSummary failureSummary(
+    MediaTask task, {
+    int? outputFileSize,
+    int? durationMs,
+  }) {
+    return TaskExecutionNotificationSummary(
+      sourceFileSize: task.sourceFileFingerprint?.fileSize,
+      outputFileSize: outputFileSize,
+      durationMs: durationMs,
+      outputPath: task.outputPath,
+      failureReason: task.errorMessage,
+      failureSuggestion: failureSuggestionFor(task),
+    );
+  }
+
+  String failureSuggestionFor(MediaTask task) {
+    final reason = task.errorMessage?.trim() ?? '';
+    final ineffectiveOutput =
+        reason.contains('不小于源文件') ||
+        reason.contains('未有效压缩') ||
+        reason.contains('无法验证');
+    if (task.mediaKind == MediaKind.image && ineffectiveOutput) {
+      return '建议切换 WebP/JPG 格式、降低质量，或更换输出格式后重新压缩。';
+    }
+    return '建议查看任务日志，确认源文件、输出目录和 FFmpeg 运行时后重试。';
   }
 
   Future<bool?> isStepOutputSmallerThanSource(
@@ -1009,7 +1070,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         return;
       }
 
-      final nextTask = nextStartableTask(tasks, excludedTaskId: excludedTaskId);
+      final folders = await taskFolderRepository.loadAllFolders();
+      final nextTask = nextStartableTask(
+        tasks,
+        folders: folders,
+        excludedTaskId: excludedTaskId,
+      );
       if (nextTask != null) {
         final execution = _executions[nextTask.id];
         if (execution != null) {
@@ -1050,20 +1116,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   MediaTask? nextStartableTask(
     List<MediaTask> tasks, {
+    List<TaskFolder>? folders,
     String? excludedTaskId,
   }) {
-    final startableTasks =
-        tasks
-            .where((task) => task.id != excludedTaskId && isStartableTask(task))
-            .toList()
-          ..sort((first, second) {
-            final order = first.sortOrder.compareTo(second.sortOrder);
-            if (order != 0) {
-              return order;
-            }
-
-            return first.createdAt.compareTo(second.createdAt);
-          });
+    final startableTasks = expandedExecutionOrder(tasks, folders ?? const [])
+        .where((task) => task.id != excludedTaskId && isStartableTask(task))
+        .toList();
 
     if (startableTasks.isEmpty) {
       return null;
@@ -1072,9 +1130,63 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     return startableTasks.first;
   }
 
+  List<MediaTask> expandedExecutionOrder(
+    List<MediaTask> tasks,
+    List<TaskFolder> folders,
+  ) {
+    final folderTasksById = <String, List<MediaTask>>{};
+    for (final task in tasks) {
+      final folderId = task.folderId;
+      if (folderId == null) {
+        continue;
+      }
+      folderTasksById.putIfAbsent(folderId, () => []).add(task);
+    }
+
+    for (final folderTasks in folderTasksById.values) {
+      folderTasks.sort(_compareFolderTasksForExecution);
+    }
+
+    final topLevelItems = <_ExecutionTopLevelItem>[
+      for (final folder in folders)
+        _ExecutionTopLevelItem.folder(
+          folder,
+          folderTasksById[folder.id] ?? const <MediaTask>[],
+        ),
+      for (final task in tasks.where((task) => task.folderId == null))
+        _ExecutionTopLevelItem.task(task),
+    ]..sort(_compareTopLevelItemsForExecution);
+
+    return [
+      for (final item in topLevelItems)
+        if (item.task != null) item.task! else ...item.folderTasks,
+    ];
+  }
+
   bool isStartableTask(MediaTask task) {
     return task.status == TaskStatus.pending ||
         task.status == TaskStatus.paused;
+  }
+
+  int _compareFolderTasksForExecution(MediaTask a, MediaTask b) {
+    final order = (a.folderSortOrder ?? a.sortOrder).compareTo(
+      b.folderSortOrder ?? b.sortOrder,
+    );
+    if (order != 0) {
+      return order;
+    }
+    return a.createdAt.compareTo(b.createdAt);
+  }
+
+  int _compareTopLevelItemsForExecution(
+    _ExecutionTopLevelItem a,
+    _ExecutionTopLevelItem b,
+  ) {
+    final order = a.sortOrder.compareTo(b.sortOrder);
+    if (order != 0) {
+      return order;
+    }
+    return a.createdAt.compareTo(b.createdAt);
   }
 
   MediaTask? findTaskById(List<MediaTask> tasks, String taskId) {
@@ -1086,4 +1198,38 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     return null;
   }
+}
+
+class _ExecutionTopLevelItem {
+  const _ExecutionTopLevelItem._({
+    required this.sortOrder,
+    required this.createdAt,
+    required this.folderTasks,
+    this.task,
+  });
+
+  factory _ExecutionTopLevelItem.task(MediaTask task) {
+    return _ExecutionTopLevelItem._(
+      sortOrder: task.sortOrder,
+      createdAt: task.createdAt,
+      folderTasks: const [],
+      task: task,
+    );
+  }
+
+  factory _ExecutionTopLevelItem.folder(
+    TaskFolder folder,
+    List<MediaTask> folderTasks,
+  ) {
+    return _ExecutionTopLevelItem._(
+      sortOrder: folder.sortOrder,
+      createdAt: folder.createdAt,
+      folderTasks: folderTasks,
+    );
+  }
+
+  final int sortOrder;
+  final int createdAt;
+  final MediaTask? task;
+  final List<MediaTask> folderTasks;
 }

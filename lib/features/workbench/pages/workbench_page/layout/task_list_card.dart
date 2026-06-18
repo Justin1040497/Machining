@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
@@ -11,7 +12,8 @@ typedef WorkbenchTaskPositionCallback =
     void Function(MediaTask task, Offset position);
 typedef WorkbenchTaskFolderDropCallback =
     void Function(MediaTask task, TaskFolder folder);
-typedef WorkbenchTaskSelectionCallback = void Function(Set<String> taskIds);
+typedef WorkbenchTaskSelectionCallback =
+    void Function(Set<String> taskIds, {bool toggle});
 
 class WorkbenchTaskListCard extends StatefulWidget {
   const WorkbenchTaskListCard({
@@ -30,6 +32,7 @@ class WorkbenchTaskListCard extends StatefulWidget {
     required this.onRetry,
     required this.onRelink,
     required this.onShowLog,
+    required this.onRevealOutput,
     required this.onContextMenu,
     required this.onToggleTaskSelection,
     required this.onSelectTasksWithRectangle,
@@ -59,6 +62,7 @@ class WorkbenchTaskListCard extends StatefulWidget {
   final ValueChanged<MediaTask> onRetry;
   final ValueChanged<MediaTask> onRelink;
   final ValueChanged<MediaTask> onShowLog;
+  final ValueChanged<MediaTask> onRevealOutput;
   final WorkbenchTaskPositionCallback onContextMenu;
   final ValueChanged<MediaTask> onToggleTaskSelection;
   final WorkbenchTaskSelectionCallback onSelectTasksWithRectangle;
@@ -78,11 +82,19 @@ class WorkbenchTaskListCard extends StatefulWidget {
 }
 
 class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
+  static const double _taskFolderDropEdgeInset = 16;
+
   final Map<String, GlobalKey> _taskItemKeys = {};
+  final Map<String, GlobalKey> _folderDropKeys = {};
+  final GlobalKey _listStackKey = GlobalKey();
   Offset? _selectionStart;
   Offset? _selectionCurrent;
   String? _hoveredFolderId;
-  String? _rejectedFolderId;
+  Rect? _hoveredFolderAnchorRect;
+  MediaTask? _draggingTaskForReorder;
+  Offset? _taskReorderPointerPosition;
+  int? _draggingTaskTopLevelIndex;
+  List<WorkbenchListItem> _draggingTopLevelItems = const [];
 
   @override
   Widget build(BuildContext context) {
@@ -113,9 +125,15 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       padding: EdgeInsets.zero,
       buildDefaultDragHandles: false,
       itemCount: items.length,
-      onReorder: folders.isEmpty && !widget.selectionMode
-          ? widget.onReorder
-          : (_, _) {},
+      onReorder: widget.selectionMode
+          ? (_, _) {}
+          : (oldIndex, newIndex) {
+              _handleReorder(
+                oldIndex: oldIndex,
+                newIndex: newIndex,
+                folders: folders,
+              );
+            },
       proxyDecorator: (child, index, animation) {
         return Material(
           color: Colors.transparent,
@@ -145,6 +163,7 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         return _buildTaskItem(
           task: task,
           folders: folders,
+          items: items,
           index: index,
           itemCount: items.length,
         );
@@ -152,28 +171,27 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     );
 
     return Stack(
+      key: _listStackKey,
       fit: StackFit.expand,
       children: [
         Positioned.fill(
-          child: widget.selectionMode
-              ? GestureDetector(
-                  behavior: HitTestBehavior.translucent,
-                  onPanStart: (details) {
-                    setState(() {
-                      _selectionStart = details.localPosition;
-                      _selectionCurrent = details.localPosition;
-                    });
-                  },
-                  onPanUpdate: (details) {
-                    setState(() {
-                      _selectionCurrent = details.localPosition;
-                    });
-                  },
-                  onPanEnd: (_) => _finishRectangleSelection(context, tasks),
-                  onPanCancel: _clearRectangleSelection,
-                  child: listView,
-                )
-              : listView,
+          child: GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onPanStart: (details) {
+              setState(() {
+                _selectionStart = details.localPosition;
+                _selectionCurrent = details.localPosition;
+              });
+            },
+            onPanUpdate: (details) {
+              setState(() {
+                _selectionCurrent = details.localPosition;
+              });
+            },
+            onPanEnd: (_) => _finishRectangleSelection(context, tasks),
+            onPanCancel: _clearRectangleSelection,
+            child: listView,
+          ),
         ),
         if (_selectionRect != null)
           Positioned.fromRect(
@@ -190,6 +208,8 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
               ),
             ),
           ),
+        if (_hoveredFolderId != null && _hoveredFolderAnchorRect != null)
+          _buildHoveredFolderOverlay(tasks, folders),
       ],
     );
   }
@@ -202,6 +222,12 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     required int itemCount,
   }) {
     final folderTasks = folderTasksFor(tasks, folder.id);
+    final dragEnabled =
+        !widget.selectionMode &&
+        !folderTasks.any((task) => task.status == TaskStatus.running);
+    final draggingTask = _draggingTaskForReorder;
+    final dropDisabled =
+        draggingTask != null && !_canDropTaskIntoFolder(draggingTask, folder);
     final child = Container(
       key: ValueKey('folder-${folder.id}'),
       padding: EdgeInsets.only(bottom: index == itemCount - 1 ? 0 : 13),
@@ -211,64 +237,142 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         27,
         index != itemCount - 1 ? 0 : 48,
       ),
-      child: DragTarget<MediaTask>(
-        onWillAcceptWithDetails: (details) {
-          final accepted = _canDropTaskIntoFolder(details.data, folder);
-          setState(() {
-            _hoveredFolderId = folder.id;
-            _rejectedFolderId = accepted ? null : folder.id;
-          });
-          return accepted;
-        },
-        onAcceptWithDetails: (details) {
-          setState(() {
-            _hoveredFolderId = null;
-            _rejectedFolderId = null;
-          });
-          widget.onMoveTaskToFolder(details.data, folder);
-        },
-        onLeave: (task) {
-          setState(() {
-            if (_hoveredFolderId == folder.id) {
-              _hoveredFolderId = null;
-            }
-            if (_rejectedFolderId == folder.id) {
-              _rejectedFolderId = null;
-            }
-          });
-          if (task != null && !_canDropTaskIntoFolder(task, folder)) {
-            widget.onRejectTaskFolderDrop(task, folder);
-          }
-        },
-        builder: (context, candidateData, rejectedData) {
-          return TaskFolderListTile(
-            folder: folder,
-            tasks: folderTasks,
-            onOpenSettings: () => widget.onOpenFolderSettings(folder),
-            onOpenContents: () => widget.onOpenFolderContents(folder),
-            onDelete: () => widget.onDeleteFolder(folder),
-            onStart: () => widget.onStartFolder(folder),
-            onPause: () => widget.onPauseFolder(folder),
-            onRetry: () => widget.onRetryFolder(folder),
-            onRelink: () => widget.onRelinkFolder(folder),
-            onShowLog: () => widget.onShowFolderLog(folder),
-            dropHighlighted: _hoveredFolderId == folder.id,
-            dropRejected: _rejectedFolderId == folder.id,
-          );
-        },
+      child: KeyedSubtree(
+        key: _folderDropKeyFor(folder.id),
+        child: TaskFolderListTile(
+          folder: folder,
+          tasks: folderTasks,
+          onOpenSettings: () => widget.onOpenFolderSettings(folder),
+          onOpenContents: () => widget.onOpenFolderContents(folder),
+          onDelete: () => widget.onDeleteFolder(folder),
+          onStart: () => widget.onStartFolder(folder),
+          onPause: () => widget.onPauseFolder(folder),
+          onRetry: () => widget.onRetryFolder(folder),
+          onRelink: () => widget.onRelinkFolder(folder),
+          onShowLog: () => widget.onShowFolderLog(folder),
+          dragHandle: _FolderDragHandleSlot(
+            index: index,
+            enabled: dragEnabled,
+            selectionMode: widget.selectionMode,
+          ),
+          dropHighlighted: _hoveredFolderId == folder.id,
+          dropDisabled: dropDisabled,
+          dropGhosted: _hoveredFolderId == folder.id,
+        ),
       ),
     );
     return child;
   }
 
+  Widget _buildHoveredFolderOverlay(
+    List<MediaTask> tasks,
+    List<TaskFolder> folders,
+  ) {
+    final hoveredFolderId = _hoveredFolderId;
+    final anchorRect = _hoveredFolderAnchorRect;
+    if (hoveredFolderId == null || anchorRect == null) {
+      return const SizedBox.shrink();
+    }
+
+    final stackBox =
+        _listStackKey.currentContext?.findRenderObject() as RenderBox?;
+    if (stackBox == null || !stackBox.hasSize) {
+      return const SizedBox.shrink();
+    }
+
+    TaskFolder? hoveredFolder;
+    for (final folder in folders) {
+      if (folder.id == hoveredFolderId) {
+        hoveredFolder = folder;
+        break;
+      }
+    }
+    if (hoveredFolder == null) {
+      return const SizedBox.shrink();
+    }
+
+    final topLeft = stackBox.globalToLocal(anchorRect.topLeft);
+    return Positioned(
+      left: topLeft.dx,
+      top: topLeft.dy,
+      width: anchorRect.width,
+      height: anchorRect.height,
+      child: IgnorePointer(
+        child: TaskFolderListTile(
+          folder: hoveredFolder,
+          tasks: folderTasksFor(tasks, hoveredFolder.id),
+          onOpenSettings: () {},
+          onOpenContents: () {},
+          onDelete: () {},
+          onStart: () {},
+          onPause: () {},
+          onRetry: () {},
+          onRelink: () {},
+          onShowLog: () {},
+          dragHandle: const SizedBox(width: 24),
+          dropHighlighted: true,
+          dropStateKey: ValueKey('task-folder-hover-overlay-$hoveredFolderId'),
+        ),
+      ),
+    );
+  }
+
   Widget _buildTaskItem({
     required MediaTask task,
     required List<TaskFolder> folders,
+    required List<WorkbenchListItem> items,
     required int index,
     required int itemCount,
   }) {
     final dragEnabled = task.status != TaskStatus.running;
     final selectedForBatch = widget.selectedTaskIds.contains(task.id);
+    final tile = MediaTaskListTile(
+      task: task,
+      selected: selectedForBatch || widget.selectedTask?.id == task.id,
+      thumbnail: widget.thumbnailForTask(task),
+      onTap: widget.selectionMode
+          ? () => widget.onToggleTaskSelection(task)
+          : () => widget.onOpenTask(task),
+      onStart: () => widget.onStart(task),
+      onPause: () => widget.onPause(task),
+      onRemove: () => widget.onRemove(task),
+      onRetry: () => widget.onRetry(task),
+      onRelink: () => widget.onRelink(task),
+      onShowLog: () => widget.onShowLog(task),
+      onRevealOutput: () => widget.onRevealOutput(task),
+      onSecondaryTapDown: widget.selectionMode
+          ? null
+          : (details) {
+              widget.onContextMenu(task, details.globalPosition);
+            },
+      tooltipsEnabled: false,
+      dragHandle: widget.selectionMode
+          ? _TaskSelectionCheckbox(
+              selected: selectedForBatch,
+              onChanged: () => widget.onToggleTaskSelection(task),
+            )
+          : _TaskDragHandleSlot(
+              task: task,
+              index: index,
+              enabled: dragEnabled,
+              onPointerDown: (event) {
+                _startTaskHandleDrag(
+                  task,
+                  event.position,
+                  folders,
+                  items,
+                  index,
+                );
+              },
+              onPointerMove: (event) {
+                _updateTaskHandleDrag(event.position, folders);
+              },
+              onPointerUp: (event) {
+                _endTaskHandleDrag(event.position);
+              },
+              onPointerCancel: _cancelTaskHandleDrag,
+            ),
+    );
 
     return Container(
       key: _taskKeyFor(task.id),
@@ -279,37 +383,7 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         27,
         index != itemCount - 1 ? 0 : 48,
       ),
-      child: MediaTaskListTile(
-        task: task,
-        selected: selectedForBatch || widget.selectedTask?.id == task.id,
-        thumbnail: widget.thumbnailForTask(task),
-        onTap: widget.selectionMode
-            ? () => widget.onToggleTaskSelection(task)
-            : () => widget.onOpenTask(task),
-        onStart: () => widget.onStart(task),
-        onPause: () => widget.onPause(task),
-        onRemove: () => widget.onRemove(task),
-        onRetry: () => widget.onRetry(task),
-        onRelink: () => widget.onRelink(task),
-        onShowLog: () => widget.onShowLog(task),
-        onSecondaryTapDown: widget.selectionMode
-            ? null
-            : (details) {
-                widget.onContextMenu(task, details.globalPosition);
-              },
-        tooltipsEnabled: false,
-        dragHandle: widget.selectionMode
-            ? _TaskSelectionCheckbox(
-                selected: selectedForBatch,
-                onChanged: () => widget.onToggleTaskSelection(task),
-              )
-            : _TaskDragHandleSlot(
-                task: task,
-                index: index,
-                folders: folders,
-                enabled: dragEnabled,
-              ),
-      ),
+      child: tile,
     );
   }
 
@@ -317,8 +391,276 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     return task.folderId == null && task.mediaKind == folder.mediaKind;
   }
 
+  void _handleReorder({
+    required int oldIndex,
+    required int newIndex,
+    required List<TaskFolder> folders,
+  }) {
+    final task = _draggingTaskForReorder;
+    final targetFolder = task == null
+        ? null
+        : _folderDropTargetAt(
+            _taskReorderPointerPosition,
+            folders: folders,
+            task: task,
+          );
+    _clearTaskHandleDrag();
+
+    if (task != null && targetFolder != null) {
+      widget.onMoveTaskToFolder(task, targetFolder);
+      return;
+    }
+
+    widget.onReorder(oldIndex, newIndex);
+  }
+
+  void _startTaskHandleDrag(
+    MediaTask task,
+    Offset globalPosition,
+    List<TaskFolder> folders,
+    List<WorkbenchListItem> items,
+    int index,
+  ) {
+    _draggingTaskTopLevelIndex = index;
+    _draggingTopLevelItems = items;
+    _setTaskHandleDragState(
+      task: task,
+      globalPosition: globalPosition,
+      folders: folders,
+    );
+  }
+
+  void _updateTaskHandleDrag(Offset globalPosition, List<TaskFolder> folders) {
+    final task = _draggingTaskForReorder;
+    if (task == null) {
+      return;
+    }
+    _setTaskHandleDragState(
+      task: task,
+      globalPosition: globalPosition,
+      folders: folders,
+    );
+  }
+
+  void _endTaskHandleDrag(Offset globalPosition) {
+    _taskReorderPointerPosition = globalPosition;
+    _completeTaskHandleDragAfterFrame();
+  }
+
+  void _cancelTaskHandleDrag() {
+    _scheduleClearTaskHandleDrag();
+  }
+
+  void _setTaskHandleDragState({
+    required MediaTask task,
+    required Offset globalPosition,
+    required List<TaskFolder> folders,
+  }) {
+    final hoveredFolder = _folderDropTargetAt(
+      globalPosition,
+      folders: folders,
+      task: task,
+    );
+    final nextHoveredFolderId = hoveredFolder?.id;
+    if (_draggingTaskForReorder?.id == task.id &&
+        _taskReorderPointerPosition == globalPosition &&
+        _hoveredFolderId == nextHoveredFolderId) {
+      return;
+    }
+
+    final nextAnchorRect = nextHoveredFolderId == null
+        ? null
+        : _hoveredFolderId == nextHoveredFolderId
+        ? _hoveredFolderAnchorRect
+        : _folderGlobalRect(nextHoveredFolderId);
+    setState(() {
+      _draggingTaskForReorder = task;
+      _taskReorderPointerPosition = globalPosition;
+      _hoveredFolderId = nextHoveredFolderId;
+      _hoveredFolderAnchorRect = nextAnchorRect;
+    });
+  }
+
+  void _scheduleClearTaskHandleDrag() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _draggingTaskForReorder == null) {
+        return;
+      }
+      _clearTaskHandleDrag();
+    });
+  }
+
+  void _completeTaskHandleDragAfterFrame() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      final task = _draggingTaskForReorder;
+      final oldIndex = _draggingTaskTopLevelIndex;
+      if (task == null || oldIndex == null) {
+        _clearTaskHandleDrag();
+        return;
+      }
+
+      final targetFolder = _folderDropTargetAt(
+        _taskReorderPointerPosition,
+        folders: [
+          for (final item in _draggingTopLevelItems)
+            if (item.folder != null) item.folder!,
+        ],
+        task: task,
+      );
+      if (targetFolder != null) {
+        _clearTaskHandleDrag();
+        widget.onMoveTaskToFolder(task, targetFolder);
+        return;
+      }
+
+      final sortTarget = _folderSortTargetAt(
+        _taskReorderPointerPosition,
+        _draggingTopLevelItems,
+      );
+      if (sortTarget != null) {
+        final newIndex = _newReorderIndexForFolderSortTarget(
+          oldIndex: oldIndex,
+          folderIndex: sortTarget.folderIndex,
+          afterFolder: sortTarget.afterFolder,
+          itemCount: _draggingTopLevelItems.length,
+        );
+        _clearTaskHandleDrag();
+        if (newIndex != oldIndex) {
+          widget.onReorder(oldIndex, newIndex);
+        }
+        return;
+      }
+
+      _clearTaskHandleDrag();
+    });
+  }
+
+  void _clearTaskHandleDrag() {
+    if (_draggingTaskForReorder == null &&
+        _taskReorderPointerPosition == null &&
+        _hoveredFolderId == null &&
+        _hoveredFolderAnchorRect == null &&
+        _draggingTaskTopLevelIndex == null &&
+        _draggingTopLevelItems.isEmpty) {
+      return;
+    }
+    setState(() {
+      _draggingTaskForReorder = null;
+      _taskReorderPointerPosition = null;
+      _hoveredFolderId = null;
+      _hoveredFolderAnchorRect = null;
+      _draggingTaskTopLevelIndex = null;
+      _draggingTopLevelItems = const [];
+    });
+  }
+
+  TaskFolder? _folderDropTargetAt(
+    Offset? globalPosition, {
+    required List<TaskFolder> folders,
+    required MediaTask task,
+  }) {
+    if (globalPosition == null) {
+      return null;
+    }
+
+    for (final folder in folders) {
+      if (!_canDropTaskIntoFolder(task, folder)) {
+        continue;
+      }
+      final folderContext = _folderDropKeys[folder.id]?.currentContext;
+      final folderBox = folderContext?.findRenderObject() as RenderBox?;
+      if (folderBox == null || !folderBox.hasSize) {
+        continue;
+      }
+      final folderRect = folderBox.localToGlobal(Offset.zero) & folderBox.size;
+      if (_folderDropBodyRect(folderRect).contains(globalPosition)) {
+        return folder;
+      }
+    }
+
+    return null;
+  }
+
+  Rect? _folderGlobalRect(String folderId) {
+    final folderContext = _folderDropKeys[folderId]?.currentContext;
+    final folderBox = folderContext?.findRenderObject() as RenderBox?;
+    if (folderBox == null || !folderBox.hasSize) {
+      return null;
+    }
+    return folderBox.localToGlobal(Offset.zero) & folderBox.size;
+  }
+
+  _FolderSortTarget? _folderSortTargetAt(
+    Offset? globalPosition,
+    List<WorkbenchListItem> items,
+  ) {
+    if (globalPosition == null) {
+      return null;
+    }
+
+    for (var index = 0; index < items.length; index += 1) {
+      final folder = items[index].folder;
+      if (folder == null) {
+        continue;
+      }
+      final folderContext = _folderDropKeys[folder.id]?.currentContext;
+      final folderBox = folderContext?.findRenderObject() as RenderBox?;
+      if (folderBox == null || !folderBox.hasSize) {
+        continue;
+      }
+      final folderRect = folderBox.localToGlobal(Offset.zero) & folderBox.size;
+      if (!folderRect.contains(globalPosition)) {
+        continue;
+      }
+      return _FolderSortTarget(
+        folderIndex: index,
+        afterFolder: globalPosition.dy > folderRect.center.dy,
+      );
+    }
+
+    return null;
+  }
+
+  int _newReorderIndexForFolderSortTarget({
+    required int oldIndex,
+    required int folderIndex,
+    required bool afterFolder,
+    required int itemCount,
+  }) {
+    final targetIndex = afterFolder
+        ? oldIndex < folderIndex
+              ? folderIndex
+              : folderIndex + 1
+        : oldIndex < folderIndex
+        ? folderIndex - 1
+        : folderIndex;
+    final clampedTargetIndex = targetIndex.clamp(0, itemCount - 1).toInt();
+    return clampedTargetIndex > oldIndex
+        ? clampedTargetIndex + 1
+        : clampedTargetIndex;
+  }
+
+  Rect _folderDropBodyRect(Rect folderRect) {
+    if (folderRect.height <= _taskFolderDropEdgeInset * 2) {
+      return folderRect;
+    }
+    return Rect.fromLTRB(
+      folderRect.left,
+      folderRect.top + _taskFolderDropEdgeInset,
+      folderRect.right,
+      folderRect.bottom - _taskFolderDropEdgeInset,
+    );
+  }
+
   GlobalKey _taskKeyFor(String taskId) {
     return _taskItemKeys.putIfAbsent(taskId, GlobalKey.new);
+  }
+
+  GlobalKey _folderDropKeyFor(String folderId) {
+    return _folderDropKeys.putIfAbsent(folderId, GlobalKey.new);
   }
 
   Rect? get _selectionRect {
@@ -361,7 +703,13 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     }
 
     if (selectedIds.isNotEmpty) {
-      widget.onSelectTasksWithRectangle(selectedIds);
+      final pressedKeys = HardwareKeyboard.instance.logicalKeysPressed;
+      final toggle =
+          pressedKeys.contains(LogicalKeyboardKey.controlLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.controlRight) ||
+          pressedKeys.contains(LogicalKeyboardKey.metaLeft) ||
+          pressedKeys.contains(LogicalKeyboardKey.metaRight);
+      widget.onSelectTasksWithRectangle(selectedIds, toggle: toggle);
     }
     _clearRectangleSelection();
   }
@@ -429,6 +777,16 @@ class WorkbenchListItem {
   final TaskFolder? folder;
 }
 
+class _FolderSortTarget {
+  const _FolderSortTarget({
+    required this.folderIndex,
+    required this.afterFolder,
+  });
+
+  final int folderIndex;
+  final bool afterFolder;
+}
+
 List<WorkbenchListItem> buildWorkbenchListItems(
   List<MediaTask> tasks,
   List<TaskFolder> folders,
@@ -464,37 +822,61 @@ class _TaskDragHandleSlot extends StatelessWidget {
   const _TaskDragHandleSlot({
     required this.task,
     required this.index,
-    required this.folders,
     required this.enabled,
+    required this.onPointerDown,
+    required this.onPointerMove,
+    required this.onPointerUp,
+    required this.onPointerCancel,
   });
 
   final MediaTask task;
   final int index;
-  final List<TaskFolder> folders;
   final bool enabled;
+  final void Function(PointerDownEvent event) onPointerDown;
+  final void Function(PointerMoveEvent event) onPointerMove;
+  final void Function(PointerUpEvent event) onPointerUp;
+  final VoidCallback onPointerCancel;
 
   @override
   Widget build(BuildContext context) {
     final handle = _TaskDragHandle(enabled: enabled);
-    if (folders.isEmpty) {
-      return ReorderableDragStartListener(
-        index: index,
-        enabled: enabled,
-        child: handle,
-      );
-    }
-
     if (!enabled || task.folderId != null) {
       return handle;
     }
-
-    return Draggable<MediaTask>(
-      data: task,
-      feedback: Material(
-        color: Colors.transparent,
-        child: SizedBox(width: 48, height: 48, child: handle),
+    return Listener(
+      onPointerDown: onPointerDown,
+      onPointerMove: onPointerMove,
+      onPointerUp: onPointerUp,
+      onPointerCancel: (_) => onPointerCancel(),
+      child: ReorderableDragStartListener(
+        index: index,
+        enabled: enabled,
+        child: handle,
       ),
-      childWhenDragging: Opacity(opacity: 0.35, child: handle),
+    );
+  }
+}
+
+class _FolderDragHandleSlot extends StatelessWidget {
+  const _FolderDragHandleSlot({
+    required this.index,
+    required this.enabled,
+    required this.selectionMode,
+  });
+
+  final int index;
+  final bool enabled;
+  final bool selectionMode;
+
+  @override
+  Widget build(BuildContext context) {
+    final handle = _TaskDragHandle(enabled: enabled && !selectionMode);
+    if (!enabled || selectionMode) {
+      return handle;
+    }
+    return ReorderableDragStartListener(
+      index: index,
+      enabled: enabled,
       child: handle,
     );
   }

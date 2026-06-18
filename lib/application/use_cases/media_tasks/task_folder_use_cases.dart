@@ -164,6 +164,33 @@ class RemoveTaskFromFolderUseCase {
   }
 }
 
+class PruneEmptyTaskFoldersUseCase {
+  const PruneEmptyTaskFoldersUseCase({
+    required this.mediaTaskRepository,
+    required this.taskFolderRepository,
+  });
+
+  final MediaTaskRepository mediaTaskRepository;
+  final TaskFolderRepository taskFolderRepository;
+
+  Future<List<String>> call() async {
+    final tasks = await mediaTaskRepository.loadAllTasks();
+    final folders = await taskFolderRepository.loadAllFolders();
+    final deletedFolderIds = <String>[];
+
+    for (final folder in folders) {
+      final hasTask = tasks.any((task) => task.folderId == folder.id);
+      if (hasTask) {
+        continue;
+      }
+      await taskFolderRepository.deleteFolderById(folder.id);
+      deletedFolderIds.add(folder.id);
+    }
+
+    return deletedFolderIds;
+  }
+}
+
 class ApplyTaskFolderConfigUseCase {
   const ApplyTaskFolderConfigUseCase({
     required this.mediaTaskRepository,

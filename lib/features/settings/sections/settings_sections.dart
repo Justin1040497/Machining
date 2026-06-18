@@ -44,14 +44,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         ),
         const SizedBox(height: 18),
         _SettingsCheckbox(
-          label: '任务完成后以弹窗的形式提示',
-          value: showTaskCompletionDialog,
-          onChanged: (value) {
-            updateViewState(() => showTaskCompletionDialog = value);
-          },
-        ),
-        const SizedBox(height: 18),
-        _SettingsCheckbox(
           label: '关闭通知角标',
           value: hideNotificationBadge,
           onChanged: (value) {

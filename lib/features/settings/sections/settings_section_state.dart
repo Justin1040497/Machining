@@ -28,7 +28,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
   bool get _isAppSectionDirty =>
       themeMode != savedSettings.themeMode ||
       completionSound != savedSettings.taskCompletionSound ||
-      showTaskCompletionDialog != savedSettings.showTaskCompletionDialog ||
       hideNotificationBadge != savedSettings.hideNotificationBadge;
 
   bool get _isVideoSectionDirty {
@@ -131,7 +130,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     updateViewState(() {
       themeMode = savedSettings.themeMode;
       completionSound = savedSettings.taskCompletionSound;
-      showTaskCompletionDialog = savedSettings.showTaskCompletionDialog;
       hideNotificationBadge = savedSettings.hideNotificationBadge;
     });
   }
@@ -210,7 +208,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
         return base.copyWith(
           themeMode: themeMode,
           taskCompletionSound: completionSound,
-          showTaskCompletionDialog: showTaskCompletionDialog,
           hideNotificationBadge: hideNotificationBadge,
         );
       case _SettingsSection.video:
