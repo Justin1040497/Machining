@@ -140,15 +140,16 @@ docs/
 `domain` 保存不依赖 Flutter UI 的业务模型：
 
 - `MediaTask`：媒体任务主实体。
+- `TaskFolder`：工作台任务夹实体，保存任务夹名称、媒体类型、排序和默认配置。
 - `AppSettings`：应用级设置实体。
 - `MediaTaskConfig`：单个媒体任务的通用配置入口，按 `mediaKind` 持有 `video`、`image` 或 `audio` 分类型配置。
 - `VideoProcessingConfig`、`ImageProcessingConfig`、`AudioProcessingConfig`：视频、图片、音频的分类型处理配置。
 - `VideoTaskConfig`：旧视频配置兼容对象，可映射为 `MediaTaskConfig.video`。
 - `MediaAnalysisResult`：FFprobe 分析结果。
 - `SourceFileFingerprint`：源文件快速指纹，用于检测源文件是否被替换或移动。
-- 枚举：任务状态、通用输出格式、视频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设、媒体类型、任务用途等。
+- 枚举：任务状态、通用输出格式、视频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设、媒体类型、任务用途、任务策略标签等。
 
-`MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult` 等方法，避免 UI 或仓储直接拼装状态。
+`MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult`、`moveToFolder`、`releaseFromFolder` 等方法，避免 UI 或仓储直接拼装状态。策略标签用于解释自动修正行为，例如 `透明保留`、`输出已改名`、`目录已创建`、`图片已改格式重试` 和 `未有效压缩`。
 
 ### application
 
@@ -157,6 +158,7 @@ docs/
 仓储抽象：
 
 - `MediaTaskRepository`：任务列表、任务状态、排序、保存、删除和清空的持久化接口。
+- `TaskFolderRepository`：任务夹读取、保存和删除的持久化接口。
 - `AppSettingsRepository`：应用设置读取和保存接口。
 - `AppNotificationRepository`：应用通知历史读取、保存、已读和关闭状态持久化接口。
 
@@ -176,6 +178,8 @@ Use Cases：
 - `ReplaceMissingSourceUseCase`：为丢失源文件任务重新指定本地文件。
 - `RetryMediaTaskUseCase`：失败任务重试前检查源文件，并决定是否重新分析。
 - `ReorderMediaTasksUseCase`：保存任务列表排序。
+- `CreateTaskFolderFromTasksUseCase`、`CreateTaskFoldersFromTasksUseCase`、`MoveTaskToFolderUseCase`、`RemoveTaskFromFolderUseCase`、`DeleteTaskFolderUseCase`：创建任务夹、按媒体类型批量建夹、移入 / 移出任务和删除任务夹时释放夹内任务。
+- `ApplyTaskFolderConfigUseCase`、`RetryTaskFolderTerminalTasksUseCase`、`StartNextTaskInFolderUseCase`、`PauseRunningTaskInFolderUseCase`：任务夹默认配置保存后批量应用到非运行快照任务，批量重试终态任务，启动夹内下一项或暂停夹内运行任务。
 - `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`PauseAllMediaTaskExecutionsUseCase`：进入队列执行、单任务开始 / 继续 / 暂停和底部暂停全部。
 - `ClearMediaTasksUseCase`、`DeleteMediaTaskUseCase`：删除任务前先处理正在执行的 FFmpeg 进程。
 - `GeneratePreviewFramesUseCase`：为工作台预览调用运行时解析和预览帧生成服务。
@@ -184,7 +188,7 @@ Use Cases：
 
 - `services/input_runtime/`：`MediaAnalyzer`、`SourceFileChecker`、`MediaKindResolver`、`SourceFileFingerprintReader`、`FfmpegLocator`、`FfmpegRuntime`、`FfmpegEncoderCapabilities`。
 - `services/ffmpeg_planning/`：`CompressionAdvisor`、`CompressionEstimator`、`FfmpegCommandBuilder` 和默认压缩建议实现。
-- `services/execution/`：`FfmpegTaskQueueRunner`、`FfmpegProcessStarter`、`FfmpegProcessController`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
+- `services/execution/`：`FfmpegTaskQueueRunner`、`OutputPreflightService`、`FfmpegProcessStarter`、`FfmpegProcessController`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
 - `services/platform/`：`FileSelectionService`、`FileRevealer`、`ExternalLinkOpener`、`ThemePreferencesCache`。
 
 ### infrastructure
@@ -195,7 +199,7 @@ Use Cases：
 - `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
-- `services/execution/`：本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
+- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
 - `services/app_notifications/`：本地任务完成提示音播放实现，使用 `audioplayers` 播放内置 Flutter asset。
 - `services/platform/`：桌面文件选择、Finder / Explorer 定位、系统外链打开和主题缓存实现。
 
@@ -234,12 +238,20 @@ Use Cases：
 
 - 文件选择和拖拽导入。
 - 任务列表、排序、右键菜单、重命名、删除和清空。
+- 批量导入按媒体类型自动创建任务夹；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
+- 任务夹主体打开夹级配置弹窗，保存后更新任务夹默认配置并批量应用到非 `running` / `paused` / `analyzing` 任务。
+- 任务夹尾部按钮支持打开夹内任务浮层、按状态批量暂停 / 启动下一项 / 重试终态任务、重链缺失源任务和查看夹内日志。
+- 任务夹内容浮层复用普通任务行样式，支持夹内任务启动、暂停、重试、重链、查看日志和移出；夹内任务主体点击不打开配置。
+- 主列表支持多选 FAB 按媒体类型创建任务夹，未入夹任务可从拖拽手柄拖入同类型任务夹；不同媒体类型投放会被拒绝并提示。
+- 删除任务夹会释放夹内任务回到总列表，不删除任务本身。
 - 源文件丢失后的重新指定。
 - 任务配置保存。
 - 单任务开始 / 暂停 / 继续 / 重试。
 - 队列启动、底部暂停全部、按实时列表顺序连续执行和任务行插队。
 - 完成、失败和分析错误提示。
 - 缩略图和压缩前后预览帧。
+
+任务夹交互不把业务状态塞入通知中心：通知中心仍是右侧历史浮层，任务夹内容使用独立的左侧浮层；多选建夹、拖入任务夹和夹级批量设置都通过工作台局部状态与 application 用例完成。
 
 ### features/notifications
 
@@ -264,6 +276,7 @@ FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。依赖装配
 | --- | --- | --- |
 | `appDatabaseProvider` | `Provider<AppDatabase>` | 提供全局唯一数据库实例，容器释放时关闭 |
 | `mediaTaskRepositoryProvider` | `Provider<MediaTaskRepository>` | 提供 Drift 任务仓储 |
+| `taskFolderRepositoryProvider` | `Provider<TaskFolderRepository>` | 提供 Drift 任务夹仓储 |
 | `appSettingsRepositoryProvider` | `Provider<AppSettingsRepository>` | 提供 Drift 设置仓储 |
 | `appSettingsProvider` | `FutureProvider<AppSettings>` | 提供当前持久化应用设置，供工作台读取通知角标偏好 |
 | `fileSelectionServiceProvider` | `Provider<FileSelectionService>` | 提供桌面文件和目录选择 |
@@ -278,12 +291,14 @@ FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。依赖装配
 | `ffmpegRuntimeProvider` | `AsyncNotifierProvider` | 解析并缓存 FFmpeg / FFprobe 运行时和编码器能力 |
 | `compressionAdvisorProvider` | `Provider<CompressionAdvisor>` | 提供压缩策略建议 |
 | `ffmpegCommandBuilderProvider` | `Provider<FfmpegCommandBuilder>` | 提供 FFmpeg 命令规划服务 |
+| `outputPreflightServiceProvider` | `Provider<OutputPreflightService>` | FFmpeg 启动前创建输出目录、检查同源 / 重名 / 可写性并回写最终路径 |
 | `previewFrameGeneratorProvider` | `Provider<PreviewFrameGenerator>` | 提供压缩前后预览帧生成服务 |
 | `videoThumbnailGeneratorProvider` | `Provider<VideoThumbnailGenerator>` | 提供视频缩略图生成服务 |
 | `ffmpegProcessStarterProvider` | `Provider<FfmpegProcessStarter>` | 提供 FFmpeg 进程启动实现 |
 | `ffmpegProcessObserverProvider` | `Provider<FfmpegProcessObserver>` | 提供 FFmpeg 进度和退出结果观测实现 |
 | `ffmpegTaskQueueRunnerProvider` | `Provider<FfmpegTaskQueueRunner>` | 维持同一个队列执行器实例 |
 | `mediaTaskListProvider` | `AsyncNotifierProvider` | 工作台任务列表、导入、分析、刷新和任务操作入口 |
+| `taskFolderListProvider` | `FutureProvider<List<TaskFolder>>` | 工作台任务夹列表读取入口 |
 | `workbenchPreviewProvider` | `NotifierProvider` | 工作台预览帧生成、对比比例和选中帧状态入口 |
 
 服务实现通过 provider 暴露 application 抽象接口，UI 只调用 notifier 或用例，不直接创建 Drift、FFmpeg 进程或文件系统实现。
@@ -361,7 +376,9 @@ main()
 主要规则：
 
 - `MediaKind.video` 继续走完整视频规划链路，保留现有压缩、转封装、硬件编码、目标体积和预览片段行为。
-- `MediaKind.image` 当前在默认配置下生成单步图片输出计划，使用 `ProgressMode.step`，不依赖媒体时长。
+- 透明视频会根据 `videoPixelFormat` 自动进入透明保留策略：输出固定为 MOV + `prores_ks` ProRes 4444，像素格式为 `yuva444p10le`，目标体积和预设只作为尽力压缩意图。
+- `MediaKind.image` 压缩任务使用 `ProgressMode.step`，先按源图片格式生成候选输出；候选不小于源文件时清理候选并进入 WebP / JPG fallback。透明图片优先 WebP，非透明图片优先 WebP，缺少 `libwebp` 时非透明图可以降级 JPG，透明图不会降级 JPG。
+- `FfmpegCommandStep.completionPolicy` 决定步骤结束后的行为：视频两遍压缩保持总是继续；图片首轮可以在变小时提前完成，fallback 仍无效时任务失败并写入原因。
 - `MediaKind.audio` 当前生成音频输出计划，使用 `-vn` 禁用视频流，并按音频格式推导编码参数，按配置写入码率、采样率和声道参数。
 - `VideoCodec.source` 必须先依赖分析结果解析为 `h264` 或 `hevc`。
 - `EncoderBackend.auto` 会根据 FFmpeg 实际支持和平台优先级选择硬件编码或软件编码。
@@ -369,6 +386,7 @@ main()
 - 自定义输出文件名会取 basename 并替换扩展名。
 - 如果输出路径和源文件相同，或目标文件已存在，会自动追加 `（1）`、`（2）` 等后缀。
 - `targetSize` 模式在软件编码下使用两遍压缩，在硬件编码下使用目标码率单遍策略。
+- output path builder 只生成候选路径；启动前最终路径由 `OutputPreflightService` 再检查和改写。
 
 ### 队列执行
 
@@ -390,14 +408,15 @@ start / startOrResumeTask
   -> 检查源文件
   -> 解析 FFmpeg 运行时
   -> 构造命令计划
+  -> 输出 preflight：创建目录、检查同源 / 重名 / 可写性并改写最终 args
   -> 创建执行日志文件
   -> markRunning()
   -> LocalFfmpegProcessStarter.start()
   -> FfmpegProcessController 负责暂停、继续和终止
   -> LocalFfmpegProcessObserver.observe()
-  -> 根据退出结果 markCompleted() 或 markFailed()
+  -> 根据退出结果和步骤完成策略 markCompleted() 或 markFailed()
   -> AppNotificationManager 持久化任务完成 / 失败通知
-  -> 清理两遍压缩临时文件
+  -> 清理两遍压缩临时文件或无效图片候选输出
   -> continueAfterTask()
 ```
 
@@ -452,7 +471,9 @@ start / startOrResumeTask
 Drift 数据库只保存可恢复的业务状态：
 
 - 任务身份、源文件路径、文件名、排序。
+- 任务夹身份、任务夹排序、任务和任务夹的关联关系。
 - 任务状态、进度、输出路径和错误信息。
+- 自动策略标签，例如透明保留、输出改名、目录创建、图片 fallback 和未有效压缩。
 - 输出格式、编码、后端、分辨率、压缩模式、目标体积、自定义文件名。
 - 源文件指纹。
 - FFprobe 分析结果。
@@ -484,6 +505,7 @@ Drift 数据库只保存可恢复的业务状态：
 - 源文件不存在优先标记为 `missingSource`，让用户重新指定文件。
 - FFprobe 不可用或分析失败会写入分析错误，并让任务进入 `failed`。
 - FFmpeg 不可用、命令构造失败、进程启动失败、退出码失败或输出文件缺失都会让任务进入 `failed`。
+- 图片压缩必须让最终输出小于源文件才算成功；首轮无效会进入 fallback，fallback 仍无效或无法验证体积时会清理候选输出、清空任务 `outputPath`、标记失败并提示具体原因。
 - 低码率视频再次压缩可能变大时，压缩建议会触发确认异常，UI 可让用户确认后带 `allowExtremeCompression` 重试。
 - 两遍压缩临时文件清理是 best-effort，不应让最终任务因为清理失败而失败。
 - 应用重启后只从数据库恢复任务状态，不恢复旧进程；涉及 `running` 残留状态时要先设计清晰的恢复或重置策略。

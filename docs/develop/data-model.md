@@ -4,7 +4,7 @@
 
 这份文档记录 FrameLean 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
 
-当前版本持久化本地任务列表、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
+当前版本持久化本地任务列表、任务夹、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
 
 ## 数据库总览
 
@@ -14,13 +14,14 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `24`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `25`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
 | 表 | Drift 类 | 用途 |
 | --- | --- | --- |
 | `tasks` | `TaskRows` | 保存导入媒体任务、执行状态、输出配置、源文件指纹和 FFprobe 分析结果 |
+| `task_folders` | `TaskFolderRows` | 保存工作台任务夹、媒体类型、排序和任务夹默认配置 |
 | `settings` | `SettingsRows` | 保存应用级设置；当前只保存一行全局设置，固定 `id = 1` |
 | `app_notifications` | `AppNotificationRows` | 保存应用内通知历史，供全局提示和后续通知中心读取 |
 
@@ -31,6 +32,7 @@ lib/infrastructure/database/app_database.dart
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
 | `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果和时间戳 |
+| `TaskFolder` | `lib/domain/entities/task_folder.dart` | 工作台任务夹实体，包含名称、媒体类型、排序和默认配置 |
 | `MediaTaskConfig` | `lib/domain/value_objects/media_task_config.dart` | 单任务通用输出、压缩和分类型配置入口 |
 | `VideoProcessingConfig` | `lib/domain/value_objects/video_processing_config.dart` | 视频输出与压缩配置 |
 | `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量和元数据保留配置 |
@@ -42,6 +44,7 @@ lib/infrastructure/database/app_database.dart
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 | `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含类型、级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
 | `AppReleaseInfo` / `AppUpdateState` | `lib/domain/value_objects/app_release_info.dart`、`lib/domain/value_objects/app_update_state.dart` | 自托管更新的可用版本、安装包元数据、下载进度和安装状态 |
+| `MediaTaskPolicyTag` | `lib/domain/enums/media_task_policy_tag.dart` | 任务自动策略标签，用于展示透明保留、输出改名、目录创建、图片 fallback 和未有效压缩 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 
@@ -68,6 +71,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `media_kind` | text | 否 | `video` | `mediaKind` | 媒体类型枚举；当前支持 `video`、`image`、`audio` 导入、分析和基础 FFmpeg 处理 |
 | `purpose` | text | 否 | 无 | `purpose` | 任务用途：`compression` 或 `conversion` |
 | `sort_order` | integer | 否 | 无 | `sortOrder` | 任务列表排序，读取时按 `sort_order ASC, created_at ASC` |
+| `folder_id` | text | 是 | `null` | `folderId` | 任务所属任务夹 ID；为空时任务显示在工作台总列表 |
+| `folder_sort_order` | integer | 是 | `null` | `folderSortOrder` | 任务在夹内的排序；移出任务夹后清空 |
 
 ### 状态和执行结果字段
 
@@ -77,6 +82,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `progress` | real | 否 | `0` | `progress` | 0 到 1 的进度值；实体构造时断言范围合法 |
 | `output_path` | text | 是 | `null` | `outputPath` | FFmpeg 计划生成的输出文件路径 |
 | `error_message` | text | 是 | `null` | `errorMessage` | 执行、分析或命令构造失败时保存的用户可见错误 |
+| `policy_tags_json` | text | 是 | `null` | `policyTags` | 任务自动策略标签 JSON 数组；为空表示没有标签 |
 | `created_at` | integer | 否 | 无 | `createdAt` | 毫秒时间戳，默认由实体构造时写入 |
 | `started_at` | integer | 是 | `null` | `startedAt` | 任务交给 FFmpeg 进程时写入 |
 | `completed_at` | integer | 是 | `null` | `completedAt` | FFmpeg 观测到成功完成时写入 |
@@ -198,6 +204,20 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 2. `analysis_audio_bitrate`
 3. `analysis_container_bitrate`
 4. `analysis_estimated_bitrate`
+
+## `task_folders` 表
+
+`task_folders` 保存工作台任务夹。任务夹是本地批处理分组，不映射真实系统文件夹；删除任务夹只释放夹内任务，不删除任务或源文件。
+
+| 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `id` | text | 否 | 无 | `TaskFolder.id` | UUID 字符串，主键 |
+| `name` | text | 否 | 无 | `name` | 工作台展示名称 |
+| `media_kind` | text | 否 | 无 | `mediaKind` | 任务夹媒体类型；首版不混放视频 / 图片 / 音频 |
+| `sort_order` | integer | 否 | 无 | `sortOrder` | 任务夹在工作台总列表中的排序 |
+| `default_config_json` | text | 否 | 无 | `defaultConfig` | 任务夹默认媒体处理配置，使用 `MediaTaskConfig` JSON 结构 |
+| `created_at` | integer | 否 | 无 | `createdAt` | 创建时间毫秒时间戳 |
+| `updated_at` | integer | 否 | 无 | `updatedAt` | 更新时间毫秒时间戳 |
 
 ## `settings` 表
 
@@ -325,7 +345,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 ## 迁移历史
 
-当前迁移逻辑位于 `AppDatabase.migration.onUpgrade`。所有 `addColumn` 调用通过 `_safeAddColumn` helper 实现幂等（若列已存在则安全跳过），防止开发阶段反复打包时因 Drift `onCreate` 已创建完整表而导致 `duplicate column name` 错误。新增列时继续使用 `_safeAddColumn`，不要直接调用 `migrator.addColumn`。
+当前迁移逻辑位于 `AppDatabase.migration.onUpgrade`。所有 `addColumn` 调用通过 `_safeAddColumn` helper 实现幂等（若列已存在则安全跳过），防止开发阶段反复打包时因 Drift `onCreate` 已创建完整表而导致 `duplicate column name` 错误。新增列时继续使用 `_safeAddColumn`，新增表使用 `_safeCreateTable` 幂等创建，不要直接调用裸 `migrator.addColumn`。
 
 | 目标版本 | 变更 |
 | --- | --- |
@@ -352,6 +372,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 22 | 将仍停留在旧默认值的设置升级到新默认：推荐方案 `chat`、输出模板 `{source}-{action}`、完成提示音 `clean_success` |
 | 23 | 将已停留在 `{source}-{date}` 过渡默认值的设置升级到 `{source}-{action}` |
 | 24 | 给 `app_notifications` 增加 `dedupe_key`，并为非空去重键创建唯一索引 |
+| 25 | 新增 `task_folders` 表；给 `tasks` 增加 `folder_id`、`folder_sort_order` 和 `policy_tags_json` |
 
 ## 修改数据模型的约束
 

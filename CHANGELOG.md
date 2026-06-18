@@ -31,7 +31,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-18｜v1.2.1｜No Release
 
-今天收口自托管更新和 Admin 版本制品管理近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。
+今天收口自托管更新、Admin 版本制品管理、媒体处理可靠性和任务夹重构近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。主项目同步修复图片压缩越压越大、透明视频错误输出、输出路径启动后才失败和批量任务缺少容器的问题。
 
 ### Added
 
@@ -39,19 +39,42 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增 `test/app_update_provider_test.dart`，覆盖自动检查更新、下载完成和 Windows updater helper 启动状态流。
 - 新增 server `UpdateServiceTest`，覆盖按平台可见包过滤 latest、下载 ticket resolve 签发 COS URL、下载审计事件和 IP 屏蔽审计。
 - 新增 Admin 删除登记版本入口：删除 release 登记时会同步删除版本日志和 package 对应的 COS 对象，并清理 download events、packages、requirements 和 release 记录。
+- 新增图片压缩结果验收和 fallback 计划：首轮按源格式尝试，未变小时清理候选并改用 WebP / JPG 重试；第二轮仍无效时任务失败并提示原因。
+- 新增透明视频保留策略标签和 MOV / ProRes 4444 输出策略，FFmpeg 缺少 `prores_ks` 时在命令构造阶段失败。
+- 新增输出 preflight 服务，FFmpeg 启动前创建输出目录、规避同源覆盖 / 重名、检查可写性，并给任务打 `目录已创建` / `输出已改名` 标签。
+- 新增任务夹领域模型、Drift `task_folders` 表、任务 `folderId` / `folderSortOrder` / `policyTags` 字段和任务夹仓储 / use case。
+- 新增工作台任务夹列表项和左侧夹内任务浮层，批量导入会按媒体类型自动创建任务夹。
+- 新增任务夹批量工作流：任务夹设置批量应用、多选 FAB 按媒体类型建夹、未入夹任务拖入同类型任务夹、任务夹尾部批量开始 / 暂停 / 重试 / 重链入口。
 
 ### Changed
 
 - 优化 Admin Web 版本制品页信息结构，将版本索引、基础信息、制品列表、版本日志和发布操作重新整理为更清晰的工作区。
 - server README 同步记录 `DELETE /api/v1/admin/releases/{v}` 删除登记版本接口。
+- 图片保持源格式时，命令规划改为优先解析源图片 codec / 扩展名作为首轮输出格式，再按透明能力选择 fallback。
+- 工作台总列表改为显示任务夹和未入夹任务，夹内任务默认不在总列表重复出现。
+- 任务夹主体点击打开夹级配置弹窗，尾部查看按钮才打开左侧夹内任务浮层；浮层内任务复用普通任务行样式和操作按钮。
+- Windows 默认启动窗口宽度收敛到当前最小宽度；Inno 安装器增加可选桌面快捷方式。
+
+### Fixed
+
+- 修复图片压缩在任意质量百分比下可能输出更大文件但仍被标记成功的问题。
+- 修复透明视频被常规 H.264 / yuv420p 策略破坏 alpha 通道的问题。
+- 修复任务行右侧开始 / 暂停 / 重试 / 移除按钮点击时同时触发任务配置弹窗的问题。
 
 ### Verified
 
 - 通过 `flutter analyze`。
-- 通过 `flutter test`，共 271 项测试。
+- 通过 `flutter test`，共 293 项测试。
 - 通过 `cd server && mvn test`，12 项运行，2 项在无 Docker 环境下跳过。
 - 通过 `cd server/admin-web && npm run build`；仍保留 Vite 大 chunk 提示。
 - 通过主项目和 server 的 `git diff --check`。
+- 通过 `flutter test test/ffmpeg_command_builder_test.dart`，覆盖图片 fallback 和透明 ProRes 4444 命令。
+- 通过 `flutter test test/ffmpeg_task_queue_runner_test.dart`，覆盖图片首轮无效进入 fallback、fallback 仍无效时失败和清理输出。
+- 通过 `flutter test test/output_preflight_service_test.dart`，覆盖目录创建、重名改名、同源保护和 FFmpeg args 回写。
+- 通过 `flutter test test/media_task_policy_tags_test.dart`，覆盖重试、换源和重分析后的策略标签刷新。
+- 通过 `flutter test test/drift_media_task_repository_test.dart`，覆盖任务夹持久化和任务 folder / policy tags 往返。
+- 通过 `flutter test test/task_folder_use_cases_test.dart`，覆盖任务夹批量配置、终态任务批量重试和夹内下一项启动。
+- 通过 `flutter test test/widget_test.dart`，覆盖任务夹总列表、夹级设置、侧边栏夹内任务操作、多选 FAB、拖入任务夹和任务行按钮误触边界。
 
 ## 2026-06-17｜v1.2.1｜No Release
 

@@ -58,8 +58,10 @@ test/
   media_task_execution_use_cases_test.dart
   media_task_notifier_test.dart
   media_task_use_case_helpers_test.dart
+  media_task_policy_tags_test.dart
   native_ncm_audio_decoder_test.dart
   notification_center_panel_test.dart
+  output_preflight_service_test.dart
   preview_frame_generator_test.dart
   proprietary_audio_decoder_dispatcher_test.dart
   proprietary_audio_format_resolver_test.dart
@@ -100,6 +102,10 @@ test/
 - 启动恢复时校正源文件丢失、指纹变化和缺失分析结果。
 - 重新指定源文件、失败重试、删除、清空和排序。
 - 任务重排只持久化 `sort_order` 字段，失败时刷新仓储顺序，避免 UI 顺序和 DB 顺序分裂。
+- 任务夹创建、按媒体类型批量建夹、移入、移出和删除释放任务；批量导入按媒体类型自动建夹。
+- 任务夹默认配置保存后只批量应用到非 `running` / `paused` / `analyzing` 任务；已完成、失败、已取消、等待中和缺失源任务保留状态但更新配置。
+- 任务夹批量重试只影响 `completed` / `failed` / `cancelled` 终态任务，并保留任务当前配置。
+- 任务夹启动下一项按 `folderSortOrder` 选择最靠前的可执行任务；夹内启动复用单任务插队执行语义。
 - 队列启动、单任务开始 / 继续、暂停和清空时取消执行。
 - 预览帧生成通过 `GeneratePreviewFramesUseCase` 读取运行时并调用预览服务。
 - 应用通知先持久化再展示；设置保存离开页面后仍记录结果；FFmpeg 队列完成 / 失败直接产生类型化任务通知。
@@ -134,6 +140,7 @@ test/
 - 任务配置优先通过 `media_config_json` 读写 `MediaTaskConfig`，旧视频列继续作为 fallback 和兼容写入。
 - 视频 / 图片 / 音频任务的保持源格式配置只保存真实 `MediaOutputFormat` 和 `keepOriginalOutputFormat` 布尔状态，不写入 `source` 伪格式；不支持的源扩展名会回退到固定默认格式。
 - 图片分析字段和旧视频 / 音频分析字段都能在 Drift 行和 domain 之间映射。
+- `task_folders` 表、任务 `folder_id` / `folder_sort_order` 和 `policy_tags_json` 能在 Drift 行和 domain 之间映射。
 
 ### 压缩策略和体积预估
 
@@ -162,10 +169,12 @@ test/
 - HDR10 / HLG 源默认使用 `zscale + tonemap` 转为 SDR BT.709；用户开启“保持 HDR”时，编码固定为 HEVC，使用 10-bit Main10 输出并保留基础 BT.2020 / PQ / HLG 色彩标记；保持 HDR 的滤镜链不得把 `bt2020nc` 写入 `scale` 的 `out_color_matrix`。
 - Dolby Vision Profile 5 或缺少 HDR10 兼容层的 Dolby Vision 在命令构造阶段拒绝，避免输出变黑、偏紫或严重偏色。
 - Dolby Vision 动态元数据不在当前保持 HDR 范围内；带 HDR10 兼容层的 Dolby Vision 只按 HDR10 基础层处理。
+- 透明视频命中 alpha 像素格式后输出 MOV + ProRes 4444，命令中包含 `prores_ks` 和 `yuva444p10le`，不得退回 `yuv420p` / H.264。
 - NVENC CQ、QSV global quality、AMF QP 和 VideoToolbox `q:v` 使用独立质量映射，不直接复用 CRF 数值。
 - iPhone MOV 中只映射 FFprobe 选出的可转码主音频流，避免 `-map 0:a?` 把 APAC / `none` 音频流带入转码。
 - 自动编码后端在高风险 Apple HDR / HVC1 / 10-bit MOV 上优先降级到可用的软件编码，显式选择硬件编码时保持用户选择。
 - 图片任务可生成 JPEG / PNG / WebP 输出命令，支持质量、分辨率缩放、元数据保留策略和步骤型进度。
+- 图片压缩命令优先按源格式生成首轮候选；首轮候选无效时根据 alpha 和 `libwebp` 能力选择 WebP / JPG fallback，透明图不得降级 JPG。
 - 音频任务可生成 MP3、M4A/AAC、WAV、FLAC、AIFF、WMA、Opus 和 Ogg Opus 输出命令，使用 `-vn` 禁用视频流，并写入编码、码率、采样率和声道参数。
 
 ### 队列执行
@@ -179,6 +188,8 @@ test/
 - 任务行开始按钮作为插队入口，先暂停当前前台任务并执行用户点击的任务，但不修改列表排序。
 - FFmpeg 不可用时的失败状态。
 - 极限压缩确认拦截。
+- 输出 preflight 在 FFmpeg 启动前创建输出目录、检查同源覆盖 / 重名 / 可写性，并让最终启动参数使用改写后的输出路径。
+- 图片首轮输出小于源文件时提前完成；首轮输出不小于源文件时删除候选并进入 fallback；fallback 仍不小于源文件或无法验证体积时失败、清空输出路径、保留失败原因并展示 `未有效压缩` 标签。
 - 执行完成或失败后写回仓储。
 - 进程启动失败、执行失败、取消和完成时都会向临时文件日志写入诊断尾部；日志不写入 SQLite。
 
@@ -198,6 +209,7 @@ test/
 - 分析结果写回任务并刷新状态。
 - FFprobe 保存可转码主音频流索引，并忽略 APAC / `none` 这类不能参与常规转码的音频流。
 - FFprobe 保存 chroma location、HDR10 Mastering Display、MaxCLL / MaxFALL、Dolby Vision Profile 和兼容 ID。
+- FFprobe 命中透明视频像素格式后任务展示 `透明保留` 策略标签。
 - 纯音频没有视频流时仍可分析音频编码、码率、声道、采样率和时长。
 - 静态图片没有 duration 时仍可分析图片宽高、编码、像素格式和位深。
 
@@ -217,6 +229,11 @@ test/
 - 拖拽列表项内不启用 `Tooltip` overlay，使用 `Semantics` 保留无障碍标签。
 - 运行中任务的拖拽手柄禁用；其他任务在队列执行期间仍可调整顺序以影响后续执行。
 - 任务列表预热为 `AsyncData` 时，选中任务、配置和质量预设的初始同步仍会执行。
+- 工作台总列表显示任务夹和未入夹任务，夹内任务不在总列表重复出现；点击任务夹主体打开“任务夹设置”，点击尾部查看按钮打开左侧内容浮层。
+- 任务夹内容浮层复用普通任务行样式，夹内任务可以启动、暂停、重试、重链、查看日志和移出，且任务主体点击不会打开配置弹窗。
+- 多选模式显示复选框，选中未入夹任务后显示创建任务夹 FAB，并按媒体类型拆分创建任务夹。
+- 普通模式下未入夹任务可从拖拽手柄拖入同类型任务夹；不同媒体类型任务夹拒绝投放并显示提示。
+- 任务行右侧开始 / 暂停 / 重试 / 移除按钮不会触发任务行配置弹窗。
 - 顶部栏主题按钮可在浅色和深色之间切换。
 - 深色主题下分段滑杆 thumb 使用主色，不和深色 surface 混在一起。
 - 默认 `AlertDialog` 不应出现在统一样式弹窗中。
@@ -252,6 +269,7 @@ test/
 - 导入不支持的文件扩展名时显示只能导入媒体文件的提示。
 - 大写 `.MOV` 后缀视频可以导入并开始压缩；如果输出文件名只和源文件大小写不同，应自动追加中文括号后缀。
 - 大写图片和音频扩展名可以识别为对应媒体类型。
+- 批量导入多个同类型文件时自动创建一个任务夹；混合导入时按视频 / 图片 / 音频分别创建任务夹；单文件导入不创建任务夹。
 
 ### 媒体分析和任务列表
 
@@ -277,6 +295,16 @@ test/
 - 图片、视频和音频任务配置面板可修改分类型处理配置；非视频任务打开任务详情时不得读取视频专属编码器状态。
 - 图片、视频和音频任务都可配置元数据保留策略，三类媒体默认均保留元数据。
 
+### 任务夹交互
+
+- 任务夹作为总列表项显示，夹内任务不在总列表重复出现。
+- 点击任务夹主体打开夹级配置，保存后应用到夹内可安全更新的任务。
+- 点击任务夹尾部查看按钮打开左侧内容浮层；浮层显示夹名、任务数和夹内任务列表。
+- 点击夹内任务尾部“移出”后，该任务从浮层消失并回到总列表；夹内任务尾部启动 / 暂停 / 重试 / 重链 / 日志按钮可独立触发，不打开配置弹窗。
+- 任务夹尾部主按钮在有运行任务时暂停夹内运行任务，否则启动夹内下一项可执行任务；没有可执行任务但有终态任务时批量重试终态任务。
+- 主列表多选 FAB 可以按媒体类型创建任务夹；未入夹任务可以拖入同类型任务夹，跨类型投放会被拒绝。
+- 删除任务夹只释放夹内任务，不删除任务记录或源文件。
+
 ### 队列和任务控制
 
 - 点击单个任务的开始按钮能执行该任务。
@@ -288,6 +316,8 @@ test/
 - 已完成任务显示“重来”，点击后从源文件检查和媒体分析重新开始。
 - 清空列表前出现确认弹窗。
 - 清空列表会取消执行并移除任务。
+- 图片压缩输出如果第一轮不小于源文件，应自动尝试 WebP / JPG fallback；第二轮仍不小于源文件时任务失败，提示“图片未有效压缩”或无法验证体积的具体原因，并清理无效输出。
+- 透明视频导入分析后应展示 `透明保留` 标签，执行时输出 MOV / ProRes 4444；如果 FFmpeg 不支持 `prores_ks`，任务应在命令构造阶段失败并提示更换 FFmpeg 或素材。
 
 ### 通知和弹窗风格
 
@@ -352,6 +382,7 @@ test/
 - zip 解压后顶层目录为 `FrameLean-v1.2.1-windows-x64/`。
 - 在未预装 Visual C++ Redistributable 的干净 Windows x64 环境中，安装后可以启动应用。
 - 安装器默认安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不请求管理员权限，开始菜单快捷方式可以启动应用。
+- 安装器提供可选桌面快捷方式任务；默认不强制创建，用户勾选后桌面出现 FrameLean 快捷方式。
 - 使用 `/SILENT /SUPPRESSMSGBOXES /NORESTART` 覆盖安装时不触发 UAC，并返回可判断的安装器退出码。
 - 同一 `AppId` 的新版本可以覆盖升级，升级后应用和内置运行时正常。
 - 自托管更新 helper 随包提供 `FrameLeanUpdaterHelper.exe`，主应用下载并校验安装器后启动 helper 并退出；helper 负责等待主程序退出、运行安装器、检查安装器退出码并重启应用。
