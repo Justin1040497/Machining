@@ -239,7 +239,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
 | `theme_mode` | text | 否 | `system` | `themeMode` | 应用主题偏好；当前支持 `system`、`light`、`dark`，是主题设置的 source of truth |
 | `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
-| `show_task_completion_dialog` | boolean | 否 | `true` | `showTaskCompletionDialog` | 任务完成后是否弹出完成提示弹窗；关闭后仍保存任务通知并使用停留更久的临时通知承接完成反馈 |
+| `show_task_completion_dialog` | boolean | 否 | `true` | 旧兼容列 | 历史完成弹窗偏好列；当前 domain / UI 不再映射为可修改设置，任务完成只走完成提示音、通知中心和任务项完成文件入口 |
 | `task_completion_sound` | text | 否 | `clean_success` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
@@ -248,12 +248,12 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 ## `app_notifications` 表
 
-`app_notifications` 保存应用内通知历史。业务代码通过 `AppNotificationManager` 记录通知；根级通知 Host 订阅同一 manager 的展示事件并弹出临时提示。后续通知中心面板应读取这张表，而不是从页面局部状态拼装历史。
+`app_notifications` 保存应用内通知历史。业务代码通过 `AppNotificationManager` 记录通知；根级通知 Host 订阅同一 manager 的展示事件并弹出临时提示。通知中心面板读取这张表，而不是从页面局部状态拼装历史。`AppNotificationKind.interaction` 只用于临时交互提示，不写入这张表。
 
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | `id` | text | 否 | 无 | `id` | UUID 字符串，主键 |
-| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`、`update` |
+| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`、`update`；`interaction` 为临时展示类型，正常不持久化 |
 | `level` | text | 否 | 无 | `level` | 通知级别：`info`、`success`、`warning`、`error` |
 | `title` | text | 否 | 无 | `title` | 通知标题 |
 | `message` | text | 否 | `''` | `message` | 通知正文或失败原因 |
@@ -262,9 +262,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `created_at` | integer | 否 | 无 | `createdAt` | 通知创建时间，毫秒时间戳 |
 | `read_at` | integer | 是 | `null` | `readAt` | 通知被标记为已读的时间 |
 | `dismissed_at` | integer | 是 | `null` | `dismissedAt` | 通知被关闭或归档的时间 |
-| `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName` 和可选 `outputPath` |
+| `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName`、可选 `outputPath`、源 / 输出体积、耗时、失败原因和失败建议 |
 
-通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析成果物文件夹动作。版本更新通知通过 `kind = update`、`dedupe_key` 和 `payload_json` 中的版本、平台、构建号、更新状态和日志摘要解析 `前往`、下载和历史日志动作。
+通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析“打开输出文件位置”动作，并在正文展示体积、压缩比例、保存路径和耗时。版本更新通知通过 `kind = update`、`dedupe_key` 和 `payload_json` 中的版本、平台、构建号、更新状态和日志摘要解析版本日志和下载动作。
 
 ## 枚举值
 
@@ -334,7 +334,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 ### 执行和进度
 
-1. 队列只从 `pending` 或已有暂停执行中启动任务。
+1. 队列只从 `pending` 或已有暂停执行中启动任务；候选顺序来自总列表顶层项排序，遇到任务夹时按夹内 `folder_sort_order` 展开。
 2. 启动前再次检查源文件和 FFmpeg 运行时。
 3. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
 4. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。

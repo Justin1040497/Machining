@@ -129,7 +129,7 @@ docs/
 - `FrameLeanApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
 - `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，`/settings` 指向全屏应用设置页。
 - `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
-- `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏，但通知仍会先持久化。
+- `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏。任务成功 / 失败临时通知保持短摘要，完整结果详情由通知中心展示。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
 - `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部入口、通知中心和版本日志弹窗提供检查、下载、暂停、继续和安装 helper 启动动作。
 - `presentation/`、`widgets/`：settings、notifications、workbench 共同使用的布局常量、领域标签、表单控件和百分比滑杆。
@@ -157,8 +157,8 @@ docs/
 
 仓储抽象：
 
-- `MediaTaskRepository`：任务列表、任务状态、排序、保存、删除和清空的持久化接口。
-- `TaskFolderRepository`：任务夹读取、保存和删除的持久化接口。
+- `MediaTaskRepository`：任务列表、任务状态、顶层任务排序、夹内排序、保存、删除和清空的持久化接口。
+- `TaskFolderRepository`：任务夹读取、保存、排序、删除和清空的持久化接口。
 - `AppSettingsRepository`：应用设置读取和保存接口。
 - `AppNotificationRepository`：应用通知历史读取、保存、已读和关闭状态持久化接口。
 
@@ -169,7 +169,8 @@ Use Cases：
 - `AppSettingsSaveCoordinator`：协调设置保存后的主题缓存、运行时刷新、输出配置回填和通知记录；调用方必须传入设置保存目标，避免保存链路丢失“哪个分区触发”的业务语义。
 - `AppSettingsSaveTarget`：设置保存的结构化事件类型。应用设置、视频 / 图片 / 音频默认任务配置、输出配置和编码器配置拥有各自通知标题；只有输出配置保存会刷新非运行状态任务，任务默认配置只影响后续导入。
 - `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
-- `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径等动作数据；任务通知标题直接表达任务成功或失败，文件名、输出路径和失败原因保留在通知正文。
+- `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径、源 / 输出体积、耗时和失败建议等动作数据；任务通知标题直接表达任务成功或失败，通知中心正文展示完整结果摘要。
+- `AppNotificationManager.notifyInteraction()` 只发出临时浮层，不写入通知仓储、不进入通知中心、不影响未读角标，用于分析中点击等即时交互反馈。
 - `AppNotificationManager` 提供 update 通知 upsert 能力，版本更新通知通过 `dedupeKey` 保证一个版本只在通知中心保留一条记录。
 - `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，使用 `audioplayers` 播放内置 Flutter asset。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
@@ -177,11 +178,12 @@ Use Cases：
 - `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
 - `ReplaceMissingSourceUseCase`：为丢失源文件任务重新指定本地文件。
 - `RetryMediaTaskUseCase`：失败任务重试前检查源文件，并决定是否重新分析。
-- `ReorderMediaTasksUseCase`：保存任务列表排序。
-- `CreateTaskFolderFromTasksUseCase`、`CreateTaskFoldersFromTasksUseCase`、`MoveTaskToFolderUseCase`、`RemoveTaskFromFolderUseCase`、`DeleteTaskFolderUseCase`：创建任务夹、按媒体类型批量建夹、移入 / 移出任务和删除任务夹时释放夹内任务。
+- `ReorderMediaTasksUseCase`：旧的单任务列表排序用例，保留历史回归覆盖。
+- `ReorderWorkbenchTopLevelItemsUseCase`、`ReorderFolderTasksUseCase`：分别保存总列表任务 / 任务夹混排顺序和夹内任务顺序；运行中的顶层项或夹内任务作为排序边界。
+- `CreateTaskFolderFromTasksUseCase`、`CreateTaskFoldersFromTasksUseCase`、`MoveTaskToFolderUseCase`、`RemoveTaskFromFolderUseCase`、`DeleteTaskFolderUseCase`、`PruneEmptyTaskFoldersUseCase`：创建任务夹、按媒体类型批量建夹、移入 / 移出任务、删除任务夹时释放夹内任务，以及自动清理空任务夹。
 - `ApplyTaskFolderConfigUseCase`、`RetryTaskFolderTerminalTasksUseCase`、`StartNextTaskInFolderUseCase`、`PauseRunningTaskInFolderUseCase`：任务夹默认配置保存后批量应用到非运行快照任务，批量重试终态任务，启动夹内下一项或暂停夹内运行任务。
 - `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`PauseAllMediaTaskExecutionsUseCase`：进入队列执行、单任务开始 / 继续 / 暂停和底部暂停全部。
-- `ClearMediaTasksUseCase`、`DeleteMediaTaskUseCase`：删除任务前先处理正在执行的 FFmpeg 进程。
+- `ClearMediaTasksUseCase`、`DeleteMediaTaskUseCase`：删除任务前先处理正在执行的 FFmpeg 进程；清空任务会同步清空任务夹。
 - `GeneratePreviewFramesUseCase`：为工作台预览调用运行时解析和预览帧生成服务。
 
 服务抽象按阶段分组：
@@ -214,7 +216,7 @@ Use Cases：
 
 - `pages/workbench_page.dart`：工作台入口页面，负责组装页面状态、任务操作和工作台弹窗流程。
 - `pages/workbench_page/layout/`：顶部栏、底部栏、任务列表容器和工作台外壳。
-- `pages/workbench_page/dialogs/`：任务配置、完成、失败、清空、重命名、压缩确认等工作台弹窗。
+- `pages/workbench_page/dialogs/`：任务配置、失败、清空、重命名、压缩确认、任务日志等工作台弹窗；任务完成不再使用完成弹窗。
 - `pages/workbench_page/overlays/`：工作台拖拽覆盖层。
 - `pages/workbench_page/configuration/`：工作台常量、格式化、轻量模型和 UI 判断策略。
 - `widgets/media_task_list/`：任务列表项、状态徽标、操作按钮和缩略图组件。
@@ -237,17 +239,17 @@ Use Cases：
 工作台当前支持：
 
 - 文件选择和拖拽导入。
-- 任务列表、排序、右键菜单、重命名、删除和清空。
+- 任务列表、任务 / 任务夹混排排序、右键菜单、重命名、删除和清空。
 - 批量导入按媒体类型自动创建任务夹；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
 - 任务夹主体打开夹级配置弹窗，保存后更新任务夹默认配置并批量应用到非 `running` / `paused` / `analyzing` 任务。
-- 任务夹尾部按钮支持打开夹内任务浮层、按状态批量暂停 / 启动下一项 / 重试终态任务、重链缺失源任务和查看夹内日志。
-- 任务夹内容浮层复用普通任务行样式，支持夹内任务启动、暂停、重试、重链、查看日志和移出；夹内任务主体点击不打开配置。
-- 主列表支持多选 FAB 按媒体类型创建任务夹，未入夹任务可从拖拽手柄拖入同类型任务夹；不同媒体类型投放会被拒绝并提示。
-- 删除任务夹会释放夹内任务回到总列表，不删除任务本身。
+- 任务夹尾部按钮支持打开夹内任务浮层、按状态批量暂停 / 启动下一项 / 重试终态任务和查看夹内聚合日志；副标题显示任务数、完成 / 失败数和源文件丢失计数。
+- 任务夹内容浮层复用普通任务行样式，支持夹内任务启动、暂停、重试、重链、查看日志、排序和移出；夹内任务主体点击不打开配置。
+- 主列表支持多选 FAB 按媒体类型创建任务夹；未入夹任务的拖拽柄同时承担排序和入夹：拖到同类型任务夹主体会入夹，拖到任务夹边缘或普通任务上仍按总列表排序；不同媒体类型任务夹在拖起时禁用显示并作为排序目标处理。
+- 删除任务夹会释放夹内任务回到总列表，不删除任务本身；任务夹没有任务时会自动删除，当前打开的空夹被删除后左侧内容浮层会关闭。
 - 源文件丢失后的重新指定。
 - 任务配置保存。
 - 单任务开始 / 暂停 / 继续 / 重试。
-- 队列启动、底部暂停全部、按实时列表顺序连续执行和任务行插队。
+- 队列启动、底部暂停全部、按总列表展开任务夹后的实时顺序连续执行和任务行 / 夹内任务插队。
 - 完成、失败和分析错误提示。
 - 缩略图和压缩前后预览帧。
 
@@ -258,12 +260,12 @@ Use Cases：
 `features/notifications` 保存通知中心的 UI 状态、动作解析和右侧浮层：
 
 - `providers/notification_center_provider.dart`：保存通知中心开关状态，供工作台和根级临时通知 Host 共享。
-- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为“打开成果物所在位置”。
+- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为“打开输出文件位置”，更新通知解析为“查看版本日志”和“下载更新”。
 - `widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
-- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知尾部可以同时展示 `前往` 和下载 icon；历史完成通知展示日志查看动作。
+- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知中心可以同时展示“查看版本日志”和“下载更新”文字按钮，历史完成通知展示日志查看动作。
 - 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
-- 通知项按标题、创建时间和正文分层展示；任务失败原因和输出路径保留在正文中，避免和时间揉成单行摘要。
-- 右上角临时通知只承载即时反馈，通知中心承载完整历史。临时通知为中等密度卡片，关闭按钮固定在尾部，详情最多两行；成功 / 信息、警告、失败使用不同停留时长。
+- 通知项按标题、创建时间、正文和底部文字按钮组分层展示；任务成功正文展示文件名、源 / 输出体积、压缩比例、保存路径和耗时，任务失败正文展示文件名、原因和建议。
+- 右上角临时通知只承载即时反馈，通知中心承载完整历史和动作按钮。临时通知为中等密度卡片，关闭按钮固定在尾部，详情最多两行；成功 / 信息、警告、失败使用不同停留时长。
 - 任务成功临时通知展示前会读取应用设置并触发完成提示音；通知中心打开时临时通知会隐藏，但完成提示音仍会触发。
 
 ## Riverpod 组装方式
@@ -432,12 +434,14 @@ start / startOrResumeTask
 取消：
 
 - 取消单任务会通过 `FfmpegProcessController.terminate()` 终止对应进程，移除内存执行记录，清理计划临时文件，并标记为 `cancelled`。
-- 清空任务会调用 `cancelAllExecutions()`，再用仓储清空 `tasks`。
+- 清空任务会调用 `cancelAllExecutions()`，再用仓储清空 `tasks` 和 `task_folders`。
 
 连续执行：
 
 - 当前 `continuousExecutionEnabled` 默认开启。
-- 一个任务完成或失败后，队列会按 `sort_order` 和 `created_at` 找下一个 `pending` 任务继续执行。
+- 一个任务完成或失败后，队列会按总列表顺序展开任务夹：顶层任务 / 任务夹按 `sort_order` 排序，遇到任务夹时再按夹内 `folder_sort_order` 展开，选择下一个 `pending` 或 `paused` 任务继续执行。
+- 点击单个任务或夹内任务开始时会先挂起当前前台任务并插队执行；插队任务结束后继续按最新展开顺序推进。
+- 当前执行器仍是单前台执行槽；后续多进程方案会引入 `maxConcurrentExecutions`（默认 2，上限 3）和多个 execution slot，调度仍复用同一个展开顺序解析器。
 
 ### 进度和日志
 

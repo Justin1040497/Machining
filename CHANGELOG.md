@@ -44,7 +44,10 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增输出 preflight 服务，FFmpeg 启动前创建输出目录、规避同源覆盖 / 重名、检查可写性，并给任务打 `目录已创建` / `输出已改名` 标签。
 - 新增任务夹领域模型、Drift `task_folders` 表、任务 `folderId` / `folderSortOrder` / `policyTags` 字段和任务夹仓储 / use case。
 - 新增工作台任务夹列表项和左侧夹内任务浮层，批量导入会按媒体类型自动创建任务夹。
-- 新增任务夹批量工作流：任务夹设置批量应用、多选 FAB 按媒体类型建夹、未入夹任务拖入同类型任务夹、任务夹尾部批量开始 / 暂停 / 重试 / 重链入口。
+- 新增任务夹批量工作流：任务夹设置批量应用、多选 FAB 按媒体类型建夹、未入夹任务通过拖拽柄拖入同类型任务夹、跨类型任务夹禁用视觉、任务夹尾部批量开始 / 暂停 / 重试 / 重链入口。
+- 新增通知中心任务结果详情：任务成功记录源 / 输出体积、压缩比例、保存路径和耗时，任务失败记录明确原因和建议；通知中心动作改为正文下方文字按钮组。
+- 新增工作台总列表任务 / 任务夹混排排序、夹内任务排序、普通模式框选进入多选、Command / Control 框选反选和分析中点击的临时交互通知。
+- 新增任务项尾部“打开完成文件位置”入口、任务夹日志聚合弹窗、空任务夹自动清理和清空任务时同步清空任务夹。
 
 ### Changed
 
@@ -53,6 +56,9 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 图片保持源格式时，命令规划改为优先解析源图片 codec / 扩展名作为首轮输出格式，再按透明能力选择 fallback。
 - 工作台总列表改为显示任务夹和未入夹任务，夹内任务默认不在总列表重复出现。
 - 任务夹主体点击打开夹级配置弹窗，尾部查看按钮才打开左侧夹内任务浮层；浮层内任务复用普通任务行样式和操作按钮。
+- 移除任务完成弹窗链路和设置页“任务完成后以弹窗的形式提示”选项；完成后只保留提示音、通知中心记录和任务项完成文件入口。
+- 队列启动顺序改为按总列表从上到下展开任务夹，夹内按 `folderSortOrder` 执行；单任务开始仍作为插队入口，插队完成后继续按最新顺序推进。
+- 任务夹尾部去掉重链按钮，副标题追加源文件丢失计数；总列表多选时任务夹拖拽手柄置灰但不变成复选框。
 - Windows 默认启动窗口宽度收敛到当前最小宽度；Inno 安装器增加可选桌面快捷方式。
 
 ### Fixed
@@ -60,11 +66,12 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复图片压缩在任意质量百分比下可能输出更大文件但仍被标记成功的问题。
 - 修复透明视频被常规 H.264 / yuv420p 策略破坏 alpha 通道的问题。
 - 修复任务行右侧开始 / 暂停 / 重试 / 移除按钮点击时同时触发任务配置弹窗的问题。
+- 修复版本日志页返回按钮总是跳到设置页的问题，优先按路由栈返回上一页。
 
 ### Verified
 
 - 通过 `flutter analyze`。
-- 通过 `flutter test`，共 293 项测试。
+- 通过 `flutter test`，共 299 项测试。
 - 通过 `cd server && mvn test`，12 项运行，2 项在无 Docker 环境下跳过。
 - 通过 `cd server/admin-web && npm run build`；仍保留 Vite 大 chunk 提示。
 - 通过主项目和 server 的 `git diff --check`。
@@ -75,6 +82,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `flutter test test/drift_media_task_repository_test.dart`，覆盖任务夹持久化和任务 folder / policy tags 往返。
 - 通过 `flutter test test/task_folder_use_cases_test.dart`，覆盖任务夹批量配置、终态任务批量重试和夹内下一项启动。
 - 通过 `flutter test test/widget_test.dart`，覆盖任务夹总列表、夹级设置、侧边栏夹内任务操作、多选 FAB、拖入任务夹和任务行按钮误触边界。
+- 通过 `flutter test test/app_notification_manager_test.dart test/app_settings_page_test.dart test/drift_app_settings_repository_test.dart test/media_task_execution_use_cases_test.dart test/task_folder_use_cases_test.dart test/reorder_workbench_items_use_case_test.dart test/ffmpeg_task_queue_runner_test.dart test/notification_center_panel_test.dart test/widget_test.dart`，覆盖通知、设置、清空任务夹、任务夹排序、队列展开和通知中心布局。
 
 ## 2026-06-17｜v1.2.1｜No Release
 
