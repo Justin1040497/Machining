@@ -28,11 +28,15 @@ WizardStyle=modern
 CloseApplications=yes
 CloseApplicationsFilter=FrameLean.exe
 
+[Tasks]
+Name: "desktopicon"; Description: "创建桌面快捷方式"; GroupDescription: "附加任务:"; Flags: unchecked
+
 [Files]
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{autoprograms}\FrameLean"; Filename: "{app}\FrameLean.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\FrameLean"; Filename: "{app}\FrameLean.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Registry]
 Root: HKA; Subkey: "Software\FrameLean\FrameLean"; ValueType: string; ValueName: "InstallPath"; ValueData: "{app}"; Flags: uninsdeletevalue
