@@ -19,6 +19,10 @@ class FfmpegVideoArgumentBuilder {
     CompressionRecommendation recommendation,
     String videoEncoder,
   ) {
+    if (shouldPreserveAlpha(task)) {
+      return const ['-c:v', 'prores_ks', '-profile:v', '4', '-qscale:v', '9'];
+    }
+
     return switch (task.purpose) {
       TaskPurpose.compression => buildCompressionArgs(
         recommendation,
@@ -206,6 +210,9 @@ class FfmpegVideoArgumentBuilder {
   String buildVideoFilter(MediaTask task, String videoEncoder) {
     final analysis = task.analysisResult;
     ensureSupportedColorInput(analysis);
+    if (shouldPreserveAlpha(task)) {
+      return buildPreserveAlphaFilter(task.config.resolutionPreset);
+    }
     if (analysis?.isHdr == true) {
       if (shouldPreserveHdr(task)) {
         return buildPreserveHdrFilter(task.config.resolutionPreset, task);
@@ -229,6 +236,16 @@ class FfmpegVideoArgumentBuilder {
     FfmpegEncoderCapabilities encoderCapabilities,
   ) {
     ensureSupportedColorInput(task.analysisResult);
+    if (shouldPreserveAlpha(task)) {
+      return [
+        '-pix_fmt',
+        'yuva444p10le',
+        ...buildAudioArgs(task, recommendation, encoderCapabilities),
+        ...buildFrameTimingArgs(task),
+        '-movflags',
+        '+faststart',
+      ];
+    }
     final preserveHdr = shouldPreserveHdr(task);
     final args = <String>[
       '-pix_fmt',
@@ -256,6 +273,28 @@ class FfmpegVideoArgumentBuilder {
   bool shouldPreserveHdr(MediaTask task) {
     return task.analysisResult?.isHdr == true &&
         task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+  }
+
+  bool shouldPreserveAlpha(MediaTask task) {
+    final pixelFormat = task.analysisResult?.videoPixelFormat
+        ?.trim()
+        .toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return false;
+    }
+
+    return pixelFormat.startsWith('yuva') ||
+        pixelFormat == 'rgba' ||
+        pixelFormat == 'bgra' ||
+        pixelFormat == 'argb' ||
+        pixelFormat == 'abgr' ||
+        pixelFormat.startsWith('gbrap');
+  }
+
+  String buildPreserveAlphaFilter(ResolutionPreset preset) {
+    final size = scaleSizeExpression(preset);
+    return 'scale=${size.width}:${size.height}:flags=lanczos,'
+        'format=yuva444p10le,setsar=1';
   }
 
   String buildSoftwareScaleFilter(

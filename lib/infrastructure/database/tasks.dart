@@ -11,8 +11,13 @@ class TaskRows extends Table {
   TextColumn get status => text()();
   RealColumn get progress => real().withDefault(const Constant(0))();
   IntColumn get sortOrder => integer().named('sort_order')();
+  TextColumn get folderId => text().named('folder_id').nullable()();
+  IntColumn get folderSortOrder =>
+      integer().named('folder_sort_order').nullable()();
   TextColumn get outputPath => text().named('output_path').nullable()();
   TextColumn get errorMessage => text().named('error_message').nullable()();
+  TextColumn get policyTagsJson =>
+      text().named('policy_tags_json').nullable()();
   IntColumn get sourceFileSize =>
       integer().named('source_file_size').nullable()();
   IntColumn get sourceLastModifiedAt =>

@@ -1,8 +1,13 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
@@ -103,8 +108,11 @@ extension MediaTaskMapper on MediaTask {
       status: Value(status.name),
       progress: Value(progress),
       sortOrder: Value(sortOrder),
+      folderId: Value(folderId),
+      folderSortOrder: Value(folderSortOrder),
       outputPath: Value(outputPath),
       errorMessage: Value(errorMessage),
+      policyTagsJson: Value(encodePolicyTags(policyTags)),
       sourceFileSize: Value(sourceFileFingerprint?.fileSize),
       sourceLastModifiedAt: Value(sourceFileFingerprint?.lastModifiedAt),
       analysisDurationMs: Value(analysisResult?.durationMs),
@@ -193,8 +201,11 @@ extension TaskRowMapper on TaskRow {
       config: toMediaTaskConfig(resolvedMediaKind),
       progress: progress,
       sortOrder: sortOrder,
+      folderId: folderId,
+      folderSortOrder: folderSortOrder,
       outputPath: outputPath,
       errorMessage: errorMessage,
+      policyTags: decodePolicyTags(policyTagsJson),
       sourceFileFingerprint: toSourceFileFingerprint(),
       analysisResult: toMediaAnalysisResult(),
       analysisUpdatedAt: analysisUpdatedAt,
@@ -342,5 +353,92 @@ extension TaskRowMapper on TaskRow {
         outputFileName: outputFileName,
       ),
     );
+  }
+}
+
+class DriftTaskFolderRepository implements TaskFolderRepository {
+  final AppDatabase database;
+
+  DriftTaskFolderRepository(this.database);
+
+  @override
+  Future<List<TaskFolder>> loadAllFolders() async {
+    final rows =
+        await (database.select(database.taskFolderRows)..orderBy([
+              (table) => OrderingTerm.asc(table.sortOrder),
+              (table) => OrderingTerm.asc(table.createdAt),
+            ]))
+            .get();
+
+    return rows.map((row) => row.toDomain()).toList();
+  }
+
+  @override
+  Future<void> saveFolder(TaskFolder folder) async {
+    await database
+        .into(database.taskFolderRows)
+        .insertOnConflictUpdate(folder.toCompanion());
+  }
+
+  @override
+  Future<void> deleteFolderById(String folderId) async {
+    await (database.delete(
+      database.taskFolderRows,
+    )..where((table) => table.id.equals(folderId))).go();
+  }
+}
+
+extension TaskFolderMapper on TaskFolder {
+  TaskFolderRowsCompanion toCompanion() {
+    return TaskFolderRowsCompanion(
+      id: Value(id),
+      name: Value(name),
+      mediaKind: Value(mediaKind.name),
+      sortOrder: Value(sortOrder),
+      defaultConfigJson: Value(encodeMediaTaskConfig(defaultConfig)),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+}
+
+extension TaskFolderRowMapper on TaskFolderRow {
+  TaskFolder toDomain() {
+    final resolvedMediaKind = enumValueByName(MediaKind.values, mediaKind);
+    return TaskFolder(
+      id: id,
+      name: name,
+      mediaKind: resolvedMediaKind,
+      sortOrder: sortOrder,
+      defaultConfig: decodeMediaTaskConfig(defaultConfigJson),
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    );
+  }
+}
+
+String? encodePolicyTags(Set<MediaTaskPolicyTag> tags) {
+  if (tags.isEmpty) {
+    return null;
+  }
+  return jsonEncode(tags.map((tag) => tag.name).toList());
+}
+
+Set<MediaTaskPolicyTag> decodePolicyTags(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return const {};
+  }
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is! List) {
+      return const {};
+    }
+    return decoded
+        .whereType<String>()
+        .map((name) => nullableEnumValueByName(MediaTaskPolicyTag.values, name))
+        .whereType<MediaTaskPolicyTag>()
+        .toSet();
+  } on Object {
+    return const {};
   }
 }

@@ -14,6 +14,7 @@ import 'package:framelean/application/services/input_runtime/media_input_prepare
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 
 void main() {
@@ -370,6 +371,136 @@ void main() {
       expect(harness.runner.foregroundTaskId, isNull);
     });
 
+    test('starts image fallback when source-format output is larger', () async {
+      final tempDirectory = Directory.systemTemp.createTempSync(
+        'framelean-image-fallback-test-',
+      );
+      addTearDown(() async {
+        if (await tempDirectory.exists()) {
+          await tempDirectory.delete(recursive: true);
+        }
+      });
+      final source = File('${tempDirectory.path}/source.png')
+        ..writeAsBytesSync(List<int>.filled(100, 1));
+      final firstOutput = File('${tempDirectory.path}/source_compressed.png');
+      final fallbackOutput = File(
+        '${tempDirectory.path}/source_compressed.webp',
+      );
+      final task = imageTask(
+        id: 'image-fallback',
+        inputPath: source.path,
+        sortOrder: 0,
+      );
+      final harness = QueueHarness(
+        tasks: [task],
+        commandBuilder: FakeCommandBuilder(
+          plan: imageFallbackPlan(
+            inputPath: source.path,
+            firstOutputPath: firstOutput.path,
+            fallbackOutputPath: fallbackOutput.path,
+          ),
+        ),
+      );
+
+      await harness.runner.start();
+      firstOutput.writeAsBytesSync(List<int>.filled(120, 2));
+      harness.processObserver.complete(
+        'image-fallback',
+        const FfmpegProcessObservation.completed(),
+      );
+      await harness.waitForStartedProcesses(2);
+
+      expect(await firstOutput.exists(), isFalse);
+      expect(
+        harness.repository.taskById('image-fallback').policyTags,
+        contains(MediaTaskPolicyTag.imageFormatFallback),
+      );
+      expect(
+        harness.repository.taskById('image-fallback').outputPath,
+        fallbackOutput.path,
+      );
+
+      fallbackOutput.writeAsBytesSync(List<int>.filled(60, 3));
+      harness.processObserver.complete(
+        'image-fallback',
+        const FfmpegProcessObservation.completed(),
+      );
+      await harness.waitForTaskStatus('image-fallback', TaskStatus.completed);
+
+      final completedTask = harness.repository.taskById('image-fallback');
+      expect(completedTask.outputPath, fallbackOutput.path);
+      expect(
+        completedTask.policyTags,
+        contains(MediaTaskPolicyTag.imageFormatFallback),
+      );
+      expect(harness.completedNotifications, ['image-fallback']);
+      expect(await fallbackOutput.exists(), isTrue);
+    });
+
+    test(
+      'fails image task when fallback output is still not smaller',
+      () async {
+        final tempDirectory = Directory.systemTemp.createTempSync(
+          'framelean-image-failure-test-',
+        );
+        addTearDown(() async {
+          if (await tempDirectory.exists()) {
+            await tempDirectory.delete(recursive: true);
+          }
+        });
+        final source = File('${tempDirectory.path}/source.png')
+          ..writeAsBytesSync(List<int>.filled(100, 1));
+        final firstOutput = File('${tempDirectory.path}/source_compressed.png');
+        final fallbackOutput = File(
+          '${tempDirectory.path}/source_compressed.webp',
+        );
+        final task = imageTask(
+          id: 'image-failure',
+          inputPath: source.path,
+          sortOrder: 0,
+        );
+        final harness = QueueHarness(
+          tasks: [task],
+          commandBuilder: FakeCommandBuilder(
+            plan: imageFallbackPlan(
+              inputPath: source.path,
+              firstOutputPath: firstOutput.path,
+              fallbackOutputPath: fallbackOutput.path,
+            ),
+          ),
+        );
+
+        await harness.runner.start();
+        firstOutput.writeAsBytesSync(List<int>.filled(120, 2));
+        harness.processObserver.complete(
+          'image-failure',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForStartedProcesses(2);
+
+        fallbackOutput.writeAsBytesSync(List<int>.filled(110, 3));
+        harness.processObserver.complete(
+          'image-failure',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('image-failure', TaskStatus.failed);
+
+        final failedTask = harness.repository.taskById('image-failure');
+        expect(failedTask.outputPath, isNull);
+        expect(failedTask.errorMessage, contains('图片未有效压缩'));
+        expect(
+          failedTask.policyTags,
+          containsAll([
+            MediaTaskPolicyTag.imageFormatFallback,
+            MediaTaskPolicyTag.ineffectiveCompression,
+          ]),
+        );
+        expect(harness.failedNotifications, ['image-failure']);
+        expect(await firstOutput.exists(), isFalse);
+        expect(await fallbackOutput.exists(), isFalse);
+      },
+    );
+
     test('start fails the task when FFmpeg is unavailable', () async {
       final task = videoTask(id: 'no-ffmpeg', sortOrder: 0);
       final harness = QueueHarness(
@@ -636,6 +767,19 @@ MediaTask videoTask({String id = 'task', required int sortOrder}) {
   ).copyWith(id: id);
 }
 
+MediaTask imageTask({
+  required String id,
+  required String inputPath,
+  required int sortOrder,
+}) {
+  return MediaTask.draft(
+    inputPath: inputPath,
+    fileName: inputPath.split('/').last,
+    mediaKind: MediaKind.image,
+    sortOrder: sortOrder,
+  ).copyWith(id: id);
+}
+
 MediaTask audioTask({required String id, required String inputPath}) {
   return MediaTask.draft(
     inputPath: inputPath,
@@ -643,6 +787,45 @@ MediaTask audioTask({required String id, required String inputPath}) {
     mediaKind: MediaKind.audio,
     sortOrder: 0,
   ).copyWith(id: id);
+}
+
+FfmpegCommandPlan imageFallbackPlan({
+  required String inputPath,
+  required String firstOutputPath,
+  required String fallbackOutputPath,
+}) {
+  final fallbackArgs = [
+    '-hide_banner',
+    '-i',
+    inputPath,
+    '-c:v',
+    'libwebp',
+    fallbackOutputPath,
+  ];
+  return FfmpegCommandPlan(
+    args: fallbackArgs,
+    outputPath: firstOutputPath,
+    logHint: '图片 fallback 测试命令',
+    steps: [
+      FfmpegCommandStep(
+        args: ['-hide_banner', '-i', inputPath, firstOutputPath],
+        label: '源格式压缩',
+        outputPath: firstOutputPath,
+        progressMode: ProgressMode.step,
+        completionPolicy:
+            FfmpegStepCompletionPolicy.completeIfOutputSmallerThanSource,
+      ),
+      FfmpegCommandStep(
+        args: fallbackArgs,
+        label: 'WebP 重试',
+        outputPath: fallbackOutputPath,
+        progressMode: ProgressMode.step,
+        completionPolicy:
+            FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+        policyTagsOnStart: const {MediaTaskPolicyTag.imageFormatFallback},
+      ),
+    ],
+  );
 }
 
 class FakeMediaTaskRepository implements MediaTaskRepository {
@@ -721,9 +904,10 @@ class FakeSourceFileChecker implements SourceFileChecker {
 class FakeCommandBuilder implements FfmpegCommandBuilder {
   final Object? error;
   final List<List<String>>? stepArgs;
+  final FfmpegCommandPlan? plan;
   final List<bool> allowExtremeCompressionValues = [];
 
-  FakeCommandBuilder({this.error, this.stepArgs});
+  FakeCommandBuilder({this.error, this.stepArgs, this.plan});
 
   @override
   FfmpegCommandPlan build(
@@ -736,6 +920,10 @@ class FakeCommandBuilder implements FfmpegCommandBuilder {
     final error = this.error;
     if (error != null) {
       throw error;
+    }
+    final plan = this.plan;
+    if (plan != null) {
+      return plan;
     }
 
     final defaultArgs = [

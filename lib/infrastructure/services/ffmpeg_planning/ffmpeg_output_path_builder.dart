@@ -148,10 +148,29 @@ class FfmpegOutputPathBuilder {
 
   MediaOutputFormat mediaOutputFormatFor(MediaTask task) {
     return switch (task.mediaKind) {
-      MediaKind.video => task.config.video!.outputFormat,
+      MediaKind.video =>
+        videoHasAlpha(task)
+            ? MediaOutputFormat.mov
+            : task.config.video!.outputFormat,
       MediaKind.image => task.config.image!.outputFormat,
       MediaKind.audio => task.config.audio!.outputFormat,
     };
+  }
+
+  bool videoHasAlpha(MediaTask task) {
+    final pixelFormat = task.analysisResult?.videoPixelFormat
+        ?.trim()
+        .toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return false;
+    }
+
+    return pixelFormat.startsWith('yuva') ||
+        pixelFormat == 'rgba' ||
+        pixelFormat == 'bgra' ||
+        pixelFormat == 'argb' ||
+        pixelFormat == 'abgr' ||
+        pixelFormat.startsWith('gbrap');
   }
 
   String extensionForMedia(MediaOutputFormat outputFormat) {

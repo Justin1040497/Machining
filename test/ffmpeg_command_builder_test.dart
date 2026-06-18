@@ -6,6 +6,7 @@ import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
@@ -478,6 +479,38 @@ void main() {
       );
       expect(plan.args, containsAllInOrder(['-color_trc', 'bt709']));
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
+    });
+
+    test('preserves transparent video as MOV ProRes 4444', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/overlay.webm',
+        fileName: 'overlay.webm',
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          resolutionPreset: ResolutionPreset.p1080,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoPixelFormat: 'yuva444p10le',
+          videoBitrate: 8000000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'prores_ks', 'aac'},
+          autoBackendPriority: [],
+        ),
+      );
+
+      expect(plan.outputPath, '/videos/overlay_compressed.mov');
+      expect(plan.args, containsAllInOrder(['-c:v', 'prores_ks']));
+      expect(plan.args, containsAllInOrder(['-profile:v', '4']));
+      expect(plan.args, containsAllInOrder(['-pix_fmt', 'yuva444p10le']));
+      expect(plan.args, isNot(contains('yuv420p')));
+      expect(plan.args, isNot(contains('libx264')));
     });
 
     test('preserves HDR without passing BT.2020 matrix through scale', () {
@@ -969,6 +1002,7 @@ void main() {
         config: MediaTaskConfig.initialImage().copyWith(
           image: ImageProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
             imageQuality: 76,
             resizePreset: ImageResizePreset.longEdge1920,
           ),
@@ -990,6 +1024,90 @@ void main() {
       expect(plan.args.last, '/images/source_compressed.webp');
     });
 
+    test('image compression tries source format before WebP fallback', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(imageQuality: 70),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+        analysisResult: MediaAnalysisResult(
+          imageCodec: 'png',
+          imagePixelFormat: 'rgba',
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/images/source_compressed.png');
+      expect(plan.args.last, '/images/source_compressed.webp');
+      expect(plan.steps, hasLength(2));
+      expect(plan.steps.first.outputPath, '/images/source_compressed.png');
+      expect(
+        plan.steps.first.completionPolicy,
+        FfmpegStepCompletionPolicy.completeIfOutputSmallerThanSource,
+      );
+      expect(plan.steps.first.args, containsAllInOrder(['-i', task.inputPath]));
+      expect(
+        plan.steps.first.args,
+        containsAllInOrder(['-compression_level', '9']),
+      );
+      expect(plan.steps.last.outputPath, '/images/source_compressed.webp');
+      expect(
+        plan.steps.last.completionPolicy,
+        FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+      );
+      expect(
+        plan.steps.last.policyTagsOnStart,
+        contains(MediaTaskPolicyTag.imageFormatFallback),
+      );
+      expect(plan.steps.last.args, containsAllInOrder(['-c:v', 'libwebp']));
+      expect(plan.steps.last.args, containsAllInOrder(['-quality', '70']));
+    });
+
+    test('transparent WebP does not fall back to JPG without libwebp', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.webp',
+        fileName: 'source.webp',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage(),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+        analysisResult: MediaAnalysisResult(
+          imageCodec: 'webp',
+          imagePixelFormat: 'rgba',
+        ),
+      );
+
+      expect(
+        () => builder.build(
+          task,
+          encoderCapabilities: const FfmpegEncoderCapabilities(
+            encoderNames: {'libx264', 'aac'},
+            autoBackendPriority: [],
+          ),
+        ),
+        throwsA(
+          isA<FfmpegCommandBuildException>()
+              .having((error) => error.message, 'message', contains('WebP'))
+              .having((error) => error.message, 'message', contains('libwebp')),
+        ),
+      );
+    });
+
     test('rejects WebP output when FFmpeg lacks libwebp', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = MediaTask(
@@ -1002,6 +1120,7 @@ void main() {
         config: MediaTaskConfig.initialImage().copyWith(
           image: ImageProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
           ),
         ),
         progress: 0,
@@ -1063,6 +1182,7 @@ void main() {
           config: MediaTaskConfig.initialImage().copyWith(
             image: ImageProcessingConfig.initial().copyWith(
               outputFormat: outputFormat,
+              keepOriginalOutputFormat: false,
             ),
           ),
           progress: 0,

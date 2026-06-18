@@ -2,14 +2,17 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:framelean/application/repositories/media_task_repository.dart';
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/execution/output_preflight_service.dart';
+import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:path/path.dart' as path;
 
@@ -101,6 +104,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
   final MediaInputPreparer mediaInputPreparer;
+  final OutputPreflightService outputPreflightService;
   final FfmpegProcessStarter processStarter;
   final FfmpegProcessController processController;
   final FfmpegProcessObserver processObserver;
@@ -123,6 +127,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required this.readRuntime,
     required this.commandBuilder,
     this.mediaInputPreparer = const NoopMediaInputPreparer(),
+    this.outputPreflightService = const NoopOutputPreflightService(),
     required this.processStarter,
     required this.processController,
     required this.processObserver,
@@ -426,7 +431,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     PreparedMediaInput? preparedInput;
-    late final FfmpegCommandPlan plan;
+    late FfmpegCommandPlan plan;
+    var preflightTags = const <MediaTaskPolicyTag>{};
     try {
       preparedInput = await mediaInputPreparer.prepare(
         task,
@@ -437,6 +443,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         allowExtremeCompression: allowExtremeCompression,
         encoderCapabilities: runtime.encoderCapabilities,
       );
+      final preflight = await outputPreflightService.prepare(
+        task: preparedInput.task,
+        plan: plan,
+      );
+      plan = preflight.plan;
+      preflightTags = preflight.policyTags;
     } on CompressionConfirmationRequiredException catch (error) {
       final input = preparedInput;
       if (input != null) {
@@ -469,10 +481,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await createLogFilePath(task, plan),
     ).create(recursive: true);
     final startedAt = (await now()).millisecondsSinceEpoch;
-    final runningTask = task.markRunning(
-      outputPath: plan.outputPath,
-      startedAt: startedAt,
-    );
+    final runningTask = task
+        .withPolicyTags(preflightTags)
+        .markRunning(outputPath: plan.outputPath, startedAt: startedAt);
     await repository.saveTask(runningTask);
 
     late final TaskExecution execution;
@@ -481,6 +492,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         task: executionInput.task.copyWith(
           status: runningTask.status,
           outputPath: runningTask.outputPath,
+          policyTags: runningTask.policyTags,
           startedAt: runningTask.startedAt,
         ),
         plan: plan,
@@ -528,6 +540,15 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required File logFile,
   }) async {
     final step = plan.steps[stepIndex];
+    final currentTask =
+        findTaskById(await repository.loadAllTasks(), task.id) ?? task;
+    final taskForStep = currentTask
+        .copyWith(outputPath: step.outputPath ?? currentTask.outputPath)
+        .withPolicyTags(step.policyTagsOnStart);
+    if (taskForStep.outputPath != currentTask.outputPath ||
+        step.policyTagsOnStart.isNotEmpty) {
+      await repository.saveTask(taskForStep);
+    }
     final startedProcess = await processStarter.start(
       ffmpegPath: ffmpegPath,
       args: step.args,
@@ -535,7 +556,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     );
     final observationFuture = processObserver.observe(
       startedProcess: startedProcess,
-      task: task,
+      task: taskForStep,
       outputPath: step.outputPath,
       progressMode: step.progressMode,
       onProgress: (progress) async {
@@ -662,7 +683,59 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return;
     }
 
+    final currentStep = execution.plan.steps[execution.stepIndex];
+    var completeCurrentPlan = false;
     if (observation.status == FfmpegProcessObservationStatus.completed &&
+        currentStep.completionPolicy !=
+            FfmpegStepCompletionPolicy.alwaysContinue) {
+      final outputIsSmaller = await isStepOutputSmallerThanSource(
+        task,
+        currentStep,
+      );
+      if (outputIsSmaller == true) {
+        completeCurrentPlan = true;
+      } else {
+        await deleteStepOutput(currentStep);
+        final message = outputIsSmaller == null
+            ? '图片压缩结果无法验证，未保留本次输出。'
+            : '图片未有效压缩：输出文件不小于源文件，已清理本次无效输出。';
+
+        if (currentStep.completionPolicy ==
+                FfmpegStepCompletionPolicy.completeIfOutputSmallerThanSource &&
+            execution.stepIndex < execution.plan.steps.length - 1) {
+          // Continue to the fallback step below.
+        } else {
+          execution.state = TaskExecutionState.finishing;
+          _executions.remove(taskId);
+          if (_foregroundTaskId == taskId) {
+            _foregroundTaskId = null;
+          }
+
+          await appendExecutionLogFooter(
+            execution.logFile,
+            success: false,
+            message: message,
+          );
+
+          final failedTask = task
+              .withPolicyTags(const {MediaTaskPolicyTag.ineffectiveCompression})
+              .markFailed(
+                message,
+                failedAt: (await now()).millisecondsSinceEpoch,
+              )
+              .copyWith(clearOutputPath: true);
+          await repository.saveTask(failedTask);
+          await publishTaskFailed(failedTask);
+          await cleanupPlanFiles(execution.plan);
+          await mediaInputPreparer.cleanup(execution.preparedInput);
+          await continueAfterTask();
+          return;
+        }
+      }
+    }
+
+    if (observation.status == FfmpegProcessObservationStatus.completed &&
+        !completeCurrentPlan &&
         execution.stepIndex < execution.plan.steps.length - 1) {
       final nextStepIndex = execution.stepIndex + 1;
       try {
@@ -772,6 +845,44 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await callback(task);
     } on Object {
       // Notification persistence must not change a failed task result.
+    }
+  }
+
+  Future<bool?> isStepOutputSmallerThanSource(
+    MediaTask task,
+    FfmpegCommandStep step,
+  ) async {
+    if (task.mediaKind != MediaKind.image) {
+      return true;
+    }
+    final outputPath = step.outputPath;
+    if (outputPath == null) {
+      return null;
+    }
+
+    final outputSize = await _getFileSize(outputPath);
+    final sourceSize =
+        task.sourceFileFingerprint?.fileSize ??
+        await _getFileSize(task.inputPath);
+    if (outputSize == null || sourceSize == null || sourceSize <= 0) {
+      return null;
+    }
+
+    return outputSize < sourceSize;
+  }
+
+  Future<void> deleteStepOutput(FfmpegCommandStep step) async {
+    final outputPath = step.outputPath;
+    if (outputPath == null) {
+      return;
+    }
+    try {
+      final output = File(outputPath);
+      if (await output.exists()) {
+        await output.delete();
+      }
+    } on Object {
+      // Best-effort cleanup; the task result still reflects ineffective output.
     }
   }
 

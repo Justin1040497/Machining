@@ -1,5 +1,6 @@
 import 'package:framelean/infrastructure/database/app_notifications.dart';
 import 'package:framelean/infrastructure/database/settings.dart';
+import 'package:framelean/infrastructure/database/task_folders.dart';
 import 'package:framelean/infrastructure/database/tasks.dart';
 import 'package:path/path.dart';
 import 'dart:io';
@@ -12,7 +13,9 @@ import 'package:path_provider/path_provider.dart';
 part 'app_database.g.dart';
 
 /// 数据库管理
-@DriftDatabase(tables: [SettingsRows, TaskRows, AppNotificationRows])
+@DriftDatabase(
+  tables: [SettingsRows, TaskRows, TaskFolderRows, AppNotificationRows],
+)
 class AppDatabase extends _$AppDatabase {
   /// 创建AppDatabase时 自动打开数据库
   AppDatabase() : super(openConnection());
@@ -38,8 +41,20 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<void> _safeCreateTable(Migrator migrator, TableInfo table) async {
+    try {
+      await migrator.createTable(table);
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('already exists')) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
   @override
-  int get schemaVersion => 24;
+  int get schemaVersion => 25;
 
   @override
   MigrationStrategy get migration {
@@ -343,6 +358,12 @@ class AppDatabase extends _$AppDatabase {
             'CREATE UNIQUE INDEX IF NOT EXISTS idx_app_notifications_dedupe_key '
             'ON app_notifications (dedupe_key) WHERE dedupe_key IS NOT NULL',
           );
+        }
+        if (from < 25) {
+          await _safeCreateTable(migrator, taskFolderRows);
+          await _safeAddColumn(migrator, taskRows, taskRows.folderId);
+          await _safeAddColumn(migrator, taskRows, taskRows.folderSortOrder);
+          await _safeAddColumn(migrator, taskRows, taskRows.policyTagsJson);
         }
       },
     );

@@ -1,4 +1,5 @@
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
@@ -16,8 +17,11 @@ class MediaTask {
   final MediaTaskConfig config;
   final double progress;
   final int sortOrder;
+  final String? folderId;
+  final int? folderSortOrder;
   final String? outputPath;
   final String? errorMessage;
+  final Set<MediaTaskPolicyTag> policyTags;
   final SourceFileFingerprint? sourceFileFingerprint;
   final MediaAnalysisResult? analysisResult;
   final int? analysisUpdatedAt;
@@ -29,6 +33,13 @@ class MediaTask {
 
   /// 生成任务唯一 ID
   static String generateId() => Uuid().v4();
+
+  static const Set<MediaTaskPolicyTag> _executionPolicyTags = {
+    MediaTaskPolicyTag.outputRenamed,
+    MediaTaskPolicyTag.outputDirectoryCreated,
+    MediaTaskPolicyTag.imageFormatFallback,
+    MediaTaskPolicyTag.ineffectiveCompression,
+  };
 
   /// 创建刚导入、尚未开始处理的草稿任务
   factory MediaTask.draft({
@@ -62,9 +73,12 @@ class MediaTask {
     required Object config,
     required this.progress,
     required this.sortOrder,
+    this.folderId,
+    this.folderSortOrder,
     int? createdAt,
     this.outputPath,
     this.errorMessage,
+    Set<MediaTaskPolicyTag> policyTags = const {},
     this.sourceFileFingerprint,
     this.analysisResult,
     this.analysisUpdatedAt,
@@ -73,6 +87,7 @@ class MediaTask {
     this.completedAt,
     this.failedAt,
   }) : config = MediaTaskConfig.normalize(config, mediaKind),
+       policyTags = Set.unmodifiable(policyTags),
        createdAt = createdAt ?? DateTime.now().millisecondsSinceEpoch,
        assert(progress >= 0 && progress <= 1) {
     if (!this.config.isValidFor(mediaKind)) {
@@ -90,16 +105,29 @@ class MediaTask {
     Object? config,
     double? progress,
     int? sortOrder,
+    String? folderId,
+    int? folderSortOrder,
+    bool clearFolder = false,
     String? outputPath,
+    bool clearOutputPath = false,
     String? errorMessage,
+    bool clearErrorMessage = false,
+    Set<MediaTaskPolicyTag>? policyTags,
     SourceFileFingerprint? sourceFileFingerprint,
+    bool clearSourceFileFingerprint = false,
     MediaAnalysisResult? analysisResult,
+    bool clearAnalysisResult = false,
     int? analysisUpdatedAt,
+    bool clearAnalysisUpdatedAt = false,
     String? analysisErrorMessage,
+    bool clearAnalysisErrorMessage = false,
     int? createdAt,
     int? startedAt,
+    bool clearStartedAt = false,
     int? completedAt,
+    bool clearCompletedAt = false,
     int? failedAt,
+    bool clearFailedAt = false,
   }) {
     return MediaTask(
       id: id ?? this.id,
@@ -111,269 +139,123 @@ class MediaTask {
       config: config ?? this.config,
       progress: progress ?? this.progress,
       sortOrder: sortOrder ?? this.sortOrder,
-      outputPath: outputPath ?? this.outputPath,
-      errorMessage: errorMessage ?? this.errorMessage,
-      sourceFileFingerprint:
-          sourceFileFingerprint ?? this.sourceFileFingerprint,
-      analysisResult: analysisResult ?? this.analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt ?? this.analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage ?? this.analysisErrorMessage,
+      folderId: clearFolder ? null : folderId ?? this.folderId,
+      folderSortOrder: clearFolder
+          ? null
+          : folderSortOrder ?? this.folderSortOrder,
+      outputPath: clearOutputPath ? null : outputPath ?? this.outputPath,
+      errorMessage: clearErrorMessage
+          ? null
+          : errorMessage ?? this.errorMessage,
+      policyTags: policyTags ?? this.policyTags,
+      sourceFileFingerprint: clearSourceFileFingerprint
+          ? null
+          : sourceFileFingerprint ?? this.sourceFileFingerprint,
+      analysisResult: clearAnalysisResult
+          ? null
+          : analysisResult ?? this.analysisResult,
+      analysisUpdatedAt: clearAnalysisUpdatedAt
+          ? null
+          : analysisUpdatedAt ?? this.analysisUpdatedAt,
+      analysisErrorMessage: clearAnalysisErrorMessage
+          ? null
+          : analysisErrorMessage ?? this.analysisErrorMessage,
       createdAt: createdAt ?? this.createdAt,
-      startedAt: startedAt ?? this.startedAt,
-      completedAt: completedAt ?? this.completedAt,
-      failedAt: failedAt ?? this.failedAt,
+      startedAt: clearStartedAt ? null : startedAt ?? this.startedAt,
+      completedAt: clearCompletedAt ? null : completedAt ?? this.completedAt,
+      failedAt: clearFailedAt ? null : failedAt ?? this.failedAt,
     );
   }
 
   /// 清空错误信息和失败时间
   MediaTask clearError() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: status,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: null,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: null,
+    return copyWith(
+      clearErrorMessage: true,
+      clearAnalysisErrorMessage: true,
+      clearFailedAt: true,
     );
   }
 
   /// 把任务重置成待重试状态
   MediaTask markPendingForRetry() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
+    return copyWith(
       status: TaskStatus.pending,
-      config: config,
       progress: 0,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: null,
-      completedAt: null,
-      failedAt: null,
+      clearErrorMessage: true,
+      clearStartedAt: true,
+      clearCompletedAt: true,
+      clearFailedAt: true,
+      policyTags: policyTags.difference(_executionPolicyTags),
     );
   }
 
   /// 标记源文件丢失，任务会在列表里显示为需要用户重新指定文件
   MediaTask markMissingSource() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: TaskStatus.missingSource,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: errorMessage,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
-    );
+    return copyWith(status: TaskStatus.missingSource);
   }
 
   /// 标记任务已经交给 FFmpeg 进程执行
   MediaTask markRunning({required String outputPath, int? startedAt}) {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
+    return copyWith(
       status: TaskStatus.running,
-      config: config,
       progress: 0,
-      sortOrder: sortOrder,
       outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
+      clearErrorMessage: true,
       startedAt: startedAt ?? DateTime.now().millisecondsSinceEpoch,
-      completedAt: null,
-      failedAt: null,
+      clearCompletedAt: true,
+      clearFailedAt: true,
     );
   }
 
   /// 标记任务启动或执行失败
   MediaTask markFailed(String message, {int? failedAt}) {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
+    return copyWith(
       status: TaskStatus.failed,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
       errorMessage: message,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
       failedAt: failedAt ?? DateTime.now().millisecondsSinceEpoch,
     );
   }
 
   /// 标记任务进程已挂起，后续可以从当前进程恢复
   MediaTask markPaused() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
+    return copyWith(
       status: TaskStatus.paused,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: null,
+      clearErrorMessage: true,
+      clearFailedAt: true,
     );
   }
 
   /// 标记已挂起任务恢复到前台执行
   MediaTask markResumed() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
+    return copyWith(
       status: TaskStatus.running,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
+      clearErrorMessage: true,
       startedAt: startedAt ?? DateTime.now().millisecondsSinceEpoch,
-      completedAt: null,
-      failedAt: null,
+      clearCompletedAt: true,
+      clearFailedAt: true,
     );
   }
 
   /// 标记任务被用户取消
   MediaTask markCancelled() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: TaskStatus.cancelled,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
-    );
+    return copyWith(status: TaskStatus.cancelled, clearErrorMessage: true);
   }
 
   /// 更新运行中任务的处理进度
   MediaTask withProgress(double value) {
     final normalizedProgress = value.clamp(0, 1).toDouble();
 
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: status,
-      config: config,
-      progress: normalizedProgress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: errorMessage,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
-    );
+    return copyWith(progress: normalizedProgress);
   }
 
   /// 标记任务执行完成
   MediaTask markCompleted({int? completedAt}) {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
+    return copyWith(
       status: TaskStatus.completed,
-      config: config,
       progress: 1,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: null,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
+      clearErrorMessage: true,
       completedAt: completedAt ?? DateTime.now().millisecondsSinceEpoch,
-      failedAt: null,
+      clearFailedAt: true,
     );
   }
 
@@ -387,126 +269,88 @@ class MediaTask {
       throw StateError('重新指定的文件类型必须是 ${mediaKind.name}');
     }
 
-    return MediaTask(
-      id: id,
+    return copyWith(
       inputPath: newInputPath,
       fileName: newFileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
       status: TaskStatus.pending,
-      config: config,
       progress: 0,
-      sortOrder: sortOrder,
-      outputPath: null,
-      errorMessage: null,
-      sourceFileFingerprint: null,
-      analysisResult: null,
-      analysisUpdatedAt: null,
-      analysisErrorMessage: null,
-      createdAt: createdAt,
-      startedAt: null,
-      completedAt: null,
-      failedAt: null,
+      clearOutputPath: true,
+      clearErrorMessage: true,
+      clearSourceFileFingerprint: true,
+      clearAnalysisResult: true,
+      clearAnalysisUpdatedAt: true,
+      clearAnalysisErrorMessage: true,
+      clearStartedAt: true,
+      clearCompletedAt: true,
+      clearFailedAt: true,
+      policyTags: const {},
     );
   }
 
   /// 保存源文件指纹
   MediaTask withSourceFileFingerprint(SourceFileFingerprint fingerprint) {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: status,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: errorMessage,
-      sourceFileFingerprint: fingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
-    );
+    return copyWith(sourceFileFingerprint: fingerprint);
   }
 
   /// 保存媒体分析结果
   MediaTask withAnalysisResult(MediaAnalysisResult result) {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: status,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: errorMessage,
-      sourceFileFingerprint: sourceFileFingerprint,
+    final tags = {...policyTags}
+      ..remove(MediaTaskPolicyTag.transparentPreserve);
+    if (result.videoPixelFormat != null &&
+        _pixelFormatContainsAlpha(result.videoPixelFormat!)) {
+      tags.add(MediaTaskPolicyTag.transparentPreserve);
+    }
+
+    return copyWith(
       analysisResult: result,
       analysisUpdatedAt: DateTime.now().millisecondsSinceEpoch,
-      analysisErrorMessage: null,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
+      clearAnalysisErrorMessage: true,
+      policyTags: tags,
     );
   }
 
   /// 保存媒体分析错误
   MediaTask withAnalysisError(String message) {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: status,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: errorMessage,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: analysisResult,
-      analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: message,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
-    );
+    return copyWith(analysisErrorMessage: message);
   }
 
   /// 清空旧媒体分析结果
   MediaTask clearAnalysis() {
-    return MediaTask(
-      id: id,
-      inputPath: inputPath,
-      fileName: fileName,
-      mediaKind: mediaKind,
-      purpose: purpose,
-      status: status,
-      config: config,
-      progress: progress,
-      sortOrder: sortOrder,
-      outputPath: outputPath,
-      errorMessage: errorMessage,
-      sourceFileFingerprint: sourceFileFingerprint,
-      analysisResult: null,
-      analysisUpdatedAt: null,
-      analysisErrorMessage: null,
-      createdAt: createdAt,
-      startedAt: startedAt,
-      completedAt: completedAt,
-      failedAt: failedAt,
+    final tags = {...policyTags}
+      ..remove(MediaTaskPolicyTag.transparentPreserve);
+    return copyWith(
+      clearAnalysisResult: true,
+      clearAnalysisUpdatedAt: true,
+      clearAnalysisErrorMessage: true,
+      policyTags: tags,
     );
+  }
+
+  MediaTask withPolicyTags(Iterable<MediaTaskPolicyTag> tags) {
+    return copyWith(policyTags: {...policyTags, ...tags});
+  }
+
+  MediaTask moveToFolder({
+    required String targetFolderId,
+    required int targetFolderSortOrder,
+  }) {
+    return copyWith(
+      folderId: targetFolderId,
+      folderSortOrder: targetFolderSortOrder,
+    );
+  }
+
+  MediaTask releaseFromFolder({int? newSortOrder}) {
+    return copyWith(sortOrder: newSortOrder, clearFolder: true);
+  }
+
+  static bool _pixelFormatContainsAlpha(String pixelFormat) {
+    final normalized = pixelFormat.trim().toLowerCase();
+    return normalized.startsWith('yuva') ||
+        normalized == 'rgba' ||
+        normalized == 'bgra' ||
+        normalized == 'argb' ||
+        normalized == 'abgr' ||
+        normalized.startsWith('gbrap');
   }
 }
