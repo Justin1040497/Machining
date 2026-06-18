@@ -15,7 +15,10 @@ void main() {
             taskList: const AsyncData<List<MediaTask>>([]),
             hasRunningTask: false,
             queueActionInFlight: false,
+            selectionMode: false,
+            selectionEnabled: false,
             onAddTask: () {},
+            onToggleSelectionMode: () {},
             onOpenSettings: () {
               opened = true;
             },

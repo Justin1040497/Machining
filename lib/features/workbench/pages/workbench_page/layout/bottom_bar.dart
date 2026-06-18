@@ -9,7 +9,10 @@ class WorkbenchBottomBar extends StatelessWidget {
     required this.taskList,
     required this.hasRunningTask,
     required this.queueActionInFlight,
+    required this.selectionMode,
+    required this.selectionEnabled,
     required this.onAddTask,
+    required this.onToggleSelectionMode,
     required this.onOpenSettings,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
@@ -18,7 +21,10 @@ class WorkbenchBottomBar extends StatelessWidget {
   final AsyncValue<List<MediaTask>> taskList;
   final bool hasRunningTask;
   final bool queueActionInFlight;
+  final bool selectionMode;
+  final bool selectionEnabled;
   final VoidCallback onAddTask;
+  final VoidCallback onToggleSelectionMode;
   final VoidCallback onOpenSettings;
   final VoidCallback onClearTasks;
   final VoidCallback onPrimaryQueuePressed;
@@ -44,6 +50,15 @@ class WorkbenchBottomBar extends StatelessWidget {
                     icon: Icons.add_rounded,
                     onPressed: onAddTask,
                     size: 26,
+                  ),
+                  const SizedBox(width: 12),
+                  _DockIconButton(
+                    tooltip: selectionMode ? '退出多选' : '多选任务',
+                    icon: selectionMode
+                        ? Icons.check_box_rounded
+                        : Icons.check_box_outline_blank_rounded,
+                    onPressed: selectionEnabled ? onToggleSelectionMode : null,
+                    color: selectionMode ? colors.primary : null,
                   ),
                   const SizedBox(width: 12),
                   _DockIconButton(

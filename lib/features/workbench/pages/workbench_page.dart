@@ -14,6 +14,7 @@ import 'package:framelean/application/services/app_notifications/app_notificatio
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
@@ -22,6 +23,7 @@ import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
@@ -47,6 +49,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_impo
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
@@ -120,6 +123,25 @@ resolveWorkbenchTaskConfigurationInitialValues({
   );
 }
 
+@visibleForTesting
+List<MediaTask> resolveOpenedTaskFolderTasks({
+  required List<MediaTask> tasks,
+  required TaskFolder? openedFolder,
+}) {
+  final folderId = openedFolder?.id;
+  if (folderId == null) {
+    return <MediaTask>[];
+  }
+
+  final folderTasks = tasks.where((task) => task.folderId == folderId).toList();
+  folderTasks.sort(
+    (a, b) => (a.folderSortOrder ?? a.sortOrder).compareTo(
+      b.folderSortOrder ?? b.sortOrder,
+    ),
+  );
+  return folderTasks;
+}
+
 class WorkbenchPage extends ConsumerStatefulWidget {
   const WorkbenchPage({super.key});
 
@@ -136,6 +158,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   CompressionMode selectedCompressionMode = CompressionMode.preset;
   SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced;
   String? selectedTaskId;
+  String? openedTaskFolderId;
+  bool taskSelectionMode = false;
+  final Set<String> selectedTaskIds = {};
   String? syncedConfigTaskId;
   String? syncedQualityTaskKey;
   bool workbenchImportDragging = false;
@@ -169,10 +194,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   @override
   Widget build(BuildContext context) {
     final taskList = ref.watch(mediaTaskListProvider);
+    final taskFolders = ref.watch(taskFolderListProvider);
     final tasks = taskList.hasValue
         ? taskList.requireValue
         : const <MediaTask>[];
+    final folders = taskFolders.asData?.value ?? const <TaskFolder>[];
     final selectedTask = resolveSelectedTask(tasks);
+    final openedFolder = resolveOpenedTaskFolder(folders);
+    final openedFolderTasks = resolveOpenedTaskFolderTasks(
+      tasks: tasks,
+      openedFolder: openedFolder,
+    );
     syncTaskThumbnailsAfterBuild(tasks);
 
     final hasRunningTask = tasks.any(
@@ -196,7 +228,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         children: [
           WorkbenchShell(
             taskList: taskList,
+            taskFolders: taskFolders,
             selectedTask: selectedTask,
+            selectedTaskIds: selectedTaskIds,
+            selectionMode: taskSelectionMode,
             importEnabled: true,
             importDragging: workbenchImportDragging,
             hasRunningTask: hasRunningTask,
@@ -219,6 +254,36 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onContextMenu: (task, position) {
               unawaited(showTaskContextMenu(task, position));
             },
+            onToggleSelectionMode: toggleTaskSelectionMode,
+            onToggleTaskSelection: toggleTaskSelection,
+            onSelectTasksWithRectangle: selectTasksWithRectangle,
+            onCreateFolderFromSelection: () {
+              unawaited(createTaskFoldersFromSelection());
+            },
+            onMoveTaskToFolder: (task, folder) {
+              unawaited(moveTaskIntoFolder(task, folder));
+            },
+            onRejectTaskFolderDrop: rejectTaskFolderDrop,
+            onOpenFolderSettings: (folder) {
+              unawaited(showTaskFolderConfigurationDialog(folder));
+            },
+            onOpenFolderContents: openTaskFolder,
+            onStartFolder: (folder) {
+              unawaited(startTaskFolder(folder));
+            },
+            onPauseFolder: (folder) {
+              unawaited(pauseTaskFolder(folder));
+            },
+            onRetryFolder: (folder) {
+              unawaited(retryTaskFolder(folder));
+            },
+            onRelinkFolder: (folder) {
+              unawaited(relinkTaskFolderMissingSource(folder));
+            },
+            onShowFolderLog: (folder) {
+              unawaited(showTaskFolderLog(folder));
+            },
+            onDeleteFolder: deleteTaskFolder,
             onAddTask: pickAndAddTasks,
             onOpenSettings: () {
               unawaited(openSettingsPage());
@@ -246,6 +311,19 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onOpenUpdateLog: openUpdateLogFromNotification,
             onStartUpdateDownload: startUpdateDownloadFromNotification,
           ),
+          TaskFolderContentPanel(
+            visible: openedFolder != null,
+            folder: openedFolder,
+            tasks: openedFolderTasks,
+            thumbnailForTask: thumbnailForTask,
+            onClose: closeTaskFolder,
+            onRemoveTask: removeTaskFromFolder,
+            onStart: startOrResumeTask,
+            onPause: pauseTask,
+            onRetry: retryTask,
+            onRelink: relinkMissingSource,
+            onShowLog: showTaskLog,
+          ),
         ],
       ),
     );
@@ -263,8 +341,36 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     final tasks = next.asData?.value ?? const <MediaTask>[];
     final selectedTask = resolveSelectedTask(tasks);
     syncSelectedTaskIdAfterBuild(selectedTask);
+    syncSelectedTaskIdsAfterBuild(tasks);
     syncSelectedTaskConfigAfterBuild(selectedTask);
     syncQualityPresetAfterBuild(selectedTask);
+  }
+
+  void syncSelectedTaskIdsAfterBuild(List<MediaTask> tasks) {
+    if (selectedTaskIds.isEmpty) {
+      return;
+    }
+
+    final selectableIds = {
+      for (final task in tasks)
+        if (task.folderId == null) task.id,
+    };
+    final staleIds = selectedTaskIds.difference(selectableIds);
+    if (staleIds.isEmpty) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || staleIds.every((id) => !selectedTaskIds.contains(id))) {
+        return;
+      }
+      setState(() {
+        selectedTaskIds.removeAll(staleIds);
+        if (selectedTaskIds.isEmpty) {
+          taskSelectionMode = false;
+        }
+      });
+    });
   }
 
   Future<void> showWindowsAdministratorDragNoticeIfNeeded() async {
@@ -757,6 +863,135 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
   }
 
+  MediaTaskConfig resolveVideoDraftConfig({
+    required MediaTask task,
+    required WorkbenchTaskConfigurationDraft draft,
+    required bool usePerTaskTargetSize,
+  }) {
+    final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
+    final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
+      draft.targetSizeRatio,
+    );
+    final resolvedQualityIndex = isTargetSize
+        ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(targetSizeRatio)
+        : draft.qualityIndex;
+    final qualityOption =
+        WorkbenchConstants.qualityOptions[resolvedQualityIndex];
+    final targetSizeBytes = usePerTaskTargetSize
+        ? WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
+            task,
+            targetSizeRatio,
+          )
+        : null;
+
+    return draft.config.copyWith(
+      outputFormat: draft.outputFormat,
+      videoCodec: draft.videoCodec,
+      encoderBackend: draft.encoderBackend,
+      resolutionPreset: draft.resolutionPreset,
+      compressionCrf: qualityOption.crf,
+      compressionMode: isTargetSize
+          ? CompressionMode.targetSize
+          : CompressionMode.preset,
+      smartPreset: isTargetSize ? null : draft.smartPreset,
+      targetSizeBytes: isTargetSize ? targetSizeBytes : null,
+      targetSizeRatio: isTargetSize ? targetSizeRatio : null,
+    );
+  }
+
+  Future<void> showTaskFolderConfigurationDialog(TaskFolder folder) async {
+    await runWorkbenchActionOnce(
+      'show-task-folder-configuration-dialog',
+      () async {
+        final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+        final folderTasks = resolveOpenedTaskFolderTasks(
+          tasks: tasks,
+          openedFolder: folder,
+        );
+        final representativeTask = taskFolderRepresentativeTask(
+          folder: folder,
+          tasks: folderTasks,
+        );
+        final isVideoTask = representativeTask.mediaKind == MediaKind.video;
+        final initialValues = resolveWorkbenchTaskConfigurationInitialValues(
+          task: representativeTask,
+          selectedQualityIndex: selectedQualityIndex,
+          selectedOutputFormat: selectedOutputFormat,
+          selectedVideoCodec: selectedVideoCodec,
+          selectedEncoderBackend: selectedEncoderBackend,
+          selectedResolutionPreset: selectedResolutionPreset,
+          selectedSmartPreset: selectedSmartPreset,
+        );
+
+        final draft = await showWorkbenchTaskConfigurationEditor(
+          context: context,
+          task: representativeTask,
+          thumbnail: folderTasks.isEmpty
+              ? null
+              : thumbnailForTask(folderTasks.first),
+          title: '任务夹设置',
+          selectedQualityIndex: initialValues.qualityIndex,
+          selectedOutputFormat: initialValues.outputFormat,
+          selectedVideoCodec: initialValues.videoCodec,
+          selectedEncoderBackend: initialValues.encoderBackend,
+          selectedResolutionPreset: initialValues.resolutionPreset,
+          selectedCompressionMode: initialValues.compressionMode,
+          selectedSmartPreset: initialValues.smartPreset,
+          selectedTargetSizeRatio: initialValues.targetSizeRatio,
+          onOpenSource: null,
+        );
+        if (!mounted || draft == null) {
+          return;
+        }
+
+        final updatedConfig = isVideoTask
+            ? resolveVideoDraftConfig(
+                task: representativeTask,
+                draft: draft,
+                usePerTaskTargetSize: false,
+              )
+            : draft.config;
+
+        try {
+          await ref
+              .read(mediaTaskListProvider.notifier)
+              .applyTaskFolderConfig(
+                folderId: folder.id,
+                config: updatedConfig,
+              );
+          if (!mounted) {
+            return;
+          }
+          showWorkbenchSnackBar('任务夹设置已应用');
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      },
+    );
+  }
+
+  MediaTask taskFolderRepresentativeTask({
+    required TaskFolder folder,
+    required List<MediaTask> tasks,
+  }) {
+    final firstTask = tasks.isEmpty ? null : tasks.first;
+    return MediaTask(
+      id: 'folder-config-${folder.id}',
+      inputPath: firstTask?.inputPath ?? folder.name,
+      fileName: folder.name,
+      mediaKind: folder.mediaKind,
+      purpose: TaskPurpose.compression,
+      status: TaskStatus.pending,
+      config: folder.defaultConfig,
+      progress: 0,
+      sortOrder: folder.sortOrder,
+      createdAt: folder.createdAt,
+      sourceFileFingerprint: firstTask?.sourceFileFingerprint,
+      analysisResult: firstTask?.analysisResult,
+      analysisUpdatedAt: firstTask?.analysisUpdatedAt,
+    );
+  }
+
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     await runWorkbenchActionOnce('show-task-configuration-dialog', () async {
       final isVideoTask = task.mediaKind == MediaKind.video;
@@ -812,36 +1047,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         return;
       }
 
-      final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
-      final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
-        draft.targetSizeRatio,
-      );
-      final resolvedQualityIndex = isTargetSize
-          ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
-              targetSizeRatio,
-            )
-          : draft.qualityIndex;
-      final qualityOption =
-          WorkbenchConstants.qualityOptions[resolvedQualityIndex];
-      final targetSizeBytes =
-          WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
-            task,
-            targetSizeRatio,
-          );
-
       try {
-        final updatedConfig = draft.config.copyWith(
-          outputFormat: draft.outputFormat,
-          videoCodec: draft.videoCodec,
-          encoderBackend: draft.encoderBackend,
-          resolutionPreset: draft.resolutionPreset,
-          compressionCrf: qualityOption.crf,
-          compressionMode: isTargetSize
-              ? CompressionMode.targetSize
-              : CompressionMode.preset,
-          smartPreset: isTargetSize ? null : draft.smartPreset,
-          targetSizeBytes: isTargetSize ? targetSizeBytes : null,
-          targetSizeRatio: isTargetSize ? targetSizeRatio : null,
+        final updatedConfig = resolveVideoDraftConfig(
+          task: task,
+          draft: draft,
+          usePerTaskTargetSize: true,
         );
 
         await updateSelectedTaskConfig(config: updatedConfig);
@@ -851,12 +1061,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         }
 
         setState(() {
-          selectedQualityIndex = resolvedQualityIndex;
+          selectedQualityIndex =
+              draft.compressionMode == CompressionMode.targetSize
+              ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
+                  WorkbenchQualityPolicy.normalizeTargetSizeRatio(
+                    draft.targetSizeRatio,
+                  ),
+                )
+              : draft.qualityIndex;
           selectedOutputFormat = draft.outputFormat;
           selectedVideoCodec = draft.videoCodec;
           selectedEncoderBackend = draft.encoderBackend;
           selectedResolutionPreset = draft.resolutionPreset;
-          selectedCompressionMode = isTargetSize
+          selectedCompressionMode =
+              draft.compressionMode == CompressionMode.targetSize
               ? CompressionMode.targetSize
               : CompressionMode.preset;
           selectedSmartPreset = draft.smartPreset;
@@ -874,6 +1092,106 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     unawaited(showTaskConfigurationDialog(task));
+  }
+
+  void toggleTaskSelectionMode() {
+    setState(() {
+      taskSelectionMode = !taskSelectionMode;
+      if (!taskSelectionMode) {
+        selectedTaskIds.clear();
+      }
+    });
+  }
+
+  void toggleTaskSelection(MediaTask task) {
+    if (task.folderId != null) {
+      return;
+    }
+
+    setState(() {
+      taskSelectionMode = true;
+      if (!selectedTaskIds.add(task.id)) {
+        selectedTaskIds.remove(task.id);
+      }
+      if (selectedTaskIds.isEmpty) {
+        taskSelectionMode = true;
+      }
+    });
+  }
+
+  void selectTasksWithRectangle(Set<String> taskIds) {
+    if (taskIds.isEmpty) {
+      return;
+    }
+    setState(() {
+      taskSelectionMode = true;
+      selectedTaskIds
+        ..clear()
+        ..addAll(taskIds);
+    });
+  }
+
+  Future<void> createTaskFoldersFromSelection() async {
+    await runWorkbenchActionOnce(
+      'create-task-folders-from-selection',
+      () async {
+        if (selectedTaskIds.isEmpty) {
+          return;
+        }
+
+        try {
+          final folders = await ref
+              .read(mediaTaskListProvider.notifier)
+              .createTaskFoldersFromTaskIds(selectedTaskIds.toList());
+          if (!mounted) {
+            return;
+          }
+
+          setState(() {
+            selectedTaskIds.clear();
+            taskSelectionMode = false;
+            openedTaskFolderId = folders.length == 1 ? folders.single.id : null;
+          });
+          showWorkbenchSnackBar(
+            folders.length == 1 ? '已创建任务夹' : '已按媒体类型创建 ${folders.length} 个任务夹',
+          );
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      },
+    );
+  }
+
+  Future<void> moveTaskIntoFolder(MediaTask task, TaskFolder folder) async {
+    await runWorkbenchActionOnce('move-task-to-folder:${task.id}', () async {
+      if (task.mediaKind != folder.mediaKind || task.folderId != null) {
+        showWorkbenchSnackBar('任务夹只接受同类型媒体');
+        return;
+      }
+
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .moveTaskToFolder(taskId: task.id, folderId: folder.id);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          selectedTaskIds.remove(task.id);
+          if (selectedTaskIds.isEmpty) {
+            taskSelectionMode = false;
+          }
+        });
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
+  void rejectTaskFolderDrop(MediaTask task, TaskFolder folder) {
+    if (task.mediaKind != folder.mediaKind) {
+      showWorkbenchSnackBar('任务夹只接受同类型媒体');
+    }
   }
 
   Future<void> handlePrimaryQueueAction(bool hasRunningTask) async {
@@ -918,6 +1236,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         if (createdTasks.isNotEmpty) {
           setState(() {
             selectedTaskId = createdTasks.first.id;
+            selectedTaskIds.clear();
+            taskSelectionMode = false;
             syncedConfigTaskId = null;
             syncedQualityTaskKey = null;
           });
@@ -951,6 +1271,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     if (result.createdTasks.isNotEmpty) {
       setState(() {
         selectedTaskId = result.createdTasks.first.id;
+        selectedTaskIds.clear();
+        taskSelectionMode = false;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
       });
@@ -1007,6 +1329,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       await ref.read(mediaTaskListProvider.notifier).clearTasks();
       setState(() {
         selectedTaskId = null;
+        selectedTaskIds.clear();
+        taskSelectionMode = false;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
       });
@@ -1021,6 +1345,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           selectedTaskId = null;
           syncedConfigTaskId = null;
           syncedQualityTaskKey = null;
+        });
+      }
+      if (selectedTaskIds.contains(task.id)) {
+        setState(() {
+          selectedTaskIds.remove(task.id);
+          if (selectedTaskIds.isEmpty) {
+            taskSelectionMode = false;
+          }
         });
       }
     });
@@ -1271,6 +1603,178 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     return resolveSelectedTask(taskList.requireValue);
   }
 
+  TaskFolder? resolveOpenedTaskFolder(List<TaskFolder> folders) {
+    final folderId = openedTaskFolderId;
+    if (folderId == null) {
+      return null;
+    }
+
+    for (final folder in folders) {
+      if (folder.id == folderId) {
+        return folder;
+      }
+    }
+    return null;
+  }
+
+  void openTaskFolder(TaskFolder folder) {
+    setState(() {
+      openedTaskFolderId = folder.id;
+    });
+  }
+
+  void closeTaskFolder() {
+    setState(() {
+      openedTaskFolderId = null;
+    });
+  }
+
+  void deleteTaskFolder(TaskFolder folder) {
+    unawaited(
+      runWorkbenchActionOnce('delete-task-folder:${folder.id}', () async {
+        try {
+          await ref
+              .read(mediaTaskListProvider.notifier)
+              .deleteTaskFolder(folder.id);
+          if (openedTaskFolderId == folder.id) {
+            closeTaskFolder();
+          }
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      }),
+    );
+  }
+
+  Future<void> startTaskFolder(
+    TaskFolder folder, {
+    bool allowExtremeCompression = false,
+  }) async {
+    await runWorkbenchActionOnce('start-task-folder:${folder.id}', () {
+      return startTaskFolderUnchecked(
+        folder,
+        allowExtremeCompression: allowExtremeCompression,
+      );
+    });
+  }
+
+  Future<void> startTaskFolderUnchecked(
+    TaskFolder folder, {
+    bool allowExtremeCompression = false,
+  }) async {
+    try {
+      final result = await ref
+          .read(mediaTaskListProvider.notifier)
+          .startNextTaskInFolder(
+            folder.id,
+            allowExtremeCompression: allowExtremeCompression,
+          );
+      if (await confirmAndRestartWhenCompressionRequiresConfirmation(
+        result,
+        () => startTaskFolderUnchecked(folder, allowExtremeCompression: true),
+      )) {
+        return;
+      }
+      if (result.message != null) {
+        showWorkbenchSnackBar(result.message!);
+      }
+    } on Object catch (error) {
+      showWorkbenchSnackBar(error.toString());
+    }
+  }
+
+  Future<void> pauseTaskFolder(TaskFolder folder) async {
+    await runWorkbenchActionOnce('pause-task-folder:${folder.id}', () async {
+      try {
+        final result = await ref
+            .read(mediaTaskListProvider.notifier)
+            .pauseRunningTaskInFolder(folder.id);
+        if (result.message != null) {
+          showWorkbenchSnackBar(result.message!);
+        }
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
+  Future<void> retryTaskFolder(TaskFolder folder) async {
+    await runWorkbenchActionOnce('retry-task-folder:${folder.id}', () async {
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .retryTerminalTasksInFolder(folder.id);
+        showWorkbenchSnackBar('任务夹终态任务已重置');
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
+  Future<void> relinkTaskFolderMissingSource(TaskFolder folder) async {
+    await runWorkbenchActionOnce('relink-task-folder:${folder.id}', () async {
+      final task = firstTaskInFolderWhere(
+        folder: folder,
+        predicate: (task) => task.status == TaskStatus.missingSource,
+      );
+      if (task == null) {
+        showWorkbenchSnackBar('任务夹内没有缺失源文件任务');
+        return;
+      }
+      await relinkMissingSource(task);
+    });
+  }
+
+  Future<void> showTaskFolderLog(TaskFolder folder) async {
+    await runWorkbenchActionOnce('show-task-folder-log:${folder.id}', () async {
+      final task = firstTaskInFolderWhere(
+        folder: folder,
+        predicate: _isTaskLoggable,
+      );
+      if (task == null) {
+        showWorkbenchSnackBar('任务夹内没有可查看日志的任务');
+        return;
+      }
+      await showTaskLog(task);
+    });
+  }
+
+  MediaTask? firstTaskInFolderWhere({
+    required TaskFolder folder,
+    required bool Function(MediaTask task) predicate,
+  }) {
+    final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+    for (final task in resolveOpenedTaskFolderTasks(
+      tasks: tasks,
+      openedFolder: folder,
+    )) {
+      if (predicate(task)) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  void removeTaskFromFolder(MediaTask task) {
+    unawaited(
+      runWorkbenchActionOnce('remove-task-from-folder:${task.id}', () async {
+        try {
+          await ref
+              .read(mediaTaskListProvider.notifier)
+              .removeTaskFromFolder(task.id);
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            selectedTaskIds.remove(task.id);
+          });
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      }),
+    );
+  }
+
   Future<void> updateSelectedTaskConfig({
     MediaTaskConfig? config,
     OutputFormat? outputFormat,
@@ -1352,4 +1856,11 @@ bool _taskNeedsUpdateRestartWarning(MediaTask task) {
       task.status == TaskStatus.paused ||
       task.status == TaskStatus.pending ||
       task.status == TaskStatus.analyzing;
+}
+
+bool _isTaskLoggable(MediaTask task) {
+  return task.status == TaskStatus.running ||
+      task.status == TaskStatus.completed ||
+      task.status == TaskStatus.failed ||
+      task.status == TaskStatus.paused;
 }

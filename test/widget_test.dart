@@ -35,6 +35,8 @@ import 'package:framelean/features/workbench/pages/workbench_page/layout/workben
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 
 void main() {
   testWidgets('recommended presets do not change resolution automatically', (
@@ -281,6 +283,45 @@ void main() {
       expect(audioValues.outputFormat, OutputFormat.mkv);
       expect(imageValues.encoderBackend, EncoderBackend.videotoolbox);
       expect(audioValues.encoderBackend, EncoderBackend.videotoolbox);
+    },
+  );
+
+  test('opened task folder list is mutable when no folder is open', () {
+    final folderTasks = resolveOpenedTaskFolderTasks(
+      tasks: const [],
+      openedFolder: null,
+    );
+
+    expect(folderTasks, isEmpty);
+    expect(() => folderTasks.add(testTask()), returnsNormally);
+  });
+
+  test(
+    'opened task folder list only includes folder children in folder order',
+    () {
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（1）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final laterTask = testTask(
+        fileName: 'later.mp4',
+      ).copyWith(id: 'later', folderId: folder.id, folderSortOrder: 2);
+      final earlierTask = testTask(
+        fileName: 'earlier.mp4',
+      ).copyWith(id: 'earlier', folderId: folder.id, folderSortOrder: 1);
+      final looseTask = testTask(fileName: 'loose.mp4').copyWith(id: 'loose');
+
+      final folderTasks = resolveOpenedTaskFolderTasks(
+        tasks: [laterTask, looseTask, earlierTask],
+        openedFolder: folder,
+      );
+
+      expect(folderTasks.map((task) => task.id), ['earlier', 'later']);
     },
   );
 
@@ -996,7 +1037,10 @@ void main() {
           home: Scaffold(
             body: WorkbenchShell(
               taskList: AsyncData([testTask()]),
+              taskFolders: const AsyncData([]),
               selectedTask: null,
+              selectedTaskIds: const {},
+              selectionMode: false,
               importEnabled: true,
               importDragging: false,
               hasRunningTask: false,
@@ -1013,6 +1057,20 @@ void main() {
               onRelink: (_) {},
               onShowLog: (_) {},
               onContextMenu: (_, _) {},
+              onToggleSelectionMode: () {},
+              onToggleTaskSelection: (_) {},
+              onSelectTasksWithRectangle: (_) {},
+              onCreateFolderFromSelection: () {},
+              onMoveTaskToFolder: (_, _) {},
+              onRejectTaskFolderDrop: (_, _) {},
+              onOpenFolderSettings: (_) {},
+              onOpenFolderContents: (_) {},
+              onStartFolder: (_) {},
+              onPauseFolder: (_) {},
+              onRetryFolder: (_) {},
+              onRelinkFolder: (_) {},
+              onShowFolderLog: (_) {},
+              onDeleteFolder: (_) {},
               onAddTask: () {},
               onOpenSettings: () {},
               themeMode: AppThemeMode.light,
@@ -1057,6 +1115,319 @@ void main() {
     }
   });
 
+  testWidgets('workbench shell shows folders and hides their child tasks', (
+    tester,
+  ) async {
+    final settingsCalls = <String>[];
+    final openCalls = <String>[];
+    final deleteCalls = <String>[];
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final folderTask = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    final looseTask = testTask(
+      fileName: 'outside.mp4',
+    ).copyWith(id: 'outside', sortOrder: 1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchShell(
+            taskList: AsyncData([folderTask, looseTask]),
+            taskFolders: AsyncData([folder]),
+            selectedTask: null,
+            selectedTaskIds: const {},
+            selectionMode: false,
+            importEnabled: true,
+            importDragging: false,
+            hasRunningTask: false,
+            queueActionInFlight: false,
+            thumbnailForTask: (_) => null,
+            onImportDraggingChanged: (_) {},
+            onImportDrop: (_) {},
+            onReorder: (_, _) {},
+            onOpenTask: (_) {},
+            onStart: (_) {},
+            onPause: (_) {},
+            onRemove: (_) {},
+            onRetry: (_) {},
+            onRelink: (_) {},
+            onShowLog: (_) {},
+            onContextMenu: (_, _) {},
+            onToggleSelectionMode: () {},
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_) {},
+            onCreateFolderFromSelection: () {},
+            onMoveTaskToFolder: (_, _) {},
+            onRejectTaskFolderDrop: (_, _) {},
+            onOpenFolderSettings: (folder) {
+              settingsCalls.add(folder.id);
+            },
+            onOpenFolderContents: (folder) {
+              openCalls.add(folder.id);
+            },
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (folder) {
+              deleteCalls.add(folder.id);
+            },
+            onAddTask: () {},
+            onOpenSettings: () {},
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenNotifications: () {},
+            onClearTasks: () {},
+            onPrimaryQueuePressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('视频任务夹（1）'), findsOneWidget);
+    expect(find.text('outside.mp4'), findsOneWidget);
+    expect(find.text('inside.mp4'), findsNothing);
+    expect(find.textContaining('1 个任务'), findsOneWidget);
+
+    await tester.tap(find.text('视频任务夹（1）'));
+    await tester.pumpAndSettle();
+    expect(settingsCalls, ['folder-1']);
+    expect(openCalls, isEmpty);
+
+    await tester.tap(find.byTooltip('查看夹内任务'));
+    await tester.pumpAndSettle();
+    expect(openCalls, ['folder-1']);
+
+    await tester.tap(find.byTooltip('删除任务夹并释放任务'));
+    await tester.pumpAndSettle();
+    expect(deleteCalls, ['folder-1']);
+    expect(openCalls, ['folder-1']);
+  });
+
+  testWidgets('folder content panel reuses task tile actions', (tester) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    var startCount = 0;
+    var removeCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (_) {
+                  removeCount += 1;
+                },
+                onStart: (_) {
+                  startCount += 1;
+                },
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(MediaTaskListTile), findsOneWidget);
+    expect(find.text('inside.mp4'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.play_circle_fill_rounded));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded));
+    await tester.pump();
+
+    expect(startCount, 1);
+    expect(removeCount, 1);
+  });
+
+  testWidgets('multi select mode shows checkbox and create folder FAB', (
+    tester,
+  ) async {
+    var toggleModeCount = 0;
+    var createFolderCount = 0;
+    final task = testTask(fileName: 'outside.mp4').copyWith(id: 'outside');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchShell(
+            taskList: AsyncData([task]),
+            taskFolders: const AsyncData([]),
+            selectedTask: null,
+            selectedTaskIds: {task.id},
+            selectionMode: true,
+            importEnabled: true,
+            importDragging: false,
+            hasRunningTask: false,
+            queueActionInFlight: false,
+            thumbnailForTask: (_) => null,
+            onImportDraggingChanged: (_) {},
+            onImportDrop: (_) {},
+            onReorder: (_, _) {},
+            onOpenTask: (_) {},
+            onStart: (_) {},
+            onPause: (_) {},
+            onRemove: (_) {},
+            onRetry: (_) {},
+            onRelink: (_) {},
+            onShowLog: (_) {},
+            onContextMenu: (_, _) {},
+            onToggleSelectionMode: () {
+              toggleModeCount += 1;
+            },
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_) {},
+            onCreateFolderFromSelection: () {
+              createFolderCount += 1;
+            },
+            onMoveTaskToFolder: (_, _) {},
+            onRejectTaskFolderDrop: (_, _) {},
+            onOpenFolderSettings: (_) {},
+            onOpenFolderContents: (_) {},
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (_) {},
+            onAddTask: () {},
+            onOpenSettings: () {},
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenNotifications: () {},
+            onClearTasks: () {},
+            onPrimaryQueuePressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.text('创建任务夹 1'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('退出多选'));
+    await tester.pump();
+    expect(toggleModeCount, 1);
+
+    await tester.tap(find.text('创建任务夹 1'));
+    await tester.pump();
+    expect(createFolderCount, 1);
+  });
+
+  testWidgets('dragging a loose task into matching folder triggers move', (
+    tester,
+  ) async {
+    final moveCalls = <String>[];
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final folderTask = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    final looseTask = testTask(
+      fileName: 'outside.mp4',
+    ).copyWith(id: 'outside', sortOrder: 1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchShell(
+            taskList: AsyncData([folderTask, looseTask]),
+            taskFolders: AsyncData([folder]),
+            selectedTask: null,
+            selectedTaskIds: const {},
+            selectionMode: false,
+            importEnabled: true,
+            importDragging: false,
+            hasRunningTask: false,
+            queueActionInFlight: false,
+            thumbnailForTask: (_) => null,
+            onImportDraggingChanged: (_) {},
+            onImportDrop: (_) {},
+            onReorder: (_, _) {},
+            onOpenTask: (_) {},
+            onStart: (_) {},
+            onPause: (_) {},
+            onRemove: (_) {},
+            onRetry: (_) {},
+            onRelink: (_) {},
+            onShowLog: (_) {},
+            onContextMenu: (_, _) {},
+            onToggleSelectionMode: () {},
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_) {},
+            onCreateFolderFromSelection: () {},
+            onMoveTaskToFolder: (task, folder) {
+              moveCalls.add('${task.id}->${folder.id}');
+            },
+            onRejectTaskFolderDrop: (_, _) {},
+            onOpenFolderSettings: (_) {},
+            onOpenFolderContents: (_) {},
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (_) {},
+            onAddTask: () {},
+            onOpenSettings: () {},
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenNotifications: () {},
+            onClearTasks: () {},
+            onPrimaryQueuePressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    final dragHandle = find.byIcon(Icons.drag_indicator_rounded).first;
+    final target = find.text('视频任务夹（1）');
+    await tester.dragFrom(
+      tester.getCenter(dragHandle),
+      tester.getCenter(target) - tester.getCenter(dragHandle),
+    );
+    await tester.pumpAndSettle();
+
+    expect(moveCalls, ['outside->folder-1']);
+  });
+
   testWidgets('notification badge can be hidden without losing unread count', (
     tester,
   ) async {
@@ -1094,7 +1465,10 @@ void main() {
         home: Scaffold(
           body: WorkbenchShell(
             taskList: AsyncData([firstTask, secondTask]),
+            taskFolders: const AsyncData([]),
             selectedTask: firstTask,
+            selectedTaskIds: const {},
+            selectionMode: false,
             importEnabled: true,
             importDragging: false,
             hasRunningTask: false,
@@ -1113,6 +1487,20 @@ void main() {
             onRelink: (_) {},
             onShowLog: (_) {},
             onContextMenu: (_, _) {},
+            onToggleSelectionMode: () {},
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_) {},
+            onCreateFolderFromSelection: () {},
+            onMoveTaskToFolder: (_, _) {},
+            onRejectTaskFolderDrop: (_, _) {},
+            onOpenFolderSettings: (_) {},
+            onOpenFolderContents: (_) {},
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (_) {},
             onAddTask: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,

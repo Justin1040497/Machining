@@ -14,8 +14,11 @@ import 'package:framelean/application/use_cases/media_tasks/replace_missing_sour
 import 'package:framelean/application/use_cases/media_tasks/retry_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/input_runtime_provider.dart';
@@ -26,6 +29,10 @@ final mediaTaskListProvider =
     AsyncNotifierProvider<MediaTaskListNotifier, List<MediaTask>>(
       MediaTaskListNotifier.new,
     );
+
+final taskFolderListProvider = FutureProvider<List<TaskFolder>>((ref) {
+  return ref.watch(taskFolderRepositoryProvider).loadAllFolders();
+});
 
 class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Timer? executionRefreshTimer;
@@ -87,6 +94,106 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     }
 
     return createdTasks;
+  }
+
+  Future<void> createTaskFoldersForImportedBatch(List<MediaTask> tasks) async {
+    if (tasks.length < 2) {
+      return;
+    }
+
+    final byKind = <String, List<MediaTask>>{};
+    for (final task in tasks) {
+      byKind.putIfAbsent(task.mediaKind.name, () => []).add(task);
+    }
+
+    for (final groupedTasks in byKind.values) {
+      if (groupedTasks.length < 2) {
+        continue;
+      }
+      await createTaskFolderFromTaskIds(
+        groupedTasks.map((task) => task.id).toList(),
+      );
+    }
+  }
+
+  Future<void> createTaskFolderFromTaskIds(List<String> taskIds) async {
+    final result = await CreateTaskFolderFromTasksUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+    ).call(taskIds: taskIds);
+
+    state = AsyncData(result.tasks);
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<List<TaskFolder>> createTaskFoldersFromTaskIds(
+    List<String> taskIds,
+  ) async {
+    final result = await CreateTaskFoldersFromTasksUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+    ).call(taskIds: taskIds);
+
+    state = AsyncData(result.tasks);
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+    return result.folders;
+  }
+
+  Future<void> moveTaskToFolder({
+    required String taskId,
+    required String folderId,
+  }) async {
+    final tasks = await MoveTaskToFolderUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+    ).call(taskId: taskId, folderId: folderId);
+    state = AsyncData(tasks);
+    unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<void> removeTaskFromFolder(String taskId) async {
+    final tasks = await RemoveTaskFromFolderUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+    ).call(taskId);
+    state = AsyncData(tasks);
+    unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<void> deleteTaskFolder(String folderId) async {
+    final tasks = await DeleteTaskFolderUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+    ).call(folderId);
+    state = AsyncData(tasks);
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<void> applyTaskFolderConfig({
+    required String folderId,
+    required MediaTaskConfig config,
+  }) async {
+    final result = await ApplyTaskFolderConfigUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+    ).call(folderId: folderId, config: config);
+    state = AsyncData(result.tasks);
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<void> retryTerminalTasksInFolder(String folderId) async {
+    final result = await RetryTaskFolderTerminalTasksUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+      sourceFileChecker: ref.read(sourceFileCheckerProvider),
+      fingerprintReader: ref.read(sourceFileFingerprintReaderProvider),
+    ).call(folderId);
+    state = AsyncData(result.tasks);
+    unawaited(syncFfmpegQueueStatus());
+    if (result.taskIdsNeedingAnalysis.isNotEmpty) {
+      unawaited(analyzeTasksInBackground(result.taskIdsNeedingAnalysis));
+    }
   }
 
   Future<void> saveTask(MediaTask task) async {
@@ -199,11 +306,48 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     return result;
   }
 
+  Future<FfmpegQueueStartResult> startNextTaskInFolder(
+    String folderId, {
+    bool allowExtremeCompression = false,
+  }) async {
+    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    final result = await StartNextTaskInFolderUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+      queueRunner: queueRunner,
+    ).call(folderId, allowExtremeCompression: allowExtremeCompression);
+
+    await refreshTasksFromRepository();
+    if (result.outcome == FfmpegQueueStartOutcome.started ||
+        result.outcome == FfmpegQueueStartOutcome.resumed ||
+        result.outcome == FfmpegQueueStartOutcome.alreadyRunning) {
+      startExecutionRefreshPolling();
+    }
+
+    return result;
+  }
+
   Future<FfmpegQueueStartResult> pauseTaskById(String taskId) async {
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     final result = await PauseMediaTaskExecutionUseCase(
       queueRunner: queueRunner,
     ).call(taskId);
+
+    await refreshTasksFromRepository();
+    if (result.outcome == FfmpegQueueStartOutcome.paused) {
+      startExecutionRefreshPolling();
+    }
+
+    return result;
+  }
+
+  Future<FfmpegQueueStartResult> pauseRunningTaskInFolder(
+    String folderId,
+  ) async {
+    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    final result = await PauseRunningTaskInFolderUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+      queueRunner: queueRunner,
+    ).call(folderId);
 
     await refreshTasksFromRepository();
     if (result.outcome == FfmpegQueueStartOutcome.paused) {

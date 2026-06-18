@@ -52,6 +52,8 @@ abstract final class WorkbenchImportHandler {
       }
     }
 
+    await notifier.createTaskFoldersForImportedBatch(createdTasks);
+
     return WorkbenchImportResult(
       createdTasks: createdTasks,
       failures: failures,

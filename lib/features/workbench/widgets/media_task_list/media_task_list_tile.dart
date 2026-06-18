@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
@@ -17,6 +18,8 @@ class MediaTaskListTile extends StatelessWidget {
   final VoidCallback? onRelink;
   final VoidCallback? onShowLog;
   final VoidCallback? onRemove;
+  final String removeTooltip;
+  final IconData removeIcon;
   final GestureTapDownCallback? onSecondaryTapDown;
   final Widget? dragHandle;
   final bool tooltipsEnabled;
@@ -33,6 +36,8 @@ class MediaTaskListTile extends StatelessWidget {
     this.onRelink,
     this.onShowLog,
     this.onRemove,
+    this.removeTooltip = '移除任务',
+    this.removeIcon = Icons.close_rounded,
     this.onSecondaryTapDown,
     this.dragHandle,
     this.tooltipsEnabled = true,
@@ -56,7 +61,6 @@ class MediaTaskListTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
         onSecondaryTapDown: onSecondaryTapDown,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
@@ -85,12 +89,22 @@ class MediaTaskListTile extends StatelessWidget {
                   const SizedBox(width: 10),
                   dragHandle ?? const SizedBox(width: 24),
                   const SizedBox(width: 4),
-                  MediaTaskThumbnail(
-                    mediaKind: task.mediaKind,
-                    thumbnail: thumbnail,
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTap,
+                    child: MediaTaskThumbnail(
+                      mediaKind: task.mediaKind,
+                      thumbnail: thumbnail,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildTaskText(context)),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onTap,
+                      child: _buildTaskText(context),
+                    ),
+                  ),
                   MediaTaskActionButton(
                     task: task,
                     onStart: onStart,
@@ -109,9 +123,9 @@ class MediaTaskListTile extends StatelessWidget {
                     ),
                   const SizedBox(width: 4),
                   MediaTaskIconButton(
-                    tooltip: '移除任务',
+                    tooltip: removeTooltip,
                     onPressed: onRemove,
-                    icon: Icons.close_rounded,
+                    icon: removeIcon,
                     tooltipsEnabled: tooltipsEnabled,
                   ),
                   const SizedBox(width: 10),
@@ -177,6 +191,7 @@ class MediaTaskListTile extends StatelessWidget {
         Row(
           children: [
             MediaTaskStatusBadge(task: task),
+            ..._buildPolicyTags(context),
             const SizedBox(width: 10),
             Text(
               _formatBytes(task.sourceFileFingerprint?.fileSize),
@@ -186,6 +201,42 @@ class MediaTaskListTile extends StatelessWidget {
         ),
       ],
     );
+  }
+
+  List<Widget> _buildPolicyTags(BuildContext context) {
+    if (task.policyTags.isEmpty) {
+      return const [];
+    }
+    final colors = context.frameLeanColors;
+    return task.policyTags.map((tag) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Container(
+          height: 20,
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: colors.primary.withAlpha(18),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: colors.primary.withAlpha(90)),
+          ),
+          child: Text(
+            policyTagLabel(tag),
+            style: TextStyle(color: colors.primary, fontSize: 10.flSp),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  String policyTagLabel(MediaTaskPolicyTag tag) {
+    return switch (tag) {
+      MediaTaskPolicyTag.transparentPreserve => '透明保留',
+      MediaTaskPolicyTag.outputRenamed => '输出已改名',
+      MediaTaskPolicyTag.outputDirectoryCreated => '目录已创建',
+      MediaTaskPolicyTag.imageFormatFallback => '图片已改格式重试',
+      MediaTaskPolicyTag.ineffectiveCompression => '未有效压缩',
+    };
   }
 
   String _formatBytes(int? bytes) {

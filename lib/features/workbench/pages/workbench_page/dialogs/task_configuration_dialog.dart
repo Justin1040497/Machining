@@ -54,6 +54,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   required BuildContext context,
   required MediaTask task,
   required ImageProvider? thumbnail,
+  String title = '任务详情设置',
   required int selectedQualityIndex,
   required OutputFormat selectedOutputFormat,
   required VideoCodec selectedVideoCodec,
@@ -62,7 +63,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   required CompressionMode selectedCompressionMode,
   required SmartCompressionPreset selectedSmartPreset,
   required double selectedTargetSizeRatio,
-  required VoidCallback onOpenSource,
+  VoidCallback? onOpenSource,
 }) {
   var draftQualityIndex = selectedQualityIndex;
   var draftOutputFormat = selectedOutputFormat;
@@ -129,6 +130,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
           return WorkbenchTaskConfigurationDialog(
             task: task,
             thumbnail: thumbnail,
+            title: title,
             selectedQualityIndex: draftQualityIndex,
             selectedOutputFormat: draftOutputFormat,
             selectedVideoCodec: draftVideoCodec,
@@ -334,6 +336,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     super.key,
     required this.task,
     required this.thumbnail,
+    this.title = '任务详情设置',
     required this.selectedQualityIndex,
     required this.selectedOutputFormat,
     required this.selectedVideoCodec,
@@ -347,7 +350,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     this.selectedAudioConfig,
     required this.availableEncoderBackends,
     required this.onClose,
-    required this.onOpenSource,
+    this.onOpenSource,
     required this.onSave,
     required this.onCompressionModeChanged,
     required this.onSmartPresetChanged,
@@ -365,6 +368,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
 
   final MediaTask task;
   final ImageProvider? thumbnail;
+  final String title;
   final int selectedQualityIndex;
   final OutputFormat selectedOutputFormat;
   final VideoCodec selectedVideoCodec;
@@ -378,7 +382,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final AudioProcessingConfig? selectedAudioConfig;
   final List<EncoderBackend> availableEncoderBackends;
   final VoidCallback onClose;
-  final VoidCallback onOpenSource;
+  final VoidCallback? onOpenSource;
   final VoidCallback onSave;
   final ValueChanged<CompressionMode> onCompressionModeChanged;
   final ValueChanged<SmartCompressionPreset> onSmartPresetChanged;
@@ -519,22 +523,24 @@ class _WorkbenchTaskConfigurationDialogState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 WorkbenchDialogBackHeader(
-                  title: '任务详情设置',
+                  title: widget.title,
                   onClose: widget.onClose,
-                  trailing: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: IconButton(
-                      tooltip: '打开源文件所在位置',
-                      onPressed: widget.onOpenSource,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.open_in_new_rounded,
-                        color: colors.textPrimary,
-                        size: 16,
-                      ),
-                    ),
-                  ),
+                  trailing: widget.onOpenSource == null
+                      ? null
+                      : SizedBox(
+                          width: 28,
+                          height: 28,
+                          child: IconButton(
+                            tooltip: '打开源文件所在位置',
+                            onPressed: widget.onOpenSource,
+                            padding: EdgeInsets.zero,
+                            icon: Icon(
+                              Icons.open_in_new_rounded,
+                              color: colors.textPrimary,
+                              size: 16,
+                            ),
+                          ),
+                        ),
                 ),
                 const SizedBox(height: 18),
                 WorkbenchSourceSummary(
