@@ -1344,25 +1344,163 @@ void main() {
       final folderBody = find.byKey(
         const ValueKey('task-folder-drop-state-folder-1'),
       );
+      final folderRectBeforeHover = tester.getRect(folderBody);
       final gesture = await tester.startGesture(
         tester.getCenter(taskDragHandle),
       );
       await tester.pump(const Duration(milliseconds: 100));
-      await gesture.moveTo(tester.getCenter(folderBody));
-      await tester.pump();
-
-      final ghostedFolder = tester.widget<AnimatedOpacity>(folderBody);
-      final hoverOverlay = tester.widget<AnimatedOpacity>(
-        find.byKey(const ValueKey('task-folder-hover-overlay-folder-1')),
+      await gesture.moveTo(
+        Offset(
+          folderRectBeforeHover.center.dx,
+          folderRectBeforeHover.bottom - 8,
+        ),
       );
-      expect(ghostedFolder.opacity, 0);
-      expect(hoverOverlay.opacity, 1);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        tester.getRect(folderBody).top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      await gesture.moveTo(folderRectBeforeHover.center);
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final hoveredFolder = tester.widget<AnimatedOpacity>(folderBody);
+      final folderRectWhileHovered = tester.getRect(folderBody);
+      expect(hoveredFolder.opacity, 1);
+      expect(
+        folderRectWhileHovered.top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      expect(reorderCalls, isEmpty);
 
       await gesture.up();
       await tester.pumpAndSettle();
 
       expect(moveCalls, ['outside->folder-1']);
       expect(reorderCalls, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'task drag handle switches to reorder only after leaving folder body',
+    (tester) async {
+      final moveCalls = <String>[];
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（1）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final folderTask = testTask(
+        fileName: 'inside.mp4',
+      ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+      final firstLooseTask = testTask(
+        fileName: 'first.mp4',
+      ).copyWith(id: 'first', sortOrder: 1);
+      final secondLooseTask = testTask(
+        fileName: 'second.mp4',
+      ).copyWith(id: 'second', sortOrder: 2);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [folderTask, firstLooseTask, secondLooseTask],
+        folders: [folder],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+        onMoveTaskToFolder: (task, folder) {
+          moveCalls.add('${task.id}->${folder.id}');
+        },
+      );
+
+      final taskDragHandles = find.byIcon(Icons.drag_indicator_rounded);
+      final secondTaskDragHandle = taskDragHandles.last;
+      final folderBody = find.byKey(
+        const ValueKey('task-folder-drop-state-folder-1'),
+      );
+      final firstTaskText = find.text('first.mp4');
+      final folderRectBeforeHover = tester.getRect(folderBody);
+      final gesture = await tester.startGesture(
+        tester.getCenter(secondTaskDragHandle),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(folderBody));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        tester.getRect(folderBody).top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      expect(reorderCalls, isEmpty);
+
+      await gesture.moveTo(tester.getCenter(firstTaskText));
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      await gesture.moveTo(folderRectBeforeHover.center);
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      expect(
+        tester.getRect(folderBody).top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      expect(reorderCalls, isEmpty);
+
+      await gesture.moveTo(tester.getCenter(firstTaskText));
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveCalls, isEmpty);
+      expect(reorderCalls, isNotEmpty);
+    },
+  );
+
+  testWidgets(
+    'task reorder keeps the dropped visual order while persistence catches up',
+    (tester) async {
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final firstTask = testTask(
+        fileName: 'first.mp4',
+      ).copyWith(id: 'first', sortOrder: 0);
+      final secondTask = testTask(
+        fileName: 'second.mp4',
+      ).copyWith(id: 'second', sortOrder: 1);
+      final thirdTask = testTask(
+        fileName: 'third.mp4',
+      ).copyWith(id: 'third', sortOrder: 2);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [firstTask, secondTask, thirdTask],
+        folders: const [],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+      );
+
+      final slotTops = [
+        tester.getTopLeft(find.text('first.mp4')).dy,
+        tester.getTopLeft(find.text('second.mp4')).dy,
+        tester.getTopLeft(find.text('third.mp4')).dy,
+      ];
+      final taskDragHandles = find.byIcon(Icons.drag_indicator_rounded);
+      final gesture = await tester.startGesture(
+        tester.getCenter(taskDragHandles.last),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(find.text('first.mp4')));
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(reorderCalls, hasLength(1));
+      final (oldIndex, newIndex) = reorderCalls.single;
+      final visualIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+      expect(
+        tester.getTopLeft(find.text('third.mp4')).dy,
+        closeTo(slotTops[visualIndex], 0.1),
+      );
     },
   );
 
