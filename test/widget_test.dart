@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -996,7 +999,6 @@ void main() {
             body: WorkbenchShell(
               taskList: AsyncData([testTask()]),
               taskFolders: const AsyncData([]),
-              selectedTask: null,
               selectedTaskIds: const {},
               selectionMode: false,
               importEnabled: true,
@@ -1021,7 +1023,6 @@ void main() {
               onSelectTasksWithRectangle: (_, {toggle = false}) {},
               onCreateFolderFromSelection: () {},
               onMoveTaskToFolder: (_, _) {},
-              onRejectTaskFolderDrop: (_, _) {},
               onOpenFolderSettings: (_) {},
               onOpenFolderContents: (_) {},
               onStartFolder: (_) {},
@@ -1102,7 +1103,6 @@ void main() {
           body: WorkbenchShell(
             taskList: AsyncData([folderTask, looseTask]),
             taskFolders: AsyncData([folder]),
-            selectedTask: null,
             selectedTaskIds: const {},
             selectionMode: false,
             importEnabled: true,
@@ -1127,7 +1127,6 @@ void main() {
             onSelectTasksWithRectangle: (_, {toggle = false}) {},
             onCreateFolderFromSelection: () {},
             onMoveTaskToFolder: (_, _) {},
-            onRejectTaskFolderDrop: (_, _) {},
             onOpenFolderSettings: (folder) {
               settingsCalls.add(folder.id);
             },
@@ -1201,7 +1200,7 @@ void main() {
                 tasks: [task],
                 thumbnailForTask: (_) => null,
                 onClose: () {},
-                onRemoveTask: (_) {
+                onRemoveTask: (_) async {
                   removeCount += 1;
                 },
                 onStart: (_) {
@@ -1232,6 +1231,346 @@ void main() {
     expect(removeCount, 1);
   });
 
+  testWidgets('folder task dragged onto scrim is removed in place', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（2）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final firstTask = testTask(
+      fileName: 'first.mp4',
+    ).copyWith(id: 'first', folderId: folder.id, folderSortOrder: 0);
+    final secondTask = testTask(
+      fileName: 'second.mp4',
+    ).copyWith(id: 'second', folderId: folder.id, folderSortOrder: 1);
+    final removeCompleter = Completer<void>();
+    final removeCalls = <String>[];
+    final reorderCalls = <(int, int)>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [firstTask, secondTask],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (task) {
+                  removeCalls.add(task.id);
+                  return removeCompleter.future;
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (oldIndex, newIndex) {
+                  reorderCalls.add((oldIndex, newIndex));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(FrameLeanReorderableListView), findsOneWidget);
+    expect(find.byType(ReorderableListView), findsNothing);
+    final scrimFinder = find.byKey(const Key('task-folder-drop-scrim'));
+    final beforeScrimColor =
+        (tester.widget<AnimatedContainer>(scrimFinder).decoration!
+                as BoxDecoration)
+            .color;
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator_rounded).first),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(const Offset(650, 300));
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump();
+
+    final activeScrimColor =
+        (tester.widget<AnimatedContainer>(scrimFinder).decoration!
+                as BoxDecoration)
+            .color;
+    expect(activeScrimColor, isNot(beforeScrimColor));
+
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(removeCalls, ['first']);
+    expect(reorderCalls, isEmpty);
+    expect(
+      find.byKey(const Key('task-folder-accepted-drop-proxy')),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('first.mp4'), findsNothing);
+    expect(find.text('second.mp4'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    removeCompleter.complete();
+    await tester.pump();
+  });
+
+  testWidgets('folder task dropped on panel header cancels removal', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    final removeCalls = <String>[];
+    final reorderCalls = <(int, int)>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (task) async {
+                  removeCalls.add(task.id);
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (oldIndex, newIndex) {
+                  reorderCalls.add((oldIndex, newIndex));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator_rounded)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(
+      tester.getCenter(find.byIcon(Icons.folder_open_rounded)),
+    );
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(removeCalls, isEmpty);
+    expect(reorderCalls, isEmpty);
+    expect(find.text('inside.mp4'), findsOneWidget);
+  });
+
+  testWidgets('folder task removal failure restores the task row', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (_) async {
+                  throw StateError('save failed');
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (_, _) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('inside.mp4'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('running folder task cannot be dragged onto the scrim', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(fileName: 'running.mp4').copyWith(
+      id: 'running',
+      folderId: folder.id,
+      folderSortOrder: 0,
+      status: TaskStatus.running,
+    );
+    final removeCalls = <String>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (task) async {
+                  removeCalls.add(task.id);
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (_, _) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator_rounded)),
+    );
+    await gesture.moveTo(const Offset(650, 300));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(removeCalls, isEmpty);
+    expect(find.text('running.mp4'), findsOneWidget);
+  });
+
+  testWidgets(
+    'folder reorder remains optimistic while persistence is pending',
+    (tester) async {
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（2）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final firstTask = testTask(
+        fileName: 'first.mp4',
+      ).copyWith(id: 'first', folderId: folder.id, folderSortOrder: 0);
+      final secondTask = testTask(
+        fileName: 'second.mp4',
+      ).copyWith(id: 'second', folderId: folder.id, folderSortOrder: 1);
+      final reorderCompleter = Completer<void>();
+      final reorderCalls = <(int, int)>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                TaskFolderContentPanel(
+                  visible: true,
+                  folder: folder,
+                  tasks: [firstTask, secondTask],
+                  thumbnailForTask: (_) => null,
+                  onClose: () {},
+                  onRemoveTask: (_) async {},
+                  onStart: (_) {},
+                  onPause: (_) {},
+                  onRetry: (_) {},
+                  onRelink: (_) {},
+                  onShowLog: (_) {},
+                  onRevealOutput: (_) {},
+                  onReorder: (oldIndex, newIndex) {
+                    reorderCalls.add((oldIndex, newIndex));
+                    return reorderCompleter.future;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final firstTop = tester.getTopLeft(find.text('first.mp4')).dy;
+      final dragHandles = find.byIcon(Icons.drag_indicator_rounded);
+      final firstHandleCenter = tester.getCenter(dragHandles.first);
+      final gesture = await tester.startGesture(
+        tester.getCenter(dragHandles.last),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(firstHandleCenter);
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(reorderCalls, isNotEmpty);
+      expect(
+        tester.getTopLeft(find.text('second.mp4')).dy,
+        closeTo(firstTop, 0.1),
+      );
+
+      reorderCompleter.complete();
+      await tester.pump();
+    },
+  );
+
   testWidgets('multi select mode shows checkbox and create folder FAB', (
     tester,
   ) async {
@@ -1245,7 +1584,6 @@ void main() {
           body: WorkbenchShell(
             taskList: AsyncData([task]),
             taskFolders: const AsyncData([]),
-            selectedTask: null,
             selectedTaskIds: {task.id},
             selectionMode: true,
             importEnabled: true,
@@ -1274,7 +1612,6 @@ void main() {
               createFolderCount += 1;
             },
             onMoveTaskToFolder: (_, _) {},
-            onRejectTaskFolderDrop: (_, _) {},
             onOpenFolderSettings: (_) {},
             onOpenFolderContents: (_) {},
             onStartFolder: (_) {},
@@ -1504,6 +1841,26 @@ void main() {
     },
   );
 
+  testWidgets('task rows never use selection borders', (tester) async {
+    final task = testTask(fileName: 'ordinary.mp3').copyWith(id: 'ordinary');
+
+    await _pumpWorkbenchShellForDragTest(
+      tester,
+      tasks: [task],
+      folders: const [],
+      selectedTaskIds: {task.id},
+      selectionMode: true,
+    );
+
+    final tile = find.byType(MediaTaskListTile);
+    final animatedContainer = tester.widget<AnimatedContainer>(
+      find.descendant(of: tile, matching: find.byType(AnimatedContainer)),
+    );
+    final decoration = animatedContainer.foregroundDecoration! as BoxDecoration;
+    expect(decoration.border!.top.color, frameLeanLightColors.border);
+    expect(decoration.border!.top.width, 1);
+  });
+
   testWidgets('task drag handle dropped on folder edge keeps reorder', (
     tester,
   ) async {
@@ -1557,7 +1914,6 @@ void main() {
     'different-kind folder disables drop and remains a reorder target',
     (tester) async {
       final moveCalls = <String>[];
-      final rejectCalls = <String>[];
       final reorderCalls = <(int oldIndex, int newIndex)>[];
       final folder = TaskFolder(
         id: 'image-folder',
@@ -1587,9 +1943,6 @@ void main() {
         onMoveTaskToFolder: (task, folder) {
           moveCalls.add('${task.id}->${folder.id}');
         },
-        onRejectTaskFolderDrop: (task, folder) {
-          rejectCalls.add('${task.id}->${folder.id}');
-        },
       );
 
       final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
@@ -1610,7 +1963,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(moveCalls, isEmpty);
-      expect(rejectCalls, isEmpty);
       expect(reorderCalls, isNotEmpty);
     },
   );
@@ -1653,7 +2005,6 @@ void main() {
           body: WorkbenchShell(
             taskList: AsyncData([firstTask, secondTask]),
             taskFolders: const AsyncData([]),
-            selectedTask: firstTask,
             selectedTaskIds: const {},
             selectionMode: false,
             importEnabled: true,
@@ -1680,7 +2031,6 @@ void main() {
             onSelectTasksWithRectangle: (_, {toggle = false}) {},
             onCreateFolderFromSelection: () {},
             onMoveTaskToFolder: (_, _) {},
-            onRejectTaskFolderDrop: (_, _) {},
             onOpenFolderSettings: (_) {},
             onOpenFolderContents: (_) {},
             onStartFolder: (_) {},
@@ -1720,12 +2070,10 @@ Future<void> _pumpWorkbenchShellForDragTest(
   WidgetTester tester, {
   required List<MediaTask> tasks,
   required List<TaskFolder> folders,
-  MediaTask? selectedTask,
   Set<String> selectedTaskIds = const {},
   bool selectionMode = false,
   void Function(int oldIndex, int newIndex)? onReorder,
   void Function(MediaTask task, TaskFolder folder)? onMoveTaskToFolder,
-  void Function(MediaTask task, TaskFolder folder)? onRejectTaskFolderDrop,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -1733,7 +2081,6 @@ Future<void> _pumpWorkbenchShellForDragTest(
         body: WorkbenchShell(
           taskList: AsyncData(tasks),
           taskFolders: AsyncData(folders),
-          selectedTask: selectedTask,
           selectedTaskIds: selectedTaskIds,
           selectionMode: selectionMode,
           importEnabled: true,
@@ -1758,7 +2105,6 @@ Future<void> _pumpWorkbenchShellForDragTest(
           onSelectTasksWithRectangle: (_, {toggle = false}) {},
           onCreateFolderFromSelection: () {},
           onMoveTaskToFolder: onMoveTaskToFolder ?? (_, _) {},
-          onRejectTaskFolderDrop: onRejectTaskFolderDrop ?? (_, _) {},
           onOpenFolderSettings: (_) {},
           onOpenFolderContents: (_) {},
           onStartFolder: (_) {},

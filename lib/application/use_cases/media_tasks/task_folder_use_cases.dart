@@ -144,19 +144,28 @@ class MoveTaskToFolderUseCase {
 }
 
 class RemoveTaskFromFolderUseCase {
-  const RemoveTaskFromFolderUseCase({required this.repository});
+  const RemoveTaskFromFolderUseCase({
+    required this.repository,
+    required this.taskFolderRepository,
+  });
 
   final MediaTaskRepository repository;
+  final TaskFolderRepository taskFolderRepository;
 
   Future<List<MediaTask>> call(String taskId) async {
     final tasks = await repository.loadAllTasks();
+    final folders = await taskFolderRepository.loadAllFolders();
     final task = tasks.firstWhere((task) => task.id == taskId);
-    final nextSortOrder = tasks
-        .where((candidate) => candidate.folderId == null)
-        .fold<int>(
-          0,
-          (max, task) => task.sortOrder >= max ? task.sortOrder + 1 : max,
-        );
+    final topLevelSortOrders = [
+      ...tasks
+          .where((candidate) => candidate.folderId == null)
+          .map((task) => task.sortOrder),
+      ...folders.map((folder) => folder.sortOrder),
+    ];
+    final nextSortOrder = topLevelSortOrders.fold<int>(
+      0,
+      (next, sortOrder) => sortOrder >= next ? sortOrder + 1 : next,
+    );
     await repository.saveTask(
       task.releaseFromFolder(newSortOrder: nextSortOrder),
     );

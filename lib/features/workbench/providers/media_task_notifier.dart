@@ -156,6 +156,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<void> removeTaskFromFolder(String taskId) async {
     final tasks = await RemoveTaskFromFolderUseCase(
       repository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
     ).call(taskId);
     await pruneEmptyTaskFolders();
     state = AsyncData(tasks);

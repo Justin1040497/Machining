@@ -186,6 +186,37 @@ void main() {
 
     expect(queueRunner.startedTaskIds, ['paused']);
   });
+
+  test(
+    'removing a folder task appends it after every top-level item',
+    () async {
+      final sourceFolder = testFolder();
+      final trailingFolder = testFolder().copyWith(
+        id: 'folder-2',
+        name: '视频任务夹（2）',
+        sortOrder: 8,
+      );
+      final looseTask = videoTask(id: 'loose', sortOrder: 3);
+      final folderTask = videoTask(
+        id: 'inside',
+        folderId: sourceFolder.id,
+        folderSortOrder: 0,
+      );
+      final repository = FakeMediaTaskRepository([looseTask, folderTask]);
+
+      await RemoveTaskFromFolderUseCase(
+        repository: repository,
+        taskFolderRepository: FakeTaskFolderRepository([
+          sourceFolder,
+          trailingFolder,
+        ]),
+      ).call(folderTask.id);
+
+      final releasedTask = repository.taskById(folderTask.id);
+      expect(releasedTask.folderId, isNull);
+      expect(releasedTask.sortOrder, 9);
+    },
+  );
 }
 
 const testFingerprint = SourceFileFingerprint(
@@ -209,6 +240,7 @@ MediaTask videoTask({
   required String id,
   String? folderId,
   int? folderSortOrder,
+  int sortOrder = 0,
   TaskStatus status = TaskStatus.pending,
   MediaTaskConfig? config,
 }) {
@@ -221,7 +253,7 @@ MediaTask videoTask({
     status: status,
     config: config ?? MediaTaskConfig.initialVideo(),
     progress: 0,
-    sortOrder: 0,
+    sortOrder: sortOrder,
     folderId: folderId,
     folderSortOrder: folderSortOrder,
     createdAt: 1,

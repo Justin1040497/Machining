@@ -1,12 +1,19 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 
-class TaskFolderContentPanel extends StatelessWidget {
+typedef TaskFolderTaskCommitCallback = Future<void> Function(MediaTask task);
+typedef TaskFolderReorderCommitCallback =
+    FutureOr<void> Function(int oldIndex, int newIndex);
+
+class TaskFolderContentPanel extends StatefulWidget {
   const TaskFolderContentPanel({
     super.key,
     required this.visible,
@@ -29,43 +36,90 @@ class TaskFolderContentPanel extends StatelessWidget {
   final List<MediaTask> tasks;
   final ImageProvider? Function(MediaTask task) thumbnailForTask;
   final VoidCallback onClose;
-  final ValueChanged<MediaTask> onRemoveTask;
+  final TaskFolderTaskCommitCallback onRemoveTask;
   final ValueChanged<MediaTask> onStart;
   final ValueChanged<MediaTask> onPause;
   final ValueChanged<MediaTask> onRetry;
   final ValueChanged<MediaTask> onRelink;
   final ValueChanged<MediaTask> onShowLog;
   final ValueChanged<MediaTask> onRevealOutput;
-  final ReorderCallback onReorder;
+  final TaskFolderReorderCommitCallback onReorder;
+
+  @override
+  State<TaskFolderContentPanel> createState() => _TaskFolderContentPanelState();
+}
+
+class _TaskFolderContentPanelState extends State<TaskFolderContentPanel> {
+  final _panelKey = GlobalKey();
+  final _listViewportKey = GlobalKey();
+  final Set<String> _pendingRemovalIds = {};
+  List<String>? _optimisticOrder;
+  String? _draggingTaskId;
+  bool _dragging = false;
+  bool _hoveringScrim = false;
+  bool _removeCommitInFlight = false;
+  bool _reorderCommitInFlight = false;
+  int _reorderGeneration = 0;
+
+  @override
+  void didUpdateWidget(covariant TaskFolderContentPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.folder?.id != widget.folder?.id) {
+      _pendingRemovalIds.clear();
+      _optimisticOrder = null;
+      _draggingTaskId = null;
+      _dragging = false;
+      _hoveringScrim = false;
+      _removeCommitInFlight = false;
+      _reorderCommitInFlight = false;
+      _reorderGeneration += 1;
+      return;
+    }
+
+    final sourceIds = widget.tasks.map((task) => task.id).toSet();
+    _pendingRemovalIds.removeWhere((id) => !sourceIds.contains(id));
+    final sourceOrder = widget.tasks.map((task) => task.id).toList();
+    if (_sameOrder(sourceOrder, _optimisticOrder)) {
+      _optimisticOrder = null;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final currentFolder = folder;
+    final currentFolder = widget.folder;
     if (currentFolder == null) {
       return const SizedBox.shrink();
     }
 
+    final visualTasks = _resolveVisualTasks();
     final panelWidth = (MediaQuery.sizeOf(context).width - 36)
         .clamp(280, 420)
         .toDouble();
+    final scrimColor = _hoveringScrim
+        ? colors.primary.withAlpha(
+            Theme.of(context).brightness == Brightness.dark ? 54 : 34,
+          )
+        : Colors.black.withAlpha(
+            Theme.of(context).brightness == Brightness.dark ? 88 : 46,
+          );
 
     return Positioned.fill(
       child: IgnorePointer(
-        ignoring: !visible,
+        ignoring: !widget.visible,
         child: Stack(
           children: [
             Positioned.fill(
               child: AnimatedOpacity(
-                opacity: visible ? 1 : 0,
+                opacity: widget.visible ? 1 : 0,
                 duration: const Duration(milliseconds: 180),
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: onClose,
-                  child: ColoredBox(
-                    color: Colors.black.withAlpha(
-                      Theme.of(context).brightness == Brightness.dark ? 88 : 46,
-                    ),
+                  onTap: _dragging ? null : widget.onClose,
+                  child: AnimatedContainer(
+                    key: const Key('task-folder-drop-scrim'),
+                    duration: const Duration(milliseconds: 120),
+                    color: scrimColor,
                   ),
                 ),
               ),
@@ -75,9 +129,10 @@ class TaskFolderContentPanel extends StatelessWidget {
               curve: Curves.easeOutCubic,
               top: AppLayoutConstants.topBarHeight + 10,
               bottom: 74,
-              left: visible ? 18 : -panelWidth - 24,
+              left: widget.visible ? 18 : -panelWidth - 24,
               width: panelWidth,
               child: Material(
+                key: _panelKey,
                 color: colors.surface,
                 elevation: 2,
                 shadowColor: colors.shadow,
@@ -112,7 +167,7 @@ class TaskFolderContentPanel extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  '${tasks.length} 个任务',
+                                  '${visualTasks.length} 个任务',
                                   style: TextStyle(
                                     color: colors.textTertiary,
                                     fontSize: 11.flSp,
@@ -123,7 +178,7 @@ class TaskFolderContentPanel extends StatelessWidget {
                           ),
                           IconButton(
                             tooltip: '关闭',
-                            onPressed: onClose,
+                            onPressed: widget.onClose,
                             icon: const Icon(Icons.close_rounded),
                           ),
                         ],
@@ -131,51 +186,119 @@ class TaskFolderContentPanel extends StatelessWidget {
                     ),
                     Divider(height: 1, color: colors.border),
                     Expanded(
-                      child: ReorderableListView.builder(
-                        padding: const EdgeInsets.all(12),
-                        buildDefaultDragHandles: false,
-                        itemCount: tasks.length,
-                        onReorder: onReorder,
-                        proxyDecorator: (child, index, animation) {
-                          return Material(
-                            color: Colors.transparent,
-                            child: ScaleTransition(
-                              scale: Tween<double>(
-                                begin: 1,
-                                end: 1.015,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        itemBuilder: (context, index) {
-                          final task = tasks[index];
-                          final dragEnabled = task.status != TaskStatus.running;
-                          return Padding(
-                            key: ValueKey('folder-task-${task.id}'),
-                            padding: EdgeInsets.only(
-                              bottom: index == tasks.length - 1 ? 0 : 8,
-                            ),
-                            child: MediaTaskListTile(
-                              task: task,
-                              thumbnail: thumbnailForTask(task),
-                              onStart: () => onStart(task),
-                              onPause: () => onPause(task),
-                              onRetry: () => onRetry(task),
-                              onRelink: () => onRelink(task),
-                              onShowLog: () => onShowLog(task),
-                              onRevealOutput: () => onRevealOutput(task),
-                              onRemove: () => onRemoveTask(task),
-                              removeTooltip: '移出任务夹',
-                              removeIcon: Icons.remove_circle_outline_rounded,
-                              dragHandle: _FolderTaskDragHandle(
-                                index: index,
-                                enabled: dragEnabled,
+                      child: SizedBox.expand(
+                        key: _listViewportKey,
+                        child: FrameLeanReorderableListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          buildDefaultDragHandles: false,
+                          allowCrossAxisDrag: true,
+                          itemCount: visualTasks.length,
+                          onReorder: (oldIndex, newIndex) {
+                            _commitOptimisticReorder(
+                              tasks: visualTasks,
+                              oldIndex: oldIndex,
+                              newIndex: newIndex,
+                            );
+                          },
+                          onReorderStart: (index) {
+                            if (index < 0 || index >= visualTasks.length) {
+                              return;
+                            }
+                            setState(() {
+                              _draggingTaskId = visualTasks[index].id;
+                              _dragging = true;
+                              _hoveringScrim = false;
+                            });
+                          },
+                          onReorderUpdate: (details) {
+                            _updateDropHover(details.globalPosition);
+                          },
+                          onReorderEnd: (_) => _clearDragState(),
+                          onReorderCancel: (_) => _clearDragState(),
+                          gapBehavior: (details) {
+                            return _isInsideList(details.globalPosition)
+                                ? FrameLeanReorderGapBehavior.move
+                                : FrameLeanReorderGapBehavior.restoreOrigin;
+                          },
+                          onDrop: (details) {
+                            final task = _draggingTaskFor(visualTasks, details);
+                            if (task == null) {
+                              return FrameLeanReorderDropDisposition.cancelled;
+                            }
+                            if (_isOnScrim(details.globalPosition)) {
+                              unawaited(_removeTask(task));
+                              return FrameLeanReorderDropDisposition.accepted;
+                            }
+                            if (!_isInsideList(details.globalPosition)) {
+                              return FrameLeanReorderDropDisposition.cancelled;
+                            }
+                            return FrameLeanReorderDropDisposition.reorder;
+                          },
+                          proxyDecorator: (child, index, animation) {
+                            return Material(
+                              color: Colors.transparent,
+                              child: ScaleTransition(
+                                scale: Tween<double>(
+                                  begin: 1,
+                                  end: 1.015,
+                                ).animate(animation),
+                                child: child,
                               ),
-                              tooltipsEnabled: false,
-                            ),
-                          );
-                        },
+                            );
+                          },
+                          acceptedDropProxyDecorator:
+                              (child, index, animation) {
+                                return FadeTransition(
+                                  key: const Key(
+                                    'task-folder-accepted-drop-proxy',
+                                  ),
+                                  opacity: animation,
+                                  child: ScaleTransition(
+                                    scale: Tween<double>(
+                                      begin: 0.94,
+                                      end: 1,
+                                    ).animate(animation),
+                                    child: child,
+                                  ),
+                                );
+                              },
+                          itemBuilder: (context, index) {
+                            final task = visualTasks[index];
+                            final actionsEnabled =
+                                !_removeCommitInFlight &&
+                                !_reorderCommitInFlight;
+                            final dragEnabled =
+                                actionsEnabled &&
+                                task.status != TaskStatus.running;
+                            return Padding(
+                              key: ValueKey('folder-task-${task.id}'),
+                              padding: EdgeInsets.only(
+                                bottom: index == visualTasks.length - 1 ? 0 : 8,
+                              ),
+                              child: MediaTaskListTile(
+                                task: task,
+                                thumbnail: widget.thumbnailForTask(task),
+                                onStart: () => widget.onStart(task),
+                                onPause: () => widget.onPause(task),
+                                onRetry: () => widget.onRetry(task),
+                                onRelink: () => widget.onRelink(task),
+                                onShowLog: () => widget.onShowLog(task),
+                                onRevealOutput: () =>
+                                    widget.onRevealOutput(task),
+                                onRemove: actionsEnabled
+                                    ? () => unawaited(_removeTask(task))
+                                    : null,
+                                removeTooltip: '移出任务夹',
+                                removeIcon: Icons.remove_circle_outline_rounded,
+                                dragHandle: _FolderTaskDragHandle(
+                                  index: index,
+                                  enabled: dragEnabled,
+                                ),
+                                tooltipsEnabled: false,
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     ),
                   ],
@@ -186,6 +309,178 @@ class TaskFolderContentPanel extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  List<MediaTask> _resolveVisualTasks() {
+    final sourceTasks = widget.tasks
+        .where((task) => !_pendingRemovalIds.contains(task.id))
+        .toList();
+    final optimisticOrder = _optimisticOrder;
+    if (optimisticOrder == null) {
+      return sourceTasks;
+    }
+
+    final sourceById = {for (final task in sourceTasks) task.id: task};
+    if (sourceById.length != optimisticOrder.length ||
+        optimisticOrder.any((id) => !sourceById.containsKey(id))) {
+      _optimisticOrder = null;
+      return sourceTasks;
+    }
+    final sourceOrder = sourceTasks.map((task) => task.id).toList();
+    if (_sameOrder(sourceOrder, optimisticOrder)) {
+      _optimisticOrder = null;
+      return sourceTasks;
+    }
+    return optimisticOrder.map((id) => sourceById[id]!).toList();
+  }
+
+  bool _sameOrder(List<String> source, List<String>? target) {
+    if (target == null || source.length != target.length) {
+      return false;
+    }
+    for (var index = 0; index < source.length; index += 1) {
+      if (source[index] != target[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _commitOptimisticReorder({
+    required List<MediaTask> tasks,
+    required int oldIndex,
+    required int newIndex,
+  }) {
+    if (oldIndex < 0 || oldIndex >= tasks.length) {
+      return;
+    }
+    final visualIndex = (newIndex > oldIndex ? newIndex - 1 : newIndex)
+        .clamp(0, tasks.length - 1)
+        .toInt();
+    final generation = ++_reorderGeneration;
+    if (visualIndex != oldIndex) {
+      final reordered = [...tasks];
+      final movedTask = reordered.removeAt(oldIndex);
+      reordered.insert(visualIndex, movedTask);
+      setState(() {
+        _optimisticOrder = reordered.map((task) => task.id).toList();
+        _reorderCommitInFlight = true;
+      });
+    }
+    unawaited(
+      _persistReorder(
+        generation: generation,
+        oldIndex: oldIndex,
+        newIndex: newIndex,
+      ),
+    );
+  }
+
+  Future<void> _persistReorder({
+    required int generation,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    try {
+      await widget.onReorder(oldIndex, newIndex);
+    } on Object {
+      if (mounted && generation == _reorderGeneration) {
+        setState(() {
+          _optimisticOrder = null;
+          _reorderCommitInFlight = false;
+        });
+      }
+      return;
+    }
+    if (mounted && generation == _reorderGeneration) {
+      setState(() {
+        _reorderCommitInFlight = false;
+      });
+    }
+  }
+
+  Future<void> _removeTask(MediaTask task) async {
+    if (_removeCommitInFlight || _pendingRemovalIds.contains(task.id)) {
+      return;
+    }
+    setState(() {
+      _pendingRemovalIds.add(task.id);
+      _removeCommitInFlight = true;
+      _dragging = false;
+      _hoveringScrim = false;
+    });
+    try {
+      await widget.onRemoveTask(task);
+    } on Object {
+      if (mounted) {
+        setState(() {
+          _pendingRemovalIds.remove(task.id);
+          _removeCommitInFlight = false;
+        });
+      }
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _removeCommitInFlight = false;
+      });
+    }
+  }
+
+  MediaTask? _draggingTaskFor(
+    List<MediaTask> tasks,
+    FrameLeanReorderDropDetails details,
+  ) {
+    final taskId = _draggingTaskId;
+    if (taskId != null) {
+      for (final task in tasks) {
+        if (task.id == taskId) {
+          return task;
+        }
+      }
+    }
+    return details.oldIndex >= 0 && details.oldIndex < tasks.length
+        ? tasks[details.oldIndex]
+        : null;
+  }
+
+  void _updateDropHover(Offset globalPosition) {
+    final hoveringScrim = _isOnScrim(globalPosition);
+    if (_hoveringScrim == hoveringScrim && _dragging) {
+      return;
+    }
+    setState(() {
+      _dragging = true;
+      _hoveringScrim = hoveringScrim;
+    });
+  }
+
+  void _clearDragState() {
+    if (!_dragging && !_hoveringScrim && _draggingTaskId == null) {
+      return;
+    }
+    setState(() {
+      _draggingTaskId = null;
+      _dragging = false;
+      _hoveringScrim = false;
+    });
+  }
+
+  bool _isOnScrim(Offset globalPosition) {
+    final panelRect = _globalRectFor(_panelKey);
+    return panelRect != null && !panelRect.contains(globalPosition);
+  }
+
+  bool _isInsideList(Offset globalPosition) {
+    return _globalRectFor(_listViewportKey)?.contains(globalPosition) ?? false;
+  }
+
+  Rect? _globalRectFor(GlobalKey key) {
+    final box = key.currentContext?.findRenderObject() as RenderBox?;
+    if (box == null || !box.hasSize) {
+      return null;
+    }
+    return box.localToGlobal(Offset.zero) & box.size;
   }
 }
 
@@ -210,7 +505,7 @@ class _FolderTaskDragHandle extends StatelessWidget {
     if (!enabled) {
       return handle;
     }
-    return ReorderableDragStartListener(
+    return FrameLeanReorderableDragStartListener(
       index: index,
       enabled: enabled,
       child: handle,
