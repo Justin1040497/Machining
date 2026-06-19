@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `25`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `26`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -31,11 +31,11 @@ lib/infrastructure/database/app_database.dart
 
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
-| `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果和时间戳 |
+| `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果、完成输出体积和时间戳 |
 | `TaskFolder` | `lib/domain/entities/task_folder.dart` | 工作台任务夹实体，包含名称、媒体类型、排序和默认配置 |
 | `MediaTaskConfig` | `lib/domain/value_objects/media_task_config.dart` | 单任务通用输出、压缩和分类型配置入口 |
 | `VideoProcessingConfig` | `lib/domain/value_objects/video_processing_config.dart` | 视频输出与压缩配置 |
-| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量和元数据保留配置 |
+| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量、无损压缩和元数据保留配置 |
 | `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、码率、采样率和声道配置 |
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频、封装、色彩和 HDR / Dolby Vision 元数据 |
@@ -81,6 +81,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `status` | text | 否 | 无 | `status` | 任务状态，见“任务状态”一节 |
 | `progress` | real | 否 | `0` | `progress` | 0 到 1 的进度值；实体构造时断言范围合法 |
 | `output_path` | text | 是 | `null` | `outputPath` | FFmpeg 计划生成的输出文件路径 |
+| `output_file_size` | integer | 是 | `null` | `outputFileSize` | 成功完成后记录的最终输出体积；重试或重新执行时清空 |
 | `error_message` | text | 是 | `null` | `errorMessage` | 执行、分析或命令构造失败时保存的用户可见错误 |
 | `policy_tags_json` | text | 是 | `null` | `policyTags` | 任务自动策略标签 JSON 数组；为空表示没有标签 |
 | `created_at` | integer | 否 | 无 | `createdAt` | 毫秒时间戳，默认由实体构造时写入 |
@@ -137,10 +138,12 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `outputDirectory` / `outputFileName` | 通用输出目录和文件名 |
 | `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
 | `video` | 视频格式、是否保持源格式、编码器、后端、HDR 输出模式、HDR 开启前的编码恢复值、分辨率、CRF、元数据保留开关和旧推荐预设 |
-| `image` | 图片格式、是否保持源格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
+| `image` | 图片格式、是否保持源格式、无损压缩开关、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
 | `audio` | 音频格式、是否保持源格式、码率、采样率、声道和元数据保留开关；当前输出格式包含 `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`，输出编码由后台按音频格式推导 |
 
 `keepOriginalOutputFormat` 不保存伪格式。导入任务时会按源文件扩展名解析成真实 `MediaOutputFormat`，例如 `.mp4` 写入 `mp4`、`.mov` 写入 `mov`、`.png` 写入 `png`、`.ogg` 写入 `oggOpus`；不支持的源格式会回退到默认输出格式并关闭保持状态。应用默认设置中视频、图片、音频均默认开启保持源文件格式。视频 `hdrOutputMode` 当前支持 `convertToSdr` 和 `preserveHdr`。`preserveHdr` 只承诺 HDR10 / HLG 基础 10-bit HEVC 输出和基础色彩标记，不承诺保留 Dolby Vision 动态元数据。视频、图片和音频 `preserveMetadata` 缺省均为 `true`。
+
+图片 `losslessCompression` 缺省为 `false`，旧 JSON 缺失该字段时同样按 `false` 读取。无损压缩当前只允许 PNG、WebP 和 TIFF；格式转换用途不会沿用压缩用途中的无损开关。
 
 ### 源文件指纹字段
 
@@ -241,6 +244,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
 | `show_task_completion_dialog` | boolean | 否 | `true` | 旧兼容列 | 历史完成弹窗偏好列；当前 domain / UI 不再映射为可修改设置，任务完成只走完成提示音、通知中心和任务项完成文件入口 |
 | `task_completion_sound` | text | 否 | `clean_success` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
+| `max_concurrent_executions` | integer | 否 | `2` | `maxConcurrentExecutions` | 用户期望的最大并行任务数，领域层归一化到 1 到 3；实际运行并发还会由资源守卫按 CPU、内存和运行任务类型降级 |
+| `folder_import_scan_depth` | integer | 否 | `2` | `folderImportScanDepth` | 文件夹导入递归扫描深度，领域层归一化到 0 到 5；层级越深，导入前遍历时间越长 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -336,12 +341,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 1. 队列只从 `pending` 或已有暂停执行中启动任务；候选顺序来自总列表顶层项排序，遇到任务夹时按夹内 `folder_sort_order` 展开。
 2. 启动前再次检查源文件和 FFmpeg 运行时。
-3. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
-4. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
-5. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
-6. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
-7. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`。
-8. 进程失败、输出文件缺失或监听错误时写入 `failed` 和 `failed_at`。
+3. 队列按 `settings.max_concurrent_executions` 读取用户上限，再由资源守卫按设备能力和运行任务类型决定当前可用执行位；多个任务可同时写入 `running`。
+4. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
+5. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
+6. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
+7. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
+8. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`。
+9. 进程失败、输出文件缺失或监听错误时写入 `failed` 和 `failed_at`。
 
 ## 迁移历史
 
@@ -373,6 +379,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 23 | 将已停留在 `{source}-{date}` 过渡默认值的设置升级到 `{source}-{action}` |
 | 24 | 给 `app_notifications` 增加 `dedupe_key`，并为非空去重键创建唯一索引 |
 | 25 | 新增 `task_folders` 表；给 `tasks` 增加 `folder_id`、`folder_sort_order` 和 `policy_tags_json` |
+| 26 | 给 `settings` 增加 `max_concurrent_executions`，持久化受控并行执行上限 |
 
 ## 修改数据模型的约束
 

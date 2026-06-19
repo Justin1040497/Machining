@@ -149,7 +149,7 @@ docs/
 - `SourceFileFingerprint`：源文件快速指纹，用于检测源文件是否被替换或移动。
 - 枚举：任务状态、通用输出格式、视频编码、编码器后端、分辨率预设、压缩模式、推荐方案预设、媒体类型、任务用途、任务策略标签等。
 
-`MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult`、`moveToFolder`、`releaseFromFolder` 等方法，避免 UI 或仓储直接拼装状态。策略标签用于解释自动修正行为，例如 `透明保留`、`输出已改名`、`目录已创建`、`图片已改格式重试` 和 `未有效压缩`。
+`MediaTask` 是任务状态流转的核心。它提供 `markRunning`、`markPaused`、`markCompleted`、`markFailed`、`markCancelled`、`markMissingSource`、`replaceInputFile`、`withAnalysisResult`、`moveToFolder`、`releaseFromFolder` 等方法，避免 UI 或仓储直接拼装状态。成功完成时会保存最终输出体积快照，供任务行稳定展示结果；重试和重新执行会清空旧快照。策略标签用于解释自动修正行为，例如 `透明保留`、`输出已改名`、`目录已创建`、`图片已改格式重试` 和 `未有效压缩`。
 
 ### application
 
@@ -174,6 +174,7 @@ Use Cases：
 - `AppNotificationManager` 提供 update 通知 upsert 能力，版本更新通知通过 `dedupeKey` 保证一个版本只在通知中心保留一条记录。
 - `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，使用 `audioplayers` 播放内置 Flutter asset。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
+- `ImportMediaFolderUseCase`：调用 `MediaFolderScanner` 按设置深度递归扫描目录；单媒体创建普通任务，多媒体按媒体类型创建以源目录命名的任务夹，并汇总读取或导入问题。
 - `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
 - `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
 - `ReplaceMissingSourceUseCase`：为丢失源文件任务重新指定本地文件。
@@ -188,9 +189,9 @@ Use Cases：
 
 服务抽象按阶段分组：
 
-- `services/input_runtime/`：`MediaAnalyzer`、`SourceFileChecker`、`MediaKindResolver`、`SourceFileFingerprintReader`、`FfmpegLocator`、`FfmpegRuntime`、`FfmpegEncoderCapabilities`。
+- `services/input_runtime/`：`MediaAnalyzer`、`MediaFolderScanner`、`SourceFileChecker`、`MediaKindResolver`、`SourceFileFingerprintReader`、`FfmpegLocator`、`FfmpegRuntime`、`FfmpegEncoderCapabilities`。`LocalMediaFolderScanner` 使用 `dart:io` 深度优先遍历且不跟随目录符号链接。
 - `services/ffmpeg_planning/`：`CompressionAdvisor`、`CompressionEstimator`、`FfmpegCommandBuilder` 和默认压缩建议实现。
-- `services/execution/`：`FfmpegTaskQueueRunner`、`OutputPreflightService`、`FfmpegProcessStarter`、`FfmpegProcessController`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
+- `services/execution/`：`FfmpegTaskQueueRunner`、`ExecutionResourceGuard`、`OutputPreflightService`、`FfmpegProcessStarter`、`FfmpegProcessController`、`FfmpegProcessObserver`、`PreviewFrameGenerator`、`VideoThumbnailGenerator`。
 - `services/platform/`：`FileSelectionService`、`FileRevealer`、`ExternalLinkOpener`、`ThemePreferencesCache`。
 
 ### infrastructure
@@ -201,7 +202,7 @@ Use Cases：
 - `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
-- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、进度观测、预览帧生成和视频缩略图生成。
+- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、受控并行资源守卫、进度观测、预览帧生成和视频缩略图生成。
 - `services/app_notifications/`：本地任务完成提示音播放实现，使用 `audioplayers` 播放内置 Flutter asset。
 - `services/platform/`：桌面文件选择、Finder / Explorer 定位、系统外链打开和主题缓存实现。
 
@@ -233,6 +234,7 @@ Use Cases：
 - 设置页和工作台共同复用 `app/widgets/` 的路径输入、下拉控件和百分比滑杆。
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
+- 应用设置中的“最大并行任务数”写入 `AppSettings.maxConcurrentExecutions`，表示用户期望上限；实际执行位还会由本机 CPU、内存和当前任务类型通过资源守卫降级。
 - 关于栏承载自托管更新主入口：`检查更新` / `检查中` / `现在更新` / 下载百分比 / `重启更新` 保持固定按钮尺寸；旁边的 `版本日志` 打开 `/settings/release-notes`。
 - `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志。
 
@@ -240,11 +242,12 @@ Use Cases：
 
 - 文件选择和拖拽导入。
 - 任务列表、任务 / 任务夹混排排序、右键菜单、重命名、删除和清空。
-- 批量导入按媒体类型自动创建任务夹；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
+- 批量导入按媒体类型自动创建任务夹；任务夹默认命名为媒体类型加序号；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
 - 任务夹主体打开夹级配置弹窗，保存后更新任务夹默认配置并批量应用到非 `running` / `paused` / `analyzing` 任务。
 - 任务夹尾部按钮支持打开夹内任务浮层、按状态批量暂停 / 启动下一项 / 重试终态任务和查看夹内聚合日志；副标题显示任务数、完成 / 失败数和源文件丢失计数。
-- 任务夹内容浮层复用普通任务行样式，夹内排序使用共享 reorderable 并乐观衔接持久化；拖到面板外遮罩会立即隐藏任务行、在落点收起并移回总列表尾部，失败时回滚。标题区和面板内空白区不是移出目标。
-- 主列表支持多选 FAB 按媒体类型创建任务夹；未入夹任务的拖拽柄同时承担排序和入夹：经过同类型任务夹整行时，共享 `FrameLeanReorderableListView` 会恢复原始 gap；中部主体释放入夹，上下 16px 边缘继续排序，离开任务夹行后才恢复排序预览。顶层排序以 UI 乐观顺序衔接异步仓储提交，跨类型任务夹禁用显示并作为排序目标。
+- 任务夹内容浮层复用普通任务行样式，从窗口左侧滑入，动画语义与通知中心右侧浮层对称；夹内排序使用共享 reorderable 并乐观衔接持久化；拖到面板外遮罩会立即隐藏任务行、在落点收起并移回总列表尾部，失败时回滚。标题区和面板内空白区不是移出目标。
+- 主列表支持左侧批量操作条按媒体类型创建任务夹；未入夹任务的拖拽柄同时承担排序和入夹：经过同类型任务夹整行时，共享 `FrameLeanReorderableListView` 会恢复原始 gap；中部主体释放入夹，上下 16px 边缘继续排序，离开任务夹行后才恢复排序预览。顶层排序以 UI 乐观顺序衔接异步仓储提交，跨类型任务夹禁用显示并作为排序目标。
+- 任务和任务夹右键菜单使用项目弹窗风格、圆角和图标行；任务菜单提供打开位置、重命名、日志、删除，以及“添加到任务夹”二级菜单；任务夹菜单提供重命名、打开夹内任务、聚合日志和删除。
 - 删除任务夹会释放夹内任务回到总列表，不删除任务本身；任务夹没有任务时会自动删除，当前打开的空夹被删除后左侧内容浮层会关闭。
 - 源文件丢失后的重新指定。
 - 任务配置保存。
@@ -294,6 +297,7 @@ FrameLean 使用 Riverpod 作为依赖注入和状态管理工具。依赖装配
 | `compressionAdvisorProvider` | `Provider<CompressionAdvisor>` | 提供压缩策略建议 |
 | `ffmpegCommandBuilderProvider` | `Provider<FfmpegCommandBuilder>` | 提供 FFmpeg 命令规划服务 |
 | `outputPreflightServiceProvider` | `Provider<OutputPreflightService>` | FFmpeg 启动前创建输出目录、检查同源 / 重名 / 可写性并回写最终路径 |
+| `executionResourceGuardProvider` | `Provider<ExecutionResourceGuard>` | 根据用户并行上限、CPU、内存和运行中任务类型计算当前可用执行位 |
 | `previewFrameGeneratorProvider` | `Provider<PreviewFrameGenerator>` | 提供压缩前后预览帧生成服务 |
 | `videoThumbnailGeneratorProvider` | `Provider<VideoThumbnailGenerator>` | 提供视频缩略图生成服务 |
 | `ffmpegProcessStarterProvider` | `Provider<FfmpegProcessStarter>` | 提供 FFmpeg 进程启动实现 |
@@ -380,6 +384,7 @@ main()
 - `MediaKind.video` 继续走完整视频规划链路，保留现有压缩、转封装、硬件编码、目标体积和预览片段行为。
 - 透明视频会根据 `videoPixelFormat` 自动进入透明保留策略：输出固定为 MOV + `prores_ks` ProRes 4444，像素格式为 `yuva444p10le`，目标体积和预设只作为尽力压缩意图。
 - `MediaKind.image` 压缩任务使用 `ProgressMode.step`，先按源图片格式生成候选输出；候选不小于源文件时清理候选并进入 WebP / JPG fallback。透明图片优先 WebP，非透明图片优先 WebP，缺少 `libwebp` 时非透明图可以降级 JPG，透明图不会降级 JPG。
+- 图片无损压缩限定 PNG、WebP 和 TIFF：WebP 使用 `-lossless 1`，TIFF 使用 Deflate；无损模式不会降级到 JPG，格式转换用途不应用压缩用途的无损开关。
 - `FfmpegCommandStep.completionPolicy` 决定步骤结束后的行为：视频两遍压缩保持总是继续；图片首轮可以在变小时提前完成，fallback 仍无效时任务失败并写入原因。
 - `MediaKind.audio` 当前生成音频输出计划，使用 `-vn` 禁用视频流，并按音频格式推导编码参数，按配置写入码率、采样率和声道参数。
 - `VideoCodec.source` 必须先依赖分析结果解析为 `h264` 或 `hevc`。
@@ -392,7 +397,7 @@ main()
 
 ### 队列执行
 
-`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。UI 不直接调用它的细节方法，而是通过 `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`DeleteMediaTaskUseCase` 和 `ClearMediaTasksUseCase` 进入执行流程。队列执行器保存内存中的 `_executions` 和 `_foregroundTaskId`，同时把任务状态写回仓储。
+`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。UI 不直接调用它的细节方法，而是通过 `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`DeleteMediaTaskUseCase` 和 `ClearMediaTasksUseCase` 进入执行流程。队列执行器保存内存中的 `_executions`、插队优先队列和当前有效执行位，同时把任务状态写回仓储。
 
 状态模型：
 
@@ -400,7 +405,7 @@ main()
 | --- | --- |
 | `idle` | 没有可执行或正在执行的任务 |
 | `ready` | 存在 `pending` 任务或暂停中的进程 |
-| `running` | 存在前台执行任务或数据库中有 `running` 任务 |
+| `running` | 存在一个或多个运行中的执行任务，或数据库中有 `running` 任务 |
 
 执行流程：
 
@@ -422,13 +427,21 @@ start / startOrResumeTask
   -> continueAfterTask()
 ```
 
+并行和资源保护：
+
+- 用户可在设置中选择 1、2 或 3 个最大并行任务数，默认 2；该值只是上限，不直接等同于一定会启动同样数量的 FFmpeg 进程。
+- `ExecutionResourceGuard` 会按 CPU、内存和当前运行任务类型计算有效执行位；低核心数或低内存设备会自动降级到 1，高负载场景可低于用户设置。
+- 用户手动选择的任务线程上限优先进入 FFmpeg 参数，同时计入资源预算；高线程任务可能独占当前预算，完成后队列再恢复填充其他执行位。
+- 视频任务被视为重任务，同一时刻默认只允许一个视频 FFmpeg 进程运行；空余执行位优先留给图片或音频等较轻任务，避免多路视频压缩把设备拖卡。
+- `fillAvailableSlots()` 先消费插队优先队列，再按展开后的总列表顺序填充空闲执行位；被资源守卫拦截的任务保持等待，不会打断已经运行的进程。
+
 暂停和恢复：
 
-- 暂停当前前台任务时，队列执行器通过 `FfmpegProcessController.pause()` 控制底层进程，并把任务标记为 `paused`。
+- 暂停单个运行任务时，队列执行器通过 `FfmpegProcessController.pause()` 控制对应底层进程，并把任务标记为 `paused`。
 - 恢复暂停任务时调用 `FfmpegProcessController.resume()`，并标记为 `running`。
 - macOS / Linux 当前使用 `ProcessSignal.sigstop` 和 `ProcessSignal.sigcont` 实现。
 - Windows 通过 runner method channel 调用原生线程挂起 / 恢复能力，避免把 Unix signal 语义套到 Windows 进程上。
-- 切换到另一个任务前，会先挂起当前前台任务。
+- 底部暂停会暂停所有运行中的执行；单任务暂停只影响对应执行位。
 - 如果后台观测在任务处于 `paused` 状态时收到进程终态，队列仍会完成收尾，避免任务卡在暂停状态。
 
 取消：
@@ -439,9 +452,9 @@ start / startOrResumeTask
 连续执行：
 
 - 当前 `continuousExecutionEnabled` 默认开启。
-- 一个任务完成或失败后，队列会按总列表顺序展开任务夹：顶层任务 / 任务夹按 `sort_order` 排序，遇到任务夹时再按夹内 `folder_sort_order` 展开，选择下一个 `pending` 或 `paused` 任务继续执行。
-- 点击单个任务或夹内任务开始时会先挂起当前前台任务并插队执行；插队任务结束后继续按最新展开顺序推进。
-- 当前执行器仍是单前台执行槽；后续多进程方案会引入 `maxConcurrentExecutions`（默认 2，上限 3）和多个 execution slot，调度仍复用同一个展开顺序解析器。
+- 一个任务完成或失败后，队列会按总列表顺序展开任务夹：顶层任务 / 任务夹按 `sort_order` 排序，遇到任务夹时再按夹内 `folder_sort_order` 展开，并继续填充可用执行位。
+- 点击单个任务或夹内任务开始时会进入插队优先队列：如果有空闲且资源守卫允许，会立即执行；否则等待最早空出的执行位，不默认暂停正在运行的其他 FFmpeg 进程。
+- 插队任务结束后，队列继续按最新展开顺序推进；任务和任务夹的实时排序会影响后续尚未启动的任务。
 
 ### 进度和日志
 

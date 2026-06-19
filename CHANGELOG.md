@@ -31,12 +31,17 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-19｜v1.2.1｜No Release
 
-今天收口工作台任务夹拖拽：将 Flutter 3.41.2 reorderable fork 提升为全应用共享组件，顶层列表保留任务夹 hover freeze 和乐观落位，夹内列表同步迁移并支持拖到遮罩移出。同时修正移出任务的混排尾部顺序，移除普通任务行误用的选中边框。
+今天收口工作台任务夹拖拽、任务夹交互和受控并行队列：将 Flutter 3.41.2 reorderable fork 提升为全应用共享组件，顶层列表保留任务夹 hover freeze 和乐观落位，夹内列表同步迁移并支持拖到遮罩移出。同时补齐左侧任务夹浮层动画、右键菜单、任务夹命名 / 重命名、多选批量条和最大并行任务数设置。
 
 ### Added
 
 - 新增全应用 `FrameLeanReorderableListView`，支持拖拽更新、三种 gap 策略、排序 / 外部接收 / 取消 drop、跨轴拖动和外部接收代理装饰。
 - 任务夹内任务可通过拖拽柄移到面板外遮罩，释放后在落点缩小淡出并移回总列表。
+- 新增受控并行执行：设置页可选择 1 到 3 个最大并行任务数，队列通过资源守卫按 CPU、内存和任务类型决定实际执行位。
+- 新增任务和任务夹项目风格右键菜单；任务可通过“添加到任务夹”二级菜单加入同媒体类型任务夹，任务夹可右键重命名。
+- 图片任务详情新增无损压缩开关；开启后仅提供 PNG、WebP、TIFF，WebP 使用 lossless 模式，TIFF 使用 Deflate，并隐藏有损质量滑杆。
+- 导入入口新增文件夹选择和拖拽文件夹扫描；扫描深度默认 2 层并可在设置页调整，扫描结果为单媒体时创建普通任务，多媒体时按媒体类型创建源文件夹命名的任务夹。
+- 任务详情新增“压缩 / 格式转换”意图切换和默认收起的高级设置，支持线程限制、视频两遍压缩模式及多音频流选择。
 
 ### Changed
 
@@ -44,20 +49,22 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 同类型任务夹中部释放仍走入夹；上下 16px 边缘释放、普通任务和跨类型任务夹仍走排序路径，跨类型任务夹保持禁用视觉且不显示拒绝提示。
 - 顶层排序采用乐观视觉顺序衔接异步 Drift 持久化；提交成功后由仓储结果接管，失败时回滚，避免 drop 动画结束后列表项短暂返回旧位置。
 - 夹内排序同样使用乐观视觉顺序；移出持久化失败时恢复任务行，面板标题区和内部空白区释放按取消处理。
+- 任务夹内容浮层改为从左侧滑入，与通知中心右侧浮层保持对称动画；多选创建任务夹入口改为应用左侧批量操作条。
+- 新任务和新任务夹插入到未完成项之后、已完成项之前；任务夹默认名称改为媒体类型加序号。
+- 单任务开始不再默认暂停正在运行的其他任务，而是作为插队入口填充空闲执行位或进入优先队列。
+- 已完成压缩任务的列表摘要改为“源体积 - 输出体积 · 压缩比例”，格式转换任务改为“源格式 - 目标格式”，不再显示压缩百分比。
 
 ### Fixed
 
 - 移出任务的 `sortOrder` 现在同时参考普通任务和任务夹，确保位于整个顶层混排列表尾部。
 - 移除任务配置上下文和任务行视觉选中态的耦合；普通和多选模式均不再显示蓝色任务行边框。
+- 修正左侧任务夹内容浮层打开时缺少滑入动画的问题。
 
 ### Verified
 
-- 通过 `flutter test`，共 314 项测试。
-- 通过 `flutter test test/framelean_reorderable_list_view_test.dart`，4 项共享组件测试。
-- 通过 `flutter test test/widget_test.dart`，44 项工作台 widget 测试。
-- 通过 `flutter test test/task_folder_use_cases_test.dart test/media_task_notifier_test.dart test/reorder_workbench_items_use_case_test.dart`，16 项 application / notifier 测试。
-- 通过 `flutter analyze`。
-- 通过本次 Dart 变更文件的 `dart format --set-exit-if-changed`。
+- 通过 `rtk dart format lib test --set-exit-if-changed`。
+- 通过 `rtk flutter analyze`。
+- 通过 `rtk flutter test`，共 326 项测试。
 
 ## 2026-06-18｜v1.2.1｜No Release
 
