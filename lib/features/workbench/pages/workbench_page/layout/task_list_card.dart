@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -7,6 +9,7 @@ import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
+import 'package:framelean/features/workbench/widgets/reorderable/workbench_reorderable_list.dart';
 
 typedef WorkbenchTaskPositionCallback =
     void Function(MediaTask task, Offset position);
@@ -14,6 +17,8 @@ typedef WorkbenchTaskFolderDropCallback =
     void Function(MediaTask task, TaskFolder folder);
 typedef WorkbenchTaskSelectionCallback =
     void Function(Set<String> taskIds, {bool toggle});
+typedef WorkbenchReorderCommitCallback =
+    FutureOr<void> Function(int oldIndex, int newIndex);
 
 class WorkbenchTaskListCard extends StatefulWidget {
   const WorkbenchTaskListCard({
@@ -54,7 +59,7 @@ class WorkbenchTaskListCard extends StatefulWidget {
   final Set<String> selectedTaskIds;
   final bool selectionMode;
   final ImageProvider? Function(MediaTask task) thumbnailForTask;
-  final ReorderCallback onReorder;
+  final WorkbenchReorderCommitCallback onReorder;
   final ValueChanged<MediaTask> onOpenTask;
   final ValueChanged<MediaTask> onStart;
   final ValueChanged<MediaTask> onPause;
@@ -86,15 +91,17 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
 
   final Map<String, GlobalKey> _taskItemKeys = {};
   final Map<String, GlobalKey> _folderDropKeys = {};
-  final GlobalKey _listStackKey = GlobalKey();
+  final Map<String, Rect> _dragFolderRects = {};
+  ScrollPosition? _dragScrollPosition;
+  double? _dragScrollOffsetAtStart;
   Offset? _selectionStart;
   Offset? _selectionCurrent;
   String? _hoveredFolderId;
-  Rect? _hoveredFolderAnchorRect;
   MediaTask? _draggingTaskForReorder;
   Offset? _taskReorderPointerPosition;
-  int? _draggingTaskTopLevelIndex;
-  List<WorkbenchListItem> _draggingTopLevelItems = const [];
+  List<String>? _optimisticItemOrder;
+  var _reorderCommitGeneration = 0;
+  var _reorderCommitInFlight = false;
 
   @override
   Widget build(BuildContext context) {
@@ -116,24 +123,33 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     List<MediaTask> tasks,
     List<TaskFolder> folders,
   ) {
-    final items = buildWorkbenchListItems(tasks, folders);
+    final items = _resolveVisualItems(buildWorkbenchListItems(tasks, folders));
     if (items.isEmpty) {
       return _buildEmpty();
     }
 
-    final listView = ReorderableListView.builder(
+    final listView = WorkbenchReorderableList(
       padding: EdgeInsets.zero,
-      buildDefaultDragHandles: false,
       itemCount: items.length,
       onReorder: widget.selectionMode
           ? (_, _) {}
           : (oldIndex, newIndex) {
-              _handleReorder(
+              _commitOptimisticReorder(
+                items: items,
                 oldIndex: oldIndex,
                 newIndex: newIndex,
-                folders: folders,
               );
             },
+      shouldMoveGap: (details) {
+        return _shouldMoveTaskReorderGap(details, folders);
+      },
+      onDrop: (details) {
+        return _handleWorkbenchReorderDrop(
+          details: details,
+          items: items,
+          folders: folders,
+        );
+      },
       proxyDecorator: (child, index, animation) {
         return Material(
           color: Colors.transparent,
@@ -163,7 +179,6 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         return _buildTaskItem(
           task: task,
           folders: folders,
-          items: items,
           index: index,
           itemCount: items.length,
         );
@@ -171,24 +186,35 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     );
 
     return Stack(
-      key: _listStackKey,
       fit: StackFit.expand,
       children: [
         Positioned.fill(
           child: GestureDetector(
             behavior: HitTestBehavior.translucent,
             onPanStart: (details) {
+              if (_draggingTaskForReorder != null) {
+                return;
+              }
               setState(() {
                 _selectionStart = details.localPosition;
                 _selectionCurrent = details.localPosition;
               });
             },
             onPanUpdate: (details) {
+              if (_draggingTaskForReorder != null) {
+                return;
+              }
               setState(() {
                 _selectionCurrent = details.localPosition;
               });
             },
-            onPanEnd: (_) => _finishRectangleSelection(context, tasks),
+            onPanEnd: (_) {
+              if (_draggingTaskForReorder != null) {
+                _clearRectangleSelection();
+                return;
+              }
+              _finishRectangleSelection(context, tasks);
+            },
             onPanCancel: _clearRectangleSelection,
             child: listView,
           ),
@@ -208,8 +234,6 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
               ),
             ),
           ),
-        if (_hoveredFolderId != null && _hoveredFolderAnchorRect != null)
-          _buildHoveredFolderOverlay(tasks, folders),
       ],
     );
   }
@@ -224,6 +248,7 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     final folderTasks = folderTasksFor(tasks, folder.id);
     final dragEnabled =
         !widget.selectionMode &&
+        !_reorderCommitInFlight &&
         !folderTasks.any((task) => task.status == TaskStatus.running);
     final draggingTask = _draggingTaskForReorder;
     final dropDisabled =
@@ -257,74 +282,20 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
           ),
           dropHighlighted: _hoveredFolderId == folder.id,
           dropDisabled: dropDisabled,
-          dropGhosted: _hoveredFolderId == folder.id,
         ),
       ),
     );
     return child;
   }
 
-  Widget _buildHoveredFolderOverlay(
-    List<MediaTask> tasks,
-    List<TaskFolder> folders,
-  ) {
-    final hoveredFolderId = _hoveredFolderId;
-    final anchorRect = _hoveredFolderAnchorRect;
-    if (hoveredFolderId == null || anchorRect == null) {
-      return const SizedBox.shrink();
-    }
-
-    final stackBox =
-        _listStackKey.currentContext?.findRenderObject() as RenderBox?;
-    if (stackBox == null || !stackBox.hasSize) {
-      return const SizedBox.shrink();
-    }
-
-    TaskFolder? hoveredFolder;
-    for (final folder in folders) {
-      if (folder.id == hoveredFolderId) {
-        hoveredFolder = folder;
-        break;
-      }
-    }
-    if (hoveredFolder == null) {
-      return const SizedBox.shrink();
-    }
-
-    final topLeft = stackBox.globalToLocal(anchorRect.topLeft);
-    return Positioned(
-      left: topLeft.dx,
-      top: topLeft.dy,
-      width: anchorRect.width,
-      height: anchorRect.height,
-      child: IgnorePointer(
-        child: TaskFolderListTile(
-          folder: hoveredFolder,
-          tasks: folderTasksFor(tasks, hoveredFolder.id),
-          onOpenSettings: () {},
-          onOpenContents: () {},
-          onDelete: () {},
-          onStart: () {},
-          onPause: () {},
-          onRetry: () {},
-          onRelink: () {},
-          onShowLog: () {},
-          dragHandle: const SizedBox(width: 24),
-          dropHighlighted: true,
-          dropStateKey: ValueKey('task-folder-hover-overlay-$hoveredFolderId'),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTaskItem({
     required MediaTask task,
     required List<TaskFolder> folders,
-    required List<WorkbenchListItem> items,
     required int index,
     required int itemCount,
   }) {
-    final dragEnabled = task.status != TaskStatus.running;
+    final dragEnabled =
+        !_reorderCommitInFlight && task.status != TaskStatus.running;
     final selectedForBatch = widget.selectedTaskIds.contains(task.id);
     final tile = MediaTaskListTile(
       task: task,
@@ -356,13 +327,7 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
               index: index,
               enabled: dragEnabled,
               onPointerDown: (event) {
-                _startTaskHandleDrag(
-                  task,
-                  event.position,
-                  folders,
-                  items,
-                  index,
-                );
+                _startTaskHandleDrag(task, event.position, folders);
               },
               onPointerMove: (event) {
                 _updateTaskHandleDrag(event.position, folders);
@@ -391,38 +356,198 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     return task.folderId == null && task.mediaKind == folder.mediaKind;
   }
 
-  void _handleReorder({
-    required int oldIndex,
-    required int newIndex,
+  bool _shouldMoveTaskReorderGap(
+    WorkbenchReorderGapDetails details,
+    List<TaskFolder> folders,
+  ) {
+    final task = _draggingTaskForReorder;
+    if (task == null) {
+      return true;
+    }
+    for (final folder in folders) {
+      if (!_canDropTaskIntoFolder(task, folder)) {
+        continue;
+      }
+      final folderRect = _folderRectForDrag(folder.id);
+      if (folderRect?.contains(details.globalPosition) ?? false) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  bool _handleWorkbenchReorderDrop({
+    required WorkbenchReorderDropDetails details,
+    required List<WorkbenchListItem> items,
     required List<TaskFolder> folders,
   }) {
     final task = _draggingTaskForReorder;
-    final targetFolder = task == null
-        ? null
-        : _folderDropTargetAt(
-            _taskReorderPointerPosition,
-            folders: folders,
-            task: task,
-          );
-    _clearTaskHandleDrag();
+    if (task == null) {
+      _clearTaskHandleDrag();
+      return false;
+    }
 
-    if (task != null && targetFolder != null) {
+    final targetFolder = _folderDropTargetAt(
+      details.globalPosition,
+      folders: folders,
+      task: task,
+    );
+    if (targetFolder != null) {
+      _clearTaskHandleDrag();
       widget.onMoveTaskToFolder(task, targetFolder);
+      return true;
+    }
+
+    final sortTarget = _sortTargetAt(details.globalPosition, items);
+    if (sortTarget != null && details.oldIndex == details.newIndex) {
+      final newIndex = _newReorderIndexForSortTarget(
+        oldIndex: details.oldIndex,
+        targetIndex: sortTarget.itemIndex,
+        afterTarget: sortTarget.afterItem,
+        itemCount: items.length,
+      );
+      _clearTaskHandleDrag();
+      if (newIndex != details.oldIndex) {
+        _commitOptimisticReorder(
+          items: items,
+          oldIndex: details.oldIndex,
+          newIndex: newIndex,
+        );
+      }
+      return true;
+    }
+
+    _clearTaskHandleDrag();
+    return false;
+  }
+
+  List<WorkbenchListItem> _resolveVisualItems(
+    List<WorkbenchListItem> sourceItems,
+  ) {
+    final optimisticOrder = _optimisticItemOrder;
+    if (optimisticOrder == null) {
+      return sourceItems;
+    }
+
+    final sourceByKey = {
+      for (final item in sourceItems) item.identityKey: item,
+    };
+    if (sourceByKey.length != optimisticOrder.length ||
+        optimisticOrder.any((key) => !sourceByKey.containsKey(key))) {
+      _optimisticItemOrder = null;
+      return sourceItems;
+    }
+
+    final sourceOrder = sourceItems.map((item) => item.identityKey).toList();
+    if (_sameItemOrder(sourceOrder, optimisticOrder)) {
+      _optimisticItemOrder = null;
+      return sourceItems;
+    }
+
+    return optimisticOrder.map((key) => sourceByKey[key]!).toList();
+  }
+
+  bool _sameItemOrder(List<String> left, List<String> right) {
+    if (left.length != right.length) {
+      return false;
+    }
+    for (var index = 0; index < left.length; index += 1) {
+      if (left[index] != right[index]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void _commitOptimisticReorder({
+    required List<WorkbenchListItem> items,
+    required int oldIndex,
+    required int newIndex,
+  }) {
+    if (oldIndex < 0 || oldIndex >= items.length) {
       return;
     }
 
-    widget.onReorder(oldIndex, newIndex);
+    final visualIndex = (newIndex > oldIndex ? newIndex - 1 : newIndex)
+        .clamp(0, items.length - 1)
+        .toInt();
+    if (visualIndex == oldIndex) {
+      final generation = ++_reorderCommitGeneration;
+      unawaited(
+        _persistReorder(
+          generation: generation,
+          oldIndex: oldIndex,
+          newIndex: newIndex,
+        ),
+      );
+      return;
+    }
+
+    final reorderedItems = [...items];
+    final movedItem = reorderedItems.removeAt(oldIndex);
+    reorderedItems.insert(visualIndex, movedItem);
+    final generation = ++_reorderCommitGeneration;
+    setState(() {
+      _optimisticItemOrder = reorderedItems
+          .map((item) => item.identityKey)
+          .toList();
+      _reorderCommitInFlight = true;
+    });
+    unawaited(
+      _persistReorder(
+        generation: generation,
+        oldIndex: oldIndex,
+        newIndex: newIndex,
+      ),
+    );
+  }
+
+  Future<void> _persistReorder({
+    required int generation,
+    required int oldIndex,
+    required int newIndex,
+  }) async {
+    try {
+      await widget.onReorder(oldIndex, newIndex);
+    } on Object {
+      if (mounted && generation == _reorderCommitGeneration) {
+        setState(() {
+          _optimisticItemOrder = null;
+          _reorderCommitInFlight = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted && generation == _reorderCommitGeneration) {
+      setState(() {
+        _reorderCommitInFlight = false;
+      });
+    }
   }
 
   void _startTaskHandleDrag(
     MediaTask task,
     Offset globalPosition,
     List<TaskFolder> folders,
-    List<WorkbenchListItem> items,
-    int index,
   ) {
-    _draggingTaskTopLevelIndex = index;
-    _draggingTopLevelItems = items;
+    final folderContext = folders.isEmpty
+        ? null
+        : _folderDropKeys[folders.first.id]?.currentContext;
+    _dragScrollPosition = folderContext == null
+        ? null
+        : Scrollable.maybeOf(folderContext, axis: Axis.vertical)?.position;
+    _dragScrollOffsetAtStart = _dragScrollPosition?.pixels;
+    _dragFolderRects
+      ..clear()
+      ..addEntries(
+        folders
+            .map((folder) {
+              return MapEntry(folder.id, _folderRectForDrag(folder.id));
+            })
+            .where((entry) => entry.value != null)
+            .map((entry) => MapEntry(entry.key, entry.value!)),
+      );
     _setTaskHandleDragState(
       task: task,
       globalPosition: globalPosition,
@@ -444,11 +569,10 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
 
   void _endTaskHandleDrag(Offset globalPosition) {
     _taskReorderPointerPosition = globalPosition;
-    _completeTaskHandleDragAfterFrame();
   }
 
   void _cancelTaskHandleDrag() {
-    _scheduleClearTaskHandleDrag();
+    _clearTaskHandleDrag();
   }
 
   void _setTaskHandleDragState({
@@ -468,73 +592,10 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       return;
     }
 
-    final nextAnchorRect = nextHoveredFolderId == null
-        ? null
-        : _hoveredFolderId == nextHoveredFolderId
-        ? _hoveredFolderAnchorRect
-        : _folderGlobalRect(nextHoveredFolderId);
     setState(() {
       _draggingTaskForReorder = task;
       _taskReorderPointerPosition = globalPosition;
       _hoveredFolderId = nextHoveredFolderId;
-      _hoveredFolderAnchorRect = nextAnchorRect;
-    });
-  }
-
-  void _scheduleClearTaskHandleDrag() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || _draggingTaskForReorder == null) {
-        return;
-      }
-      _clearTaskHandleDrag();
-    });
-  }
-
-  void _completeTaskHandleDragAfterFrame() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
-      final task = _draggingTaskForReorder;
-      final oldIndex = _draggingTaskTopLevelIndex;
-      if (task == null || oldIndex == null) {
-        _clearTaskHandleDrag();
-        return;
-      }
-
-      final targetFolder = _folderDropTargetAt(
-        _taskReorderPointerPosition,
-        folders: [
-          for (final item in _draggingTopLevelItems)
-            if (item.folder != null) item.folder!,
-        ],
-        task: task,
-      );
-      if (targetFolder != null) {
-        _clearTaskHandleDrag();
-        widget.onMoveTaskToFolder(task, targetFolder);
-        return;
-      }
-
-      final sortTarget = _folderSortTargetAt(
-        _taskReorderPointerPosition,
-        _draggingTopLevelItems,
-      );
-      if (sortTarget != null) {
-        final newIndex = _newReorderIndexForFolderSortTarget(
-          oldIndex: oldIndex,
-          folderIndex: sortTarget.folderIndex,
-          afterFolder: sortTarget.afterFolder,
-          itemCount: _draggingTopLevelItems.length,
-        );
-        _clearTaskHandleDrag();
-        if (newIndex != oldIndex) {
-          widget.onReorder(oldIndex, newIndex);
-        }
-        return;
-      }
-
-      _clearTaskHandleDrag();
     });
   }
 
@@ -542,18 +603,18 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     if (_draggingTaskForReorder == null &&
         _taskReorderPointerPosition == null &&
         _hoveredFolderId == null &&
-        _hoveredFolderAnchorRect == null &&
-        _draggingTaskTopLevelIndex == null &&
-        _draggingTopLevelItems.isEmpty) {
+        _dragFolderRects.isEmpty &&
+        _dragScrollPosition == null &&
+        _dragScrollOffsetAtStart == null) {
       return;
     }
     setState(() {
       _draggingTaskForReorder = null;
       _taskReorderPointerPosition = null;
       _hoveredFolderId = null;
-      _hoveredFolderAnchorRect = null;
-      _draggingTaskTopLevelIndex = null;
-      _draggingTopLevelItems = const [];
+      _dragFolderRects.clear();
+      _dragScrollPosition = null;
+      _dragScrollOffsetAtStart = null;
     });
   }
 
@@ -570,12 +631,10 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       if (!_canDropTaskIntoFolder(task, folder)) {
         continue;
       }
-      final folderContext = _folderDropKeys[folder.id]?.currentContext;
-      final folderBox = folderContext?.findRenderObject() as RenderBox?;
-      if (folderBox == null || !folderBox.hasSize) {
+      final folderRect = _folderRectForDrag(folder.id);
+      if (folderRect == null) {
         continue;
       }
-      final folderRect = folderBox.localToGlobal(Offset.zero) & folderBox.size;
       if (_folderDropBodyRect(folderRect).contains(globalPosition)) {
         return folder;
       }
@@ -584,16 +643,20 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     return null;
   }
 
-  Rect? _folderGlobalRect(String folderId) {
-    final folderContext = _folderDropKeys[folderId]?.currentContext;
-    final folderBox = folderContext?.findRenderObject() as RenderBox?;
-    if (folderBox == null || !folderBox.hasSize) {
-      return null;
+  Rect? _folderRectForDrag(String folderId) {
+    final capturedRect = _dragFolderRects[folderId];
+    if (capturedRect != null) {
+      final startOffset = _dragScrollOffsetAtStart;
+      final currentOffset = _dragScrollPosition?.pixels;
+      final scrollDelta = startOffset == null || currentOffset == null
+          ? 0.0
+          : startOffset - currentOffset;
+      return capturedRect.shift(Offset(0, scrollDelta));
     }
-    return folderBox.localToGlobal(Offset.zero) & folderBox.size;
+    return _globalRectFor(_folderDropKeys[folderId]);
   }
 
-  _FolderSortTarget? _folderSortTargetAt(
+  _WorkbenchSortTarget? _sortTargetAt(
     Offset? globalPosition,
     List<WorkbenchListItem> items,
   ) {
@@ -603,41 +666,53 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
 
     for (var index = 0; index < items.length; index += 1) {
       final folder = items[index].folder;
-      if (folder == null) {
+      final task = items[index].task;
+      final itemRect = folder != null
+          ? _globalRectFor(_folderDropKeys[folder.id])
+          : task != null
+          ? _globalRectFor(_taskItemKeys[task.id])
+          : null;
+      if (itemRect == null) {
         continue;
       }
-      final folderContext = _folderDropKeys[folder.id]?.currentContext;
-      final folderBox = folderContext?.findRenderObject() as RenderBox?;
-      if (folderBox == null || !folderBox.hasSize) {
+      if (!itemRect.contains(globalPosition)) {
         continue;
       }
-      final folderRect = folderBox.localToGlobal(Offset.zero) & folderBox.size;
-      if (!folderRect.contains(globalPosition)) {
-        continue;
-      }
-      return _FolderSortTarget(
-        folderIndex: index,
-        afterFolder: globalPosition.dy > folderRect.center.dy,
+      return _WorkbenchSortTarget(
+        itemIndex: index,
+        afterItem: globalPosition.dy > itemRect.center.dy,
       );
     }
 
     return null;
   }
 
-  int _newReorderIndexForFolderSortTarget({
+  Rect? _globalRectFor(GlobalKey? key) {
+    final itemContext = key?.currentContext;
+    final itemBox = itemContext?.findRenderObject() as RenderBox?;
+    if (itemBox == null || !itemBox.hasSize) {
+      return null;
+    }
+    return itemBox.localToGlobal(Offset.zero) & itemBox.size;
+  }
+
+  int _newReorderIndexForSortTarget({
     required int oldIndex,
-    required int folderIndex,
-    required bool afterFolder,
+    required int targetIndex,
+    required bool afterTarget,
     required int itemCount,
   }) {
-    final targetIndex = afterFolder
-        ? oldIndex < folderIndex
-              ? folderIndex
-              : folderIndex + 1
-        : oldIndex < folderIndex
-        ? folderIndex - 1
-        : folderIndex;
-    final clampedTargetIndex = targetIndex.clamp(0, itemCount - 1).toInt();
+    if (oldIndex == targetIndex) {
+      return oldIndex;
+    }
+    final insertionTarget = afterTarget
+        ? oldIndex < targetIndex
+              ? targetIndex
+              : targetIndex + 1
+        : oldIndex < targetIndex
+        ? targetIndex - 1
+        : targetIndex;
+    final clampedTargetIndex = insertionTarget.clamp(0, itemCount - 1).toInt();
     return clampedTargetIndex > oldIndex
         ? clampedTargetIndex + 1
         : clampedTargetIndex;
@@ -775,16 +850,19 @@ class WorkbenchListItem {
 
   final MediaTask? task;
   final TaskFolder? folder;
+
+  String get identityKey =>
+      task == null ? 'folder:${folder!.id}' : 'task:${task!.id}';
 }
 
-class _FolderSortTarget {
-  const _FolderSortTarget({
-    required this.folderIndex,
-    required this.afterFolder,
+class _WorkbenchSortTarget {
+  const _WorkbenchSortTarget({
+    required this.itemIndex,
+    required this.afterItem,
   });
 
-  final int folderIndex;
-  final bool afterFolder;
+  final int itemIndex;
+  final bool afterItem;
 }
 
 List<WorkbenchListItem> buildWorkbenchListItems(
@@ -848,7 +926,7 @@ class _TaskDragHandleSlot extends StatelessWidget {
       onPointerMove: onPointerMove,
       onPointerUp: onPointerUp,
       onPointerCancel: (_) => onPointerCancel(),
-      child: ReorderableDragStartListener(
+      child: WorkbenchReorderableDragStartListener(
         index: index,
         enabled: enabled,
         child: handle,
@@ -874,7 +952,7 @@ class _FolderDragHandleSlot extends StatelessWidget {
     if (!enabled || selectionMode) {
       return handle;
     }
-    return ReorderableDragStartListener(
+    return WorkbenchReorderableDragStartListener(
       index: index,
       enabled: enabled,
       child: handle,

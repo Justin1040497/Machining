@@ -21,7 +21,6 @@ class TaskFolderListTile extends StatelessWidget {
     this.dragHandle,
     this.dropHighlighted = false,
     this.dropDisabled = false,
-    this.dropGhosted = false,
     this.dropStateKey,
   });
 
@@ -38,7 +37,6 @@ class TaskFolderListTile extends StatelessWidget {
   final Widget? dragHandle;
   final bool dropHighlighted;
   final bool dropDisabled;
-  final bool dropGhosted;
   final Key? dropStateKey;
 
   @override
@@ -69,11 +67,7 @@ class TaskFolderListTile extends StatelessWidget {
     final folderColor = dropDisabled ? colors.iconMuted : colors.primary;
     final titleColor = dropDisabled ? colors.textTertiary : colors.textPrimary;
     final subtitleColor = dropDisabled ? colors.iconMuted : colors.textTertiary;
-    final contentOpacity = dropGhosted
-        ? 0.0
-        : dropDisabled
-        ? 0.48
-        : 1.0;
+    final contentOpacity = dropDisabled ? 0.48 : 1.0;
 
     return AnimatedOpacity(
       key: dropStateKey ?? ValueKey('task-folder-drop-state-${folder.id}'),

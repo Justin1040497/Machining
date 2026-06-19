@@ -78,7 +78,7 @@ class WorkbenchShell extends StatelessWidget {
   final ImageProvider? Function(MediaTask task) thumbnailForTask;
   final ValueChanged<bool> onImportDraggingChanged;
   final ValueChanged<DropDoneDetails> onImportDrop;
-  final ReorderCallback onReorder;
+  final WorkbenchReorderCommitCallback onReorder;
   final ValueChanged<MediaTask> onOpenTask;
   final ValueChanged<MediaTask> onStart;
   final ValueChanged<MediaTask> onPause;

@@ -600,17 +600,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  void reorderTasks(int oldIndex, int newIndex) {
-    final reorderFuture = ref
-        .read(mediaTaskListProvider.notifier)
-        .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
-    unawaited(
-      reorderFuture.catchError((Object error, StackTrace stackTrace) {
-        if (mounted) {
-          showWorkbenchSnackBar('任务排序保存失败: $error');
-        }
-      }),
-    );
+  Future<void> reorderTasks(int oldIndex, int newIndex) async {
+    try {
+      await ref
+          .read(mediaTaskListProvider.notifier)
+          .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
+    } on Object catch (error, stackTrace) {
+      if (mounted) {
+        showWorkbenchSnackBar('任务排序保存失败: $error');
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   Future<void> openSettingsPage() async {
