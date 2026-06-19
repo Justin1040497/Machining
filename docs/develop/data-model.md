@@ -291,7 +291,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 存储值 | 含义 | 当前实现 |
 | --- | --- | --- |
 | `compression` | 文件压缩 | 当前主路径，使用压缩建议、CRF、目标体积等策略 |
-| `conversion` | 格式转换 | 命令构造已支持基础转封装和重编码，UI 仍以压缩工作台为主 |
+| `conversion` | 格式转换 | UI 主区域只选择目标格式；命令构造优先无损转封装，并在需要重编码时自动使用保真参数 |
 
 ### 媒体类型
 
@@ -342,12 +342,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 1. 队列只从 `pending` 或已有暂停执行中启动任务；候选顺序来自总列表顶层项排序，遇到任务夹时按夹内 `folder_sort_order` 展开。
 2. 启动前再次检查源文件和 FFmpeg 运行时。
 3. 队列按 `settings.max_concurrent_executions` 读取用户上限，再由资源守卫按设备能力和运行任务类型决定当前可用执行位；多个任务可同时写入 `running`。
-4. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
-5. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
-6. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
-7. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
-8. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`。
-9. 进程失败、输出文件缺失或监听错误时写入 `failed` 和 `failed_at`。
+4. 手动任务在执行位满时暂停最早运行者；被抢占任务只保存在运行期 FIFO 中，不新增数据库字段，应用重启后仍按普通 `paused` 任务处理。
+5. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
+6. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
+7. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
+8. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
+9. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`；图片和音频压缩还会验证输出小于源文件。
+10. 进程失败、输出文件缺失、无效压缩或监听错误时写入 `failed` 和 `failed_at`。
 
 ## 迁移历史
 

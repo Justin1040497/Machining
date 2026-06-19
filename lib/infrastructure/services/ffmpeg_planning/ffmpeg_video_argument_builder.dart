@@ -28,8 +28,46 @@ class FfmpegVideoArgumentBuilder {
         recommendation,
         videoEncoder,
       ),
-      TaskPurpose.conversion => ['-c:v', videoEncoder],
+      TaskPurpose.conversion => buildConversionArgs(videoEncoder),
     };
+  }
+
+  List<String> buildConversionArgs(String videoEncoder) {
+    if (videoEncoder.endsWith('_videotoolbox')) {
+      return ['-c:v', videoEncoder, '-q:v', '80'];
+    }
+    if (videoEncoder.endsWith('_nvenc')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-preset',
+        'p7',
+        '-rc',
+        'vbr',
+        '-cq',
+        '16',
+        '-b:v',
+        '0',
+      ];
+    }
+    if (videoEncoder.endsWith('_qsv')) {
+      return ['-c:v', videoEncoder, '-global_quality', '16'];
+    }
+    if (videoEncoder.endsWith('_amf')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-quality',
+        'quality',
+        '-rc',
+        'cqp',
+        '-qp_i',
+        '16',
+        '-qp_p',
+        '16',
+      ];
+    }
+    return ['-c:v', videoEncoder, '-preset', 'slow', '-crf', '18'];
   }
 
   List<String> buildOutputStreamSelectionArgs(MediaTask task) {
@@ -224,20 +262,23 @@ class FfmpegVideoArgumentBuilder {
 
   String buildVideoFilter(MediaTask task, String videoEncoder) {
     final analysis = task.analysisResult;
+    final resolutionPreset = task.purpose == TaskPurpose.conversion
+        ? ResolutionPreset.original
+        : task.config.resolutionPreset;
     ensureSupportedColorInput(analysis);
     if (shouldPreserveAlpha(task)) {
-      return buildPreserveAlphaFilter(task.config.resolutionPreset);
+      return buildPreserveAlphaFilter(resolutionPreset);
     }
     if (analysis?.isHdr == true) {
       if (shouldPreserveHdr(task)) {
-        return buildPreserveHdrFilter(task.config.resolutionPreset, task);
+        return buildPreserveHdrFilter(resolutionPreset, task);
       }
-      return buildHdrToSdrFilter(task.config.resolutionPreset, analysis!);
+      return buildHdrToSdrFilter(resolutionPreset, analysis!);
     }
 
     final colorProfile = resolveOutputColorProfile(task);
     final scaleFilter = buildSoftwareScaleFilter(
-      task.config.resolutionPreset,
+      resolutionPreset,
       colorProfile,
     );
     return '$scaleFilter,format=yuv420p,setsar=1';
@@ -287,7 +328,8 @@ class FfmpegVideoArgumentBuilder {
 
   bool shouldPreserveHdr(MediaTask task) {
     return task.analysisResult?.isHdr == true &&
-        task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+        (task.purpose == TaskPurpose.conversion ||
+            task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr);
   }
 
   bool shouldPreserveAlpha(MediaTask task) {
@@ -571,6 +613,19 @@ class FfmpegVideoArgumentBuilder {
   ) {
     if (recommendation.targetAudioBitrate == 0) {
       return const ['-an'];
+    }
+
+    if (task.purpose == TaskPurpose.conversion) {
+      final channels = task.analysisResult?.audioChannels;
+      final sampleRate = targetAudioSampleRate(task);
+      return [
+        '-c:a',
+        'aac',
+        '-b:a',
+        '320k',
+        if (channels != null && channels > 0) ...['-ac', '$channels'],
+        if (sampleRate != null) ...['-ar', '$sampleRate'],
+      ];
     }
 
     final audioBitrate = recommendation.targetAudioBitrate == null

@@ -1,12 +1,14 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/app/widgets/percentage_slider_panel.dart';
+import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
@@ -29,6 +31,43 @@ class WorkbenchCompressionPreset {
   String get title => smartPreset.label;
 
   String get subtitle => smartPreset.subtitle;
+}
+
+class WorkbenchConversionFormatPanel<T> extends StatelessWidget {
+  const WorkbenchConversionFormatPanel({
+    super.key,
+    required this.label,
+    required this.value,
+    required this.values,
+    required this.itemLabel,
+    required this.onChanged,
+  });
+
+  final String label;
+  final T value;
+  final List<T> values;
+  final String Function(T value) itemLabel;
+  final ValueChanged<T> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConfigDropdown<T>(
+      label: label,
+      trailingText: '',
+      value: value,
+      values: values,
+      itemLabel: itemLabel,
+      onChanged: (value) {
+        if (value != null) {
+          onChanged(value);
+        }
+      },
+      height: 34,
+      showTrailingText: false,
+      labelFontSize: 12,
+      valueFontSize: 12,
+    );
+  }
 }
 
 class WorkbenchCompressionOptionsSection extends StatelessWidget {
@@ -186,6 +225,123 @@ class WorkbenchSourceSummary extends StatelessWidget {
     }
 
     return '$degrees°';
+  }
+}
+
+class WorkbenchTaskFolderSummary extends StatelessWidget {
+  const WorkbenchTaskFolderSummary({
+    super.key,
+    required this.folder,
+    required this.tasks,
+  });
+
+  final TaskFolder folder;
+  final List<MediaTask> tasks;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final knownSizes = tasks
+        .map((task) => task.sourceFileFingerprint?.fileSize)
+        .whereType<int>()
+        .toList();
+    final totalSize = knownSizes.isEmpty
+        ? null
+        : knownSizes.fold<int>(0, (sum, size) => sum + size);
+    final formats = _formatDistribution();
+    final detail = folder.mediaKind == MediaKind.image
+        ? _dimensionDistribution()
+        : _durationSummary();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: DefaultTextStyle(
+            style: TextStyle(
+              color: colors.textTertiary,
+              fontSize: 11.flSp,
+              height: 1.95,
+              fontWeight: FontWeight.w400,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('任务数量: ${tasks.length}'),
+                Text(
+                  '源文件总大小: ${WorkbenchFormatters.formatBytes(totalSize)}'
+                  '${knownSizes.length == tasks.length ? '' : '（已统计 ${knownSizes.length}/${tasks.length}）'}',
+                ),
+                Text('格式分布: ${formats.isEmpty ? '-' : formats}'),
+                Text(detail),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 16),
+        Container(
+          width: 92,
+          height: 58,
+          decoration: BoxDecoration(
+            color: colors.surfaceDisabled,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: colors.border),
+          ),
+          alignment: Alignment.center,
+          child: Icon(
+            Icons.folder_copy_rounded,
+            color: colors.iconMuted,
+            size: 26,
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatDistribution() {
+    final counts = <String, int>{};
+    for (final task in tasks) {
+      final format = WorkbenchFormatters.formatContainer(
+        task.analysisResult?.containerFormat,
+      );
+      if (format == '-') {
+        continue;
+      }
+      counts.update(format, (count) => count + 1, ifAbsent: () => 1);
+    }
+    return counts.entries
+        .map((entry) => '${entry.key} × ${entry.value}')
+        .join('、');
+  }
+
+  String _durationSummary() {
+    final durations = tasks
+        .map((task) => task.analysisResult?.durationMs)
+        .whereType<int>()
+        .toList();
+    final totalDuration = durations.isEmpty
+        ? null
+        : durations.fold<int>(0, (sum, duration) => sum + duration);
+    return '总时长: ${WorkbenchFormatters.formatDuration(totalDuration)}'
+        '${durations.length == tasks.length ? '' : '（已统计 ${durations.length}/${tasks.length}）'}';
+  }
+
+  String _dimensionDistribution() {
+    final counts = <String, int>{};
+    for (final task in tasks) {
+      final analysis = task.analysisResult;
+      final width = analysis?.imageWidth ?? analysis?.videoWidth;
+      final height = analysis?.imageHeight ?? analysis?.videoHeight;
+      if (width == null || height == null) {
+        continue;
+      }
+      final dimension = '$width × $height';
+      counts.update(dimension, (count) => count + 1, ifAbsent: () => 1);
+    }
+    final distribution = counts.entries
+        .map((entry) => '${entry.key} × ${entry.value}')
+        .join('、');
+    return '尺寸分布: ${distribution.isEmpty ? '-' : distribution}';
   }
 }
 

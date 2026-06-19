@@ -5,11 +5,9 @@ import 'package:framelean/application/services/input_runtime/media_folder_scanne
 import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/import_media_task_use_case.dart';
-import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:path/path.dart' as path;
 
 class ImportMediaFolderFailure {
@@ -88,55 +86,24 @@ class ImportMediaFolderUseCase {
       }
     }
 
-    if (createdTasks.length == 1) {
-      await PlaceWorkbenchTopLevelItemUseCase(
-        mediaTaskRepository: mediaTaskRepository,
-        taskFolderRepository: taskFolderRepository,
-      ).call(WorkbenchInsertedItem.task(createdTasks.single.id));
-      return ImportMediaFolderResult(
-        createdTasks: createdTasks,
-        createdFolders: const [],
-        failures: failures,
-        unsupportedFileCount: scanResult.unsupportedFileCount,
-      );
-    }
-
-    final createdFolders = <TaskFolder>[];
-    if (createdTasks.length > 1) {
-      final tasksByKind = <MediaKind, List<MediaTask>>{};
-      for (final task in createdTasks) {
-        tasksByKind.putIfAbsent(task.mediaKind, () => []).add(task);
-      }
-      final baseName = path.basename(folderPath.trim());
-      for (final entry in tasksByKind.entries) {
-        final folderResult =
-            await CreateTaskFolderFromTasksUseCase(
-              mediaTaskRepository: mediaTaskRepository,
-              taskFolderRepository: taskFolderRepository,
-            ).call(
-              taskIds: entry.value.map((task) => task.id).toList(),
-              name:
-                  '${baseName.isEmpty ? '导入文件夹' : baseName} - '
-                  '${_mediaKindLabel(entry.key)}',
-            );
-        createdFolders.add(folderResult.folder);
-      }
-    }
+    final sourceFolderName = path.basename(folderPath.trim());
+    final organized =
+        await OrganizeImportedMediaBatchUseCase(
+          mediaTaskRepository: mediaTaskRepository,
+          taskFolderRepository: taskFolderRepository,
+        ).call(
+          taskIds: createdTasks.map((task) => task.id).toList(),
+          sourceFolderName: sourceFolderName.isEmpty
+              ? '导入文件夹'
+              : sourceFolderName,
+        );
 
     return ImportMediaFolderResult(
       createdTasks: createdTasks,
-      createdFolders: createdFolders,
+      createdFolders: organized.folders,
       failures: failures,
       unsupportedFileCount: scanResult.unsupportedFileCount,
     );
-  }
-
-  String _mediaKindLabel(MediaKind mediaKind) {
-    return switch (mediaKind) {
-      MediaKind.video => '视频',
-      MediaKind.image => '图片',
-      MediaKind.audio => '音频',
-    };
   }
 
   String _formatImportFailureReason(Object error) {

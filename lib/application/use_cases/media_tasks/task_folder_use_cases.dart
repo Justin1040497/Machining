@@ -4,6 +4,7 @@ import 'package:framelean/application/services/execution/ffmpeg_task_queue_runne
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -109,6 +110,67 @@ class CreateTaskFoldersFromTasksUseCase {
         taskFolderRepository: taskFolderRepository,
         selectedTasks: groupedTasks,
         existingFolders: existingFolders,
+      );
+      createdFolders.add(folder);
+      existingFolders = [...existingFolders, folder];
+    }
+
+    return CreateTaskFoldersResult(
+      folders: createdFolders,
+      tasks: await mediaTaskRepository.loadAllTasks(),
+    );
+  }
+}
+
+class OrganizeImportedMediaBatchUseCase {
+  const OrganizeImportedMediaBatchUseCase({
+    required this.mediaTaskRepository,
+    required this.taskFolderRepository,
+  });
+
+  final MediaTaskRepository mediaTaskRepository;
+  final TaskFolderRepository taskFolderRepository;
+
+  Future<CreateTaskFoldersResult> call({
+    required List<String> taskIds,
+    String? sourceFolderName,
+  }) async {
+    final tasks = await mediaTaskRepository.loadAllTasks();
+    final importedTasks = tasks
+        .where((task) => taskIds.contains(task.id) && task.folderId == null)
+        .toList();
+    if (importedTasks.isEmpty) {
+      return CreateTaskFoldersResult(folders: const [], tasks: tasks);
+    }
+
+    final selectedByKind = <MediaKind, List<MediaTask>>{};
+    for (final task in importedTasks) {
+      selectedByKind.putIfAbsent(task.mediaKind, () => []).add(task);
+    }
+
+    var existingFolders = await taskFolderRepository.loadAllFolders();
+    final createdFolders = <TaskFolder>[];
+    for (final entry in selectedByKind.entries) {
+      final groupedTasks = entry.value;
+      if (groupedTasks.length == 1) {
+        await PlaceWorkbenchTopLevelItemUseCase(
+          mediaTaskRepository: mediaTaskRepository,
+          taskFolderRepository: taskFolderRepository,
+        ).call(WorkbenchInsertedItem.task(groupedTasks.single.id));
+        continue;
+      }
+
+      final normalizedSourceName = sourceFolderName?.trim();
+      final preferredName =
+          normalizedSourceName == null || normalizedSourceName.isEmpty
+          ? null
+          : '$normalizedSourceName - ${_mediaKindLabel(entry.key)}';
+      final folder = await _createFolderForTasks(
+        mediaTaskRepository: mediaTaskRepository,
+        taskFolderRepository: taskFolderRepository,
+        selectedTasks: groupedTasks,
+        existingFolders: existingFolders,
+        name: preferredName,
       );
       createdFolders.add(folder);
       existingFolders = [...existingFolders, folder];
@@ -232,8 +294,13 @@ class ApplyTaskFolderConfigUseCase {
       if (!_canApplyFolderConfig(task)) {
         continue;
       }
+      final taskConfig = resolveSourceOutputFormatForConfig(
+        config: normalizedConfig,
+        sourceFileName: task.inputPath,
+        mediaKind: task.mediaKind,
+      );
       await mediaTaskRepository.saveTask(
-        task.copyWith(config: normalizedConfig, purpose: purpose),
+        task.copyWith(config: taskConfig, purpose: purpose),
       );
     }
 
@@ -324,19 +391,8 @@ class StartNextTaskInFolderUseCase {
     String folderId, {
     bool allowExtremeCompression = false,
   }) async {
-    final tasks = await repository.loadAllTasks();
-    final task = _firstOrNull(
-      _orderedFolderTasks(tasks, folderId).where(_canStart),
-    );
-    if (task == null) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.noPendingTask,
-        message: '任务夹内没有可执行任务',
-      );
-    }
-
-    return queueRunner.startOrResumeTask(
-      task.id,
+    return queueRunner.startFolderQueue(
+      folderId,
       allowExtremeCompression: allowExtremeCompression,
     );
   }
@@ -352,31 +408,7 @@ class PauseRunningTaskInFolderUseCase {
   final FfmpegTaskQueueRunner queueRunner;
 
   Future<FfmpegQueueStartResult> call(String folderId) async {
-    final tasks = await repository.loadAllTasks();
-    final orderedTasks = _orderedFolderTasks(tasks, folderId);
-    final runningTasks = orderedTasks
-        .where(
-          (task) =>
-              task.status == TaskStatus.running &&
-              queueRunner.runningTaskIds.contains(task.id),
-        )
-        .toList();
-    if (runningTasks.isEmpty) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.invalidTaskState,
-        message: '任务夹内没有正在执行的任务',
-      );
-    }
-
-    FfmpegQueueStartResult? lastResult;
-    for (final task in runningTasks) {
-      lastResult = await queueRunner.pauseTask(task.id);
-    }
-    return lastResult ??
-        const FfmpegQueueStartResult(
-          outcome: FfmpegQueueStartOutcome.invalidTaskState,
-          message: '任务夹内没有正在执行的任务',
-        );
+    return queueRunner.pauseFolderQueue(folderId);
   }
 }
 
@@ -500,19 +532,6 @@ Future<TaskFolder> _createFolderForTasks({
   return folder;
 }
 
-List<MediaTask> _orderedFolderTasks(List<MediaTask> tasks, String folderId) {
-  return tasks.where((task) => task.folderId == folderId).toList()
-    ..sort((a, b) {
-      final order = (a.folderSortOrder ?? a.sortOrder).compareTo(
-        b.folderSortOrder ?? b.sortOrder,
-      );
-      if (order != 0) {
-        return order;
-      }
-      return a.createdAt.compareTo(b.createdAt);
-    });
-}
-
 bool _canApplyFolderConfig(MediaTask task) {
   return task.status != TaskStatus.running &&
       task.status != TaskStatus.paused &&
@@ -525,16 +544,10 @@ bool _isRetryableFolderTask(MediaTask task) {
       task.status == TaskStatus.cancelled;
 }
 
-bool _canStart(MediaTask task) {
-  if (task.status == TaskStatus.paused) {
-    return true;
-  }
-  return task.status == TaskStatus.pending && task.analysisResult != null;
-}
-
-T? _firstOrNull<T>(Iterable<T> values) {
-  for (final value in values) {
-    return value;
-  }
-  return null;
+String _mediaKindLabel(MediaKind mediaKind) {
+  return switch (mediaKind) {
+    MediaKind.video => '视频',
+    MediaKind.image => '图片',
+    MediaKind.audio => '音频',
+  };
 }

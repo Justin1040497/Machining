@@ -2,9 +2,11 @@ import 'dart:io';
 
 import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/two_pass_mode.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
@@ -62,6 +64,29 @@ class FfmpegCommandStepBuilder {
     required FfmpegEncoderCapabilities encoderCapabilities,
     required String outputPath,
   }) {
+    if (canStreamCopyConversion(task, targetCodec)) {
+      return [
+        '-hide_banner',
+        '-i',
+        task.inputPath,
+        ...argumentBuilder.buildOutputStreamSelectionArgs(task),
+        '-c:v',
+        'copy',
+        '-c:a',
+        'copy',
+        ...argumentBuilder.buildFrameTimingArgs(task),
+        if (task.config.outputFormat == OutputFormat.mp4 ||
+            task.config.outputFormat == OutputFormat.mov) ...[
+          '-movflags',
+          '+faststart',
+        ],
+        ...argumentBuilder.buildThreadArgs(task),
+        '-progress',
+        'pipe:1',
+        outputPath,
+      ];
+    }
+
     return [
       '-hide_banner',
       '-i',
@@ -81,6 +106,31 @@ class FfmpegCommandStepBuilder {
       'pipe:1',
       outputPath,
     ];
+  }
+
+  bool canStreamCopyConversion(MediaTask task, VideoCodec targetCodec) {
+    if (task.purpose != TaskPurpose.conversion) {
+      return false;
+    }
+    final sourceCodec = MediaCodecNormalizer.normalize(
+      task.analysisResult?.videoCodec,
+    );
+    final sourceVideoCodec = sourceCodec == null
+        ? null
+        : MediaCodecNormalizer.videoCodecForSource(sourceCodec);
+    if (sourceVideoCodec == null || sourceVideoCodec != targetCodec) {
+      return false;
+    }
+
+    if (task.config.outputFormat == OutputFormat.mkv) {
+      return true;
+    }
+    final audioCodec = task.analysisResult?.audioCodec?.trim().toLowerCase();
+    return audioCodec == null ||
+        audioCodec.isEmpty ||
+        audioCodec.contains('aac') ||
+        audioCodec.contains('mp3') ||
+        audioCodec.contains('alac');
   }
 
   bool shouldUseTwoPassTargetSize({

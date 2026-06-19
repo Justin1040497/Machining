@@ -38,6 +38,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compre
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
@@ -834,10 +835,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           tasks: tasks,
           openedFolder: folder,
         );
-        final representativeTask = taskFolderRepresentativeTask(
-          folder: folder,
-          tasks: folderTasks,
-        );
+        final representativeTask = taskFolderRepresentativeTask(folder: folder);
         final isVideoTask = representativeTask.mediaKind == MediaKind.video;
         final initialValues = resolveWorkbenchTaskConfigurationInitialValues(
           task: representativeTask,
@@ -852,9 +850,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         final draft = await showWorkbenchTaskConfigurationEditor(
           context: context,
           task: representativeTask,
-          thumbnail: folderTasks.isEmpty
-              ? null
-              : thumbnailForTask(folderTasks.first),
+          thumbnail: null,
+          sourceSummary: WorkbenchTaskFolderSummary(
+            folder: folder,
+            tasks: folderTasks,
+          ),
           title: '任务夹设置',
           selectedQualityIndex: initialValues.qualityIndex,
           selectedOutputFormat: initialValues.outputFormat,
@@ -897,14 +897,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
   }
 
-  MediaTask taskFolderRepresentativeTask({
-    required TaskFolder folder,
-    required List<MediaTask> tasks,
-  }) {
-    final firstTask = tasks.isEmpty ? null : tasks.first;
+  MediaTask taskFolderRepresentativeTask({required TaskFolder folder}) {
     return MediaTask(
       id: 'folder-config-${folder.id}',
-      inputPath: firstTask?.inputPath ?? folder.name,
+      inputPath: folder.name,
       fileName: folder.name,
       mediaKind: folder.mediaKind,
       purpose: folder.defaultPurpose,
@@ -913,9 +909,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       progress: 0,
       sortOrder: folder.sortOrder,
       createdAt: folder.createdAt,
-      sourceFileFingerprint: firstTask?.sourceFileFingerprint,
-      analysisResult: firstTask?.analysisResult,
-      analysisUpdatedAt: firstTask?.analysisUpdatedAt,
     );
   }
 

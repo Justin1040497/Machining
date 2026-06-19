@@ -81,14 +81,6 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     required FfmpegEncoderCapabilities encoderCapabilities,
   }) {
     final preserveAlpha = argumentBuilder.shouldPreserveAlpha(task);
-    if (!preserveAlpha) {
-      encoderResolver.ensureSupportedTask(task, encoderCapabilities);
-    } else if (!encoderCapabilities.encoderNames.contains('prores_ks')) {
-      throw const FfmpegCommandBuildException(
-        '当前 FFmpeg 不支持透明保留输出编码器: prores_ks。'
-        '请在设置中指定带该编码器的 FFmpeg，或改用非透明素材。',
-      );
-    }
     ensureOutputFormatBelongsToKind(
       task.config.video?.outputFormat ?? MediaOutputFormat.mp4,
       MediaKind.video,
@@ -98,12 +90,26 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     final targetCodec = preserveAlpha
         ? VideoCodec.h264
         : encoderResolver.resolveTargetVideoCodec(task);
+    final streamCopy =
+        !preserveAlpha &&
+        stepBuilder.canStreamCopyConversion(task, targetCodec);
+    if (!preserveAlpha && !streamCopy) {
+      encoderResolver.ensureSupportedTask(task, encoderCapabilities);
+    } else if (preserveAlpha &&
+        !encoderCapabilities.encoderNames.contains('prores_ks')) {
+      throw const FfmpegCommandBuildException(
+        '当前 FFmpeg 不支持透明保留输出编码器: prores_ks。'
+        '请在设置中指定带该编码器的 FFmpeg，或改用非透明素材。',
+      );
+    }
     final recommendation = compressionAdvisor.recommend(
       task,
       allowExtremeCompression: allowExtremeCompression,
     );
     final videoEncoder = preserveAlpha
         ? 'prores_ks'
+        : streamCopy
+        ? 'copy'
         : encoderResolver.resolveVideoEncoderForTask(
             task: task,
             targetCodec: targetCodec,
@@ -148,10 +154,17 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
     ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.image);
 
+    final isConversion = task.purpose == TaskPurpose.conversion;
+    final primaryOutputFormat = imagePrimaryOutputFormatFor(task, config);
     final primaryConfig = config.copyWith(
-      outputFormat: imagePrimaryOutputFormatFor(task, config),
-      losslessCompression:
-          task.purpose == TaskPurpose.compression && config.losslessCompression,
+      outputFormat: primaryOutputFormat,
+      resizePreset: isConversion
+          ? ImageResizePreset.original
+          : config.resizePreset,
+      imageQuality: isConversion ? 100 : config.imageQuality,
+      losslessCompression: isConversion
+          ? primaryOutputFormat == MediaOutputFormat.webp
+          : config.losslessCompression,
     );
     final primaryTask = task.copyWith(
       config: task.config.copyWith(image: primaryConfig),
@@ -255,6 +268,14 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
     ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.audio);
 
+    final isConversion = task.purpose == TaskPurpose.conversion;
+    final effectiveConfig = isConversion
+        ? config.copyWith(
+            bitratePreset: _conversionAudioBitrate(config.outputFormat),
+            sampleRate: AudioSampleRatePreset.source,
+            channels: AudioChannelsPreset.source,
+          )
+        : config;
     final outputPath = outputPathBuilder.buildOutputPath(task);
     final args = <String>[
       '-hide_banner',
@@ -262,8 +283,12 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-i',
       task.inputPath,
       '-vn',
-      ...buildAudioOutputArgs(config, encoderCapabilities),
-      ...buildAudioMetadataArgs(config),
+      ...buildAudioOutputArgs(
+        effectiveConfig,
+        encoderCapabilities,
+        preserveQuality: isConversion,
+      ),
+      ...buildAudioMetadataArgs(effectiveConfig),
       ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
@@ -272,8 +297,18 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     return FfmpegCommandPlan(
       args: args,
+      steps: [
+        FfmpegCommandStep(
+          args: args,
+          label: isConversion ? '转换音频格式' : '压缩音频',
+          outputPath: outputPath,
+          completionPolicy: isConversion
+              ? FfmpegStepCompletionPolicy.alwaysContinue
+              : FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+        ),
+      ],
       outputPath: outputPath,
-      logHint: '音频处理 ${config.outputFormat.name}',
+      logHint: '音频处理 ${effectiveConfig.outputFormat.name}',
     );
   }
 
@@ -471,7 +506,9 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     MediaTask task,
     ImageProcessingConfig config,
   ) {
-    final format = !config.keepOriginalOutputFormat
+    final format =
+        task.purpose == TaskPurpose.conversion ||
+            !config.keepOriginalOutputFormat
         ? config.outputFormat
         : imageFormatFromCodec(task.analysisResult?.imageCodec) ??
               imageFormatFromExtension(path.extension(task.fileName)) ??
@@ -551,9 +588,13 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
   List<String> buildAudioOutputArgs(
     AudioProcessingConfig config,
-    FfmpegEncoderCapabilities encoderCapabilities,
-  ) {
-    final encoderName = audioEncoderName(config.outputFormat);
+    FfmpegEncoderCapabilities encoderCapabilities, {
+    bool preserveQuality = false,
+  }) {
+    final encoderName = audioEncoderName(
+      config.outputFormat,
+      preserveQuality: preserveQuality,
+    );
     if (!encoderCapabilities.supportsAudioEncoder(encoderName)) {
       throw FfmpegCommandBuildException(
         '当前 FFmpeg 不支持 ${config.outputFormat.name.toUpperCase()} '
@@ -585,14 +626,17 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return config.preserveMetadata ? const [] : const ['-map_metadata', '-1'];
   }
 
-  String audioEncoderName(MediaOutputFormat outputFormat) {
+  String audioEncoderName(
+    MediaOutputFormat outputFormat, {
+    bool preserveQuality = false,
+  }) {
     return switch (outputFormat) {
       MediaOutputFormat.mp3 => 'libmp3lame',
       MediaOutputFormat.m4a || MediaOutputFormat.aac => 'aac',
       MediaOutputFormat.opus || MediaOutputFormat.oggOpus => 'libopus',
-      MediaOutputFormat.wav => 'pcm_s16le',
+      MediaOutputFormat.wav => preserveQuality ? 'pcm_s24le' : 'pcm_s16le',
       MediaOutputFormat.flac => 'flac',
-      MediaOutputFormat.aiff => 'pcm_s16be',
+      MediaOutputFormat.aiff => preserveQuality ? 'pcm_s24be' : 'pcm_s16be',
       MediaOutputFormat.wma => 'wmav2',
       MediaOutputFormat.mp4 ||
       MediaOutputFormat.mov ||
@@ -605,6 +649,21 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       MediaOutputFormat.gif => throw FfmpegCommandBuildException(
         '音频任务不支持输出 ${outputFormat.name}',
       ),
+    };
+  }
+
+  AudioBitratePreset _conversionAudioBitrate(MediaOutputFormat format) {
+    return switch (format) {
+      MediaOutputFormat.mp3 ||
+      MediaOutputFormat.m4a ||
+      MediaOutputFormat.aac ||
+      MediaOutputFormat.wma ||
+      MediaOutputFormat.opus ||
+      MediaOutputFormat.oggOpus => AudioBitratePreset.k320,
+      MediaOutputFormat.wav ||
+      MediaOutputFormat.flac ||
+      MediaOutputFormat.aiff => AudioBitratePreset.source,
+      _ => AudioBitratePreset.source,
     };
   }
 

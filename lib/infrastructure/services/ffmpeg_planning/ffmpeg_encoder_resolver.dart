@@ -5,6 +5,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 
@@ -31,6 +32,18 @@ class FfmpegEncoderResolver {
   VideoCodec resolveTargetVideoCodec(MediaTask task) {
     if (shouldPreserveHdr(task)) {
       return VideoCodec.hevc;
+    }
+
+    if (task.purpose == TaskPurpose.conversion) {
+      final sourceCodec = MediaCodecNormalizer.normalize(
+        task.analysisResult?.videoCodec,
+      );
+      final sourceVideoCodec = sourceCodec == null
+          ? null
+          : MediaCodecNormalizer.videoCodecForSource(sourceCodec);
+      if (sourceVideoCodec != null) {
+        return sourceVideoCodec;
+      }
     }
 
     final configuredCodec = task.config.videoCodec;
@@ -141,7 +154,8 @@ class FfmpegEncoderResolver {
 
   bool shouldPreserveHdr(MediaTask task) {
     return task.analysisResult?.isHdr == true &&
-        task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+        (task.purpose == TaskPurpose.conversion ||
+            task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr);
   }
 
   bool isHighRiskAppleHdrSource(MediaTask task) {

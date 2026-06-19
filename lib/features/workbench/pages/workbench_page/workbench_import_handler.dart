@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
@@ -60,7 +61,10 @@ abstract final class WorkbenchImportHandler {
       }
 
       try {
-        final task = await notifier.createDraftFromPath(inputPath);
+        final task = await notifier.createDraftFromPath(
+          inputPath,
+          analyzeInBackground: false,
+        );
         createdTasks.add(task);
         createdFileTasks.add(task);
       } on Object catch (error) {
@@ -74,6 +78,13 @@ abstract final class WorkbenchImportHandler {
     }
 
     await notifier.createTaskFoldersForImportedBatch(createdFileTasks);
+    if (createdFileTasks.isNotEmpty) {
+      unawaited(
+        notifier.analyzeTasksInBackground(
+          createdFileTasks.map((task) => task.id).toList(),
+        ),
+      );
+    }
 
     return WorkbenchImportResult(
       createdTasks: createdTasks,

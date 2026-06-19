@@ -726,6 +726,95 @@ void main() {
     );
   });
 
+  testWidgets('image conversion only exposes target format in main panel', (
+    tester,
+  ) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      task: imageTask(config: ImageProcessingConfig.initial()),
+      selectedPurpose: TaskPurpose.conversion,
+    );
+
+    expect(find.text('目标格式'), findsOneWidget);
+    expect(find.text('质量'), findsNothing);
+    expect(find.text('分辨率'), findsNothing);
+    expect(find.text('无损压缩'), findsNothing);
+    expect(find.text('高级设置'), findsOneWidget);
+  });
+
+  testWidgets('audio conversion hides compression controls', (tester) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      task: audioTask(config: AudioProcessingConfig.initial()),
+      selectedPurpose: TaskPurpose.conversion,
+    );
+
+    expect(find.text('目标格式'), findsOneWidget);
+    expect(find.text('码率'), findsNothing);
+    expect(find.text('采样率'), findsNothing);
+    expect(find.text('声道'), findsNothing);
+    expect(find.text('高级设置'), findsOneWidget);
+  });
+
+  testWidgets('video conversion hides codec resolution and quality controls', (
+    tester,
+  ) async {
+    await _pumpTaskConfigurationDialog(
+      tester,
+      selectedPurpose: TaskPurpose.conversion,
+    );
+
+    expect(find.text('目标格式'), findsOneWidget);
+    expect(find.text('视频编码'), findsNothing);
+    expect(find.text('分辨率'), findsNothing);
+    expect(find.text('推荐方案'), findsNothing);
+    expect(find.text('两遍压缩'), findsNothing);
+    expect(find.text('高级设置'), findsOneWidget);
+  });
+
+  testWidgets('folder configuration shows aggregate summary', (tester) async {
+    final folder = TaskFolder.create(
+      name: '视频任务夹 1',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+    );
+    final tasks = [
+      testTask(fileName: 'first.mp4').copyWith(
+        sourceFileFingerprint: const SourceFileFingerprint(
+          fileSize: 1024,
+          lastModifiedAt: 1,
+        ),
+        analysisResult: MediaAnalysisResult(
+          durationMs: 1000,
+          containerFormat: 'mp4',
+        ),
+      ),
+      testTask(fileName: 'second.mov').copyWith(
+        sourceFileFingerprint: const SourceFileFingerprint(
+          fileSize: 2048,
+          lastModifiedAt: 1,
+        ),
+        analysisResult: MediaAnalysisResult(
+          durationMs: 2000,
+          containerFormat: 'mov',
+        ),
+      ),
+    ];
+
+    await _pumpTaskConfigurationDialog(
+      tester,
+      sourceSummary: WorkbenchTaskFolderSummary(folder: folder, tasks: tasks),
+    );
+
+    expect(find.text('任务数量: 2'), findsOneWidget);
+    expect(find.textContaining('源文件总大小:'), findsOneWidget);
+    expect(find.textContaining('MP4 × 1'), findsOneWidget);
+    expect(find.textContaining('MOV × 1'), findsOneWidget);
+    expect(find.textContaining('总时长:'), findsOneWidget);
+    expect(find.textContaining('源文件大小:'), findsNothing);
+  });
+
   testWidgets(
     'task configuration keeps header and actions fixed while body scrolls',
     (tester) async {
@@ -2496,7 +2585,9 @@ Future<void> _pumpTaskConfigurationDialog(
   CompressionMode selectedCompressionMode = CompressionMode.preset,
   SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced,
   double selectedTargetSizeRatio = 0.6,
+  TaskPurpose selectedPurpose = TaskPurpose.compression,
   List<EncoderBackend> availableEncoderBackends = const [EncoderBackend.auto],
+  Widget? sourceSummary,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
@@ -2504,6 +2595,7 @@ Future<void> _pumpTaskConfigurationDialog(
         body: WorkbenchTaskConfigurationDialog(
           task: task ?? testTask(),
           thumbnail: null,
+          sourceSummary: sourceSummary,
           selectedQualityIndex: selectedQualityIndex,
           selectedOutputFormat: selectedOutputFormat,
           selectedVideoCodec: selectedVideoCodec,
@@ -2512,6 +2604,7 @@ Future<void> _pumpTaskConfigurationDialog(
           selectedCompressionMode: selectedCompressionMode,
           selectedSmartPreset: selectedSmartPreset,
           selectedTargetSizeRatio: selectedTargetSizeRatio,
+          selectedPurpose: selectedPurpose,
           availableEncoderBackends: availableEncoderBackends,
           onClose: () {},
           onOpenSource: () {},

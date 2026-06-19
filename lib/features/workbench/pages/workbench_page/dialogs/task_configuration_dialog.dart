@@ -28,6 +28,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbe
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
 
 @immutable
 class WorkbenchTaskConfigurationDraft {
@@ -60,6 +61,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   required BuildContext context,
   required MediaTask task,
   required ImageProvider? thumbnail,
+  Widget? sourceSummary,
   String title = '任务详情设置',
   required int selectedQualityIndex,
   required OutputFormat selectedOutputFormat,
@@ -137,6 +139,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
           return WorkbenchTaskConfigurationDialog(
             task: task,
             thumbnail: thumbnail,
+            sourceSummary: sourceSummary,
             title: title,
             selectedQualityIndex: draftQualityIndex,
             selectedOutputFormat: draftOutputFormat,
@@ -374,6 +377,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     super.key,
     required this.task,
     required this.thumbnail,
+    this.sourceSummary,
     this.title = '任务详情设置',
     required this.selectedQualityIndex,
     required this.selectedOutputFormat,
@@ -412,6 +416,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
 
   final MediaTask task;
   final ImageProvider? thumbnail;
+  final Widget? sourceSummary;
   final String title;
   final int selectedQualityIndex;
   final OutputFormat selectedOutputFormat;
@@ -629,10 +634,11 @@ class _WorkbenchTaskConfigurationDialogState
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            WorkbenchSourceSummary(
-                              task: widget.task,
-                              thumbnail: widget.thumbnail,
-                            ),
+                            widget.sourceSummary ??
+                                WorkbenchSourceSummary(
+                                  task: widget.task,
+                                  thumbnail: widget.thumbnail,
+                                ),
                             const SizedBox(height: 14),
                             SizedBox(
                               width: double.infinity,
@@ -690,6 +696,7 @@ class _WorkbenchTaskConfigurationDialogState
                             const SizedBox(height: 14),
                             _AdvancedTaskSettingsSection(
                               task: widget.task,
+                              selectedPurpose: widget.selectedPurpose,
                               selectedConfig: _selectedMediaTaskConfig(),
                               selectedVideoConfig:
                                   widget.selectedVideoConfig ??
@@ -701,6 +708,9 @@ class _WorkbenchTaskConfigurationDialogState
                               onSelectedAudioStreamIndexChanged:
                                   widget.onSelectedAudioStreamIndexChanged ??
                                   (_) {},
+                              preserveMetadata: _preserveMetadata(),
+                              onPreserveMetadataChanged:
+                                  _onPreserveMetadataChanged,
                             ),
                           ],
                         ),
@@ -738,6 +748,46 @@ class _WorkbenchTaskConfigurationDialogState
         widget.task.analysisResult?.isHdr == true;
   }
 
+  bool _preserveMetadata() {
+    return switch (widget.task.mediaKind) {
+      MediaKind.video =>
+        (widget.selectedVideoConfig ?? widget.task.config.video)
+                ?.preserveMetadata ??
+            true,
+      MediaKind.image =>
+        (widget.selectedImageConfig ?? widget.task.config.image)
+                ?.preserveMetadata ??
+            true,
+      MediaKind.audio =>
+        (widget.selectedAudioConfig ?? widget.task.config.audio)
+                ?.preserveMetadata ??
+            true,
+    };
+  }
+
+  void _onPreserveMetadataChanged(bool value) {
+    switch (widget.task.mediaKind) {
+      case MediaKind.video:
+        widget.onVideoPreserveMetadataChanged?.call(value);
+      case MediaKind.image:
+        final config =
+            widget.selectedImageConfig ??
+            widget.task.config.image ??
+            ImageProcessingConfig.initial();
+        widget.onImageConfigChanged?.call(
+          config.copyWith(preserveMetadata: value),
+        );
+      case MediaKind.audio:
+        final config =
+            widget.selectedAudioConfig ??
+            widget.task.config.audio ??
+            AudioProcessingConfig.initial();
+        widget.onAudioConfigChanged?.call(
+          config.copyWith(preserveMetadata: value),
+        );
+    }
+  }
+
   bool _isPresetEnabled(WorkbenchCompressionPreset preset) {
     if (!_preserveHdrActive()) {
       return true;
@@ -749,6 +799,63 @@ class _WorkbenchTaskConfigurationDialogState
 
   Widget _buildMediaConfigPanel() {
     final sourceOutputFormat = _sourceOutputFormat();
+
+    if (widget.selectedPurpose == TaskPurpose.conversion) {
+      switch (widget.task.mediaKind) {
+        case MediaKind.video:
+          return WorkbenchConversionFormatPanel<OutputFormat>(
+            label: '目标格式',
+            value: widget.selectedOutputFormat,
+            values: OutputFormat.values,
+            itemLabel: (value) => value.label,
+            onChanged: widget.onOutputFormatChanged,
+          );
+        case MediaKind.image:
+          final imageConfig =
+              widget.selectedImageConfig ??
+              widget.task.config.image ??
+              ImageProcessingConfig.initial();
+          return WorkbenchConversionFormatPanel<MediaOutputFormat>(
+            label: '目标格式',
+            value: imageConfig.outputFormat,
+            values: MediaOutputFormat.formatsFor(MediaKind.image),
+            itemLabel: (value) => value.label,
+            onChanged: (value) {
+              widget.onImageConfigChanged?.call(
+                imageConfig.copyWith(
+                  outputFormat: value,
+                  keepOriginalOutputFormat: false,
+                  losslessCompression: false,
+                  imageQuality: 100,
+                  resizePreset: ImageResizePreset.original,
+                ),
+              );
+            },
+          );
+        case MediaKind.audio:
+          final audioConfig =
+              widget.selectedAudioConfig ??
+              widget.task.config.audio ??
+              AudioProcessingConfig.initial();
+          return WorkbenchConversionFormatPanel<MediaOutputFormat>(
+            label: '目标格式',
+            value: audioConfig.outputFormat,
+            values: MediaOutputFormat.formatsFor(MediaKind.audio),
+            itemLabel: (value) => value.label,
+            onChanged: (value) {
+              widget.onAudioConfigChanged?.call(
+                audioConfig.copyWith(
+                  outputFormat: value,
+                  keepOriginalOutputFormat: false,
+                  bitratePreset: AudioBitratePreset.source,
+                  sampleRate: AudioSampleRatePreset.source,
+                  channels: AudioChannelsPreset.source,
+                ),
+              );
+            },
+          );
+      }
+    }
 
     switch (widget.task.mediaKind) {
       case MediaKind.video:
@@ -990,19 +1097,25 @@ class _WorkbenchTaskConfigurationDialogState
 class _AdvancedTaskSettingsSection extends StatelessWidget {
   const _AdvancedTaskSettingsSection({
     required this.task,
+    required this.selectedPurpose,
     required this.selectedConfig,
     required this.selectedVideoConfig,
     required this.onThreadLimitChanged,
     required this.onTwoPassModeChanged,
     required this.onSelectedAudioStreamIndexChanged,
+    required this.preserveMetadata,
+    required this.onPreserveMetadataChanged,
   });
 
   final MediaTask task;
+  final TaskPurpose selectedPurpose;
   final MediaTaskConfig selectedConfig;
   final VideoProcessingConfig? selectedVideoConfig;
   final ValueChanged<int?> onThreadLimitChanged;
   final ValueChanged<TwoPassMode> onTwoPassModeChanged;
   final ValueChanged<int?> onSelectedAudioStreamIndexChanged;
+  final bool preserveMetadata;
+  final ValueChanged<bool> onPreserveMetadataChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -1051,7 +1164,18 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
               labelFontSize: 12,
               valueFontSize: 12,
             ),
-            if (task.mediaKind == MediaKind.video) ...[
+            if (selectedPurpose == TaskPurpose.conversion) ...[
+              const SizedBox(height: 12),
+              ConfigCheckbox(
+                label: '保留元数据',
+                value: preserveMetadata,
+                height: 34,
+                fontSize: 12,
+                onChanged: onPreserveMetadataChanged,
+              ),
+            ],
+            if (task.mediaKind == MediaKind.video &&
+                selectedPurpose == TaskPurpose.compression) ...[
               const SizedBox(height: 12),
               ConfigDropdown<TwoPassMode>(
                 label: '两遍压缩',

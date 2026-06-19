@@ -33,7 +33,7 @@ void main() {
     },
   );
 
-  test('folder import groups multiple media files by media kind', () async {
+  test('folder import keeps singleton media kinds as normal tasks', () async {
     final mediaTasks = _FakeMediaTaskRepository();
     final folders = _FakeTaskFolderRepository();
     final useCase = _createUseCase(
@@ -51,25 +51,89 @@ void main() {
     final result = await useCase.call(folderPath: '/素材/旅行素材', scanDepth: 2);
 
     expect(result.createdTasks, hasLength(3));
-    expect(result.createdFolders.map((folder) => folder.name), [
-      '旅行素材 - 视频',
-      '旅行素材 - 图片',
-      '旅行素材 - 音频',
-    ]);
+    expect(result.createdFolders, isEmpty);
 
     final storedTasks = await mediaTasks.loadAllTasks();
-    expect(storedTasks.every((task) => task.folderId != null), isTrue);
-    for (final folder in result.createdFolders) {
-      final folderTasks = storedTasks.where(
-        (task) => task.folderId == folder.id,
+    expect(storedTasks.every((task) => task.folderId == null), isTrue);
+  });
+
+  test(
+    'folder import groups only media kinds with at least two files',
+    () async {
+      final mediaTasks = _FakeMediaTaskRepository();
+      final folders = _FakeTaskFolderRepository();
+      final useCase = _createUseCase(
+        mediaTasks: mediaTasks,
+        folders: folders,
+        scanner: const _FakeFolderScanner(
+          mediaFilePaths: [
+            '/素材/旅行素材/clip.mp4',
+            '/素材/旅行素材/first.mp3',
+            '/素材/旅行素材/second.wav',
+            '/素材/旅行素材/first.jpg',
+            '/素材/旅行素材/second.png',
+          ],
+        ),
       );
-      expect(folderTasks, isNotEmpty);
+
+      final result = await useCase.call(folderPath: '/素材/旅行素材', scanDepth: 2);
+
+      expect(result.createdFolders.map((folder) => folder.name), [
+        '旅行素材 - 音频',
+        '旅行素材 - 图片',
+      ]);
+      final storedTasks = await mediaTasks.loadAllTasks();
       expect(
-        folderTasks.every((task) => task.mediaKind == folder.mediaKind),
+        storedTasks
+            .singleWhere((task) => task.mediaKind == MediaKind.video)
+            .folderId,
+        isNull,
+      );
+      expect(
+        storedTasks
+            .where((task) => task.mediaKind != MediaKind.video)
+            .every((task) => task.folderId != null),
         isTrue,
       );
-    }
-  });
+    },
+  );
+
+  test(
+    'folder import keeps one image loose and groups video and audio',
+    () async {
+      final mediaTasks = _FakeMediaTaskRepository();
+      final folders = _FakeTaskFolderRepository();
+      final useCase = _createUseCase(
+        mediaTasks: mediaTasks,
+        folders: folders,
+        scanner: const _FakeFolderScanner(
+          mediaFilePaths: [
+            '/素材/cover.jpg',
+            '/素材/a.mp4',
+            '/素材/b.mov',
+            '/素材/a.mp3',
+            '/素材/b.wav',
+            '/素材/c.flac',
+            '/素材/d.aac',
+          ],
+        ),
+      );
+
+      final result = await useCase.call(folderPath: '/素材', scanDepth: 2);
+
+      expect(result.createdFolders.map((folder) => folder.mediaKind), [
+        MediaKind.video,
+        MediaKind.audio,
+      ]);
+      final storedTasks = await mediaTasks.loadAllTasks();
+      expect(
+        storedTasks
+            .singleWhere((task) => task.mediaKind == MediaKind.image)
+            .folderId,
+        isNull,
+      );
+    },
+  );
 
   test('folder import appends an index when folder names conflict', () async {
     final mediaTasks = _FakeMediaTaskRepository();
