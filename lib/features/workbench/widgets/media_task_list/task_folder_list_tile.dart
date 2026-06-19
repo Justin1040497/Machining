@@ -59,6 +59,10 @@ class TaskFolderListTile extends StatelessWidget {
         .where((task) => task.status == TaskStatus.missingSource)
         .length;
     final hasLoggableTask = tasks.any(_isLoggableTask);
+    final hasRunningTask = tasks.any(
+      (task) => task.status == TaskStatus.running,
+    );
+    final hasProgressBackground = hasRunningTask && progress > 0;
 
     final activeDrop = dropHighlighted && !dropDisabled;
     final borderColor = dropDisabled
@@ -110,13 +114,15 @@ class TaskFolderListTile extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: Stack(
                 children: [
-                  Positioned.fill(
-                    child: FractionallySizedBox(
-                      alignment: Alignment.centerLeft,
-                      widthFactor: progress.clamp(0, 1).toDouble(),
-                      child: ColoredBox(color: colors.progress),
+                  if (hasProgressBackground)
+                    Positioned.fill(
+                      key: ValueKey('task-folder-progress-${folder.id}'),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: progress.clamp(0, 1).toDouble(),
+                        child: ColoredBox(color: colors.progress),
+                      ),
                     ),
-                  ),
                   Row(
                     children: [
                       const SizedBox(width: 10),

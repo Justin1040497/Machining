@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
@@ -11,7 +12,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/configuration/
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/features/workbench/presentation_mappers/media_kind_icons.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/widgets/form_controls/workbench_segmented_switch.dart';
 
 class WorkbenchCompressionPreset {
   const WorkbenchCompressionPreset({
@@ -64,7 +64,7 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _CompressionModeSwitch(
+        _CompressionModeSegmentedControl(
           mode: mode,
           targetSizeModeEnabled: targetSizeModeEnabled,
           onChanged: onModeChanged,
@@ -212,8 +212,8 @@ class _TargetSizePanel extends StatelessWidget {
   }
 }
 
-class _CompressionModeSwitch extends StatelessWidget {
-  const _CompressionModeSwitch({
+class _CompressionModeSegmentedControl extends StatelessWidget {
+  const _CompressionModeSegmentedControl({
     required this.mode,
     required this.targetSizeModeEnabled,
     required this.onChanged,
@@ -225,19 +225,32 @@ class _CompressionModeSwitch extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
     final value = mode == CompressionMode.targetSize
         ? CompressionMode.targetSize
         : CompressionMode.preset;
 
-    return WorkbenchSegmentedSwitch<CompressionMode>(
-      value: value,
-      segments: const [
-        WorkbenchSegment(value: CompressionMode.preset, label: '推荐方案选项'),
-        WorkbenchSegment(value: CompressionMode.targetSize, label: '自定义目标体积'),
-      ],
-      isSegmentEnabled: (value) =>
-          value != CompressionMode.targetSize || targetSizeModeEnabled,
-      onChanged: onChanged,
+    return SizedBox(
+      width: double.infinity,
+      height: 34,
+      child: CupertinoSlidingSegmentedControl<CompressionMode>(
+        groupValue: value,
+        backgroundColor: colors.surfaceDisabled,
+        thumbColor: colors.surface,
+        padding: const EdgeInsets.all(3),
+        disabledChildren: targetSizeModeEnabled
+            ? const <CompressionMode>{}
+            : const {CompressionMode.targetSize},
+        children: const {
+          CompressionMode.preset: Text('推荐方案选项'),
+          CompressionMode.targetSize: Text('自定义目标体积'),
+        },
+        onValueChanged: (value) {
+          if (value != null) {
+            onChanged(value);
+          }
+        },
+      ),
     );
   }
 }

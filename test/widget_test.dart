@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -38,6 +39,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 
 void main() {
@@ -95,6 +97,8 @@ void main() {
   ) async {
     final modeChanges = <CompressionMode>[];
     final smartPresetChanges = <SmartCompressionPreset>[];
+    final preserveHdrChanges = <bool>[];
+    final metadataChanges = <bool>[];
     final videoConfig = VideoProcessingConfig.initial().copyWith(
       videoCodec: VideoCodec.hevc,
       hdrOutputMode: HdrOutputMode.preserveHdr,
@@ -156,10 +160,38 @@ void main() {
             onVideoCodecChanged: (_) {},
             onEncoderBackendChanged: (_) {},
             onResolutionPresetChanged: (_) {},
+            onPreserveHdrChanged: preserveHdrChanges.add,
+            onVideoPreserveMetadataChanged: metadataChanges.add,
           ),
         ),
       ),
     );
+
+    final purposeControl = tester
+        .widget<CupertinoSlidingSegmentedControl<TaskPurpose>>(
+          find.byWidgetPredicate(
+            (widget) => widget is CupertinoSlidingSegmentedControl<TaskPurpose>,
+          ),
+        );
+    final compressionControl = tester
+        .widget<CupertinoSlidingSegmentedControl<CompressionMode>>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is CupertinoSlidingSegmentedControl<CompressionMode>,
+          ),
+        );
+    expect(purposeControl.groupValue, TaskPurpose.compression);
+    expect(
+      compressionControl.disabledChildren,
+      contains(CompressionMode.targetSize),
+    );
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsNWidgets(2));
+
+    tester.widget<Checkbox>(find.byType(Checkbox).first).onChanged?.call(false);
+    tester.widget<Checkbox>(find.byType(Checkbox).last).onChanged?.call(false);
+    expect(preserveHdrChanges, [false]);
+    expect(metadataChanges, [false]);
 
     await tester.tap(find.text('自定义目标体积'));
     await tester.pumpAndSettle();
@@ -474,9 +506,13 @@ void main() {
     expect(find.text('尺寸'), findsNothing);
     expect(find.text('保留元数据'), findsOneWidget);
     expect(find.text('视频编码'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsNWidgets(2));
+    expect(find.text('开启'), findsNothing);
+    expect(find.text('关闭'), findsNothing);
     expect(
-      tester.getCenter(find.byType(Switch).last).dx,
-      lessThan(tester.getCenter(find.text('保留元数据')).dx),
+      tester.getCenter(find.byType(Checkbox).first).dy,
+      tester.getCenter(find.byType(Checkbox).last).dy,
     );
 
     final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
@@ -504,11 +540,15 @@ void main() {
     final slider = tester.widget<Slider>(find.byType(Slider));
     slider.onChanged?.call(9);
 
-    final losslessSwitch = tester.widget<Switch>(find.byType(Switch).first);
-    losslessSwitch.onChanged?.call(true);
+    final losslessCheckbox = tester.widget<Checkbox>(
+      find.byType(Checkbox).first,
+    );
+    losslessCheckbox.onChanged?.call(true);
 
-    final metadataSwitch = tester.widget<Switch>(find.byType(Switch).last);
-    metadataSwitch.onChanged?.call(true);
+    final metadataCheckbox = tester.widget<Checkbox>(
+      find.byType(Checkbox).last,
+    );
+    metadataCheckbox.onChanged?.call(false);
 
     expect(
       imageChanges.map((config) => config.outputFormat),
@@ -525,7 +565,7 @@ void main() {
     );
     expect(
       imageChanges.map((config) => config.preserveMetadata),
-      contains(true),
+      contains(false),
     );
   });
 
@@ -632,6 +672,8 @@ void main() {
     expect(find.text('采样率'), findsOneWidget);
     expect(find.text('声道'), findsOneWidget);
     expect(find.text('视频编码'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsOneWidget);
 
     final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
       find
@@ -664,6 +706,7 @@ void main() {
           ),
         );
     channelsDropdown.onChanged?.call(AudioChannelsPreset.stereo);
+    tester.widget<Checkbox>(find.byType(Checkbox)).onChanged?.call(false);
 
     expect(
       audioChanges.map((config) => config.outputFormat),
@@ -677,7 +720,135 @@ void main() {
       audioChanges.map((config) => config.channels),
       contains(AudioChannelsPreset.stereo),
     );
+    expect(
+      audioChanges.map((config) => config.preserveMetadata),
+      contains(false),
+    );
   });
+
+  testWidgets(
+    'task configuration keeps header and actions fixed while body scrolls',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 400);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final purposeChanges = <TaskPurpose>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: Scaffold(
+            body: WorkbenchTaskConfigurationDialog(
+              task: testTask(),
+              thumbnail: null,
+              selectedQualityIndex: 4,
+              selectedOutputFormat: OutputFormat.mp4,
+              selectedVideoCodec: VideoCodec.h264,
+              selectedEncoderBackend: EncoderBackend.auto,
+              selectedResolutionPreset: ResolutionPreset.original,
+              selectedCompressionMode: CompressionMode.preset,
+              selectedSmartPreset: SmartCompressionPreset.balanced,
+              selectedTargetSizeRatio: 0.6,
+              availableEncoderBackends: const [EncoderBackend.auto],
+              onClose: () {},
+              onOpenSource: () {},
+              onSave: () {},
+              onPurposeChanged: purposeChanges.add,
+              onCompressionModeChanged: (_) {},
+              onSmartPresetChanged: (_) {},
+              onTargetSizeRatioChanged: (_) {},
+              onQualityChanged: (_) {},
+              onOutputFormatChanged: (_) {},
+              onVideoCodecChanged: (_) {},
+              onEncoderBackendChanged: (_) {},
+              onResolutionPresetChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      final purposeControlFinder = find.byWidgetPredicate(
+        (widget) => widget is CupertinoSlidingSegmentedControl<TaskPurpose>,
+      );
+      final purposeControl = tester
+          .widget<CupertinoSlidingSegmentedControl<TaskPurpose>>(
+            purposeControlFinder,
+          );
+      purposeControl.onValueChanged(TaskPurpose.conversion);
+      expect(purposeChanges, [TaskPurpose.conversion]);
+
+      final scrollViewFinder = find.byType(SingleChildScrollView);
+      final scrollView = tester.widget<SingleChildScrollView>(scrollViewFinder);
+      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+      final scrollController = scrollView.controller!;
+      expect(find.byType(Scrollbar), findsOneWidget);
+      expect(scrollView.physics, isA<ClampingScrollPhysics>());
+      expect(scrollView.padding, const EdgeInsets.only(right: 12));
+      expect(scrollbar.controller, same(scrollController));
+      expect(scrollbar.thumbVisibility, isFalse);
+      expect(scrollbar.trackVisibility, isFalse);
+      expect(scrollbar.thickness, 4);
+      expect(scrollbar.radius, const Radius.circular(4));
+      expect(scrollbar.interactive, isTrue);
+      expect(
+        tester.getTopRight(scrollViewFinder).dx -
+            tester.getTopRight(purposeControlFinder).dx,
+        greaterThanOrEqualTo(12),
+      );
+
+      final topGesture = await tester.startGesture(
+        tester.getCenter(scrollViewFinder),
+      );
+      await topGesture.moveBy(const Offset(0, 80));
+      await tester.pump();
+      expect(
+        scrollController.offset,
+        scrollController.position.minScrollExtent,
+      );
+      await topGesture.up();
+      await tester.pumpAndSettle();
+
+      final headerBefore = tester.getCenter(
+        find.byType(WorkbenchDialogBackHeader),
+      );
+      final actionsBefore = tester.getCenter(
+        find.byType(WorkbenchDialogActions),
+      );
+      final sourceBefore = tester.getCenter(find.textContaining('源文件大小'));
+
+      await tester.drag(scrollViewFinder, const Offset(0, -180));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getCenter(find.byType(WorkbenchDialogBackHeader)),
+        headerBefore,
+      );
+      expect(
+        tester.getCenter(find.byType(WorkbenchDialogActions)),
+        actionsBefore,
+      );
+      expect(
+        tester.getCenter(find.textContaining('源文件大小')).dy,
+        lessThan(sourceBefore.dy),
+      );
+
+      scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      await tester.pump();
+      final bottomGesture = await tester.startGesture(
+        tester.getCenter(scrollViewFinder),
+      );
+      await bottomGesture.moveBy(const Offset(0, -80));
+      await tester.pump();
+      expect(
+        scrollController.offset,
+        scrollController.position.maxScrollExtent,
+      );
+      await bottomGesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('already compressed source shows no estimated size text', (
     tester,
@@ -1279,6 +1450,82 @@ void main() {
     await tester.pumpAndSettle();
     expect(deleteCalls, ['folder-1']);
     expect(openCalls, ['folder-1']);
+  });
+
+  testWidgets('task folder progress background only shows while running', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-progress',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final runningTask = testTask(fileName: 'inside.mp4').copyWith(
+      id: 'inside',
+      folderId: folder.id,
+      folderSortOrder: 0,
+      status: TaskStatus.running,
+      progress: 0.6,
+    );
+
+    Widget buildTile(MediaTask task) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 640,
+              child: TaskFolderListTile(
+                folder: folder,
+                tasks: [task],
+                onOpenSettings: () {},
+                onOpenContents: () {},
+                onDelete: () {},
+                onPause: () {},
+                onRetry: () {},
+                onShowLog: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final progressFinder = find.byKey(
+      const ValueKey('task-folder-progress-folder-progress'),
+    );
+    await tester.pumpWidget(buildTile(runningTask));
+
+    expect(progressFinder, findsOneWidget);
+    expect(find.byTooltip('暂停任务夹任务'), findsOneWidget);
+
+    final completedTask = runningTask.copyWith(
+      status: TaskStatus.completed,
+      progress: 1,
+    );
+    await tester.pumpWidget(buildTile(completedTask));
+    await tester.pumpAndSettle();
+
+    expect(progressFinder, findsNothing);
+    expect(find.text('1 个任务 · 已完成 1 · 失败 0'), findsOneWidget);
+    expect(find.byTooltip('重来任务夹终态任务'), findsOneWidget);
+    expect(find.byTooltip('查看夹内任务日志'), findsOneWidget);
+    expect(find.byTooltip('查看夹内任务'), findsOneWidget);
+    expect(find.byTooltip('删除任务夹并释放任务'), findsOneWidget);
+
+    final tileContainer = tester.widget<AnimatedContainer>(
+      find.descendant(
+        of: find.byType(TaskFolderListTile),
+        matching: find.byType(AnimatedContainer),
+      ),
+    );
+    expect(
+      (tileContainer.decoration! as BoxDecoration).color,
+      frameLeanLightColors.surface,
+    );
   });
 
   testWidgets('folder content panel reuses task tile actions', (tester) async {

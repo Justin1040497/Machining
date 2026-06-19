@@ -4,7 +4,7 @@ import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchVideoConfigPanel extends StatelessWidget {
@@ -80,7 +80,7 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
         ? selectedResolutionPreset
         : ResolutionPreset.original;
 
-    return SingleChildScrollView(
+    return Padding(
       padding: padding,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
@@ -103,12 +103,11 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
           ),
           if (showPreserveHdrOption && onPreserveHdrChanged != null) ...[
             SizedBox(height: itemSpacing),
-            _VideoConfigSwitch(
+            ConfigCheckbox(
               label: '保持 HDR',
               value: preserveHdr,
-              height: dropdownHeight,
-              labelFontSize: labelFontSize,
-              valueFontSize: valueFontSize,
+              height: dropdownHeight ?? 34,
+              fontSize: labelFontSize,
               onChanged: onPreserveHdrChanged!,
             ),
           ],
@@ -173,12 +172,11 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
           ),
           if (onPreserveMetadataChanged != null) ...[
             SizedBox(height: itemSpacing),
-            _VideoConfigSwitch(
+            ConfigCheckbox(
               label: '保留元数据',
               value: preserveMetadata,
-              height: dropdownHeight,
-              labelFontSize: labelFontSize,
-              valueFontSize: valueFontSize,
+              height: dropdownHeight ?? 34,
+              fontSize: labelFontSize,
               onChanged: onPreserveMetadataChanged!,
             ),
           ],
@@ -194,64 +192,5 @@ class WorkbenchVideoConfigPanel extends StatelessWidget {
     }
 
     return value.label;
-  }
-}
-
-class _VideoConfigSwitch extends StatelessWidget {
-  const _VideoConfigSwitch({
-    required this.label,
-    required this.value,
-    required this.height,
-    required this.labelFontSize,
-    required this.valueFontSize,
-    required this.onChanged,
-  });
-
-  final String label;
-  final bool value;
-  final double? height;
-  final double labelFontSize;
-  final double valueFontSize;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-
-    return SizedBox(
-      height: height ?? 34,
-      child: Row(
-        children: [
-          Transform.scale(
-            scale: 0.78,
-            child: Switch(
-              padding: EdgeInsets.zero,
-              value: value,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              onChanged: onChanged,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: labelFontSize.flSp,
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            value ? '开启' : '关闭',
-            style: TextStyle(
-              fontSize: valueFontSize.flSp,
-              color: colors.textPrimary,
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

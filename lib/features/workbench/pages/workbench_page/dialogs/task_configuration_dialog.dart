@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:framelean/application/services/ffmpeg_planning/compression_estimator.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
@@ -27,7 +28,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbe
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
-import 'package:framelean/app/widgets/form_controls/workbench_segmented_switch.dart';
 
 @immutable
 class WorkbenchTaskConfigurationDraft {
@@ -454,6 +454,10 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
 
 class _WorkbenchTaskConfigurationDialogState
     extends State<WorkbenchTaskConfigurationDialog> {
+  static const _scrollbarThickness = 4.0;
+  static const _scrollbarGutter = 12.0;
+
+  final ScrollController _bodyScrollController = ScrollController();
   late CompressionMode _mode;
   String? _activePresetTitle;
 
@@ -507,6 +511,12 @@ class _WorkbenchTaskConfigurationDialogState
     if (_activePresetTitle != nextPresetTitle) {
       _activePresetTitle = nextPresetTitle;
     }
+  }
+
+  @override
+  void dispose() {
+    _bodyScrollController.dispose();
+    super.dispose();
   }
 
   CompressionMode _effectiveMode(CompressionMode mode) {
@@ -565,101 +575,151 @@ class _WorkbenchTaskConfigurationDialogState
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 410),
-        child: SingleChildScrollView(
+        child: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 22, 25, 21),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                WorkbenchDialogBackHeader(
-                  title: widget.title,
-                  onClose: widget.onClose,
-                  trailing: widget.onOpenSource == null
-                      ? null
-                      : SizedBox(
-                          width: 28,
-                          height: 28,
-                          child: IconButton(
-                            tooltip: '打开源文件所在位置',
-                            onPressed: widget.onOpenSource,
-                            padding: EdgeInsets.zero,
-                            icon: Icon(
-                              Icons.open_in_new_rounded,
-                              color: colors.textPrimary,
-                              size: 16,
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: WorkbenchDialogBackHeader(
+                    title: widget.title,
+                    onClose: widget.onClose,
+                    trailing: widget.onOpenSource == null
+                        ? null
+                        : SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: IconButton(
+                              tooltip: '打开源文件所在位置',
+                              onPressed: widget.onOpenSource,
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                Icons.open_in_new_rounded,
+                                color: colors.textPrimary,
+                                size: 16,
+                              ),
                             ),
                           ),
+                  ),
+                ),
+                Positioned.fill(
+                  top: 46,
+                  bottom: 50,
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(scrollbars: false),
+                    child: Scrollbar(
+                      controller: _bodyScrollController,
+                      thumbVisibility: false,
+                      trackVisibility: false,
+                      thickness: _scrollbarThickness,
+                      radius: const Radius.circular(4),
+                      interactive: true,
+                      child: SingleChildScrollView(
+                        controller: _bodyScrollController,
+                        physics: const ClampingScrollPhysics(),
+                        padding: const EdgeInsets.only(right: _scrollbarGutter),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            WorkbenchSourceSummary(
+                              task: widget.task,
+                              thumbnail: widget.thumbnail,
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 34,
+                              child:
+                                  CupertinoSlidingSegmentedControl<TaskPurpose>(
+                                    groupValue: widget.selectedPurpose,
+                                    backgroundColor: colors.surfaceDisabled,
+                                    thumbColor: colors.surface,
+                                    padding: const EdgeInsets.all(3),
+                                    children: const {
+                                      TaskPurpose.compression: Text('压缩'),
+                                      TaskPurpose.conversion: Text('格式转换'),
+                                    },
+                                    onValueChanged: (value) {
+                                      if (value != null) {
+                                        widget.onPurposeChanged?.call(value);
+                                      }
+                                    },
+                                  ),
+                            ),
+                            const SizedBox(height: 14),
+                            if (isVideoTask &&
+                                widget.selectedPurpose ==
+                                    TaskPurpose.compression) ...[
+                              WorkbenchCompressionOptionsSection(
+                                mode: _mode,
+                                presets: _recommendedPresets,
+                                selectedQualityIndex:
+                                    widget.selectedQualityIndex,
+                                activePresetTitle: _activePresetTitle,
+                                selectedTargetSizeRatio:
+                                    widget.selectedTargetSizeRatio,
+                                estimatedSizeForPreset:
+                                    _estimatedOutputSizeForPreset,
+                                targetSizeModeEnabled: !preserveHdr,
+                                isPresetEnabled: _isPresetEnabled,
+                                onModeChanged: (mode) {
+                                  if (preserveHdr &&
+                                      mode == CompressionMode.targetSize) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _mode = mode;
+                                  });
+                                  widget.onCompressionModeChanged(mode);
+                                },
+                                onPresetSelected: _applyPreset,
+                                onTargetSizeRatioChanged:
+                                    widget.onTargetSizeRatioChanged,
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            _buildMediaConfigPanel(),
+                            const SizedBox(height: 14),
+                            _AdvancedTaskSettingsSection(
+                              task: widget.task,
+                              selectedConfig: _selectedMediaTaskConfig(),
+                              selectedVideoConfig:
+                                  widget.selectedVideoConfig ??
+                                  widget.task.config.video,
+                              onThreadLimitChanged:
+                                  widget.onThreadLimitChanged ?? (_) {},
+                              onTwoPassModeChanged:
+                                  widget.onTwoPassModeChanged ?? (_) {},
+                              onSelectedAudioStreamIndexChanged:
+                                  widget.onSelectedAudioStreamIndexChanged ??
+                                  (_) {},
+                            ),
+                          ],
                         ),
-                ),
-                const SizedBox(height: 18),
-                WorkbenchSourceSummary(
-                  task: widget.task,
-                  thumbnail: widget.thumbnail,
-                ),
-                const SizedBox(height: 14),
-                WorkbenchSegmentedSwitch<TaskPurpose>(
-                  value: widget.selectedPurpose,
-                  segments: const [
-                    WorkbenchSegment(
-                      value: TaskPurpose.compression,
-                      label: '压缩',
+                      ),
                     ),
-                    WorkbenchSegment(
-                      value: TaskPurpose.conversion,
-                      label: '格式转换',
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: WorkbenchDialogActions(
+                    leading: WorkbenchTaskConfigurationStatusBadges(
+                      modified: modified,
+                      compressed: compressed,
                     ),
-                  ],
-                  onChanged: (value) {
-                    widget.onPurposeChanged?.call(value);
-                  },
-                ),
-                const SizedBox(height: 14),
-                if (isVideoTask &&
-                    widget.selectedPurpose == TaskPurpose.compression) ...[
-                  WorkbenchCompressionOptionsSection(
-                    mode: _mode,
-                    presets: _recommendedPresets,
-                    selectedQualityIndex: widget.selectedQualityIndex,
-                    activePresetTitle: _activePresetTitle,
-                    selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
-                    estimatedSizeForPreset: _estimatedOutputSizeForPreset,
-                    targetSizeModeEnabled: !preserveHdr,
-                    isPresetEnabled: _isPresetEnabled,
-                    onModeChanged: (mode) {
-                      if (preserveHdr && mode == CompressionMode.targetSize) {
-                        return;
-                      }
-                      setState(() {
-                        _mode = mode;
-                      });
-                      widget.onCompressionModeChanged(mode);
-                    },
-                    onPresetSelected: _applyPreset,
-                    onTargetSizeRatioChanged: widget.onTargetSizeRatioChanged,
+                    onCancel: widget.onClose,
+                    onSave: widget.onSave,
                   ),
-                  const SizedBox(height: 14),
-                ],
-                _buildMediaConfigPanel(),
-                const SizedBox(height: 14),
-                _AdvancedTaskSettingsSection(
-                  task: widget.task,
-                  selectedConfig: _selectedMediaTaskConfig(),
-                  selectedVideoConfig:
-                      widget.selectedVideoConfig ?? widget.task.config.video,
-                  onThreadLimitChanged: widget.onThreadLimitChanged ?? (_) {},
-                  onTwoPassModeChanged: widget.onTwoPassModeChanged ?? (_) {},
-                  onSelectedAudioStreamIndexChanged:
-                      widget.onSelectedAudioStreamIndexChanged ?? (_) {},
-                ),
-                const SizedBox(height: 22),
-                WorkbenchDialogActions(
-                  leading: WorkbenchTaskConfigurationStatusBadges(
-                    modified: modified,
-                    compressed: compressed,
-                  ),
-                  onCancel: widget.onClose,
-                  onSave: widget.onSave,
                 ),
               ],
             ),

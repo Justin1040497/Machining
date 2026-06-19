@@ -45,6 +45,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ### Changed
 
+- 任务详情和任务夹设置改用 Flutter 原生 Cupertino 滑动分段控件与复选框选项，并固定顶部标题栏和底部操作区；中间配置使用无回弹滚动和独立滚动条安全槽。
 - 工作台顶层拖拽保留官方 ReorderableList 的拖拽代理、自动滚动和 gap 动画，同时增加同类型任务夹整行冻结、返回任务夹时 gap 复位和 drop 消费钩子。
 - 同类型任务夹中部释放仍走入夹；上下 16px 边缘释放、普通任务和跨类型任务夹仍走排序路径，跨类型任务夹保持禁用视觉且不显示拒绝提示。
 - 顶层排序采用乐观视觉顺序衔接异步 Drift 持久化；提交成功后由仓储结果接管，失败时回滚，避免 drop 动画结束后列表项短暂返回旧位置。
@@ -59,12 +60,14 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 移出任务的 `sortOrder` 现在同时参考普通任务和任务夹，确保位于整个顶层混排列表尾部。
 - 移除任务配置上下文和任务行视觉选中态的耦合；普通和多选模式均不再显示蓝色任务行边框。
 - 修正左侧任务夹内容浮层打开时缺少滑入动画的问题。
+- 修复总列表任务夹在运行结束后仍保留聚合进度底色的问题，非运行状态恢复普通卡片背景。
 
 ### Verified
 
 - 通过 `rtk dart format lib test --set-exit-if-changed`。
 - 通过 `rtk flutter analyze`。
-- 通过 `rtk flutter test`，共 326 项测试。
+- 通过 `rtk flutter test test/widget_test.dart`，共 50 项 Widget 测试。
+- 通过 `rtk flutter test`，共 328 项测试。
 
 ## 2026-06-18｜v1.2.1｜No Release
 
