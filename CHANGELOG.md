@@ -29,6 +29,23 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-19｜v1.2.1｜No Release
+
+今天修复工作台任务拖入任务夹的悬停与落位体验：顶层任务 / 任务夹混排列表改用工作台本地 Flutter reorderable fork，让任务经过同类型任务夹整行时冻结排序 gap，并在从其他排序目标返回任务夹时复位已有 gap；排序释放后继续保持目标视觉顺序直到持久化确认，避免任务夹躲避和列表项回闪。
+
+### Changed
+
+- 工作台顶层拖拽保留官方 ReorderableList 的拖拽代理、自动滚动和 gap 动画，同时增加同类型任务夹整行冻结、返回任务夹时 gap 复位和 drop 消费钩子。
+- 同类型任务夹中部释放仍走入夹；上下 16px 边缘释放、普通任务和跨类型任务夹仍走排序路径，跨类型任务夹保持禁用视觉且不显示拒绝提示。
+- 顶层排序采用乐观视觉顺序衔接异步 Drift 持久化；提交成功后由仓储结果接管，失败时回滚，避免 drop 动画结束后列表项短暂返回旧位置。
+
+### Verified
+
+- 通过 `flutter test test/widget_test.dart`。
+- 通过 `flutter test test/reorder_workbench_items_use_case_test.dart test/media_task_notifier_test.dart`。
+- 通过 `flutter analyze`。
+- 通过 `dart format --set-exit-if-changed lib/features/workbench/widgets/reorderable/workbench_reorderable_list.dart lib/features/workbench/pages/workbench_page.dart lib/features/workbench/pages/workbench_page/layout/workbench_shell.dart lib/features/workbench/pages/workbench_page/layout/task_list_card.dart lib/features/workbench/widgets/media_task_list/task_folder_list_tile.dart test/widget_test.dart`。
+
 ## 2026-06-18｜v1.2.1｜No Release
 
 今天收口自托管更新、Admin 版本制品管理、媒体处理可靠性和任务夹重构近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。主项目同步修复图片压缩越压越大、透明视频错误输出、输出路径启动后才失败和批量任务缺少容器的问题。
