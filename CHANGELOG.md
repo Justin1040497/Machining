@@ -31,20 +31,33 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-19｜v1.2.1｜No Release
 
-今天修复工作台任务拖入任务夹的悬停与落位体验：顶层任务 / 任务夹混排列表改用工作台本地 Flutter reorderable fork，让任务经过同类型任务夹整行时冻结排序 gap，并在从其他排序目标返回任务夹时复位已有 gap；排序释放后继续保持目标视觉顺序直到持久化确认，避免任务夹躲避和列表项回闪。
+今天收口工作台任务夹拖拽：将 Flutter 3.41.2 reorderable fork 提升为全应用共享组件，顶层列表保留任务夹 hover freeze 和乐观落位，夹内列表同步迁移并支持拖到遮罩移出。同时修正移出任务的混排尾部顺序，移除普通任务行误用的选中边框。
+
+### Added
+
+- 新增全应用 `FrameLeanReorderableListView`，支持拖拽更新、三种 gap 策略、排序 / 外部接收 / 取消 drop、跨轴拖动和外部接收代理装饰。
+- 任务夹内任务可通过拖拽柄移到面板外遮罩，释放后在落点缩小淡出并移回总列表。
 
 ### Changed
 
 - 工作台顶层拖拽保留官方 ReorderableList 的拖拽代理、自动滚动和 gap 动画，同时增加同类型任务夹整行冻结、返回任务夹时 gap 复位和 drop 消费钩子。
 - 同类型任务夹中部释放仍走入夹；上下 16px 边缘释放、普通任务和跨类型任务夹仍走排序路径，跨类型任务夹保持禁用视觉且不显示拒绝提示。
 - 顶层排序采用乐观视觉顺序衔接异步 Drift 持久化；提交成功后由仓储结果接管，失败时回滚，避免 drop 动画结束后列表项短暂返回旧位置。
+- 夹内排序同样使用乐观视觉顺序；移出持久化失败时恢复任务行，面板标题区和内部空白区释放按取消处理。
+
+### Fixed
+
+- 移出任务的 `sortOrder` 现在同时参考普通任务和任务夹，确保位于整个顶层混排列表尾部。
+- 移除任务配置上下文和任务行视觉选中态的耦合；普通和多选模式均不再显示蓝色任务行边框。
 
 ### Verified
 
-- 通过 `flutter test test/widget_test.dart`。
-- 通过 `flutter test test/reorder_workbench_items_use_case_test.dart test/media_task_notifier_test.dart`。
+- 通过 `flutter test`，共 314 项测试。
+- 通过 `flutter test test/framelean_reorderable_list_view_test.dart`，4 项共享组件测试。
+- 通过 `flutter test test/widget_test.dart`，44 项工作台 widget 测试。
+- 通过 `flutter test test/task_folder_use_cases_test.dart test/media_task_notifier_test.dart test/reorder_workbench_items_use_case_test.dart`，16 项 application / notifier 测试。
 - 通过 `flutter analyze`。
-- 通过 `dart format --set-exit-if-changed lib/features/workbench/widgets/reorderable/workbench_reorderable_list.dart lib/features/workbench/pages/workbench_page.dart lib/features/workbench/pages/workbench_page/layout/workbench_shell.dart lib/features/workbench/pages/workbench_page/layout/task_list_card.dart lib/features/workbench/widgets/media_task_list/task_folder_list_tile.dart test/widget_test.dart`。
+- 通过本次 Dart 变更文件的 `dart format --set-exit-if-changed`。
 
 ## 2026-06-18｜v1.2.1｜No Release
 
