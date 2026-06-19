@@ -9,7 +9,6 @@ import 'package:framelean/features/workbench/widgets/media_task_list/media_task_
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;
-  final bool selected;
   final ImageProvider? thumbnail;
   final VoidCallback? onTap;
   final VoidCallback? onStart;
@@ -28,7 +27,6 @@ class MediaTaskListTile extends StatelessWidget {
   const MediaTaskListTile({
     super.key,
     required this.task,
-    this.selected = false,
     this.thumbnail,
     this.onTap,
     this.onStart,
@@ -87,10 +85,7 @@ class MediaTaskListTile extends StatelessWidget {
           ),
           foregroundDecoration: BoxDecoration(
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? colors.primary : colors.border,
-              width: selected ? 1.4 : 1,
-            ),
+            border: Border.all(color: colors.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(

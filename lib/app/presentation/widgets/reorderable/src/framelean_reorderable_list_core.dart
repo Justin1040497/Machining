@@ -5,8 +5,8 @@
 // Forked from Flutter 3.41.2:
 // packages/flutter/lib/src/widgets/reorderable_list.dart
 //
-// FrameLean keeps this local copy so the workbench can freeze the reorder gap
-// while a task hovers over a folder body that should accept a drop.
+// FrameLean keeps this local copy to expose reusable gap and external-drop
+// controls that Flutter's public reorderable API does not provide.
 
 /// @docImport 'package:flutter/material.dart';
 library;
@@ -19,7 +19,7 @@ import 'package:flutter/widgets.dart';
 // Examples can assume:
 // class MyDataObject {}
 
-/// A callback used by [WorkbenchReorderableList] to report that a list item has moved
+/// A callback used by [FrameLeanReorderableListCore] to report that a list item has moved
 /// to a new position in the list.
 ///
 /// Implementations should remove the corresponding list item at [oldIndex]
@@ -49,16 +49,16 @@ import 'package:flutter/widgets.dart';
 ///
 /// See also:
 ///
-///  * [WorkbenchReorderableList], a widget list that allows the user to reorder
+///  * [FrameLeanReorderableListCore], a widget list that allows the user to reorder
 ///    its items.
-///  * [WorkbenchSliverReorderableList], a sliver list that allows the user to reorder
+///  * [FrameLeanSliverReorderableList], a sliver list that allows the user to reorder
 ///    its items.
 ///  * [ReorderableListView], a Material Design list that allows the user to
 ///    reorder its items.
-typedef WorkbenchReorderCallback = void Function(int oldIndex, int newIndex);
+typedef FrameLeanReorderCallback = void Function(int oldIndex, int newIndex);
 
 /// Signature for the builder callback used to decorate the dragging item in
-/// [WorkbenchReorderableList] and [WorkbenchSliverReorderableList].
+/// [FrameLeanReorderableListCore] and [FrameLeanSliverReorderableList].
 ///
 /// The [child] will be the item that is being dragged, and [index] is the
 /// position of the item in the list.
@@ -69,7 +69,7 @@ typedef WorkbenchReorderCallback = void Function(int oldIndex, int newIndex);
 /// like an elevation or border.
 ///
 /// The returned value will typically be the [child] wrapped in other widgets.
-typedef WorkbenchReorderItemProxyDecorator =
+typedef FrameLeanReorderItemProxyDecorator =
     Widget Function(Widget child, int index, Animation<double> animation);
 
 /// Used to provide drag boundaries during drag-and-drop reordering.
@@ -79,9 +79,9 @@ typedef WorkbenchReorderItemProxyDecorator =
 /// DragBoundary(
 ///  child: CustomScrollView(
 ///    slivers: <Widget>[
-///      WorkbenchSliverReorderableList(
+///      FrameLeanSliverReorderableList(
 ///        itemBuilder: (BuildContext context, int index) {
-///          return WorkbenchReorderableDragStartListener(
+///          return FrameLeanReorderableDragStartListener(
 ///            key: ValueKey<int>(index),
 ///            index: index,
 ///            child: Text('$index'),
@@ -101,17 +101,32 @@ typedef WorkbenchReorderItemProxyDecorator =
 ///
 /// See also:
 /// * [DragBoundary], a widget that provides drag boundaries.
-typedef WorkbenchReorderDragBoundaryProvider =
+typedef FrameLeanReorderDragBoundaryProvider =
     DragBoundaryDelegate<Rect>? Function(BuildContext context);
 
-typedef WorkbenchReorderGapPredicate =
-    bool Function(WorkbenchReorderGapDetails details);
+enum FrameLeanReorderGapBehavior { move, hold, restoreOrigin }
 
-typedef WorkbenchReorderDropHandler =
-    bool Function(WorkbenchReorderDropDetails details);
+enum FrameLeanReorderDropDisposition { reorder, accepted, cancelled }
 
-class WorkbenchReorderGapDetails {
-  const WorkbenchReorderGapDetails({
+typedef FrameLeanReorderGapResolver =
+    FrameLeanReorderGapBehavior Function(FrameLeanReorderGapDetails details);
+
+typedef FrameLeanReorderDragUpdateCallback =
+    void Function(FrameLeanReorderGapDetails details);
+
+typedef FrameLeanReorderDropHandler =
+    FrameLeanReorderDropDisposition Function(
+      FrameLeanReorderDropDetails details,
+    );
+
+typedef FrameLeanReorderDropCompletedCallback =
+    void Function(
+      FrameLeanReorderDropDetails details,
+      FrameLeanReorderDropDisposition disposition,
+    );
+
+class FrameLeanReorderGapDetails {
+  const FrameLeanReorderGapDetails({
     required this.oldIndex,
     required this.currentIndex,
     required this.candidateIndex,
@@ -126,8 +141,8 @@ class WorkbenchReorderGapDetails {
   final Rect proxyRect;
 }
 
-class WorkbenchReorderDropDetails {
-  const WorkbenchReorderDropDetails({
+class FrameLeanReorderDropDetails {
+  const FrameLeanReorderDropDetails({
     required this.oldIndex,
     required this.newIndex,
     required this.globalPosition,
@@ -149,29 +164,29 @@ class WorkbenchReorderDropDetails {
 /// It is up to the application to wrap each child (or an internal part of the
 /// child such as a drag handle) with a drag listener that will recognize
 /// the start of an item drag and then start the reorder by calling
-/// [WorkbenchReorderableListState.startItemDragReorder]. This is most easily achieved
-/// by wrapping each child in a [WorkbenchReorderableDragStartListener] or a
-/// [WorkbenchReorderableDelayedDragStartListener]. These will take care of recognizing
+/// [FrameLeanReorderableListCoreState.startItemDragReorder]. This is most easily achieved
+/// by wrapping each child in a [FrameLeanReorderableDragStartListener] or a
+/// [FrameLeanReorderableDelayedDragStartListener]. These will take care of recognizing
 /// the start of a drag gesture and call the list state's
-/// [WorkbenchReorderableListState.startItemDragReorder] method.
+/// [FrameLeanReorderableListCoreState.startItemDragReorder] method.
 ///
-/// This widget's [WorkbenchReorderableListState] can be used to manually start an item
+/// This widget's [FrameLeanReorderableListCoreState] can be used to manually start an item
 /// reorder, or cancel a current drag. To refer to the
-/// [WorkbenchReorderableListState] either provide a [GlobalKey] or use the static
-/// [WorkbenchReorderableList.of] method from an item's build method.
+/// [FrameLeanReorderableListCoreState] either provide a [GlobalKey] or use the static
+/// [FrameLeanReorderableListCore.of] method from an item's build method.
 ///
 /// See also:
 ///
-///  * [WorkbenchSliverReorderableList], a sliver list that allows the user to reorder
+///  * [FrameLeanSliverReorderableList], a sliver list that allows the user to reorder
 ///    its items.
 ///  * [ReorderableListView], a Material Design list that allows the user to
 ///    reorder its items.
-class WorkbenchReorderableList extends StatefulWidget {
+class FrameLeanReorderableListCore extends StatefulWidget {
   /// Creates a scrolling container that allows the user to interactively
   /// reorder the list items.
   ///
   /// The [itemCount] must be greater than or equal to zero.
-  const WorkbenchReorderableList({
+  const FrameLeanReorderableListCore({
     super.key,
     required this.itemBuilder,
     required this.itemCount,
@@ -197,8 +212,15 @@ class WorkbenchReorderableList extends StatefulWidget {
     this.clipBehavior = Clip.hardEdge,
     this.autoScrollerVelocityScalar,
     this.dragBoundaryProvider,
-    this.shouldMoveGap,
+    this.onReorderUpdate,
+    this.onReorderCancel,
+    this.gapBehavior,
     this.onDrop,
+    this.onDropCompleted,
+    this.acceptedDropProxyDecorator,
+    this.proxyAnimationDuration = const Duration(milliseconds: 250),
+    this.dropAnimationDuration = const Duration(milliseconds: 250),
+    this.allowCrossAxisDrag = false,
   }) : assert(itemCount >= 0),
        assert(
          (itemExtent == null && prototypeItem == null) ||
@@ -216,8 +238,8 @@ class WorkbenchReorderableList extends StatefulWidget {
   /// position in the list. The value of the index parameter will be between
   /// zero and one less than [itemCount]. All items in the list must have a
   /// unique [Key], and should have some kind of listener to start the drag
-  /// (usually a [WorkbenchReorderableDragStartListener] or
-  /// [WorkbenchReorderableDelayedDragStartListener]).
+  /// (usually a [FrameLeanReorderableDragStartListener] or
+  /// [FrameLeanReorderableDelayedDragStartListener]).
   /// {@endtemplate}
   final IndexedWidgetBuilder itemBuilder;
 
@@ -234,7 +256,7 @@ class WorkbenchReorderableList extends StatefulWidget {
   /// to a new location in the list and the application should update the order
   /// of the items.
   /// {@endtemplate}
-  final WorkbenchReorderCallback onReorder;
+  final FrameLeanReorderCallback onReorder;
 
   /// {@template flutter.widgets.reorderable_list.onReorderStart}
   /// A callback that is called when an item drag has started.
@@ -268,7 +290,7 @@ class WorkbenchReorderableList extends StatefulWidget {
   /// A callback that allows the app to add an animated decoration around
   /// an item when it is being dragged.
   /// {@endtemplate}
-  final WorkbenchReorderItemProxyDecorator? proxyDecorator;
+  final FrameLeanReorderItemProxyDecorator? proxyDecorator;
 
   /// {@template flutter.widgets.reorderable_list.padding}
   /// The amount of space by which to inset the list contents.
@@ -329,7 +351,7 @@ class WorkbenchReorderableList extends StatefulWidget {
 
   /// {@macro flutter.widgets.EdgeDraggingAutoScroller.velocityScalar}
   ///
-  /// {@macro flutter.widgets.WorkbenchSliverReorderableList.autoScrollerVelocityScalar.default}
+  /// {@macro flutter.widgets.FrameLeanSliverReorderableList.autoScrollerVelocityScalar.default}
   final double? autoScrollerVelocityScalar;
 
   /// {@template flutter.widgets.reorderable_list.dragBoundaryProvider}
@@ -338,22 +360,36 @@ class WorkbenchReorderableList extends StatefulWidget {
   /// If null, the delegate returned by `DragBoundary.forRectMaybeOf` will be used.
   /// Defaults to null.
   /// {@endtemplate}
-  final WorkbenchReorderDragBoundaryProvider? dragBoundaryProvider;
+  final FrameLeanReorderDragBoundaryProvider? dragBoundaryProvider;
 
   /// Lets the workbench temporarily freeze the reorder gap while preserving
   /// the active drag gesture and proxy.
-  final WorkbenchReorderGapPredicate? shouldMoveGap;
+  final FrameLeanReorderDragUpdateCallback? onReorderUpdate;
+
+  final void Function(int index)? onReorderCancel;
+
+  final FrameLeanReorderGapResolver? gapBehavior;
 
   /// Lets the workbench consume a drop before the default reorder callback.
-  final WorkbenchReorderDropHandler? onDrop;
+  final FrameLeanReorderDropHandler? onDrop;
+
+  final FrameLeanReorderDropCompletedCallback? onDropCompleted;
+
+  final FrameLeanReorderItemProxyDecorator? acceptedDropProxyDecorator;
+
+  final Duration proxyAnimationDuration;
+
+  final Duration dropAnimationDuration;
+
+  final bool allowCrossAxisDrag;
 
   /// The state from the closest instance of this class that encloses the given
   /// context.
   ///
-  /// This method is typically used by [WorkbenchReorderableList] item widgets that
+  /// This method is typically used by [FrameLeanReorderableListCore] item widgets that
   /// insert or remove items in response to user input.
   ///
-  /// If no [WorkbenchReorderableList] surrounds the given context, then this function
+  /// If no [FrameLeanReorderableListCore] surrounds the given context, then this function
   /// will assert in debug mode and throw an exception in release mode.
   ///
   /// This method can be expensive (it walks the element tree).
@@ -361,24 +397,24 @@ class WorkbenchReorderableList extends StatefulWidget {
   /// See also:
   ///
   ///  * [maybeOf], a similar function that will return null if no
-  ///    [WorkbenchReorderableList] ancestor is found.
-  static WorkbenchReorderableListState of(BuildContext context) {
-    final WorkbenchReorderableListState? result = context
-        .findAncestorStateOfType<WorkbenchReorderableListState>();
+  ///    [FrameLeanReorderableListCore] ancestor is found.
+  static FrameLeanReorderableListCoreState of(BuildContext context) {
+    final FrameLeanReorderableListCoreState? result = context
+        .findAncestorStateOfType<FrameLeanReorderableListCoreState>();
     assert(() {
       if (result == null) {
         throw FlutterError.fromParts(<DiagnosticsNode>[
           ErrorSummary(
-            'WorkbenchReorderableList.of() called with a context that does not contain a WorkbenchReorderableList.',
+            'FrameLeanReorderableListCore.of() called with a context that does not contain a FrameLeanReorderableListCore.',
           ),
           ErrorDescription(
-            'No WorkbenchReorderableList ancestor could be found starting from the context that was passed to WorkbenchReorderableList.of().',
+            'No FrameLeanReorderableListCore ancestor could be found starting from the context that was passed to FrameLeanReorderableListCore.of().',
           ),
           ErrorHint(
             'This can happen when the context provided is from the same StatefulWidget that '
-            'built the WorkbenchReorderableList. Please see the WorkbenchReorderableList documentation for examples '
-            'of how to refer to an WorkbenchReorderableListState object:\n'
-            '  https://api.flutter.dev/flutter/widgets/WorkbenchReorderableListState-class.html',
+            'built the FrameLeanReorderableListCore. Please see the FrameLeanReorderableListCore documentation for examples '
+            'of how to refer to an FrameLeanReorderableListCoreState object:\n'
+            '  https://api.flutter.dev/flutter/widgets/FrameLeanReorderableListCoreState-class.html',
           ),
           context.describeElement('The context used was'),
         ]);
@@ -391,38 +427,38 @@ class WorkbenchReorderableList extends StatefulWidget {
   /// The state from the closest instance of this class that encloses the given
   /// context.
   ///
-  /// This method is typically used by [WorkbenchReorderableList] item widgets that insert
+  /// This method is typically used by [FrameLeanReorderableListCore] item widgets that insert
   /// or remove items in response to user input.
   ///
-  /// If no [WorkbenchReorderableList] surrounds the context given, then this function will
+  /// If no [FrameLeanReorderableListCore] surrounds the context given, then this function will
   /// return null.
   ///
   /// This method can be expensive (it walks the element tree).
   ///
   /// See also:
   ///
-  ///  * [of], a similar function that will throw if no [WorkbenchReorderableList] ancestor
+  ///  * [of], a similar function that will throw if no [FrameLeanReorderableListCore] ancestor
   ///    is found.
-  static WorkbenchReorderableListState? maybeOf(BuildContext context) {
-    return context.findAncestorStateOfType<WorkbenchReorderableListState>();
+  static FrameLeanReorderableListCoreState? maybeOf(BuildContext context) {
+    return context.findAncestorStateOfType<FrameLeanReorderableListCoreState>();
   }
 
   @override
-  WorkbenchReorderableListState createState() =>
-      WorkbenchReorderableListState();
+  FrameLeanReorderableListCoreState createState() =>
+      FrameLeanReorderableListCoreState();
 }
 
 /// The state for a list that allows the user to interactively reorder
 /// the list items.
 ///
 /// An app that needs to start a new item drag or cancel an existing one
-/// can refer to the [WorkbenchReorderableList]'s state with a global key:
+/// can refer to the [FrameLeanReorderableListCore]'s state with a global key:
 ///
 /// ```dart
-/// GlobalKey<WorkbenchReorderableListState> listKey = GlobalKey<WorkbenchReorderableListState>();
+/// GlobalKey<FrameLeanReorderableListCoreState> listKey = GlobalKey<FrameLeanReorderableListCoreState>();
 /// // ...
 /// Widget build(BuildContext context) {
-///   return WorkbenchReorderableList(
+///   return FrameLeanReorderableListCore(
 ///     key: listKey,
 ///     itemBuilder: (BuildContext context, int index) => const SizedBox(height: 10.0),
 ///     itemCount: 5,
@@ -434,8 +470,9 @@ class WorkbenchReorderableList extends StatefulWidget {
 /// // ...
 /// listKey.currentState!.cancelReorder();
 /// ```
-class WorkbenchReorderableListState extends State<WorkbenchReorderableList> {
-  final GlobalKey<WorkbenchSliverReorderableListState>
+class FrameLeanReorderableListCoreState
+    extends State<FrameLeanReorderableListCore> {
+  final GlobalKey<FrameLeanSliverReorderableListState>
   _sliverReorderableListKey = GlobalKey();
 
   /// Initiate the dragging of the item at [index] that was started with
@@ -448,7 +485,7 @@ class WorkbenchReorderableListState extends State<WorkbenchReorderableList> {
   ///
   /// Most applications will not use this directly, but will wrap the item
   /// (or part of the item, like a drag handle) in either a
-  /// [WorkbenchReorderableDragStartListener] or [WorkbenchReorderableDelayedDragStartListener]
+  /// [FrameLeanReorderableDragStartListener] or [FrameLeanReorderableDelayedDragStartListener]
   /// which call this for the application.
   void startItemDragReorder({
     required int index,
@@ -492,7 +529,7 @@ class WorkbenchReorderableListState extends State<WorkbenchReorderableList> {
       slivers: <Widget>[
         SliverPadding(
           padding: widget.padding ?? EdgeInsets.zero,
-          sliver: WorkbenchSliverReorderableList(
+          sliver: FrameLeanSliverReorderableList(
             key: _sliverReorderableListKey,
             itemExtent: widget.itemExtent,
             prototypeItem: widget.prototypeItem,
@@ -502,11 +539,18 @@ class WorkbenchReorderableListState extends State<WorkbenchReorderableList> {
             onReorder: widget.onReorder,
             onReorderStart: widget.onReorderStart,
             onReorderEnd: widget.onReorderEnd,
+            onReorderUpdate: widget.onReorderUpdate,
+            onReorderCancel: widget.onReorderCancel,
             proxyDecorator: widget.proxyDecorator,
+            acceptedDropProxyDecorator: widget.acceptedDropProxyDecorator,
+            proxyAnimationDuration: widget.proxyAnimationDuration,
+            dropAnimationDuration: widget.dropAnimationDuration,
+            allowCrossAxisDrag: widget.allowCrossAxisDrag,
             autoScrollerVelocityScalar: widget.autoScrollerVelocityScalar,
             dragBoundaryProvider: widget.dragBoundaryProvider,
-            shouldMoveGap: widget.shouldMoveGap,
+            gapBehavior: widget.gapBehavior,
             onDrop: widget.onDrop,
+            onDropCompleted: widget.onDropCompleted,
           ),
         ),
       ],
@@ -519,29 +563,29 @@ class WorkbenchReorderableListState extends State<WorkbenchReorderableList> {
 /// It is up to the application to wrap each child (or an internal part of the
 /// child) with a drag listener that will recognize the start of an item drag
 /// and then start the reorder by calling
-/// [WorkbenchSliverReorderableListState.startItemDragReorder]. This is most easily
-/// achieved by wrapping each child in a [WorkbenchReorderableDragStartListener] or
-/// a [WorkbenchReorderableDelayedDragStartListener]. These will take care of
+/// [FrameLeanSliverReorderableListState.startItemDragReorder]. This is most easily
+/// achieved by wrapping each child in a [FrameLeanReorderableDragStartListener] or
+/// a [FrameLeanReorderableDelayedDragStartListener]. These will take care of
 /// recognizing the start of a drag gesture and call the list state's start
 /// item drag method.
 ///
-/// This widget's [WorkbenchSliverReorderableListState] can be used to manually start an item
+/// This widget's [FrameLeanSliverReorderableListState] can be used to manually start an item
 /// reorder, or cancel a current drag that's already underway. To refer to the
-/// [WorkbenchSliverReorderableListState] either provide a [GlobalKey] or use the static
-/// [WorkbenchSliverReorderableList.of] method from an item's build method.
+/// [FrameLeanSliverReorderableListState] either provide a [GlobalKey] or use the static
+/// [FrameLeanSliverReorderableList.of] method from an item's build method.
 ///
 /// See also:
 ///
-///  * [WorkbenchReorderableList], a regular widget list that allows the user to reorder
+///  * [FrameLeanReorderableListCore], a regular widget list that allows the user to reorder
 ///    its items.
 ///  * [ReorderableListView], a Material Design list that allows the user to
 ///    reorder its items.
-class WorkbenchSliverReorderableList extends StatefulWidget {
+class FrameLeanSliverReorderableList extends StatefulWidget {
   /// Creates a sliver list that allows the user to interactively reorder its
   /// items.
   ///
   /// The [itemCount] must be greater than or equal to zero.
-  const WorkbenchSliverReorderableList({
+  const FrameLeanSliverReorderableList({
     super.key,
     required this.itemBuilder,
     this.findChildIndexCallback,
@@ -549,13 +593,20 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
     required this.onReorder,
     this.onReorderStart,
     this.onReorderEnd,
+    this.onReorderUpdate,
+    this.onReorderCancel,
     this.itemExtent,
     this.itemExtentBuilder,
     this.prototypeItem,
     this.proxyDecorator,
+    this.acceptedDropProxyDecorator,
+    this.proxyAnimationDuration = const Duration(milliseconds: 250),
+    this.dropAnimationDuration = const Duration(milliseconds: 250),
+    this.allowCrossAxisDrag = false,
     this.dragBoundaryProvider,
-    this.shouldMoveGap,
+    this.gapBehavior,
     this.onDrop,
+    this.onDropCompleted,
     double? autoScrollerVelocityScalar,
   }) : autoScrollerVelocityScalar =
            autoScrollerVelocityScalar ?? _kDefaultAutoScrollVelocityScalar,
@@ -580,7 +631,7 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
   final int itemCount;
 
   /// {@macro flutter.widgets.reorderable_list.onReorder}
-  final WorkbenchReorderCallback onReorder;
+  final FrameLeanReorderCallback onReorder;
 
   /// {@macro flutter.widgets.reorderable_list.onReorderStart}
   final void Function(int)? onReorderStart;
@@ -588,8 +639,20 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
   /// {@macro flutter.widgets.reorderable_list.onReorderEnd}
   final void Function(int)? onReorderEnd;
 
+  final FrameLeanReorderDragUpdateCallback? onReorderUpdate;
+
+  final void Function(int index)? onReorderCancel;
+
   /// {@macro flutter.widgets.reorderable_list.proxyDecorator}
-  final WorkbenchReorderItemProxyDecorator? proxyDecorator;
+  final FrameLeanReorderItemProxyDecorator? proxyDecorator;
+
+  final FrameLeanReorderItemProxyDecorator? acceptedDropProxyDecorator;
+
+  final Duration proxyAnimationDuration;
+
+  final Duration dropAnimationDuration;
+
+  final bool allowCrossAxisDrag;
 
   /// {@macro flutter.widgets.list_view.itemExtent}
   final double? itemExtent;
@@ -602,29 +665,31 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
 
   /// {@macro flutter.widgets.EdgeDraggingAutoScroller.velocityScalar}
   ///
-  /// {@template flutter.widgets.WorkbenchSliverReorderableList.autoScrollerVelocityScalar.default}
+  /// {@template flutter.widgets.FrameLeanSliverReorderableList.autoScrollerVelocityScalar.default}
   /// Defaults to 50 if not set or set to null.
   /// {@endtemplate}
   final double autoScrollerVelocityScalar;
 
   /// {@macro flutter.widgets.reorderable_list.dragBoundaryProvider}
-  final WorkbenchReorderDragBoundaryProvider? dragBoundaryProvider;
+  final FrameLeanReorderDragBoundaryProvider? dragBoundaryProvider;
 
-  final WorkbenchReorderGapPredicate? shouldMoveGap;
+  final FrameLeanReorderGapResolver? gapBehavior;
 
-  final WorkbenchReorderDropHandler? onDrop;
+  final FrameLeanReorderDropHandler? onDrop;
+
+  final FrameLeanReorderDropCompletedCallback? onDropCompleted;
 
   @override
-  WorkbenchSliverReorderableListState createState() =>
-      WorkbenchSliverReorderableListState();
+  FrameLeanSliverReorderableListState createState() =>
+      FrameLeanSliverReorderableListState();
 
   /// The state from the closest instance of this class that encloses the given
   /// context.
   ///
-  /// This method is typically used by [WorkbenchSliverReorderableList] item widgets to
+  /// This method is typically used by [FrameLeanSliverReorderableList] item widgets to
   /// start or cancel an item drag operation.
   ///
-  /// If no [WorkbenchSliverReorderableList] surrounds the context given, this function
+  /// If no [FrameLeanSliverReorderableList] surrounds the context given, this function
   /// will assert in debug mode and throw an exception in release mode.
   ///
   /// This method can be expensive (it walks the element tree).
@@ -632,24 +697,24 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
   /// See also:
   ///
   ///  * [maybeOf], a similar function that will return null if no
-  ///    [WorkbenchSliverReorderableList] ancestor is found.
-  static WorkbenchSliverReorderableListState of(BuildContext context) {
-    final WorkbenchSliverReorderableListState? result = context
-        .findAncestorStateOfType<WorkbenchSliverReorderableListState>();
+  ///    [FrameLeanSliverReorderableList] ancestor is found.
+  static FrameLeanSliverReorderableListState of(BuildContext context) {
+    final FrameLeanSliverReorderableListState? result = context
+        .findAncestorStateOfType<FrameLeanSliverReorderableListState>();
     assert(() {
       if (result == null) {
         throw FlutterError.fromParts(<DiagnosticsNode>[
           ErrorSummary(
-            'WorkbenchSliverReorderableList.of() called with a context that does not contain a WorkbenchSliverReorderableList.',
+            'FrameLeanSliverReorderableList.of() called with a context that does not contain a FrameLeanSliverReorderableList.',
           ),
           ErrorDescription(
-            'No WorkbenchSliverReorderableList ancestor could be found starting from the context that was passed to WorkbenchSliverReorderableList.of().',
+            'No FrameLeanSliverReorderableList ancestor could be found starting from the context that was passed to FrameLeanSliverReorderableList.of().',
           ),
           ErrorHint(
             'This can happen when the context provided is from the same StatefulWidget that '
-            'built the WorkbenchSliverReorderableList. Please see the WorkbenchSliverReorderableList documentation for examples '
-            'of how to refer to an WorkbenchSliverReorderableList object:\n'
-            '  https://api.flutter.dev/flutter/widgets/WorkbenchSliverReorderableListState-class.html',
+            'built the FrameLeanSliverReorderableList. Please see the FrameLeanSliverReorderableList documentation for examples '
+            'of how to refer to an FrameLeanSliverReorderableList object:\n'
+            '  https://api.flutter.dev/flutter/widgets/FrameLeanSliverReorderableListState-class.html',
           ),
           context.describeElement('The context used was'),
         ]);
@@ -662,21 +727,21 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
   /// The state from the closest instance of this class that encloses the given
   /// context.
   ///
-  /// This method is typically used by [WorkbenchSliverReorderableList] item widgets that
+  /// This method is typically used by [FrameLeanSliverReorderableList] item widgets that
   /// insert or remove items in response to user input.
   ///
-  /// If no [WorkbenchSliverReorderableList] surrounds the context given, this function
+  /// If no [FrameLeanSliverReorderableList] surrounds the context given, this function
   /// will return null.
   ///
   /// This method can be expensive (it walks the element tree).
   ///
   /// See also:
   ///
-  ///  * [of], a similar function that will throw if no [WorkbenchSliverReorderableList]
+  ///  * [of], a similar function that will throw if no [FrameLeanSliverReorderableList]
   ///    ancestor is found.
-  static WorkbenchSliverReorderableListState? maybeOf(BuildContext context) {
+  static FrameLeanSliverReorderableListState? maybeOf(BuildContext context) {
     return context
-        .findAncestorStateOfType<WorkbenchSliverReorderableListState>();
+        .findAncestorStateOfType<FrameLeanSliverReorderableListState>();
   }
 }
 
@@ -684,17 +749,17 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
 /// the list items.
 ///
 /// An app that needs to start a new item drag or cancel an existing one
-/// can refer to the [WorkbenchSliverReorderableList]'s state with a global key:
+/// can refer to the [FrameLeanSliverReorderableList]'s state with a global key:
 ///
 /// ```dart
 /// // (e.g. in a stateful widget)
-/// GlobalKey<WorkbenchSliverReorderableListState> listKey = GlobalKey<WorkbenchSliverReorderableListState>();
+/// GlobalKey<FrameLeanSliverReorderableListState> listKey = GlobalKey<FrameLeanSliverReorderableListState>();
 ///
 /// // ...
 ///
 /// @override
 /// Widget build(BuildContext context) {
-///   return WorkbenchSliverReorderableList(
+///   return FrameLeanSliverReorderableList(
 ///     key: listKey,
 ///     itemBuilder: (BuildContext context, int index) => const SizedBox(height: 10.0),
 ///     itemCount: 5,
@@ -711,11 +776,11 @@ class WorkbenchSliverReorderableList extends StatefulWidget {
 /// }
 /// ```
 ///
-/// [WorkbenchReorderableDragStartListener] and [WorkbenchReorderableDelayedDragStartListener]
-/// refer to their [WorkbenchSliverReorderableList] with the static
-/// [WorkbenchSliverReorderableList.of] method.
-class WorkbenchSliverReorderableListState
-    extends State<WorkbenchSliverReorderableList>
+/// [FrameLeanReorderableDragStartListener] and [FrameLeanReorderableDelayedDragStartListener]
+/// refer to their [FrameLeanSliverReorderableList] with the static
+/// [FrameLeanSliverReorderableList.of] method.
+class FrameLeanSliverReorderableListState
+    extends State<FrameLeanSliverReorderableList>
     with TickerProviderStateMixin {
   // Map of index -> child state used manage where the dragging item will need
   // to be inserted.
@@ -726,6 +791,11 @@ class WorkbenchSliverReorderableListState
   _DragInfo? _dragInfo;
   int? _insertIndex;
   Offset? _finalDropPosition;
+  FrameLeanReorderDropDisposition _dropDisposition =
+      FrameLeanReorderDropDisposition.reorder;
+  FrameLeanReorderGapDetails? _pendingUpdateDetails;
+  FrameLeanReorderDropDetails? _dropDetails;
+  bool _updateNotificationScheduled = false;
   MultiDragGestureRecognizer? _recognizer;
   int? _recognizerPointer;
 
@@ -752,9 +822,10 @@ class WorkbenchSliverReorderableListState
 
   @protected
   @override
-  void didUpdateWidget(covariant WorkbenchSliverReorderableList oldWidget) {
+  void didUpdateWidget(covariant FrameLeanSliverReorderableList oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.itemCount != oldWidget.itemCount) {
+    if (widget.itemCount != oldWidget.itemCount &&
+        _dropDisposition != FrameLeanReorderDropDisposition.accepted) {
       cancelReorder();
     }
 
@@ -785,7 +856,7 @@ class WorkbenchSliverReorderableListState
   ///
   /// Most applications will not use this directly, but will wrap the item
   /// (or part of the item, like a drag handle) in either a
-  /// [WorkbenchReorderableDragStartListener] or [WorkbenchReorderableDelayedDragStartListener]
+  /// [FrameLeanReorderableDragStartListener] or [FrameLeanReorderableDelayedDragStartListener]
   /// which call this method when they detect the gesture that triggers a drag
   /// start.
   void startItemDragReorder({
@@ -828,8 +899,16 @@ class WorkbenchSliverReorderableListState
   /// If no drag is active, this will do nothing.
   void cancelReorder() {
     setState(() {
+      _notifyReorderCancel();
       _dragReset();
     });
+  }
+
+  void _notifyReorderCancel() {
+    final dragIndex = _dragIndex;
+    if (_dragInfo != null && dragIndex != null) {
+      widget.onReorderCancel?.call(dragIndex);
+    }
   }
 
   void _registerItem(_ReorderableItemState item) {
@@ -864,6 +943,7 @@ class WorkbenchSliverReorderableListState
     item.rebuild();
 
     _insertIndex = item.index;
+    _dropDisposition = FrameLeanReorderDropDisposition.reorder;
     _dragInfo = _DragInfo(
       item: item,
       initialPosition: position,
@@ -873,6 +953,10 @@ class WorkbenchSliverReorderableListState
       onEnd: _dragEnd,
       onDropCompleted: _dropCompleted,
       proxyDecorator: widget.proxyDecorator,
+      acceptedDropProxyDecorator: widget.acceptedDropProxyDecorator,
+      proxyAnimationDuration: widget.proxyAnimationDuration,
+      dropAnimationDuration: widget.dropAnimationDuration,
+      allowCrossAxisDrag: widget.allowCrossAxisDrag,
       tickerProvider: this,
     );
     _dragInfo!.startDrag();
@@ -898,22 +982,43 @@ class WorkbenchSliverReorderableListState
   }
 
   void _dragUpdate(_DragInfo item, Offset position, Offset delta) {
+    late FrameLeanReorderGapDetails updateDetails;
     setState(() {
       _overlayEntry?.markNeedsBuild();
-      _dragUpdateItems();
+      updateDetails = _dragUpdateItems();
       _autoScroller?.startAutoScrollIfNecessary(_dragTargetRect);
     });
+    _scheduleReorderUpdate(updateDetails);
   }
 
   void _dragCancel(_DragInfo item) {
+    widget.onReorderCancel?.call(item.index);
     setState(() {
       _dragReset();
     });
   }
 
   void _dragEnd(_DragInfo item) {
+    final dropDetails = FrameLeanReorderDropDetails(
+      oldIndex: item.index,
+      newIndex: _insertIndex!,
+      globalPosition: item.dragPosition,
+      proxyRect: _dragTargetRect,
+    );
+    final dropDisposition =
+        widget.onDrop?.call(dropDetails) ??
+        FrameLeanReorderDropDisposition.reorder;
     setState(() {
-      if (_insertIndex! - item.index == 1) {
+      _dropDisposition = dropDisposition;
+      _dropDetails = dropDetails;
+
+      if (_dropDisposition == FrameLeanReorderDropDisposition.accepted) {
+        _finalDropPosition = item.dragPosition - item.dragOffset;
+      } else if (_dropDisposition ==
+          FrameLeanReorderDropDisposition.cancelled) {
+        _restoreGapToDragOrigin(item.itemExtent);
+        _finalDropPosition = _itemOffsetAt(item.index);
+      } else if (_insertIndex! - item.index == 1) {
         // When returning to original position from below, _insertIndex equals
         // item.index + 1 because insertion index is calculated with the dragged
         // item still present. Use the actual target position for animation.
@@ -947,29 +1052,28 @@ class WorkbenchSliverReorderableListState
               _extentOffset(_itemExtentAt(atIndex), _scrollDirection);
         }
       }
+      _overlayEntry?.markNeedsBuild();
     });
     widget.onReorderEnd?.call(_insertIndex!);
   }
 
   void _dropCompleted() {
-    final int fromIndex = _dragIndex!;
-    final int toIndex = _insertIndex!;
-    final handled =
-        widget.onDrop?.call(
-          WorkbenchReorderDropDetails(
-            oldIndex: fromIndex,
-            newIndex: toIndex,
-            globalPosition: _dragInfo!.dragPosition,
-            proxyRect: _dragTargetRect,
-          ),
-        ) ??
-        false;
-    if (!handled && fromIndex != toIndex) {
-      widget.onReorder.call(fromIndex, toIndex);
-    }
+    final int? fromIndex = _dragIndex;
+    final int? toIndex = _insertIndex;
+    final dropDetails = _dropDetails;
+    final dropDisposition = _dropDisposition;
     setState(() {
       _dragReset();
     });
+    if (dropDisposition == FrameLeanReorderDropDisposition.reorder &&
+        fromIndex != null &&
+        toIndex != null &&
+        fromIndex != toIndex) {
+      widget.onReorder.call(fromIndex, toIndex);
+    }
+    if (dropDetails != null) {
+      widget.onDropCompleted?.call(dropDetails, dropDisposition);
+    }
   }
 
   void _dragReset() {
@@ -978,8 +1082,8 @@ class WorkbenchSliverReorderableListState
         final _ReorderableItemState dragItem = _items[_dragIndex!]!;
         dragItem._dragging = false;
         dragItem.rebuild();
-        _dragIndex = null;
       }
+      _dragIndex = null;
       _dragInfo?.dispose();
       _dragInfo = null;
       _autoScroller?.stopAutoScroll();
@@ -990,6 +1094,9 @@ class WorkbenchSliverReorderableListState
       _overlayEntry?.dispose();
       _overlayEntry = null;
       _finalDropPosition = null;
+      _dropDisposition = FrameLeanReorderDropDisposition.reorder;
+      _dropDetails = null;
+      _pendingUpdateDetails = null;
     }
   }
 
@@ -1003,12 +1110,30 @@ class WorkbenchSliverReorderableListState
     if (_dragInfo == null) {
       return;
     }
-    _dragUpdateItems();
+    final details = _dragUpdateItems();
+    _scheduleReorderUpdate(details);
     // Continue scrolling if the drag is still in progress.
     _autoScroller?.startAutoScrollIfNecessary(_dragTargetRect);
   }
 
-  void _dragUpdateItems() {
+  void _scheduleReorderUpdate(FrameLeanReorderGapDetails details) {
+    _pendingUpdateDetails = details;
+    if (_updateNotificationScheduled) {
+      return;
+    }
+    _updateNotificationScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateNotificationScheduled = false;
+      final pendingDetails = _pendingUpdateDetails;
+      _pendingUpdateDetails = null;
+      if (!mounted || _dragInfo == null || pendingDetails == null) {
+        return;
+      }
+      widget.onReorderUpdate?.call(pendingDetails);
+    });
+  }
+
+  FrameLeanReorderGapDetails _dragUpdateItems() {
     assert(_dragInfo != null);
     final double gapExtent = _dragInfo!.itemExtent;
     final double proxyItemStart = _offsetExtent(
@@ -1081,20 +1206,23 @@ class WorkbenchSliverReorderableListState
       }
     }
 
-    final shouldMoveGap =
-        widget.shouldMoveGap?.call(
-          WorkbenchReorderGapDetails(
-            oldIndex: _dragIndex!,
-            currentIndex: _insertIndex!,
-            candidateIndex: newIndex,
-            globalPosition: _dragInfo!.dragPosition,
-            proxyRect: _dragTargetRect,
-          ),
-        ) ??
-        true;
-    if (!shouldMoveGap) {
-      _restoreGapToDragOrigin(gapExtent);
-      return;
+    final details = FrameLeanReorderGapDetails(
+      oldIndex: _dragIndex!,
+      currentIndex: _insertIndex!,
+      candidateIndex: newIndex,
+      globalPosition: _dragInfo!.dragPosition,
+      proxyRect: _dragTargetRect,
+    );
+    final gapBehavior =
+        widget.gapBehavior?.call(details) ?? FrameLeanReorderGapBehavior.move;
+    switch (gapBehavior) {
+      case FrameLeanReorderGapBehavior.hold:
+        return details;
+      case FrameLeanReorderGapBehavior.restoreOrigin:
+        _restoreGapToDragOrigin(gapExtent);
+        return details;
+      case FrameLeanReorderGapBehavior.move:
+        break;
     }
 
     if (newIndex != _insertIndex) {
@@ -1106,6 +1234,7 @@ class WorkbenchSliverReorderableListState
         item.updateForGap(_dragIndex!, newIndex, gapExtent, true, _reverse);
       }
     }
+    return details;
   }
 
   void _restoreGapToDragOrigin(double gapExtent) {
@@ -1272,7 +1401,7 @@ class _ReorderableItem extends StatefulWidget {
 }
 
 class _ReorderableItemState extends State<_ReorderableItem> {
-  late WorkbenchSliverReorderableListState _listState;
+  late FrameLeanSliverReorderableListState _listState;
 
   Offset _startOffset = Offset.zero;
   Offset _targetOffset = Offset.zero;
@@ -1294,7 +1423,7 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 
   @override
   void initState() {
-    _listState = WorkbenchSliverReorderableList.of(context);
+    _listState = FrameLeanSliverReorderableList.of(context);
     _listState._registerItem(this);
     super.initState();
   }
@@ -1441,21 +1570,21 @@ class _ReorderableItemState extends State<_ReorderableItem> {
 ///
 /// See also:
 ///
-///  * [WorkbenchReorderableDelayedDragStartListener], a similar wrapper that will
+///  * [FrameLeanReorderableDelayedDragStartListener], a similar wrapper that will
 ///    only recognize the start after a long press event.
-///  * [WorkbenchReorderableList], a widget list that allows the user to reorder
+///  * [FrameLeanReorderableListCore], a widget list that allows the user to reorder
 ///    its items.
-///  * [WorkbenchSliverReorderableList], a sliver list that allows the user to reorder
+///  * [FrameLeanSliverReorderableList], a sliver list that allows the user to reorder
 ///    its items.
 ///  * [ReorderableListView], a Material Design list that allows the user to
 ///    reorder its items.
-class WorkbenchReorderableDragStartListener extends StatelessWidget {
+class FrameLeanReorderableDragStartListener extends StatelessWidget {
   /// Creates a listener for a drag immediately following a pointer down
   /// event over the given child widget.
   ///
   /// This is most commonly used to wrap part of a list item like a drag
   /// handle.
-  const WorkbenchReorderableDragStartListener({
+  const FrameLeanReorderableDragStartListener({
     super.key,
     required this.child,
     required this.index,
@@ -1498,8 +1627,8 @@ class WorkbenchReorderableDragStartListener extends StatelessWidget {
   void _startDragging(BuildContext context, PointerDownEvent event) {
     final DeviceGestureSettings? gestureSettings =
         MediaQuery.maybeGestureSettingsOf(context);
-    final WorkbenchSliverReorderableListState? list =
-        WorkbenchSliverReorderableList.maybeOf(context);
+    final FrameLeanSliverReorderableListState? list =
+        FrameLeanSliverReorderableList.maybeOf(context);
     list?.startItemDragReorder(
       index: index,
       event: event,
@@ -1514,22 +1643,22 @@ class WorkbenchReorderableDragStartListener extends StatelessWidget {
 ///
 /// See also:
 ///
-///  * [WorkbenchReorderableDragStartListener], a similar wrapper that will
+///  * [FrameLeanReorderableDragStartListener], a similar wrapper that will
 ///    recognize the start of the drag immediately after a pointer down event.
-///  * [WorkbenchReorderableList], a widget list that allows the user to reorder
+///  * [FrameLeanReorderableListCore], a widget list that allows the user to reorder
 ///    its items.
-///  * [WorkbenchSliverReorderableList], a sliver list that allows the user to reorder
+///  * [FrameLeanSliverReorderableList], a sliver list that allows the user to reorder
 ///    its items.
 ///  * [ReorderableListView], a Material Design list that allows the user to
 ///    reorder its items.
-class WorkbenchReorderableDelayedDragStartListener
-    extends WorkbenchReorderableDragStartListener {
+class FrameLeanReorderableDelayedDragStartListener
+    extends FrameLeanReorderableDragStartListener {
   /// Creates a listener for an drag following a long press event over the
   /// given child widget.
   ///
   /// This is most commonly used to wrap an entire list item in a reorderable
   /// list.
-  const WorkbenchReorderableDelayedDragStartListener({
+  const FrameLeanReorderableDelayedDragStartListener({
     super.key,
     required super.child,
     required super.index,
@@ -1556,6 +1685,10 @@ class _DragInfo extends Drag {
     this.onCancel,
     this.onDropCompleted,
     this.proxyDecorator,
+    this.acceptedDropProxyDecorator,
+    required this.proxyAnimationDuration,
+    required this.dropAnimationDuration,
+    required this.allowCrossAxisDrag,
     required this.tickerProvider,
   }) {
     assert(debugMaybeDispatchCreated('widgets', '_DragInfo', this));
@@ -1583,11 +1716,15 @@ class _DragInfo extends Drag {
   final _DragItemCallback? onEnd;
   final _DragItemCallback? onCancel;
   final VoidCallback? onDropCompleted;
-  final WorkbenchReorderItemProxyDecorator? proxyDecorator;
+  final FrameLeanReorderItemProxyDecorator? proxyDecorator;
+  final FrameLeanReorderItemProxyDecorator? acceptedDropProxyDecorator;
+  final Duration proxyAnimationDuration;
+  final Duration dropAnimationDuration;
+  final bool allowCrossAxisDrag;
   final TickerProvider tickerProvider;
 
   late DragBoundaryDelegate<Rect>? boundary;
-  late WorkbenchSliverReorderableListState listState;
+  late FrameLeanSliverReorderableListState listState;
   late int index;
   late Widget child;
   late Offset dragPosition;
@@ -1609,7 +1746,8 @@ class _DragInfo extends Drag {
     _proxyAnimation =
         AnimationController(
             vsync: tickerProvider,
-            duration: const Duration(milliseconds: 250),
+            duration: proxyAnimationDuration,
+            reverseDuration: dropAnimationDuration,
           )
           ..addStatusListener((AnimationStatus status) {
             if (status.isDismissed) {
@@ -1621,7 +1759,9 @@ class _DragInfo extends Drag {
 
   @override
   void update(DragUpdateDetails details) {
-    final Offset delta = _restrictAxis(details.delta, scrollDirection);
+    final Offset delta = allowCrossAxisDrag
+        ? details.delta
+        : _restrictAxis(details.delta, scrollDirection);
     _rawDragPosition += delta;
     dragPosition = _adjustedDragOffset(_rawDragPosition);
     onUpdate?.call(this, dragPosition, details.delta);
@@ -1629,8 +1769,12 @@ class _DragInfo extends Drag {
 
   @override
   void end(DragEndDetails details) {
-    _proxyAnimation!.reverse();
     onEnd?.call(this);
+    if (listState._dropDisposition ==
+        FrameLeanReorderDropDisposition.accepted) {
+      _proxyAnimation!.value = 1;
+    }
+    _proxyAnimation!.reverse();
   }
 
   @override
@@ -1667,6 +1811,7 @@ class _DragInfo extends Drag {
         animation: _proxyAnimation!,
         position: dragPosition - dragOffset - _overlayOrigin(context),
         proxyDecorator: proxyDecorator,
+        acceptedDropProxyDecorator: acceptedDropProxyDecorator,
         child: child,
       ),
     );
@@ -1692,21 +1837,32 @@ class _DragItemProxy extends StatelessWidget {
     required this.constraints,
     required this.animation,
     required this.proxyDecorator,
+    required this.acceptedDropProxyDecorator,
   });
 
-  final WorkbenchSliverReorderableListState listState;
+  final FrameLeanSliverReorderableListState listState;
   final int index;
   final Widget child;
   final Offset position;
   final Size size;
   final BoxConstraints constraints;
   final AnimationController animation;
-  final WorkbenchReorderItemProxyDecorator? proxyDecorator;
+  final FrameLeanReorderItemProxyDecorator? proxyDecorator;
+  final FrameLeanReorderItemProxyDecorator? acceptedDropProxyDecorator;
 
   @override
   Widget build(BuildContext context) {
-    final Widget proxyChild =
+    final Widget decoratedProxyChild =
         proxyDecorator?.call(child, index, animation.view) ?? child;
+    final Widget proxyChild =
+        listState._dropDisposition == FrameLeanReorderDropDisposition.accepted
+        ? acceptedDropProxyDecorator?.call(
+                decoratedProxyChild,
+                index,
+                animation.view,
+              ) ??
+              decoratedProxyChild
+        : decoratedProxyChild;
     final Offset overlayOrigin = _overlayOrigin(context);
 
     return MediaQuery(
@@ -1797,7 +1953,7 @@ class _ReorderableItemGlobalKey extends GlobalObjectKey {
 
   final Key subKey;
   final int index;
-  final WorkbenchSliverReorderableListState state;
+  final FrameLeanSliverReorderableListState state;
 
   @override
   bool operator ==(Object other) {

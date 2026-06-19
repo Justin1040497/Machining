@@ -19,7 +19,6 @@ class WorkbenchShell extends StatelessWidget {
     super.key,
     required this.taskList,
     required this.taskFolders,
-    required this.selectedTask,
     required this.selectedTaskIds,
     required this.selectionMode,
     required this.importEnabled,
@@ -44,7 +43,6 @@ class WorkbenchShell extends StatelessWidget {
     required this.onSelectTasksWithRectangle,
     required this.onCreateFolderFromSelection,
     required this.onMoveTaskToFolder,
-    required this.onRejectTaskFolderDrop,
     required this.onOpenFolderSettings,
     required this.onOpenFolderContents,
     required this.onStartFolder,
@@ -68,7 +66,6 @@ class WorkbenchShell extends StatelessWidget {
 
   final AsyncValue<List<MediaTask>> taskList;
   final AsyncValue<List<TaskFolder>> taskFolders;
-  final MediaTask? selectedTask;
   final Set<String> selectedTaskIds;
   final bool selectionMode;
   final bool importEnabled;
@@ -93,7 +90,6 @@ class WorkbenchShell extends StatelessWidget {
   final WorkbenchTaskSelectionCallback onSelectTasksWithRectangle;
   final VoidCallback onCreateFolderFromSelection;
   final WorkbenchTaskFolderDropCallback onMoveTaskToFolder;
-  final WorkbenchTaskFolderDropCallback onRejectTaskFolderDrop;
   final ValueChanged<TaskFolder> onOpenFolderSettings;
   final ValueChanged<TaskFolder> onOpenFolderContents;
   final ValueChanged<TaskFolder> onStartFolder;
@@ -202,7 +198,6 @@ class WorkbenchShell extends StatelessWidget {
                         child: WorkbenchTaskListCard(
                           taskList: taskList,
                           taskFolders: taskFolders,
-                          selectedTask: selectedTask,
                           selectedTaskIds: selectedTaskIds,
                           selectionMode: selectionMode,
                           thumbnailForTask: thumbnailForTask,
@@ -220,7 +215,6 @@ class WorkbenchShell extends StatelessWidget {
                           onSelectTasksWithRectangle:
                               onSelectTasksWithRectangle,
                           onMoveTaskToFolder: onMoveTaskToFolder,
-                          onRejectTaskFolderDrop: onRejectTaskFolderDrop,
                           onOpenFolderSettings: onOpenFolderSettings,
                           onOpenFolderContents: onOpenFolderContents,
                           onStartFolder: onStartFolder,

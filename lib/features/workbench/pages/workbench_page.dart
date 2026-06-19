@@ -196,7 +196,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         ? taskList.requireValue
         : const <MediaTask>[];
     final folders = taskFolders.asData?.value ?? const <TaskFolder>[];
-    final selectedTask = resolveSelectedTask(tasks);
     final openedFolder = resolveOpenedTaskFolder(folders);
     syncOpenedTaskFolderAfterBuild(openedFolder);
     final openedFolderTasks = resolveOpenedTaskFolderTasks(
@@ -227,7 +226,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           WorkbenchShell(
             taskList: taskList,
             taskFolders: taskFolders,
-            selectedTask: selectedTask,
             selectedTaskIds: selectedTaskIds,
             selectionMode: taskSelectionMode,
             importEnabled: true,
@@ -262,7 +260,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onMoveTaskToFolder: (task, folder) {
               unawaited(moveTaskIntoFolder(task, folder));
             },
-            onRejectTaskFolderDrop: rejectTaskFolderDrop,
             onOpenFolderSettings: (folder) {
               unawaited(showTaskFolderConfigurationDialog(folder));
             },
@@ -1134,12 +1131,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
-  void rejectTaskFolderDrop(MediaTask task, TaskFolder folder) {
-    if (task.mediaKind != folder.mediaKind) {
-      showWorkbenchSnackBar('任务夹只接受同类型媒体');
-    }
-  }
-
   Future<void> handlePrimaryQueueAction(bool hasRunningTask) async {
     if (queueActionInFlight) {
       return;
@@ -1585,20 +1576,25 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
-  void reorderOpenedTaskFolderTasks(int oldIndex, int newIndex) {
+  Future<void> reorderOpenedTaskFolderTasks(int oldIndex, int newIndex) async {
     final folderId = openedTaskFolderId;
     if (folderId == null) {
       return;
     }
-    unawaited(
-      ref
+    try {
+      await ref
           .read(mediaTaskListProvider.notifier)
           .reorderFolderTasks(
             folderId: folderId,
             oldIndex: oldIndex,
             newIndex: newIndex,
-          ),
-    );
+          );
+    } on Object catch (error, stackTrace) {
+      if (mounted) {
+        showWorkbenchSnackBar('任务夹排序保存失败: $error');
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   void deleteTaskFolder(TaskFolder folder) {
@@ -1733,9 +1729,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     return null;
   }
 
-  void removeTaskFromFolder(MediaTask task) {
-    unawaited(
-      runWorkbenchActionOnce('remove-task-from-folder:${task.id}', () async {
+  Future<void> removeTaskFromFolder(MediaTask task) async {
+    await runWorkbenchActionOnce(
+      'remove-task-from-folder:${task.id}',
+      () async {
         try {
           await ref
               .read(mediaTaskListProvider.notifier)
@@ -1748,8 +1745,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           });
         } on Object catch (error) {
           showWorkbenchSnackBar(error.toString());
+          rethrow;
         }
-      }),
+      },
     );
   }
 

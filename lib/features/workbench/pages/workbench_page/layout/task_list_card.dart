@@ -3,13 +3,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
-import 'package:framelean/features/workbench/widgets/reorderable/workbench_reorderable_list.dart';
 
 typedef WorkbenchTaskPositionCallback =
     void Function(MediaTask task, Offset position);
@@ -25,7 +25,6 @@ class WorkbenchTaskListCard extends StatefulWidget {
     super.key,
     required this.taskList,
     required this.taskFolders,
-    required this.selectedTask,
     required this.selectedTaskIds,
     required this.selectionMode,
     required this.thumbnailForTask,
@@ -42,7 +41,6 @@ class WorkbenchTaskListCard extends StatefulWidget {
     required this.onToggleTaskSelection,
     required this.onSelectTasksWithRectangle,
     required this.onMoveTaskToFolder,
-    required this.onRejectTaskFolderDrop,
     required this.onOpenFolderSettings,
     required this.onOpenFolderContents,
     required this.onStartFolder,
@@ -55,7 +53,6 @@ class WorkbenchTaskListCard extends StatefulWidget {
 
   final AsyncValue<List<MediaTask>> taskList;
   final AsyncValue<List<TaskFolder>> taskFolders;
-  final MediaTask? selectedTask;
   final Set<String> selectedTaskIds;
   final bool selectionMode;
   final ImageProvider? Function(MediaTask task) thumbnailForTask;
@@ -72,7 +69,6 @@ class WorkbenchTaskListCard extends StatefulWidget {
   final ValueChanged<MediaTask> onToggleTaskSelection;
   final WorkbenchTaskSelectionCallback onSelectTasksWithRectangle;
   final WorkbenchTaskFolderDropCallback onMoveTaskToFolder;
-  final WorkbenchTaskFolderDropCallback onRejectTaskFolderDrop;
   final ValueChanged<TaskFolder> onOpenFolderSettings;
   final ValueChanged<TaskFolder> onOpenFolderContents;
   final ValueChanged<TaskFolder> onStartFolder;
@@ -102,6 +98,8 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   List<String>? _optimisticItemOrder;
   var _reorderCommitGeneration = 0;
   var _reorderCommitInFlight = false;
+  ({List<WorkbenchListItem> items, int oldIndex, int newIndex})?
+  _pendingFallbackReorder;
 
   @override
   Widget build(BuildContext context) {
@@ -128,8 +126,9 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       return _buildEmpty();
     }
 
-    final listView = WorkbenchReorderableList(
+    final listView = FrameLeanReorderableListView.builder(
       padding: EdgeInsets.zero,
+      buildDefaultDragHandles: false,
       itemCount: items.length,
       onReorder: widget.selectionMode
           ? (_, _) {}
@@ -140,16 +139,24 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
                 newIndex: newIndex,
               );
             },
-      shouldMoveGap: (details) {
+      onReorderStart: (index) {
+        _startTaskHandleDrag(index, items, folders);
+      },
+      onReorderUpdate: (details) {
+        _updateTaskHandleDrag(details.globalPosition, folders);
+      },
+      onReorderCancel: (_) => _clearTaskHandleDrag(),
+      gapBehavior: (details) {
         return _shouldMoveTaskReorderGap(details, folders);
       },
       onDrop: (details) {
-        return _handleWorkbenchReorderDrop(
+        return _handleFrameLeanReorderDrop(
           details: details,
           items: items,
           folders: folders,
         );
       },
+      onDropCompleted: (_, _) => _commitPendingFallbackReorder(),
       proxyDecorator: (child, index, animation) {
         return Material(
           color: Colors.transparent,
@@ -178,7 +185,6 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         }
         return _buildTaskItem(
           task: task,
-          folders: folders,
           index: index,
           itemCount: items.length,
         );
@@ -290,7 +296,6 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
 
   Widget _buildTaskItem({
     required MediaTask task,
-    required List<TaskFolder> folders,
     required int index,
     required int itemCount,
   }) {
@@ -299,7 +304,6 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     final selectedForBatch = widget.selectedTaskIds.contains(task.id);
     final tile = MediaTaskListTile(
       task: task,
-      selected: selectedForBatch || widget.selectedTask?.id == task.id,
       thumbnail: widget.thumbnailForTask(task),
       onTap: widget.selectionMode
           ? () => widget.onToggleTaskSelection(task)
@@ -322,21 +326,7 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
               selected: selectedForBatch,
               onChanged: () => widget.onToggleTaskSelection(task),
             )
-          : _TaskDragHandleSlot(
-              task: task,
-              index: index,
-              enabled: dragEnabled,
-              onPointerDown: (event) {
-                _startTaskHandleDrag(task, event.position, folders);
-              },
-              onPointerMove: (event) {
-                _updateTaskHandleDrag(event.position, folders);
-              },
-              onPointerUp: (event) {
-                _endTaskHandleDrag(event.position);
-              },
-              onPointerCancel: _cancelTaskHandleDrag,
-            ),
+          : _TaskDragHandleSlot(index: index, enabled: dragEnabled),
     );
 
     return Container(
@@ -356,13 +346,13 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     return task.folderId == null && task.mediaKind == folder.mediaKind;
   }
 
-  bool _shouldMoveTaskReorderGap(
-    WorkbenchReorderGapDetails details,
+  FrameLeanReorderGapBehavior _shouldMoveTaskReorderGap(
+    FrameLeanReorderGapDetails details,
     List<TaskFolder> folders,
   ) {
     final task = _draggingTaskForReorder;
     if (task == null) {
-      return true;
+      return FrameLeanReorderGapBehavior.move;
     }
     for (final folder in folders) {
       if (!_canDropTaskIntoFolder(task, folder)) {
@@ -370,21 +360,21 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       }
       final folderRect = _folderRectForDrag(folder.id);
       if (folderRect?.contains(details.globalPosition) ?? false) {
-        return false;
+        return FrameLeanReorderGapBehavior.restoreOrigin;
       }
     }
-    return true;
+    return FrameLeanReorderGapBehavior.move;
   }
 
-  bool _handleWorkbenchReorderDrop({
-    required WorkbenchReorderDropDetails details,
+  FrameLeanReorderDropDisposition _handleFrameLeanReorderDrop({
+    required FrameLeanReorderDropDetails details,
     required List<WorkbenchListItem> items,
     required List<TaskFolder> folders,
   }) {
     final task = _draggingTaskForReorder;
     if (task == null) {
       _clearTaskHandleDrag();
-      return false;
+      return FrameLeanReorderDropDisposition.reorder;
     }
 
     final targetFolder = _folderDropTargetAt(
@@ -395,7 +385,7 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     if (targetFolder != null) {
       _clearTaskHandleDrag();
       widget.onMoveTaskToFolder(task, targetFolder);
-      return true;
+      return FrameLeanReorderDropDisposition.accepted;
     }
 
     final sortTarget = _sortTargetAt(details.globalPosition, items);
@@ -406,19 +396,19 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         afterTarget: sortTarget.afterItem,
         itemCount: items.length,
       );
-      _clearTaskHandleDrag();
       if (newIndex != details.oldIndex) {
-        _commitOptimisticReorder(
-          items: items,
+        _pendingFallbackReorder = (
+          items: [...items],
           oldIndex: details.oldIndex,
           newIndex: newIndex,
         );
       }
-      return true;
+      _clearTaskHandleDrag();
+      return FrameLeanReorderDropDisposition.accepted;
     }
 
     _clearTaskHandleDrag();
-    return false;
+    return FrameLeanReorderDropDisposition.reorder;
   }
 
   List<WorkbenchListItem> _resolveVisualItems(
@@ -527,10 +517,15 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   }
 
   void _startTaskHandleDrag(
-    MediaTask task,
-    Offset globalPosition,
+    int index,
+    List<WorkbenchListItem> items,
     List<TaskFolder> folders,
   ) {
+    final task = index >= 0 && index < items.length ? items[index].task : null;
+    if (task == null) {
+      _clearTaskHandleDrag();
+      return;
+    }
     final folderContext = folders.isEmpty
         ? null
         : _folderDropKeys[folders.first.id]?.currentContext;
@@ -548,11 +543,12 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
             .where((entry) => entry.value != null)
             .map((entry) => MapEntry(entry.key, entry.value!)),
       );
-    _setTaskHandleDragState(
-      task: task,
-      globalPosition: globalPosition,
-      folders: folders,
-    );
+    setState(() {
+      _pendingFallbackReorder = null;
+      _draggingTaskForReorder = task;
+      _taskReorderPointerPosition = null;
+      _hoveredFolderId = null;
+    });
   }
 
   void _updateTaskHandleDrag(Offset globalPosition, List<TaskFolder> folders) {
@@ -565,14 +561,6 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       globalPosition: globalPosition,
       folders: folders,
     );
-  }
-
-  void _endTaskHandleDrag(Offset globalPosition) {
-    _taskReorderPointerPosition = globalPosition;
-  }
-
-  void _cancelTaskHandleDrag() {
-    _clearTaskHandleDrag();
   }
 
   void _setTaskHandleDragState({
@@ -616,6 +604,19 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       _dragScrollPosition = null;
       _dragScrollOffsetAtStart = null;
     });
+  }
+
+  void _commitPendingFallbackReorder() {
+    final pendingReorder = _pendingFallbackReorder;
+    _pendingFallbackReorder = null;
+    if (pendingReorder == null || !mounted) {
+      return;
+    }
+    _commitOptimisticReorder(
+      items: pendingReorder.items,
+      oldIndex: pendingReorder.oldIndex,
+      newIndex: pendingReorder.newIndex,
+    );
   }
 
   TaskFolder? _folderDropTargetAt(
@@ -897,40 +898,21 @@ List<MediaTask> folderTasksFor(List<MediaTask> tasks, String folderId) {
 }
 
 class _TaskDragHandleSlot extends StatelessWidget {
-  const _TaskDragHandleSlot({
-    required this.task,
-    required this.index,
-    required this.enabled,
-    required this.onPointerDown,
-    required this.onPointerMove,
-    required this.onPointerUp,
-    required this.onPointerCancel,
-  });
+  const _TaskDragHandleSlot({required this.index, required this.enabled});
 
-  final MediaTask task;
   final int index;
   final bool enabled;
-  final void Function(PointerDownEvent event) onPointerDown;
-  final void Function(PointerMoveEvent event) onPointerMove;
-  final void Function(PointerUpEvent event) onPointerUp;
-  final VoidCallback onPointerCancel;
 
   @override
   Widget build(BuildContext context) {
     final handle = _TaskDragHandle(enabled: enabled);
-    if (!enabled || task.folderId != null) {
+    if (!enabled) {
       return handle;
     }
-    return Listener(
-      onPointerDown: onPointerDown,
-      onPointerMove: onPointerMove,
-      onPointerUp: onPointerUp,
-      onPointerCancel: (_) => onPointerCancel(),
-      child: WorkbenchReorderableDragStartListener(
-        index: index,
-        enabled: enabled,
-        child: handle,
-      ),
+    return FrameLeanReorderableDragStartListener(
+      index: index,
+      enabled: enabled,
+      child: handle,
     );
   }
 }
@@ -952,7 +934,7 @@ class _FolderDragHandleSlot extends StatelessWidget {
     if (!enabled || selectionMode) {
       return handle;
     }
-    return WorkbenchReorderableDragStartListener(
+    return FrameLeanReorderableDragStartListener(
       index: index,
       enabled: enabled,
       child: handle,
