@@ -43,6 +43,53 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           },
         ),
         const SizedBox(height: 18),
+        _SettingsDropdown<int>(
+          label: '最大并行任务数',
+          value: maxConcurrentExecutions,
+          values: const [
+            minConcurrentExecutions,
+            defaultMaxConcurrentExecutions,
+            maxConcurrentExecutionsLimit,
+          ],
+          itemLabel: (value) =>
+              value == defaultMaxConcurrentExecutions ? '$value（推荐）' : '$value',
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => maxConcurrentExecutions = value);
+          },
+        ),
+        const SizedBox(height: 18),
+        _SettingsDropdown<int>(
+          label: '文件夹扫描层级',
+          value: folderImportScanDepth,
+          values: const [
+            minFolderImportScanDepth,
+            1,
+            defaultFolderImportScanDepth,
+            3,
+            maxFolderImportScanDepth,
+          ],
+          itemLabel: (value) =>
+              value == defaultFolderImportScanDepth ? '$value（默认）' : '$value',
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => folderImportScanDepth = value);
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '扫描层级越深，导入前遍历时间越长。',
+          style: TextStyle(
+            color: context.frameLeanColors.textSecondary,
+            fontSize: 12,
+            height: 1.4,
+          ),
+        ),
+        const SizedBox(height: 18),
         _SettingsCheckbox(
           label: '关闭通知角标',
           value: hideNotificationBadge,

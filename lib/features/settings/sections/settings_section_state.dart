@@ -28,7 +28,9 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
   bool get _isAppSectionDirty =>
       themeMode != savedSettings.themeMode ||
       completionSound != savedSettings.taskCompletionSound ||
-      hideNotificationBadge != savedSettings.hideNotificationBadge;
+      hideNotificationBadge != savedSettings.hideNotificationBadge ||
+      maxConcurrentExecutions != savedSettings.maxConcurrentExecutions ||
+      folderImportScanDepth != savedSettings.folderImportScanDepth;
 
   bool get _isVideoSectionDirty {
     final current = videoConfig;
@@ -131,6 +133,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       themeMode = savedSettings.themeMode;
       completionSound = savedSettings.taskCompletionSound;
       hideNotificationBadge = savedSettings.hideNotificationBadge;
+      maxConcurrentExecutions = savedSettings.maxConcurrentExecutions;
+      folderImportScanDepth = savedSettings.folderImportScanDepth;
     });
   }
 
@@ -209,6 +213,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
           themeMode: themeMode,
           taskCompletionSound: completionSound,
           hideNotificationBadge: hideNotificationBadge,
+          maxConcurrentExecutions: maxConcurrentExecutions,
+          folderImportScanDepth: folderImportScanDepth,
         );
       case _SettingsSection.video:
         final video = videoConfig;

@@ -295,6 +295,8 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   late AppThemeMode themeMode;
   late TaskCompletionSound completionSound;
   late bool hideNotificationBadge;
+  late int maxConcurrentExecutions;
+  late int folderImportScanDepth;
   late bool saveOutputToSourceDirectory;
   late MediaTaskConfig defaultMediaConfig;
 
@@ -331,6 +333,8 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     themeMode = widget.initialSettings.themeMode;
     completionSound = widget.initialSettings.taskCompletionSound;
     hideNotificationBadge = widget.initialSettings.hideNotificationBadge;
+    maxConcurrentExecutions = widget.initialSettings.maxConcurrentExecutions;
+    folderImportScanDepth = widget.initialSettings.folderImportScanDepth;
     saveOutputToSourceDirectory =
         widget.initialSettings.saveOutputToSourceDirectory;
     defaultMediaConfig = _withAllMediaDefaults(
