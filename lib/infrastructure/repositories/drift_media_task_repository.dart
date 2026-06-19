@@ -15,6 +15,7 @@ import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_audio_stream_info.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
@@ -130,6 +131,7 @@ extension MediaTaskMapper on MediaTask {
       folderId: Value(folderId),
       folderSortOrder: Value(folderSortOrder),
       outputPath: Value(outputPath),
+      outputFileSize: Value(outputFileSize),
       errorMessage: Value(errorMessage),
       policyTagsJson: Value(encodePolicyTags(policyTags)),
       sourceFileSize: Value(sourceFileFingerprint?.fileSize),
@@ -175,6 +177,9 @@ extension MediaTaskMapper on MediaTask {
       analysisAudioSampleRate: Value(analysisResult?.audioSampleRate),
       analysisAudioChannelLayout: Value(analysisResult?.audioChannelLayout),
       analysisAudioStreamIndex: Value(analysisResult?.audioStreamIndex),
+      analysisAudioStreamsJson: Value(
+        encodeAudioStreams(analysisResult?.audioStreams ?? const []),
+      ),
       mediaConfigJson: Value(encodeMediaTaskConfig(config)),
       analysisImageWidth: Value(analysisResult?.imageWidth),
       analysisImageHeight: Value(analysisResult?.imageHeight),
@@ -223,6 +228,7 @@ extension TaskRowMapper on TaskRow {
       folderId: folderId,
       folderSortOrder: folderSortOrder,
       outputPath: outputPath,
+      outputFileSize: outputFileSize,
       errorMessage: errorMessage,
       policyTags: decodePolicyTags(policyTagsJson),
       sourceFileFingerprint: toSourceFileFingerprint(),
@@ -282,6 +288,7 @@ extension TaskRowMapper on TaskRow {
         analysisAudioSampleRate != null ||
         analysisAudioChannelLayout != null ||
         analysisAudioStreamIndex != null ||
+        analysisAudioStreamsJson != null ||
         analysisImageWidth != null ||
         analysisImageHeight != null ||
         analysisImageCodec != null ||
@@ -326,6 +333,7 @@ extension TaskRowMapper on TaskRow {
       audioSampleRate: analysisAudioSampleRate,
       audioChannelLayout: analysisAudioChannelLayout,
       audioStreamIndex: analysisAudioStreamIndex,
+      audioStreams: decodeAudioStreams(analysisAudioStreamsJson),
       imageWidth: analysisImageWidth,
       imageHeight: analysisImageHeight,
       imageCodec: analysisImageCodec,
@@ -435,6 +443,7 @@ extension TaskFolderMapper on TaskFolder {
       id: Value(id),
       name: Value(name),
       mediaKind: Value(mediaKind.name),
+      defaultPurpose: Value(defaultPurpose.name),
       sortOrder: Value(sortOrder),
       defaultConfigJson: Value(encodeMediaTaskConfig(defaultConfig)),
       createdAt: Value(createdAt),
@@ -450,6 +459,7 @@ extension TaskFolderRowMapper on TaskFolderRow {
       id: id,
       name: name,
       mediaKind: resolvedMediaKind,
+      defaultPurpose: enumValueByName(TaskPurpose.values, defaultPurpose),
       sortOrder: sortOrder,
       defaultConfig: decodeMediaTaskConfig(defaultConfigJson),
       createdAt: createdAt,
@@ -481,5 +491,59 @@ Set<MediaTaskPolicyTag> decodePolicyTags(String? value) {
         .toSet();
   } on Object {
     return const {};
+  }
+}
+
+String? encodeAudioStreams(List<MediaAudioStreamInfo> streams) {
+  if (streams.isEmpty) {
+    return null;
+  }
+
+  return jsonEncode(
+    streams
+        .map(
+          (stream) => {
+            'index': stream.index,
+            'codec': stream.codec,
+            'channels': stream.channels,
+            'sampleRate': stream.sampleRate,
+            'channelLayout': stream.channelLayout,
+            'language': stream.language,
+            'title': stream.title,
+          },
+        )
+        .toList(),
+  );
+}
+
+List<MediaAudioStreamInfo> decodeAudioStreams(String? value) {
+  if (value == null || value.trim().isEmpty) {
+    return const [];
+  }
+
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is! List) {
+      return const [];
+    }
+
+    return decoded
+        .whereType<Map>()
+        .map((item) {
+          return MediaAudioStreamInfo(
+            index: item['index'] is int ? item['index'] as int : 0,
+            codec: item['codec']?.toString(),
+            channels: item['channels'] is int ? item['channels'] as int : null,
+            sampleRate: item['sampleRate'] is int
+                ? item['sampleRate'] as int
+                : null,
+            channelLayout: item['channelLayout']?.toString(),
+            language: item['language']?.toString(),
+            title: item['title']?.toString(),
+          );
+        })
+        .toList(growable: false);
+  } on Object {
+    return const [];
   }
 }

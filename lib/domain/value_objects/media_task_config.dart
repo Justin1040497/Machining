@@ -23,6 +23,7 @@ class MediaTaskConfig {
   final MediaProcessingPreset? preset;
   final int? targetSizeBytes;
   final double? targetSizeRatio;
+  final int? threadLimit;
   final VideoProcessingConfig? video;
   final ImageProcessingConfig? image;
   final AudioProcessingConfig? audio;
@@ -34,6 +35,7 @@ class MediaTaskConfig {
     this.preset,
     this.targetSizeBytes,
     this.targetSizeRatio,
+    this.threadLimit,
     this.video,
     this.image,
     this.audio,
@@ -56,6 +58,7 @@ class MediaTaskConfig {
       preset: MediaProcessingPreset.smaller,
       targetSizeBytes: null,
       targetSizeRatio: null,
+      threadLimit: null,
       video: video,
     );
   }
@@ -68,6 +71,7 @@ class MediaTaskConfig {
       preset: MediaProcessingPreset.balanced,
       targetSizeBytes: null,
       targetSizeRatio: null,
+      threadLimit: null,
       image: ImageProcessingConfig.initial(),
     );
   }
@@ -80,6 +84,7 @@ class MediaTaskConfig {
       preset: MediaProcessingPreset.balanced,
       targetSizeBytes: null,
       targetSizeRatio: null,
+      threadLimit: null,
       audio: AudioProcessingConfig.initial(),
     );
   }
@@ -92,6 +97,7 @@ class MediaTaskConfig {
       preset: MediaProcessingPreset.balanced,
       targetSizeBytes: null,
       targetSizeRatio: null,
+      threadLimit: null,
       video: VideoProcessingConfig.initial(),
       image: ImageProcessingConfig.initial(),
       audio: AudioProcessingConfig.initial(),
@@ -106,6 +112,7 @@ class MediaTaskConfig {
       preset: _mediaPresetFromSmartPreset(config.smartPreset),
       targetSizeBytes: config.targetSizeBytes,
       targetSizeRatio: config.targetSizeRatio,
+      threadLimit: null,
       video: VideoProcessingConfig(
         outputFormat: MediaOutputFormat.fromVideoOutputFormat(
           config.outputFormat,
@@ -152,6 +159,7 @@ class MediaTaskConfig {
       preset: preset,
       targetSizeBytes: targetSizeBytes,
       targetSizeRatio: targetSizeRatio,
+      threadLimit: threadLimit,
       video: mediaKind == MediaKind.video
           ? video ?? VideoProcessingConfig.initial()
           : null,
@@ -171,6 +179,7 @@ class MediaTaskConfig {
     Object? preset = _notProvided,
     Object? targetSizeBytes = _notProvided,
     Object? targetSizeRatio = _notProvided,
+    Object? threadLimit = _notProvided,
     VideoProcessingConfig? video,
     ImageProcessingConfig? image,
     AudioProcessingConfig? audio,
@@ -218,6 +227,9 @@ class MediaTaskConfig {
       targetSizeRatio: identical(targetSizeRatio, _notProvided)
           ? this.targetSizeRatio
           : targetSizeRatio as double?,
+      threadLimit: identical(threadLimit, _notProvided)
+          ? this.threadLimit
+          : normalizeThreadLimit(threadLimit as int?),
       video: nextVideo,
       image: image ?? this.image,
       audio: audio ?? this.audio,
@@ -256,6 +268,13 @@ class MediaTaskConfig {
       null => null,
     };
   }
+}
+
+int? normalizeThreadLimit(int? value) {
+  if (value == null) {
+    return null;
+  }
+  return value.clamp(1, 8);
 }
 
 MediaOutputFormat? mediaOutputFormatFromVideoOutput(OutputFormat? format) {

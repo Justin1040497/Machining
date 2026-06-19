@@ -113,6 +113,7 @@ void main() {
         outputFileName: 'web-hero',
         image: ImageProcessingConfig.initial().copyWith(
           outputFormat: MediaOutputFormat.webp,
+          losslessCompression: true,
           imageQuality: 74,
           resizePreset: ImageResizePreset.longEdge1920,
           preserveMetadata: true,
@@ -128,6 +129,7 @@ void main() {
         config: config,
         progress: 0,
         sortOrder: 0,
+        outputFileSize: 1024,
         createdAt: 1,
         analysisResult: MediaAnalysisResult(
           imageWidth: 1200,
@@ -145,6 +147,7 @@ void main() {
         fileName: 'source.png',
         mediaKind: 'image',
         mediaConfigJson: companion.mediaConfigJson.value,
+        outputFileSize: companion.outputFileSize.value,
         analysisImageWidth: companion.analysisImageWidth.value,
         analysisImageHeight: companion.analysisImageHeight.value,
         analysisImageCodec: companion.analysisImageCodec.value,
@@ -158,7 +161,9 @@ void main() {
       expect(restored.config.outputDirectory, '/exports');
       expect(restored.config.outputFileName, 'web-hero');
       expect(restored.config.image!.outputFormat, MediaOutputFormat.webp);
+      expect(restored.config.image!.losslessCompression, isTrue);
       expect(restored.config.image!.imageQuality, 74);
+      expect(restored.outputFileSize, 1024);
       expect(
         restored.config.image!.resizePreset,
         ImageResizePreset.longEdge1920,
@@ -297,6 +302,7 @@ TaskRow taskRow({
   String fileName = 'source.mp4',
   String mediaKind = 'video',
   String? mediaConfigJson,
+  int? outputFileSize,
   int? analysisImageWidth,
   int? analysisImageHeight,
   String? analysisImageCodec,
@@ -312,6 +318,7 @@ TaskRow taskRow({
     status: 'pending',
     progress: 0,
     sortOrder: 0,
+    outputFileSize: outputFileSize,
     analysisDurationMs: 1000,
     analysisVideoWidth: 3840,
     analysisVideoHeight: 2160,

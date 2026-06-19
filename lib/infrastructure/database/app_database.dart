@@ -54,7 +54,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 25;
+  int get schemaVersion => 28;
 
   @override
   MigrationStrategy get migration {
@@ -364,6 +364,33 @@ class AppDatabase extends _$AppDatabase {
           await _safeAddColumn(migrator, taskRows, taskRows.folderId);
           await _safeAddColumn(migrator, taskRows, taskRows.folderSortOrder);
           await _safeAddColumn(migrator, taskRows, taskRows.policyTagsJson);
+        }
+        if (from < 26) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.maxConcurrentExecutions,
+          );
+        }
+        if (from < 27) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.folderImportScanDepth,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisAudioStreamsJson,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskFolderRows,
+            taskFolderRows.defaultPurpose,
+          );
+        }
+        if (from < 28) {
+          await _safeAddColumn(migrator, taskRows, taskRows.outputFileSize);
         }
       },
     );

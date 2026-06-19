@@ -15,6 +15,8 @@ class TaskRows extends Table {
   IntColumn get folderSortOrder =>
       integer().named('folder_sort_order').nullable()();
   TextColumn get outputPath => text().named('output_path').nullable()();
+  IntColumn get outputFileSize =>
+      integer().named('output_file_size').nullable()();
   TextColumn get errorMessage => text().named('error_message').nullable()();
   TextColumn get policyTagsJson =>
       text().named('policy_tags_json').nullable()();
@@ -88,6 +90,8 @@ class TaskRows extends Table {
       text().named('analysis_audio_channel_layout').nullable()();
   IntColumn get analysisAudioStreamIndex =>
       integer().named('analysis_audio_stream_index').nullable()();
+  TextColumn get analysisAudioStreamsJson =>
+      text().named('analysis_audio_streams_json').nullable()();
   TextColumn get mediaConfigJson =>
       text().named('media_config_json').nullable()();
   IntColumn get analysisImageWidth =>

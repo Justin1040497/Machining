@@ -20,6 +20,7 @@ class MediaTask {
   final String? folderId;
   final int? folderSortOrder;
   final String? outputPath;
+  final int? outputFileSize;
   final String? errorMessage;
   final Set<MediaTaskPolicyTag> policyTags;
   final SourceFileFingerprint? sourceFileFingerprint;
@@ -77,6 +78,7 @@ class MediaTask {
     this.folderSortOrder,
     int? createdAt,
     this.outputPath,
+    this.outputFileSize,
     this.errorMessage,
     Set<MediaTaskPolicyTag> policyTags = const {},
     this.sourceFileFingerprint,
@@ -110,6 +112,8 @@ class MediaTask {
     bool clearFolder = false,
     String? outputPath,
     bool clearOutputPath = false,
+    int? outputFileSize,
+    bool clearOutputFileSize = false,
     String? errorMessage,
     bool clearErrorMessage = false,
     Set<MediaTaskPolicyTag>? policyTags,
@@ -144,6 +148,9 @@ class MediaTask {
           ? null
           : folderSortOrder ?? this.folderSortOrder,
       outputPath: clearOutputPath ? null : outputPath ?? this.outputPath,
+      outputFileSize: clearOutputFileSize
+          ? null
+          : outputFileSize ?? this.outputFileSize,
       errorMessage: clearErrorMessage
           ? null
           : errorMessage ?? this.errorMessage,
@@ -185,6 +192,7 @@ class MediaTask {
       clearStartedAt: true,
       clearCompletedAt: true,
       clearFailedAt: true,
+      clearOutputFileSize: true,
       policyTags: policyTags.difference(_executionPolicyTags),
     );
   }
@@ -204,6 +212,7 @@ class MediaTask {
       startedAt: startedAt ?? DateTime.now().millisecondsSinceEpoch,
       clearCompletedAt: true,
       clearFailedAt: true,
+      clearOutputFileSize: true,
     );
   }
 
@@ -249,10 +258,12 @@ class MediaTask {
   }
 
   /// 标记任务执行完成
-  MediaTask markCompleted({int? completedAt}) {
+  MediaTask markCompleted({int? completedAt, int? outputFileSize}) {
     return copyWith(
       status: TaskStatus.completed,
       progress: 1,
+      outputFileSize: outputFileSize,
+      clearOutputFileSize: outputFileSize == null,
       clearErrorMessage: true,
       completedAt: completedAt ?? DateTime.now().millisecondsSinceEpoch,
       clearFailedAt: true,
@@ -275,6 +286,7 @@ class MediaTask {
       status: TaskStatus.pending,
       progress: 0,
       clearOutputPath: true,
+      clearOutputFileSize: true,
       clearErrorMessage: true,
       clearSourceFileFingerprint: true,
       clearAnalysisResult: true,

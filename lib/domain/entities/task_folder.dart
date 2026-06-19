@@ -1,4 +1,5 @@
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:uuid/uuid.dart';
 
@@ -6,6 +7,7 @@ class TaskFolder {
   final String id;
   final String name;
   final MediaKind mediaKind;
+  final TaskPurpose defaultPurpose;
   final int sortOrder;
   final MediaTaskConfig defaultConfig;
   final int createdAt;
@@ -17,6 +19,7 @@ class TaskFolder {
     required this.id,
     required this.name,
     required this.mediaKind,
+    this.defaultPurpose = TaskPurpose.compression,
     required this.sortOrder,
     required Object defaultConfig,
     int? createdAt,
@@ -32,6 +35,7 @@ class TaskFolder {
   factory TaskFolder.create({
     required String name,
     required MediaKind mediaKind,
+    TaskPurpose defaultPurpose = TaskPurpose.compression,
     required int sortOrder,
     required Object defaultConfig,
   }) {
@@ -39,6 +43,7 @@ class TaskFolder {
       id: generateId(),
       name: name,
       mediaKind: mediaKind,
+      defaultPurpose: defaultPurpose,
       sortOrder: sortOrder,
       defaultConfig: defaultConfig,
     );
@@ -48,6 +53,7 @@ class TaskFolder {
     String? id,
     String? name,
     MediaKind? mediaKind,
+    TaskPurpose? defaultPurpose,
     int? sortOrder,
     Object? defaultConfig,
     int? createdAt,
@@ -58,6 +64,7 @@ class TaskFolder {
       id: id ?? this.id,
       name: name ?? this.name,
       mediaKind: resolvedKind,
+      defaultPurpose: defaultPurpose ?? this.defaultPurpose,
       sortOrder: sortOrder ?? this.sortOrder,
       defaultConfig: defaultConfig ?? this.defaultConfig,
       createdAt: createdAt ?? this.createdAt,

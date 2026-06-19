@@ -208,6 +208,29 @@ class $SettingsRowsTable extends SettingsRows
         requiredDuringInsert: false,
         defaultValue: const Constant('clean_success'),
       );
+  static const VerificationMeta _maxConcurrentExecutionsMeta =
+      const VerificationMeta('maxConcurrentExecutions');
+  @override
+  late final GeneratedColumn<int> maxConcurrentExecutions =
+      GeneratedColumn<int>(
+        'max_concurrent_executions',
+        aliasedName,
+        false,
+        type: DriftSqlType.int,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(2),
+      );
+  static const VerificationMeta _folderImportScanDepthMeta =
+      const VerificationMeta('folderImportScanDepth');
+  @override
+  late final GeneratedColumn<int> folderImportScanDepth = GeneratedColumn<int>(
+    'folder_import_scan_depth',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(2),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -248,6 +271,8 @@ class $SettingsRowsTable extends SettingsRows
     hideNotificationBadge,
     showTaskCompletionDialog,
     taskCompletionSound,
+    maxConcurrentExecutions,
+    folderImportScanDepth,
     createdAt,
     updatedAt,
   ];
@@ -398,6 +423,24 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('max_concurrent_executions')) {
+      context.handle(
+        _maxConcurrentExecutionsMeta,
+        maxConcurrentExecutions.isAcceptableOrUnknown(
+          data['max_concurrent_executions']!,
+          _maxConcurrentExecutionsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('folder_import_scan_depth')) {
+      context.handle(
+        _folderImportScanDepthMeta,
+        folderImportScanDepth.isAcceptableOrUnknown(
+          data['folder_import_scan_depth']!,
+          _folderImportScanDepthMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -487,6 +530,14 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}task_completion_sound'],
       )!,
+      maxConcurrentExecutions: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}max_concurrent_executions'],
+      )!,
+      folderImportScanDepth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}folder_import_scan_depth'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -521,6 +572,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final bool hideNotificationBadge;
   final bool showTaskCompletionDialog;
   final String taskCompletionSound;
+  final int maxConcurrentExecutions;
+  final int folderImportScanDepth;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
@@ -540,6 +593,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.hideNotificationBadge,
     required this.showTaskCompletionDialog,
     required this.taskCompletionSound,
+    required this.maxConcurrentExecutions,
+    required this.folderImportScanDepth,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -588,6 +643,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       showTaskCompletionDialog,
     );
     map['task_completion_sound'] = Variable<String>(taskCompletionSound);
+    map['max_concurrent_executions'] = Variable<int>(maxConcurrentExecutions);
+    map['folder_import_scan_depth'] = Variable<int>(folderImportScanDepth);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -622,6 +679,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       hideNotificationBadge: Value(hideNotificationBadge),
       showTaskCompletionDialog: Value(showTaskCompletionDialog),
       taskCompletionSound: Value(taskCompletionSound),
+      maxConcurrentExecutions: Value(maxConcurrentExecutions),
+      folderImportScanDepth: Value(folderImportScanDepth),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -673,6 +732,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       taskCompletionSound: serializer.fromJson<String>(
         json['taskCompletionSound'],
       ),
+      maxConcurrentExecutions: serializer.fromJson<int>(
+        json['maxConcurrentExecutions'],
+      ),
+      folderImportScanDepth: serializer.fromJson<int>(
+        json['folderImportScanDepth'],
+      ),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -713,6 +778,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         showTaskCompletionDialog,
       ),
       'taskCompletionSound': serializer.toJson<String>(taskCompletionSound),
+      'maxConcurrentExecutions': serializer.toJson<int>(
+        maxConcurrentExecutions,
+      ),
+      'folderImportScanDepth': serializer.toJson<int>(folderImportScanDepth),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -735,6 +804,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     bool? hideNotificationBadge,
     bool? showTaskCompletionDialog,
     String? taskCompletionSound,
+    int? maxConcurrentExecutions,
+    int? folderImportScanDepth,
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -769,6 +840,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     showTaskCompletionDialog:
         showTaskCompletionDialog ?? this.showTaskCompletionDialog,
     taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
+    maxConcurrentExecutions:
+        maxConcurrentExecutions ?? this.maxConcurrentExecutions,
+    folderImportScanDepth: folderImportScanDepth ?? this.folderImportScanDepth,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -818,6 +892,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       taskCompletionSound: data.taskCompletionSound.present
           ? data.taskCompletionSound.value
           : this.taskCompletionSound,
+      maxConcurrentExecutions: data.maxConcurrentExecutions.present
+          ? data.maxConcurrentExecutions.value
+          : this.maxConcurrentExecutions,
+      folderImportScanDepth: data.folderImportScanDepth.present
+          ? data.folderImportScanDepth.value
+          : this.folderImportScanDepth,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -846,6 +926,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('hideNotificationBadge: $hideNotificationBadge, ')
           ..write('showTaskCompletionDialog: $showTaskCompletionDialog, ')
           ..write('taskCompletionSound: $taskCompletionSound, ')
+          ..write('maxConcurrentExecutions: $maxConcurrentExecutions, ')
+          ..write('folderImportScanDepth: $folderImportScanDepth, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -870,6 +952,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     hideNotificationBadge,
     showTaskCompletionDialog,
     taskCompletionSound,
+    maxConcurrentExecutions,
+    folderImportScanDepth,
     createdAt,
     updatedAt,
   );
@@ -897,6 +981,8 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.hideNotificationBadge == this.hideNotificationBadge &&
           other.showTaskCompletionDialog == this.showTaskCompletionDialog &&
           other.taskCompletionSound == this.taskCompletionSound &&
+          other.maxConcurrentExecutions == this.maxConcurrentExecutions &&
+          other.folderImportScanDepth == this.folderImportScanDepth &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -918,6 +1004,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<bool> hideNotificationBadge;
   final Value<bool> showTaskCompletionDialog;
   final Value<String> taskCompletionSound;
+  final Value<int> maxConcurrentExecutions;
+  final Value<int> folderImportScanDepth;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
@@ -937,6 +1025,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.hideNotificationBadge = const Value.absent(),
     this.showTaskCompletionDialog = const Value.absent(),
     this.taskCompletionSound = const Value.absent(),
+    this.maxConcurrentExecutions = const Value.absent(),
+    this.folderImportScanDepth = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -957,6 +1047,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.hideNotificationBadge = const Value.absent(),
     this.showTaskCompletionDialog = const Value.absent(),
     this.taskCompletionSound = const Value.absent(),
+    this.maxConcurrentExecutions = const Value.absent(),
+    this.folderImportScanDepth = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -978,6 +1070,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<bool>? hideNotificationBadge,
     Expression<bool>? showTaskCompletionDialog,
     Expression<String>? taskCompletionSound,
+    Expression<int>? maxConcurrentExecutions,
+    Expression<int>? folderImportScanDepth,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -1009,6 +1103,10 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'show_task_completion_dialog': showTaskCompletionDialog,
       if (taskCompletionSound != null)
         'task_completion_sound': taskCompletionSound,
+      if (maxConcurrentExecutions != null)
+        'max_concurrent_executions': maxConcurrentExecutions,
+      if (folderImportScanDepth != null)
+        'folder_import_scan_depth': folderImportScanDepth,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1031,6 +1129,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<bool>? hideNotificationBadge,
     Value<bool>? showTaskCompletionDialog,
     Value<String>? taskCompletionSound,
+    Value<int>? maxConcurrentExecutions,
+    Value<int>? folderImportScanDepth,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -1060,6 +1160,10 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       showTaskCompletionDialog:
           showTaskCompletionDialog ?? this.showTaskCompletionDialog,
       taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
+      maxConcurrentExecutions:
+          maxConcurrentExecutions ?? this.maxConcurrentExecutions,
+      folderImportScanDepth:
+          folderImportScanDepth ?? this.folderImportScanDepth,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1136,6 +1240,16 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         taskCompletionSound.value,
       );
     }
+    if (maxConcurrentExecutions.present) {
+      map['max_concurrent_executions'] = Variable<int>(
+        maxConcurrentExecutions.value,
+      );
+    }
+    if (folderImportScanDepth.present) {
+      map['folder_import_scan_depth'] = Variable<int>(
+        folderImportScanDepth.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -1168,6 +1282,8 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('hideNotificationBadge: $hideNotificationBadge, ')
           ..write('showTaskCompletionDialog: $showTaskCompletionDialog, ')
           ..write('taskCompletionSound: $taskCompletionSound, ')
+          ..write('maxConcurrentExecutions: $maxConcurrentExecutions, ')
+          ..write('folderImportScanDepth: $folderImportScanDepth, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1297,6 +1413,17 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     aliasedName,
     true,
     type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _outputFileSizeMeta = const VerificationMeta(
+    'outputFileSize',
+  );
+  @override
+  late final GeneratedColumn<int> outputFileSize = GeneratedColumn<int>(
+    'output_file_size',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
     requiredDuringInsert: false,
   );
   static const VerificationMeta _errorMessageMeta = const VerificationMeta(
@@ -1698,6 +1825,17 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         type: DriftSqlType.int,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _analysisAudioStreamsJsonMeta =
+      const VerificationMeta('analysisAudioStreamsJson');
+  @override
+  late final GeneratedColumn<String> analysisAudioStreamsJson =
+      GeneratedColumn<String>(
+        'analysis_audio_streams_json',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _mediaConfigJsonMeta = const VerificationMeta(
     'mediaConfigJson',
   );
@@ -1964,6 +2102,7 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     folderId,
     folderSortOrder,
     outputPath,
+    outputFileSize,
     errorMessage,
     policyTagsJson,
     sourceFileSize,
@@ -2001,6 +2140,7 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     analysisAudioSampleRate,
     analysisAudioChannelLayout,
     analysisAudioStreamIndex,
+    analysisAudioStreamsJson,
     mediaConfigJson,
     analysisImageWidth,
     analysisImageHeight,
@@ -2113,6 +2253,15 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
       context.handle(
         _outputPathMeta,
         outputPath.isAcceptableOrUnknown(data['output_path']!, _outputPathMeta),
+      );
+    }
+    if (data.containsKey('output_file_size')) {
+      context.handle(
+        _outputFileSizeMeta,
+        outputFileSize.isAcceptableOrUnknown(
+          data['output_file_size']!,
+          _outputFileSizeMeta,
+        ),
       );
     }
     if (data.containsKey('error_message')) {
@@ -2448,6 +2597,15 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         ),
       );
     }
+    if (data.containsKey('analysis_audio_streams_json')) {
+      context.handle(
+        _analysisAudioStreamsJsonMeta,
+        analysisAudioStreamsJson.isAcceptableOrUnknown(
+          data['analysis_audio_streams_json']!,
+          _analysisAudioStreamsJsonMeta,
+        ),
+      );
+    }
     if (data.containsKey('media_config_json')) {
       context.handle(
         _mediaConfigJsonMeta,
@@ -2708,6 +2866,10 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}output_path'],
       ),
+      outputFileSize: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}output_file_size'],
+      ),
       errorMessage: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}error_message'],
@@ -2856,6 +3018,10 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.int,
         data['${effectivePrefix}analysis_audio_stream_index'],
       ),
+      analysisAudioStreamsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_audio_streams_json'],
+      ),
       mediaConfigJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}media_config_json'],
@@ -2970,6 +3136,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String? folderId;
   final int? folderSortOrder;
   final String? outputPath;
+  final int? outputFileSize;
   final String? errorMessage;
   final String? policyTagsJson;
   final int? sourceFileSize;
@@ -3007,6 +3174,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final int? analysisAudioSampleRate;
   final String? analysisAudioChannelLayout;
   final int? analysisAudioStreamIndex;
+  final String? analysisAudioStreamsJson;
   final String? mediaConfigJson;
   final int? analysisImageWidth;
   final int? analysisImageHeight;
@@ -3042,6 +3210,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.folderId,
     this.folderSortOrder,
     this.outputPath,
+    this.outputFileSize,
     this.errorMessage,
     this.policyTagsJson,
     this.sourceFileSize,
@@ -3079,6 +3248,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.analysisAudioSampleRate,
     this.analysisAudioChannelLayout,
     this.analysisAudioStreamIndex,
+    this.analysisAudioStreamsJson,
     this.mediaConfigJson,
     this.analysisImageWidth,
     this.analysisImageHeight,
@@ -3122,6 +3292,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     }
     if (!nullToAbsent || outputPath != null) {
       map['output_path'] = Variable<String>(outputPath);
+    }
+    if (!nullToAbsent || outputFileSize != null) {
+      map['output_file_size'] = Variable<int>(outputFileSize);
     }
     if (!nullToAbsent || errorMessage != null) {
       map['error_message'] = Variable<String>(errorMessage);
@@ -3272,6 +3445,11 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
         analysisAudioStreamIndex,
       );
     }
+    if (!nullToAbsent || analysisAudioStreamsJson != null) {
+      map['analysis_audio_streams_json'] = Variable<String>(
+        analysisAudioStreamsJson,
+      );
+    }
     if (!nullToAbsent || mediaConfigJson != null) {
       map['media_config_json'] = Variable<String>(mediaConfigJson);
     }
@@ -3347,6 +3525,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       outputPath: outputPath == null && nullToAbsent
           ? const Value.absent()
           : Value(outputPath),
+      outputFileSize: outputFileSize == null && nullToAbsent
+          ? const Value.absent()
+          : Value(outputFileSize),
       errorMessage: errorMessage == null && nullToAbsent
           ? const Value.absent()
           : Value(errorMessage),
@@ -3468,6 +3649,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioStreamIndex: analysisAudioStreamIndex == null && nullToAbsent
           ? const Value.absent()
           : Value(analysisAudioStreamIndex),
+      analysisAudioStreamsJson: analysisAudioStreamsJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisAudioStreamsJson),
       mediaConfigJson: mediaConfigJson == null && nullToAbsent
           ? const Value.absent()
           : Value(mediaConfigJson),
@@ -3539,6 +3723,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       folderId: serializer.fromJson<String?>(json['folderId']),
       folderSortOrder: serializer.fromJson<int?>(json['folderSortOrder']),
       outputPath: serializer.fromJson<String?>(json['outputPath']),
+      outputFileSize: serializer.fromJson<int?>(json['outputFileSize']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
       policyTagsJson: serializer.fromJson<String?>(json['policyTagsJson']),
       sourceFileSize: serializer.fromJson<int?>(json['sourceFileSize']),
@@ -3640,6 +3825,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioStreamIndex: serializer.fromJson<int?>(
         json['analysisAudioStreamIndex'],
       ),
+      analysisAudioStreamsJson: serializer.fromJson<String?>(
+        json['analysisAudioStreamsJson'],
+      ),
       mediaConfigJson: serializer.fromJson<String?>(json['mediaConfigJson']),
       analysisImageWidth: serializer.fromJson<int?>(json['analysisImageWidth']),
       analysisImageHeight: serializer.fromJson<int?>(
@@ -3690,6 +3878,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'folderId': serializer.toJson<String?>(folderId),
       'folderSortOrder': serializer.toJson<int?>(folderSortOrder),
       'outputPath': serializer.toJson<String?>(outputPath),
+      'outputFileSize': serializer.toJson<int?>(outputFileSize),
       'errorMessage': serializer.toJson<String?>(errorMessage),
       'policyTagsJson': serializer.toJson<String?>(policyTagsJson),
       'sourceFileSize': serializer.toJson<int?>(sourceFileSize),
@@ -3769,6 +3958,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'analysisAudioStreamIndex': serializer.toJson<int?>(
         analysisAudioStreamIndex,
       ),
+      'analysisAudioStreamsJson': serializer.toJson<String?>(
+        analysisAudioStreamsJson,
+      ),
       'mediaConfigJson': serializer.toJson<String?>(mediaConfigJson),
       'analysisImageWidth': serializer.toJson<int?>(analysisImageWidth),
       'analysisImageHeight': serializer.toJson<int?>(analysisImageHeight),
@@ -3809,6 +4001,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<String?> folderId = const Value.absent(),
     Value<int?> folderSortOrder = const Value.absent(),
     Value<String?> outputPath = const Value.absent(),
+    Value<int?> outputFileSize = const Value.absent(),
     Value<String?> errorMessage = const Value.absent(),
     Value<String?> policyTagsJson = const Value.absent(),
     Value<int?> sourceFileSize = const Value.absent(),
@@ -3846,6 +4039,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<int?> analysisAudioSampleRate = const Value.absent(),
     Value<String?> analysisAudioChannelLayout = const Value.absent(),
     Value<int?> analysisAudioStreamIndex = const Value.absent(),
+    Value<String?> analysisAudioStreamsJson = const Value.absent(),
     Value<String?> mediaConfigJson = const Value.absent(),
     Value<int?> analysisImageWidth = const Value.absent(),
     Value<int?> analysisImageHeight = const Value.absent(),
@@ -3883,6 +4077,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
         ? folderSortOrder.value
         : this.folderSortOrder,
     outputPath: outputPath.present ? outputPath.value : this.outputPath,
+    outputFileSize: outputFileSize.present
+        ? outputFileSize.value
+        : this.outputFileSize,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
     policyTagsJson: policyTagsJson.present
         ? policyTagsJson.value
@@ -3994,6 +4191,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioStreamIndex: analysisAudioStreamIndex.present
         ? analysisAudioStreamIndex.value
         : this.analysisAudioStreamIndex,
+    analysisAudioStreamsJson: analysisAudioStreamsJson.present
+        ? analysisAudioStreamsJson.value
+        : this.analysisAudioStreamsJson,
     mediaConfigJson: mediaConfigJson.present
         ? mediaConfigJson.value
         : this.mediaConfigJson,
@@ -4055,6 +4255,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       outputPath: data.outputPath.present
           ? data.outputPath.value
           : this.outputPath,
+      outputFileSize: data.outputFileSize.present
+          ? data.outputFileSize.value
+          : this.outputFileSize,
       errorMessage: data.errorMessage.present
           ? data.errorMessage.value
           : this.errorMessage,
@@ -4170,6 +4373,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       analysisAudioStreamIndex: data.analysisAudioStreamIndex.present
           ? data.analysisAudioStreamIndex.value
           : this.analysisAudioStreamIndex,
+      analysisAudioStreamsJson: data.analysisAudioStreamsJson.present
+          ? data.analysisAudioStreamsJson.value
+          : this.analysisAudioStreamsJson,
       mediaConfigJson: data.mediaConfigJson.present
           ? data.mediaConfigJson.value
           : this.mediaConfigJson,
@@ -4250,6 +4456,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('folderId: $folderId, ')
           ..write('folderSortOrder: $folderSortOrder, ')
           ..write('outputPath: $outputPath, ')
+          ..write('outputFileSize: $outputFileSize, ')
           ..write('errorMessage: $errorMessage, ')
           ..write('policyTagsJson: $policyTagsJson, ')
           ..write('sourceFileSize: $sourceFileSize, ')
@@ -4299,6 +4506,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
           ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
           ..write('analysisAudioStreamIndex: $analysisAudioStreamIndex, ')
+          ..write('analysisAudioStreamsJson: $analysisAudioStreamsJson, ')
           ..write('mediaConfigJson: $mediaConfigJson, ')
           ..write('analysisImageWidth: $analysisImageWidth, ')
           ..write('analysisImageHeight: $analysisImageHeight, ')
@@ -4339,6 +4547,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     folderId,
     folderSortOrder,
     outputPath,
+    outputFileSize,
     errorMessage,
     policyTagsJson,
     sourceFileSize,
@@ -4376,6 +4585,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     analysisAudioSampleRate,
     analysisAudioChannelLayout,
     analysisAudioStreamIndex,
+    analysisAudioStreamsJson,
     mediaConfigJson,
     analysisImageWidth,
     analysisImageHeight,
@@ -4415,6 +4625,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.folderId == this.folderId &&
           other.folderSortOrder == this.folderSortOrder &&
           other.outputPath == this.outputPath &&
+          other.outputFileSize == this.outputFileSize &&
           other.errorMessage == this.errorMessage &&
           other.policyTagsJson == this.policyTagsJson &&
           other.sourceFileSize == this.sourceFileSize &&
@@ -4458,6 +4669,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.analysisAudioSampleRate == this.analysisAudioSampleRate &&
           other.analysisAudioChannelLayout == this.analysisAudioChannelLayout &&
           other.analysisAudioStreamIndex == this.analysisAudioStreamIndex &&
+          other.analysisAudioStreamsJson == this.analysisAudioStreamsJson &&
           other.mediaConfigJson == this.mediaConfigJson &&
           other.analysisImageWidth == this.analysisImageWidth &&
           other.analysisImageHeight == this.analysisImageHeight &&
@@ -4495,6 +4707,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<String?> folderId;
   final Value<int?> folderSortOrder;
   final Value<String?> outputPath;
+  final Value<int?> outputFileSize;
   final Value<String?> errorMessage;
   final Value<String?> policyTagsJson;
   final Value<int?> sourceFileSize;
@@ -4532,6 +4745,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<int?> analysisAudioSampleRate;
   final Value<String?> analysisAudioChannelLayout;
   final Value<int?> analysisAudioStreamIndex;
+  final Value<String?> analysisAudioStreamsJson;
   final Value<String?> mediaConfigJson;
   final Value<int?> analysisImageWidth;
   final Value<int?> analysisImageHeight;
@@ -4568,6 +4782,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.folderId = const Value.absent(),
     this.folderSortOrder = const Value.absent(),
     this.outputPath = const Value.absent(),
+    this.outputFileSize = const Value.absent(),
     this.errorMessage = const Value.absent(),
     this.policyTagsJson = const Value.absent(),
     this.sourceFileSize = const Value.absent(),
@@ -4605,6 +4820,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisAudioSampleRate = const Value.absent(),
     this.analysisAudioChannelLayout = const Value.absent(),
     this.analysisAudioStreamIndex = const Value.absent(),
+    this.analysisAudioStreamsJson = const Value.absent(),
     this.mediaConfigJson = const Value.absent(),
     this.analysisImageWidth = const Value.absent(),
     this.analysisImageHeight = const Value.absent(),
@@ -4642,6 +4858,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.folderId = const Value.absent(),
     this.folderSortOrder = const Value.absent(),
     this.outputPath = const Value.absent(),
+    this.outputFileSize = const Value.absent(),
     this.errorMessage = const Value.absent(),
     this.policyTagsJson = const Value.absent(),
     this.sourceFileSize = const Value.absent(),
@@ -4679,6 +4896,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.analysisAudioSampleRate = const Value.absent(),
     this.analysisAudioChannelLayout = const Value.absent(),
     this.analysisAudioStreamIndex = const Value.absent(),
+    this.analysisAudioStreamsJson = const Value.absent(),
     this.mediaConfigJson = const Value.absent(),
     this.analysisImageWidth = const Value.absent(),
     this.analysisImageHeight = const Value.absent(),
@@ -4727,6 +4945,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? folderId,
     Expression<int>? folderSortOrder,
     Expression<String>? outputPath,
+    Expression<int>? outputFileSize,
     Expression<String>? errorMessage,
     Expression<String>? policyTagsJson,
     Expression<int>? sourceFileSize,
@@ -4764,6 +4983,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<int>? analysisAudioSampleRate,
     Expression<String>? analysisAudioChannelLayout,
     Expression<int>? analysisAudioStreamIndex,
+    Expression<String>? analysisAudioStreamsJson,
     Expression<String>? mediaConfigJson,
     Expression<int>? analysisImageWidth,
     Expression<int>? analysisImageHeight,
@@ -4801,6 +5021,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       if (folderId != null) 'folder_id': folderId,
       if (folderSortOrder != null) 'folder_sort_order': folderSortOrder,
       if (outputPath != null) 'output_path': outputPath,
+      if (outputFileSize != null) 'output_file_size': outputFileSize,
       if (errorMessage != null) 'error_message': errorMessage,
       if (policyTagsJson != null) 'policy_tags_json': policyTagsJson,
       if (sourceFileSize != null) 'source_file_size': sourceFileSize,
@@ -4875,6 +5096,8 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         'analysis_audio_channel_layout': analysisAudioChannelLayout,
       if (analysisAudioStreamIndex != null)
         'analysis_audio_stream_index': analysisAudioStreamIndex,
+      if (analysisAudioStreamsJson != null)
+        'analysis_audio_streams_json': analysisAudioStreamsJson,
       if (mediaConfigJson != null) 'media_config_json': mediaConfigJson,
       if (analysisImageWidth != null)
         'analysis_image_width': analysisImageWidth,
@@ -4920,6 +5143,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<String?>? folderId,
     Value<int?>? folderSortOrder,
     Value<String?>? outputPath,
+    Value<int?>? outputFileSize,
     Value<String?>? errorMessage,
     Value<String?>? policyTagsJson,
     Value<int?>? sourceFileSize,
@@ -4957,6 +5181,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<int?>? analysisAudioSampleRate,
     Value<String?>? analysisAudioChannelLayout,
     Value<int?>? analysisAudioStreamIndex,
+    Value<String?>? analysisAudioStreamsJson,
     Value<String?>? mediaConfigJson,
     Value<int?>? analysisImageWidth,
     Value<int?>? analysisImageHeight,
@@ -4994,6 +5219,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       folderId: folderId ?? this.folderId,
       folderSortOrder: folderSortOrder ?? this.folderSortOrder,
       outputPath: outputPath ?? this.outputPath,
+      outputFileSize: outputFileSize ?? this.outputFileSize,
       errorMessage: errorMessage ?? this.errorMessage,
       policyTagsJson: policyTagsJson ?? this.policyTagsJson,
       sourceFileSize: sourceFileSize ?? this.sourceFileSize,
@@ -5058,6 +5284,8 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           analysisAudioChannelLayout ?? this.analysisAudioChannelLayout,
       analysisAudioStreamIndex:
           analysisAudioStreamIndex ?? this.analysisAudioStreamIndex,
+      analysisAudioStreamsJson:
+          analysisAudioStreamsJson ?? this.analysisAudioStreamsJson,
       mediaConfigJson: mediaConfigJson ?? this.mediaConfigJson,
       analysisImageWidth: analysisImageWidth ?? this.analysisImageWidth,
       analysisImageHeight: analysisImageHeight ?? this.analysisImageHeight,
@@ -5122,6 +5350,9 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     }
     if (outputPath.present) {
       map['output_path'] = Variable<String>(outputPath.value);
+    }
+    if (outputFileSize.present) {
+      map['output_file_size'] = Variable<int>(outputFileSize.value);
     }
     if (errorMessage.present) {
       map['error_message'] = Variable<String>(errorMessage.value);
@@ -5282,6 +5513,11 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
         analysisAudioStreamIndex.value,
       );
     }
+    if (analysisAudioStreamsJson.present) {
+      map['analysis_audio_streams_json'] = Variable<String>(
+        analysisAudioStreamsJson.value,
+      );
+    }
     if (mediaConfigJson.present) {
       map['media_config_json'] = Variable<String>(mediaConfigJson.value);
     }
@@ -5377,6 +5613,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('folderId: $folderId, ')
           ..write('folderSortOrder: $folderSortOrder, ')
           ..write('outputPath: $outputPath, ')
+          ..write('outputFileSize: $outputFileSize, ')
           ..write('errorMessage: $errorMessage, ')
           ..write('policyTagsJson: $policyTagsJson, ')
           ..write('sourceFileSize: $sourceFileSize, ')
@@ -5426,6 +5663,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('analysisAudioSampleRate: $analysisAudioSampleRate, ')
           ..write('analysisAudioChannelLayout: $analysisAudioChannelLayout, ')
           ..write('analysisAudioStreamIndex: $analysisAudioStreamIndex, ')
+          ..write('analysisAudioStreamsJson: $analysisAudioStreamsJson, ')
           ..write('mediaConfigJson: $mediaConfigJson, ')
           ..write('analysisImageWidth: $analysisImageWidth, ')
           ..write('analysisImageHeight: $analysisImageHeight, ')
@@ -5490,6 +5728,18 @@ class $TaskFolderRowsTable extends TaskFolderRows
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _defaultPurposeMeta = const VerificationMeta(
+    'defaultPurpose',
+  );
+  @override
+  late final GeneratedColumn<String> defaultPurpose = GeneratedColumn<String>(
+    'default_purpose',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('compression'),
+  );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -5540,6 +5790,7 @@ class $TaskFolderRowsTable extends TaskFolderRows
     id,
     name,
     mediaKind,
+    defaultPurpose,
     sortOrder,
     defaultConfigJson,
     createdAt,
@@ -5577,6 +5828,15 @@ class $TaskFolderRowsTable extends TaskFolderRows
       );
     } else if (isInserting) {
       context.missing(_mediaKindMeta);
+    }
+    if (data.containsKey('default_purpose')) {
+      context.handle(
+        _defaultPurposeMeta,
+        defaultPurpose.isAcceptableOrUnknown(
+          data['default_purpose']!,
+          _defaultPurposeMeta,
+        ),
+      );
     }
     if (data.containsKey('sort_order')) {
       context.handle(
@@ -5634,6 +5894,10 @@ class $TaskFolderRowsTable extends TaskFolderRows
         DriftSqlType.string,
         data['${effectivePrefix}media_kind'],
       )!,
+      defaultPurpose: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}default_purpose'],
+      )!,
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
@@ -5663,6 +5927,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
   final String id;
   final String name;
   final String mediaKind;
+  final String defaultPurpose;
   final int sortOrder;
   final String defaultConfigJson;
   final int createdAt;
@@ -5671,6 +5936,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     required this.id,
     required this.name,
     required this.mediaKind,
+    required this.defaultPurpose,
     required this.sortOrder,
     required this.defaultConfigJson,
     required this.createdAt,
@@ -5682,6 +5948,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['media_kind'] = Variable<String>(mediaKind);
+    map['default_purpose'] = Variable<String>(defaultPurpose);
     map['sort_order'] = Variable<int>(sortOrder);
     map['default_config_json'] = Variable<String>(defaultConfigJson);
     map['created_at'] = Variable<int>(createdAt);
@@ -5694,6 +5961,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       id: Value(id),
       name: Value(name),
       mediaKind: Value(mediaKind),
+      defaultPurpose: Value(defaultPurpose),
       sortOrder: Value(sortOrder),
       defaultConfigJson: Value(defaultConfigJson),
       createdAt: Value(createdAt),
@@ -5710,6 +5978,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       mediaKind: serializer.fromJson<String>(json['mediaKind']),
+      defaultPurpose: serializer.fromJson<String>(json['defaultPurpose']),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       defaultConfigJson: serializer.fromJson<String>(json['defaultConfigJson']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
@@ -5723,6 +5992,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'mediaKind': serializer.toJson<String>(mediaKind),
+      'defaultPurpose': serializer.toJson<String>(defaultPurpose),
       'sortOrder': serializer.toJson<int>(sortOrder),
       'defaultConfigJson': serializer.toJson<String>(defaultConfigJson),
       'createdAt': serializer.toJson<int>(createdAt),
@@ -5734,6 +6004,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     String? id,
     String? name,
     String? mediaKind,
+    String? defaultPurpose,
     int? sortOrder,
     String? defaultConfigJson,
     int? createdAt,
@@ -5742,6 +6013,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     id: id ?? this.id,
     name: name ?? this.name,
     mediaKind: mediaKind ?? this.mediaKind,
+    defaultPurpose: defaultPurpose ?? this.defaultPurpose,
     sortOrder: sortOrder ?? this.sortOrder,
     defaultConfigJson: defaultConfigJson ?? this.defaultConfigJson,
     createdAt: createdAt ?? this.createdAt,
@@ -5752,6 +6024,9 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       mediaKind: data.mediaKind.present ? data.mediaKind.value : this.mediaKind,
+      defaultPurpose: data.defaultPurpose.present
+          ? data.defaultPurpose.value
+          : this.defaultPurpose,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       defaultConfigJson: data.defaultConfigJson.present
           ? data.defaultConfigJson.value
@@ -5767,6 +6042,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('mediaKind: $mediaKind, ')
+          ..write('defaultPurpose: $defaultPurpose, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('defaultConfigJson: $defaultConfigJson, ')
           ..write('createdAt: $createdAt, ')
@@ -5780,6 +6056,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     id,
     name,
     mediaKind,
+    defaultPurpose,
     sortOrder,
     defaultConfigJson,
     createdAt,
@@ -5792,6 +6069,7 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
           other.id == this.id &&
           other.name == this.name &&
           other.mediaKind == this.mediaKind &&
+          other.defaultPurpose == this.defaultPurpose &&
           other.sortOrder == this.sortOrder &&
           other.defaultConfigJson == this.defaultConfigJson &&
           other.createdAt == this.createdAt &&
@@ -5802,6 +6080,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> mediaKind;
+  final Value<String> defaultPurpose;
   final Value<int> sortOrder;
   final Value<String> defaultConfigJson;
   final Value<int> createdAt;
@@ -5811,6 +6090,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.mediaKind = const Value.absent(),
+    this.defaultPurpose = const Value.absent(),
     this.sortOrder = const Value.absent(),
     this.defaultConfigJson = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -5821,6 +6101,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     required String id,
     required String name,
     required String mediaKind,
+    this.defaultPurpose = const Value.absent(),
     required int sortOrder,
     required String defaultConfigJson,
     required int createdAt,
@@ -5837,6 +6118,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? mediaKind,
+    Expression<String>? defaultPurpose,
     Expression<int>? sortOrder,
     Expression<String>? defaultConfigJson,
     Expression<int>? createdAt,
@@ -5847,6 +6129,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (mediaKind != null) 'media_kind': mediaKind,
+      if (defaultPurpose != null) 'default_purpose': defaultPurpose,
       if (sortOrder != null) 'sort_order': sortOrder,
       if (defaultConfigJson != null) 'default_config_json': defaultConfigJson,
       if (createdAt != null) 'created_at': createdAt,
@@ -5859,6 +6142,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? mediaKind,
+    Value<String>? defaultPurpose,
     Value<int>? sortOrder,
     Value<String>? defaultConfigJson,
     Value<int>? createdAt,
@@ -5869,6 +6153,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
       id: id ?? this.id,
       name: name ?? this.name,
       mediaKind: mediaKind ?? this.mediaKind,
+      defaultPurpose: defaultPurpose ?? this.defaultPurpose,
       sortOrder: sortOrder ?? this.sortOrder,
       defaultConfigJson: defaultConfigJson ?? this.defaultConfigJson,
       createdAt: createdAt ?? this.createdAt,
@@ -5888,6 +6173,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     }
     if (mediaKind.present) {
       map['media_kind'] = Variable<String>(mediaKind.value);
+    }
+    if (defaultPurpose.present) {
+      map['default_purpose'] = Variable<String>(defaultPurpose.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
@@ -5913,6 +6201,7 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('mediaKind: $mediaKind, ')
+          ..write('defaultPurpose: $defaultPurpose, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('defaultConfigJson: $defaultConfigJson, ')
           ..write('createdAt: $createdAt, ')
@@ -6622,6 +6911,8 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<bool> hideNotificationBadge,
       Value<bool> showTaskCompletionDialog,
       Value<String> taskCompletionSound,
+      Value<int> maxConcurrentExecutions,
+      Value<int> folderImportScanDepth,
       required int createdAt,
       required int updatedAt,
     });
@@ -6643,6 +6934,8 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<bool> hideNotificationBadge,
       Value<bool> showTaskCompletionDialog,
       Value<String> taskCompletionSound,
+      Value<int> maxConcurrentExecutions,
+      Value<int> folderImportScanDepth,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -6733,6 +7026,16 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get taskCompletionSound => $composableBuilder(
     column: $table.taskCompletionSound,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get maxConcurrentExecutions => $composableBuilder(
+    column: $table.maxConcurrentExecutions,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get folderImportScanDepth => $composableBuilder(
+    column: $table.folderImportScanDepth,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6838,6 +7141,16 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get maxConcurrentExecutions => $composableBuilder(
+    column: $table.maxConcurrentExecutions,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get folderImportScanDepth => $composableBuilder(
+    column: $table.folderImportScanDepth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -6936,6 +7249,16 @@ class $$SettingsRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<int> get maxConcurrentExecutions => $composableBuilder(
+    column: $table.maxConcurrentExecutions,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get folderImportScanDepth => $composableBuilder(
+    column: $table.folderImportScanDepth,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -6993,6 +7316,8 @@ class $$SettingsRowsTableTableManager
                 Value<bool> hideNotificationBadge = const Value.absent(),
                 Value<bool> showTaskCompletionDialog = const Value.absent(),
                 Value<String> taskCompletionSound = const Value.absent(),
+                Value<int> maxConcurrentExecutions = const Value.absent(),
+                Value<int> folderImportScanDepth = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
@@ -7012,6 +7337,8 @@ class $$SettingsRowsTableTableManager
                 hideNotificationBadge: hideNotificationBadge,
                 showTaskCompletionDialog: showTaskCompletionDialog,
                 taskCompletionSound: taskCompletionSound,
+                maxConcurrentExecutions: maxConcurrentExecutions,
+                folderImportScanDepth: folderImportScanDepth,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -7036,6 +7363,8 @@ class $$SettingsRowsTableTableManager
                 Value<bool> hideNotificationBadge = const Value.absent(),
                 Value<bool> showTaskCompletionDialog = const Value.absent(),
                 Value<String> taskCompletionSound = const Value.absent(),
+                Value<int> maxConcurrentExecutions = const Value.absent(),
+                Value<int> folderImportScanDepth = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
@@ -7055,6 +7384,8 @@ class $$SettingsRowsTableTableManager
                 hideNotificationBadge: hideNotificationBadge,
                 showTaskCompletionDialog: showTaskCompletionDialog,
                 taskCompletionSound: taskCompletionSound,
+                maxConcurrentExecutions: maxConcurrentExecutions,
+                folderImportScanDepth: folderImportScanDepth,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -7096,6 +7427,7 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<String?> folderId,
       Value<int?> folderSortOrder,
       Value<String?> outputPath,
+      Value<int?> outputFileSize,
       Value<String?> errorMessage,
       Value<String?> policyTagsJson,
       Value<int?> sourceFileSize,
@@ -7133,6 +7465,7 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<int?> analysisAudioSampleRate,
       Value<String?> analysisAudioChannelLayout,
       Value<int?> analysisAudioStreamIndex,
+      Value<String?> analysisAudioStreamsJson,
       Value<String?> mediaConfigJson,
       Value<int?> analysisImageWidth,
       Value<int?> analysisImageHeight,
@@ -7171,6 +7504,7 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<String?> folderId,
       Value<int?> folderSortOrder,
       Value<String?> outputPath,
+      Value<int?> outputFileSize,
       Value<String?> errorMessage,
       Value<String?> policyTagsJson,
       Value<int?> sourceFileSize,
@@ -7208,6 +7542,7 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<int?> analysisAudioSampleRate,
       Value<String?> analysisAudioChannelLayout,
       Value<int?> analysisAudioStreamIndex,
+      Value<String?> analysisAudioStreamsJson,
       Value<String?> mediaConfigJson,
       Value<int?> analysisImageWidth,
       Value<int?> analysisImageHeight,
@@ -7295,6 +7630,11 @@ class $$TaskRowsTableFilterComposer
 
   ColumnFilters<String> get outputPath => $composableBuilder(
     column: $table.outputPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get outputFileSize => $composableBuilder(
+    column: $table.outputFileSize,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7487,6 +7827,11 @@ class $$TaskRowsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get analysisAudioStreamsJson => $composableBuilder(
+    column: $table.analysisAudioStreamsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get mediaConfigJson => $composableBuilder(
     column: $table.mediaConfigJson,
     builder: (column) => ColumnFilters(column),
@@ -7664,6 +8009,11 @@ class $$TaskRowsTableOrderingComposer
 
   ColumnOrderings<String> get outputPath => $composableBuilder(
     column: $table.outputPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get outputFileSize => $composableBuilder(
+    column: $table.outputFileSize,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -7856,6 +8206,11 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get analysisAudioStreamsJson => $composableBuilder(
+    column: $table.analysisAudioStreamsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get mediaConfigJson => $composableBuilder(
     column: $table.mediaConfigJson,
     builder: (column) => ColumnOrderings(column),
@@ -8015,6 +8370,11 @@ class $$TaskRowsTableAnnotationComposer
 
   GeneratedColumn<String> get outputPath => $composableBuilder(
     column: $table.outputPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get outputFileSize => $composableBuilder(
+    column: $table.outputFileSize,
     builder: (column) => column,
   );
 
@@ -8207,6 +8567,11 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get analysisAudioStreamsJson => $composableBuilder(
+    column: $table.analysisAudioStreamsJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get mediaConfigJson => $composableBuilder(
     column: $table.mediaConfigJson,
     builder: (column) => column,
@@ -8356,6 +8721,7 @@ class $$TaskRowsTableTableManager
                 Value<String?> folderId = const Value.absent(),
                 Value<int?> folderSortOrder = const Value.absent(),
                 Value<String?> outputPath = const Value.absent(),
+                Value<int?> outputFileSize = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
                 Value<String?> policyTagsJson = const Value.absent(),
                 Value<int?> sourceFileSize = const Value.absent(),
@@ -8399,6 +8765,7 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisAudioChannelLayout =
                     const Value.absent(),
                 Value<int?> analysisAudioStreamIndex = const Value.absent(),
+                Value<String?> analysisAudioStreamsJson = const Value.absent(),
                 Value<String?> mediaConfigJson = const Value.absent(),
                 Value<int?> analysisImageWidth = const Value.absent(),
                 Value<int?> analysisImageHeight = const Value.absent(),
@@ -8435,6 +8802,7 @@ class $$TaskRowsTableTableManager
                 folderId: folderId,
                 folderSortOrder: folderSortOrder,
                 outputPath: outputPath,
+                outputFileSize: outputFileSize,
                 errorMessage: errorMessage,
                 policyTagsJson: policyTagsJson,
                 sourceFileSize: sourceFileSize,
@@ -8476,6 +8844,7 @@ class $$TaskRowsTableTableManager
                 analysisAudioSampleRate: analysisAudioSampleRate,
                 analysisAudioChannelLayout: analysisAudioChannelLayout,
                 analysisAudioStreamIndex: analysisAudioStreamIndex,
+                analysisAudioStreamsJson: analysisAudioStreamsJson,
                 mediaConfigJson: mediaConfigJson,
                 analysisImageWidth: analysisImageWidth,
                 analysisImageHeight: analysisImageHeight,
@@ -8514,6 +8883,7 @@ class $$TaskRowsTableTableManager
                 Value<String?> folderId = const Value.absent(),
                 Value<int?> folderSortOrder = const Value.absent(),
                 Value<String?> outputPath = const Value.absent(),
+                Value<int?> outputFileSize = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
                 Value<String?> policyTagsJson = const Value.absent(),
                 Value<int?> sourceFileSize = const Value.absent(),
@@ -8557,6 +8927,7 @@ class $$TaskRowsTableTableManager
                 Value<String?> analysisAudioChannelLayout =
                     const Value.absent(),
                 Value<int?> analysisAudioStreamIndex = const Value.absent(),
+                Value<String?> analysisAudioStreamsJson = const Value.absent(),
                 Value<String?> mediaConfigJson = const Value.absent(),
                 Value<int?> analysisImageWidth = const Value.absent(),
                 Value<int?> analysisImageHeight = const Value.absent(),
@@ -8593,6 +8964,7 @@ class $$TaskRowsTableTableManager
                 folderId: folderId,
                 folderSortOrder: folderSortOrder,
                 outputPath: outputPath,
+                outputFileSize: outputFileSize,
                 errorMessage: errorMessage,
                 policyTagsJson: policyTagsJson,
                 sourceFileSize: sourceFileSize,
@@ -8634,6 +9006,7 @@ class $$TaskRowsTableTableManager
                 analysisAudioSampleRate: analysisAudioSampleRate,
                 analysisAudioChannelLayout: analysisAudioChannelLayout,
                 analysisAudioStreamIndex: analysisAudioStreamIndex,
+                analysisAudioStreamsJson: analysisAudioStreamsJson,
                 mediaConfigJson: mediaConfigJson,
                 analysisImageWidth: analysisImageWidth,
                 analysisImageHeight: analysisImageHeight,
@@ -8686,6 +9059,7 @@ typedef $$TaskFolderRowsTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String mediaKind,
+      Value<String> defaultPurpose,
       required int sortOrder,
       required String defaultConfigJson,
       required int createdAt,
@@ -8697,6 +9071,7 @@ typedef $$TaskFolderRowsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> mediaKind,
+      Value<String> defaultPurpose,
       Value<int> sortOrder,
       Value<String> defaultConfigJson,
       Value<int> createdAt,
@@ -8725,6 +9100,11 @@ class $$TaskFolderRowsTableFilterComposer
 
   ColumnFilters<String> get mediaKind => $composableBuilder(
     column: $table.mediaKind,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get defaultPurpose => $composableBuilder(
+    column: $table.defaultPurpose,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8773,6 +9153,11 @@ class $$TaskFolderRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get defaultPurpose => $composableBuilder(
+    column: $table.defaultPurpose,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
     builder: (column) => ColumnOrderings(column),
@@ -8811,6 +9196,11 @@ class $$TaskFolderRowsTableAnnotationComposer
 
   GeneratedColumn<String> get mediaKind =>
       $composableBuilder(column: $table.mediaKind, builder: (column) => column);
+
+  GeneratedColumn<String> get defaultPurpose => $composableBuilder(
+    column: $table.defaultPurpose,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
@@ -8863,6 +9253,7 @@ class $$TaskFolderRowsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> mediaKind = const Value.absent(),
+                Value<String> defaultPurpose = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
                 Value<String> defaultConfigJson = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
@@ -8872,6 +9263,7 @@ class $$TaskFolderRowsTableTableManager
                 id: id,
                 name: name,
                 mediaKind: mediaKind,
+                defaultPurpose: defaultPurpose,
                 sortOrder: sortOrder,
                 defaultConfigJson: defaultConfigJson,
                 createdAt: createdAt,
@@ -8883,6 +9275,7 @@ class $$TaskFolderRowsTableTableManager
                 required String id,
                 required String name,
                 required String mediaKind,
+                Value<String> defaultPurpose = const Value.absent(),
                 required int sortOrder,
                 required String defaultConfigJson,
                 required int createdAt,
@@ -8892,6 +9285,7 @@ class $$TaskFolderRowsTableTableManager
                 id: id,
                 name: name,
                 mediaKind: mediaKind,
+                defaultPurpose: defaultPurpose,
                 sortOrder: sortOrder,
                 defaultConfigJson: defaultConfigJson,
                 createdAt: createdAt,
