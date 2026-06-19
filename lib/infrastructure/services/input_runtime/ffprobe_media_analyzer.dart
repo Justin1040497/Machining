@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/value_objects/media_audio_stream_info.dart';
 
 /// 使用 FFprobe 分析媒体文件基础信息
 class FfprobeMediaAnalyzer implements MediaAnalyzer {
@@ -56,7 +57,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
           'sample_aspect_ratio,display_aspect_ratio,field_order,'
           'chroma_location,'
           'channels,channel_layout,sample_rate:'
-          'stream_tags=rotate:'
+          'stream_tags=rotate,language,title:'
           'stream_side_data=side_data_type,rotation,'
           'red_x,red_y,green_x,green_y,blue_x,blue_y,'
           'white_point_x,white_point_y,min_luminance,max_luminance,'
@@ -76,6 +77,9 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
 
     final videoStream = findStream(streams, 'video');
     final audioStream = findUsableAudioStream(streams);
+    final audioStreams = findUsableAudioStreams(
+      streams,
+    ).map(parseAudioStreamInfo).toList(growable: false);
 
     if (videoStream == null && audioStream == null) {
       throw StateError('媒体文件没有可用媒体流');
@@ -144,6 +148,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       audioSampleRate: parseInt(audioStream?['sample_rate']),
       audioChannelLayout: parseString(audioStream?['channel_layout']),
       audioStreamIndex: parseInt(audioStream?['index']),
+      audioStreams: audioStreams,
       imageWidth: parseInt(videoStream?['width']),
       imageHeight: parseInt(videoStream?['height']),
       imageCodec: parseString(videoStream?['codec_name']),
@@ -164,6 +169,15 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
   }
 
   Map<String, dynamic>? findUsableAudioStream(List<dynamic> streams) {
+    for (final stream in findUsableAudioStreams(streams)) {
+      return stream;
+    }
+
+    return null;
+  }
+
+  List<Map<String, dynamic>> findUsableAudioStreams(List<dynamic> streams) {
+    final audioStreams = <Map<String, dynamic>>[];
     for (final stream in streams) {
       if (stream is! Map<String, dynamic> || stream['codec_type'] != 'audio') {
         continue;
@@ -172,11 +186,25 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       if (MediaCodecNormalizer.isUsableAudioForTranscode(
         parseString(stream['codec_name']),
       )) {
-        return stream;
+        audioStreams.add(stream);
       }
     }
 
-    return null;
+    return audioStreams;
+  }
+
+  MediaAudioStreamInfo parseAudioStreamInfo(Map<String, dynamic> stream) {
+    final tags = stream['tags'];
+    final tagMap = tags is Map<String, dynamic> ? tags : const {};
+    return MediaAudioStreamInfo(
+      index: parseInt(stream['index']) ?? 0,
+      codec: parseString(stream['codec_name']),
+      channels: parseInt(stream['channels']),
+      sampleRate: parseInt(stream['sample_rate']),
+      channelLayout: parseString(stream['channel_layout']),
+      language: parseString(tagMap['language']),
+      title: parseString(tagMap['title']),
+    );
   }
 
   int? parseDurationMs(

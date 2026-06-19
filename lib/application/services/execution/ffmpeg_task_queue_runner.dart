@@ -6,6 +6,7 @@ import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/execution/execution_resource_guard.dart';
 import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
@@ -14,6 +15,7 @@ import 'package:framelean/application/services/input_runtime/media_input_prepare
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
@@ -36,6 +38,8 @@ enum FfmpegQueueStartOutcome {
   compressionConfirmationRequired,
   commandBuildFailed,
   processStartFailed,
+  queued,
+  throttled,
   completed,
   executionFailed,
 }
@@ -83,6 +87,12 @@ abstract class FfmpegTaskQueueRunner {
 
   String? get foregroundTaskId;
 
+  Set<String> get runningTaskIds;
+
+  int get activeExecutionCount;
+
+  int get effectiveMaxConcurrentExecutions;
+
   Future<FfmpegQueueStatus> refreshStatus();
 
   Future<FfmpegQueueStartResult> start({bool allowExtremeCompression = false});
@@ -105,8 +115,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final MediaTaskRepository repository;
   final TaskFolderRepository taskFolderRepository;
   final SourceFileChecker sourceFileChecker;
+  final Future<AppSettings> Function() readSettings;
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
+  final ExecutionResourceGuard resourceGuard;
   final MediaInputPreparer mediaInputPreparer;
   final OutputPreflightService outputPreflightService;
   final FfmpegProcessStarter processStarter;
@@ -129,16 +141,19 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   final Map<String, TaskExecution> _executions = {};
   FfmpegQueueStatus _queueStatus = FfmpegQueueStatus.idle;
-  String? _foregroundTaskId;
   Future<FfmpegQueueStartResult>? _startFuture;
   bool _queueRunIntentActive = false;
+  final List<String> _priorityTaskIds = [];
+  int _effectiveMaxConcurrentExecutions = defaultMaxConcurrentExecutions;
 
   DefaultFfmpegTaskQueueRunner({
     required this.repository,
     required this.taskFolderRepository,
     required this.sourceFileChecker,
+    required this.readSettings,
     required this.readRuntime,
     required this.commandBuilder,
+    required this.resourceGuard,
     this.mediaInputPreparer = const NoopMediaInputPreparer(),
     this.outputPreflightService = const NoopOutputPreflightService(),
     required this.processStarter,
@@ -155,7 +170,20 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   FfmpegQueueStatus get queueStatus => _queueStatus;
 
   @override
-  String? get foregroundTaskId => _foregroundTaskId;
+  String? get foregroundTaskId =>
+      runningTaskIds.isEmpty ? null : runningTaskIds.first;
+
+  @override
+  Set<String> get runningTaskIds => {
+    for (final execution in _executions.values)
+      if (execution.state == TaskExecutionState.running) execution.taskId,
+  };
+
+  @override
+  int get activeExecutionCount => runningTaskIds.length;
+
+  @override
+  int get effectiveMaxConcurrentExecutions => _effectiveMaxConcurrentExecutions;
 
   @override
   Future<FfmpegQueueStatus> refreshStatus() async {
@@ -223,15 +251,27 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    final foregroundId = _foregroundTaskId;
-    if (foregroundId != null && foregroundId != taskId) {
-      await suspendForegroundTask();
-    }
-
     _queueRunIntentActive = true;
     final execution = _executions[taskId];
     if (execution != null) {
+      if (!await _hasCapacityFor(task, excludedTaskId: taskId)) {
+        _prioritizeTask(taskId);
+        return FfmpegQueueStartResult(
+          outcome: FfmpegQueueStartOutcome.queued,
+          task: task,
+          message: '任务已插队，等待空闲执行位',
+        );
+      }
       return resumeExecution(task, execution);
+    }
+
+    if (!await _hasCapacityFor(task)) {
+      _prioritizeTask(taskId);
+      return FfmpegQueueStartResult(
+        outcome: FfmpegQueueStartOutcome.queued,
+        task: task,
+        message: '任务已插队，等待空闲执行位',
+      );
     }
 
     return startTask(task, allowExtremeCompression: allowExtremeCompression);
@@ -256,14 +296,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    if (_foregroundTaskId != taskId) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.invalidTaskState,
-        message: '只能暂停当前前台运行任务',
-      );
+    await processController.pause(execution.startedProcess);
+    execution.state = TaskExecutionState.paused;
+    final task = findTaskById(await repository.loadAllTasks(), taskId);
+    final pausedTask = task?.markPaused();
+    if (pausedTask != null) {
+      await repository.saveTask(pausedTask);
     }
-
-    final pausedTask = await suspendForegroundTask();
     await continueAfterTask(excludedTaskId: taskId);
     return FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.paused,
@@ -287,9 +326,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
       await processController.pause(execution.startedProcess);
       execution.state = TaskExecutionState.paused;
-      if (_foregroundTaskId == execution.taskId) {
-        _foregroundTaskId = null;
-      }
 
       final task = tasksById[execution.taskId];
       if (task == null) {
@@ -335,10 +371,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await mediaInputPreparer.cleanup(execution.preparedInput);
     }
 
-    if (_foregroundTaskId == taskId) {
-      _foregroundTaskId = null;
-    }
-
     await appendExecutionLogFooter(
       execution?.logFile,
       success: false,
@@ -366,7 +398,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     _executions.clear();
-    _foregroundTaskId = null;
     _queueStatus = FfmpegQueueStatus.idle;
   }
 
@@ -374,23 +405,14 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required bool allowExtremeCompression,
   }) async {
     await refreshStatus();
-    if (_foregroundTaskId != null) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.alreadyRunning,
-        message: '已有前台任务正在执行',
-      );
-    }
-
-    if (_queueStatus != FfmpegQueueStatus.ready) {
+    if (_queueStatus == FfmpegQueueStatus.idle) {
       return const FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.notReady,
         message: '没有可执行的任务',
       );
     }
 
-    return runNextStartableTask(
-      allowExtremeCompression: allowExtremeCompression,
-    );
+    return fillAvailableSlots(allowExtremeCompression: allowExtremeCompression);
   }
 
   Future<FfmpegQueueStartResult> runNextStartableTask({
@@ -414,6 +436,183 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     return startTask(task, allowExtremeCompression: allowExtremeCompression);
+  }
+
+  Future<FfmpegQueueStartResult> fillAvailableSlots({
+    bool allowExtremeCompression = false,
+    String? excludedTaskId,
+  }) async {
+    FfmpegQueueStartResult? firstResult;
+
+    while (true) {
+      final tasks = await repository.loadAllTasks();
+      final folders = await taskFolderRepository.loadAllFolders();
+      final runningTasks = _runningTasksFrom(tasks);
+      final settings = await readSettings();
+      final capacity = await resourceGuard.capacity(
+        userMaxConcurrentExecutions: settings.maxConcurrentExecutions,
+        runningTasks: runningTasks,
+      );
+      _effectiveMaxConcurrentExecutions =
+          capacity.effectiveMaxConcurrentExecutions;
+      if (runningTasks.length >= capacity.effectiveMaxConcurrentExecutions) {
+        return firstResult ??
+            FfmpegQueueStartResult(
+              outcome: FfmpegQueueStartOutcome.throttled,
+              message: capacity.reason ?? '当前没有空闲执行位',
+            );
+      }
+
+      final priorityTask = _nextPriorityTask(
+        tasks,
+        excludedTaskId: excludedTaskId,
+      );
+      if (priorityTask != null) {
+        if (!await resourceGuard.canStartTask(
+          task: priorityTask,
+          runningTasks: runningTasks,
+          userMaxConcurrentExecutions: settings.maxConcurrentExecutions,
+        )) {
+          return firstResult ??
+              FfmpegQueueStartResult(
+                outcome: FfmpegQueueStartOutcome.queued,
+                task: priorityTask,
+                message: '插队任务正在等待设备资源空闲',
+              );
+        }
+      }
+
+      final nextTask =
+          priorityTask ??
+          await _nextOrdinaryStartableTaskAllowed(
+            tasks: tasks,
+            folders: folders,
+            runningTasks: runningTasks,
+            userMaxConcurrentExecutions: settings.maxConcurrentExecutions,
+            excludedTaskId: excludedTaskId,
+          );
+      if (nextTask == null) {
+        await refreshStatus();
+        if (_hasStartableCandidate(
+          tasks,
+          folders: folders,
+          excludedTaskId: excludedTaskId,
+        )) {
+          return firstResult ??
+              const FfmpegQueueStartResult(
+                outcome: FfmpegQueueStartOutcome.throttled,
+                message: '后续任务正在等待设备资源空闲',
+              );
+        }
+        if (firstResult != null) {
+          return firstResult;
+        }
+        _queueRunIntentActive = false;
+        return const FfmpegQueueStartResult(
+          outcome: FfmpegQueueStartOutcome.noPendingTask,
+          message: '没有找到可执行任务',
+        );
+      }
+
+      _priorityTaskIds.remove(nextTask.id);
+      final execution = _executions[nextTask.id];
+      final result = execution != null
+          ? await resumeExecution(nextTask, execution)
+          : await startTask(
+              nextTask,
+              allowExtremeCompression: allowExtremeCompression,
+            );
+      firstResult ??= result;
+      if (result.outcome ==
+              FfmpegQueueStartOutcome.compressionConfirmationRequired ||
+          result.outcome == FfmpegQueueStartOutcome.commandBuildFailed ||
+          result.outcome == FfmpegQueueStartOutcome.ffmpegUnavailable ||
+          result.outcome == FfmpegQueueStartOutcome.processStartFailed) {
+        return firstResult;
+      }
+    }
+  }
+
+  List<MediaTask> _runningTasksFrom(
+    List<MediaTask> tasks, {
+    String? excludedTaskId,
+  }) {
+    final runningIds = runningTaskIds;
+    if (excludedTaskId != null) {
+      runningIds.remove(excludedTaskId);
+    }
+    return [
+      for (final task in tasks)
+        if (runningIds.contains(task.id)) task,
+    ];
+  }
+
+  MediaTask? _nextPriorityTask(
+    List<MediaTask> tasks, {
+    String? excludedTaskId,
+  }) {
+    _priorityTaskIds.removeWhere(
+      (taskId) =>
+          taskId == excludedTaskId ||
+          !tasks.any((task) => task.id == taskId && isStartableTask(task)),
+    );
+    for (final taskId in _priorityTaskIds) {
+      final task = findTaskById(tasks, taskId);
+      if (task != null && isStartableTask(task)) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  Future<MediaTask?> _nextOrdinaryStartableTaskAllowed({
+    required List<MediaTask> tasks,
+    required List<TaskFolder> folders,
+    required List<MediaTask> runningTasks,
+    required int userMaxConcurrentExecutions,
+    String? excludedTaskId,
+  }) async {
+    for (final task in expandedExecutionOrder(tasks, folders)) {
+      if (task.id == excludedTaskId ||
+          _priorityTaskIds.contains(task.id) ||
+          !isStartableTask(task)) {
+        continue;
+      }
+      if (await resourceGuard.canStartTask(
+        task: task,
+        runningTasks: runningTasks,
+        userMaxConcurrentExecutions: userMaxConcurrentExecutions,
+      )) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  bool _hasStartableCandidate(
+    List<MediaTask> tasks, {
+    required List<TaskFolder> folders,
+    String? excludedTaskId,
+  }) {
+    return expandedExecutionOrder(
+      tasks,
+      folders,
+    ).any((task) => task.id != excludedTaskId && isStartableTask(task));
+  }
+
+  void _prioritizeTask(String taskId) {
+    _priorityTaskIds.remove(taskId);
+    _priorityTaskIds.insert(0, taskId);
+  }
+
+  Future<bool> _hasCapacityFor(MediaTask task, {String? excludedTaskId}) async {
+    final tasks = await repository.loadAllTasks();
+    final settings = await readSettings();
+    return resourceGuard.canStartTask(
+      task: task,
+      runningTasks: _runningTasksFrom(tasks, excludedTaskId: excludedTaskId),
+      userMaxConcurrentExecutions: settings.maxConcurrentExecutions,
+    );
   }
 
   Future<FfmpegQueueStartResult> startTask(
@@ -534,7 +733,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     _executions[runningTask.id] = execution;
-    _foregroundTaskId = runningTask.id;
     _queueStatus = FfmpegQueueStatus.running;
     observeExecution(execution);
 
@@ -640,7 +838,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     execution.state = TaskExecutionState.running;
     final resumedTask = task.markResumed();
     await repository.saveTask(resumedTask);
-    _foregroundTaskId = task.id;
     _queueStatus = FfmpegQueueStatus.running;
 
     return FfmpegQueueStartResult(
@@ -648,33 +845,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       task: resumedTask,
       message: '任务已恢复执行',
     );
-  }
-
-  Future<MediaTask?> suspendForegroundTask() async {
-    final taskId = _foregroundTaskId;
-    if (taskId == null) {
-      return null;
-    }
-
-    final execution = _executions[taskId];
-    if (execution == null || execution.state != TaskExecutionState.running) {
-      _foregroundTaskId = null;
-      return null;
-    }
-
-    await processController.pause(execution.startedProcess);
-    execution.state = TaskExecutionState.paused;
-    _foregroundTaskId = null;
-
-    final task = findTaskById(await repository.loadAllTasks(), taskId);
-    if (task == null) {
-      return null;
-    }
-
-    final pausedTask = task.markPaused();
-    await repository.saveTask(pausedTask);
-    await refreshStatus();
-    return pausedTask;
   }
 
   Future<void> finishObservedTask(
@@ -689,9 +859,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final task = findTaskById(await repository.loadAllTasks(), taskId);
     if (task == null || task.status == TaskStatus.cancelled) {
       _executions.remove(taskId);
-      if (_foregroundTaskId == taskId) {
-        _foregroundTaskId = null;
-      }
       await mediaInputPreparer.cleanup(execution.preparedInput);
       await continueAfterTask();
       return;
@@ -724,9 +891,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         } else {
           execution.state = TaskExecutionState.finishing;
           _executions.remove(taskId);
-          if (_foregroundTaskId == taskId) {
-            _foregroundTaskId = null;
-          }
 
           await appendExecutionLogFooter(
             execution.logFile,
@@ -775,9 +939,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       } on Object catch (error) {
         execution.state = TaskExecutionState.finishing;
         _executions.remove(taskId);
-        if (_foregroundTaskId == taskId) {
-          _foregroundTaskId = null;
-        }
         await cleanupPlanFiles(execution.plan);
         await mediaInputPreparer.cleanup(execution.preparedInput);
 
@@ -800,16 +961,16 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     execution.state = TaskExecutionState.finishing;
     _executions.remove(taskId);
-    if (_foregroundTaskId == taskId) {
-      _foregroundTaskId = null;
-    }
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
       final completedAt = (await now()).millisecondsSinceEpoch;
-      final completedTask = task.markCompleted(completedAt: completedAt);
       final outputSize = task.outputPath != null
           ? await _getFileSize(task.outputPath!)
           : null;
+      final completedTask = task.markCompleted(
+        completedAt: completedAt,
+        outputFileSize: outputSize,
+      );
       final durationMs = task.startedAt != null
           ? completedAt - task.startedAt!
           : null;
@@ -1054,48 +1215,16 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   Future<void> continueAfterTask({String? excludedTaskId}) async {
-    final tasks = await repository.loadAllTasks();
-    final nextStatus = resolveQueueStatus(tasks);
-
-    if (nextStatus == FfmpegQueueStatus.running) {
-      _queueStatus = FfmpegQueueStatus.running;
+    if (!continuousExecutionEnabled || !_queueRunIntentActive) {
+      await refreshStatus();
       return;
     }
 
-    if (nextStatus == FfmpegQueueStatus.ready) {
-      if (!continuousExecutionEnabled ||
-          !_queueRunIntentActive ||
-          _foregroundTaskId != null) {
-        _queueStatus = FfmpegQueueStatus.ready;
-        return;
-      }
-
-      final folders = await taskFolderRepository.loadAllFolders();
-      final nextTask = nextStartableTask(
-        tasks,
-        folders: folders,
-        excludedTaskId: excludedTaskId,
-      );
-      if (nextTask != null) {
-        final execution = _executions[nextTask.id];
-        if (execution != null) {
-          await resumeExecution(nextTask, execution);
-        } else {
-          await startTask(nextTask);
-        }
-        return;
-      }
-
-      _queueStatus = FfmpegQueueStatus.ready;
-      return;
-    }
-
-    _queueRunIntentActive = false;
-    _queueStatus = FfmpegQueueStatus.idle;
+    await fillAvailableSlots(excludedTaskId: excludedTaskId);
   }
 
   FfmpegQueueStatus resolveQueueStatus(List<MediaTask> tasks) {
-    if (_foregroundTaskId != null ||
+    if (runningTaskIds.isNotEmpty ||
         tasks.any((task) => task.status == TaskStatus.running)) {
       return FfmpegQueueStatus.running;
     }

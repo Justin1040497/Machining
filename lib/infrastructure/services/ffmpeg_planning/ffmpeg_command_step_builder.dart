@@ -5,6 +5,7 @@ import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_bu
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/two_pass_mode.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_video_argument_builder.dart';
@@ -75,6 +76,7 @@ class FfmpegCommandStepBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,
@@ -86,6 +88,11 @@ class FfmpegCommandStepBuilder {
     required CompressionRecommendation recommendation,
     required String videoEncoder,
   }) {
+    final twoPassMode = task.config.video?.twoPassMode ?? TwoPassMode.automatic;
+    if (twoPassMode == TwoPassMode.disabled) {
+      return false;
+    }
+
     return task.purpose == TaskPurpose.compression &&
         recommendation.profile == CompressionProfile.targetSize &&
         !FfmpegEncoderCapabilities.softwareOnly.isHardwareEncoder(videoEncoder);
@@ -113,6 +120,7 @@ class FfmpegCommandStepBuilder {
         passLogFile: passLogFile,
       ),
       ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       '-an',
@@ -139,6 +147,7 @@ class FfmpegCommandStepBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,

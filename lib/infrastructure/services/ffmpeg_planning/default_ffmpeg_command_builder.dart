@@ -150,6 +150,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     final primaryConfig = config.copyWith(
       outputFormat: imagePrimaryOutputFormatFor(task, config),
+      losslessCompression:
+          task.purpose == TaskPurpose.compression && config.losslessCompression,
     );
     final primaryTask = task.copyWith(
       config: task.config.copyWith(image: primaryConfig),
@@ -207,7 +209,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       steps: steps,
       outputPath: outputPath,
       logHint:
-          '图片处理 ${primaryConfig.outputFormat.name} 质量 ${primaryConfig.imageQuality}',
+          '图片处理 ${primaryConfig.outputFormat.name} '
+          '${primaryConfig.losslessCompression ? '无损压缩' : '质量 ${primaryConfig.imageQuality}'}',
     );
   }
 
@@ -227,6 +230,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       task.inputPath,
       ...buildImageFilterArgs(config),
       ...buildImageOutputArgs(config, encoderCapabilities),
+      ...argumentBuilder.buildThreadArgs(task),
       outputPath,
     ];
 
@@ -260,6 +264,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-vn',
       ...buildAudioOutputArgs(config, encoderCapabilities),
       ...buildAudioMetadataArgs(config),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,
@@ -314,6 +319,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       outputPath,
     ];
 
@@ -363,6 +369,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     switch (config.outputFormat) {
       case MediaOutputFormat.jpg:
+        ensureLosslessImageFormatSupported(config);
         return [
           '-frames:v',
           '1',
@@ -384,15 +391,33 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           '1',
           '-c:v',
           'libwebp',
-          '-quality',
-          config.imageQuality.toString(),
+          if (config.losslessCompression) ...[
+            '-lossless',
+            '1',
+            '-compression_level',
+            '6',
+            '-quality',
+            '100',
+          ] else ...[
+            '-quality',
+            config.imageQuality.toString(),
+          ],
           ...metadataArgs,
         ];
       case MediaOutputFormat.bmp:
+        ensureLosslessImageFormatSupported(config);
         return ['-frames:v', '1', '-c:v', 'bmp', ...metadataArgs];
       case MediaOutputFormat.tiff:
-        return ['-frames:v', '1', '-c:v', 'tiff', ...metadataArgs];
+        return [
+          '-frames:v',
+          '1',
+          '-c:v',
+          'tiff',
+          if (config.losslessCompression) ...['-compression_algo', 'deflate'],
+          ...metadataArgs,
+        ];
       case MediaOutputFormat.gif:
+        ensureLosslessImageFormatSupported(config);
         return ['-frames:v', '1', '-c:v', 'gif', ...metadataArgs];
       case MediaOutputFormat.mp4:
       case MediaOutputFormat.mov:
@@ -421,6 +446,14 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       return null;
     }
 
+    if (config.losslessCompression) {
+      if (config.outputFormat != MediaOutputFormat.webp &&
+          encoderCapabilities.supportsImageEncoder('libwebp')) {
+        return MediaOutputFormat.webp;
+      }
+      return null;
+    }
+
     final hasAlpha = imageHasAlpha(task);
     if (config.outputFormat != MediaOutputFormat.webp &&
         encoderCapabilities.supportsImageEncoder('libwebp')) {
@@ -438,14 +471,28 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     MediaTask task,
     ImageProcessingConfig config,
   ) {
-    if (!config.keepOriginalOutputFormat) {
-      return config.outputFormat;
-    }
+    final format = !config.keepOriginalOutputFormat
+        ? config.outputFormat
+        : imageFormatFromCodec(task.analysisResult?.imageCodec) ??
+              imageFormatFromExtension(path.extension(task.fileName)) ??
+              imageFormatFromExtension(path.extension(task.inputPath)) ??
+              config.outputFormat;
 
-    return imageFormatFromCodec(task.analysisResult?.imageCodec) ??
-        imageFormatFromExtension(path.extension(task.fileName)) ??
-        imageFormatFromExtension(path.extension(task.inputPath)) ??
-        config.outputFormat;
+    if (config.losslessCompression &&
+        !supportsLosslessImageCompression(format)) {
+      return MediaOutputFormat.webp;
+    }
+    return format;
+  }
+
+  void ensureLosslessImageFormatSupported(ImageProcessingConfig config) {
+    if (config.losslessCompression &&
+        !supportsLosslessImageCompression(config.outputFormat)) {
+      throw FfmpegCommandBuildException(
+        '${config.outputFormat.name.toUpperCase()} 不支持无损图片压缩，'
+        '请改用 PNG、WebP 或 TIFF。',
+      );
+    }
   }
 
   MediaOutputFormat? imageFormatFromCodec(String? codec) {

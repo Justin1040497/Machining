@@ -1073,6 +1073,74 @@ void main() {
       expect(plan.steps.last.args, containsAllInOrder(['-quality', '70']));
     });
 
+    test('builds lossless WebP compression without lossy quality setting', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image-lossless',
+        inputPath: '/images/source.jpg',
+        fileName: 'source.jpg',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
+            losslessCompression: true,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/images/source_compressed.webp');
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-c:v',
+          'libwebp',
+          '-lossless',
+          '1',
+          '-compression_level',
+          '6',
+          '-quality',
+          '100',
+        ]),
+      );
+    });
+
+    test('builds lossless TIFF compression with deflate', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image-lossless-tiff',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.tiff,
+            keepOriginalOutputFormat: false,
+            losslessCompression: true,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(
+        plan.args,
+        containsAllInOrder(['-c:v', 'tiff', '-compression_algo', 'deflate']),
+      );
+    });
+
     test('transparent WebP does not fall back to JPG without libwebp', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = MediaTask(

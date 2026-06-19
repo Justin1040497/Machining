@@ -225,6 +225,16 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   String? foregroundTaskId;
 
   @override
+  Set<String> get runningTaskIds =>
+      foregroundTaskId == null ? const {} : {foregroundTaskId!};
+
+  @override
+  int get activeExecutionCount => runningTaskIds.length;
+
+  @override
+  int get effectiveMaxConcurrentExecutions => 1;
+
+  @override
   FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
 
   bool? startAllowExtremeCompression;

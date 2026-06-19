@@ -48,6 +48,12 @@ class FfmpegVideoArgumentBuilder {
   }
 
   List<String> buildAudioStreamSelectionArgs(MediaTask task) {
+    final selectedAudioStreamIndex =
+        task.config.video?.selectedAudioStreamIndex;
+    if (selectedAudioStreamIndex != null && selectedAudioStreamIndex >= 0) {
+      return ['-map', '0:$selectedAudioStreamIndex?'];
+    }
+
     final analysis = task.analysisResult;
     if (analysis == null) {
       return const ['-map', '0:a:0?'];
@@ -63,6 +69,15 @@ class FfmpegVideoArgumentBuilder {
     }
 
     return const [];
+  }
+
+  List<String> buildThreadArgs(MediaTask task) {
+    final threadLimit = task.config.threadLimit;
+    if (threadLimit == null) {
+      return const [];
+    }
+
+    return ['-threads', threadLimit.toString()];
   }
 
   List<String> buildVideoOnlyStreamSelectionArgs() {

@@ -13,6 +13,7 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
     super.key,
     required this.config,
     required this.onChanged,
+    this.showLosslessCompression = true,
     this.sourceOutputFormat,
     this.sourceWidth,
     this.sourceHeight,
@@ -26,6 +27,7 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
 
   final ImageProcessingConfig config;
   final ValueChanged<ImageProcessingConfig> onChanged;
+  final bool showLosslessCompression;
   final MediaOutputFormat? sourceOutputFormat;
   final int? sourceWidth;
   final int? sourceHeight;
@@ -38,10 +40,15 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageFormats = MediaOutputFormat.formatsFor(MediaKind.image);
+    final allImageFormats = MediaOutputFormat.formatsFor(MediaKind.image);
+    final imageFormats = config.losslessCompression && showLosslessCompression
+        ? allImageFormats
+              .where(supportsLosslessImageCompression)
+              .toList(growable: false)
+        : allImageFormats;
     final selectedOutputFormat = imageFormats.contains(config.outputFormat)
         ? config.outputFormat
-        : MediaOutputFormat.jpg;
+        : imageFormats.first;
     final resizeValues = _resizeValues();
     final selectedResizePreset = resizeValues.contains(config.resizePreset)
         ? config.resizePreset
@@ -52,13 +59,26 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          _ImageQualitySelector(
-            quality: config.imageQuality,
-            onChanged: (value) {
-              onChanged(config.copyWith(imageQuality: value));
-            },
-          ),
-          SizedBox(height: itemSpacing),
+          if (showLosslessCompression) ...[
+            _ImageSettingSwitch(
+              label: '无损压缩',
+              value: config.losslessCompression,
+              height: dropdownHeight,
+              labelFontSize: labelFontSize,
+              valueFontSize: valueFontSize,
+              onChanged: _setLosslessCompression,
+            ),
+            SizedBox(height: itemSpacing),
+          ],
+          if (!showLosslessCompression || !config.losslessCompression) ...[
+            _ImageQualitySelector(
+              quality: config.imageQuality,
+              onChanged: (value) {
+                onChanged(config.copyWith(imageQuality: value));
+              },
+            ),
+            SizedBox(height: itemSpacing),
+          ],
           ConfigDropdown<MediaOutputFormat>(
             label: '图片格式',
             trailingText: _formatLabel(selectedOutputFormat),
@@ -99,7 +119,8 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
           ),
 
           SizedBox(height: itemSpacing),
-          _PreserveMetadataSwitch(
+          _ImageSettingSwitch(
+            label: '保留元数据',
             value: config.preserveMetadata,
             height: dropdownHeight,
             labelFontSize: labelFontSize,
@@ -109,6 +130,26 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+
+  void _setLosslessCompression(bool value) {
+    if (!value) {
+      onChanged(config.copyWith(losslessCompression: false));
+      return;
+    }
+
+    final outputFormat = supportsLosslessImageCompression(config.outputFormat)
+        ? config.outputFormat
+        : MediaOutputFormat.webp;
+    onChanged(
+      config.copyWith(
+        outputFormat: outputFormat,
+        keepOriginalOutputFormat:
+            config.keepOriginalOutputFormat &&
+            outputFormat == sourceOutputFormat,
+        losslessCompression: true,
       ),
     );
   }
@@ -183,8 +224,9 @@ class _ImageQualitySelector extends StatelessWidget {
   }
 }
 
-class _PreserveMetadataSwitch extends StatelessWidget {
-  const _PreserveMetadataSwitch({
+class _ImageSettingSwitch extends StatelessWidget {
+  const _ImageSettingSwitch({
+    required this.label,
     required this.value,
     required this.height,
     required this.labelFontSize,
@@ -192,6 +234,7 @@ class _PreserveMetadataSwitch extends StatelessWidget {
     required this.onChanged,
   });
 
+  final String label;
   final bool value;
   final double? height;
   final double labelFontSize;
@@ -218,7 +261,7 @@ class _PreserveMetadataSwitch extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '保留元数据',
+              label,
               style: TextStyle(
                 fontSize: labelFontSize.flSp,
                 color: colors.textPrimary,
