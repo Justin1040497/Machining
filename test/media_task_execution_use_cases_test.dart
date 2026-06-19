@@ -235,6 +235,9 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   int get effectiveMaxConcurrentExecutions => 1;
 
   @override
+  ExecutionScope get executionScope => const ExecutionScope.none();
+
+  @override
   FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
 
   bool? startAllowExtremeCompression;
@@ -275,12 +278,19 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
+  Future<FfmpegQueueStartResult> pauseFolderQueue(String folderId) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
   Future<FfmpegQueueStatus> refreshStatus() async {
     return queueStatus;
   }
 
   @override
-  Future<FfmpegQueueStartResult> start({
+  Future<FfmpegQueueStartResult> startWorkbenchQueue({
     bool allowExtremeCompression = false,
   }) async {
     startAllowExtremeCompression = allowExtremeCompression;
@@ -290,7 +300,7 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
-  Future<FfmpegQueueStartResult> startOrResumeTask(
+  Future<FfmpegQueueStartResult> startSingleTask(
     String taskId, {
     bool allowExtremeCompression = false,
   }) async {
@@ -298,6 +308,16 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     startOrResumeAllowExtremeCompression = allowExtremeCompression;
     return const FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.resumed,
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> startFolderQueue(
+    String folderId, {
+    bool allowExtremeCompression = false,
+  }) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.started,
     );
   }
 }

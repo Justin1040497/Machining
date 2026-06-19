@@ -174,7 +174,7 @@ Use Cases：
 - `AppNotificationManager` 提供 update 通知 upsert 能力，版本更新通知通过 `dedupeKey` 保证一个版本只在通知中心保留一条记录。
 - `TaskCompletionSoundPlayer`：定义任务完成提示音播放抽象；本地实现位于 infrastructure，使用 `audioplayers` 播放内置 Flutter asset。
 - `ImportMediaTaskUseCase`：从本地路径创建分析中的任务，并套用应用默认设置。
-- `ImportMediaFolderUseCase`：调用 `MediaFolderScanner` 按设置深度递归扫描目录；单媒体创建普通任务，多媒体按媒体类型创建以源目录命名的任务夹，并汇总读取或导入问题。
+- `ImportMediaFolderUseCase`：调用 `MediaFolderScanner` 按设置深度递归扫描目录，并与文件批次共用 `OrganizeImportedMediaBatchUseCase`；每种媒体只有达到 2 个时才自动建夹，单个类型保持普通任务。
 - `AnalyzeMediaTaskUseCase`：调用 FFprobe 分析任务，写回分析结果或失败状态。
 - `ReconcileMediaTasksUseCase`：应用启动或刷新时检查源文件、指纹和缺失分析结果。
 - `ReplaceMissingSourceUseCase`：为丢失源文件任务重新指定本地文件。
@@ -182,7 +182,7 @@ Use Cases：
 - `ReorderMediaTasksUseCase`：旧的单任务列表排序用例，保留历史回归覆盖。
 - `ReorderWorkbenchTopLevelItemsUseCase`、`ReorderFolderTasksUseCase`：分别保存总列表任务 / 任务夹混排顺序和夹内任务顺序；运行中的顶层项或夹内任务作为排序边界。
 - `CreateTaskFolderFromTasksUseCase`、`CreateTaskFoldersFromTasksUseCase`、`MoveTaskToFolderUseCase`、`RemoveTaskFromFolderUseCase`、`DeleteTaskFolderUseCase`、`PruneEmptyTaskFoldersUseCase`：创建任务夹、按媒体类型批量建夹、移入 / 移出任务、删除任务夹时释放夹内任务，以及自动清理空任务夹。
-- `ApplyTaskFolderConfigUseCase`、`RetryTaskFolderTerminalTasksUseCase`、`StartNextTaskInFolderUseCase`、`PauseRunningTaskInFolderUseCase`：任务夹默认配置保存后批量应用到非运行快照任务，批量重试终态任务，启动夹内下一项或暂停夹内运行任务。
+- `ApplyTaskFolderConfigUseCase`、`RetryTaskFolderTerminalTasksUseCase`、`StartNextTaskInFolderUseCase`、`PauseRunningTaskInFolderUseCase`：任务夹默认配置保存后按每个源文件解析保持原格式并应用到非运行快照任务，批量重试终态任务，启动或暂停独立的夹内连续队列。
 - `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`PauseAllMediaTaskExecutionsUseCase`：进入队列执行、单任务开始 / 继续 / 暂停和底部暂停全部。
 - `ClearMediaTasksUseCase`、`DeleteMediaTaskUseCase`：删除任务前先处理正在执行的 FFmpeg 进程；清空任务会同步清空任务夹。
 - `GeneratePreviewFramesUseCase`：为工作台预览调用运行时解析和预览帧生成服务。
@@ -242,8 +242,8 @@ Use Cases：
 
 - 文件选择和拖拽导入。
 - 任务列表、任务 / 任务夹混排排序、右键菜单、重命名、删除和清空。
-- 批量导入按媒体类型自动创建任务夹；任务夹默认命名为媒体类型加序号；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
-- 任务夹主体打开夹级配置弹窗，保存后更新任务夹默认配置并批量应用到非 `running` / `paused` / `analyzing` 任务。
+- 批量导入按媒体类型独立计数，同类型达到 2 个才自动创建任务夹，单个媒体保持普通任务；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
+- 任务夹主体打开夹级配置弹窗，顶部展示任务数、总源体积、格式分布和总时长 / 尺寸分布；保存后更新任务夹默认配置并批量应用到非 `running` / `paused` / `analyzing` 任务。
 - 任务夹尾部按钮支持打开夹内任务浮层、按状态批量暂停 / 启动下一项 / 重试终态任务和查看夹内聚合日志；副标题显示任务数、完成 / 失败数和源文件丢失计数。
 - 任务夹内容浮层复用普通任务行样式，从窗口左侧滑入，动画语义与通知中心右侧浮层对称；夹内排序使用共享 reorderable 并乐观衔接持久化；拖到面板外遮罩会立即隐藏任务行、在落点收起并移回总列表尾部，失败时回滚。标题区和面板内空白区不是移出目标。
 - 主列表支持左侧批量操作条按媒体类型创建任务夹；未入夹任务的拖拽柄同时承担排序和入夹：经过同类型任务夹整行时，共享 `FrameLeanReorderableListView` 会恢复原始 gap；中部主体释放入夹，上下 16px 边缘继续排序，离开任务夹行后才恢复排序预览。顶层排序以 UI 乐观顺序衔接异步仓储提交，跨类型任务夹禁用显示并作为排序目标。
@@ -386,7 +386,8 @@ main()
 - `MediaKind.image` 压缩任务使用 `ProgressMode.step`，先按源图片格式生成候选输出；候选不小于源文件时清理候选并进入 WebP / JPG fallback。透明图片优先 WebP，非透明图片优先 WebP，缺少 `libwebp` 时非透明图可以降级 JPG，透明图不会降级 JPG。
 - 图片无损压缩限定 PNG、WebP 和 TIFF：WebP 使用 `-lossless 1`，TIFF 使用 Deflate；无损模式不会降级到 JPG，格式转换用途不应用压缩用途的无损开关。
 - `FfmpegCommandStep.completionPolicy` 决定步骤结束后的行为：视频两遍压缩保持总是继续；图片首轮可以在变小时提前完成，fallback 仍无效时任务失败并写入原因。
-- `MediaKind.audio` 当前生成音频输出计划，使用 `-vn` 禁用视频流，并按音频格式推导编码参数，按配置写入码率、采样率和声道参数。
+- 三类媒体的格式转换主界面只选择目标格式：兼容视频优先流复制，否则以 CRF 18 等保真参数转码并保持尺寸 / HDR；图片保持原尺寸并使用无损或最高合理质量；音频保持采样率 / 声道并使用格式对应的高质量参数。
+- `MediaKind.audio` 压缩计划使用 `-vn` 禁用视频流并写入码率、采样率和声道参数；执行完成后要求输出小于源文件，否则清理无效输出并标记失败。
 - `VideoCodec.source` 必须先依赖分析结果解析为 `h264` 或 `hevc`。
 - `EncoderBackend.auto` 会根据 FFmpeg 实际支持和平台优先级选择硬件编码或软件编码。
 - 输出目录为空时使用源文件目录。
@@ -397,7 +398,7 @@ main()
 
 ### 队列执行
 
-`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。UI 不直接调用它的细节方法，而是通过 `StartExecutionQueueUseCase`、`StartOrResumeMediaTaskUseCase`、`PauseMediaTaskExecutionUseCase`、`DeleteMediaTaskUseCase` 和 `ClearMediaTasksUseCase` 进入执行流程。队列执行器保存内存中的 `_executions`、插队优先队列和当前有效执行位，同时把任务状态写回仓储。
+`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。工作台连续队列、任务夹连续队列和一次性单任务分别进入 `startWorkbenchQueue()`、`startFolderQueue()` 和 `startSingleTask()`。执行器保存运行中的 `_executions`、当前 `ExecutionScope`、被抢占任务 FIFO 和当前有效执行位，同时把任务状态写回仓储。
 
 状态模型：
 
@@ -433,7 +434,7 @@ start / startOrResumeTask
 - `ExecutionResourceGuard` 会按 CPU、内存和当前运行任务类型计算有效执行位；低核心数或低内存设备会自动降级到 1，高负载场景可低于用户设置。
 - 用户手动选择的任务线程上限优先进入 FFmpeg 参数，同时计入资源预算；高线程任务可能独占当前预算，完成后队列再恢复填充其他执行位。
 - 视频任务被视为重任务，同一时刻默认只允许一个视频 FFmpeg 进程运行；空余执行位优先留给图片或音频等较轻任务，避免多路视频压缩把设备拖卡。
-- `fillAvailableSlots()` 先消费插队优先队列，再按展开后的总列表顺序填充空闲执行位；被资源守卫拦截的任务保持等待，不会打断已经运行的进程。
+- `fillAvailableSlots()` 先按 FIFO 恢复被抢占任务，再从当前工作台或任务夹作用域补槽；没有连续作用域和被抢占任务时，单任务完成后不会启动其他待执行任务。
 
 暂停和恢复：
 
@@ -453,8 +454,8 @@ start / startOrResumeTask
 
 - 当前 `continuousExecutionEnabled` 默认开启。
 - 一个任务完成或失败后，队列会按总列表顺序展开任务夹：顶层任务 / 任务夹按 `sort_order` 排序，遇到任务夹时再按夹内 `folder_sort_order` 展开，并继续填充可用执行位。
-- 点击单个任务或夹内任务开始时会进入插队优先队列：如果有空闲且资源守卫允许，会立即执行；否则等待最早空出的执行位，不默认暂停正在运行的其他 FFmpeg 进程。
-- 插队任务结束后，队列继续按最新展开顺序推进；任务和任务夹的实时排序会影响后续尚未启动的任务。
+- 点击单个任务或夹内任务开始时，有空闲执行位则立即执行；执行位满时暂停实际开始 / 恢复时间最早的运行任务并立即插队。被抢占任务按暂停先后进入 FIFO，在任一执行位空闲后优先恢复。
+- 底部暂停会清除连续作用域和抢占恢复队列并暂停全部运行任务；之后单独开始任务不会重新激活旧工作台或任务夹队列。
 
 ### 进度和日志
 

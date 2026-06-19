@@ -83,7 +83,8 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
             ],
           ),
           SizedBox(height: itemSpacing),
-          if (!showLosslessCompression || !config.losslessCompression) ...[
+          if ((!showLosslessCompression || !config.losslessCompression) &&
+              _supportsLossyQuality(selectedOutputFormat)) ...[
             _ImageQualitySelector(
               quality: config.imageQuality,
               onChanged: (value) {
@@ -133,6 +134,10 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  bool _supportsLossyQuality(MediaOutputFormat format) {
+    return format == MediaOutputFormat.jpg || format == MediaOutputFormat.webp;
   }
 
   void _setLosslessCompression(bool value) {

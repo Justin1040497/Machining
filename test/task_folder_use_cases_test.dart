@@ -9,12 +9,14 @@ import 'package:framelean/application/use_cases/media_tasks/task_folder_use_case
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/video_processing_config.dart';
 
 void main() {
   test('places inserted top-level task below unfinished items', () async {
@@ -36,6 +38,41 @@ void main() {
     expect(repository.taskById('pending').sortOrder, 0);
     expect(repository.taskById('inserted').sortOrder, 1);
     expect(repository.taskById('completed').sortOrder, 2);
+  });
+
+  test('organizes imported batch by per-kind counts', () async {
+    MediaTask importedTask(String id, MediaKind mediaKind, int sortOrder) {
+      return MediaTask.draft(
+        inputPath: '/imports/$id',
+        fileName: id,
+        mediaKind: mediaKind,
+        sortOrder: sortOrder,
+      ).copyWith(id: id);
+    }
+
+    final repository = FakeMediaTaskRepository([
+      importedTask('single.mp4', MediaKind.video, 0),
+      importedTask('first.mp3', MediaKind.audio, 1),
+      importedTask('second.wav', MediaKind.audio, 2),
+      importedTask('first.jpg', MediaKind.image, 3),
+      importedTask('second.png', MediaKind.image, 4),
+    ]);
+    final folderRepository = FakeTaskFolderRepository([]);
+
+    final result = await OrganizeImportedMediaBatchUseCase(
+      mediaTaskRepository: repository,
+      taskFolderRepository: folderRepository,
+    ).call(taskIds: repository.tasks.map((task) => task.id).toList());
+
+    expect(result.folders.map((folder) => folder.mediaKind), [
+      MediaKind.audio,
+      MediaKind.image,
+    ]);
+    expect(repository.taskById('single.mp4').folderId, isNull);
+    expect(repository.taskById('first.mp3').folderId, isNotNull);
+    expect(repository.taskById('second.wav').folderId, isNotNull);
+    expect(repository.taskById('first.jpg').folderId, isNotNull);
+    expect(repository.taskById('second.png').folderId, isNotNull);
   });
 
   test('applies folder config to non execution snapshot tasks', () async {
@@ -115,6 +152,44 @@ void main() {
     expect(repository.taskById('paused').config.videoCodec, VideoCodec.h264);
     expect(repository.taskById('analyzing').config.videoCodec, VideoCodec.h264);
   });
+
+  test(
+    'folder keep-original config resolves each task source format',
+    () async {
+      final folder = testFolder();
+      final mp4Task = videoTask(id: 'mp4', folderId: folder.id);
+      final movTask = videoTask(
+        id: 'mov',
+        folderId: folder.id,
+      ).copyWith(inputPath: '/videos/mov.mov', fileName: 'mov.mov');
+      final repository = FakeMediaTaskRepository([mp4Task, movTask]);
+      final folderRepository = FakeTaskFolderRepository([folder]);
+      final config = MediaTaskConfig.initialVideo().copyWith(
+        video: VideoProcessingConfig.initial().copyWith(
+          outputFormat: MediaOutputFormat.mp4,
+          keepOriginalOutputFormat: true,
+        ),
+      );
+
+      await ApplyTaskFolderConfigUseCase(
+        mediaTaskRepository: repository,
+        taskFolderRepository: folderRepository,
+      ).call(
+        folderId: folder.id,
+        config: config,
+        purpose: TaskPurpose.compression,
+      );
+
+      expect(
+        repository.taskById('mp4').config.video?.outputFormat,
+        MediaOutputFormat.mp4,
+      );
+      expect(
+        repository.taskById('mov').config.video?.outputFormat,
+        MediaOutputFormat.mov,
+      );
+    },
+  );
 
   test(
     'retries terminal folder tasks and preserves their current config',
@@ -215,7 +290,7 @@ void main() {
       queueRunner: queueRunner,
     ).call(folder.id);
 
-    expect(queueRunner.startedTaskIds, ['paused']);
+    expect(queueRunner.startedFolderIds, [folder.id]);
   });
 
   test(
@@ -452,7 +527,7 @@ class FakeSourceFileFingerprintReader implements SourceFileFingerprintReader {
 }
 
 class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
-  final List<String> startedTaskIds = [];
+  final List<String> startedFolderIds = [];
 
   @override
   String? foregroundTaskId;
@@ -466,6 +541,9 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   @override
   int get effectiveMaxConcurrentExecutions => 1;
+
+  @override
+  ExecutionScope get executionScope => const ExecutionScope.none();
 
   @override
   FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
@@ -495,12 +573,19 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
+  Future<FfmpegQueueStartResult> pauseFolderQueue(String folderId) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
   Future<FfmpegQueueStatus> refreshStatus() async {
     return queueStatus;
   }
 
   @override
-  Future<FfmpegQueueStartResult> start({
+  Future<FfmpegQueueStartResult> startWorkbenchQueue({
     bool allowExtremeCompression = false,
   }) async {
     return const FfmpegQueueStartResult(
@@ -509,14 +594,24 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
-  Future<FfmpegQueueStartResult> startOrResumeTask(
+  Future<FfmpegQueueStartResult> startSingleTask(
     String taskId, {
     bool allowExtremeCompression = false,
   }) async {
-    startedTaskIds.add(taskId);
     return FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.started,
       task: null,
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> startFolderQueue(
+    String folderId, {
+    bool allowExtremeCompression = false,
+  }) async {
+    startedFolderIds.add(folderId);
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.started,
     );
   }
 }

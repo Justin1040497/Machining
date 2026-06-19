@@ -6,6 +6,8 @@ class StartExecutionQueueUseCase {
   const StartExecutionQueueUseCase({required this.queueRunner});
 
   Future<FfmpegQueueStartResult> call({bool allowExtremeCompression = false}) {
-    return queueRunner.start(allowExtremeCompression: allowExtremeCompression);
+    return queueRunner.startWorkbenchQueue(
+      allowExtremeCompression: allowExtremeCompression,
+    );
   }
 }

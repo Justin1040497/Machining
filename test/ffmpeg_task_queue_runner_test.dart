@@ -110,22 +110,194 @@ void main() {
       expect(harness.repository.taskById('third').status, TaskStatus.pending);
     });
 
-    test('startOrResumeTask queues target when no slot is free', () async {
-      final firstTask = videoTask(id: 'first', sortOrder: 1);
-      final secondTask = videoTask(id: 'second', sortOrder: 2);
-      final harness = QueueHarness(tasks: [firstTask, secondTask]);
+    test(
+      'single task completion does not start unrelated pending task',
+      () async {
+        final firstTask = videoTask(id: 'first', sortOrder: 1);
+        final secondTask = videoTask(id: 'second', sortOrder: 2);
+        final harness = QueueHarness(tasks: [firstTask, secondTask]);
 
-      await harness.runner.start();
-      final result = await harness.runner.startOrResumeTask('second');
+        await harness.runner.startSingleTask('first');
+        harness.processObserver.complete(
+          'first',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('first', TaskStatus.completed);
 
-      expect(result.outcome, FfmpegQueueStartOutcome.queued);
-      expect(result.task?.id, 'second');
-      expect(harness.runner.foregroundTaskId, 'first');
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          'first',
+        ]);
+        expect(
+          harness.repository.taskById('second').status,
+          TaskStatus.pending,
+        );
+        expect(harness.runner.executionScope.type, ExecutionScopeType.none);
+      },
+    );
+
+    test(
+      'folder queue fills slots and never starts task outside folder',
+      () async {
+        final folder = taskFolder(id: 'folder', sortOrder: 0);
+        final first = videoTask(
+          id: 'first',
+          sortOrder: 5,
+        ).copyWith(folderId: folder.id, folderSortOrder: 0);
+        final second = videoTask(
+          id: 'second',
+          sortOrder: 6,
+        ).copyWith(folderId: folder.id, folderSortOrder: 1);
+        final third = videoTask(
+          id: 'third',
+          sortOrder: 7,
+        ).copyWith(folderId: folder.id, folderSortOrder: 2);
+        final loose = videoTask(id: 'loose', sortOrder: 1);
+        final harness = QueueHarness(
+          tasks: [loose, first, second, third],
+          folders: [folder],
+          maxConcurrentExecutions: 2,
+        );
+
+        await harness.runner.startFolderQueue(folder.id);
+
+        expect(harness.runner.runningTaskIds, {'first', 'second'});
+        harness.processObserver.complete(
+          'first',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForStartedProcesses(3);
+        expect(harness.processStarter.starts.last.taskId, 'third');
+
+        harness.processObserver.complete(
+          'second',
+          const FfmpegProcessObservation.completed(),
+        );
+        harness.processObserver.complete(
+          'third',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('third', TaskStatus.completed);
+
+        expect(harness.repository.taskById('loose').status, TaskStatus.pending);
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          'first',
+          'second',
+          'third',
+        ]);
+      },
+    );
+
+    test(
+      'preempted tasks resume in FIFO order across execution slots',
+      () async {
+        final tasks = [
+          videoTask(id: 'a', sortOrder: 1),
+          videoTask(id: 'b', sortOrder: 2),
+          videoTask(id: 'c', sortOrder: 3),
+          videoTask(id: 'd', sortOrder: 4),
+          videoTask(id: 'unrelated', sortOrder: 5),
+        ];
+        final harness = QueueHarness(tasks: tasks, maxConcurrentExecutions: 2);
+
+        await harness.runner.startSingleTask('a');
+        await harness.runner.startSingleTask('b');
+        await harness.runner.startSingleTask('c');
+        await harness.runner.startSingleTask('d');
+
+        expect(harness.processController.pauseCalls, ['a', 'b']);
+        expect(harness.runner.runningTaskIds, {'c', 'd'});
+
+        harness.processObserver.complete(
+          'c',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('a', TaskStatus.running);
+        harness.processObserver.complete(
+          'd',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('b', TaskStatus.running);
+
+        expect(harness.processController.resumeCalls, ['a', 'b']);
+        expect(
+          harness.repository.taskById('unrelated').status,
+          TaskStatus.pending,
+        );
+      },
+    );
+
+    test(
+      'displaced task resumes before ordinary workbench candidate',
+      () async {
+        final tasks = [
+          videoTask(id: 'a', sortOrder: 1),
+          videoTask(id: 'b', sortOrder: 2),
+          videoTask(id: 'c', sortOrder: 3),
+          videoTask(id: 'd', sortOrder: 4),
+          videoTask(id: 'e', sortOrder: 5),
+        ];
+        final harness = QueueHarness(tasks: tasks, maxConcurrentExecutions: 2);
+
+        await harness.runner.startWorkbenchQueue();
+        await harness.runner.startSingleTask('e');
+        harness.processObserver.complete(
+          'b',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('a', TaskStatus.running);
+
+        expect(harness.processController.pauseCalls, ['a']);
+        expect(harness.processController.resumeCalls, ['a']);
+        expect(harness.repository.taskById('c').status, TaskStatus.pending);
+        expect(harness.repository.taskById('d').status, TaskStatus.pending);
+      },
+    );
+
+    test('failed preempting start restores displaced task', () async {
+      final starter = FakeProcessStarter(
+        error: StateError('cannot start'),
+        errorTaskId: 'second',
+      );
+      final harness = QueueHarness(
+        tasks: [
+          videoTask(id: 'first', sortOrder: 1),
+          videoTask(id: 'second', sortOrder: 2),
+        ],
+        processStarter: starter,
+      );
+
+      await harness.runner.startSingleTask('first');
+      final result = await harness.runner.startSingleTask('second');
+
+      expect(result.outcome, FfmpegQueueStartOutcome.processStartFailed);
+      expect(harness.processController.pauseCalls, ['first']);
+      expect(harness.processController.resumeCalls, ['first']);
       expect(harness.repository.taskById('first').status, TaskStatus.running);
-      expect(harness.repository.taskById('second').status, TaskStatus.pending);
-      expect(harness.processController.pauseCalls, isEmpty);
-      expect(harness.processStarter.starts, hasLength(1));
+      expect(harness.runner.runningTaskIds, {'first'});
     });
+
+    test(
+      'single task preempts oldest running task when no slot is free',
+      () async {
+        final firstTask = videoTask(id: 'first', sortOrder: 1);
+        final secondTask = videoTask(id: 'second', sortOrder: 2);
+        final harness = QueueHarness(tasks: [firstTask, secondTask]);
+
+        await harness.runner.start();
+        final result = await harness.runner.startOrResumeTask('second');
+
+        expect(result.outcome, FfmpegQueueStartOutcome.started);
+        expect(result.task?.id, 'second');
+        expect(harness.runner.foregroundTaskId, 'second');
+        expect(harness.repository.taskById('first').status, TaskStatus.paused);
+        expect(
+          harness.repository.taskById('second').status,
+          TaskStatus.running,
+        );
+        expect(harness.processController.pauseCalls, ['first']);
+        expect(harness.processStarter.starts, hasLength(2));
+      },
+    );
 
     test(
       'startOrResumeTask resumes a paused execution when a slot is free',
@@ -196,6 +368,37 @@ void main() {
       },
     );
 
+    test(
+      'manual start after pause all does not reactivate old queue',
+      () async {
+        final firstTask = videoTask(id: 'first', sortOrder: 1);
+        final secondTask = videoTask(id: 'second', sortOrder: 2);
+        final thirdTask = videoTask(id: 'third', sortOrder: 3);
+        final harness = QueueHarness(
+          tasks: [firstTask, secondTask, thirdTask],
+          maxConcurrentExecutions: 2,
+        );
+
+        await harness.runner.startWorkbenchQueue();
+        await harness.runner.pauseAllRunningTasks();
+        await harness.runner.startSingleTask('third');
+        harness.processObserver.complete(
+          'third',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('third', TaskStatus.completed);
+
+        expect(harness.runner.executionScope.type, ExecutionScopeType.none);
+        expect(harness.repository.taskById('first').status, TaskStatus.paused);
+        expect(harness.repository.taskById('second').status, TaskStatus.paused);
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          'first',
+          'second',
+          'third',
+        ]);
+      },
+    );
+
     test('start chooses paused and pending tasks by queue order', () async {
       final pausedTask = videoTask(
         id: 'paused-first',
@@ -245,7 +448,7 @@ void main() {
       expect(harness.repository.taskById('second').status, TaskStatus.pending);
     });
 
-    test('startOrResumeTask cuts in without changing queue order', () async {
+    test('single task preempts and displaced task resumes first', () async {
       final firstTask = videoTask(id: 'first', sortOrder: 1);
       final secondTask = videoTask(id: 'second', sortOrder: 2);
       final thirdTask = videoTask(id: 'third', sortOrder: 3);
@@ -254,26 +457,26 @@ void main() {
       await harness.runner.start();
       final result = await harness.runner.startOrResumeTask('third');
 
-      expect(result.outcome, FfmpegQueueStartOutcome.queued);
+      expect(result.outcome, FfmpegQueueStartOutcome.started);
       expect(result.task?.id, 'third');
-      expect(harness.runner.foregroundTaskId, 'first');
-      expect(harness.repository.taskById('first').status, TaskStatus.running);
+      expect(harness.runner.foregroundTaskId, 'third');
+      expect(harness.repository.taskById('first').status, TaskStatus.paused);
       expect(harness.repository.taskById('second').status, TaskStatus.pending);
-      expect(harness.repository.taskById('third').status, TaskStatus.pending);
+      expect(harness.repository.taskById('third').status, TaskStatus.running);
       expect(harness.repository.taskById('first').sortOrder, 1);
       expect(harness.repository.taskById('second').sortOrder, 2);
       expect(harness.repository.taskById('third').sortOrder, 3);
-      expect(harness.processController.pauseCalls, isEmpty);
+      expect(harness.processController.pauseCalls, ['first']);
 
       harness.processObserver.complete(
-        'first',
+        'third',
         const FfmpegProcessObservation.completed(),
       );
-      await harness.waitForStartedProcesses(2);
+      await harness.waitForTaskStatus('first', TaskStatus.running);
 
-      expect(harness.processStarter.starts.last.taskId, 'third');
+      expect(harness.processController.resumeCalls, ['first']);
       expect(harness.repository.taskById('second').status, TaskStatus.pending);
-      expect(harness.repository.taskById('third').status, TaskStatus.running);
+      expect(harness.repository.taskById('first').status, TaskStatus.running);
     });
 
     test(
@@ -340,8 +543,11 @@ void main() {
 
         expect(harness.runner.foregroundTaskId, isNull);
         expect(harness.runner.queueStatus, FfmpegQueueStatus.idle);
-        expect(harness.processController.pauseCalls, isEmpty);
-        expect(harness.processController.terminateCalls, ['first']);
+        expect(harness.processController.pauseCalls, ['first']);
+        expect(
+          harness.processController.terminateCalls,
+          containsAll(['first', 'second']),
+        );
       },
     );
 
@@ -1181,9 +1387,10 @@ class FakeProcessStart {
 
 class FakeProcessStarter implements FfmpegProcessStarter {
   final Object? error;
+  final String? errorTaskId;
   final List<FakeProcessStart> starts = [];
 
-  FakeProcessStarter({this.error});
+  FakeProcessStarter({this.error, this.errorTaskId});
 
   @override
   Future<StartedFfmpegProcess> start({
@@ -1191,14 +1398,13 @@ class FakeProcessStarter implements FfmpegProcessStarter {
     required List<String> args,
     required File logFile,
   }) async {
-    final error = this.error;
-    if (error != null) {
-      throw error;
-    }
-
     final inputIndex = args.indexOf('-i');
     final inputPath = inputIndex == -1 ? '' : args[inputIndex + 1];
     final taskId = inputPath.split('/').last.split('.').first;
+    final error = this.error;
+    if (error != null && (errorTaskId == null || errorTaskId == taskId)) {
+      throw error;
+    }
     final process = FakeProcess(taskId);
     starts.add(
       FakeProcessStart(
