@@ -3,9 +3,11 @@ import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
+import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 
@@ -212,6 +214,7 @@ class ApplyTaskFolderConfigUseCase {
   Future<TaskFolderBatchTasksResult> call({
     required String folderId,
     required MediaTaskConfig config,
+    required TaskPurpose purpose,
   }) async {
     final folders = await taskFolderRepository.loadAllFolders();
     final folder = folders.firstWhere((folder) => folder.id == folderId);
@@ -219,6 +222,7 @@ class ApplyTaskFolderConfigUseCase {
     await taskFolderRepository.saveFolder(
       folder.copyWith(
         defaultConfig: normalizedConfig,
+        defaultPurpose: purpose,
         updatedAt: DateTime.now().millisecondsSinceEpoch,
       ),
     );
@@ -229,13 +233,38 @@ class ApplyTaskFolderConfigUseCase {
         continue;
       }
       await mediaTaskRepository.saveTask(
-        task.copyWith(config: normalizedConfig),
+        task.copyWith(config: normalizedConfig, purpose: purpose),
       );
     }
 
     return TaskFolderBatchTasksResult(
       tasks: await mediaTaskRepository.loadAllTasks(),
     );
+  }
+}
+
+class RenameTaskFolderUseCase {
+  const RenameTaskFolderUseCase({required this.repository});
+
+  final TaskFolderRepository repository;
+
+  Future<TaskFolder> call({
+    required String folderId,
+    required String name,
+  }) async {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      throw StateError('任务夹名称不能为空');
+    }
+
+    final folders = await repository.loadAllFolders();
+    final folder = folders.firstWhere((folder) => folder.id == folderId);
+    final renamed = folder.copyWith(
+      name: trimmedName,
+      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    );
+    await repository.saveFolder(renamed);
+    return renamed;
   }
 }
 
@@ -324,27 +353,30 @@ class PauseRunningTaskInFolderUseCase {
 
   Future<FfmpegQueueStartResult> call(String folderId) async {
     final tasks = await repository.loadAllTasks();
-    final foregroundTaskId = queueRunner.foregroundTaskId;
     final orderedTasks = _orderedFolderTasks(tasks, folderId);
-    final task =
-        _firstOrNull(
-          orderedTasks.where(
-            (task) =>
-                task.status == TaskStatus.running &&
-                task.id == foregroundTaskId,
-          ),
-        ) ??
-        _firstOrNull(
-          orderedTasks.where((task) => task.status == TaskStatus.running),
-        );
-    if (task == null) {
+    final runningTasks = orderedTasks
+        .where(
+          (task) =>
+              task.status == TaskStatus.running &&
+              queueRunner.runningTaskIds.contains(task.id),
+        )
+        .toList();
+    if (runningTasks.isEmpty) {
       return const FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.invalidTaskState,
         message: '任务夹内没有正在执行的任务',
       );
     }
 
-    return queueRunner.pauseTask(task.id);
+    FfmpegQueueStartResult? lastResult;
+    for (final task in runningTasks) {
+      lastResult = await queueRunner.pauseTask(task.id);
+    }
+    return lastResult ??
+        const FfmpegQueueStartResult(
+          outcome: FfmpegQueueStartOutcome.invalidTaskState,
+          message: '任务夹内没有正在执行的任务',
+        );
   }
 }
 
@@ -377,13 +409,53 @@ class DeleteTaskFolderUseCase {
   }
 }
 
-String defaultFolderName(MediaKind mediaKind, int taskCount) {
+String defaultFolderName(
+  MediaKind mediaKind,
+  List<TaskFolder> existingFolders,
+) {
   final label = switch (mediaKind) {
     MediaKind.video => '视频',
     MediaKind.image => '图片',
     MediaKind.audio => '音频',
   };
-  return '$label任务夹（$taskCount）';
+  final prefix = '$label任务夹';
+  var maxIndex = 0;
+  for (final folder in existingFolders.where(
+    (folder) => folder.mediaKind == mediaKind,
+  )) {
+    final name = folder.name.trim();
+    if (name == prefix) {
+      maxIndex = maxIndex < 1 ? 1 : maxIndex;
+      continue;
+    }
+    final match = RegExp(
+      '^${RegExp.escape(prefix)}\\s+(\\d+)\$',
+    ).firstMatch(name);
+    final index = match == null ? null : int.tryParse(match.group(1)!);
+    if (index != null && index > maxIndex) {
+      maxIndex = index;
+    }
+  }
+  return '$prefix ${maxIndex + 1}';
+}
+
+String uniqueFolderName(
+  String preferredName,
+  List<TaskFolder> existingFolders,
+) {
+  final baseName = preferredName.trim();
+  if (baseName.isEmpty) {
+    return baseName;
+  }
+  final existingNames = existingFolders.map((folder) => folder.name).toSet();
+  if (!existingNames.contains(baseName)) {
+    return baseName;
+  }
+  var index = 2;
+  while (existingNames.contains('$baseName $index')) {
+    index += 1;
+  }
+  return '$baseName $index';
 }
 
 int nextFolderSortOrder(List<TaskFolder> folders) {
@@ -401,9 +473,13 @@ Future<TaskFolder> _createFolderForTasks({
   String? name,
 }) async {
   final mediaKind = selectedTasks.first.mediaKind;
+  final preferredName = name?.trim();
   final folder = TaskFolder.create(
-    name: name ?? defaultFolderName(mediaKind, selectedTasks.length),
+    name: preferredName?.isNotEmpty == true
+        ? uniqueFolderName(preferredName!, existingFolders)
+        : defaultFolderName(mediaKind, existingFolders),
     mediaKind: mediaKind,
+    defaultPurpose: selectedTasks.first.purpose,
     sortOrder: nextFolderSortOrder(existingFolders),
     defaultConfig: selectedTasks.first.config,
   );
@@ -417,6 +493,10 @@ Future<TaskFolder> _createFolderForTasks({
       ),
     );
   }
+  await PlaceWorkbenchTopLevelItemUseCase(
+    mediaTaskRepository: mediaTaskRepository,
+    taskFolderRepository: taskFolderRepository,
+  ).call(WorkbenchInsertedItem.folder(folder.id));
   return folder;
 }
 

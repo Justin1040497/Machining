@@ -38,6 +38,7 @@ class WorkbenchShell extends StatelessWidget {
     required this.onShowLog,
     required this.onRevealOutput,
     required this.onContextMenu,
+    this.onFolderContextMenu = _ignoreFolderContextMenu,
     required this.onToggleSelectionMode,
     required this.onToggleTaskSelection,
     required this.onSelectTasksWithRectangle,
@@ -51,7 +52,8 @@ class WorkbenchShell extends StatelessWidget {
     required this.onRelinkFolder,
     required this.onShowFolderLog,
     required this.onDeleteFolder,
-    required this.onAddTask,
+    required this.onAddFiles,
+    required this.onAddFolder,
     required this.onOpenSettings,
     required this.themeMode,
     required this.onToggleThemeMode,
@@ -85,6 +87,7 @@ class WorkbenchShell extends StatelessWidget {
   final ValueChanged<MediaTask> onShowLog;
   final ValueChanged<MediaTask> onRevealOutput;
   final WorkbenchTaskPositionCallback onContextMenu;
+  final WorkbenchTaskFolderPositionCallback onFolderContextMenu;
   final VoidCallback onToggleSelectionMode;
   final ValueChanged<MediaTask> onToggleTaskSelection;
   final WorkbenchTaskSelectionCallback onSelectTasksWithRectangle;
@@ -98,7 +101,8 @@ class WorkbenchShell extends StatelessWidget {
   final ValueChanged<TaskFolder> onRelinkFolder;
   final ValueChanged<TaskFolder> onShowFolderLog;
   final ValueChanged<TaskFolder> onDeleteFolder;
-  final VoidCallback onAddTask;
+  final VoidCallback onAddFiles;
+  final VoidCallback onAddFolder;
   final VoidCallback onOpenSettings;
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
@@ -211,6 +215,7 @@ class WorkbenchShell extends StatelessWidget {
                           onShowLog: onShowLog,
                           onRevealOutput: onRevealOutput,
                           onContextMenu: onContextMenu,
+                          onFolderContextMenu: onFolderContextMenu,
                           onToggleTaskSelection: onToggleTaskSelection,
                           onSelectTasksWithRectangle:
                               onSelectTasksWithRectangle,
@@ -233,7 +238,8 @@ class WorkbenchShell extends StatelessWidget {
                           queueActionInFlight: queueActionInFlight,
                           selectionMode: selectionMode,
                           selectionEnabled: looseTaskCount > 0,
-                          onAddTask: onAddTask,
+                          onAddFiles: onAddFiles,
+                          onAddFolder: onAddFolder,
                           onToggleSelectionMode: onToggleSelectionMode,
                           onOpenSettings: onOpenSettings,
                           onClearTasks: onClearTasks,
@@ -242,13 +248,11 @@ class WorkbenchShell extends StatelessWidget {
                       ),
                       if (selectedCount > 0)
                         Positioned(
-                          right: 24,
+                          left: 24,
                           bottom: 78,
-                          child: FloatingActionButton.extended(
-                            heroTag: 'create-task-folder-from-selection',
+                          child: _SelectionActionBar(
+                            selectedCount: selectedCount,
                             onPressed: onCreateFolderFromSelection,
-                            icon: const Icon(Icons.create_new_folder_rounded),
-                            label: Text('创建任务夹 $selectedCount'),
                           ),
                         ),
                     ],
@@ -259,6 +263,66 @@ class WorkbenchShell extends StatelessWidget {
           ),
           if (importDragging) const WorkbenchDropOverlay(),
         ],
+      ),
+    );
+  }
+}
+
+void _ignoreFolderContextMenu(TaskFolder folder, Offset position) {}
+
+class _SelectionActionBar extends StatelessWidget {
+  const _SelectionActionBar({
+    required this.selectedCount,
+    required this.onPressed,
+  });
+
+  final int selectedCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return Material(
+      color: colors.surface,
+      elevation: 2,
+      shadowColor: colors.shadow,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: colors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '已选 $selectedCount',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12.flSp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+            FilledButton.icon(
+              onPressed: onPressed,
+              icon: const Icon(Icons.create_new_folder_rounded, size: 17),
+              label: const Text('创建任务夹'),
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                minimumSize: const Size(0, 34),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

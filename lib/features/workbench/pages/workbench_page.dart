@@ -251,6 +251,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onContextMenu: (task, position) {
               unawaited(showTaskContextMenu(task, position));
             },
+            onFolderContextMenu: (folder, position) {
+              unawaited(showTaskFolderContextMenu(folder, position));
+            },
             onToggleSelectionMode: toggleTaskSelectionMode,
             onToggleTaskSelection: toggleTaskSelection,
             onSelectTasksWithRectangle: selectTasksWithRectangle,
@@ -280,7 +283,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               unawaited(showTaskFolderLog(folder));
             },
             onDeleteFolder: deleteTaskFolder,
-            onAddTask: pickAndAddTasks,
+            onAddFiles: pickAndAddTasks,
+            onAddFolder: pickAndAddFolder,
             onOpenSettings: () {
               unawaited(openSettingsPage());
             },
@@ -880,6 +884,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               .applyTaskFolderConfig(
                 folderId: folder.id,
                 config: updatedConfig,
+                purpose: draft.purpose,
               );
           if (!mounted) {
             return;
@@ -902,7 +907,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       inputPath: firstTask?.inputPath ?? folder.name,
       fileName: folder.name,
       mediaKind: folder.mediaKind,
-      purpose: TaskPurpose.compression,
+      purpose: folder.defaultPurpose,
       status: TaskStatus.pending,
       config: folder.defaultConfig,
       progress: 0,
@@ -962,7 +967,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
       if (!isVideoTask) {
         try {
-          await updateSelectedTaskConfig(config: draft.config);
+          await updateSelectedTaskConfig(
+            config: draft.config,
+            purpose: draft.purpose,
+          );
         } on Object catch (error) {
           showWorkbenchSnackBar(error.toString());
         }
@@ -976,7 +984,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           usePerTaskTargetSize: true,
         );
 
-        await updateSelectedTaskConfig(config: updatedConfig);
+        await updateSelectedTaskConfig(
+          config: updatedConfig,
+          purpose: draft.purpose,
+        );
 
         if (!mounted) {
           return;
@@ -1185,6 +1196,49 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
+  Future<void> pickAndAddFolder() async {
+    await runWorkbenchActionOnce('pick-and-add-folder', () async {
+      try {
+        final folderPath = await ref
+            .read(fileSelectionServiceProvider)
+            .pickMediaDirectory();
+        if (folderPath == null || folderPath.trim().isEmpty) {
+          return;
+        }
+
+        final result = await ref
+            .read(mediaTaskListProvider.notifier)
+            .importFolderFromPath(folderPath);
+        if (result.createdTasks.isNotEmpty) {
+          setState(() {
+            selectedTaskId = result.createdTasks.first.id;
+            selectedTaskIds.clear();
+            taskSelectionMode = false;
+            syncedConfigTaskId = null;
+            syncedQualityTaskKey = null;
+          });
+        }
+
+        final failures = <DroppedImportFailure>[
+          if (result.foundNoMedia)
+            DroppedImportFailure(path: folderPath, reason: '未找到可识别媒体文件'),
+          ...result.failures.map(
+            (failure) => DroppedImportFailure(
+              path: failure.path,
+              reason: failure.reason,
+            ),
+          ),
+        ];
+        showDroppedImportSnackBar(
+          successCount: result.createdTasks.length,
+          failures: failures,
+        );
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
   Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
     if (mounted) {
       setState(() {
@@ -1329,17 +1383,21 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     Offset globalPosition,
   ) async {
     await runWorkbenchActionOnce('show-task-context-menu', () async {
-      final selectedAction = await showWorkbenchTaskContextMenu(
+      final folders =
+          ref.read(taskFolderListProvider).asData?.value ??
+          const <TaskFolder>[];
+      final selectedResult = await showWorkbenchTaskContextMenu(
         context: context,
         task: task,
         globalPosition: globalPosition,
+        candidateFolders: folders,
       );
 
-      if (!mounted || selectedAction == null) {
+      if (!mounted || selectedResult == null) {
         return;
       }
 
-      switch (selectedAction) {
+      switch (selectedResult.action) {
         case TaskContextMenuAction.revealInFileManager:
           await revealTaskInFileManager(task);
         case TaskContextMenuAction.relinkSource:
@@ -1348,8 +1406,61 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           await renameTask(task);
         case TaskContextMenuAction.showLog:
           await showTaskLog(task);
+        case TaskContextMenuAction.moveToFolder:
+          final folderId = selectedResult.folderId;
+          if (folderId == null) {
+            return;
+          }
+          TaskFolder? targetFolder;
+          for (final folder in folders) {
+            if (folder.id == folderId) {
+              targetFolder = folder;
+              break;
+            }
+          }
+          if (targetFolder == null) {
+            showWorkbenchSnackBar('任务夹不存在或已被删除');
+            return;
+          }
+          await moveTaskIntoFolder(task, targetFolder);
         case TaskContextMenuAction.delete:
           await deleteTask(task);
+      }
+    });
+  }
+
+  Future<void> showTaskFolderContextMenu(
+    TaskFolder folder,
+    Offset globalPosition,
+  ) async {
+    await runWorkbenchActionOnce('show-task-folder-context-menu', () async {
+      final tasks =
+          ref.read(mediaTaskListProvider).asData?.value ?? const <MediaTask>[];
+      final folderTasks = tasks.where((task) => task.folderId == folder.id);
+      final selectedAction = await showWorkbenchTaskFolderContextMenu(
+        context: context,
+        folder: folder,
+        hasLoggableTask: folderTasks.any(
+          (task) =>
+              task.status == TaskStatus.completed ||
+              task.status == TaskStatus.failed,
+        ),
+        globalPosition: globalPosition,
+      );
+
+      if (!mounted || selectedAction == null) {
+        return;
+      }
+
+      switch (selectedAction) {
+        case TaskFolderContextMenuAction.rename:
+          await renameTaskFolder(folder);
+        case TaskFolderContextMenuAction.openContents:
+          openTaskFolder(folder);
+        case TaskFolderContextMenuAction.showLog:
+          await showTaskFolderLog(folder);
+        case TaskFolderContextMenuAction.delete:
+          deleteTaskFolder(folder);
       }
     });
   }
@@ -1401,6 +1512,37 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       await ref
           .read(mediaTaskListProvider.notifier)
           .saveTask(task.copyWith(fileName: trimmedName));
+    });
+  }
+
+  Future<void> renameTaskFolder(TaskFolder folder) async {
+    await runWorkbenchActionOnce('rename-task-folder:${folder.id}', () async {
+      final nextName = await showDialog<String>(
+        context: context,
+        builder: (context) => TaskRenameDialog(
+          initialName: folder.name,
+          title: '任务夹重命名',
+          label: '任务夹名称',
+        ),
+      );
+
+      if (!mounted || nextName == null) {
+        return;
+      }
+
+      final trimmedName = nextName.trim();
+      if (trimmedName.isEmpty) {
+        showWorkbenchSnackBar('任务夹名称不能为空');
+        return;
+      }
+
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .renameTaskFolder(folderId: folder.id, name: trimmedName);
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
     });
   }
 
@@ -1764,6 +1906,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     Object? targetSizeBytes = _configValueNotProvided,
     Object? targetSizeRatio = _configValueNotProvided,
     String? outputFileName,
+    TaskPurpose? purpose,
   }) async {
     final task = currentSelectedTask();
     if (task == null) {
@@ -1771,6 +1914,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     final updatedTask = task.copyWith(
+      purpose: purpose,
       config:
           config ??
           task.config.copyWith(

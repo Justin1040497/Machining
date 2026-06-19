@@ -13,6 +13,8 @@ import 'package:framelean/features/workbench/widgets/media_task_list/task_folder
 
 typedef WorkbenchTaskPositionCallback =
     void Function(MediaTask task, Offset position);
+typedef WorkbenchTaskFolderPositionCallback =
+    void Function(TaskFolder folder, Offset position);
 typedef WorkbenchTaskFolderDropCallback =
     void Function(MediaTask task, TaskFolder folder);
 typedef WorkbenchTaskSelectionCallback =
@@ -38,6 +40,7 @@ class WorkbenchTaskListCard extends StatefulWidget {
     required this.onShowLog,
     required this.onRevealOutput,
     required this.onContextMenu,
+    required this.onFolderContextMenu,
     required this.onToggleTaskSelection,
     required this.onSelectTasksWithRectangle,
     required this.onMoveTaskToFolder,
@@ -66,6 +69,7 @@ class WorkbenchTaskListCard extends StatefulWidget {
   final ValueChanged<MediaTask> onShowLog;
   final ValueChanged<MediaTask> onRevealOutput;
   final WorkbenchTaskPositionCallback onContextMenu;
+  final WorkbenchTaskFolderPositionCallback onFolderContextMenu;
   final ValueChanged<MediaTask> onToggleTaskSelection;
   final WorkbenchTaskSelectionCallback onSelectTasksWithRectangle;
   final WorkbenchTaskFolderDropCallback onMoveTaskToFolder;
@@ -281,6 +285,9 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
           onRetry: () => widget.onRetryFolder(folder),
           onRelink: () => widget.onRelinkFolder(folder),
           onShowLog: () => widget.onShowFolderLog(folder),
+          onSecondaryTapDown: (details) {
+            widget.onFolderContextMenu(folder, details.globalPosition);
+          },
           dragHandle: _FolderDragHandleSlot(
             index: index,
             enabled: dragEnabled,

@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
+import 'package:path/path.dart' as path;
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;
@@ -209,14 +215,71 @@ class MediaTaskListTile extends StatelessWidget {
             MediaTaskStatusBadge(task: task),
             ..._buildPolicyTags(context),
             const SizedBox(width: 10),
-            Text(
-              _formatBytes(task.sourceFileFingerprint?.fileSize),
-              style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
+            Flexible(
+              child: Text(
+                _taskDetailsText(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
+              ),
             ),
           ],
         ),
       ],
     );
+  }
+
+  String _taskDetailsText() {
+    if (task.status != TaskStatus.completed) {
+      return _formatBytes(task.sourceFileFingerprint?.fileSize);
+    }
+
+    if (task.purpose == TaskPurpose.conversion) {
+      return '${_sourceFormatLabel()} - ${_targetOutputFormat().label}';
+    }
+
+    final sourceSize = task.sourceFileFingerprint?.fileSize;
+    final outputSize = task.outputFileSize;
+    if (sourceSize == null || sourceSize <= 0 || outputSize == null) {
+      return _formatBytes(sourceSize);
+    }
+
+    final changedPercent = ((sourceSize - outputSize) / sourceSize) * 100;
+    final result = changedPercent >= 0
+        ? '压缩了${_formatPercent(changedPercent)}'
+        : '增大了${_formatPercent(changedPercent.abs())}';
+    return '${_formatBytes(sourceSize)} - ${_formatBytes(outputSize)} · $result';
+  }
+
+  String _sourceFormatLabel() {
+    final format = mediaOutputFormatForSourceFileName(
+      sourceFileName: task.fileName,
+      mediaKind: task.mediaKind,
+    );
+    if (format != null) {
+      return format.label;
+    }
+
+    final extension = path
+        .extension(task.fileName)
+        .replaceFirst('.', '')
+        .trim();
+    return extension.isEmpty ? '未知格式' : extension.toUpperCase();
+  }
+
+  MediaOutputFormat _targetOutputFormat() {
+    return switch (task.mediaKind) {
+      MediaKind.video => task.config.video!.outputFormat,
+      MediaKind.image => task.config.image!.outputFormat,
+      MediaKind.audio => task.config.audio!.outputFormat,
+    };
+  }
+
+  String _formatPercent(double value) {
+    final rounded = value.roundToDouble();
+    return value == rounded
+        ? '${rounded.toInt()}%'
+        : '${value.toStringAsFixed(1)}%';
   }
 
   List<Widget> _buildPolicyTags(BuildContext context) {

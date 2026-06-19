@@ -18,6 +18,7 @@ class TaskFolderListTile extends StatelessWidget {
     this.onRetry,
     this.onRelink,
     this.onShowLog,
+    this.onSecondaryTapDown,
     this.dragHandle,
     this.dropHighlighted = false,
     this.dropDisabled = false,
@@ -34,6 +35,7 @@ class TaskFolderListTile extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onRelink;
   final VoidCallback? onShowLog;
+  final GestureTapDownCallback? onSecondaryTapDown;
   final Widget? dragHandle;
   final bool dropHighlighted;
   final bool dropDisabled;
@@ -83,6 +85,7 @@ class TaskFolderListTile extends StatelessWidget {
           child: InkWell(
             borderRadius: BorderRadius.circular(10),
             onTap: onOpenSettings,
+            onSecondaryTapDown: onSecondaryTapDown,
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 140),
               height: 86,

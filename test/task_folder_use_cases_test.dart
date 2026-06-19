@@ -4,6 +4,7 @@ import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
+import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
@@ -16,6 +17,27 @@ import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 
 void main() {
+  test('places inserted top-level task below unfinished items', () async {
+    final pending = videoTask(id: 'pending', sortOrder: 0);
+    final completed = videoTask(
+      id: 'completed',
+      sortOrder: 1,
+      status: TaskStatus.completed,
+    );
+    final inserted = videoTask(id: 'inserted', sortOrder: 2);
+    final repository = FakeMediaTaskRepository([pending, completed, inserted]);
+    final folderRepository = FakeTaskFolderRepository([]);
+
+    await PlaceWorkbenchTopLevelItemUseCase(
+      mediaTaskRepository: repository,
+      taskFolderRepository: folderRepository,
+    ).call(const WorkbenchInsertedItem.task('inserted'));
+
+    expect(repository.taskById('pending').sortOrder, 0);
+    expect(repository.taskById('inserted').sortOrder, 1);
+    expect(repository.taskById('completed').sortOrder, 2);
+  });
+
   test('applies folder config to non execution snapshot tasks', () async {
     final folder = testFolder();
     final oldConfig = MediaTaskConfig.initialVideo();
@@ -71,13 +93,22 @@ void main() {
     await ApplyTaskFolderConfigUseCase(
       mediaTaskRepository: repository,
       taskFolderRepository: folderRepository,
-    ).call(folderId: folder.id, config: newConfig);
+    ).call(
+      folderId: folder.id,
+      config: newConfig,
+      purpose: TaskPurpose.conversion,
+    );
 
     expect(
       folderRepository.folderById(folder.id).defaultConfig.videoCodec,
       VideoCodec.hevc,
     );
+    expect(
+      folderRepository.folderById(folder.id).defaultPurpose,
+      TaskPurpose.conversion,
+    );
     expect(repository.taskById('completed').config.videoCodec, VideoCodec.hevc);
+    expect(repository.taskById('completed').purpose, TaskPurpose.conversion);
     expect(repository.taskById('pending').config.videoCodec, VideoCodec.hevc);
     expect(repository.taskById('missing').config.videoCodec, VideoCodec.hevc);
     expect(repository.taskById('running').config.videoCodec, VideoCodec.h264);
@@ -318,7 +349,15 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   @override
   Future<void> updateTaskSortOrders(
     List<MediaTaskSortOrderUpdate> updates,
-  ) async {}
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+      tasks[index] = tasks[index].copyWith(sortOrder: update.sortOrder);
+    }
+  }
 
   @override
   Future<void> updateTaskFolderSortOrders(
@@ -417,6 +456,16 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   @override
   String? foregroundTaskId;
+
+  @override
+  Set<String> get runningTaskIds =>
+      foregroundTaskId == null ? const {} : {foregroundTaskId!};
+
+  @override
+  int get activeExecutionCount => runningTaskIds.length;
+
+  @override
+  int get effectiveMaxConcurrentExecutions => 1;
 
   @override
   FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;

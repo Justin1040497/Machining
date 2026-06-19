@@ -136,6 +136,11 @@ class DesktopFileSelectionService implements FileSelectionService {
   }
 
   @override
+  Future<String?> pickMediaDirectory() {
+    return getDirectoryPath(confirmButtonText: '导入文件夹');
+  }
+
+  @override
   Future<String?> pickOutputDirectory() {
     return getDirectoryPath(confirmButtonText: '选择导出文件夹');
   }

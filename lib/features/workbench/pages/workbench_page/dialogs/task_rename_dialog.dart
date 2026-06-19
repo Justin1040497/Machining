@@ -3,9 +3,16 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbe
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class TaskRenameDialog extends StatefulWidget {
-  const TaskRenameDialog({super.key, required this.initialName});
+  const TaskRenameDialog({
+    super.key,
+    required this.initialName,
+    this.title = '任务重命名',
+    this.label = '任务名称',
+  });
 
   final String initialName;
+  final String title;
+  final String label;
 
   @override
   State<TaskRenameDialog> createState() => _TaskRenameDialogState();
@@ -35,7 +42,7 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const WorkbenchDialogTitle('任务重命名'),
+          WorkbenchDialogTitle(widget.title),
           const SizedBox(height: 14),
           TextField(
             controller: controller,
@@ -47,7 +54,7 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
               fontWeight: FontWeight.w500,
             ),
             decoration: InputDecoration(
-              labelText: '任务名称',
+              labelText: widget.label,
               labelStyle: TextStyle(
                 color: colors.textTertiary,
                 fontSize: 12.flSp,

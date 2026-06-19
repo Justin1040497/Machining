@@ -4,8 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/analyze_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
+import 'package:framelean/application/use_cases/media_tasks/import_media_folder_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/import_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/pause_media_task_execution_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
@@ -17,6 +19,7 @@ import 'package:framelean/application/use_cases/media_tasks/start_or_resume_medi
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
@@ -64,10 +67,10 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
   Future<MediaTask> createDraftFromPath(String inputPath) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
+    final folderRepository = ref.read(taskFolderRepositoryProvider);
     final resolver = ref.read(mediaKindResolverProvider);
     final fingerprintReader = ref.read(sourceFileFingerprintReaderProvider);
     final settingsRepository = ref.read(appSettingsRepositoryProvider);
-    final tasks = state.requireValue;
     final task = await ImportMediaTaskUseCase(
       repository: repository,
       mediaKindResolver: resolver,
@@ -76,7 +79,12 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       now: DateTime.now,
     ).call(inputPath);
 
-    state = AsyncData([...tasks, task]);
+    await PlaceWorkbenchTopLevelItemUseCase(
+      mediaTaskRepository: repository,
+      taskFolderRepository: folderRepository,
+    ).call(WorkbenchInsertedItem.task(task.id));
+
+    state = AsyncData(await repository.loadAllTasks());
     unawaited(syncFfmpegQueueStatus());
     unawaited(analyzeTaskById(task.id));
     return task;
@@ -95,6 +103,37 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     }
 
     return createdTasks;
+  }
+
+  Future<ImportMediaFolderResult> importFolderFromPath(
+    String folderPath,
+  ) async {
+    final settings = await ref
+        .read(appSettingsRepositoryProvider)
+        .loadSettings();
+    final result = await ImportMediaFolderUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+      mediaKindResolver: ref.read(mediaKindResolverProvider),
+      fingerprintReader: ref.read(sourceFileFingerprintReaderProvider),
+      settingsRepository: ref.read(appSettingsRepositoryProvider),
+      folderScanner: ref.read(mediaFolderScannerProvider),
+      now: DateTime.now,
+    ).call(folderPath: folderPath, scanDepth: settings.folderImportScanDepth);
+
+    state = AsyncData(
+      await ref.read(mediaTaskRepositoryProvider).loadAllTasks(),
+    );
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+    if (result.createdTasks.isNotEmpty) {
+      unawaited(
+        analyzeTasksInBackground(
+          result.createdTasks.map((task) => task.id).toList(),
+        ),
+      );
+    }
+    return result;
   }
 
   Future<void> createTaskFoldersForImportedBatch(List<MediaTask> tasks) async {
@@ -174,14 +213,25 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     unawaited(syncFfmpegQueueStatus());
   }
 
+  Future<void> renameTaskFolder({
+    required String folderId,
+    required String name,
+  }) async {
+    await RenameTaskFolderUseCase(
+      repository: ref.read(taskFolderRepositoryProvider),
+    ).call(folderId: folderId, name: name);
+    ref.invalidate(taskFolderListProvider);
+  }
+
   Future<void> applyTaskFolderConfig({
     required String folderId,
     required MediaTaskConfig config,
+    required TaskPurpose purpose,
   }) async {
     final result = await ApplyTaskFolderConfigUseCase(
       mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
       taskFolderRepository: ref.read(taskFolderRepositoryProvider),
-    ).call(folderId: folderId, config: config);
+    ).call(folderId: folderId, config: config, purpose: purpose);
     state = AsyncData(result.tasks);
     ref.invalidate(taskFolderListProvider);
     unawaited(syncFfmpegQueueStatus());

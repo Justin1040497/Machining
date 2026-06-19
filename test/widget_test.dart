@@ -467,6 +467,7 @@ void main() {
     expect(find.text('图片格式'), findsOneWidget);
     expect(find.text('分辨率'), findsOneWidget);
     expect(find.text('质量'), findsOneWidget);
+    expect(find.text('无损压缩'), findsOneWidget);
     expect(find.text('保留80%的质量'), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
     expect(find.text('图片编码'), findsNothing);
@@ -474,7 +475,7 @@ void main() {
     expect(find.text('保留元数据'), findsOneWidget);
     expect(find.text('视频编码'), findsNothing);
     expect(
-      tester.getCenter(find.byType(Switch)).dx,
+      tester.getCenter(find.byType(Switch).last).dx,
       lessThan(tester.getCenter(find.text('保留元数据')).dx),
     );
 
@@ -503,7 +504,10 @@ void main() {
     final slider = tester.widget<Slider>(find.byType(Slider));
     slider.onChanged?.call(9);
 
-    final metadataSwitch = tester.widget<Switch>(find.byType(Switch));
+    final losslessSwitch = tester.widget<Switch>(find.byType(Switch).first);
+    losslessSwitch.onChanged?.call(true);
+
+    final metadataSwitch = tester.widget<Switch>(find.byType(Switch).last);
     metadataSwitch.onChanged?.call(true);
 
     expect(
@@ -516,9 +520,71 @@ void main() {
     );
     expect(imageChanges.map((config) => config.imageQuality), contains(100));
     expect(
+      imageChanges.map((config) => config.losslessCompression),
+      contains(true),
+    );
+    expect(
       imageChanges.map((config) => config.preserveMetadata),
       contains(true),
     );
+  });
+
+  testWidgets('lossless image compression hides quality and limits formats', (
+    tester,
+  ) async {
+    final config = ImageProcessingConfig.initial().copyWith(
+      outputFormat: MediaOutputFormat.webp,
+      keepOriginalOutputFormat: false,
+      losslessCompression: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: imageTask(config: config),
+            thumbnail: null,
+            selectedQualityIndex: 4,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.preset,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.6,
+            selectedImageConfig: config,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+            onImageConfigChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('无损压缩'), findsOneWidget);
+    expect(find.text('质量'), findsNothing);
+    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
+      find
+          .byWidgetPredicate(
+            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
+          )
+          .first,
+    );
+    expect(formatDropdown.values, const [
+      MediaOutputFormat.png,
+      MediaOutputFormat.webp,
+      MediaOutputFormat.tiff,
+    ]);
   });
 
   testWidgets('audio task configuration exposes audio controls', (
@@ -931,6 +997,46 @@ void main() {
     expect(retryCount, 1);
   });
 
+  testWidgets('completed compression task shows size reduction summary', (
+    tester,
+  ) async {
+    final task = testTask(
+      status: TaskStatus.completed,
+    ).copyWith(outputFileSize: 60 * 1024 * 1024);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MediaTaskListTile(task: task)),
+      ),
+    );
+
+    expect(find.text('100MB - 60MB · 压缩了40%'), findsOneWidget);
+  });
+
+  testWidgets('completed conversion task shows formats without percentage', (
+    tester,
+  ) async {
+    final task =
+        testTask(
+          status: TaskStatus.completed,
+          config: VideoTaskConfig.initial().copyWith(
+            outputFormat: OutputFormat.mov,
+          ),
+        ).copyWith(
+          purpose: TaskPurpose.conversion,
+          outputFileSize: 60 * 1024 * 1024,
+        );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MediaTaskListTile(task: task)),
+      ),
+    );
+
+    expect(find.text('MP4 - MOV'), findsOneWidget);
+    expect(find.textContaining('压缩了'), findsNothing);
+  });
+
   testWidgets('task list placeholder thumbnails match media kind', (
     tester,
   ) async {
@@ -1031,7 +1137,8 @@ void main() {
               onRelinkFolder: (_) {},
               onShowFolderLog: (_) {},
               onDeleteFolder: (_) {},
-              onAddTask: () {},
+              onAddFiles: () {},
+              onAddFolder: () {},
               onOpenSettings: () {},
               themeMode: AppThemeMode.light,
               onToggleThemeMode: () {
@@ -1141,7 +1248,8 @@ void main() {
             onDeleteFolder: (folder) {
               deleteCalls.add(folder.id);
             },
-            onAddTask: () {},
+            onAddFiles: () {},
+            onAddFolder: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -1620,7 +1728,8 @@ void main() {
             onRelinkFolder: (_) {},
             onShowFolderLog: (_) {},
             onDeleteFolder: (_) {},
-            onAddTask: () {},
+            onAddFiles: () {},
+            onAddFolder: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -1633,13 +1742,14 @@ void main() {
     );
 
     expect(find.byType(Checkbox), findsOneWidget);
-    expect(find.text('创建任务夹 1'), findsOneWidget);
+    expect(find.text('已选 1'), findsOneWidget);
+    expect(find.text('创建任务夹'), findsOneWidget);
 
     await tester.tap(find.byTooltip('退出多选'));
     await tester.pump();
     expect(toggleModeCount, 1);
 
-    await tester.tap(find.text('创建任务夹 1'));
+    await tester.tap(find.text('创建任务夹'));
     await tester.pump();
     expect(createFolderCount, 1);
   });
@@ -2039,7 +2149,8 @@ void main() {
             onRelinkFolder: (_) {},
             onShowFolderLog: (_) {},
             onDeleteFolder: (_) {},
-            onAddTask: () {},
+            onAddFiles: () {},
+            onAddFolder: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -2113,7 +2224,8 @@ Future<void> _pumpWorkbenchShellForDragTest(
           onRelinkFolder: (_) {},
           onShowFolderLog: (_) {},
           onDeleteFolder: (_) {},
-          onAddTask: () {},
+          onAddFiles: () {},
+          onAddFolder: () {},
           onOpenSettings: () {},
           themeMode: AppThemeMode.light,
           onToggleThemeMode: () {},
