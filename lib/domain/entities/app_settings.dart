@@ -7,6 +7,26 @@ import 'package:framelean/domain/value_objects/media_task_config.dart';
 
 const Object _notProvided = Object();
 const String defaultOutputFileNameTemplatePattern = '{source}-{action}';
+const int minConcurrentExecutions = 1;
+const int defaultMaxConcurrentExecutions = 2;
+const int maxConcurrentExecutionsLimit = 3;
+const int minFolderImportScanDepth = 0;
+const int defaultFolderImportScanDepth = 2;
+const int maxFolderImportScanDepth = 5;
+
+int normalizeMaxConcurrentExecutions(int? value) {
+  return (value ?? defaultMaxConcurrentExecutions).clamp(
+    minConcurrentExecutions,
+    maxConcurrentExecutionsLimit,
+  );
+}
+
+int normalizeFolderImportScanDepth(int? value) {
+  return (value ?? defaultFolderImportScanDepth).clamp(
+    minFolderImportScanDepth,
+    maxFolderImportScanDepth,
+  );
+}
 
 String normalizeDefaultOutputFileNameTemplate(String? template) {
   final trimmed = template?.trim() ?? '';
@@ -94,11 +114,14 @@ class AppSettings {
   /// 是否关闭工作台通知未读角标
   final bool hideNotificationBadge;
 
-  /// 任务完成后是否弹窗提示。
-  final bool showTaskCompletionDialog;
-
   /// 任务完成后播放的提示音
   final TaskCompletionSound taskCompletionSound;
+
+  /// 用户期望的最大并行执行数；执行器会按设备负载继续自动降级。
+  final int maxConcurrentExecutions;
+
+  /// 文件夹导入时递归扫描的最大层级。
+  final int folderImportScanDepth;
 
   AppSettings({
     this.defaultOutputDirectory,
@@ -115,10 +138,17 @@ class AppSettings {
     String? defaultOutputFileNameTemplate,
     this.themeMode = AppThemeMode.system,
     this.hideNotificationBadge = true,
-    this.showTaskCompletionDialog = true,
     this.taskCompletionSound = TaskCompletionSound.cleanSuccess,
+    int? maxConcurrentExecutions,
+    int? folderImportScanDepth,
   }) : defaultOutputFileNameTemplate = normalizeDefaultOutputFileNameTemplate(
          defaultOutputFileNameTemplate,
+       ),
+       maxConcurrentExecutions = normalizeMaxConcurrentExecutions(
+         maxConcurrentExecutions,
+       ),
+       folderImportScanDepth = normalizeFolderImportScanDepth(
+         folderImportScanDepth,
        ),
        defaultMediaConfig = resolveAppDefaultMediaConfig(
          defaultMediaConfig: defaultMediaConfig,
@@ -150,8 +180,9 @@ class AppSettings {
       defaultOutputFileNameTemplate: defaultOutputFileNameTemplatePattern,
       themeMode: AppThemeMode.system,
       hideNotificationBadge: true,
-      showTaskCompletionDialog: true,
       taskCompletionSound: TaskCompletionSound.cleanSuccess,
+      maxConcurrentExecutions: defaultMaxConcurrentExecutions,
+      folderImportScanDepth: defaultFolderImportScanDepth,
     );
   }
 
@@ -170,8 +201,9 @@ class AppSettings {
     String? defaultOutputFileNameTemplate,
     AppThemeMode? themeMode,
     bool? hideNotificationBadge,
-    bool? showTaskCompletionDialog,
     TaskCompletionSound? taskCompletionSound,
+    int? maxConcurrentExecutions,
+    int? folderImportScanDepth,
   }) {
     return AppSettings(
       defaultOutputDirectory: identical(defaultOutputDirectory, _notProvided)
@@ -200,9 +232,11 @@ class AppSettings {
       themeMode: themeMode ?? this.themeMode,
       hideNotificationBadge:
           hideNotificationBadge ?? this.hideNotificationBadge,
-      showTaskCompletionDialog:
-          showTaskCompletionDialog ?? this.showTaskCompletionDialog,
       taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
+      maxConcurrentExecutions:
+          maxConcurrentExecutions ?? this.maxConcurrentExecutions,
+      folderImportScanDepth:
+          folderImportScanDepth ?? this.folderImportScanDepth,
     );
   }
 

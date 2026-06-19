@@ -4,6 +4,7 @@ import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_bu
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
@@ -16,6 +17,7 @@ import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_encoder_resolver.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_output_path_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_video_argument_builder.dart';
+import 'package:path/path.dart' as path;
 
 class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
   final CompressionAdvisor compressionAdvisor;
@@ -78,24 +80,36 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     required bool allowExtremeCompression,
     required FfmpegEncoderCapabilities encoderCapabilities,
   }) {
-    encoderResolver.ensureSupportedTask(task, encoderCapabilities);
+    final preserveAlpha = argumentBuilder.shouldPreserveAlpha(task);
+    if (!preserveAlpha) {
+      encoderResolver.ensureSupportedTask(task, encoderCapabilities);
+    } else if (!encoderCapabilities.encoderNames.contains('prores_ks')) {
+      throw const FfmpegCommandBuildException(
+        '当前 FFmpeg 不支持透明保留输出编码器: prores_ks。'
+        '请在设置中指定带该编码器的 FFmpeg，或改用非透明素材。',
+      );
+    }
     ensureOutputFormatBelongsToKind(
       task.config.video?.outputFormat ?? MediaOutputFormat.mp4,
       MediaKind.video,
     );
 
     final outputPath = outputPathBuilder.buildOutputPath(task);
-    final targetCodec = encoderResolver.resolveTargetVideoCodec(task);
+    final targetCodec = preserveAlpha
+        ? VideoCodec.h264
+        : encoderResolver.resolveTargetVideoCodec(task);
     final recommendation = compressionAdvisor.recommend(
       task,
       allowExtremeCompression: allowExtremeCompression,
     );
-    final videoEncoder = encoderResolver.resolveVideoEncoderForTask(
-      task: task,
-      targetCodec: targetCodec,
-      backend: task.config.encoderBackend,
-      encoderCapabilities: encoderCapabilities,
-    );
+    final videoEncoder = preserveAlpha
+        ? 'prores_ks'
+        : encoderResolver.resolveVideoEncoderForTask(
+            task: task,
+            targetCodec: targetCodec,
+            backend: task.config.encoderBackend,
+            encoderCapabilities: encoderCapabilities,
+          );
     ensureCompressionConfirmed(task, recommendation);
     final steps = stepBuilder.buildCommandSteps(
       task: task,
@@ -134,7 +148,81 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
     ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.image);
 
-    final outputPath = outputPathBuilder.buildOutputPath(task);
+    final primaryConfig = config.copyWith(
+      outputFormat: imagePrimaryOutputFormatFor(task, config),
+      losslessCompression:
+          task.purpose == TaskPurpose.compression && config.losslessCompression,
+    );
+    final primaryTask = task.copyWith(
+      config: task.config.copyWith(image: primaryConfig),
+    );
+
+    final outputPath = outputPathBuilder.buildOutputPath(primaryTask);
+    final fallbackFormat = task.purpose == TaskPurpose.compression
+        ? imageFallbackFormatFor(
+            primaryTask,
+            primaryConfig,
+            encoderCapabilities,
+          )
+        : null;
+    final steps = <FfmpegCommandStep>[
+      buildImageCommandStep(
+        task: primaryTask,
+        config: primaryConfig,
+        outputPath: outputPath,
+        encoderCapabilities: encoderCapabilities,
+        label: '按当前图片格式生成输出文件',
+        completionPolicy: task.purpose == TaskPurpose.compression
+            ? (fallbackFormat == null
+                  ? FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource
+                  : FfmpegStepCompletionPolicy
+                        .completeIfOutputSmallerThanSource)
+            : FfmpegStepCompletionPolicy.alwaysContinue,
+      ),
+    ];
+
+    if (fallbackFormat != null) {
+      final fallbackConfig = primaryConfig.copyWith(
+        outputFormat: fallbackFormat,
+        keepOriginalOutputFormat: false,
+      );
+      final fallbackTask = primaryTask.copyWith(
+        config: task.config.copyWith(image: fallbackConfig),
+      );
+      steps.add(
+        buildImageCommandStep(
+          task: fallbackTask,
+          config: fallbackConfig,
+          outputPath: outputPathBuilder.buildOutputPath(fallbackTask),
+          encoderCapabilities: encoderCapabilities,
+          label: '改用 ${fallbackFormat.name.toUpperCase()} 再次压缩图片',
+          completionPolicy:
+              FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+          policyTagsOnStart: const {MediaTaskPolicyTag.imageFormatFallback},
+        ),
+      );
+    }
+    final args = steps.last.args;
+
+    return FfmpegCommandPlan(
+      args: args,
+      steps: steps,
+      outputPath: outputPath,
+      logHint:
+          '图片处理 ${primaryConfig.outputFormat.name} '
+          '${primaryConfig.losslessCompression ? '无损压缩' : '质量 ${primaryConfig.imageQuality}'}',
+    );
+  }
+
+  FfmpegCommandStep buildImageCommandStep({
+    required MediaTask task,
+    required ImageProcessingConfig config,
+    required String outputPath,
+    required FfmpegEncoderCapabilities encoderCapabilities,
+    required String label,
+    required FfmpegStepCompletionPolicy completionPolicy,
+    Set<MediaTaskPolicyTag> policyTagsOnStart = const {},
+  }) {
     final args = <String>[
       '-hide_banner',
       '-y',
@@ -142,20 +230,17 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       task.inputPath,
       ...buildImageFilterArgs(config),
       ...buildImageOutputArgs(config, encoderCapabilities),
+      ...argumentBuilder.buildThreadArgs(task),
       outputPath,
     ];
-    final step = FfmpegCommandStep(
+
+    return FfmpegCommandStep(
       args: args,
-      label: '生成图片输出文件',
+      label: label,
       outputPath: outputPath,
       progressMode: ProgressMode.step,
-    );
-
-    return FfmpegCommandPlan(
-      args: args,
-      steps: [step],
-      outputPath: outputPath,
-      logHint: '图片处理 ${config.outputFormat.name} 质量 ${config.imageQuality}',
+      completionPolicy: completionPolicy,
+      policyTagsOnStart: policyTagsOnStart,
     );
   }
 
@@ -179,6 +264,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-vn',
       ...buildAudioOutputArgs(config, encoderCapabilities),
       ...buildAudioMetadataArgs(config),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,
@@ -233,6 +319,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       outputPath,
     ];
 
@@ -282,6 +369,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     switch (config.outputFormat) {
       case MediaOutputFormat.jpg:
+        ensureLosslessImageFormatSupported(config);
         return [
           '-frames:v',
           '1',
@@ -303,15 +391,33 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           '1',
           '-c:v',
           'libwebp',
-          '-quality',
-          config.imageQuality.toString(),
+          if (config.losslessCompression) ...[
+            '-lossless',
+            '1',
+            '-compression_level',
+            '6',
+            '-quality',
+            '100',
+          ] else ...[
+            '-quality',
+            config.imageQuality.toString(),
+          ],
           ...metadataArgs,
         ];
       case MediaOutputFormat.bmp:
+        ensureLosslessImageFormatSupported(config);
         return ['-frames:v', '1', '-c:v', 'bmp', ...metadataArgs];
       case MediaOutputFormat.tiff:
-        return ['-frames:v', '1', '-c:v', 'tiff', ...metadataArgs];
+        return [
+          '-frames:v',
+          '1',
+          '-c:v',
+          'tiff',
+          if (config.losslessCompression) ...['-compression_algo', 'deflate'],
+          ...metadataArgs,
+        ];
       case MediaOutputFormat.gif:
+        ensureLosslessImageFormatSupported(config);
         return ['-frames:v', '1', '-c:v', 'gif', ...metadataArgs];
       case MediaOutputFormat.mp4:
       case MediaOutputFormat.mov:
@@ -329,6 +435,106 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           '图片任务不支持输出 ${config.outputFormat.name}',
         );
     }
+  }
+
+  MediaOutputFormat? imageFallbackFormatFor(
+    MediaTask task,
+    ImageProcessingConfig config,
+    FfmpegEncoderCapabilities encoderCapabilities,
+  ) {
+    if (!config.keepOriginalOutputFormat) {
+      return null;
+    }
+
+    if (config.losslessCompression) {
+      if (config.outputFormat != MediaOutputFormat.webp &&
+          encoderCapabilities.supportsImageEncoder('libwebp')) {
+        return MediaOutputFormat.webp;
+      }
+      return null;
+    }
+
+    final hasAlpha = imageHasAlpha(task);
+    if (config.outputFormat != MediaOutputFormat.webp &&
+        encoderCapabilities.supportsImageEncoder('libwebp')) {
+      return MediaOutputFormat.webp;
+    }
+
+    if (!hasAlpha && config.outputFormat != MediaOutputFormat.jpg) {
+      return MediaOutputFormat.jpg;
+    }
+
+    return null;
+  }
+
+  MediaOutputFormat imagePrimaryOutputFormatFor(
+    MediaTask task,
+    ImageProcessingConfig config,
+  ) {
+    final format = !config.keepOriginalOutputFormat
+        ? config.outputFormat
+        : imageFormatFromCodec(task.analysisResult?.imageCodec) ??
+              imageFormatFromExtension(path.extension(task.fileName)) ??
+              imageFormatFromExtension(path.extension(task.inputPath)) ??
+              config.outputFormat;
+
+    if (config.losslessCompression &&
+        !supportsLosslessImageCompression(format)) {
+      return MediaOutputFormat.webp;
+    }
+    return format;
+  }
+
+  void ensureLosslessImageFormatSupported(ImageProcessingConfig config) {
+    if (config.losslessCompression &&
+        !supportsLosslessImageCompression(config.outputFormat)) {
+      throw FfmpegCommandBuildException(
+        '${config.outputFormat.name.toUpperCase()} 不支持无损图片压缩，'
+        '请改用 PNG、WebP 或 TIFF。',
+      );
+    }
+  }
+
+  MediaOutputFormat? imageFormatFromCodec(String? codec) {
+    final normalized = codec?.trim().toLowerCase();
+    return switch (normalized) {
+      'jpeg' || 'mjpeg' || 'jpg' => MediaOutputFormat.jpg,
+      'png' => MediaOutputFormat.png,
+      'webp' => MediaOutputFormat.webp,
+      'bmp' => MediaOutputFormat.bmp,
+      'tiff' || 'tif' => MediaOutputFormat.tiff,
+      'gif' => MediaOutputFormat.gif,
+      _ => null,
+    };
+  }
+
+  MediaOutputFormat? imageFormatFromExtension(String extension) {
+    return switch (extension.trim().toLowerCase()) {
+      '.jpeg' || '.jpg' => MediaOutputFormat.jpg,
+      '.png' => MediaOutputFormat.png,
+      '.webp' => MediaOutputFormat.webp,
+      '.bmp' => MediaOutputFormat.bmp,
+      '.tiff' || '.tif' => MediaOutputFormat.tiff,
+      '.gif' => MediaOutputFormat.gif,
+      _ => null,
+    };
+  }
+
+  bool imageHasAlpha(MediaTask task) {
+    final pixelFormat = task.analysisResult?.imagePixelFormat
+        ?.trim()
+        .toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return task.config.image?.outputFormat == MediaOutputFormat.png ||
+          task.config.image?.outputFormat == MediaOutputFormat.webp;
+    }
+
+    return pixelFormat.startsWith('yuva') ||
+        pixelFormat == 'rgba' ||
+        pixelFormat == 'bgra' ||
+        pixelFormat == 'argb' ||
+        pixelFormat == 'abgr' ||
+        pixelFormat.startsWith('gbrap');
   }
 
   int jpegQualityScale(int quality) {

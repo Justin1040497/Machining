@@ -1,1 +1,1 @@
-enum AppNotificationKind { general, settings, task, update }
+enum AppNotificationKind { general, settings, task, update, interaction }

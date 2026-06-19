@@ -3,6 +3,8 @@ abstract interface class FileSelectionService {
 
   Future<String?> pickMediaFile();
 
+  Future<String?> pickMediaDirectory();
+
   Future<String?> pickOutputDirectory();
 
   Future<String?> pickExecutablePath();

@@ -13,6 +13,7 @@ enum TaskContextMenuAction {
   relinkSource,
   rename,
   showLog,
+  moveToFolder,
   delete,
 }
 

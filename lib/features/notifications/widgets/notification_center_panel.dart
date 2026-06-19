@@ -466,13 +466,6 @@ class _NotificationListItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (actions.isNotEmpty)
-                        _NotificationActionButtons(
-                          actions: actions,
-                          onRevealOutput: onRevealOutput,
-                          onOpenUpdateLog: onOpenUpdateLog,
-                          onStartUpdateDownload: onStartUpdateDownload,
-                        ),
                     ],
                   ),
                   const SizedBox(height: 5),
@@ -497,6 +490,15 @@ class _NotificationListItem extends StatelessWidget {
                           fontWeight: FontWeight.w400,
                         ),
                       ),
+                    ),
+                  ],
+                  if (actions.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    _NotificationActionButtons(
+                      actions: actions,
+                      onRevealOutput: onRevealOutput,
+                      onOpenUpdateLog: onOpenUpdateLog,
+                      onStartUpdateDownload: onStartUpdateDownload,
                     ),
                   ],
                 ],
@@ -573,41 +575,23 @@ class _NotificationActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final label = action.label;
+    final label = action.label ?? _labelForAction(action.type);
     return Tooltip(
       message: action.tooltip,
-      child: label == null
-          ? IconButton(
-              key: Key(_keyForIconAction(action.type)),
-              onPressed: _onPressed,
-              icon: Icon(_iconForAction(action.type), size: 15),
-              color: colors.textPrimary,
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 24, height: 24),
-              style: IconButton.styleFrom(
-                hoverColor: colors.surfaceMuted,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-            )
-          : TextButton(
-              key: const Key('notification-text-action'),
-              onPressed: _onPressed,
-              style: TextButton.styleFrom(
-                minimumSize: const Size(36, 24),
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                foregroundColor: colors.primary,
-                textStyle: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              child: Text(label),
-            ),
+      child: FilledButton(
+        key: Key(_keyForAction(action.type)),
+        onPressed: _onPressed,
+        style: FilledButton.styleFrom(
+          minimumSize: const Size(36, 26),
+          padding: const EdgeInsets.symmetric(horizontal: 9),
+          backgroundColor: colors.primary,
+          foregroundColor: Colors.white,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+        ),
+        child: Text(label),
+      ),
     );
   }
 
@@ -631,16 +615,15 @@ class _NotificationActionButton extends StatelessWidget {
     };
   }
 
-  IconData _iconForAction(NotificationCenterActionType type) {
+  String _labelForAction(NotificationCenterActionType type) {
     return switch (type) {
-      NotificationCenterActionType.revealOutput => Icons.folder_outlined,
-      NotificationCenterActionType.openUpdateLog => Icons.article_outlined,
-      NotificationCenterActionType.startUpdateDownload =>
-        Icons.file_download_outlined,
+      NotificationCenterActionType.revealOutput => '打开输出文件位置',
+      NotificationCenterActionType.openUpdateLog => '查看版本日志',
+      NotificationCenterActionType.startUpdateDownload => '下载更新',
     };
   }
 
-  String _keyForIconAction(NotificationCenterActionType type) {
+  String _keyForAction(NotificationCenterActionType type) {
     return switch (type) {
       NotificationCenterActionType.revealOutput => 'notification-reveal-output',
       NotificationCenterActionType.openUpdateLog => 'notification-update-log',

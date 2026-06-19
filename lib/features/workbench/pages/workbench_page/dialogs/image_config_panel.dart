@@ -5,7 +5,7 @@ import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchImageConfigPanel extends StatelessWidget {
@@ -13,6 +13,7 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
     super.key,
     required this.config,
     required this.onChanged,
+    this.showLosslessCompression = true,
     this.sourceOutputFormat,
     this.sourceWidth,
     this.sourceHeight,
@@ -26,6 +27,7 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
 
   final ImageProcessingConfig config;
   final ValueChanged<ImageProcessingConfig> onChanged;
+  final bool showLosslessCompression;
   final MediaOutputFormat? sourceOutputFormat;
   final int? sourceWidth;
   final int? sourceHeight;
@@ -38,27 +40,58 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final imageFormats = MediaOutputFormat.formatsFor(MediaKind.image);
+    final allImageFormats = MediaOutputFormat.formatsFor(MediaKind.image);
+    final imageFormats = config.losslessCompression && showLosslessCompression
+        ? allImageFormats
+              .where(supportsLosslessImageCompression)
+              .toList(growable: false)
+        : allImageFormats;
     final selectedOutputFormat = imageFormats.contains(config.outputFormat)
         ? config.outputFormat
-        : MediaOutputFormat.jpg;
+        : imageFormats.first;
     final resizeValues = _resizeValues();
     final selectedResizePreset = resizeValues.contains(config.resizePreset)
         ? config.resizePreset
         : ImageResizePreset.original;
 
-    return SingleChildScrollView(
+    return Padding(
       padding: padding,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
-          _ImageQualitySelector(
-            quality: config.imageQuality,
-            onChanged: (value) {
-              onChanged(config.copyWith(imageQuality: value));
-            },
+          Row(
+            children: [
+              if (showLosslessCompression) ...[
+                ConfigCheckbox(
+                  label: '无损压缩',
+                  value: config.losslessCompression,
+                  height: dropdownHeight ?? 34,
+                  fontSize: labelFontSize,
+                  onChanged: _setLosslessCompression,
+                ),
+                const SizedBox(width: 24),
+              ],
+              ConfigCheckbox(
+                label: '保留元数据',
+                value: config.preserveMetadata,
+                height: dropdownHeight ?? 34,
+                fontSize: labelFontSize,
+                onChanged: (value) {
+                  onChanged(config.copyWith(preserveMetadata: value));
+                },
+              ),
+            ],
           ),
           SizedBox(height: itemSpacing),
+          if (!showLosslessCompression || !config.losslessCompression) ...[
+            _ImageQualitySelector(
+              quality: config.imageQuality,
+              onChanged: (value) {
+                onChanged(config.copyWith(imageQuality: value));
+              },
+            ),
+            SizedBox(height: itemSpacing),
+          ],
           ConfigDropdown<MediaOutputFormat>(
             label: '图片格式',
             trailingText: _formatLabel(selectedOutputFormat),
@@ -97,18 +130,27 @@ class WorkbenchImageConfigPanel extends StatelessWidget {
               }
             },
           ),
-
-          SizedBox(height: itemSpacing),
-          _PreserveMetadataSwitch(
-            value: config.preserveMetadata,
-            height: dropdownHeight,
-            labelFontSize: labelFontSize,
-            valueFontSize: valueFontSize,
-            onChanged: (value) {
-              onChanged(config.copyWith(preserveMetadata: value));
-            },
-          ),
         ],
+      ),
+    );
+  }
+
+  void _setLosslessCompression(bool value) {
+    if (!value) {
+      onChanged(config.copyWith(losslessCompression: false));
+      return;
+    }
+
+    final outputFormat = supportsLosslessImageCompression(config.outputFormat)
+        ? config.outputFormat
+        : MediaOutputFormat.webp;
+    onChanged(
+      config.copyWith(
+        outputFormat: outputFormat,
+        keepOriginalOutputFormat:
+            config.keepOriginalOutputFormat &&
+            outputFormat == sourceOutputFormat,
+        losslessCompression: true,
       ),
     );
   }
@@ -179,63 +221,6 @@ class _ImageQualitySelector extends StatelessWidget {
       values: MediaConfigurationUiConstants.imageQualityRatios,
       selectedValue: selectedQualityRatio,
       onChanged: (value) => onChanged((value * 100).round()),
-    );
-  }
-}
-
-class _PreserveMetadataSwitch extends StatelessWidget {
-  const _PreserveMetadataSwitch({
-    required this.value,
-    required this.height,
-    required this.labelFontSize,
-    required this.valueFontSize,
-    required this.onChanged,
-  });
-
-  final bool value;
-  final double? height;
-  final double labelFontSize;
-  final double valueFontSize;
-  final ValueChanged<bool> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-
-    return SizedBox(
-      height: height ?? 34,
-      child: Row(
-        children: [
-          Transform.scale(
-            scale: 0.78,
-            child: Switch(
-              padding: EdgeInsets.zero,
-              value: value,
-              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              onChanged: onChanged,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '保留元数据',
-              style: TextStyle(
-                fontSize: labelFontSize.flSp,
-                color: colors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            value ? '开启' : '关闭',
-            style: TextStyle(
-              fontSize: valueFontSize.flSp,
-              color: colors.textPrimary,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

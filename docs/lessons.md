@@ -216,3 +216,15 @@
 关联：
 
 - 版本事实：`docs/releases/v1.1.0/ffmpeg-command-and-process-control.md`
+
+## Reorderable 外部状态回调不要放在内部 setState 中
+
+经验：
+
+- reorderable fork 计算 gap 时可以在内部 `setState` 中更新自身 item 动画，但不能在这个闭包内直接调用会重建父列表的业务回调。
+- 拖拽更新应合并到帧后回调；drop 决策与数据提交应分离，需要重建列表的排序提交等代理卸载后再执行。
+- 外部接收如果需要跨出纵向列表，必须显式允许跨轴拖动；Flutter 原生 reorderable 默认会锁定主轴。
+
+关联：
+
+- 决策：`docs/decisions/260619-shared-reorderable-list.md`

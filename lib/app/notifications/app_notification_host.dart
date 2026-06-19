@@ -142,16 +142,7 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
   Duration displayDurationFor(AppNotificationPresentation presentation) {
     final notification = presentation.notification;
     if (isTaskCompletionNotification(notification)) {
-      final showCompletionDialog =
-          ref
-              .read(appSettingsProvider)
-              .asData
-              ?.value
-              .showTaskCompletionDialog ??
-          true;
-      if (!showCompletionDialog) {
-        return const Duration(seconds: 8);
-      }
+      return const Duration(seconds: 8);
     }
 
     return switch (notification.level) {

@@ -14,6 +14,7 @@ class FfmpegEncoderCapabilities {
       'pcm_s16be',
       'wmav2',
       'libwebp',
+      'prores_ks',
     },
     autoBackendPriority: [],
   );
@@ -76,7 +77,11 @@ class FfmpegEncoderCapabilities {
     ).hasMatch(output);
   }
 
-  static const knownSoftwareEncoderNames = <String>{'libx264', 'libx265'};
+  static const knownSoftwareEncoderNames = <String>{
+    'libx264',
+    'libx265',
+    'prores_ks',
+  };
 
   static const knownAudioEncoderNames = <String>{
     'libmp3lame',
@@ -123,6 +128,7 @@ class FfmpegEncoderCapabilities {
         'pcm_s16be',
         'wmav2',
         'libwebp',
+        'prores_ks',
       },
       autoBackendPriority: autoBackendPriority,
     );

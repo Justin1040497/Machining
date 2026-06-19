@@ -31,6 +31,8 @@ void main() {
       hideNotificationBadge: false,
       showTaskCompletionDialog: true,
       taskCompletionSound: 'original_soft_a',
+      maxConcurrentExecutions: 2,
+      folderImportScanDepth: 2,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -54,8 +56,8 @@ void main() {
     );
     expect(settings.themeMode, AppThemeMode.dark);
     expect(settings.hideNotificationBadge, isFalse);
-    expect(settings.showTaskCompletionDialog, isTrue);
     expect(settings.taskCompletionSound, TaskCompletionSound.originalSoftA);
+    expect(settings.maxConcurrentExecutions, 2);
   });
 
   test('settings row prefers default media config json over legacy fields', () {
@@ -83,6 +85,8 @@ void main() {
       hideNotificationBadge: true,
       showTaskCompletionDialog: false,
       taskCompletionSound: 'servo_confirm',
+      maxConcurrentExecutions: 3,
+      folderImportScanDepth: 3,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -94,8 +98,8 @@ void main() {
     expect(settings.defaultMediaConfig.image?.imageQuality, 67);
     expect(settings.themeMode, AppThemeMode.light);
     expect(settings.hideNotificationBadge, isTrue);
-    expect(settings.showTaskCompletionDialog, isFalse);
     expect(settings.taskCompletionSound, TaskCompletionSound.servoConfirm);
+    expect(settings.maxConcurrentExecutions, 3);
   });
 
   test('settings row upgrades exact legacy media defaults', () {
@@ -130,6 +134,8 @@ void main() {
       hideNotificationBadge: true,
       showTaskCompletionDialog: true,
       taskCompletionSound: 'none',
+      maxConcurrentExecutions: 2,
+      folderImportScanDepth: 2,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -164,6 +170,8 @@ void main() {
       hideNotificationBadge: true,
       showTaskCompletionDialog: true,
       taskCompletionSound: 'unknown',
+      maxConcurrentExecutions: 2,
+      folderImportScanDepth: 2,
       createdAt: 1,
       updatedAt: 2,
     );
@@ -193,6 +201,8 @@ void main() {
         hideNotificationBadge: true,
         showTaskCompletionDialog: true,
         taskCompletionSound: 'none',
+        maxConcurrentExecutions: 2,
+        folderImportScanDepth: 2,
         createdAt: 1,
         updatedAt: 2,
       );
@@ -230,7 +240,6 @@ void main() {
           defaultMediaConfig: mediaConfig,
           themeMode: AppThemeMode.dark,
           hideNotificationBadge: false,
-          showTaskCompletionDialog: false,
           taskCompletionSound: TaskCompletionSound.mechanicalKey,
         ),
       );
@@ -246,7 +255,7 @@ void main() {
       );
       expect(row.themeMode, 'dark');
       expect(row.hideNotificationBadge, isFalse);
-      expect(row.showTaskCompletionDialog, isFalse);
+      expect(row.showTaskCompletionDialog, isTrue);
       expect(row.taskCompletionSound, 'mechanical_key');
       expect(savedConfig.video?.videoCodec, VideoCodec.hevc);
       expect(savedConfig.image?.imageQuality, 71);

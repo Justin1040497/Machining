@@ -22,6 +22,28 @@ class MediaTaskSortOrderUpdate {
   int get hashCode => Object.hash(taskId, sortOrder);
 }
 
+class MediaTaskFolderSortOrderUpdate {
+  const MediaTaskFolderSortOrderUpdate({
+    required this.taskId,
+    required this.folderSortOrder,
+  });
+
+  final String taskId;
+  final int folderSortOrder;
+
+  @override
+  bool operator ==(Object other) {
+    return identical(this, other) ||
+        other is MediaTaskFolderSortOrderUpdate &&
+            runtimeType == other.runtimeType &&
+            taskId == other.taskId &&
+            folderSortOrder == other.folderSortOrder;
+  }
+
+  @override
+  int get hashCode => Object.hash(taskId, folderSortOrder);
+}
+
 /// 任务存储抽象
 abstract class MediaTaskRepository {
   /// 读取当前全部任务
@@ -35,6 +57,11 @@ abstract class MediaTaskRepository {
 
   /// 只更新任务排序字段，避免排序操作覆盖运行中任务状态。
   Future<void> updateTaskSortOrders(List<MediaTaskSortOrderUpdate> updates);
+
+  /// 只更新夹内任务排序字段，避免排序操作覆盖运行中任务状态。
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  );
 
   /// 按任务 ID 删除任务
   Future<void> deleteTaskById(String taskId);

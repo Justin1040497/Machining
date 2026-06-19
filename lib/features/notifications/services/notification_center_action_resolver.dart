@@ -49,6 +49,7 @@ abstract final class NotificationCenterActionResolver {
         type: NotificationCenterActionType.revealOutput,
         target: outputPath,
         tooltip: '打开成果物所在位置',
+        label: '打开输出文件位置',
       ),
     ];
   }
@@ -78,7 +79,7 @@ abstract final class NotificationCenterActionResolver {
           type: NotificationCenterActionType.openUpdateLog,
           target: target,
           tooltip: '查看版本日志',
-          label: '日志',
+          label: '查看版本日志',
         ),
       ];
     }
@@ -88,13 +89,14 @@ abstract final class NotificationCenterActionResolver {
         type: NotificationCenterActionType.openUpdateLog,
         target: target,
         tooltip: '查看版本日志',
-        label: '前往',
+        label: '查看版本日志',
       ),
       if (payload.status == AppUpdateStatus.available)
         NotificationCenterActionDescriptor(
           type: NotificationCenterActionType.startUpdateDownload,
           target: target,
           tooltip: '下载更新',
+          label: '下载更新',
         ),
     ];
   }

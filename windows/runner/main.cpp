@@ -10,12 +10,10 @@
 
 namespace {
 
-constexpr unsigned int kDefaultWindowWidth = 940;
+constexpr unsigned int kDefaultWindowWidth = 760;
 constexpr unsigned int kDefaultWindowHeight = 720;
-constexpr double kWindowWidthRatio = 0.62;
 constexpr double kWindowHeightRatio = 0.76;
 constexpr double kWindowMargin = 32.0;
-constexpr double kMaxWindowWidth = 1320.0;
 constexpr double kMaxWindowHeight = 920.0;
 
 Win32Window::Size AdaptivePrimaryMonitorSize() {
@@ -37,9 +35,7 @@ Win32Window::Size AdaptivePrimaryMonitorSize() {
       (work_area.bottom - work_area.top) / scale_factor;
   const double usable_width = std::max(360.0, logical_width - kWindowMargin);
   const double usable_height = std::max(360.0, logical_height - kWindowMargin);
-  const double target_width =
-      std::clamp(logical_width * kWindowWidthRatio,
-                 static_cast<double>(kDefaultWindowWidth), kMaxWindowWidth);
+  const double target_width = static_cast<double>(kDefaultWindowWidth);
   const double target_height =
       std::clamp(logical_height * kWindowHeightRatio,
                  static_cast<double>(kDefaultWindowHeight), kMaxWindowHeight);

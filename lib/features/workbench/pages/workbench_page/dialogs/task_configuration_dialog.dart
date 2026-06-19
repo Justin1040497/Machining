@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:framelean/application/services/ffmpeg_planning/compression_estimator.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
@@ -10,6 +11,8 @@ import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/two_pass_mode.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
@@ -24,10 +27,12 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 
 @immutable
 class WorkbenchTaskConfigurationDraft {
   const WorkbenchTaskConfigurationDraft({
+    required this.purpose,
     required this.qualityIndex,
     required this.outputFormat,
     required this.videoCodec,
@@ -39,6 +44,7 @@ class WorkbenchTaskConfigurationDraft {
     required this.config,
   });
 
+  final TaskPurpose purpose;
   final int qualityIndex;
   final OutputFormat outputFormat;
   final VideoCodec videoCodec;
@@ -54,6 +60,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   required BuildContext context,
   required MediaTask task,
   required ImageProvider? thumbnail,
+  String title = '任务详情设置',
   required int selectedQualityIndex,
   required OutputFormat selectedOutputFormat,
   required VideoCodec selectedVideoCodec,
@@ -62,8 +69,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   required CompressionMode selectedCompressionMode,
   required SmartCompressionPreset selectedSmartPreset,
   required double selectedTargetSizeRatio,
-  required VoidCallback onOpenSource,
+  VoidCallback? onOpenSource,
 }) {
+  var draftPurpose = task.purpose;
   var draftQualityIndex = selectedQualityIndex;
   var draftOutputFormat = selectedOutputFormat;
   var draftVideoCodec = selectedVideoCodec;
@@ -129,6 +137,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
           return WorkbenchTaskConfigurationDialog(
             task: task,
             thumbnail: thumbnail,
+            title: title,
             selectedQualityIndex: draftQualityIndex,
             selectedOutputFormat: draftOutputFormat,
             selectedVideoCodec: draftVideoCodec,
@@ -137,6 +146,8 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             selectedCompressionMode: draftCompressionMode,
             selectedSmartPreset: draftSmartPreset,
             selectedTargetSizeRatio: draftTargetSizeRatio,
+            selectedPurpose: draftPurpose,
+            selectedConfig: draftConfig,
             selectedVideoConfig: draftConfig.video,
             selectedImageConfig: draftConfig.image,
             selectedAudioConfig: draftConfig.audio,
@@ -158,9 +169,15 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                   compressionMode: draftCompressionMode,
                   smartPreset: draftSmartPreset,
                   targetSizeRatio: draftTargetSizeRatio,
+                  purpose: draftPurpose,
                   config: draftConfig,
                 ),
               );
+            },
+            onPurposeChanged: (value) {
+              updateDialogState(() {
+                draftPurpose = value;
+              });
             },
             onCompressionModeChanged: (value) {
               if (preserveHdrActiveForDraft() &&
@@ -322,6 +339,29 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                 draftConfig = draftConfig.copyWith(audio: value);
               });
             },
+            onThreadLimitChanged: (value) {
+              updateDialogState(() {
+                draftConfig = draftConfig.copyWith(threadLimit: value);
+              });
+            },
+            onTwoPassModeChanged: (value) {
+              updateDialogState(() {
+                final currentVideo =
+                    draftConfig.video ?? VideoProcessingConfig.initial();
+                draftConfig = draftConfig.copyWith(
+                  video: currentVideo.copyWith(twoPassMode: value),
+                );
+              });
+            },
+            onSelectedAudioStreamIndexChanged: (value) {
+              updateDialogState(() {
+                final currentVideo =
+                    draftConfig.video ?? VideoProcessingConfig.initial();
+                draftConfig = draftConfig.copyWith(
+                  video: currentVideo.copyWith(selectedAudioStreamIndex: value),
+                );
+              });
+            },
           );
         },
       );
@@ -334,6 +374,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     super.key,
     required this.task,
     required this.thumbnail,
+    this.title = '任务详情设置',
     required this.selectedQualityIndex,
     required this.selectedOutputFormat,
     required this.selectedVideoCodec,
@@ -342,13 +383,16 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.selectedCompressionMode,
     required this.selectedSmartPreset,
     required this.selectedTargetSizeRatio,
+    this.selectedPurpose = TaskPurpose.compression,
+    this.selectedConfig,
     this.selectedVideoConfig,
     this.selectedImageConfig,
     this.selectedAudioConfig,
     required this.availableEncoderBackends,
     required this.onClose,
-    required this.onOpenSource,
+    this.onOpenSource,
     required this.onSave,
+    this.onPurposeChanged,
     required this.onCompressionModeChanged,
     required this.onSmartPresetChanged,
     required this.onTargetSizeRatioChanged,
@@ -361,10 +405,14 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     this.onVideoPreserveMetadataChanged,
     this.onImageConfigChanged,
     this.onAudioConfigChanged,
+    this.onThreadLimitChanged,
+    this.onTwoPassModeChanged,
+    this.onSelectedAudioStreamIndexChanged,
   });
 
   final MediaTask task;
   final ImageProvider? thumbnail;
+  final String title;
   final int selectedQualityIndex;
   final OutputFormat selectedOutputFormat;
   final VideoCodec selectedVideoCodec;
@@ -373,13 +421,16 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final CompressionMode selectedCompressionMode;
   final SmartCompressionPreset selectedSmartPreset;
   final double selectedTargetSizeRatio;
+  final TaskPurpose selectedPurpose;
+  final MediaTaskConfig? selectedConfig;
   final VideoProcessingConfig? selectedVideoConfig;
   final ImageProcessingConfig? selectedImageConfig;
   final AudioProcessingConfig? selectedAudioConfig;
   final List<EncoderBackend> availableEncoderBackends;
   final VoidCallback onClose;
-  final VoidCallback onOpenSource;
+  final VoidCallback? onOpenSource;
   final VoidCallback onSave;
+  final ValueChanged<TaskPurpose>? onPurposeChanged;
   final ValueChanged<CompressionMode> onCompressionModeChanged;
   final ValueChanged<SmartCompressionPreset> onSmartPresetChanged;
   final ValueChanged<double> onTargetSizeRatioChanged;
@@ -392,6 +443,9 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final ValueChanged<ResolutionPreset> onResolutionPresetChanged;
   final ValueChanged<ImageProcessingConfig>? onImageConfigChanged;
   final ValueChanged<AudioProcessingConfig>? onAudioConfigChanged;
+  final ValueChanged<int?>? onThreadLimitChanged;
+  final ValueChanged<TwoPassMode>? onTwoPassModeChanged;
+  final ValueChanged<int?>? onSelectedAudioStreamIndexChanged;
 
   @override
   State<WorkbenchTaskConfigurationDialog> createState() =>
@@ -400,6 +454,10 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
 
 class _WorkbenchTaskConfigurationDialogState
     extends State<WorkbenchTaskConfigurationDialog> {
+  static const _scrollbarThickness = 4.0;
+  static const _scrollbarGutter = 12.0;
+
+  final ScrollController _bodyScrollController = ScrollController();
   late CompressionMode _mode;
   String? _activePresetTitle;
 
@@ -453,6 +511,12 @@ class _WorkbenchTaskConfigurationDialogState
     if (_activePresetTitle != nextPresetTitle) {
       _activePresetTitle = nextPresetTitle;
     }
+  }
+
+  @override
+  void dispose() {
+    _bodyScrollController.dispose();
+    super.dispose();
   }
 
   CompressionMode _effectiveMode(CompressionMode mode) {
@@ -511,70 +575,151 @@ class _WorkbenchTaskConfigurationDialogState
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 410),
-        child: SingleChildScrollView(
+        child: SizedBox(
+          width: double.infinity,
+          height: double.infinity,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 22, 25, 21),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
               children: [
-                WorkbenchDialogBackHeader(
-                  title: '任务详情设置',
-                  onClose: widget.onClose,
-                  trailing: SizedBox(
-                    width: 28,
-                    height: 28,
-                    child: IconButton(
-                      tooltip: '打开源文件所在位置',
-                      onPressed: widget.onOpenSource,
-                      padding: EdgeInsets.zero,
-                      icon: Icon(
-                        Icons.open_in_new_rounded,
-                        color: colors.textPrimary,
-                        size: 16,
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: WorkbenchDialogBackHeader(
+                    title: widget.title,
+                    onClose: widget.onClose,
+                    trailing: widget.onOpenSource == null
+                        ? null
+                        : SizedBox(
+                            width: 28,
+                            height: 28,
+                            child: IconButton(
+                              tooltip: '打开源文件所在位置',
+                              onPressed: widget.onOpenSource,
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                Icons.open_in_new_rounded,
+                                color: colors.textPrimary,
+                                size: 16,
+                              ),
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned.fill(
+                  top: 46,
+                  bottom: 50,
+                  child: ScrollConfiguration(
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(scrollbars: false),
+                    child: Scrollbar(
+                      controller: _bodyScrollController,
+                      thumbVisibility: false,
+                      trackVisibility: false,
+                      thickness: _scrollbarThickness,
+                      radius: const Radius.circular(4),
+                      interactive: true,
+                      child: SingleChildScrollView(
+                        controller: _bodyScrollController,
+                        physics: const ClampingScrollPhysics(),
+                        padding: const EdgeInsets.only(right: _scrollbarGutter),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            WorkbenchSourceSummary(
+                              task: widget.task,
+                              thumbnail: widget.thumbnail,
+                            ),
+                            const SizedBox(height: 14),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 34,
+                              child:
+                                  CupertinoSlidingSegmentedControl<TaskPurpose>(
+                                    groupValue: widget.selectedPurpose,
+                                    backgroundColor: colors.surfaceDisabled,
+                                    thumbColor: colors.surface,
+                                    padding: const EdgeInsets.all(3),
+                                    children: const {
+                                      TaskPurpose.compression: Text('压缩'),
+                                      TaskPurpose.conversion: Text('格式转换'),
+                                    },
+                                    onValueChanged: (value) {
+                                      if (value != null) {
+                                        widget.onPurposeChanged?.call(value);
+                                      }
+                                    },
+                                  ),
+                            ),
+                            const SizedBox(height: 14),
+                            if (isVideoTask &&
+                                widget.selectedPurpose ==
+                                    TaskPurpose.compression) ...[
+                              WorkbenchCompressionOptionsSection(
+                                mode: _mode,
+                                presets: _recommendedPresets,
+                                selectedQualityIndex:
+                                    widget.selectedQualityIndex,
+                                activePresetTitle: _activePresetTitle,
+                                selectedTargetSizeRatio:
+                                    widget.selectedTargetSizeRatio,
+                                estimatedSizeForPreset:
+                                    _estimatedOutputSizeForPreset,
+                                targetSizeModeEnabled: !preserveHdr,
+                                isPresetEnabled: _isPresetEnabled,
+                                onModeChanged: (mode) {
+                                  if (preserveHdr &&
+                                      mode == CompressionMode.targetSize) {
+                                    return;
+                                  }
+                                  setState(() {
+                                    _mode = mode;
+                                  });
+                                  widget.onCompressionModeChanged(mode);
+                                },
+                                onPresetSelected: _applyPreset,
+                                onTargetSizeRatioChanged:
+                                    widget.onTargetSizeRatioChanged,
+                              ),
+                              const SizedBox(height: 14),
+                            ],
+                            _buildMediaConfigPanel(),
+                            const SizedBox(height: 14),
+                            _AdvancedTaskSettingsSection(
+                              task: widget.task,
+                              selectedConfig: _selectedMediaTaskConfig(),
+                              selectedVideoConfig:
+                                  widget.selectedVideoConfig ??
+                                  widget.task.config.video,
+                              onThreadLimitChanged:
+                                  widget.onThreadLimitChanged ?? (_) {},
+                              onTwoPassModeChanged:
+                                  widget.onTwoPassModeChanged ?? (_) {},
+                              onSelectedAudioStreamIndexChanged:
+                                  widget.onSelectedAudioStreamIndexChanged ??
+                                  (_) {},
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(height: 18),
-                WorkbenchSourceSummary(
-                  task: widget.task,
-                  thumbnail: widget.thumbnail,
-                ),
-                const SizedBox(height: 14),
-                if (isVideoTask) ...[
-                  WorkbenchCompressionOptionsSection(
-                    mode: _mode,
-                    presets: _recommendedPresets,
-                    selectedQualityIndex: widget.selectedQualityIndex,
-                    activePresetTitle: _activePresetTitle,
-                    selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
-                    estimatedSizeForPreset: _estimatedOutputSizeForPreset,
-                    targetSizeModeEnabled: !preserveHdr,
-                    isPresetEnabled: _isPresetEnabled,
-                    onModeChanged: (mode) {
-                      if (preserveHdr && mode == CompressionMode.targetSize) {
-                        return;
-                      }
-                      setState(() {
-                        _mode = mode;
-                      });
-                      widget.onCompressionModeChanged(mode);
-                    },
-                    onPresetSelected: _applyPreset,
-                    onTargetSizeRatioChanged: widget.onTargetSizeRatioChanged,
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: WorkbenchDialogActions(
+                    leading: WorkbenchTaskConfigurationStatusBadges(
+                      modified: modified,
+                      compressed: compressed,
+                    ),
+                    onCancel: widget.onClose,
+                    onSave: widget.onSave,
                   ),
-                  const SizedBox(height: 14),
-                ],
-                _buildMediaConfigPanel(),
-                const SizedBox(height: 22),
-                WorkbenchDialogActions(
-                  leading: WorkbenchTaskConfigurationStatusBadges(
-                    modified: modified,
-                    compressed: compressed,
-                  ),
-                  onCancel: widget.onClose,
-                  onSave: widget.onSave,
                 ),
               ],
             ),
@@ -655,6 +800,8 @@ class _WorkbenchTaskConfigurationDialogState
         return WorkbenchImageConfigPanel(
           config: imageConfig,
           onChanged: widget.onImageConfigChanged ?? (_) {},
+          showLosslessCompression:
+              widget.selectedPurpose == TaskPurpose.compression,
           sourceOutputFormat: sourceOutputFormat,
           sourceWidth:
               widget.task.analysisResult?.imageWidth ??
@@ -689,6 +836,12 @@ class _WorkbenchTaskConfigurationDialogState
   }
 
   bool _isModified() {
+    if (widget.task.purpose != widget.selectedPurpose ||
+        widget.task.config.threadLimit !=
+            _selectedMediaTaskConfig().threadLimit) {
+      return true;
+    }
+
     switch (widget.task.mediaKind) {
       case MediaKind.video:
         final adjustedFromSource =
@@ -724,6 +877,8 @@ class _WorkbenchTaskConfigurationDialogState
     ImageProcessingConfig current,
   ) {
     return initial.outputFormat != current.outputFormat ||
+        initial.keepOriginalOutputFormat != current.keepOriginalOutputFormat ||
+        initial.losslessCompression != current.losslessCompression ||
         initial.imageQuality != current.imageQuality ||
         initial.resizePreset != current.resizePreset ||
         initial.preserveMetadata != current.preserveMetadata;
@@ -741,7 +896,9 @@ class _WorkbenchTaskConfigurationDialogState
         initial.resolutionPreset != current.resolutionPreset ||
         initial.compressionCrf != current.compressionCrf ||
         initial.smartPreset != current.smartPreset ||
-        initial.preserveMetadata != current.preserveMetadata;
+        initial.preserveMetadata != current.preserveMetadata ||
+        initial.twoPassMode != current.twoPassMode ||
+        initial.selectedAudioStreamIndex != current.selectedAudioStreamIndex;
   }
 
   bool _audioConfigChanged(
@@ -792,6 +949,10 @@ class _WorkbenchTaskConfigurationDialogState
     );
   }
 
+  MediaTaskConfig _selectedMediaTaskConfig() {
+    return widget.selectedConfig ?? widget.task.config;
+  }
+
   List<ResolutionPreset> _resolutionValues() {
     final width = widget.task.analysisResult?.videoWidth;
     final height = widget.task.analysisResult?.videoHeight;
@@ -822,6 +983,152 @@ class _WorkbenchTaskConfigurationDialogState
       ResolutionPreset.p1080 => (width: 1920, height: 1080),
       ResolutionPreset.p720 => (width: 1280, height: 720),
       ResolutionPreset.p480 => (width: 854, height: 480),
+    };
+  }
+}
+
+class _AdvancedTaskSettingsSection extends StatelessWidget {
+  const _AdvancedTaskSettingsSection({
+    required this.task,
+    required this.selectedConfig,
+    required this.selectedVideoConfig,
+    required this.onThreadLimitChanged,
+    required this.onTwoPassModeChanged,
+    required this.onSelectedAudioStreamIndexChanged,
+  });
+
+  final MediaTask task;
+  final MediaTaskConfig selectedConfig;
+  final VideoProcessingConfig? selectedVideoConfig;
+  final ValueChanged<int?> onThreadLimitChanged;
+  final ValueChanged<TwoPassMode> onTwoPassModeChanged;
+  final ValueChanged<int?> onSelectedAudioStreamIndexChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final videoConfig =
+        selectedVideoConfig ??
+        task.config.video ??
+        VideoProcessingConfig.initial();
+    final audioStreams = task.analysisResult?.audioStreams ?? const [];
+
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(color: colors.border),
+        ),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+          collapsedIconColor: colors.iconMuted,
+          iconColor: colors.textPrimary,
+          title: Text(
+            '高级设置',
+            style: TextStyle(
+              color: colors.textPrimary,
+              fontSize: 12.flSp,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          children: [
+            ConfigDropdown<int>(
+              label: '线程限制',
+              trailingText: '',
+              value: _threadLimitValue(selectedConfig.threadLimit),
+              values: const [0, 1, 2, 3, 4, 6, 8],
+              itemLabel: (value) => value == 0 ? '自动' : '$value 线程',
+              onChanged: (value) {
+                if (value == null) {
+                  return;
+                }
+                onThreadLimitChanged(value == 0 ? null : value);
+              },
+              height: 34,
+              showTrailingText: false,
+              labelFontSize: 12,
+              valueFontSize: 12,
+            ),
+            if (task.mediaKind == MediaKind.video) ...[
+              const SizedBox(height: 12),
+              ConfigDropdown<TwoPassMode>(
+                label: '两遍压缩',
+                trailingText: '',
+                value: videoConfig.twoPassMode,
+                values: TwoPassMode.values,
+                itemLabel: _twoPassModeLabel,
+                onChanged: (value) {
+                  if (value == null) {
+                    return;
+                  }
+                  onTwoPassModeChanged(value);
+                },
+                height: 34,
+                showTrailingText: false,
+                labelFontSize: 12,
+                valueFontSize: 12,
+              ),
+              if (audioStreams.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                ConfigDropdown<int>(
+                  label: '音频流',
+                  trailingText: '',
+                  value: _audioStreamValue(
+                    videoConfig.selectedAudioStreamIndex,
+                    audioStreams.map((stream) => stream.index),
+                  ),
+                  values: [-1, ...audioStreams.map((stream) => stream.index)],
+                  itemLabel: (value) {
+                    if (value == -1) {
+                      return '自动';
+                    }
+                    final stream = audioStreams.firstWhere(
+                      (stream) => stream.index == value,
+                      orElse: () => audioStreams.first,
+                    );
+                    return stream.displayLabel;
+                  },
+                  onChanged: (value) {
+                    if (value == null) {
+                      return;
+                    }
+                    onSelectedAudioStreamIndexChanged(
+                      value == -1 ? null : value,
+                    );
+                  },
+                  height: 34,
+                  showTrailingText: false,
+                  labelFontSize: 12,
+                  valueFontSize: 12,
+                ),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  int _threadLimitValue(int? value) {
+    const supportedValues = [0, 1, 2, 3, 4, 6, 8];
+    final normalized = value ?? 0;
+    return supportedValues.contains(normalized) ? normalized : 0;
+  }
+
+  int _audioStreamValue(int? value, Iterable<int> availableValues) {
+    if (value == null) {
+      return -1;
+    }
+    return availableValues.contains(value) ? value : -1;
+  }
+
+  String _twoPassModeLabel(TwoPassMode mode) {
+    return switch (mode) {
+      TwoPassMode.automatic => '自动',
+      TwoPassMode.enabled => '开启',
+      TwoPassMode.disabled => '关闭',
     };
   }
 }

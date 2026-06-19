@@ -1,8 +1,12 @@
+import 'dart:async';
+
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -27,7 +31,6 @@ import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/pages/workbench_page.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
@@ -35,6 +38,9 @@ import 'package:framelean/features/workbench/pages/workbench_page/layout/workben
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 
 void main() {
   testWidgets('recommended presets do not change resolution automatically', (
@@ -91,6 +97,8 @@ void main() {
   ) async {
     final modeChanges = <CompressionMode>[];
     final smartPresetChanges = <SmartCompressionPreset>[];
+    final preserveHdrChanges = <bool>[];
+    final metadataChanges = <bool>[];
     final videoConfig = VideoProcessingConfig.initial().copyWith(
       videoCodec: VideoCodec.hevc,
       hdrOutputMode: HdrOutputMode.preserveHdr,
@@ -152,10 +160,38 @@ void main() {
             onVideoCodecChanged: (_) {},
             onEncoderBackendChanged: (_) {},
             onResolutionPresetChanged: (_) {},
+            onPreserveHdrChanged: preserveHdrChanges.add,
+            onVideoPreserveMetadataChanged: metadataChanges.add,
           ),
         ),
       ),
     );
+
+    final purposeControl = tester
+        .widget<CupertinoSlidingSegmentedControl<TaskPurpose>>(
+          find.byWidgetPredicate(
+            (widget) => widget is CupertinoSlidingSegmentedControl<TaskPurpose>,
+          ),
+        );
+    final compressionControl = tester
+        .widget<CupertinoSlidingSegmentedControl<CompressionMode>>(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is CupertinoSlidingSegmentedControl<CompressionMode>,
+          ),
+        );
+    expect(purposeControl.groupValue, TaskPurpose.compression);
+    expect(
+      compressionControl.disabledChildren,
+      contains(CompressionMode.targetSize),
+    );
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsNWidgets(2));
+
+    tester.widget<Checkbox>(find.byType(Checkbox).first).onChanged?.call(false);
+    tester.widget<Checkbox>(find.byType(Checkbox).last).onChanged?.call(false);
+    expect(preserveHdrChanges, [false]);
+    expect(metadataChanges, [false]);
 
     await tester.tap(find.text('自定义目标体积'));
     await tester.pumpAndSettle();
@@ -281,6 +317,45 @@ void main() {
       expect(audioValues.outputFormat, OutputFormat.mkv);
       expect(imageValues.encoderBackend, EncoderBackend.videotoolbox);
       expect(audioValues.encoderBackend, EncoderBackend.videotoolbox);
+    },
+  );
+
+  test('opened task folder list is mutable when no folder is open', () {
+    final folderTasks = resolveOpenedTaskFolderTasks(
+      tasks: const [],
+      openedFolder: null,
+    );
+
+    expect(folderTasks, isEmpty);
+    expect(() => folderTasks.add(testTask()), returnsNormally);
+  });
+
+  test(
+    'opened task folder list only includes folder children in folder order',
+    () {
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（1）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final laterTask = testTask(
+        fileName: 'later.mp4',
+      ).copyWith(id: 'later', folderId: folder.id, folderSortOrder: 2);
+      final earlierTask = testTask(
+        fileName: 'earlier.mp4',
+      ).copyWith(id: 'earlier', folderId: folder.id, folderSortOrder: 1);
+      final looseTask = testTask(fileName: 'loose.mp4').copyWith(id: 'loose');
+
+      final folderTasks = resolveOpenedTaskFolderTasks(
+        tasks: [laterTask, looseTask, earlierTask],
+        openedFolder: folder,
+      );
+
+      expect(folderTasks.map((task) => task.id), ['earlier', 'later']);
     },
   );
 
@@ -424,15 +499,20 @@ void main() {
     expect(find.text('图片格式'), findsOneWidget);
     expect(find.text('分辨率'), findsOneWidget);
     expect(find.text('质量'), findsOneWidget);
+    expect(find.text('无损压缩'), findsOneWidget);
     expect(find.text('保留80%的质量'), findsOneWidget);
     expect(find.text('100%'), findsOneWidget);
     expect(find.text('图片编码'), findsNothing);
     expect(find.text('尺寸'), findsNothing);
     expect(find.text('保留元数据'), findsOneWidget);
     expect(find.text('视频编码'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsNWidgets(2));
+    expect(find.text('开启'), findsNothing);
+    expect(find.text('关闭'), findsNothing);
     expect(
-      tester.getCenter(find.byType(Switch)).dx,
-      lessThan(tester.getCenter(find.text('保留元数据')).dx),
+      tester.getCenter(find.byType(Checkbox).first).dy,
+      tester.getCenter(find.byType(Checkbox).last).dy,
     );
 
     final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
@@ -460,8 +540,15 @@ void main() {
     final slider = tester.widget<Slider>(find.byType(Slider));
     slider.onChanged?.call(9);
 
-    final metadataSwitch = tester.widget<Switch>(find.byType(Switch));
-    metadataSwitch.onChanged?.call(true);
+    final losslessCheckbox = tester.widget<Checkbox>(
+      find.byType(Checkbox).first,
+    );
+    losslessCheckbox.onChanged?.call(true);
+
+    final metadataCheckbox = tester.widget<Checkbox>(
+      find.byType(Checkbox).last,
+    );
+    metadataCheckbox.onChanged?.call(false);
 
     expect(
       imageChanges.map((config) => config.outputFormat),
@@ -473,9 +560,71 @@ void main() {
     );
     expect(imageChanges.map((config) => config.imageQuality), contains(100));
     expect(
-      imageChanges.map((config) => config.preserveMetadata),
+      imageChanges.map((config) => config.losslessCompression),
       contains(true),
     );
+    expect(
+      imageChanges.map((config) => config.preserveMetadata),
+      contains(false),
+    );
+  });
+
+  testWidgets('lossless image compression hides quality and limits formats', (
+    tester,
+  ) async {
+    final config = ImageProcessingConfig.initial().copyWith(
+      outputFormat: MediaOutputFormat.webp,
+      keepOriginalOutputFormat: false,
+      losslessCompression: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskConfigurationDialog(
+            task: imageTask(config: config),
+            thumbnail: null,
+            selectedQualityIndex: 4,
+            selectedOutputFormat: OutputFormat.mp4,
+            selectedVideoCodec: VideoCodec.h264,
+            selectedEncoderBackend: EncoderBackend.auto,
+            selectedResolutionPreset: ResolutionPreset.original,
+            selectedCompressionMode: CompressionMode.preset,
+            selectedSmartPreset: SmartCompressionPreset.balanced,
+            selectedTargetSizeRatio: 0.6,
+            selectedImageConfig: config,
+            availableEncoderBackends: const [EncoderBackend.auto],
+            onClose: () {},
+            onOpenSource: () {},
+            onSave: () {},
+            onCompressionModeChanged: (_) {},
+            onSmartPresetChanged: (_) {},
+            onTargetSizeRatioChanged: (_) {},
+            onQualityChanged: (_) {},
+            onOutputFormatChanged: (_) {},
+            onVideoCodecChanged: (_) {},
+            onEncoderBackendChanged: (_) {},
+            onResolutionPresetChanged: (_) {},
+            onImageConfigChanged: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('无损压缩'), findsOneWidget);
+    expect(find.text('质量'), findsNothing);
+    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
+      find
+          .byWidgetPredicate(
+            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
+          )
+          .first,
+    );
+    expect(formatDropdown.values, const [
+      MediaOutputFormat.png,
+      MediaOutputFormat.webp,
+      MediaOutputFormat.tiff,
+    ]);
   });
 
   testWidgets('audio task configuration exposes audio controls', (
@@ -523,6 +672,8 @@ void main() {
     expect(find.text('采样率'), findsOneWidget);
     expect(find.text('声道'), findsOneWidget);
     expect(find.text('视频编码'), findsNothing);
+    expect(find.byType(Switch), findsNothing);
+    expect(find.byType(Checkbox), findsOneWidget);
 
     final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
       find
@@ -555,6 +706,7 @@ void main() {
           ),
         );
     channelsDropdown.onChanged?.call(AudioChannelsPreset.stereo);
+    tester.widget<Checkbox>(find.byType(Checkbox)).onChanged?.call(false);
 
     expect(
       audioChanges.map((config) => config.outputFormat),
@@ -568,7 +720,135 @@ void main() {
       audioChanges.map((config) => config.channels),
       contains(AudioChannelsPreset.stereo),
     );
+    expect(
+      audioChanges.map((config) => config.preserveMetadata),
+      contains(false),
+    );
   });
+
+  testWidgets(
+    'task configuration keeps header and actions fixed while body scrolls',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(800, 400);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final purposeChanges = <TaskPurpose>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
+          home: Scaffold(
+            body: WorkbenchTaskConfigurationDialog(
+              task: testTask(),
+              thumbnail: null,
+              selectedQualityIndex: 4,
+              selectedOutputFormat: OutputFormat.mp4,
+              selectedVideoCodec: VideoCodec.h264,
+              selectedEncoderBackend: EncoderBackend.auto,
+              selectedResolutionPreset: ResolutionPreset.original,
+              selectedCompressionMode: CompressionMode.preset,
+              selectedSmartPreset: SmartCompressionPreset.balanced,
+              selectedTargetSizeRatio: 0.6,
+              availableEncoderBackends: const [EncoderBackend.auto],
+              onClose: () {},
+              onOpenSource: () {},
+              onSave: () {},
+              onPurposeChanged: purposeChanges.add,
+              onCompressionModeChanged: (_) {},
+              onSmartPresetChanged: (_) {},
+              onTargetSizeRatioChanged: (_) {},
+              onQualityChanged: (_) {},
+              onOutputFormatChanged: (_) {},
+              onVideoCodecChanged: (_) {},
+              onEncoderBackendChanged: (_) {},
+              onResolutionPresetChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      final purposeControlFinder = find.byWidgetPredicate(
+        (widget) => widget is CupertinoSlidingSegmentedControl<TaskPurpose>,
+      );
+      final purposeControl = tester
+          .widget<CupertinoSlidingSegmentedControl<TaskPurpose>>(
+            purposeControlFinder,
+          );
+      purposeControl.onValueChanged(TaskPurpose.conversion);
+      expect(purposeChanges, [TaskPurpose.conversion]);
+
+      final scrollViewFinder = find.byType(SingleChildScrollView);
+      final scrollView = tester.widget<SingleChildScrollView>(scrollViewFinder);
+      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
+      final scrollController = scrollView.controller!;
+      expect(find.byType(Scrollbar), findsOneWidget);
+      expect(scrollView.physics, isA<ClampingScrollPhysics>());
+      expect(scrollView.padding, const EdgeInsets.only(right: 12));
+      expect(scrollbar.controller, same(scrollController));
+      expect(scrollbar.thumbVisibility, isFalse);
+      expect(scrollbar.trackVisibility, isFalse);
+      expect(scrollbar.thickness, 4);
+      expect(scrollbar.radius, const Radius.circular(4));
+      expect(scrollbar.interactive, isTrue);
+      expect(
+        tester.getTopRight(scrollViewFinder).dx -
+            tester.getTopRight(purposeControlFinder).dx,
+        greaterThanOrEqualTo(12),
+      );
+
+      final topGesture = await tester.startGesture(
+        tester.getCenter(scrollViewFinder),
+      );
+      await topGesture.moveBy(const Offset(0, 80));
+      await tester.pump();
+      expect(
+        scrollController.offset,
+        scrollController.position.minScrollExtent,
+      );
+      await topGesture.up();
+      await tester.pumpAndSettle();
+
+      final headerBefore = tester.getCenter(
+        find.byType(WorkbenchDialogBackHeader),
+      );
+      final actionsBefore = tester.getCenter(
+        find.byType(WorkbenchDialogActions),
+      );
+      final sourceBefore = tester.getCenter(find.textContaining('源文件大小'));
+
+      await tester.drag(scrollViewFinder, const Offset(0, -180));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getCenter(find.byType(WorkbenchDialogBackHeader)),
+        headerBefore,
+      );
+      expect(
+        tester.getCenter(find.byType(WorkbenchDialogActions)),
+        actionsBefore,
+      );
+      expect(
+        tester.getCenter(find.textContaining('源文件大小')).dy,
+        lessThan(sourceBefore.dy),
+      );
+
+      scrollController.jumpTo(scrollController.position.maxScrollExtent);
+      await tester.pump();
+      final bottomGesture = await tester.startGesture(
+        tester.getCenter(scrollViewFinder),
+      );
+      await bottomGesture.moveBy(const Offset(0, -80));
+      await tester.pump();
+      expect(
+        scrollController.offset,
+        scrollController.position.maxScrollExtent,
+      );
+      await bottomGesture.up();
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('already compressed source shows no estimated size text', (
     tester,
@@ -888,6 +1168,46 @@ void main() {
     expect(retryCount, 1);
   });
 
+  testWidgets('completed compression task shows size reduction summary', (
+    tester,
+  ) async {
+    final task = testTask(
+      status: TaskStatus.completed,
+    ).copyWith(outputFileSize: 60 * 1024 * 1024);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MediaTaskListTile(task: task)),
+      ),
+    );
+
+    expect(find.text('100MB - 60MB · 压缩了40%'), findsOneWidget);
+  });
+
+  testWidgets('completed conversion task shows formats without percentage', (
+    tester,
+  ) async {
+    final task =
+        testTask(
+          status: TaskStatus.completed,
+          config: VideoTaskConfig.initial().copyWith(
+            outputFormat: OutputFormat.mov,
+          ),
+        ).copyWith(
+          purpose: TaskPurpose.conversion,
+          outputFileSize: 60 * 1024 * 1024,
+        );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: MediaTaskListTile(task: task)),
+      ),
+    );
+
+    expect(find.text('MP4 - MOV'), findsOneWidget);
+    expect(find.textContaining('压缩了'), findsNothing);
+  });
+
   testWidgets('task list placeholder thumbnails match media kind', (
     tester,
   ) async {
@@ -932,47 +1252,6 @@ void main() {
     expect(find.byIcon(Icons.audiotrack_rounded), findsOneWidget);
   });
 
-  testWidgets('completed dialog focuses on size and output path', (
-    tester,
-  ) async {
-    final outputPath =
-        '/exports/a/very/long/path/that/should/scroll/in/a/single/line/result.mp4';
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: TaskCompletedDialog(
-            outputPath: outputPath,
-            sourceFileSize: 100 * 1024 * 1024,
-            outputFileSize: 25 * 1024 * 1024,
-            onClose: () {},
-            onReveal: () {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('处理完成'), findsOneWidget);
-    expect(find.text('源文件'), findsOneWidget);
-    expect(find.text('100MB'), findsOneWidget);
-    expect(find.text('输出文件'), findsOneWidget);
-    expect(find.text('25MB'), findsOneWidget);
-    expect(find.text('导出位置'), findsOneWidget);
-    expect(find.text(outputPath), findsOneWidget);
-    expect(find.text('取消'), findsOneWidget);
-    expect(find.text('打开文件存放位置'), findsOneWidget);
-    expect(find.text('重来'), findsNothing);
-    expect(find.text('知道了'), findsNothing);
-
-    final pathScroll = tester.widget<SingleChildScrollView>(
-      find.ancestor(
-        of: find.text(outputPath),
-        matching: find.byType(SingleChildScrollView),
-      ),
-    );
-    expect(pathScroll.scrollDirection, Axis.horizontal);
-  });
-
   testWidgets('restart unelevated dialog warns about active tasks', (
     tester,
   ) async {
@@ -996,7 +1275,9 @@ void main() {
           home: Scaffold(
             body: WorkbenchShell(
               taskList: AsyncData([testTask()]),
-              selectedTask: null,
+              taskFolders: const AsyncData([]),
+              selectedTaskIds: const {},
+              selectionMode: false,
               importEnabled: true,
               importDragging: false,
               hasRunningTask: false,
@@ -1012,8 +1293,23 @@ void main() {
               onRetry: (_) {},
               onRelink: (_) {},
               onShowLog: (_) {},
+              onRevealOutput: (_) {},
               onContextMenu: (_, _) {},
-              onAddTask: () {},
+              onToggleSelectionMode: () {},
+              onToggleTaskSelection: (_) {},
+              onSelectTasksWithRectangle: (_, {toggle = false}) {},
+              onCreateFolderFromSelection: () {},
+              onMoveTaskToFolder: (_, _) {},
+              onOpenFolderSettings: (_) {},
+              onOpenFolderContents: (_) {},
+              onStartFolder: (_) {},
+              onPauseFolder: (_) {},
+              onRetryFolder: (_) {},
+              onRelinkFolder: (_) {},
+              onShowFolderLog: (_) {},
+              onDeleteFolder: (_) {},
+              onAddFiles: () {},
+              onAddFolder: () {},
               onOpenSettings: () {},
               themeMode: AppThemeMode.light,
               onToggleThemeMode: () {
@@ -1057,6 +1353,977 @@ void main() {
     }
   });
 
+  testWidgets('workbench shell shows folders and hides their child tasks', (
+    tester,
+  ) async {
+    final settingsCalls = <String>[];
+    final openCalls = <String>[];
+    final deleteCalls = <String>[];
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final folderTask = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    final looseTask = testTask(
+      fileName: 'outside.mp4',
+    ).copyWith(id: 'outside', sortOrder: 1);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchShell(
+            taskList: AsyncData([folderTask, looseTask]),
+            taskFolders: AsyncData([folder]),
+            selectedTaskIds: const {},
+            selectionMode: false,
+            importEnabled: true,
+            importDragging: false,
+            hasRunningTask: false,
+            queueActionInFlight: false,
+            thumbnailForTask: (_) => null,
+            onImportDraggingChanged: (_) {},
+            onImportDrop: (_) {},
+            onReorder: (_, _) {},
+            onOpenTask: (_) {},
+            onStart: (_) {},
+            onPause: (_) {},
+            onRemove: (_) {},
+            onRetry: (_) {},
+            onRelink: (_) {},
+            onShowLog: (_) {},
+            onRevealOutput: (_) {},
+            onContextMenu: (_, _) {},
+            onToggleSelectionMode: () {},
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_, {toggle = false}) {},
+            onCreateFolderFromSelection: () {},
+            onMoveTaskToFolder: (_, _) {},
+            onOpenFolderSettings: (folder) {
+              settingsCalls.add(folder.id);
+            },
+            onOpenFolderContents: (folder) {
+              openCalls.add(folder.id);
+            },
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (folder) {
+              deleteCalls.add(folder.id);
+            },
+            onAddFiles: () {},
+            onAddFolder: () {},
+            onOpenSettings: () {},
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenNotifications: () {},
+            onClearTasks: () {},
+            onPrimaryQueuePressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('视频任务夹（1）'), findsOneWidget);
+    expect(find.text('outside.mp4'), findsOneWidget);
+    expect(find.text('inside.mp4'), findsNothing);
+    expect(find.textContaining('1 个任务'), findsOneWidget);
+
+    await tester.tap(find.text('视频任务夹（1）'));
+    await tester.pumpAndSettle();
+    expect(settingsCalls, ['folder-1']);
+    expect(openCalls, isEmpty);
+
+    await tester.tap(find.byTooltip('查看夹内任务'));
+    await tester.pumpAndSettle();
+    expect(openCalls, ['folder-1']);
+
+    await tester.tap(find.byTooltip('删除任务夹并释放任务'));
+    await tester.pumpAndSettle();
+    expect(deleteCalls, ['folder-1']);
+    expect(openCalls, ['folder-1']);
+  });
+
+  testWidgets('task folder progress background only shows while running', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-progress',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final runningTask = testTask(fileName: 'inside.mp4').copyWith(
+      id: 'inside',
+      folderId: folder.id,
+      folderSortOrder: 0,
+      status: TaskStatus.running,
+      progress: 0.6,
+    );
+
+    Widget buildTile(MediaTask task) {
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 640,
+              child: TaskFolderListTile(
+                folder: folder,
+                tasks: [task],
+                onOpenSettings: () {},
+                onOpenContents: () {},
+                onDelete: () {},
+                onPause: () {},
+                onRetry: () {},
+                onShowLog: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    final progressFinder = find.byKey(
+      const ValueKey('task-folder-progress-folder-progress'),
+    );
+    await tester.pumpWidget(buildTile(runningTask));
+
+    expect(progressFinder, findsOneWidget);
+    expect(find.byTooltip('暂停任务夹任务'), findsOneWidget);
+
+    final completedTask = runningTask.copyWith(
+      status: TaskStatus.completed,
+      progress: 1,
+    );
+    await tester.pumpWidget(buildTile(completedTask));
+    await tester.pumpAndSettle();
+
+    expect(progressFinder, findsNothing);
+    expect(find.text('1 个任务 · 已完成 1 · 失败 0'), findsOneWidget);
+    expect(find.byTooltip('重来任务夹终态任务'), findsOneWidget);
+    expect(find.byTooltip('查看夹内任务日志'), findsOneWidget);
+    expect(find.byTooltip('查看夹内任务'), findsOneWidget);
+    expect(find.byTooltip('删除任务夹并释放任务'), findsOneWidget);
+
+    final tileContainer = tester.widget<AnimatedContainer>(
+      find.descendant(
+        of: find.byType(TaskFolderListTile),
+        matching: find.byType(AnimatedContainer),
+      ),
+    );
+    expect(
+      (tileContainer.decoration! as BoxDecoration).color,
+      frameLeanLightColors.surface,
+    );
+  });
+
+  testWidgets('folder content panel reuses task tile actions', (tester) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    var startCount = 0;
+    var removeCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (_) async {
+                  removeCount += 1;
+                },
+                onStart: (_) {
+                  startCount += 1;
+                },
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (_, _) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(MediaTaskListTile), findsOneWidget);
+    expect(find.text('inside.mp4'), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.play_circle_fill_rounded));
+    await tester.pump();
+    await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded));
+    await tester.pump();
+
+    expect(startCount, 1);
+    expect(removeCount, 1);
+  });
+
+  testWidgets('folder task dragged onto scrim is removed in place', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（2）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final firstTask = testTask(
+      fileName: 'first.mp4',
+    ).copyWith(id: 'first', folderId: folder.id, folderSortOrder: 0);
+    final secondTask = testTask(
+      fileName: 'second.mp4',
+    ).copyWith(id: 'second', folderId: folder.id, folderSortOrder: 1);
+    final removeCompleter = Completer<void>();
+    final removeCalls = <String>[];
+    final reorderCalls = <(int, int)>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [firstTask, secondTask],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (task) {
+                  removeCalls.add(task.id);
+                  return removeCompleter.future;
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (oldIndex, newIndex) {
+                  reorderCalls.add((oldIndex, newIndex));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(FrameLeanReorderableListView), findsOneWidget);
+    expect(find.byType(ReorderableListView), findsNothing);
+    final scrimFinder = find.byKey(const Key('task-folder-drop-scrim'));
+    final beforeScrimColor =
+        (tester.widget<AnimatedContainer>(scrimFinder).decoration!
+                as BoxDecoration)
+            .color;
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator_rounded).first),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(const Offset(650, 300));
+    await tester.pump(const Duration(milliseconds: 150));
+    await tester.pump();
+
+    final activeScrimColor =
+        (tester.widget<AnimatedContainer>(scrimFinder).decoration!
+                as BoxDecoration)
+            .color;
+    expect(activeScrimColor, isNot(beforeScrimColor));
+
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 20));
+    expect(removeCalls, ['first']);
+    expect(reorderCalls, isEmpty);
+    expect(
+      find.byKey(const Key('task-folder-accepted-drop-proxy')),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('first.mp4'), findsNothing);
+    expect(find.text('second.mp4'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    removeCompleter.complete();
+    await tester.pump();
+  });
+
+  testWidgets('folder task dropped on panel header cancels removal', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    final removeCalls = <String>[];
+    final reorderCalls = <(int, int)>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (task) async {
+                  removeCalls.add(task.id);
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (oldIndex, newIndex) {
+                  reorderCalls.add((oldIndex, newIndex));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator_rounded)),
+    );
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(
+      tester.getCenter(find.byIcon(Icons.folder_open_rounded)),
+    );
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(removeCalls, isEmpty);
+    expect(reorderCalls, isEmpty);
+    expect(find.text('inside.mp4'), findsOneWidget);
+  });
+
+  testWidgets('folder task removal failure restores the task row', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (_) async {
+                  throw StateError('save failed');
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (_, _) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.remove_circle_outline_rounded));
+    await tester.pumpAndSettle();
+
+    expect(find.text('inside.mp4'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('running folder task cannot be dragged onto the scrim', (
+    tester,
+  ) async {
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final task = testTask(fileName: 'running.mp4').copyWith(
+      id: 'running',
+      folderId: folder.id,
+      folderSortOrder: 0,
+      status: TaskStatus.running,
+    );
+    final removeCalls = <String>[];
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Stack(
+            children: [
+              TaskFolderContentPanel(
+                visible: true,
+                folder: folder,
+                tasks: [task],
+                thumbnailForTask: (_) => null,
+                onClose: () {},
+                onRemoveTask: (task) async {
+                  removeCalls.add(task.id);
+                },
+                onStart: (_) {},
+                onPause: (_) {},
+                onRetry: (_) {},
+                onRelink: (_) {},
+                onShowLog: (_) {},
+                onRevealOutput: (_) {},
+                onReorder: (_, _) {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byIcon(Icons.drag_indicator_rounded)),
+    );
+    await gesture.moveTo(const Offset(650, 300));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(removeCalls, isEmpty);
+    expect(find.text('running.mp4'), findsOneWidget);
+  });
+
+  testWidgets(
+    'folder reorder remains optimistic while persistence is pending',
+    (tester) async {
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（2）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final firstTask = testTask(
+        fileName: 'first.mp4',
+      ).copyWith(id: 'first', folderId: folder.id, folderSortOrder: 0);
+      final secondTask = testTask(
+        fileName: 'second.mp4',
+      ).copyWith(id: 'second', folderId: folder.id, folderSortOrder: 1);
+      final reorderCompleter = Completer<void>();
+      final reorderCalls = <(int, int)>[];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                TaskFolderContentPanel(
+                  visible: true,
+                  folder: folder,
+                  tasks: [firstTask, secondTask],
+                  thumbnailForTask: (_) => null,
+                  onClose: () {},
+                  onRemoveTask: (_) async {},
+                  onStart: (_) {},
+                  onPause: (_) {},
+                  onRetry: (_) {},
+                  onRelink: (_) {},
+                  onShowLog: (_) {},
+                  onRevealOutput: (_) {},
+                  onReorder: (oldIndex, newIndex) {
+                    reorderCalls.add((oldIndex, newIndex));
+                    return reorderCompleter.future;
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      final firstTop = tester.getTopLeft(find.text('first.mp4')).dy;
+      final dragHandles = find.byIcon(Icons.drag_indicator_rounded);
+      final firstHandleCenter = tester.getCenter(dragHandles.first);
+      final gesture = await tester.startGesture(
+        tester.getCenter(dragHandles.last),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(firstHandleCenter);
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(reorderCalls, isNotEmpty);
+      expect(
+        tester.getTopLeft(find.text('second.mp4')).dy,
+        closeTo(firstTop, 0.1),
+      );
+
+      reorderCompleter.complete();
+      await tester.pump();
+    },
+  );
+
+  testWidgets('multi select mode shows checkbox and create folder FAB', (
+    tester,
+  ) async {
+    var toggleModeCount = 0;
+    var createFolderCount = 0;
+    final task = testTask(fileName: 'outside.mp4').copyWith(id: 'outside');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchShell(
+            taskList: AsyncData([task]),
+            taskFolders: const AsyncData([]),
+            selectedTaskIds: {task.id},
+            selectionMode: true,
+            importEnabled: true,
+            importDragging: false,
+            hasRunningTask: false,
+            queueActionInFlight: false,
+            thumbnailForTask: (_) => null,
+            onImportDraggingChanged: (_) {},
+            onImportDrop: (_) {},
+            onReorder: (_, _) {},
+            onOpenTask: (_) {},
+            onStart: (_) {},
+            onPause: (_) {},
+            onRemove: (_) {},
+            onRetry: (_) {},
+            onRelink: (_) {},
+            onShowLog: (_) {},
+            onRevealOutput: (_) {},
+            onContextMenu: (_, _) {},
+            onToggleSelectionMode: () {
+              toggleModeCount += 1;
+            },
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_, {toggle = false}) {},
+            onCreateFolderFromSelection: () {
+              createFolderCount += 1;
+            },
+            onMoveTaskToFolder: (_, _) {},
+            onOpenFolderSettings: (_) {},
+            onOpenFolderContents: (_) {},
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (_) {},
+            onAddFiles: () {},
+            onAddFolder: () {},
+            onOpenSettings: () {},
+            themeMode: AppThemeMode.light,
+            onToggleThemeMode: () {},
+            onOpenNotifications: () {},
+            onClearTasks: () {},
+            onPrimaryQueuePressed: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.text('已选 1'), findsOneWidget);
+    expect(find.text('创建任务夹'), findsOneWidget);
+
+    await tester.tap(find.byTooltip('退出多选'));
+    await tester.pump();
+    expect(toggleModeCount, 1);
+
+    await tester.tap(find.text('创建任务夹'));
+    await tester.pump();
+    expect(createFolderCount, 1);
+  });
+
+  testWidgets(
+    'task drag handle dropped on matching folder body moves instead of reorders',
+    (tester) async {
+      final moveCalls = <String>[];
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（1）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final folderTask = testTask(
+        fileName: 'inside.mp4',
+      ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+      final looseTask = testTask(
+        fileName: 'outside.mp4',
+      ).copyWith(id: 'outside', sortOrder: 1);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [folderTask, looseTask],
+        folders: [folder],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+        onMoveTaskToFolder: (task, folder) {
+          moveCalls.add('${task.id}->${folder.id}');
+        },
+      );
+
+      final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
+      final folderBody = find.byKey(
+        const ValueKey('task-folder-drop-state-folder-1'),
+      );
+      final folderRectBeforeHover = tester.getRect(folderBody);
+      final gesture = await tester.startGesture(
+        tester.getCenter(taskDragHandle),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(
+        Offset(
+          folderRectBeforeHover.center.dx,
+          folderRectBeforeHover.bottom - 8,
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        tester.getRect(folderBody).top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      await gesture.moveTo(folderRectBeforeHover.center);
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final hoveredFolder = tester.widget<AnimatedOpacity>(folderBody);
+      final folderRectWhileHovered = tester.getRect(folderBody);
+      expect(hoveredFolder.opacity, 1);
+      expect(
+        folderRectWhileHovered.top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      expect(reorderCalls, isEmpty);
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveCalls, ['outside->folder-1']);
+      expect(reorderCalls, isEmpty);
+    },
+  );
+
+  testWidgets(
+    'task drag handle switches to reorder only after leaving folder body',
+    (tester) async {
+      final moveCalls = <String>[];
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final folder = TaskFolder(
+        id: 'folder-1',
+        name: '视频任务夹（1）',
+        mediaKind: MediaKind.video,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final folderTask = testTask(
+        fileName: 'inside.mp4',
+      ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+      final firstLooseTask = testTask(
+        fileName: 'first.mp4',
+      ).copyWith(id: 'first', sortOrder: 1);
+      final secondLooseTask = testTask(
+        fileName: 'second.mp4',
+      ).copyWith(id: 'second', sortOrder: 2);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [folderTask, firstLooseTask, secondLooseTask],
+        folders: [folder],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+        onMoveTaskToFolder: (task, folder) {
+          moveCalls.add('${task.id}->${folder.id}');
+        },
+      );
+
+      final taskDragHandles = find.byIcon(Icons.drag_indicator_rounded);
+      final secondTaskDragHandle = taskDragHandles.last;
+      final folderBody = find.byKey(
+        const ValueKey('task-folder-drop-state-folder-1'),
+      );
+      final firstTaskText = find.text('first.mp4');
+      final folderRectBeforeHover = tester.getRect(folderBody);
+      final gesture = await tester.startGesture(
+        tester.getCenter(secondTaskDragHandle),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(folderBody));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(
+        tester.getRect(folderBody).top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      expect(reorderCalls, isEmpty);
+
+      await gesture.moveTo(tester.getCenter(firstTaskText));
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      await gesture.moveTo(folderRectBeforeHover.center);
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      expect(
+        tester.getRect(folderBody).top,
+        closeTo(folderRectBeforeHover.top, 0.1),
+      );
+      expect(reorderCalls, isEmpty);
+
+      await gesture.moveTo(tester.getCenter(firstTaskText));
+      await tester.pumpAndSettle(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveCalls, isEmpty);
+      expect(reorderCalls, isNotEmpty);
+    },
+  );
+
+  testWidgets(
+    'task reorder keeps the dropped visual order while persistence catches up',
+    (tester) async {
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final firstTask = testTask(
+        fileName: 'first.mp4',
+      ).copyWith(id: 'first', sortOrder: 0);
+      final secondTask = testTask(
+        fileName: 'second.mp4',
+      ).copyWith(id: 'second', sortOrder: 1);
+      final thirdTask = testTask(
+        fileName: 'third.mp4',
+      ).copyWith(id: 'third', sortOrder: 2);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [firstTask, secondTask, thirdTask],
+        folders: const [],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+      );
+
+      final slotTops = [
+        tester.getTopLeft(find.text('first.mp4')).dy,
+        tester.getTopLeft(find.text('second.mp4')).dy,
+        tester.getTopLeft(find.text('third.mp4')).dy,
+      ];
+      final taskDragHandles = find.byIcon(Icons.drag_indicator_rounded);
+      final gesture = await tester.startGesture(
+        tester.getCenter(taskDragHandles.last),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(find.text('first.mp4')));
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(reorderCalls, hasLength(1));
+      final (oldIndex, newIndex) = reorderCalls.single;
+      final visualIndex = newIndex > oldIndex ? newIndex - 1 : newIndex;
+      expect(
+        tester.getTopLeft(find.text('third.mp4')).dy,
+        closeTo(slotTops[visualIndex], 0.1),
+      );
+    },
+  );
+
+  testWidgets('task rows never use selection borders', (tester) async {
+    final task = testTask(fileName: 'ordinary.mp3').copyWith(id: 'ordinary');
+
+    await _pumpWorkbenchShellForDragTest(
+      tester,
+      tasks: [task],
+      folders: const [],
+      selectedTaskIds: {task.id},
+      selectionMode: true,
+    );
+
+    final tile = find.byType(MediaTaskListTile);
+    final animatedContainer = tester.widget<AnimatedContainer>(
+      find.descendant(of: tile, matching: find.byType(AnimatedContainer)),
+    );
+    final decoration = animatedContainer.foregroundDecoration! as BoxDecoration;
+    expect(decoration.border!.top.color, frameLeanLightColors.border);
+    expect(decoration.border!.top.width, 1);
+  });
+
+  testWidgets('task drag handle dropped on folder edge keeps reorder', (
+    tester,
+  ) async {
+    final moveCalls = <String>[];
+    final reorderCalls = <(int oldIndex, int newIndex)>[];
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹（1）',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      defaultConfig: MediaTaskConfig.initialVideo(),
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    final folderTask = testTask(
+      fileName: 'inside.mp4',
+    ).copyWith(id: 'inside', folderId: folder.id, folderSortOrder: 0);
+    final looseTask = testTask(
+      fileName: 'outside.mp4',
+    ).copyWith(id: 'outside', sortOrder: 1);
+
+    await _pumpWorkbenchShellForDragTest(
+      tester,
+      tasks: [folderTask, looseTask],
+      folders: [folder],
+      onReorder: (oldIndex, newIndex) {
+        reorderCalls.add((oldIndex, newIndex));
+      },
+      onMoveTaskToFolder: (task, folder) {
+        moveCalls.add('${task.id}->${folder.id}');
+      },
+    );
+
+    final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
+    final folderRect = tester.getRect(
+      find.byKey(const ValueKey('task-folder-drop-state-folder-1')),
+    );
+    final folderTopEdge = Offset(folderRect.center.dx, folderRect.top + 8);
+    final gesture = await tester.startGesture(tester.getCenter(taskDragHandle));
+    await tester.pump(const Duration(milliseconds: 100));
+    await gesture.moveTo(folderTopEdge);
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+
+    expect(moveCalls, isEmpty);
+    expect(reorderCalls, isNotEmpty);
+  });
+
+  testWidgets(
+    'different-kind folder disables drop and remains a reorder target',
+    (tester) async {
+      final moveCalls = <String>[];
+      final reorderCalls = <(int oldIndex, int newIndex)>[];
+      final folder = TaskFolder(
+        id: 'image-folder',
+        name: '图片任务夹（1）',
+        mediaKind: MediaKind.image,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialImage(),
+        createdAt: 1,
+        updatedAt: 1,
+      );
+      final folderTask = imageTask().copyWith(
+        id: 'inside-image',
+        folderId: folder.id,
+        folderSortOrder: 0,
+      );
+      final looseTask = testTask(
+        fileName: 'outside.mp4',
+      ).copyWith(id: 'outside', sortOrder: 1);
+
+      await _pumpWorkbenchShellForDragTest(
+        tester,
+        tasks: [folderTask, looseTask],
+        folders: [folder],
+        onReorder: (oldIndex, newIndex) {
+          reorderCalls.add((oldIndex, newIndex));
+        },
+        onMoveTaskToFolder: (task, folder) {
+          moveCalls.add('${task.id}->${folder.id}');
+        },
+      );
+
+      final taskDragHandle = find.byIcon(Icons.drag_indicator_rounded).last;
+      final folderBody = find.byKey(
+        const ValueKey('task-folder-drop-state-image-folder'),
+      );
+      final gesture = await tester.startGesture(
+        tester.getCenter(taskDragHandle),
+      );
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.moveTo(tester.getCenter(folderBody));
+      await tester.pump();
+
+      final disabledState = tester.widget<AnimatedOpacity>(folderBody);
+      expect(disabledState.opacity, lessThan(1));
+
+      await gesture.up();
+      await tester.pumpAndSettle();
+
+      expect(moveCalls, isEmpty);
+      expect(reorderCalls, isNotEmpty);
+    },
+  );
+
   testWidgets('notification badge can be hidden without losing unread count', (
     tester,
   ) async {
@@ -1094,7 +2361,9 @@ void main() {
         home: Scaffold(
           body: WorkbenchShell(
             taskList: AsyncData([firstTask, secondTask]),
-            selectedTask: firstTask,
+            taskFolders: const AsyncData([]),
+            selectedTaskIds: const {},
+            selectionMode: false,
             importEnabled: true,
             importDragging: false,
             hasRunningTask: false,
@@ -1112,8 +2381,23 @@ void main() {
             onRetry: (_) {},
             onRelink: (_) {},
             onShowLog: (_) {},
+            onRevealOutput: (_) {},
             onContextMenu: (_, _) {},
-            onAddTask: () {},
+            onToggleSelectionMode: () {},
+            onToggleTaskSelection: (_) {},
+            onSelectTasksWithRectangle: (_, {toggle = false}) {},
+            onCreateFolderFromSelection: () {},
+            onMoveTaskToFolder: (_, _) {},
+            onOpenFolderSettings: (_) {},
+            onOpenFolderContents: (_) {},
+            onStartFolder: (_) {},
+            onPauseFolder: (_) {},
+            onRetryFolder: (_) {},
+            onRelinkFolder: (_) {},
+            onShowFolderLog: (_) {},
+            onDeleteFolder: (_) {},
+            onAddFiles: () {},
+            onAddFolder: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -1138,6 +2422,67 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(reorderCalls, isNotEmpty);
   });
+}
+
+Future<void> _pumpWorkbenchShellForDragTest(
+  WidgetTester tester, {
+  required List<MediaTask> tasks,
+  required List<TaskFolder> folders,
+  Set<String> selectedTaskIds = const {},
+  bool selectionMode = false,
+  void Function(int oldIndex, int newIndex)? onReorder,
+  void Function(MediaTask task, TaskFolder folder)? onMoveTaskToFolder,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: WorkbenchShell(
+          taskList: AsyncData(tasks),
+          taskFolders: AsyncData(folders),
+          selectedTaskIds: selectedTaskIds,
+          selectionMode: selectionMode,
+          importEnabled: true,
+          importDragging: false,
+          hasRunningTask: false,
+          queueActionInFlight: false,
+          thumbnailForTask: (_) => null,
+          onImportDraggingChanged: (_) {},
+          onImportDrop: (_) {},
+          onReorder: onReorder ?? (_, _) {},
+          onOpenTask: (_) {},
+          onStart: (_) {},
+          onPause: (_) {},
+          onRemove: (_) {},
+          onRetry: (_) {},
+          onRelink: (_) {},
+          onShowLog: (_) {},
+          onRevealOutput: (_) {},
+          onContextMenu: (_, _) {},
+          onToggleSelectionMode: () {},
+          onToggleTaskSelection: (_) {},
+          onSelectTasksWithRectangle: (_, {toggle = false}) {},
+          onCreateFolderFromSelection: () {},
+          onMoveTaskToFolder: onMoveTaskToFolder ?? (_, _) {},
+          onOpenFolderSettings: (_) {},
+          onOpenFolderContents: (_) {},
+          onStartFolder: (_) {},
+          onPauseFolder: (_) {},
+          onRetryFolder: (_) {},
+          onRelinkFolder: (_) {},
+          onShowFolderLog: (_) {},
+          onDeleteFolder: (_) {},
+          onAddFiles: () {},
+          onAddFolder: () {},
+          onOpenSettings: () {},
+          themeMode: AppThemeMode.light,
+          onToggleThemeMode: () {},
+          onOpenNotifications: () {},
+          onClearTasks: () {},
+          onPrimaryQueuePressed: () {},
+        ),
+      ),
+    ),
+  );
 }
 
 Future<void> _pumpTaskConfigurationDialog(

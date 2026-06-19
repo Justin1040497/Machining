@@ -29,9 +29,49 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-19｜v1.2.1｜No Release
+
+今天收口工作台任务夹拖拽、任务夹交互和受控并行队列：将 Flutter 3.41.2 reorderable fork 提升为全应用共享组件，顶层列表保留任务夹 hover freeze 和乐观落位，夹内列表同步迁移并支持拖到遮罩移出。同时补齐左侧任务夹浮层动画、右键菜单、任务夹命名 / 重命名、多选批量条和最大并行任务数设置。
+
+### Added
+
+- 新增全应用 `FrameLeanReorderableListView`，支持拖拽更新、三种 gap 策略、排序 / 外部接收 / 取消 drop、跨轴拖动和外部接收代理装饰。
+- 任务夹内任务可通过拖拽柄移到面板外遮罩，释放后在落点缩小淡出并移回总列表。
+- 新增受控并行执行：设置页可选择 1 到 3 个最大并行任务数，队列通过资源守卫按 CPU、内存和任务类型决定实际执行位。
+- 新增任务和任务夹项目风格右键菜单；任务可通过“添加到任务夹”二级菜单加入同媒体类型任务夹，任务夹可右键重命名。
+- 图片任务详情新增无损压缩开关；开启后仅提供 PNG、WebP、TIFF，WebP 使用 lossless 模式，TIFF 使用 Deflate，并隐藏有损质量滑杆。
+- 导入入口新增文件夹选择和拖拽文件夹扫描；扫描深度默认 2 层并可在设置页调整，扫描结果为单媒体时创建普通任务，多媒体时按媒体类型创建源文件夹命名的任务夹。
+- 任务详情新增“压缩 / 格式转换”意图切换和默认收起的高级设置，支持线程限制、视频两遍压缩模式及多音频流选择。
+
+### Changed
+
+- 任务详情和任务夹设置改用 Flutter 原生 Cupertino 滑动分段控件与复选框选项，并固定顶部标题栏和底部操作区；中间配置使用无回弹滚动和独立滚动条安全槽。
+- 工作台顶层拖拽保留官方 ReorderableList 的拖拽代理、自动滚动和 gap 动画，同时增加同类型任务夹整行冻结、返回任务夹时 gap 复位和 drop 消费钩子。
+- 同类型任务夹中部释放仍走入夹；上下 16px 边缘释放、普通任务和跨类型任务夹仍走排序路径，跨类型任务夹保持禁用视觉且不显示拒绝提示。
+- 顶层排序采用乐观视觉顺序衔接异步 Drift 持久化；提交成功后由仓储结果接管，失败时回滚，避免 drop 动画结束后列表项短暂返回旧位置。
+- 夹内排序同样使用乐观视觉顺序；移出持久化失败时恢复任务行，面板标题区和内部空白区释放按取消处理。
+- 任务夹内容浮层改为从左侧滑入，与通知中心右侧浮层保持对称动画；多选创建任务夹入口改为应用左侧批量操作条。
+- 新任务和新任务夹插入到未完成项之后、已完成项之前；任务夹默认名称改为媒体类型加序号。
+- 单任务开始不再默认暂停正在运行的其他任务，而是作为插队入口填充空闲执行位或进入优先队列。
+- 已完成压缩任务的列表摘要改为“源体积 - 输出体积 · 压缩比例”，格式转换任务改为“源格式 - 目标格式”，不再显示压缩百分比。
+
+### Fixed
+
+- 移出任务的 `sortOrder` 现在同时参考普通任务和任务夹，确保位于整个顶层混排列表尾部。
+- 移除任务配置上下文和任务行视觉选中态的耦合；普通和多选模式均不再显示蓝色任务行边框。
+- 修正左侧任务夹内容浮层打开时缺少滑入动画的问题。
+- 修复总列表任务夹在运行结束后仍保留聚合进度底色的问题，非运行状态恢复普通卡片背景。
+
+### Verified
+
+- 通过 `rtk dart format lib test --set-exit-if-changed`。
+- 通过 `rtk flutter analyze`。
+- 通过 `rtk flutter test test/widget_test.dart`，共 50 项 Widget 测试。
+- 通过 `rtk flutter test`，共 328 项测试。
+
 ## 2026-06-18｜v1.2.1｜No Release
 
-今天收口自托管更新和 Admin 版本制品管理近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。
+今天收口自托管更新、Admin 版本制品管理、媒体处理可靠性和任务夹重构近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。主项目同步修复图片压缩越压越大、透明视频错误输出、输出路径启动后才失败和批量任务缺少容器的问题。
 
 ### Added
 
@@ -39,19 +79,50 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增 `test/app_update_provider_test.dart`，覆盖自动检查更新、下载完成和 Windows updater helper 启动状态流。
 - 新增 server `UpdateServiceTest`，覆盖按平台可见包过滤 latest、下载 ticket resolve 签发 COS URL、下载审计事件和 IP 屏蔽审计。
 - 新增 Admin 删除登记版本入口：删除 release 登记时会同步删除版本日志和 package 对应的 COS 对象，并清理 download events、packages、requirements 和 release 记录。
+- 新增图片压缩结果验收和 fallback 计划：首轮按源格式尝试，未变小时清理候选并改用 WebP / JPG 重试；第二轮仍无效时任务失败并提示原因。
+- 新增透明视频保留策略标签和 MOV / ProRes 4444 输出策略，FFmpeg 缺少 `prores_ks` 时在命令构造阶段失败。
+- 新增输出 preflight 服务，FFmpeg 启动前创建输出目录、规避同源覆盖 / 重名、检查可写性，并给任务打 `目录已创建` / `输出已改名` 标签。
+- 新增任务夹领域模型、Drift `task_folders` 表、任务 `folderId` / `folderSortOrder` / `policyTags` 字段和任务夹仓储 / use case。
+- 新增工作台任务夹列表项和左侧夹内任务浮层，批量导入会按媒体类型自动创建任务夹。
+- 新增任务夹批量工作流：任务夹设置批量应用、多选 FAB 按媒体类型建夹、未入夹任务通过拖拽柄拖入同类型任务夹、跨类型任务夹禁用视觉、任务夹尾部批量开始 / 暂停 / 重试 / 重链入口。
+- 新增通知中心任务结果详情：任务成功记录源 / 输出体积、压缩比例、保存路径和耗时，任务失败记录明确原因和建议；通知中心动作改为正文下方文字按钮组。
+- 新增工作台总列表任务 / 任务夹混排排序、夹内任务排序、普通模式框选进入多选、Command / Control 框选反选和分析中点击的临时交互通知。
+- 新增任务项尾部“打开完成文件位置”入口、任务夹日志聚合弹窗、空任务夹自动清理和清空任务时同步清空任务夹。
 
 ### Changed
 
 - 优化 Admin Web 版本制品页信息结构，将版本索引、基础信息、制品列表、版本日志和发布操作重新整理为更清晰的工作区。
 - server README 同步记录 `DELETE /api/v1/admin/releases/{v}` 删除登记版本接口。
+- 图片保持源格式时，命令规划改为优先解析源图片 codec / 扩展名作为首轮输出格式，再按透明能力选择 fallback。
+- 工作台总列表改为显示任务夹和未入夹任务，夹内任务默认不在总列表重复出现。
+- 任务夹主体点击打开夹级配置弹窗，尾部查看按钮才打开左侧夹内任务浮层；浮层内任务复用普通任务行样式和操作按钮。
+- 移除任务完成弹窗链路和设置页“任务完成后以弹窗的形式提示”选项；完成后只保留提示音、通知中心记录和任务项完成文件入口。
+- 队列启动顺序改为按总列表从上到下展开任务夹，夹内按 `folderSortOrder` 执行；单任务开始仍作为插队入口，插队完成后继续按最新顺序推进。
+- 任务夹尾部去掉重链按钮，副标题追加源文件丢失计数；总列表多选时任务夹拖拽手柄置灰但不变成复选框。
+- Windows 默认启动窗口宽度收敛到当前最小宽度；Inno 安装器增加可选桌面快捷方式。
+
+### Fixed
+
+- 修复图片压缩在任意质量百分比下可能输出更大文件但仍被标记成功的问题。
+- 修复透明视频被常规 H.264 / yuv420p 策略破坏 alpha 通道的问题。
+- 修复任务行右侧开始 / 暂停 / 重试 / 移除按钮点击时同时触发任务配置弹窗的问题。
+- 修复版本日志页返回按钮总是跳到设置页的问题，优先按路由栈返回上一页。
 
 ### Verified
 
 - 通过 `flutter analyze`。
-- 通过 `flutter test`，共 271 项测试。
+- 通过 `flutter test`，共 299 项测试。
 - 通过 `cd server && mvn test`，12 项运行，2 项在无 Docker 环境下跳过。
 - 通过 `cd server/admin-web && npm run build`；仍保留 Vite 大 chunk 提示。
 - 通过主项目和 server 的 `git diff --check`。
+- 通过 `flutter test test/ffmpeg_command_builder_test.dart`，覆盖图片 fallback 和透明 ProRes 4444 命令。
+- 通过 `flutter test test/ffmpeg_task_queue_runner_test.dart`，覆盖图片首轮无效进入 fallback、fallback 仍无效时失败和清理输出。
+- 通过 `flutter test test/output_preflight_service_test.dart`，覆盖目录创建、重名改名、同源保护和 FFmpeg args 回写。
+- 通过 `flutter test test/media_task_policy_tags_test.dart`，覆盖重试、换源和重分析后的策略标签刷新。
+- 通过 `flutter test test/drift_media_task_repository_test.dart`，覆盖任务夹持久化和任务 folder / policy tags 往返。
+- 通过 `flutter test test/task_folder_use_cases_test.dart`，覆盖任务夹批量配置、终态任务批量重试和夹内下一项启动。
+- 通过 `flutter test test/widget_test.dart`，覆盖任务夹总列表、夹级设置、侧边栏夹内任务操作、多选 FAB、拖入任务夹和任务行按钮误触边界。
+- 通过 `flutter test test/app_notification_manager_test.dart test/app_settings_page_test.dart test/drift_app_settings_repository_test.dart test/media_task_execution_use_cases_test.dart test/task_folder_use_cases_test.dart test/reorder_workbench_items_use_case_test.dart test/ffmpeg_task_queue_runner_test.dart test/notification_center_panel_test.dart test/widget_test.dart`，覆盖通知、设置、清空任务夹、任务夹排序、队列展开和通知中心布局。
 
 ## 2026-06-17｜v1.2.1｜No Release
 

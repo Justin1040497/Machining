@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -40,6 +41,26 @@ void main() {
     expect(repository.savedNotifications, [notification]);
     expect(presentation.notification, notification);
     expect(presentation.notification.level, AppNotificationLevel.success);
+  });
+
+  test('interaction notification only presents temporary feedback', () async {
+    final repository = FakeAppNotificationRepository();
+    final manager = AppNotificationManager(repository: repository);
+    addTearDown(manager.dispose);
+
+    final presentationFuture = manager.presentations.first;
+    final notification = await manager.notifyInteraction(
+      title: '正在分析，请稍等',
+      message: 'demo.mp4',
+      source: 'workbench',
+    );
+    final presentation = await presentationFuture;
+
+    expect(repository.savedNotifications, isEmpty);
+    expect(notification.kind, AppNotificationKind.interaction);
+    expect(notification.readAt, isNotNull);
+    expect(notification.isDismissed, isTrue);
+    expect(presentation.notification, notification);
   });
 
   test('track records success and returns operation result', () async {
@@ -99,15 +120,30 @@ void main() {
       sortOrder: 0,
     ).markRunning(outputPath: '/output/demo.mp4').markCompleted();
 
-    final notification = await manager.notifyTaskCompleted(completedTask);
+    final notification = await manager.notifyTaskCompleted(
+      completedTask,
+      const TaskExecutionNotificationSummary(
+        sourceFileSize: 10 * 1024 * 1024,
+        outputFileSize: 6 * 1024 * 1024,
+        durationMs: 6543,
+        outputPath: '/output/demo.mp4',
+      ),
+    );
     final payload = TaskNotificationPayload.tryParse(notification.payloadJson);
 
     expect(notification.kind, AppNotificationKind.task);
     expect(notification.level, AppNotificationLevel.success);
     expect(notification.title, '任务成功');
-    expect(notification.message, 'demo.mp4\n已保存至 /output/demo.mp4');
+    expect(notification.message, contains('文件：demo.mp4'));
+    expect(notification.message, contains('体积：10 MB -> 6 MB'));
+    expect(notification.message, contains('压缩比例：40.0%'));
+    expect(notification.message, contains('保存至：/output/demo.mp4'));
+    expect(notification.message, contains('耗时：7 秒'));
     expect(payload?.taskId, completedTask.id);
     expect(payload?.outputPath, '/output/demo.mp4');
+    expect(payload?.sourceFileSize, 10 * 1024 * 1024);
+    expect(payload?.outputFileSize, 6 * 1024 * 1024);
+    expect(payload?.durationMs, 6543);
   });
 
   test('task failure notification uses file name and failure reason', () async {
@@ -121,13 +157,41 @@ void main() {
       sortOrder: 0,
     ).markFailed('编码器不可用');
 
-    final notification = await manager.notifyTaskFailed(failedTask);
+    final notification = await manager.notifyTaskFailed(
+      failedTask,
+      const TaskExecutionNotificationSummary(
+        failureReason: '编码器不可用',
+        failureSuggestion: '建议查看任务日志，确认编码器配置后重试。',
+      ),
+    );
 
     expect(notification.kind, AppNotificationKind.task);
     expect(notification.level, AppNotificationLevel.error);
     expect(notification.title, '任务失败');
-    expect(notification.message, 'demo.mp4\n编码器不可用');
+    expect(notification.message, contains('文件：demo.mp4'));
+    expect(notification.message, contains('原因：编码器不可用'));
+    expect(notification.message, contains('建议：建议查看任务日志，确认编码器配置后重试。'));
   });
+
+  test(
+    'image ineffective compression failure suggests another format',
+    () async {
+      final repository = FakeAppNotificationRepository();
+      final manager = AppNotificationManager(repository: repository);
+      addTearDown(manager.dispose);
+      final failedTask = MediaTask.draft(
+        inputPath: '/input/demo.png',
+        fileName: 'demo.png',
+        mediaKind: MediaKind.image,
+        sortOrder: 0,
+      ).markFailed('输出文件大小不小于源文件');
+
+      final notification = await manager.notifyTaskFailed(failedTask);
+
+      expect(notification.message, contains('WebP/JPG'));
+      expect(notification.message, contains('降低质量'));
+    },
+  );
 }
 
 class FakeAppNotificationRepository implements AppNotificationRepository {

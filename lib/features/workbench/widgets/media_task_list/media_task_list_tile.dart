@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
+import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_output_format.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
+import 'package:path/path.dart' as path;
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;
-  final bool selected;
   final ImageProvider? thumbnail;
   final VoidCallback? onTap;
   final VoidCallback? onStart;
@@ -16,7 +22,10 @@ class MediaTaskListTile extends StatelessWidget {
   final VoidCallback? onRetry;
   final VoidCallback? onRelink;
   final VoidCallback? onShowLog;
+  final VoidCallback? onRevealOutput;
   final VoidCallback? onRemove;
+  final String removeTooltip;
+  final IconData removeIcon;
   final GestureTapDownCallback? onSecondaryTapDown;
   final Widget? dragHandle;
   final bool tooltipsEnabled;
@@ -24,7 +33,6 @@ class MediaTaskListTile extends StatelessWidget {
   const MediaTaskListTile({
     super.key,
     required this.task,
-    this.selected = false,
     this.thumbnail,
     this.onTap,
     this.onStart,
@@ -32,7 +40,10 @@ class MediaTaskListTile extends StatelessWidget {
     this.onRetry,
     this.onRelink,
     this.onShowLog,
+    this.onRevealOutput,
     this.onRemove,
+    this.removeTooltip = '移除任务',
+    this.removeIcon = Icons.close_rounded,
     this.onSecondaryTapDown,
     this.dragHandle,
     this.tooltipsEnabled = true,
@@ -48,6 +59,13 @@ class MediaTaskListTile extends StatelessWidget {
         task.status == TaskStatus.paused;
   }
 
+  bool get _shouldShowOutputButton {
+    final outputPath = task.outputPath?.trim();
+    return task.status == TaskStatus.completed &&
+        outputPath != null &&
+        outputPath.isNotEmpty;
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
@@ -56,7 +74,6 @@ class MediaTaskListTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
-        onTap: onTap,
         onSecondaryTapDown: onSecondaryTapDown,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
@@ -64,10 +81,6 @@ class MediaTaskListTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: colors.surface,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: selected ? colors.borderStrong : colors.border,
-              width: 1,
-            ),
             boxShadow: [
               BoxShadow(
                 color: colors.shadow,
@@ -75,6 +88,10 @@ class MediaTaskListTile extends StatelessWidget {
                 offset: const Offset(0, 1),
               ),
             ],
+          ),
+          foregroundDecoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: colors.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: Stack(
@@ -85,12 +102,22 @@ class MediaTaskListTile extends StatelessWidget {
                   const SizedBox(width: 10),
                   dragHandle ?? const SizedBox(width: 24),
                   const SizedBox(width: 4),
-                  MediaTaskThumbnail(
-                    mediaKind: task.mediaKind,
-                    thumbnail: thumbnail,
+                  GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: onTap,
+                    child: MediaTaskThumbnail(
+                      mediaKind: task.mediaKind,
+                      thumbnail: thumbnail,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildTaskText(context)),
+                  Expanded(
+                    child: GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: onTap,
+                      child: _buildTaskText(context),
+                    ),
+                  ),
                   MediaTaskActionButton(
                     task: task,
                     onStart: onStart,
@@ -107,11 +134,20 @@ class MediaTaskListTile extends StatelessWidget {
                       icon: Icons.description_outlined,
                       tooltipsEnabled: tooltipsEnabled,
                     ),
+                  if (_shouldShowOutputButton) ...[
+                    const SizedBox(width: 4),
+                    MediaTaskIconButton(
+                      tooltip: '打开完成文件位置',
+                      onPressed: onRevealOutput,
+                      icon: Icons.file_open_outlined,
+                      tooltipsEnabled: tooltipsEnabled,
+                    ),
+                  ],
                   const SizedBox(width: 4),
                   MediaTaskIconButton(
-                    tooltip: '移除任务',
+                    tooltip: removeTooltip,
                     onPressed: onRemove,
-                    icon: Icons.close_rounded,
+                    icon: removeIcon,
                     tooltipsEnabled: tooltipsEnabled,
                   ),
                   const SizedBox(width: 10),
@@ -177,15 +213,109 @@ class MediaTaskListTile extends StatelessWidget {
         Row(
           children: [
             MediaTaskStatusBadge(task: task),
+            ..._buildPolicyTags(context),
             const SizedBox(width: 10),
-            Text(
-              _formatBytes(task.sourceFileFingerprint?.fileSize),
-              style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
+            Flexible(
+              child: Text(
+                _taskDetailsText(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
+              ),
             ),
           ],
         ),
       ],
     );
+  }
+
+  String _taskDetailsText() {
+    if (task.status != TaskStatus.completed) {
+      return _formatBytes(task.sourceFileFingerprint?.fileSize);
+    }
+
+    if (task.purpose == TaskPurpose.conversion) {
+      return '${_sourceFormatLabel()} - ${_targetOutputFormat().label}';
+    }
+
+    final sourceSize = task.sourceFileFingerprint?.fileSize;
+    final outputSize = task.outputFileSize;
+    if (sourceSize == null || sourceSize <= 0 || outputSize == null) {
+      return _formatBytes(sourceSize);
+    }
+
+    final changedPercent = ((sourceSize - outputSize) / sourceSize) * 100;
+    final result = changedPercent >= 0
+        ? '压缩了${_formatPercent(changedPercent)}'
+        : '增大了${_formatPercent(changedPercent.abs())}';
+    return '${_formatBytes(sourceSize)} - ${_formatBytes(outputSize)} · $result';
+  }
+
+  String _sourceFormatLabel() {
+    final format = mediaOutputFormatForSourceFileName(
+      sourceFileName: task.fileName,
+      mediaKind: task.mediaKind,
+    );
+    if (format != null) {
+      return format.label;
+    }
+
+    final extension = path
+        .extension(task.fileName)
+        .replaceFirst('.', '')
+        .trim();
+    return extension.isEmpty ? '未知格式' : extension.toUpperCase();
+  }
+
+  MediaOutputFormat _targetOutputFormat() {
+    return switch (task.mediaKind) {
+      MediaKind.video => task.config.video!.outputFormat,
+      MediaKind.image => task.config.image!.outputFormat,
+      MediaKind.audio => task.config.audio!.outputFormat,
+    };
+  }
+
+  String _formatPercent(double value) {
+    final rounded = value.roundToDouble();
+    return value == rounded
+        ? '${rounded.toInt()}%'
+        : '${value.toStringAsFixed(1)}%';
+  }
+
+  List<Widget> _buildPolicyTags(BuildContext context) {
+    if (task.policyTags.isEmpty) {
+      return const [];
+    }
+    final colors = context.frameLeanColors;
+    return task.policyTags.map((tag) {
+      return Padding(
+        padding: const EdgeInsets.only(left: 6),
+        child: Container(
+          height: 20,
+          padding: const EdgeInsets.symmetric(horizontal: 7),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: colors.primary.withAlpha(18),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: colors.primary.withAlpha(90)),
+          ),
+          child: Text(
+            policyTagLabel(tag),
+            style: TextStyle(color: colors.primary, fontSize: 10.flSp),
+          ),
+        ),
+      );
+    }).toList();
+  }
+
+  String policyTagLabel(MediaTaskPolicyTag tag) {
+    return switch (tag) {
+      MediaTaskPolicyTag.transparentPreserve => '透明保留',
+      MediaTaskPolicyTag.outputRenamed => '输出已改名',
+      MediaTaskPolicyTag.outputDirectoryCreated => '目录已创建',
+      MediaTaskPolicyTag.imageFormatFallback => '图片已改格式重试',
+      MediaTaskPolicyTag.ineffectiveCompression => '未有效压缩',
+    };
   }
 
   String _formatBytes(int? bytes) {

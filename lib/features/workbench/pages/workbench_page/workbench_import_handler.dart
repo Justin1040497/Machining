@@ -20,6 +20,7 @@ abstract final class WorkbenchImportHandler {
     required MediaTaskListNotifier notifier,
   }) async {
     final createdTasks = <MediaTask>[];
+    final createdFileTasks = <MediaTask>[];
     final failures = <DroppedImportFailure>[];
 
     for (final rawPath in paths) {
@@ -32,9 +33,28 @@ abstract final class WorkbenchImportHandler {
       }
 
       final entityType = FileSystemEntity.typeSync(inputPath);
+      if (entityType == FileSystemEntityType.directory) {
+        final result = await notifier.importFolderFromPath(inputPath);
+        createdTasks.addAll(result.createdTasks);
+        if (result.foundNoMedia) {
+          failures.add(
+            DroppedImportFailure(path: inputPath, reason: '未找到可识别媒体文件'),
+          );
+        }
+        failures.addAll(
+          result.failures.map(
+            (failure) => DroppedImportFailure(
+              path: failure.path,
+              reason: failure.reason,
+            ),
+          ),
+        );
+        continue;
+      }
+
       if (entityType != FileSystemEntityType.file) {
         failures.add(
-          DroppedImportFailure(path: inputPath, reason: '只能导入媒体文件，不能导入文件夹'),
+          DroppedImportFailure(path: inputPath, reason: '路径不是可导入的文件或文件夹'),
         );
         continue;
       }
@@ -42,6 +62,7 @@ abstract final class WorkbenchImportHandler {
       try {
         final task = await notifier.createDraftFromPath(inputPath);
         createdTasks.add(task);
+        createdFileTasks.add(task);
       } on Object catch (error) {
         failures.add(
           DroppedImportFailure(
@@ -51,6 +72,8 @@ abstract final class WorkbenchImportHandler {
         );
       }
     }
+
+    await notifier.createTaskFoldersForImportedBatch(createdFileTasks);
 
     return WorkbenchImportResult(
       createdTasks: createdTasks,

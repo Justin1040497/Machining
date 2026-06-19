@@ -7,6 +7,7 @@ import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/media_processing_preset.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
+import 'package:framelean/domain/enums/two_pass_mode.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
@@ -35,6 +36,7 @@ Map<String, Object?> mediaTaskConfigToJson(MediaTaskConfig config) {
     'preset': config.preset?.name,
     'targetSizeBytes': config.targetSizeBytes,
     'targetSizeRatio': config.targetSizeRatio,
+    'threadLimit': config.threadLimit,
     'video': videoConfigToJson(config.video),
     'image': imageConfigToJson(config.image),
     'audio': audioConfigToJson(config.audio),
@@ -57,6 +59,7 @@ MediaTaskConfig mediaTaskConfigFromJson(Map<String, dynamic> json) {
     ),
     targetSizeBytes: intValue(json['targetSizeBytes']),
     targetSizeRatio: doubleValue(json['targetSizeRatio']),
+    threadLimit: intValue(json['threadLimit']),
     video: videoConfigFromJson(mapValue(json['video'])),
     image: imageConfigFromJson(mapValue(json['image'])),
     audio: audioConfigFromJson(mapValue(json['audio'])),
@@ -81,6 +84,8 @@ Map<String, Object?>? videoConfigToJson(VideoProcessingConfig? config) {
     'compressionCrf': config.compressionCrf,
     'smartPreset': config.smartPreset?.name,
     'preserveMetadata': config.preserveMetadata,
+    'twoPassMode': config.twoPassMode.name,
+    'selectedAudioStreamIndex': config.selectedAudioStreamIndex,
   };
 }
 
@@ -136,6 +141,13 @@ VideoProcessingConfig? videoConfigFromJson(Map<String, dynamic>? json) {
       stringValue(json['smartPreset']),
     ),
     preserveMetadata: boolValue(json['preserveMetadata']) ?? true,
+    twoPassMode:
+        nullableEnumValueByName(
+          TwoPassMode.values,
+          stringValue(json['twoPassMode']),
+        ) ??
+        TwoPassMode.automatic,
+    selectedAudioStreamIndex: intValue(json['selectedAudioStreamIndex']),
   );
 }
 
@@ -147,6 +159,7 @@ Map<String, Object?>? imageConfigToJson(ImageProcessingConfig? config) {
   return {
     'outputFormat': config.outputFormat.name,
     'keepOriginalOutputFormat': config.keepOriginalOutputFormat,
+    'losslessCompression': config.losslessCompression,
     'imageQuality': config.imageQuality,
     'resizePreset': config.resizePreset.name,
     'preserveMetadata': config.preserveMetadata,
@@ -167,6 +180,7 @@ ImageProcessingConfig? imageConfigFromJson(Map<String, dynamic>? json) {
         MediaOutputFormat.jpg,
     keepOriginalOutputFormat:
         boolValue(json['keepOriginalOutputFormat']) ?? false,
+    losslessCompression: boolValue(json['losslessCompression']) ?? false,
     imageQuality: intValue(json['imageQuality']) ?? 100,
     resizePreset:
         nullableEnumValueByName(
