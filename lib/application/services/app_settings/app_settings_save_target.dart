@@ -1,5 +1,7 @@
 enum AppSettingsSaveTarget {
   application('应用设置', successMessage: '已即时生效'),
+  notifications('通知设置', successMessage: '已即时生效'),
+  shortcuts('快捷键设置', successMessage: '已即时生效'),
   videoTask('视频任务配置', successMessage: '在下次导入任务时应用'),
   imageTask('图片任务配置', successMessage: '在下次导入任务时应用'),
   audioTask('音频任务配置', successMessage: '在下次导入任务时应用'),

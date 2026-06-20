@@ -26,22 +26,31 @@ import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/enums/app_close_behavior.dart';
+import 'package:framelean/domain/enums/app_shortcut_action.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
+import 'package:framelean/domain/enums/notification_delivery_mode.dart';
+import 'package:framelean/domain/enums/notification_event_type.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
+import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
+import 'package:framelean/app/shortcuts/app_hotkey_adapter.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
+import 'package:framelean/app/shortcuts/app_shortcut_resolver.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/app_dialog_frame.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/app/widgets/form_controls/path_field.dart';
 import 'package:framelean/app/providers/app_maintenance_provider.dart';
@@ -51,6 +60,7 @@ import 'package:framelean/app/providers/app_settings_save_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 
 part '../sections/settings_sections.dart';
 part '../sections/settings_section_actions.dart';
@@ -166,69 +176,85 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
     final fileSelectionService = ref.read(fileSelectionServiceProvider);
-    return Scaffold(
-      backgroundColor: colors.surface,
-      body: FutureBuilder<AppSettings>(
-        future: settingsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.hasData) {
-            final updateState =
-                ref.watch(appUpdateProvider).asData?.value ??
-                AppUpdateState.initial();
-            return AppSettingsView(
-              initialSettings: snapshot.requireData,
-              fallbackDefaultDirectory: fileSelectionService.defaultExportPath,
-              updateState: updateState,
-              onPickOutputDirectory: fileSelectionService.pickOutputDirectory,
-              onPickFfmpegPath: fileSelectionService.pickExecutablePath,
-              onPickFfprobePath: fileSelectionService.pickExecutablePath,
-              onPreviewAppCacheCleanup: () {
-                return PreviewAppCacheCleanupUseCase(
-                  cacheCleaner: ref.read(appCacheCleanerProvider),
-                ).call();
-              },
-              onClearAppCache: () {
-                return ClearAppCacheUseCase(
-                  cacheCleaner: ref.read(appCacheCleanerProvider),
-                ).call();
-              },
-              onLoadAppUninstallAvailability: () {
-                return LoadAppUninstallAvailabilityUseCase(
-                  uninstaller: ref.read(appUninstallerProvider),
-                ).call();
-              },
-              onLaunchCleanUninstaller: launchCleanUninstaller,
-              onOpenExternalLink: openExternalLink,
-              onCheckUpdate: () {
-                return ref.read(appUpdateProvider.notifier).checkForUpdate();
-              },
-              onStartOrResumeUpdateDownload: () {
-                return ref
-                    .read(appUpdateProvider.notifier)
-                    .startOrResumeDownload();
-              },
-              onPauseUpdateDownload: () {
-                ref.read(appUpdateProvider.notifier).pauseDownload();
-              },
-              onInstallUpdate: installUpdateWithTaskCheck,
-              onOpenReleaseNotes: () {
-                context.push('/settings/release-notes');
-              },
-              onClose: () => returnToWorkbench(),
-              onSave: saveSettings,
-            );
-          }
-
-          if (snapshot.hasError) {
-            return _SettingsLoadError(
-              error: snapshot.error.toString(),
-              onRetry: retryLoadSettings,
-              onBack: () => returnToWorkbench(),
-            );
-          }
-
-          return const _SettingsLoading();
+    return CallbackShortcuts(
+      bindings: <ShortcutActivator, VoidCallback>{
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (!mounted) return;
+          if (ModalRoute.of(context)?.isCurrent != true) return;
+          returnToWorkbench();
         },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          backgroundColor: colors.surface,
+          body: FutureBuilder<AppSettings>(
+            future: settingsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final updateState =
+                    ref.watch(appUpdateProvider).asData?.value ??
+                    AppUpdateState.initial();
+                return AppSettingsView(
+                  initialSettings: snapshot.requireData,
+                  fallbackDefaultDirectory:
+                      fileSelectionService.defaultExportPath,
+                  updateState: updateState,
+                  onPickOutputDirectory:
+                      fileSelectionService.pickOutputDirectory,
+                  onPickFfmpegPath: fileSelectionService.pickExecutablePath,
+                  onPickFfprobePath: fileSelectionService.pickExecutablePath,
+                  onPreviewAppCacheCleanup: () {
+                    return PreviewAppCacheCleanupUseCase(
+                      cacheCleaner: ref.read(appCacheCleanerProvider),
+                    ).call();
+                  },
+                  onClearAppCache: () {
+                    return ClearAppCacheUseCase(
+                      cacheCleaner: ref.read(appCacheCleanerProvider),
+                    ).call();
+                  },
+                  onLoadAppUninstallAvailability: () {
+                    return LoadAppUninstallAvailabilityUseCase(
+                      uninstaller: ref.read(appUninstallerProvider),
+                    ).call();
+                  },
+                  onLaunchCleanUninstaller: launchCleanUninstaller,
+                  onOpenExternalLink: openExternalLink,
+                  onCheckUpdate: () {
+                    return ref
+                        .read(appUpdateProvider.notifier)
+                        .checkForUpdate();
+                  },
+                  onStartOrResumeUpdateDownload: () {
+                    return ref
+                        .read(appUpdateProvider.notifier)
+                        .startOrResumeDownload();
+                  },
+                  onPauseUpdateDownload: () {
+                    ref.read(appUpdateProvider.notifier).pauseDownload();
+                  },
+                  onInstallUpdate: installUpdateWithTaskCheck,
+                  onOpenReleaseNotes: () {
+                    context.push('/settings/release-notes');
+                  },
+                  onClose: () => returnToWorkbench(),
+                  onSave: saveSettings,
+                );
+              }
+
+              if (snapshot.hasError) {
+                return _SettingsLoadError(
+                  error: snapshot.error.toString(),
+                  onRetry: retryLoadSettings,
+                  onBack: () => returnToWorkbench(),
+                );
+              }
+
+              return const _SettingsLoading();
+            },
+          ),
+        ),
       ),
     );
   }
@@ -289,7 +315,7 @@ class AppSettingsView extends StatefulWidget {
 
 class _AppSettingsViewState extends State<AppSettingsView> {
   static const _sidebarWidth = 168.0;
-  static const _fieldHeight = 34.0;
+  static const _fieldHeight = 40.0;
 
   late _SettingsSection selectedSection;
   late AppThemeMode themeMode;
@@ -297,6 +323,10 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   late bool hideNotificationBadge;
   late int maxConcurrentExecutions;
   late int folderImportScanDepth;
+  late AppCloseBehavior closeBehavior;
+  late Map<NotificationEventType, NotificationDeliveryMode>
+  notificationPolicies;
+  late Map<AppShortcutAction, AppShortcutBinding> shortcutBindings;
   late bool saveOutputToSourceDirectory;
   late MediaTaskConfig defaultMediaConfig;
 
@@ -312,6 +342,7 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   _SettingsSection? savingSection;
   bool clearingCache = false;
   bool uninstalling = false;
+  String? shortcutConflictMessage;
 
   VideoProcessingConfig get videoConfig =>
       defaultMediaConfig.video ?? VideoProcessingConfig.initial();
@@ -335,6 +366,9 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     hideNotificationBadge = widget.initialSettings.hideNotificationBadge;
     maxConcurrentExecutions = widget.initialSettings.maxConcurrentExecutions;
     folderImportScanDepth = widget.initialSettings.folderImportScanDepth;
+    closeBehavior = widget.initialSettings.closeBehavior;
+    notificationPolicies = Map.of(widget.initialSettings.notificationPolicies);
+    shortcutBindings = Map.of(widget.initialSettings.shortcutBindings);
     saveOutputToSourceDirectory =
         widget.initialSettings.saveOutputToSourceDirectory;
     defaultMediaConfig = _withAllMediaDefaults(

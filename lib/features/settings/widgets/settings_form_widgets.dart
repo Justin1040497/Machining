@@ -297,3 +297,321 @@ class _FormFieldLabel extends StatelessWidget {
     );
   }
 }
+
+class _NotificationPolicyTable extends StatelessWidget {
+  const _NotificationPolicyTable({
+    required this.policies,
+    required this.onChanged,
+  });
+
+  final Map<NotificationEventType, NotificationDeliveryMode> policies;
+  final void Function(
+    NotificationEventType event,
+    NotificationDeliveryMode mode,
+  )
+  onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(color: colors.border),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Column(
+        children: [
+          Container(
+            height: 42,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            color: colors.surfaceMuted,
+            child: Row(
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '通知类型',
+                      style: TextStyle(
+                        color: colors.textPrimary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: 150,
+                  child: Center(
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '投递方式',
+                        style: TextStyle(
+                          color: colors.textPrimary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          for (final event in NotificationEventType.values)
+            _NotificationPolicyTableRow(
+              event: event,
+              value: policies[event] ?? defaultNotificationPolicies[event]!,
+              onChanged: (value) => onChanged(event, value),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NotificationPolicyTableRow extends StatelessWidget {
+  const _NotificationPolicyTableRow({
+    required this.event,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final NotificationEventType event;
+  final NotificationDeliveryMode value;
+  final ValueChanged<NotificationDeliveryMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return Container(
+      height: 54,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: BoxDecoration(
+        border: Border(top: BorderSide(color: colors.border)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                event.settingsLabel,
+                style: TextStyle(color: colors.textSecondary, fontSize: 12),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 130,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ConfigDropdown<NotificationDeliveryMode>(
+                  label: event.settingsLabel,
+                  trailingText: '',
+                  value: value,
+                  values: NotificationDeliveryMode.values,
+                  itemLabel: (value) => value.settingsLabel,
+                  onChanged: (value) {
+                    if (value != null) onChanged(value);
+                  },
+                  height: _AppSettingsViewState._fieldHeight,
+                  showLabel: false,
+                  showTrailingText: false,
+                  labelFontSize: 12,
+                  valueFontSize: 12,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShortcutBindingRow extends StatelessWidget {
+  const _ShortcutBindingRow({
+    required this.action,
+    required this.binding,
+    required this.onRecord,
+  });
+
+  final AppShortcutAction action;
+  final AppShortcutBinding binding;
+  final VoidCallback onRecord;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return Container(
+      height: 46,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceMuted,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: colors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              action.settingsLabel,
+              style: TextStyle(color: colors.textPrimary, fontSize: 12),
+            ),
+          ),
+          OutlinedButton(
+            onPressed: onRecord,
+            style: OutlinedButton.styleFrom(
+              minimumSize: const Size(132, 28),
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              side: BorderSide(color: colors.borderStrong),
+            ),
+            child: Text(shortcutBindingLabel(binding)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShortcutRecorderDialog extends StatefulWidget {
+  const _ShortcutRecorderDialog({required this.action});
+
+  final AppShortcutAction action;
+
+  @override
+  State<_ShortcutRecorderDialog> createState() =>
+      _ShortcutRecorderDialogState();
+}
+
+class _ShortcutRecorderDialogState extends State<_ShortcutRecorderDialog> {
+  AppShortcutBinding? _recordedBinding;
+  late final FocusNode _focusNode = FocusNode(
+    debugLabel: 'ShortcutRecorderDialog',
+  );
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _cancelRecording() {
+    if (_completed) return;
+    _completed = true;
+    Navigator.of(context).pop();
+  }
+
+  void _completeRecording(AppShortcutBinding binding) {
+    if (_completed) return;
+    _completed = true;
+    Navigator.of(context).pop(binding);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return Actions(
+      actions: <Type, Action<Intent>>{
+        DismissIntent: CallbackAction<DismissIntent>(
+          onInvoke: (_) {
+            _cancelRecording();
+            return null;
+          },
+        ),
+      },
+      child: Focus(
+        focusNode: _focusNode,
+        autofocus: true,
+        onKeyEvent: (node, event) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.escape) {
+            _cancelRecording();
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored;
+        },
+        child: AppDialogFrame(
+          maxWidth: 410,
+          child: Stack(
+            children: [
+              Offstage(
+                child: HotKeyRecorder(
+                  onHotKeyRecorded: (hotKey) {
+                    if (hotKey.logicalKey == LogicalKeyboardKey.escape) {
+                      _cancelRecording();
+                      return;
+                    }
+                    if (hotKeyIsOnlyModifier(hotKey)) {
+                      return;
+                    }
+                    final binding = shortcutBindingFromHotKey(hotKey);
+                    setState(() {
+                      _recordedBinding = binding;
+                    });
+                    _completeRecording(binding);
+                  },
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppDialogTitle('设置“${widget.action.settingsLabel}”快捷键'),
+                  const SizedBox(height: 18),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 22,
+                      horizontal: 18,
+                    ),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceMuted,
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: colors.primary),
+                    ),
+                    child: Text(
+                      _recordedBinding == null
+                          ? '请按下新的快捷键组合\n按 Esc 取消'
+                          : '已录入 ${shortcutBindingLabel(_recordedBinding!)}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: colors.textSecondary,
+                        fontSize: 13,
+                        height: 1.7,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      AppDialogActionButton(
+                        label: '取消',
+                        backgroundColor: colors.statusCancelled,
+                        onPressed: _cancelRecording,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

@@ -231,6 +231,42 @@ class $SettingsRowsTable extends SettingsRows
     requiredDuringInsert: false,
     defaultValue: const Constant(2),
   );
+  static const VerificationMeta _notificationPoliciesJsonMeta =
+      const VerificationMeta('notificationPoliciesJson');
+  @override
+  late final GeneratedColumn<String> notificationPoliciesJson =
+      GeneratedColumn<String>(
+        'notification_policies_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('{}'),
+      );
+  static const VerificationMeta _shortcutBindingsJsonMeta =
+      const VerificationMeta('shortcutBindingsJson');
+  @override
+  late final GeneratedColumn<String> shortcutBindingsJson =
+      GeneratedColumn<String>(
+        'shortcut_bindings_json',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('{}'),
+      );
+  static const VerificationMeta _closeBehaviorMeta = const VerificationMeta(
+    'closeBehavior',
+  );
+  @override
+  late final GeneratedColumn<String> closeBehavior = GeneratedColumn<String>(
+    'close_behavior',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('background'),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -273,6 +309,9 @@ class $SettingsRowsTable extends SettingsRows
     taskCompletionSound,
     maxConcurrentExecutions,
     folderImportScanDepth,
+    notificationPoliciesJson,
+    shortcutBindingsJson,
+    closeBehavior,
     createdAt,
     updatedAt,
   ];
@@ -441,6 +480,33 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
+    if (data.containsKey('notification_policies_json')) {
+      context.handle(
+        _notificationPoliciesJsonMeta,
+        notificationPoliciesJson.isAcceptableOrUnknown(
+          data['notification_policies_json']!,
+          _notificationPoliciesJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('shortcut_bindings_json')) {
+      context.handle(
+        _shortcutBindingsJsonMeta,
+        shortcutBindingsJson.isAcceptableOrUnknown(
+          data['shortcut_bindings_json']!,
+          _shortcutBindingsJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('close_behavior')) {
+      context.handle(
+        _closeBehaviorMeta,
+        closeBehavior.isAcceptableOrUnknown(
+          data['close_behavior']!,
+          _closeBehaviorMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -538,6 +604,18 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.int,
         data['${effectivePrefix}folder_import_scan_depth'],
       )!,
+      notificationPoliciesJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notification_policies_json'],
+      )!,
+      shortcutBindingsJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}shortcut_bindings_json'],
+      )!,
+      closeBehavior: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}close_behavior'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
@@ -574,6 +652,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String taskCompletionSound;
   final int maxConcurrentExecutions;
   final int folderImportScanDepth;
+  final String notificationPoliciesJson;
+  final String shortcutBindingsJson;
+  final String closeBehavior;
   final int createdAt;
   final int updatedAt;
   const SettingsRow({
@@ -595,6 +676,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.taskCompletionSound,
     required this.maxConcurrentExecutions,
     required this.folderImportScanDepth,
+    required this.notificationPoliciesJson,
+    required this.shortcutBindingsJson,
+    required this.closeBehavior,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -645,6 +729,11 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['task_completion_sound'] = Variable<String>(taskCompletionSound);
     map['max_concurrent_executions'] = Variable<int>(maxConcurrentExecutions);
     map['folder_import_scan_depth'] = Variable<int>(folderImportScanDepth);
+    map['notification_policies_json'] = Variable<String>(
+      notificationPoliciesJson,
+    );
+    map['shortcut_bindings_json'] = Variable<String>(shortcutBindingsJson);
+    map['close_behavior'] = Variable<String>(closeBehavior);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -681,6 +770,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       taskCompletionSound: Value(taskCompletionSound),
       maxConcurrentExecutions: Value(maxConcurrentExecutions),
       folderImportScanDepth: Value(folderImportScanDepth),
+      notificationPoliciesJson: Value(notificationPoliciesJson),
+      shortcutBindingsJson: Value(shortcutBindingsJson),
+      closeBehavior: Value(closeBehavior),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -738,6 +830,13 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       folderImportScanDepth: serializer.fromJson<int>(
         json['folderImportScanDepth'],
       ),
+      notificationPoliciesJson: serializer.fromJson<String>(
+        json['notificationPoliciesJson'],
+      ),
+      shortcutBindingsJson: serializer.fromJson<String>(
+        json['shortcutBindingsJson'],
+      ),
+      closeBehavior: serializer.fromJson<String>(json['closeBehavior']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -782,6 +881,11 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         maxConcurrentExecutions,
       ),
       'folderImportScanDepth': serializer.toJson<int>(folderImportScanDepth),
+      'notificationPoliciesJson': serializer.toJson<String>(
+        notificationPoliciesJson,
+      ),
+      'shortcutBindingsJson': serializer.toJson<String>(shortcutBindingsJson),
+      'closeBehavior': serializer.toJson<String>(closeBehavior),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -806,6 +910,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     String? taskCompletionSound,
     int? maxConcurrentExecutions,
     int? folderImportScanDepth,
+    String? notificationPoliciesJson,
+    String? shortcutBindingsJson,
+    String? closeBehavior,
     int? createdAt,
     int? updatedAt,
   }) => SettingsRow(
@@ -843,6 +950,10 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     maxConcurrentExecutions:
         maxConcurrentExecutions ?? this.maxConcurrentExecutions,
     folderImportScanDepth: folderImportScanDepth ?? this.folderImportScanDepth,
+    notificationPoliciesJson:
+        notificationPoliciesJson ?? this.notificationPoliciesJson,
+    shortcutBindingsJson: shortcutBindingsJson ?? this.shortcutBindingsJson,
+    closeBehavior: closeBehavior ?? this.closeBehavior,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -898,6 +1009,15 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       folderImportScanDepth: data.folderImportScanDepth.present
           ? data.folderImportScanDepth.value
           : this.folderImportScanDepth,
+      notificationPoliciesJson: data.notificationPoliciesJson.present
+          ? data.notificationPoliciesJson.value
+          : this.notificationPoliciesJson,
+      shortcutBindingsJson: data.shortcutBindingsJson.present
+          ? data.shortcutBindingsJson.value
+          : this.shortcutBindingsJson,
+      closeBehavior: data.closeBehavior.present
+          ? data.closeBehavior.value
+          : this.closeBehavior,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -928,6 +1048,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('taskCompletionSound: $taskCompletionSound, ')
           ..write('maxConcurrentExecutions: $maxConcurrentExecutions, ')
           ..write('folderImportScanDepth: $folderImportScanDepth, ')
+          ..write('notificationPoliciesJson: $notificationPoliciesJson, ')
+          ..write('shortcutBindingsJson: $shortcutBindingsJson, ')
+          ..write('closeBehavior: $closeBehavior, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -935,7 +1058,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
+  int get hashCode => Object.hashAll([
     id,
     defaultOutputDirectory,
     lastSelectedOutputDirectory,
@@ -954,9 +1077,12 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     taskCompletionSound,
     maxConcurrentExecutions,
     folderImportScanDepth,
+    notificationPoliciesJson,
+    shortcutBindingsJson,
+    closeBehavior,
     createdAt,
     updatedAt,
-  );
+  ]);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -983,6 +1109,9 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.taskCompletionSound == this.taskCompletionSound &&
           other.maxConcurrentExecutions == this.maxConcurrentExecutions &&
           other.folderImportScanDepth == this.folderImportScanDepth &&
+          other.notificationPoliciesJson == this.notificationPoliciesJson &&
+          other.shortcutBindingsJson == this.shortcutBindingsJson &&
+          other.closeBehavior == this.closeBehavior &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1006,6 +1135,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String> taskCompletionSound;
   final Value<int> maxConcurrentExecutions;
   final Value<int> folderImportScanDepth;
+  final Value<String> notificationPoliciesJson;
+  final Value<String> shortcutBindingsJson;
+  final Value<String> closeBehavior;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   const SettingsRowsCompanion({
@@ -1027,6 +1159,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.taskCompletionSound = const Value.absent(),
     this.maxConcurrentExecutions = const Value.absent(),
     this.folderImportScanDepth = const Value.absent(),
+    this.notificationPoliciesJson = const Value.absent(),
+    this.shortcutBindingsJson = const Value.absent(),
+    this.closeBehavior = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -1049,6 +1184,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.taskCompletionSound = const Value.absent(),
     this.maxConcurrentExecutions = const Value.absent(),
     this.folderImportScanDepth = const Value.absent(),
+    this.notificationPoliciesJson = const Value.absent(),
+    this.shortcutBindingsJson = const Value.absent(),
+    this.closeBehavior = const Value.absent(),
     required int createdAt,
     required int updatedAt,
   }) : createdAt = Value(createdAt),
@@ -1072,6 +1210,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? taskCompletionSound,
     Expression<int>? maxConcurrentExecutions,
     Expression<int>? folderImportScanDepth,
+    Expression<String>? notificationPoliciesJson,
+    Expression<String>? shortcutBindingsJson,
+    Expression<String>? closeBehavior,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
   }) {
@@ -1107,6 +1248,11 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'max_concurrent_executions': maxConcurrentExecutions,
       if (folderImportScanDepth != null)
         'folder_import_scan_depth': folderImportScanDepth,
+      if (notificationPoliciesJson != null)
+        'notification_policies_json': notificationPoliciesJson,
+      if (shortcutBindingsJson != null)
+        'shortcut_bindings_json': shortcutBindingsJson,
+      if (closeBehavior != null) 'close_behavior': closeBehavior,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1131,6 +1277,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String>? taskCompletionSound,
     Value<int>? maxConcurrentExecutions,
     Value<int>? folderImportScanDepth,
+    Value<String>? notificationPoliciesJson,
+    Value<String>? shortcutBindingsJson,
+    Value<String>? closeBehavior,
     Value<int>? createdAt,
     Value<int>? updatedAt,
   }) {
@@ -1164,6 +1313,10 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           maxConcurrentExecutions ?? this.maxConcurrentExecutions,
       folderImportScanDepth:
           folderImportScanDepth ?? this.folderImportScanDepth,
+      notificationPoliciesJson:
+          notificationPoliciesJson ?? this.notificationPoliciesJson,
+      shortcutBindingsJson: shortcutBindingsJson ?? this.shortcutBindingsJson,
+      closeBehavior: closeBehavior ?? this.closeBehavior,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1250,6 +1403,19 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         folderImportScanDepth.value,
       );
     }
+    if (notificationPoliciesJson.present) {
+      map['notification_policies_json'] = Variable<String>(
+        notificationPoliciesJson.value,
+      );
+    }
+    if (shortcutBindingsJson.present) {
+      map['shortcut_bindings_json'] = Variable<String>(
+        shortcutBindingsJson.value,
+      );
+    }
+    if (closeBehavior.present) {
+      map['close_behavior'] = Variable<String>(closeBehavior.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
@@ -1284,6 +1450,9 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('taskCompletionSound: $taskCompletionSound, ')
           ..write('maxConcurrentExecutions: $maxConcurrentExecutions, ')
           ..write('folderImportScanDepth: $folderImportScanDepth, ')
+          ..write('notificationPoliciesJson: $notificationPoliciesJson, ')
+          ..write('shortcutBindingsJson: $shortcutBindingsJson, ')
+          ..write('closeBehavior: $closeBehavior, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -6913,6 +7082,9 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String> taskCompletionSound,
       Value<int> maxConcurrentExecutions,
       Value<int> folderImportScanDepth,
+      Value<String> notificationPoliciesJson,
+      Value<String> shortcutBindingsJson,
+      Value<String> closeBehavior,
       required int createdAt,
       required int updatedAt,
     });
@@ -6936,6 +7108,9 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String> taskCompletionSound,
       Value<int> maxConcurrentExecutions,
       Value<int> folderImportScanDepth,
+      Value<String> notificationPoliciesJson,
+      Value<String> shortcutBindingsJson,
+      Value<String> closeBehavior,
       Value<int> createdAt,
       Value<int> updatedAt,
     });
@@ -7036,6 +7211,21 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<int> get folderImportScanDepth => $composableBuilder(
     column: $table.folderImportScanDepth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notificationPoliciesJson => $composableBuilder(
+    column: $table.notificationPoliciesJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get shortcutBindingsJson => $composableBuilder(
+    column: $table.shortcutBindingsJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get closeBehavior => $composableBuilder(
+    column: $table.closeBehavior,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7151,6 +7341,21 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get notificationPoliciesJson => $composableBuilder(
+    column: $table.notificationPoliciesJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get shortcutBindingsJson => $composableBuilder(
+    column: $table.shortcutBindingsJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get closeBehavior => $composableBuilder(
+    column: $table.closeBehavior,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -7259,6 +7464,21 @@ class $$SettingsRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get notificationPoliciesJson => $composableBuilder(
+    column: $table.notificationPoliciesJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get shortcutBindingsJson => $composableBuilder(
+    column: $table.shortcutBindingsJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get closeBehavior => $composableBuilder(
+    column: $table.closeBehavior,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
 
@@ -7318,6 +7538,9 @@ class $$SettingsRowsTableTableManager
                 Value<String> taskCompletionSound = const Value.absent(),
                 Value<int> maxConcurrentExecutions = const Value.absent(),
                 Value<int> folderImportScanDepth = const Value.absent(),
+                Value<String> notificationPoliciesJson = const Value.absent(),
+                Value<String> shortcutBindingsJson = const Value.absent(),
+                Value<String> closeBehavior = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
               }) => SettingsRowsCompanion(
@@ -7339,6 +7562,9 @@ class $$SettingsRowsTableTableManager
                 taskCompletionSound: taskCompletionSound,
                 maxConcurrentExecutions: maxConcurrentExecutions,
                 folderImportScanDepth: folderImportScanDepth,
+                notificationPoliciesJson: notificationPoliciesJson,
+                shortcutBindingsJson: shortcutBindingsJson,
+                closeBehavior: closeBehavior,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -7365,6 +7591,9 @@ class $$SettingsRowsTableTableManager
                 Value<String> taskCompletionSound = const Value.absent(),
                 Value<int> maxConcurrentExecutions = const Value.absent(),
                 Value<int> folderImportScanDepth = const Value.absent(),
+                Value<String> notificationPoliciesJson = const Value.absent(),
+                Value<String> shortcutBindingsJson = const Value.absent(),
+                Value<String> closeBehavior = const Value.absent(),
                 required int createdAt,
                 required int updatedAt,
               }) => SettingsRowsCompanion.insert(
@@ -7386,6 +7615,9 @@ class $$SettingsRowsTableTableManager
                 taskCompletionSound: taskCompletionSound,
                 maxConcurrentExecutions: maxConcurrentExecutions,
                 folderImportScanDepth: folderImportScanDepth,
+                notificationPoliciesJson: notificationPoliciesJson,
+                shortcutBindingsJson: shortcutBindingsJson,
+                closeBehavior: closeBehavior,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

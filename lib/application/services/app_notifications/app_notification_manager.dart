@@ -3,11 +3,14 @@ import 'dart:async';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/notification_delivery_mode.dart';
+import 'package:framelean/domain/enums/notification_event_type.dart';
 import 'package:framelean/domain/value_objects/app_release_info.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 import 'package:framelean/domain/value_objects/update_notification_payload.dart';
@@ -35,9 +38,10 @@ class AppNotificationPresentation {
 }
 
 class AppNotificationManager {
-  AppNotificationManager({required this.repository});
+  AppNotificationManager({required this.repository, this.readSettings});
 
   final AppNotificationRepository repository;
+  final Future<AppSettings> Function()? readSettings;
   final Uuid _uuid = const Uuid();
   final StreamController<AppNotificationPresentation> _presentationController =
       StreamController<AppNotificationPresentation>.broadcast();
@@ -59,15 +63,11 @@ class AppNotificationManager {
       message: message,
       source: source,
       createdAt: DateTime.now(),
-      readAt: DateTime.now(),
-      dismissedAt: DateTime.now(),
     );
-    if (!_presentationController.isClosed) {
-      _presentationController.add(
-        AppNotificationPresentation(notification: notification),
-      );
-    }
-    return notification;
+    return _deliver(
+      eventType: NotificationEventType.interactionHint,
+      notification: notification,
+    );
   }
 
   Future<AppNotificationEntry> notify({
@@ -79,6 +79,7 @@ class AppNotificationManager {
     String? dedupeKey,
     String? payloadJson,
     AppNotificationAction? action,
+    NotificationEventType? eventType,
   }) async {
     final notification = AppNotificationEntry(
       id: _uuid.v4(),
@@ -91,13 +92,15 @@ class AppNotificationManager {
       dedupeKey: dedupeKey,
       payloadJson: payloadJson,
     );
-    await repository.saveNotification(notification);
-    if (!_presentationController.isClosed) {
-      _presentationController.add(
-        AppNotificationPresentation(notification: notification, action: action),
-      );
-    }
-    return notification;
+    return _deliver(
+      eventType:
+          eventType ??
+          (level == AppNotificationLevel.error
+              ? NotificationEventType.workbenchOperationFailed
+              : NotificationEventType.workbenchOperationSucceeded),
+      notification: notification,
+      action: action,
+    );
   }
 
   Future<AppNotificationEntry> upsert({
@@ -109,6 +112,7 @@ class AppNotificationManager {
     required String dedupeKey,
     String? payloadJson,
     AppNotificationAction? action,
+    NotificationEventType eventType = NotificationEventType.updateAvailable,
   }) async {
     final notification = AppNotificationEntry(
       id: _uuid.v4(),
@@ -121,13 +125,12 @@ class AppNotificationManager {
       dedupeKey: dedupeKey,
       payloadJson: payloadJson,
     );
-    final saved = await repository.upsertNotificationByDedupeKey(notification);
-    if (!_presentationController.isClosed && !saved.isDismissed) {
-      _presentationController.add(
-        AppNotificationPresentation(notification: saved, action: action),
-      );
-    }
-    return saved;
+    return _deliver(
+      eventType: eventType,
+      notification: notification,
+      action: action,
+      upsert: true,
+    );
   }
 
   Future<AppNotificationEntry> notifyUpdateAvailable(AppReleaseInfo release) {
@@ -143,6 +146,7 @@ class AppNotificationManager {
       source: 'update',
       dedupeKey: release.notificationDedupeKey,
       payloadJson: payload.toJson(),
+      eventType: NotificationEventType.updateAvailable,
     );
   }
 
@@ -164,6 +168,9 @@ class AppNotificationManager {
       source: 'update',
       dedupeKey: release.notificationDedupeKey,
       payloadJson: payload.toJson(),
+      eventType: status == AppUpdateStatus.failed
+          ? NotificationEventType.updateFailed
+          : NotificationEventType.updateAvailable,
     );
   }
 
@@ -188,6 +195,7 @@ class AppNotificationManager {
       message: _taskSuccessMessage(task, summary),
       source: 'task',
       payloadJson: payload.toJson(),
+      eventType: NotificationEventType.taskCompleted,
     );
   }
 
@@ -219,6 +227,7 @@ class AppNotificationManager {
       ),
       source: 'task',
       payloadJson: payload.toJson(),
+      eventType: NotificationEventType.taskFailed,
     );
   }
 
@@ -238,6 +247,10 @@ class AppNotificationManager {
     required String failureTitle,
     String Function(Object error)? failureMessage,
     required Future<T> Function() operation,
+    NotificationEventType successEventType =
+        NotificationEventType.settingsSaveSucceeded,
+    NotificationEventType failureEventType =
+        NotificationEventType.settingsSaveFailed,
   }) async {
     try {
       final result = await operation();
@@ -247,6 +260,7 @@ class AppNotificationManager {
         title: successTitle,
         message: successMessage,
         source: source,
+        eventType: successEventType,
       );
       return result;
     } on Object catch (error) {
@@ -256,6 +270,7 @@ class AppNotificationManager {
         title: failureTitle,
         message: failureMessage?.call(error) ?? error.toString(),
         source: source,
+        eventType: failureEventType,
       );
       rethrow;
     }
@@ -263,6 +278,54 @@ class AppNotificationManager {
 
   void dispose() {
     unawaited(_presentationController.close());
+  }
+
+  Future<AppNotificationEntry> _deliver({
+    required NotificationEventType eventType,
+    required AppNotificationEntry notification,
+    AppNotificationAction? action,
+    bool upsert = false,
+  }) async {
+    final mode = await _deliveryModeFor(eventType);
+    if (mode == NotificationDeliveryMode.disabled) {
+      return notification;
+    }
+
+    var delivered = notification;
+    if (mode == NotificationDeliveryMode.persistent) {
+      delivered = upsert
+          ? await repository.upsertNotificationByDedupeKey(notification)
+          : notification;
+      if (!upsert) {
+        await repository.saveNotification(delivered);
+      }
+    }
+
+    if (!_presentationController.isClosed && !delivered.isDismissed) {
+      _presentationController.add(
+        AppNotificationPresentation(notification: delivered, action: action),
+      );
+    }
+    return delivered;
+  }
+
+  Future<NotificationDeliveryMode> _deliveryModeFor(
+    NotificationEventType eventType,
+  ) async {
+    final loader = readSettings;
+    if (loader == null) {
+      return defaultNotificationPolicies[eventType] ??
+          NotificationDeliveryMode.transient;
+    }
+    try {
+      final settings = await loader();
+      return settings.notificationPolicies[eventType] ??
+          defaultNotificationPolicies[eventType] ??
+          NotificationDeliveryMode.transient;
+    } on Object {
+      return defaultNotificationPolicies[eventType] ??
+          NotificationDeliveryMode.transient;
+    }
   }
 }
 

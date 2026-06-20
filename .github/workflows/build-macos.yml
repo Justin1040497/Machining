@@ -82,8 +82,8 @@ jobs:
       - name: Enable macOS desktop
         run: flutter config --enable-macos-desktop
 
-      - name: Enable Swift Package Manager
-        run: flutter config --enable-swift-package-manager
+      - name: Use CocoaPods for macOS plugins
+        run: flutter config --no-enable-swift-package-manager
 
       - name: Download arm64 FFmpeg runtime
         uses: actions/download-artifact@v4

@@ -1,6 +1,34 @@
 part of '../pages/app_settings_page.dart';
 
 extension _AppSettingsViewSectionActions on _AppSettingsViewState {
+  Future<void> recordShortcut(AppShortcutAction action) async {
+    final binding = await showDialog<AppShortcutBinding>(
+      context: context,
+      builder: (context) => _ShortcutRecorderDialog(action: action),
+    );
+    if (!mounted || binding == null) return;
+
+    AppShortcutAction? conflict;
+    for (final entry in shortcutBindings.entries) {
+      if (entry.key != action && entry.value.signature == binding.signature) {
+        conflict = entry.key;
+        break;
+      }
+    }
+    if (conflict != null) {
+      updateViewState(() {
+        shortcutConflictMessage =
+            '“${shortcutBindingLabel(binding)}”已用于“${conflict!.settingsLabel}”。';
+      });
+      return;
+    }
+
+    updateViewState(() {
+      shortcutConflictMessage = null;
+      shortcutBindings = {...shortcutBindings, action: binding};
+    });
+  }
+
   Future<void> pickOutputDirectory() async {
     final selectedPath = await widget.onPickOutputDirectory();
     if (!mounted || selectedPath == null || selectedPath.trim().isEmpty) {

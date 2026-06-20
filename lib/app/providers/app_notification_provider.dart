@@ -8,6 +8,7 @@ import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/app/providers/database_provider.dart';
 import 'package:framelean/infrastructure/repositories/drift_app_notification_repository.dart';
 import 'package:framelean/infrastructure/services/app_notifications/local_task_completion_sound_player.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
 
 final appNotificationRepositoryProvider = Provider<AppNotificationRepository>((
   ref,
@@ -19,6 +20,7 @@ final appNotificationRepositoryProvider = Provider<AppNotificationRepository>((
 final appNotificationManagerProvider = Provider<AppNotificationManager>((ref) {
   final manager = AppNotificationManager(
     repository: ref.watch(appNotificationRepositoryProvider),
+    readSettings: ref.watch(appSettingsRepositoryProvider).loadSettings,
   );
   ref.onDispose(manager.dispose);
   return manager;

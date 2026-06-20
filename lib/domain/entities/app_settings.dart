@@ -1,9 +1,14 @@
 import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/enums/app_close_behavior.dart';
+import 'package:framelean/domain/enums/app_shortcut_action.dart';
+import 'package:framelean/domain/enums/notification_delivery_mode.dart';
+import 'package:framelean/domain/enums/notification_event_type.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/app_compression_settings.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
 
 const Object _notProvided = Object();
 const String defaultOutputFileNameTemplatePattern = '{source}-{action}';
@@ -13,6 +18,26 @@ const int maxConcurrentExecutionsLimit = 3;
 const int minFolderImportScanDepth = 0;
 const int defaultFolderImportScanDepth = 2;
 const int maxFolderImportScanDepth = 5;
+
+const defaultNotificationPolicies =
+    <NotificationEventType, NotificationDeliveryMode>{
+      NotificationEventType.taskCompleted: NotificationDeliveryMode.persistent,
+      NotificationEventType.taskFailed: NotificationDeliveryMode.persistent,
+      NotificationEventType.updateAvailable:
+          NotificationDeliveryMode.persistent,
+      NotificationEventType.updateFailed: NotificationDeliveryMode.persistent,
+      NotificationEventType.settingsSaveSucceeded:
+          NotificationDeliveryMode.transient,
+      NotificationEventType.settingsSaveFailed:
+          NotificationDeliveryMode.persistent,
+      NotificationEventType.workbenchOperationSucceeded:
+          NotificationDeliveryMode.transient,
+      NotificationEventType.workbenchOperationFailed:
+          NotificationDeliveryMode.persistent,
+      NotificationEventType.interactionHint: NotificationDeliveryMode.transient,
+      NotificationEventType.clipboardOperation:
+          NotificationDeliveryMode.transient,
+    };
 
 int normalizeMaxConcurrentExecutions(int? value) {
   return (value ?? defaultMaxConcurrentExecutions).clamp(
@@ -123,6 +148,13 @@ class AppSettings {
   /// 文件夹导入时递归扫描的最大层级。
   final int folderImportScanDepth;
 
+  final Map<NotificationEventType, NotificationDeliveryMode>
+  notificationPolicies;
+
+  final Map<AppShortcutAction, AppShortcutBinding> shortcutBindings;
+
+  final AppCloseBehavior closeBehavior;
+
   AppSettings({
     this.defaultOutputDirectory,
     this.lastSelectedOutputDirectory,
@@ -141,6 +173,9 @@ class AppSettings {
     this.taskCompletionSound = TaskCompletionSound.cleanSuccess,
     int? maxConcurrentExecutions,
     int? folderImportScanDepth,
+    Map<NotificationEventType, NotificationDeliveryMode>? notificationPolicies,
+    Map<AppShortcutAction, AppShortcutBinding>? shortcutBindings,
+    this.closeBehavior = AppCloseBehavior.background,
   }) : defaultOutputFileNameTemplate = normalizeDefaultOutputFileNameTemplate(
          defaultOutputFileNameTemplate,
        ),
@@ -150,6 +185,14 @@ class AppSettings {
        folderImportScanDepth = normalizeFolderImportScanDepth(
          folderImportScanDepth,
        ),
+       notificationPolicies = Map.unmodifiable({
+         ...defaultNotificationPolicies,
+         ...?notificationPolicies,
+       }),
+       shortcutBindings = Map.unmodifiable({
+         ...defaultAppShortcutBindings,
+         ...?shortcutBindings,
+       }),
        defaultMediaConfig = resolveAppDefaultMediaConfig(
          defaultMediaConfig: defaultMediaConfig,
          compressionSettings: compressionSettings,
@@ -183,6 +226,9 @@ class AppSettings {
       taskCompletionSound: TaskCompletionSound.cleanSuccess,
       maxConcurrentExecutions: defaultMaxConcurrentExecutions,
       folderImportScanDepth: defaultFolderImportScanDepth,
+      notificationPolicies: defaultNotificationPolicies,
+      shortcutBindings: defaultAppShortcutBindings,
+      closeBehavior: AppCloseBehavior.background,
     );
   }
 
@@ -204,6 +250,9 @@ class AppSettings {
     TaskCompletionSound? taskCompletionSound,
     int? maxConcurrentExecutions,
     int? folderImportScanDepth,
+    Map<NotificationEventType, NotificationDeliveryMode>? notificationPolicies,
+    Map<AppShortcutAction, AppShortcutBinding>? shortcutBindings,
+    AppCloseBehavior? closeBehavior,
   }) {
     return AppSettings(
       defaultOutputDirectory: identical(defaultOutputDirectory, _notProvided)
@@ -237,6 +286,9 @@ class AppSettings {
           maxConcurrentExecutions ?? this.maxConcurrentExecutions,
       folderImportScanDepth:
           folderImportScanDepth ?? this.folderImportScanDepth,
+      notificationPolicies: notificationPolicies ?? this.notificationPolicies,
+      shortcutBindings: shortcutBindings ?? this.shortcutBindings,
+      closeBehavior: closeBehavior ?? this.closeBehavior,
     );
   }
 
@@ -276,6 +328,7 @@ MediaTaskConfig resolveAppDefaultMediaConfig({
       : videoWithCodec.copyWith(smartPreset: smartPresetOverride);
 
   return MediaTaskConfig(
+    outputLocationMode: base.outputLocationMode,
     outputDirectory: base.outputDirectory,
     outputFileName: base.outputFileName,
     compressionMode: base.compressionMode,

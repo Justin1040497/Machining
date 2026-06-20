@@ -33,6 +33,9 @@ void main() {
       taskCompletionSound: 'original_soft_a',
       maxConcurrentExecutions: 2,
       folderImportScanDepth: 2,
+      notificationPoliciesJson: '{}',
+      shortcutBindingsJson: '{}',
+      closeBehavior: 'background',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -87,6 +90,9 @@ void main() {
       taskCompletionSound: 'servo_confirm',
       maxConcurrentExecutions: 3,
       folderImportScanDepth: 3,
+      notificationPoliciesJson: '{}',
+      shortcutBindingsJson: '{}',
+      closeBehavior: 'background',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -136,6 +142,9 @@ void main() {
       taskCompletionSound: 'none',
       maxConcurrentExecutions: 2,
       folderImportScanDepth: 2,
+      notificationPoliciesJson: '{}',
+      shortcutBindingsJson: '{}',
+      closeBehavior: 'background',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -172,6 +181,9 @@ void main() {
       taskCompletionSound: 'unknown',
       maxConcurrentExecutions: 2,
       folderImportScanDepth: 2,
+      notificationPoliciesJson: '{}',
+      shortcutBindingsJson: '{}',
+      closeBehavior: 'background',
       createdAt: 1,
       updatedAt: 2,
     );
@@ -203,6 +215,9 @@ void main() {
         taskCompletionSound: 'none',
         maxConcurrentExecutions: 2,
         folderImportScanDepth: 2,
+        notificationPoliciesJson: '{}',
+        shortcutBindingsJson: '{}',
+        closeBehavior: 'background',
         createdAt: 1,
         updatedAt: 2,
       );

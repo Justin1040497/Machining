@@ -16,39 +16,38 @@ import 'package:framelean/domain/entities/media_task.dart';
 void main() {
   test('task setting save does not refresh existing tasks', () async {
     final coordinator = _buildCoordinator();
+    final presentationFuture =
+        coordinator.notificationManager.presentations.first;
 
     await coordinator.save(
       AppSettings.initial(),
       target: AppSettingsSaveTarget.videoTask,
     );
+    final presentation = await presentationFuture;
 
     expect(coordinator.outputSettingsAppliedCount, 0);
-    expect(
-      coordinator.notificationRepository.savedNotifications.single.title,
-      '视频任务配置已保存',
-    );
-    expect(
-      coordinator.notificationRepository.savedNotifications.single.message,
-      '在下次导入任务时应用',
-    );
+    expect(coordinator.notificationRepository.savedNotifications, isEmpty);
+    expect(presentation.notification.title, '视频任务配置已保存');
+    expect(presentation.notification.message, '在下次导入任务时应用');
   });
 
   test('output setting save refreshes existing non-running tasks', () async {
     final coordinator = _buildCoordinator();
+    final presentationFuture =
+        coordinator.notificationManager.presentations.first;
     final settings = AppSettings.initial().copyWith(
       defaultOutputDirectory: '/exports',
       saveOutputToSourceDirectory: false,
     );
 
     await coordinator.save(settings, target: AppSettingsSaveTarget.output);
+    final presentation = await presentationFuture;
 
     expect(coordinator.outputSettingsAppliedCount, 1);
+    expect(coordinator.notificationRepository.savedNotifications, isEmpty);
+    expect(presentation.notification.title, '输出配置已保存');
     expect(
-      coordinator.notificationRepository.savedNotifications.single.title,
-      '输出配置已保存',
-    );
-    expect(
-      coordinator.notificationRepository.savedNotifications.single.message,
+      presentation.notification.message,
       '非运行状态的任务已更新；正在处理的任务将在下次处理时使用新配置',
     );
   });
@@ -82,6 +81,7 @@ _CoordinatorHarness _buildCoordinator() {
 
   return _CoordinatorHarness(
     coordinator: coordinator,
+    notificationManager: notificationManager,
     notificationRepository: notificationRepository,
     readOutputSettingsAppliedCount: () => outputSettingsAppliedCount,
   );
@@ -90,11 +90,13 @@ _CoordinatorHarness _buildCoordinator() {
 class _CoordinatorHarness {
   const _CoordinatorHarness({
     required this.coordinator,
+    required this.notificationManager,
     required this.notificationRepository,
     required this.readOutputSettingsAppliedCount,
   });
 
   final AppSettingsSaveCoordinator coordinator;
+  final AppNotificationManager notificationManager;
   final _FakeAppNotificationRepository notificationRepository;
   final int Function() readOutputSettingsAppliedCount;
 

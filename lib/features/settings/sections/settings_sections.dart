@@ -4,6 +4,8 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
   Widget buildSelectedSection() {
     return switch (selectedSection) {
       _SettingsSection.app => buildAppSettingsSection(),
+      _SettingsSection.notifications => buildNotificationSettingsSection(),
+      _SettingsSection.shortcuts => buildShortcutSettingsSection(),
       _SettingsSection.about => buildAboutSection(),
       _SettingsSection.video => buildVideoSection(),
       _SettingsSection.image => buildImageSection(),
@@ -40,6 +42,18 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               return;
             }
             updateViewState(() => completionSound = value);
+          },
+        ),
+        const SizedBox(height: 18),
+        _SettingsDropdown<AppCloseBehavior>(
+          label: '关闭窗口时',
+          value: closeBehavior,
+          values: AppCloseBehavior.values,
+          itemLabel: (value) => value.settingsLabel,
+          onChanged: (value) {
+            if (value != null) {
+              updateViewState(() => closeBehavior = value);
+            }
           },
         ),
         const SizedBox(height: 18),
@@ -108,6 +122,93 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
     );
   }
 
+  Widget buildNotificationSettingsSection() {
+    return _SettingsForm(
+      title: '通知设置',
+      children: [
+        Text(
+          '通知会写入通知中心；临时通知只在当前界面短暂显示；不通知会完全抑制该事件。提示音仍由应用设置独立控制。',
+          style: TextStyle(
+            color: context.frameLeanColors.textSecondary,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _NotificationPolicyTable(
+          policies: notificationPolicies,
+          onChanged: (event, mode) {
+            updateViewState(() {
+              notificationPolicies = {...notificationPolicies, event: mode};
+            });
+          },
+        ),
+        const SizedBox(height: 28),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.notifications),
+          saving: savingSection == _SettingsSection.notifications,
+          onCancel: () => _revertSection(_SettingsSection.notifications),
+          onSave: () => _saveSection(_SettingsSection.notifications),
+        ),
+      ],
+    );
+  }
+
+  Widget buildShortcutSettingsSection() {
+    return _SettingsForm(
+      title: '快捷键',
+      children: [
+        Text(
+          'Esc 固定用于关闭最上层界面或返回，工作台根页面不执行任何操作。输入框聚焦时会抑制普通无修饰键快捷键。',
+          style: TextStyle(
+            color: context.frameLeanColors.textSecondary,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 18),
+        for (final action in AppShortcutAction.values) ...[
+          _ShortcutBindingRow(
+            action: action,
+            binding:
+                shortcutBindings[action] ?? defaultAppShortcutBindings[action]!,
+            onRecord: () => recordShortcut(action),
+          ),
+          if (action != AppShortcutAction.values.last)
+            const SizedBox(height: 10),
+        ],
+        if (shortcutConflictMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            shortcutConflictMessage!,
+            style: TextStyle(
+              color: context.frameLeanColors.statusFailed,
+              fontSize: 12,
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        TextButton.icon(
+          onPressed: () {
+            updateViewState(() {
+              shortcutConflictMessage = null;
+              shortcutBindings = Map.of(defaultAppShortcutBindings);
+            });
+          },
+          icon: const Icon(Icons.restart_alt_rounded, size: 16),
+          label: const Text('恢复默认快捷键'),
+        ),
+        const SizedBox(height: 22),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.shortcuts),
+          saving: savingSection == _SettingsSection.shortcuts,
+          onCancel: () => _revertSection(_SettingsSection.shortcuts),
+          onSave: () => _saveSection(_SettingsSection.shortcuts),
+        ),
+      ],
+    );
+  }
+
   Widget buildAboutSection() {
     final colors = context.frameLeanColors;
     final iconPath = Theme.of(context).brightness == Brightness.dark
@@ -117,7 +218,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
 
     return _SettingsForm(
       title: '关于',
-      maxWidth: 560,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(7),
@@ -247,10 +347,20 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
             updateVideoConfig(config.copyWith(keepOriginalOutputFormat: value));
           },
           onChanged: (value) {
+            final outputFormat = value.toVideoOutputFormat();
+            final nextCodec =
+                VideoOutputCompatibility.supports(
+                  outputFormat,
+                  config.videoCodec,
+                )
+                ? config.videoCodec
+                : VideoOutputCompatibility.defaultCodecFor(outputFormat);
             updateVideoConfig(
               config.copyWith(
                 outputFormat: value,
                 keepOriginalOutputFormat: false,
+                videoCodec: nextCodec,
+                encoderBackend: EncoderBackend.auto,
               ),
             );
           },
@@ -261,7 +371,9 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
             _SettingsDropdown<VideoCodec>(
               label: '默认编码格式',
               value: config.videoCodec,
-              values: VideoCodec.values,
+              values: VideoOutputCompatibility.codecsFor(
+                config.outputFormat.toVideoOutputFormat(),
+              ),
               itemLabel: (value) => value.label,
               onChanged: (value) {
                 if (value == null) {
@@ -274,6 +386,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
                   ),
                 );
               },
+              enabled: !config.keepOriginalOutputFormat,
             ),
             _SettingsDropdown<ResolutionPreset>(
               label: '默认视频分辨率',

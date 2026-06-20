@@ -308,27 +308,44 @@ class _ConfirmMaintenanceDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
     final actionColor = destructive ? colors.statusFailed : colors.primary;
-    final foregroundColor = destructive ? colors.onDanger : colors.onPrimary;
 
-    return AlertDialog(
-      backgroundColor: colors.surface,
-      title: Text(title),
-      content: Text(message),
-      actions: [
-        if (!singleAction)
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
+    return AppDialogFrame(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppDialogTitle(title),
+          const SizedBox(height: 14),
+          Text(
+            message,
+            style: TextStyle(
+              color: colors.textSecondary,
+              fontSize: 12,
+              height: 1.45,
+            ),
           ),
-        FilledButton(
-          style: FilledButton.styleFrom(
-            backgroundColor: actionColor,
-            foregroundColor: foregroundColor,
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              if (!singleAction) ...[
+                AppDialogActionButton(
+                  label: '取消',
+                  backgroundColor: colors.statusCancelled,
+                  onPressed: () => Navigator.of(context).pop(false),
+                ),
+                const SizedBox(width: 10),
+              ],
+              AppDialogActionButton(
+                label: confirmLabel,
+                backgroundColor: actionColor,
+                onPressed: () => Navigator.of(context).pop(true),
+                width: confirmLabel.length > 3 ? 86 : 75,
+              ),
+            ],
           ),
-          onPressed: () => Navigator.of(context).pop(true),
-          child: Text(confirmLabel),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

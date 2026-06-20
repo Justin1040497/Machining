@@ -79,49 +79,52 @@ class _SettingsContent extends StatelessWidget {
     final colors = context.frameLeanColors;
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.surface),
-      child: Container(
-        padding: EdgeInsets.only(top: 34),
-        alignment: AlignmentDirectional.topStart,
-        child: child,
-      ),
+      child: Padding(padding: const EdgeInsets.only(top: 34), child: child),
     );
   }
 }
 
 class _SettingsForm extends StatelessWidget {
-  const _SettingsForm({
-    required this.title,
-    required this.children,
-    this.maxWidth = 520,
-  });
+  const _SettingsForm({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
-  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(31, 21, 31, 32),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+    final hasFooterActions =
+        children.isNotEmpty && children.last is _SectionActions;
+    final bodyChildren = hasFooterActions
+        ? children.sublist(0, children.length - 1)
+        : children;
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        padding: const EdgeInsets.fromLTRB(31, 21, 31, 0),
+        clipBehavior: Clip.hardEdge,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: hasFooterActions ? 16 : 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 34),
-            ...children,
-          ],
+              const SizedBox(height: 34),
+              ...bodyChildren,
+              if (hasFooterActions) children.last,
+            ],
+          ),
         ),
       ),
     );
@@ -158,34 +161,48 @@ class _SettingsSidebar extends StatelessWidget {
           children: [
             _BackToWorkbenchButton(saving: saving, onPressed: onClose),
             const SizedBox(height: 34),
-            _SidebarGroup(
-              label: '常规配置',
-              sections: const [_SettingsSection.app, _SettingsSection.about],
-              selectedSection: selectedSection,
-              onSectionSelected: onSectionSelected,
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SidebarGroup(
+                      label: '常规配置',
+                      sections: const [
+                        _SettingsSection.app,
+                        _SettingsSection.notifications,
+                        _SettingsSection.shortcuts,
+                        _SettingsSection.about,
+                      ],
+                      selectedSection: selectedSection,
+                      onSectionSelected: onSectionSelected,
+                    ),
+                    const SizedBox(height: 30),
+                    _SidebarGroup(
+                      label: '任务设置',
+                      sections: const [
+                        _SettingsSection.video,
+                        _SettingsSection.image,
+                        _SettingsSection.audio,
+                      ],
+                      selectedSection: selectedSection,
+                      onSectionSelected: onSectionSelected,
+                    ),
+                    const SizedBox(height: 30),
+                    _SidebarGroup(
+                      label: '输入和输出',
+                      sections: const [
+                        _SettingsSection.output,
+                        _SettingsSection.encoder,
+                      ],
+                      selectedSection: selectedSection,
+                      onSectionSelected: onSectionSelected,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const SizedBox(height: 30),
-            _SidebarGroup(
-              label: '任务设置',
-              sections: const [
-                _SettingsSection.video,
-                _SettingsSection.image,
-                _SettingsSection.audio,
-              ],
-              selectedSection: selectedSection,
-              onSectionSelected: onSectionSelected,
-            ),
-            const SizedBox(height: 30),
-            _SidebarGroup(
-              label: '输入和输出',
-              sections: const [
-                _SettingsSection.output,
-                _SettingsSection.encoder,
-              ],
-              selectedSection: selectedSection,
-              onSectionSelected: onSectionSelected,
-            ),
-            const Spacer(),
+            const SizedBox(height: 12),
             if (saving)
               Text(
                 '正在保存...',

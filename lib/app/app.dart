@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -6,11 +7,18 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/notifications/app_notification_host.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
+import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
+import 'package:framelean/app/widgets/app_dialog_frame.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/app/theme/framelean_responsive.dart';
+import 'package:framelean/domain/enums/app_close_behavior.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/infrastructure/services/execution/local_interrupted_output_cleaner.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
+import 'package:tray_manager/tray_manager.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'app_router.dart';
 
@@ -21,11 +29,155 @@ class FrameLeanApp extends ConsumerStatefulWidget {
   ConsumerState<FrameLeanApp> createState() => _FrameLeanAppState();
 }
 
-class _FrameLeanAppState extends ConsumerState<FrameLeanApp> {
+class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
+    with WindowListener, TrayListener {
+  bool _allowWindowDestroy = false;
+  bool _handlingWindowClose = false;
+
   @override
   void initState() {
     super.initState();
     unawaited(reconcileThemeModeAfterStartup());
+    unawaited(_cleanupInterruptedOutputsAfterStartup());
+    if (Platform.isMacOS || Platform.isWindows) {
+      windowManager.addListener(this);
+      unawaited(_configureDesktopLifecycle());
+    }
+  }
+
+  Future<void> _cleanupInterruptedOutputsAfterStartup() async {
+    try {
+      final settings = await LoadAppSettingsUseCase(
+        repository: ref.read(appSettingsRepositoryProvider),
+      ).call();
+      await const LocalInterruptedOutputCleaner().cleanup(
+        repository: ref.read(mediaTaskRepositoryProvider),
+        settings: settings,
+      );
+    } on Object {
+      // A failed cleanup must not prevent the workbench from opening.
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isMacOS || Platform.isWindows) {
+      windowManager.removeListener(this);
+    }
+    if (Platform.isWindows) {
+      trayManager.removeListener(this);
+    }
+    super.dispose();
+  }
+
+  Future<void> _configureDesktopLifecycle() async {
+    await windowManager.setPreventClose(true);
+    if (!Platform.isWindows) return;
+    trayManager.addListener(this);
+    await trayManager.setIcon('assets/app_icon/light.png');
+    await trayManager.setToolTip('FrameLean');
+    await trayManager.setContextMenu(
+      Menu(
+        items: [
+          MenuItem(label: '显示 FrameLean', onClick: (_) => _showWindow()),
+          MenuItem.separator(),
+          MenuItem(label: '退出 FrameLean', onClick: (_) => _requestQuit()),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _showWindow() async {
+    await windowManager.show();
+    await windowManager.focus();
+  }
+
+  @override
+  void onWindowClose() {
+    unawaited(_handleWindowClose());
+  }
+
+  Future<void> _handleWindowClose() async {
+    if (_allowWindowDestroy || _handlingWindowClose) return;
+    _handlingWindowClose = true;
+    try {
+      final settings = await LoadAppSettingsUseCase(
+        repository: ref.read(appSettingsRepositoryProvider),
+      ).call();
+      if (settings.closeBehavior == AppCloseBehavior.background) {
+        await windowManager.hide();
+        return;
+      }
+      await _requestQuit();
+    } finally {
+      _handlingWindowClose = false;
+    }
+  }
+
+  Future<void> _requestQuit() async {
+    final tasks = await ref.read(mediaTaskRepositoryProvider).loadAllTasks();
+    final hasRunningTasks = tasks.any(
+      (task) =>
+          task.status == TaskStatus.running || task.status == TaskStatus.paused,
+    );
+    if (hasRunningTasks) {
+      await _showWindow();
+      final context = rootNavigatorKey.currentContext;
+      if (context == null || !context.mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) {
+          final colors = context.frameLeanColors;
+          return AppDialogFrame(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const AppDialogTitle('退出 FrameLean？'),
+                const SizedBox(height: 14),
+                Text(
+                  '仍有运行中或已暂停的任务。退出会终止任务并清理未发布的临时输出。',
+                  style: TextStyle(
+                    color: colors.textSecondary,
+                    fontSize: 12.flSp,
+                    height: 1.45,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    AppDialogActionButton(
+                      label: '取消',
+                      backgroundColor: colors.statusCancelled,
+                      onPressed: () => Navigator.of(context).pop(false),
+                    ),
+                    const SizedBox(width: 10),
+                    AppDialogActionButton(
+                      label: '退出',
+                      backgroundColor: colors.statusFailed,
+                      onPressed: () => Navigator.of(context).pop(true),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        },
+      );
+      if (confirmed != true) return;
+    }
+
+    await ref.read(ffmpegTaskQueueRunnerProvider).cancelAllExecutions();
+    if (Platform.isWindows) await trayManager.destroy();
+    _allowWindowDestroy = true;
+    await windowManager.setPreventClose(false);
+    await windowManager.destroy();
+  }
+
+  @override
+  void onTrayIconMouseDown() {
+    unawaited(_showWindow());
   }
 
   Future<void> reconcileThemeModeAfterStartup() async {

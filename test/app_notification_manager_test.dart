@@ -4,10 +4,13 @@ import 'package:framelean/application/services/app_notifications/app_notificatio
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/notification_delivery_mode.dart';
+import 'package:framelean/domain/enums/notification_event_type.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 
 void main() {
@@ -35,6 +38,7 @@ void main() {
       level: AppNotificationLevel.success,
       title: '设置修改并保存成功',
       source: 'settings',
+      eventType: NotificationEventType.taskCompleted,
     );
     final presentation = await presentationFuture;
 
@@ -58,29 +62,59 @@ void main() {
 
     expect(repository.savedNotifications, isEmpty);
     expect(notification.kind, AppNotificationKind.interaction);
-    expect(notification.readAt, isNotNull);
-    expect(notification.isDismissed, isTrue);
     expect(presentation.notification, notification);
   });
 
-  test('track records success and returns operation result', () async {
+  test(
+    'track presents transient success and returns operation result',
+    () async {
+      final repository = FakeAppNotificationRepository();
+      final manager = AppNotificationManager(repository: repository);
+      addTearDown(manager.dispose);
+      final presentationFuture = manager.presentations.first;
+
+      final result = await manager.track<int>(
+        source: 'settings',
+        successTitle: '设置修改并保存成功',
+        failureTitle: '设置保存失败',
+        operation: () async => 7,
+      );
+      final presentation = await presentationFuture;
+
+      expect(result, 7);
+      expect(repository.savedNotifications, isEmpty);
+      expect(presentation.notification.level, AppNotificationLevel.success);
+      expect(presentation.notification.title, '设置修改并保存成功');
+    },
+  );
+
+  test('disabled delivery suppresses persistence and presentation', () async {
     final repository = FakeAppNotificationRepository();
-    final manager = AppNotificationManager(repository: repository);
+    final manager = AppNotificationManager(
+      repository: repository,
+      readSettings: () async => AppSettings.initial().copyWith(
+        notificationPolicies: {
+          ...defaultNotificationPolicies,
+          NotificationEventType.taskCompleted:
+              NotificationDeliveryMode.disabled,
+        },
+      ),
+    );
     addTearDown(manager.dispose);
+    var presented = false;
+    final subscription = manager.presentations.listen((_) => presented = true);
+    addTearDown(subscription.cancel);
 
-    final result = await manager.track<int>(
-      source: 'settings',
-      successTitle: '设置修改并保存成功',
-      failureTitle: '设置保存失败',
-      operation: () async => 7,
+    await manager.notify(
+      level: AppNotificationLevel.success,
+      title: '任务完成',
+      source: 'task',
+      eventType: NotificationEventType.taskCompleted,
     );
+    await Future<void>.delayed(Duration.zero);
 
-    expect(result, 7);
-    expect(
-      repository.savedNotifications.single.level,
-      AppNotificationLevel.success,
-    );
-    expect(repository.savedNotifications.single.title, '设置修改并保存成功');
+    expect(repository.savedNotifications, isEmpty);
+    expect(presented, isFalse);
   });
 
   test('track records failure and rethrows operation error', () async {

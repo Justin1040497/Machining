@@ -5,11 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
+import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_update/app_update_client.dart';
 import 'package:framelean/application/services/app_update/app_update_install_id_store.dart';
 import 'package:framelean/application/services/app_update/app_update_package_downloader.dart';
 import 'package:framelean/application/services/app_update/updater_helper_launcher.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/value_objects/app_release_info.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
@@ -88,6 +90,10 @@ AppUpdateFixture appUpdateFixture() {
   final installIdStore = const FakeAppUpdateInstallIdStore();
   final launcher = FakeUpdaterHelperLauncher();
   final notifications = RecordingNotificationRepository();
+  final notificationManager = AppNotificationManager(
+    repository: notifications,
+    readSettings: () async => AppSettings.initial(),
+  );
   final container = ProviderContainer.test(
     overrides: [
       appUpdateClientProvider.overrideWithValue(client),
@@ -95,6 +101,7 @@ AppUpdateFixture appUpdateFixture() {
       appUpdateInstallIdStoreProvider.overrideWithValue(installIdStore),
       updaterHelperLauncherProvider.overrideWithValue(launcher),
       appNotificationRepositoryProvider.overrideWithValue(notifications),
+      appNotificationManagerProvider.overrideWithValue(notificationManager),
     ],
   );
   return AppUpdateFixture(
@@ -103,6 +110,7 @@ AppUpdateFixture appUpdateFixture() {
     downloader: downloader,
     launcher: launcher,
     notifications: notifications,
+    notificationManager: notificationManager,
   );
 }
 
@@ -130,6 +138,7 @@ class AppUpdateFixture {
     required this.downloader,
     required this.launcher,
     required this.notifications,
+    required this.notificationManager,
   });
 
   final ProviderContainer container;
@@ -137,8 +146,10 @@ class AppUpdateFixture {
   final FakeAppUpdatePackageDownloader downloader;
   final FakeUpdaterHelperLauncher launcher;
   final RecordingNotificationRepository notifications;
+  final AppNotificationManager notificationManager;
 
   void dispose() {
+    notificationManager.dispose();
     notifications.dispose();
     container.dispose();
   }

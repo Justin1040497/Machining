@@ -26,12 +26,22 @@ require_command() {
   fi
 }
 
-assert_macos_swiftpm_project() {
-  local stale_ref_files=()
+assert_macos_cocoapods_project() {
+  local missing_files=()
+  local missing_ref_files=()
 
-  if [[ -e "$ROOT/macos/Podfile" || -e "$ROOT/macos/Podfile.lock" ]]; then
-    echo "error: macOS CocoaPods integration is still present." >&2
-    echo "Remove macos/Podfile and macos/Podfile.lock; the macOS project should use Flutter Swift Package Manager." >&2
+  for path in \
+    "$ROOT/macos/Podfile" \
+    "$ROOT/macos/Podfile.lock"; do
+    if [[ ! -f "$path" ]]; then
+      missing_files+=("${path#$ROOT/}")
+    fi
+  done
+
+  if [[ "${#missing_files[@]}" -gt 0 ]]; then
+    echo "error: macOS CocoaPods integration is incomplete:" >&2
+    printf '  %s\n' "${missing_files[@]}" >&2
+    echo "Run flutter pub get and pod install before building the Universal 2 DMG." >&2
     exit 1
   fi
 
@@ -40,15 +50,15 @@ assert_macos_swiftpm_project() {
     "$ROOT/macos/Flutter/Flutter-Release.xcconfig" \
     "$ROOT/macos/Runner.xcodeproj/project.pbxproj" \
     "$ROOT/macos/Runner.xcworkspace/contents.xcworkspacedata"; do
-    if [[ -f "$path" ]] && grep -E 'Pods-Runner|Pods_Runner|\[CP\]|Pods/Pods\.xcodeproj' "$path" >/dev/null; then
-      stale_ref_files+=("${path#$ROOT/}")
+    if [[ ! -f "$path" ]] || ! grep -E 'Pods-Runner|Pods_Runner|\[CP\]|Pods/Pods\.xcodeproj' "$path" >/dev/null; then
+      missing_ref_files+=("${path#$ROOT/}")
     fi
   done
 
-  if [[ "${#stale_ref_files[@]}" -gt 0 ]]; then
-    echo "error: macOS project still contains CocoaPods references:" >&2
-    printf '  %s\n' "${stale_ref_files[@]}" >&2
-    echo "Remove CocoaPods references before building the Universal 2 DMG." >&2
+  if [[ "${#missing_ref_files[@]}" -gt 0 ]]; then
+    echo "error: macOS project is missing CocoaPods references:" >&2
+    printf '  %s\n' "${missing_ref_files[@]}" >&2
+    echo "Keep the Runner workspace and Pods xcconfig references in sync before building the Universal 2 DMG." >&2
     exit 1
   fi
 }
@@ -58,14 +68,16 @@ bundled_ffmpeg_has_required_capabilities() {
   local encoder_output
   local decoder_output
   local demuxer_output
+  local muxer_output
   local filter_output
 
   encoder_output="$("$ffmpeg_path" -hide_banner -encoders 2>/dev/null || true)"
   decoder_output="$("$ffmpeg_path" -hide_banner -decoders 2>/dev/null || true)"
   demuxer_output="$("$ffmpeg_path" -hide_banner -demuxers 2>/dev/null || true)"
+  muxer_output="$("$ffmpeg_path" -hide_banner -muxers 2>/dev/null || true)"
   filter_output="$("$ffmpeg_path" -hide_banner -filters 2>/dev/null || true)"
 
-  for encoder_name in libx264 libmp3lame libwebp libopus; do
+  for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
     if ! grep "$encoder_name" <<<"$encoder_output" >/dev/null; then
       echo "Universal FFmpeg runtime is missing encoder: $encoder_name"
       return 1
@@ -83,6 +95,13 @@ bundled_ffmpeg_has_required_capabilities() {
     echo "Universal FFmpeg runtime is missing demuxer: ogg"
     return 1
   fi
+
+  for muxer_name in mp4 mov matroska webm avi; do
+    if ! grep "$muxer_name" <<<"$muxer_output" >/dev/null; then
+      echo "Universal FFmpeg runtime is missing muxer: $muxer_name"
+      return 1
+    fi
+  done
 
   for filter_name in zscale tonemap; do
     if ! grep "$filter_name" <<<"$filter_output" >/dev/null; then
@@ -161,13 +180,12 @@ fi
 echo "Building Universal 2 macOS app..."
 cd "$ROOT"
 rm -rf "${ROOT}/build/macos"
-flutter config --enable-swift-package-manager
-assert_macos_swiftpm_project
+assert_macos_cocoapods_project
 flutter build macos \
   --release \
   --obfuscate \
   --split-debug-info=build/debug-macos-info
-assert_macos_swiftpm_project
+assert_macos_cocoapods_project
 
 if [[ ! -d "$APP_PATH" ]]; then
   echo "error: Release app was not generated: $APP_PATH" >&2

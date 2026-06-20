@@ -46,6 +46,15 @@ class SettingsRows extends Table {
   IntColumn get folderImportScanDepth => integer()
       .named('folder_import_scan_depth')
       .withDefault(const Constant(2))();
+  TextColumn get notificationPoliciesJson => text()
+      .named('notification_policies_json')
+      .withDefault(const Constant('{}'))();
+  TextColumn get shortcutBindingsJson => text()
+      .named('shortcut_bindings_json')
+      .withDefault(const Constant('{}'))();
+  TextColumn get closeBehavior => text()
+      .named('close_behavior')
+      .withDefault(const Constant('background'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

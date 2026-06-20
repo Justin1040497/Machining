@@ -16,6 +16,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
   bool isSectionDirty(_SettingsSection section) {
     return switch (section) {
       _SettingsSection.app => _isAppSectionDirty,
+      _SettingsSection.notifications => _isNotificationSectionDirty,
+      _SettingsSection.shortcuts => _isShortcutSectionDirty,
       _SettingsSection.about => false,
       _SettingsSection.video => _isVideoSectionDirty,
       _SettingsSection.image => _isImageSectionDirty,
@@ -29,8 +31,15 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       themeMode != savedSettings.themeMode ||
       completionSound != savedSettings.taskCompletionSound ||
       hideNotificationBadge != savedSettings.hideNotificationBadge ||
+      closeBehavior != savedSettings.closeBehavior ||
       maxConcurrentExecutions != savedSettings.maxConcurrentExecutions ||
       folderImportScanDepth != savedSettings.folderImportScanDepth;
+
+  bool get _isNotificationSectionDirty =>
+      !_mapsEqual(notificationPolicies, savedSettings.notificationPolicies);
+
+  bool get _isShortcutSectionDirty =>
+      !_mapsEqual(shortcutBindings, savedSettings.shortcutBindings);
 
   bool get _isVideoSectionDirty {
     final current = videoConfig;
@@ -113,6 +122,14 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     switch (section) {
       case _SettingsSection.app:
         _revertAppSection();
+      case _SettingsSection.notifications:
+        updateViewState(() {
+          notificationPolicies = Map.of(savedSettings.notificationPolicies);
+        });
+      case _SettingsSection.shortcuts:
+        updateViewState(() {
+          shortcutBindings = Map.of(savedSettings.shortcutBindings);
+        });
       case _SettingsSection.video:
         _revertVideoSection();
       case _SettingsSection.image:
@@ -135,6 +152,7 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       hideNotificationBadge = savedSettings.hideNotificationBadge;
       maxConcurrentExecutions = savedSettings.maxConcurrentExecutions;
       folderImportScanDepth = savedSettings.folderImportScanDepth;
+      closeBehavior = savedSettings.closeBehavior;
     });
   }
 
@@ -215,7 +233,12 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
           hideNotificationBadge: hideNotificationBadge,
           maxConcurrentExecutions: maxConcurrentExecutions,
           folderImportScanDepth: folderImportScanDepth,
+          closeBehavior: closeBehavior,
         );
+      case _SettingsSection.notifications:
+        return base.copyWith(notificationPolicies: notificationPolicies);
+      case _SettingsSection.shortcuts:
+        return base.copyWith(shortcutBindings: shortcutBindings);
       case _SettingsSection.video:
         final video = videoConfig;
         final updatedConfig = defaultMediaConfig.copyWith(video: video);
@@ -260,6 +283,8 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
 
 enum _SettingsSection {
   app('应用设置', Icons.grid_view_rounded),
+  notifications('通知设置', Icons.notifications_none_rounded),
+  shortcuts('快捷键', Icons.keyboard_alt_outlined),
   about('关于', Icons.info_outline_rounded),
   video('视频任务', Icons.ondemand_video_rounded),
   image('图片任务', Icons.image_outlined),
@@ -277,6 +302,8 @@ extension _SettingsSectionSaveTarget on _SettingsSection {
   AppSettingsSaveTarget get saveTarget {
     return switch (this) {
       _SettingsSection.app => AppSettingsSaveTarget.application,
+      _SettingsSection.notifications => AppSettingsSaveTarget.notifications,
+      _SettingsSection.shortcuts => AppSettingsSaveTarget.shortcuts,
       _SettingsSection.video => AppSettingsSaveTarget.videoTask,
       _SettingsSection.image => AppSettingsSaveTarget.imageTask,
       _SettingsSection.audio => AppSettingsSaveTarget.audioTask,
@@ -285,6 +312,14 @@ extension _SettingsSectionSaveTarget on _SettingsSection {
       _SettingsSection.about => throw StateError('关于分区没有可保存的设置'),
     };
   }
+}
+
+bool _mapsEqual<K, V>(Map<K, V> left, Map<K, V> right) {
+  if (left.length != right.length) return false;
+  for (final entry in left.entries) {
+    if (right[entry.key] != entry.value) return false;
+  }
+  return true;
 }
 
 extension _TaskCompletionSoundSettingsLabel on TaskCompletionSound {
@@ -308,6 +343,45 @@ extension _AppThemeModeSettingsLabel on AppThemeMode {
       AppThemeMode.dark => '深色',
     };
   }
+}
+
+extension _AppCloseBehaviorSettingsLabel on AppCloseBehavior {
+  String get settingsLabel => switch (this) {
+    AppCloseBehavior.background => '最小化到后台',
+    AppCloseBehavior.quit => '退出应用程序',
+  };
+}
+
+extension _NotificationDeliveryModeSettingsLabel on NotificationDeliveryMode {
+  String get settingsLabel => switch (this) {
+    NotificationDeliveryMode.persistent => '通知',
+    NotificationDeliveryMode.transient => '临时通知',
+    NotificationDeliveryMode.disabled => '不通知',
+  };
+}
+
+extension _NotificationEventTypeSettingsLabel on NotificationEventType {
+  String get settingsLabel => switch (this) {
+    NotificationEventType.taskCompleted => '任务完成',
+    NotificationEventType.taskFailed => '任务失败',
+    NotificationEventType.updateAvailable => '发现应用更新',
+    NotificationEventType.updateFailed => '更新失败',
+    NotificationEventType.settingsSaveSucceeded => '设置保存成功',
+    NotificationEventType.settingsSaveFailed => '设置保存失败',
+    NotificationEventType.workbenchOperationSucceeded => '工作台操作成功',
+    NotificationEventType.workbenchOperationFailed => '工作台操作失败',
+    NotificationEventType.interactionHint => '普通交互提示',
+    NotificationEventType.clipboardOperation => '复制与剪贴板操作',
+  };
+}
+
+extension _AppShortcutActionSettingsLabel on AppShortcutAction {
+  String get settingsLabel => switch (this) {
+    AppShortcutAction.addFiles => '添加文件或文件夹',
+    AppShortcutAction.toggleWorkbenchExecution => '开始 / 暂停全部任务',
+    AppShortcutAction.openSettings => '打开设置',
+    AppShortcutAction.openNotificationCenter => '打开通知中心',
+  };
 }
 
 MediaTaskConfig _withAllMediaDefaults(MediaTaskConfig config) {
