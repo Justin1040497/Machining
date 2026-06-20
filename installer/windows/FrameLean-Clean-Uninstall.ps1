@@ -4,11 +4,13 @@ param(
   [switch]$RemoveRegistry,
   [switch]$RemoveTemp,
   [switch]$RemoveInstallDir,
+  [switch]$RemoveMachineConfig,
   [switch]$Force,
   [switch]$DryRun,
   [int]$WaitForPid = 0,
   [string]$InstallDir = "",
-  [switch]$LaunchedFromApp
+  [switch]$LaunchedFromApp,
+  [switch]$Elevated
 )
 
 $ErrorActionPreference = "Stop"
@@ -21,6 +23,55 @@ if ($RemoveAll) {
   $RemoveRegistry = $true
   $RemoveTemp = $true
   $RemoveInstallDir = $true
+  $RemoveMachineConfig = $true
+}
+
+function Test-Administrator {
+  $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+  $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+  return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+function Quote-NativeArgument {
+  param([string]$Value)
+  return '"' + $Value.Replace('"', '\"') + '"'
+}
+
+if (($RemoveAll -or $RemoveMachineConfig) -and -not $Elevated -and -not (Test-Administrator)) {
+  $elevatedArgs = @(
+    '-NoProfile',
+    '-ExecutionPolicy', 'Bypass',
+    '-File', (Quote-NativeArgument $PSCommandPath),
+    '-Elevated'
+  )
+  foreach ($switchName in @(
+    'RemoveAll',
+    'RemoveUserData',
+    'RemoveRegistry',
+    'RemoveTemp',
+    'RemoveInstallDir',
+    'RemoveMachineConfig',
+    'Force',
+    'DryRun',
+    'LaunchedFromApp'
+  )) {
+    if ((Get-Variable -Name $switchName -ValueOnly)) {
+      $elevatedArgs += "-$switchName"
+    }
+  }
+  if ($WaitForPid -gt 0) {
+    $elevatedArgs += @('-WaitForPid', $WaitForPid)
+  }
+  if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
+    $elevatedArgs += @('-InstallDir', (Quote-NativeArgument $InstallDir))
+  }
+  $process = Start-Process `
+    -FilePath 'PowerShell' `
+    -ArgumentList ($elevatedArgs -join ' ') `
+    -Verb RunAs `
+    -Wait `
+    -PassThru
+  exit $process.ExitCode
 }
 
 function Write-Step {
@@ -178,6 +229,11 @@ if ($RemoveRegistry) {
   foreach ($registryKey in $registryKeys) {
     Remove-OwnedRegistryKey -Path $registryKey
   }
+}
+
+if ($RemoveMachineConfig) {
+  Remove-OwnedPath -Path (Join-ExistingPath $env:ProgramData 'FrameLean') -DirectoryOnly
+  Remove-OwnedRegistryKey -Path 'HKLM:\Software\Policies\FrameLean'
 }
 
 if ($RemoveAll) {

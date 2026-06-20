@@ -58,7 +58,6 @@ import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';
 import 'package:framelean/app/providers/app_settings_save_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
-import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
@@ -150,7 +149,6 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
       if (confirmed != true) {
         return;
       }
-      await ref.read(ffmpegTaskQueueRunnerProvider).pauseAllRunningTasks();
     }
 
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();

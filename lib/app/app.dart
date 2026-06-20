@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/notifications/app_notification_host.dart';
+import 'package:framelean/app/providers/app_update_provider.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
@@ -30,13 +31,14 @@ class FrameLeanApp extends ConsumerStatefulWidget {
 }
 
 class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
-    with WindowListener, TrayListener {
+    with WidgetsBindingObserver, WindowListener, TrayListener {
   bool _allowWindowDestroy = false;
   bool _handlingWindowClose = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(reconcileThemeModeAfterStartup());
     unawaited(_cleanupInterruptedOutputsAfterStartup());
     if (Platform.isMacOS || Platform.isWindows) {
@@ -67,7 +69,15 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     if (Platform.isWindows) {
       trayManager.removeListener(this);
     }
+    WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_reloadEnterpriseUpdateConfig());
+    }
   }
 
   Future<void> _configureDesktopLifecycle() async {
@@ -95,6 +105,24 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
   @override
   void onWindowClose() {
     unawaited(_handleWindowClose());
+  }
+
+  @override
+  void onWindowFocus() {
+    unawaited(_reloadEnterpriseUpdateConfig());
+  }
+
+  Future<void> _reloadEnterpriseUpdateConfig() async {
+    try {
+      await ref.read(enterpriseUpdateConfigCacheProvider).reload();
+      if (Platform.isMacOS) {
+        await ref
+            .read(appUpdateProvider.notifier)
+            .refreshPlatformUpdatePolicy();
+      }
+    } on Object {
+      // Update policy reload must not interrupt foreground work.
+    }
   }
 
   Future<void> _handleWindowClose() async {

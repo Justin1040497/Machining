@@ -46,6 +46,7 @@ dependencies:
   flutter_screenutil: ^5.9.3
   pointycastle: ^4.0.0
   crypto: ^3.0.6
+  cryptography: ^2.7.0
   audioplayers: ^6.7.1
   window_manager: ^0.5.1
   tray_manager: ^0.2.4

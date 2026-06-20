@@ -9,6 +9,8 @@ import 'package:framelean/application/services/app_notifications/app_notificatio
 import 'package:framelean/application/services/app_update/app_update_client.dart';
 import 'package:framelean/application/services/app_update/app_update_install_id_store.dart';
 import 'package:framelean/application/services/app_update/app_update_package_downloader.dart';
+import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
+import 'package:framelean/application/services/app_update/sparkle_update_controller.dart';
 import 'package:framelean/application/services/app_update/updater_helper_launcher.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
@@ -16,6 +18,7 @@ import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/value_objects/app_release_info.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_package_info.dart';
+import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
 
 void main() {
   test(
@@ -56,7 +59,7 @@ void main() {
     expect(fixture.client.ticketRequests.single.installId, 'install-id-1');
     expect(fixture.client.ticketRequests.single.release.version, '1.2.2');
     expect(fixture.downloader.downloadedVersions, ['1.2.2']);
-    expect(fixture.downloader.downloadedPlatforms, ['windows-x64']);
+    expect(fixture.downloader.downloadedPlatforms, ['windows-installer']);
     expect(fixture.notifications.notifications.single.title, '更新已下载');
   });
 
@@ -77,18 +80,51 @@ void main() {
     expect(state.status, AppUpdateStatus.installing);
     expect(fixture.launcher.requests, hasLength(1));
     expect(fixture.launcher.requests.single.release.version, '1.2.2');
+    expect(fixture.restartPreparation.calls, 1);
+    expect(fixture.launcher.preparationCallsAtLaunch, 1);
     expect(
       fixture.launcher.requests.single.installerPath,
       '/tmp/FrameLean-v1.2.2-setup.exe',
     );
   });
+
+  test(
+    'macOS startup configures Sparkle without an explicit update check',
+    () async {
+      final sparkle = FakeSparkleUpdateController();
+      final config = EnterpriseUpdateConfig.bundled().copyWith(
+        macosAppcastUrl: 'https://updates.example.com/api/v1/sparkle/appcast',
+      );
+      final container = ProviderContainer.test(
+        overrides: [
+          useSparkleUpdateProvider.overrideWithValue(true),
+          enterpriseUpdateConfigCacheProvider.overrideWithValue(
+            EnterpriseUpdateConfigCache(StaticUpdateConfigStore(config)),
+          ),
+          sparkleUpdateControllerProvider.overrideWithValue(sparkle),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      await container.read(appUpdateProvider.future);
+      await pumpEventQueue();
+
+      expect(sparkle.policyStatusRequests, hasLength(1));
+      expect(sparkle.informationChecks, isEmpty);
+      expect(sparkle.userChecks, isEmpty);
+
+      await container.read(appUpdateProvider.notifier).checkForUpdate();
+      expect(sparkle.userChecks, hasLength(1));
+    },
+  );
 }
 
 AppUpdateFixture appUpdateFixture() {
   final client = FakeAppUpdateClient();
   final downloader = FakeAppUpdatePackageDownloader();
   final installIdStore = const FakeAppUpdateInstallIdStore();
-  final launcher = FakeUpdaterHelperLauncher();
+  final restartPreparation = RecordingRestartPreparation();
+  final launcher = FakeUpdaterHelperLauncher(restartPreparation);
   final notifications = RecordingNotificationRepository();
   final notificationManager = AppNotificationManager(
     repository: notifications,
@@ -100,6 +136,10 @@ AppUpdateFixture appUpdateFixture() {
       appUpdateDownloaderProvider.overrideWithValue(downloader),
       appUpdateInstallIdStoreProvider.overrideWithValue(installIdStore),
       updaterHelperLauncherProvider.overrideWithValue(launcher),
+      updateRestartPreparationProvider.overrideWithValue(
+        restartPreparation.call,
+      ),
+      useSparkleUpdateProvider.overrideWithValue(false),
       appNotificationRepositoryProvider.overrideWithValue(notifications),
       appNotificationManagerProvider.overrideWithValue(notificationManager),
     ],
@@ -109,6 +149,7 @@ AppUpdateFixture appUpdateFixture() {
     client: client,
     downloader: downloader,
     launcher: launcher,
+    restartPreparation: restartPreparation,
     notifications: notifications,
     notificationManager: notificationManager,
   );
@@ -118,7 +159,7 @@ const testRelease = AppReleaseInfo(
   version: '1.2.2',
   buildNumber: 6,
   channel: 'stable',
-  platform: 'windows-x64',
+  platform: 'windows-installer',
   mandatory: false,
   minSupportedBuild: 0,
   notesUrl: '/api/v1/releases/1.2.2/notes',
@@ -137,6 +178,7 @@ class AppUpdateFixture {
     required this.client,
     required this.downloader,
     required this.launcher,
+    required this.restartPreparation,
     required this.notifications,
     required this.notificationManager,
   });
@@ -145,6 +187,7 @@ class AppUpdateFixture {
   final FakeAppUpdateClient client;
   final FakeAppUpdatePackageDownloader downloader;
   final FakeUpdaterHelperLauncher launcher;
+  final RecordingRestartPreparation restartPreparation;
   final RecordingNotificationRepository notifications;
   final AppNotificationManager notificationManager;
 
@@ -237,12 +280,62 @@ class FakeAppUpdateInstallIdStore implements AppUpdateInstallIdStore {
   }
 }
 
+class RecordingRestartPreparation {
+  int calls = 0;
+
+  Future<void> call() async {
+    calls += 1;
+  }
+}
+
 class FakeUpdaterHelperLauncher implements UpdaterHelperLauncher {
+  FakeUpdaterHelperLauncher(this.restartPreparation);
+
+  final RecordingRestartPreparation restartPreparation;
   final List<UpdaterHelperLaunchRequest> requests = [];
+  int preparationCallsAtLaunch = 0;
 
   @override
   Future<void> launch(UpdaterHelperLaunchRequest request) async {
+    preparationCallsAtLaunch = restartPreparation.calls;
     requests.add(request);
+  }
+}
+
+class StaticUpdateConfigStore implements EnterpriseUpdateConfigStore {
+  const StaticUpdateConfigStore(this.config);
+
+  final EnterpriseUpdateConfig config;
+
+  @override
+  Future<EnterpriseUpdateConfig> load() async => config;
+}
+
+class FakeSparkleUpdateController implements SparkleUpdateController {
+  final List<EnterpriseUpdateConfig> userChecks = [];
+  final List<EnterpriseUpdateConfig> informationChecks = [];
+  final List<EnterpriseUpdateConfig> policyStatusRequests = [];
+
+  @override
+  Future<void> checkForUpdates(EnterpriseUpdateConfig config) async {
+    userChecks.add(config);
+  }
+
+  @override
+  Future<void> checkForUpdateInformation(EnterpriseUpdateConfig config) async {
+    informationChecks.add(config);
+  }
+
+  @override
+  Future<SparkleUpdatePolicyStatus> getUpdatePolicyStatus(
+    EnterpriseUpdateConfig config,
+  ) async {
+    policyStatusRequests.add(config);
+    return SparkleUpdatePolicyStatus(
+      available: true,
+      automaticChecksEnabled: config.allowAutomaticChecks,
+      appcastUrl: config.macosAppcastUrl,
+    );
   }
 }
 

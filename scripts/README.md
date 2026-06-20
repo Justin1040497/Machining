@@ -31,9 +31,13 @@ Use `build_windows.ps1` for a normal Windows release:
 PowerShell -NoProfile -ExecutionPolicy Bypass -File scripts\release\build_windows.ps1
 ```
 
+正式执行前必须提供 `FRAMELEAN_UPDATE_BASE_URL`、`FRAMELEAN_RELEASE_KEY_ID`、`FRAMELEAN_RELEASE_PUBLIC_KEY` 和仅存在于本机或 CI Secret 的 `FRAMELEAN_RELEASE_PRIVATE_KEY_FILE`。脚本会为安装器生成 `*.update.json`，私钥不会进入安装包。
+
 The default command creates both distribution artifacts from one Flutter build.
 Pass `-SkipZip` or `-SkipInstaller` only when a single artifact is explicitly
 needed. `-IsccPath` can select a non-default Inno Setup compiler.
+
+macOS 可发布构建设置 `FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE=true`、`FRAMELEAN_SPARKLE_FEED_URL` 和 `FRAMELEAN_SPARKLE_PUBLIC_ED_KEY`，并传入启用签名、公证的 dmg 参数。脚本只在 App 签名、DMG 公证装订和 `sign_update` 全部通过后生成 `*.update.json`；无签名本地 DMG 不生成可发布元数据。
 
 ## Installer Definitions
 

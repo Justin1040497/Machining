@@ -18,11 +18,112 @@ PUBSPEC_PATH="${ROOT}/pubspec.yaml"
 VERIFY_SCRIPT="${ROOT}/scripts/release/verify_macos_universal.sh"
 MERGE_FFMPEG_SCRIPT="${ROOT}/scripts/build/build_ffmpeg_macos_universal.sh"
 MERGE_QMC_SCRIPT="${ROOT}/scripts/build/build_qmc_decrypt_macos_universal.sh"
+SPARKLE_SIGNATURE_JSON_PATH=""
+PUBLISH_BUILD="${FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE:-false}"
+SPARKLE_FEED_URL="${FRAMELEAN_SPARKLE_FEED_URL:-}"
+SPARKLE_PUBLIC_KEY="${FRAMELEAN_SPARKLE_PUBLIC_ED_KEY:-}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "error: missing required command: $1" >&2
     exit 1
+  fi
+}
+
+resolve_sparkle_sign_update() {
+  if [[ -n "${SPARKLE_SIGN_UPDATE_PATH:-}" ]]; then
+    if [[ -x "$SPARKLE_SIGN_UPDATE_PATH" ]]; then
+      echo "$SPARKLE_SIGN_UPDATE_PATH"
+      return 0
+    fi
+    echo "error: SPARKLE_SIGN_UPDATE_PATH is not executable: $SPARKLE_SIGN_UPDATE_PATH" >&2
+    return 1
+  fi
+
+  local candidates=(
+    "$ROOT/macos/Pods/Sparkle/bin/sign_update"
+    "$ROOT/macos/Pods/Sparkle/Sparkle/bin/sign_update"
+  )
+  for candidate in "${candidates[@]}"; do
+    if [[ -x "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+write_sparkle_signature_metadata() {
+  local dmg_path="$1"
+  local sign_update_path
+  if ! sign_update_path="$(resolve_sparkle_sign_update)"; then
+    if [[ "$PUBLISH_BUILD" == "true" ]]; then
+      echo "error: Sparkle sign_update was not found" >&2
+      exit 1
+    fi
+    echo "warning: Sparkle sign_update was not found; skipping Sparkle signature metadata" >&2
+    return 0
+  fi
+
+  local output
+  output="$("$sign_update_path" "$dmg_path")"
+  local signature
+  local length
+  signature="$(sed -nE 's/.*sparkle:edSignature="([^"]+)".*/\1/p' <<<"$output" | head -n 1)"
+  length="$(sed -nE 's/.*length="([0-9]+)".*/\1/p' <<<"$output" | head -n 1)"
+  if [[ -z "$signature" || -z "$length" ]]; then
+    echo "error: could not parse Sparkle signature output:" >&2
+    echo "$output" >&2
+    exit 1
+  fi
+
+  local actual_length
+  actual_length="$(stat -f '%z' "$dmg_path")"
+  if [[ "$length" != "$actual_length" ]]; then
+    echo "error: Sparkle length does not match the DMG length" >&2
+    exit 1
+  fi
+  local sha256
+  sha256="$(shasum -a 256 "$dmg_path" | awk '{print $1}')"
+
+  SPARKLE_SIGNATURE_JSON_PATH="${dmg_path}.update.json"
+  cat >"$SPARKLE_SIGNATURE_JSON_PATH" <<EOF
+{
+  "schemaVersion": 1,
+  "platform": "macos-universal2",
+  "fileName": "$(basename "$dmg_path")",
+  "size": $length,
+  "sha256": "$sha256",
+  "ed25519Signature": "$signature"
+}
+EOF
+}
+
+inject_sparkle_settings() {
+  local plist_path="$APP_PATH/Contents/Info.plist"
+  local feed_url="$SPARKLE_FEED_URL"
+  local public_key="$SPARKLE_PUBLIC_KEY"
+
+  if [[ -n "$feed_url" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :SUFeedURL $feed_url" "$plist_path"
+  fi
+  if [[ -n "$public_key" ]]; then
+    /usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $public_key" "$plist_path"
+  fi
+
+  if [[ "$PUBLISH_BUILD" == "true" ]]; then
+    local compiled_feed_url
+    local compiled_public_key
+    compiled_feed_url="$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$plist_path")"
+    compiled_public_key="$(/usr/libexec/PlistBuddy -c 'Print :SUPublicEDKey' "$plist_path")"
+    if [[ -z "$compiled_feed_url" || "$compiled_feed_url" != https://* ]]; then
+      echo "error: the built app must contain an HTTPS SUFeedURL" >&2
+      exit 1
+    fi
+    if [[ -z "$compiled_public_key" ]]; then
+      echo "error: the built app must contain SUPublicEDKey" >&2
+      exit 1
+    fi
   fi
 }
 
@@ -126,9 +227,29 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-for command_name in dart dmgbuild flutter hdiutil lipo; do
+if [[ "$PUBLISH_BUILD" == "true" ]]; then
+  if [[ -z "$SPARKLE_FEED_URL" || "$SPARKLE_FEED_URL" != https://* ]]; then
+    echo "error: FRAMELEAN_SPARKLE_FEED_URL must be an HTTPS URL for a publishable build" >&2
+    exit 1
+  fi
+  if [[ ! "$SPARKLE_PUBLIC_KEY" =~ ^[a-zA-Z0-9+/]{43}=$ ]]; then
+    echo "error: FRAMELEAN_SPARKLE_PUBLIC_ED_KEY is required for a publishable build" >&2
+    exit 1
+  fi
+  if [[ "$#" -eq 0 || " $* " == *" --no-sign "* || " $* " == *" --no-notarization "* ]]; then
+    echo "error: a publishable build must enable DMG signing and notarization" >&2
+    exit 1
+  fi
+fi
+
+for command_name in dart dmgbuild flutter hdiutil lipo shasum; do
   require_command "$command_name"
 done
+if [[ "$PUBLISH_BUILD" == "true" ]]; then
+  for command_name in codesign spctl xcrun; do
+    require_command "$command_name"
+  done
+fi
 
 if [[ ! -d "$LEGAL_DIR" ]]; then
   echo "error: legal materials directory not found: $LEGAL_DIR" >&2
@@ -192,6 +313,8 @@ if [[ ! -d "$APP_PATH" ]]; then
   exit 1
 fi
 
+inject_sparkle_settings
+
 "$VERIFY_SCRIPT" "$APP_PATH"
 
 if [[ ! -x "$APP_PATH/Contents/Resources/ffmpeg/ffmpeg" ]]; then
@@ -237,7 +360,19 @@ elif [[ ! -f "$DMG_PATH" ]]; then
 fi
 
 hdiutil verify "$DMG_PATH"
+if [[ "$PUBLISH_BUILD" == "true" ]]; then
+  codesign --verify --deep --strict --verbose=2 "$APP_PATH"
+  xcrun stapler validate "$DMG_PATH"
+  spctl --assess --type install --verbose=2 "$DMG_PATH"
+  write_sparkle_signature_metadata "$DMG_PATH"
+else
+  echo "Local DMG built without publishable Sparkle metadata."
+fi
 
 echo
 echo "Universal 2 DMG package is ready:"
 echo "$DMG_PATH"
+if [[ -n "$SPARKLE_SIGNATURE_JSON_PATH" ]]; then
+  echo "Sparkle signature metadata:"
+  echo "$SPARKLE_SIGNATURE_JSON_PATH"
+fi

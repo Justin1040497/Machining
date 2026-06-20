@@ -12,3 +12,8 @@ PRODUCT_BUNDLE_IDENTIFIER = com.justin.framelean
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.justin. All rights reserved.
+
+// Sparkle defaults. Release builds must override these with the real appcast
+// feed and EdDSA public key.
+FRAMELEAN_SPARKLE_FEED_URL =
+FRAMELEAN_SPARKLE_PUBLIC_ED_KEY =

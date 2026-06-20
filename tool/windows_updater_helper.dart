@@ -7,6 +7,7 @@ Future<void> main(List<String> args) async {
     ..writeln('FrameLean updater helper')
     ..writeln('startedAt=$startedAt');
   File? logFile;
+  _UpdaterRequest? request;
 
   void appendLog(String message) {
     log.writeln('${DateTime.now().toIso8601String()} $message');
@@ -32,7 +33,7 @@ Future<void> main(List<String> args) async {
 
     final requestFile = File(args.single);
     logFile = File('${requestFile.path}.log');
-    final request = _UpdaterRequest.fromJson(
+    request = _UpdaterRequest.fromJson(
       jsonDecode(await requestFile.readAsString()) as Map<String, Object?>,
     );
 
@@ -46,6 +47,7 @@ Future<void> main(List<String> args) async {
 
     await _waitForProcessExit(request.currentProcessId, appendLog);
     await _runInstaller(request, requestFile, appendLog);
+    await _verifyInstalledVersion(request, appendLog);
     await _restartApp(request, appendLog);
 
     appendLog('completed');
@@ -55,6 +57,14 @@ Future<void> main(List<String> args) async {
     appendLog('failed: $error');
     appendLog(stackTrace.toString());
     stderr.writeln(error);
+    if (request != null) {
+      try {
+        await _restartApp(request, appendLog);
+        appendLog('restarted available app after update failure');
+      } on Object catch (restartError) {
+        appendLog('failed to restart available app: $restartError');
+      }
+    }
     await flushLog();
     exitCode = 1;
   }
@@ -97,6 +107,110 @@ Future<bool> _isProcessRunning(int processId) async {
   }
 
   return '${result.stdout}'.contains('"$processId"');
+}
+
+Future<void> _verifyInstalledVersion(
+  _UpdaterRequest request,
+  void Function(String message) log,
+) async {
+  final registry = await _readRegistryValues(log);
+  if (registry.version != request.version) {
+    throw StateError(
+      'Installed registry version mismatch: '
+      '${registry.version} != ${request.version}',
+    );
+  }
+  log('registry version verified: ${registry.version}');
+
+  final expectedInstallPath = Directory(
+    File(request.appExecutablePath).parent.path,
+  ).absolute.path.toLowerCase();
+  final installedPath = Directory(
+    registry.installPath,
+  ).absolute.path.toLowerCase();
+  if (installedPath != expectedInstallPath) {
+    throw StateError(
+      'Installed path mismatch: $installedPath != $expectedInstallPath',
+    );
+  }
+  log('registry install path verified: ${registry.installPath}');
+
+  final executableVersion = await _readExecutableFileVersion(
+    request.appExecutablePath,
+    log,
+  );
+  final expectedExecutableVersion = '${request.version}.${request.buildNumber}';
+  if (executableVersion != expectedExecutableVersion) {
+    throw StateError(
+      'Installed executable version mismatch: '
+      '$executableVersion != $expectedExecutableVersion',
+    );
+  }
+  log('executable FileVersionRaw verified: $executableVersion');
+}
+
+Future<_RegistryValues> _readRegistryValues(
+  void Function(String message) log,
+) async {
+  for (final root in ['HKCU', 'HKLM']) {
+    final result = await Process.run('reg.exe', [
+      'query',
+      '$root\\Software\\FrameLean\\FrameLean',
+    ]);
+    if (result.exitCode != 0) {
+      log('$root registry query failed: ${result.stdout} ${result.stderr}');
+      continue;
+    }
+    String? version;
+    String? installPath;
+    for (final line in '${result.stdout}'.split('\n')) {
+      final match = RegExp(
+        r'^\s*(Version|InstallPath)\s+REG_\S+\s+(.+?)\s*$',
+      ).firstMatch(line);
+      if (match?.group(1) == 'Version') {
+        version = match?.group(2)?.trim();
+      } else if (match?.group(1) == 'InstallPath') {
+        installPath = match?.group(2)?.trim();
+      }
+    }
+    if (version != null && installPath != null) {
+      return _RegistryValues(version: version, installPath: installPath);
+    }
+  }
+  throw StateError('Installed registry version or path was not found.');
+}
+
+Future<String> _readExecutableFileVersion(
+  String appExecutablePath,
+  void Function(String message) log,
+) async {
+  if (appExecutablePath.isEmpty || !await File(appExecutablePath).exists()) {
+    throw StateError('Installed executable was not found: $appExecutablePath');
+  }
+  final result = await Process.run('powershell.exe', [
+    '-NoProfile',
+    '-ExecutionPolicy',
+    'Bypass',
+    '-Command',
+    r'$v=(Get-Item -LiteralPath $args[0]).VersionInfo.FileVersionRaw; "$($v.Major).$($v.Minor).$($v.Build).$($v.Revision)"',
+    appExecutablePath,
+  ]);
+  if (result.exitCode != 0) {
+    log('executable version query failed: ${result.stdout} ${result.stderr}');
+    throw ProcessException(
+      'powershell.exe',
+      const [],
+      '${result.stdout}\n${result.stderr}',
+      result.exitCode,
+    );
+  }
+  final version = '${result.stdout}'.trim();
+  if (!RegExp(r'^\d+\.\d+\.\d+\.\d+$').hasMatch(version)) {
+    throw StateError(
+      'Installed executable FileVersionRaw is invalid: $version',
+    );
+  }
+  return version;
 }
 
 Future<void> _runInstaller(
@@ -172,6 +286,13 @@ class _UpdaterRequest {
       appExecutablePath: _readString(json, 'appExecutablePath'),
     );
   }
+}
+
+class _RegistryValues {
+  const _RegistryValues({required this.version, required this.installPath});
+
+  final String version;
+  final String installPath;
 }
 
 String _readString(Map<String, Object?> json, String key) {

@@ -6,13 +6,14 @@ APP_NAME="FrameLean"
 DRY_RUN=0
 ASSUME_YES=0
 REMOVE_APP_PATH=""
+ADMIN_CLEANUP=0
 
 usage() {
   cat <<USAGE
 FrameLean clean uninstall helper
 
 Usage:
-  ./FrameLean-Clean-Uninstall.command [--dry-run] [--yes] [--remove-app /Applications/FrameLean.app]
+  ./FrameLean-Clean-Uninstall.command [--dry-run] [--yes] [--admin-cleanup] [--remove-app /Applications/FrameLean.app]
 
 This removes FrameLean-owned app data and temporary cache. It never scans or
 deletes exported compression results.
@@ -27,6 +28,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --yes)
       ASSUME_YES=1
+      shift
+      ;;
+    --admin-cleanup)
+      ADMIN_CLEANUP=1
       shift
       ;;
     --remove-app)
@@ -61,6 +66,18 @@ run_remove() {
   fi
 }
 
+run_admin_remove() {
+  local target="$1"
+  if [[ -z "$target" || ! -e "$target" ]]; then
+    return
+  fi
+
+  echo "[FrameLean] Remove managed path: $target"
+  if [[ "$DRY_RUN" -eq 0 ]]; then
+    sudo rm -rf -- "$target"
+  fi
+}
+
 confirm() {
   if [[ "$ASSUME_YES" -eq 1 ]]; then
     return
@@ -87,8 +104,14 @@ run_remove "$SUPPORT_DIR/$APP_NAME"
 run_remove "$CACHE_DIR/$APP_BUNDLE_ID"
 run_remove "$CACHE_DIR/$APP_NAME"
 run_remove "$PREFERENCES_DIR/$APP_BUNDLE_ID.plist"
+run_remove "$HOME/Library/Saved Application State/$APP_BUNDLE_ID.savedState"
+run_remove "$HOME/Library/HTTPStorages/$APP_BUNDLE_ID"
 run_remove "${TMPDIR:-}/framelean"
 run_remove "$DARWIN_USER_TEMP_DIR/framelean"
+
+if [[ "$ADMIN_CLEANUP" -eq 1 ]]; then
+  run_admin_remove "/Library/Application Support/FrameLean"
+fi
 
 if [[ -n "$REMOVE_APP_PATH" ]]; then
   if [[ "$REMOVE_APP_PATH" != *"/FrameLean.app" ]]; then

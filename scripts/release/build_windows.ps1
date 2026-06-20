@@ -5,6 +5,10 @@ param(
   [string]$BuildName = "",
   [string]$BuildNumber = "",
   [string]$IsccPath = "",
+  [string]$UpdateBaseUrl = $env:FRAMELEAN_UPDATE_BASE_URL,
+  [string]$ReleaseKeyId = $env:FRAMELEAN_RELEASE_KEY_ID,
+  [string]$ReleasePublicKey = $env:FRAMELEAN_RELEASE_PUBLIC_KEY,
+  [string]$ReleasePrivateKeyFile = $env:FRAMELEAN_RELEASE_PRIVATE_KEY_FILE,
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$ExtraFlutterArgs
 )
@@ -24,6 +28,17 @@ function Require-File {
 
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
     throw "Required file was not found: $Path"
+  }
+}
+
+function Require-Value {
+  param(
+    [string]$Name,
+    [string]$Value
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    throw "Missing required release setting: $Name"
   }
 }
 
@@ -384,6 +399,7 @@ $PubspecPath = Join-Path $Root "pubspec.yaml"
 $IssPath = Join-Path $Root "installer\windows\FrameLean.iss"
 $CleanupScriptPath = Join-Path $Root "installer\windows\FrameLean-Clean-Uninstall.ps1"
 $UpdaterHelperSourcePath = Join-Path $Root "tool\windows_updater_helper.dart"
+$UpdateSignerPath = Join-Path $Root "tool\sign_windows_update.dart"
 $ReleaseToolsDir = Join-Path $ReleaseDir "tools"
 $QmcAdapterNames = @(
   "framelean-qmc-adapter.exe",
@@ -403,6 +419,16 @@ Require-Directory $LegalDir
 Require-File (Join-Path $Root "LICENSE")
 Require-File (Join-Path $LegalDir "NOTICE.md")
 Require-File $UpdaterHelperSourcePath
+Require-File $UpdateSignerPath
+Require-Value "FRAMELEAN_UPDATE_BASE_URL" $UpdateBaseUrl
+Require-Value "FRAMELEAN_RELEASE_KEY_ID" $ReleaseKeyId
+Require-Value "FRAMELEAN_RELEASE_PUBLIC_KEY" $ReleasePublicKey
+Require-Value "FRAMELEAN_RELEASE_PRIVATE_KEY_FILE" $ReleasePrivateKeyFile
+Require-File $ReleasePrivateKeyFile
+$ReleasePrivateKeyFile = (Resolve-Path -LiteralPath $ReleasePrivateKeyFile).Path
+if (-not $UpdateBaseUrl.StartsWith("https://", [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw "FRAMELEAN_UPDATE_BASE_URL must use HTTPS for a release build."
+}
 
 $Iscc = $null
 if (-not $SkipInstaller) {
@@ -411,7 +437,11 @@ if (-not $SkipInstaller) {
   $Iscc = Resolve-IsccPath -ExplicitPath $IsccPath
 }
 
-$Version = Get-PubspecVersion -Path $PubspecPath
+$Version = if ([string]::IsNullOrWhiteSpace($BuildName)) {
+  Get-PubspecVersion -Path $PubspecPath
+} else {
+  $BuildName.Trim()
+}
 $PackageName = "FrameLean-v$Version-windows-x64"
 $ZipPath = Join-Path $ZipDir "$PackageName.zip"
 $SetupPath = Join-Path $InstallerDir "$PackageName-setup.exe"
@@ -433,6 +463,12 @@ try {
   if ($ExtraFlutterArgs) {
     $BuildArgs += $ExtraFlutterArgs
   }
+  $BuildArgs += @(
+    "--dart-define=FRAMELEAN_UPDATE_BASE_URL=$UpdateBaseUrl",
+    "--dart-define=FRAMELEAN_TRUSTED_RELEASE_KEY_IDS=$ReleaseKeyId",
+    "--dart-define=FRAMELEAN_RELEASE_PUBLIC_KEYS=$ReleaseKeyId=$ReleasePublicKey",
+    "--dart-define=FRAMELEAN_REQUIRE_RELEASE_SIGNATURE=true"
+  )
 
   Write-Host "Building Windows release with: flutter $($BuildArgs -join ' ')"
   Invoke-Checked "flutter" $BuildArgs
@@ -521,6 +557,23 @@ try {
       throw "Inno Setup failed with exit code $LASTEXITCODE."
     }
     Require-File $SetupPath
+
+    Write-Host "Signing Windows update installer..."
+    Invoke-Checked "dart" @(
+      "run",
+      $UpdateSignerPath,
+      "--input",
+      $SetupPath,
+      "--private-key",
+      $ReleasePrivateKeyFile,
+      "--key-id",
+      $ReleaseKeyId,
+      "--public-key",
+      $ReleasePublicKey,
+      "--output",
+      "$SetupPath.update.json"
+    )
+    Require-File "$SetupPath.update.json"
   }
 
   Write-Host ""
@@ -531,6 +584,7 @@ try {
   }
   if (-not $SkipInstaller) {
     Write-Host $SetupPath
+    Write-Host "$SetupPath.update.json"
   }
 }
 finally {

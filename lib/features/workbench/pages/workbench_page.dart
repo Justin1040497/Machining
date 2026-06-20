@@ -921,7 +921,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       if (confirmed != true) {
         return;
       }
-      await ref.read(mediaTaskListProvider.notifier).pauseAllRunningTasks();
     }
 
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();

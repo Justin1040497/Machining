@@ -42,7 +42,7 @@ class WindowsCleanAppUninstaller implements AppUninstaller {
     return AppUninstallAvailability(
       supportedPlatform: true,
       installedBuild: true,
-      requiresAdmin: _looksLikeAdminInstallDir(installDir),
+      requiresAdmin: true,
       cleanupScriptPath: cleanupScriptPath,
       installDir: installDir,
     );
@@ -72,17 +72,6 @@ class WindowsCleanAppUninstaller implements AppUninstaller {
       installDir,
       '-LaunchedFromApp',
     ];
-
-    if (availability.requiresAdmin) {
-      await _processStarter('PowerShell', <String>[
-        '-NoProfile',
-        '-ExecutionPolicy',
-        'Bypass',
-        '-Command',
-        _buildElevatedStartCommand(scriptArgs),
-      ], mode: ProcessStartMode.detached);
-      return;
-    }
 
     await _processStarter(
       'PowerShell',
@@ -131,28 +120,6 @@ class WindowsCleanAppUninstaller implements AppUninstaller {
       p.join(tempDir.path, 'FrameLean-Clean-Uninstall.ps1'),
     );
     return sourceScript.copy(tempScript.path);
-  }
-
-  bool _looksLikeAdminInstallDir(String installDir) {
-    final lower = p.normalize(installDir).toLowerCase();
-    final programFiles = <String?>[
-      Platform.environment['ProgramFiles'],
-      Platform.environment['ProgramFiles(x86)'],
-    ];
-
-    return programFiles
-        .whereType<String>()
-        .map((path) => p.normalize(path).toLowerCase())
-        .any((path) => lower == path || p.isWithin(path, lower));
-  }
-
-  String _buildElevatedStartCommand(List<String> scriptArgs) {
-    final argumentList = scriptArgs.map(_powerShellSingleQuote).join(', ');
-    return 'Start-Process -FilePath PowerShell -ArgumentList @($argumentList) -Verb RunAs';
-  }
-
-  String _powerShellSingleQuote(String value) {
-    return "'${value.replaceAll("'", "''")}'";
   }
 }
 

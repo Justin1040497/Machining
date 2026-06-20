@@ -3,40 +3,91 @@ import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/app_update/app_update_client.dart';
+import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
 import 'package:framelean/application/services/app_update/app_update_install_id_store.dart';
 import 'package:framelean/application/services/app_update/app_update_package_downloader.dart';
+import 'package:framelean/application/services/app_update/release_signature_verifier.dart';
+import 'package:framelean/application/services/app_update/sparkle_update_controller.dart';
 import 'package:framelean/application/services/app_update/updater_helper_launcher.dart';
 import 'package:framelean/application/services/framelean_build_info.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
+import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
-import 'package:framelean/infrastructure/services/app_update/http_app_update_client.dart';
+import 'package:framelean/infrastructure/services/app_update/cryptography_release_signature_verifier.dart';
+import 'package:framelean/infrastructure/services/app_update/enterprise_aware_app_update_client.dart';
 import 'package:framelean/infrastructure/services/app_update/local_app_update_install_id_store.dart';
 import 'package:framelean/infrastructure/services/app_update/local_app_update_package_downloader.dart';
+import 'package:framelean/infrastructure/services/app_update/local_enterprise_update_config_store.dart';
 import 'package:framelean/infrastructure/services/app_update/local_updater_helper_launcher.dart';
-import 'package:framelean/infrastructure/services/app_update/noop_app_update_client.dart';
+import 'package:framelean/infrastructure/services/app_update/method_channel_sparkle_update_controller.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
 
-const _updateBaseUrl = String.fromEnvironment('FRAMELEAN_UPDATE_BASE_URL');
-const _updateChannel = String.fromEnvironment(
+typedef UpdateRestartPreparation = Future<void> Function();
+
+final updateRestartPreparationProvider = Provider<UpdateRestartPreparation>((
+  ref,
+) {
+  return () async {
+    final runner = ref.read(ffmpegTaskQueueRunnerProvider);
+    await runner.pauseAllRunningTasks();
+    await runner.cancelAllExecutions();
+  };
+});
+
+const _defaultUpdateChannel = String.fromEnvironment(
   'FRAMELEAN_UPDATE_CHANNEL',
   defaultValue: 'stable',
 );
 
-final appUpdateClientProvider = Provider<AppUpdateClient>((ref) {
-  final trimmedBaseUrl = _updateBaseUrl.trim();
-  if (trimmedBaseUrl.isEmpty) {
-    return const NoopAppUpdateClient();
-  }
+final enterpriseUpdateConfigStoreProvider =
+    Provider<EnterpriseUpdateConfigStore>((ref) {
+      return const LocalEnterpriseUpdateConfigStore();
+    });
 
-  final client = HttpAppUpdateClient(baseUri: Uri.parse(trimmedBaseUrl));
+final enterpriseUpdateConfigCacheProvider =
+    Provider<EnterpriseUpdateConfigCache>((ref) {
+      return EnterpriseUpdateConfigCache(
+        ref.watch(enterpriseUpdateConfigStoreProvider),
+      );
+    });
+
+final releaseSignatureVerifierProvider = Provider<ReleaseSignatureVerifier>((
+  ref,
+) {
+  return CryptographyReleaseSignatureVerifier();
+});
+
+final sparkleUpdateControllerProvider = Provider<SparkleUpdateController>((
+  ref,
+) {
+  final controller = MethodChannelSparkleUpdateController();
+  controller.setRestartPreparationHandler(
+    ref.read(updateRestartPreparationProvider),
+  );
+  ref.onDispose(controller.dispose);
+  return controller;
+});
+
+final useSparkleUpdateProvider = Provider<bool>((ref) {
+  return Platform.isMacOS;
+});
+
+final appUpdateClientProvider = Provider<AppUpdateClient>((ref) {
+  final client = EnterpriseAwareAppUpdateClient(
+    configCache: ref.watch(enterpriseUpdateConfigCacheProvider),
+  );
   ref.onDispose(client.httpClient.close);
   return client;
 });
 
 final appUpdateDownloaderProvider = Provider<AppUpdatePackageDownloader>((ref) {
-  final downloader = LocalAppUpdatePackageDownloader();
+  final downloader = LocalAppUpdatePackageDownloader(
+    configCache: ref.watch(enterpriseUpdateConfigCacheProvider),
+    signatureVerifier: ref.watch(releaseSignatureVerifierProvider),
+  );
   ref.onDispose(downloader.httpClient.close);
   return downloader;
 });
@@ -59,9 +110,14 @@ final appUpdateProvider =
 final appReleaseNotesProvider = FutureProvider<List<AppReleaseNotes>>((
   ref,
 ) async {
+  final config = await ref.watch(enterpriseUpdateConfigCacheProvider).load();
   final notes = await ref
       .watch(appUpdateClientProvider)
-      .loadReleaseNotesList(channel: _updateChannel);
+      .loadReleaseNotesList(
+        channel: config.channel.isEmpty
+            ? _defaultUpdateChannel
+            : config.channel,
+      );
   if (notes.isNotEmpty) {
     return notes;
   }
@@ -89,6 +145,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
 
   @override
   Future<AppUpdateState> build() async {
+    await ref.read(enterpriseUpdateConfigCacheProvider).load();
     if (!_autoCheckStarted) {
       _autoCheckStarted = true;
       scheduleMicrotask(() {
@@ -113,13 +170,20 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
     );
 
     try {
+      final config = await ref.read(enterpriseUpdateConfigCacheProvider).load();
+      if (ref.read(useSparkleUpdateProvider)) {
+        await _checkForMacosSparkleUpdate(config, current, automatic);
+        return;
+      }
       final result = await ref
           .read(appUpdateClientProvider)
           .checkForUpdate(
             currentVersion: FrameLeanBuildInfo.currentVersionLabel,
             currentBuild: FrameLeanBuildInfo.currentBuildNumber,
             platform: _currentUpdatePlatform(),
-            channel: _updateChannel,
+            channel: config.channel.isEmpty
+                ? _defaultUpdateChannel
+                : config.channel,
           );
 
       if (!result.updateAvailable || result.release == null) {
@@ -173,7 +237,29 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
     }
   }
 
+  Future<void> refreshPlatformUpdatePolicy() async {
+    if (!ref.read(useSparkleUpdateProvider)) {
+      return;
+    }
+    final config = await ref.read(enterpriseUpdateConfigCacheProvider).load();
+    final sparkleConfig = _withResolvedMacosAppcastUrl(config);
+    await ref
+        .read(sparkleUpdateControllerProvider)
+        .getUpdatePolicyStatus(
+          sparkleConfig.updatesDisabled
+              ? sparkleConfig.copyWith(
+                  allowAutomaticChecks: false,
+                  allowInAppInstall: false,
+                )
+              : sparkleConfig,
+        );
+  }
+
   Future<void> startOrResumeDownload() async {
+    if (ref.read(useSparkleUpdateProvider)) {
+      await checkForUpdate();
+      return;
+    }
     final current = state.asData?.value;
     final release = current?.release;
     if (current == null ||
@@ -288,6 +374,10 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
   }
 
   Future<void> installDownloadedUpdate() async {
+    if (ref.read(useSparkleUpdateProvider)) {
+      await checkForUpdate();
+      return;
+    }
     final current = state.asData?.value;
     final release = current?.release;
     final installerPath = current?.downloadedFilePath;
@@ -300,6 +390,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
 
     state = AsyncData(current.copyWith(status: AppUpdateStatus.installing));
     try {
+      await ref.read(updateRestartPreparationProvider)();
       await ref
           .read(updaterHelperLauncherProvider)
           .launch(
@@ -326,11 +417,71 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           );
     }
   }
+
+  Future<void> _checkForMacosSparkleUpdate(
+    EnterpriseUpdateConfig config,
+    AppUpdateState previous,
+    bool automatic,
+  ) async {
+    final sparkleConfig = _withResolvedMacosAppcastUrl(config);
+    if (sparkleConfig.updatesDisabled ||
+        (!sparkleConfig.hasMacosAppcastUrl &&
+            !sparkleConfig.hasUpdateBaseUrl)) {
+      await ref
+          .read(sparkleUpdateControllerProvider)
+          .getUpdatePolicyStatus(
+            sparkleConfig.copyWith(
+              allowAutomaticChecks: false,
+              allowInAppInstall: false,
+            ),
+          );
+      state = AsyncData(
+        previous.copyWith(status: AppUpdateStatus.idle, errorMessage: null),
+      );
+      return;
+    }
+
+    if (automatic) {
+      await ref
+          .read(sparkleUpdateControllerProvider)
+          .getUpdatePolicyStatus(sparkleConfig);
+    } else {
+      await ref
+          .read(sparkleUpdateControllerProvider)
+          .checkForUpdates(sparkleConfig);
+    }
+    state = AsyncData(
+      previous.copyWith(status: AppUpdateStatus.idle, errorMessage: null),
+    );
+  }
+}
+
+EnterpriseUpdateConfig _withResolvedMacosAppcastUrl(
+  EnterpriseUpdateConfig config,
+) {
+  if (config.hasMacosAppcastUrl || !config.hasUpdateBaseUrl) {
+    return config;
+  }
+  final base = Uri.parse(config.updateBaseUrl);
+  final basePath = base.path.endsWith('/')
+      ? base.path.substring(0, base.path.length - 1)
+      : base.path;
+  final channel = config.channel.isEmpty
+      ? _defaultUpdateChannel
+      : config.channel;
+  return config.copyWith(
+    macosAppcastUrl: base
+        .replace(
+          path: '$basePath/api/v1/sparkle/appcast',
+          queryParameters: {'channel': channel},
+        )
+        .toString(),
+  );
 }
 
 String _currentUpdatePlatform() {
   if (Platform.isWindows) {
-    return 'windows-x64';
+    return 'windows-installer';
   }
   if (Platform.isMacOS) {
     return 'macos-universal2';

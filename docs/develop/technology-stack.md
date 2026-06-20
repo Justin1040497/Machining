@@ -46,6 +46,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + CocoaPods plugin integration + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；桌面插件通过 `macos/Podfile` 和 Runner workspace 集成 |
+| macOS 自动更新 | Sparkle 2 + CocoaPods + appcast | 已使用 | macOS 更新由 Sparkle 负责检查、下载、EdDSA 校验和重启安装；Flutter 通过 MethodChannel 触发检查 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
@@ -74,6 +75,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `hotkey_manager` | `^0.2.3` | 应用内快捷键注册与快捷键录入 |
 | `pointycastle` | `^4.0.0` | NCM 专有音频输入的本地加密/解密算法支持 |
 | `crypto` | `^3.0.6` | 自托管更新包 SHA-256 校验 |
+| `cryptography` | `^2.9.0` | Windows 自托管更新包 Ed25519 签名校验 |
 
 开发依赖：
 
@@ -356,9 +358,9 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 | 数据 | 位置 / 机制 | 说明 |
 | --- | --- | --- |
-| release / package / notes | PostgreSQL | 长期发布事实；`release_packages.client_visible` 区分客户端更新包和官网 / Admin 留存包 |
+| release / package / notes / Sparkle appcast metadata | PostgreSQL | 长期发布事实；`release_packages.client_visible` 区分客户端更新包和官网 / Admin 留存包；客户端可见包必须有 Ed25519 / Sparkle 签名 |
 | release artifact files / notes md | 腾讯云 COS | Admin Web 通过服务端预签名分片上传写入 `releases/...`，客户端只通过下载 ticket 获取可见平台包的短期下载 URL |
-| release artifact requirement | PostgreSQL | Admin 端配置的每个版本平台成果物要求及必填状态，Windows 直装版留存包默认为可选 |
+| release artifact requirement | PostgreSQL | Admin 端配置的每个版本平台成果物要求及必填状态；Windows 安装器是客户端更新包，Windows ZIP 是留存包 |
 | update check event | PostgreSQL | 检查更新审计、IP 筛选和封禁依据 |
 | download event | PostgreSQL | 下载统计和审计 |
 | admin auth envelope | PostgreSQL | 唯一管理员的 Argon2id 参数、加密私钥和公钥；不保存主密码或密码哈希 |

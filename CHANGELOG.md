@@ -43,6 +43,9 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 新增通知策略设置，可按事件选择“通知 / 临时通知 / 不通知”；普通交互和保存成功默认临时通知，任务结果、更新和重要失败默认持久通知。
 - 新增快捷键系统与设置页重映射：Esc 返回 / 关闭顶层界面，F 添加文件或文件夹，Space 开始 / 暂停，主修饰键 + `,` 打开设置，主修饰键 + Shift + N 打开通知中心。
 - 新增窗口关闭行为设置：默认关闭到后台，Windows 使用托盘恢复 / 退出，macOS 通过 Dock 重新打开窗口；显式退出时会确认运行任务并清理 partial 输出。
+- 新增托管更新配置快照：macOS 支持 MDM / `/Library` 托管配置，Windows 支持 HKLM policy / `%ProgramData%` 托管配置，用户可写配置会被忽略。
+- 新增 Windows 更新包 Ed25519 强制验签、严格断点恢复、重启前任务清理和 updater helper 安装后 build 确认。
+- 新增 macOS Sparkle 2 更新桥接、重启前 Flutter 准备回调、Sparkle appcast 服务端接口、Admin Web 元数据导入和统一签名元数据生成。
 
 ### Changed
 
@@ -53,6 +56,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 快捷键注册改为基于 `hotkey_manager` 的应用内热键，不再依赖页面焦点树；快捷键录入继续复用应用弹窗风格。
 - 工作台左下角添加入口改为统一批次导入；macOS 通过原生选择器支持同一对话框多选文件和文件夹，Windows 保留文件多选和拖拽文件夹能力。
 - macOS 桌面插件集成改为保留 CocoaPods `Podfile` / `Podfile.lock` 和 Runner workspace Pods 引用，用于窗口管理和托盘插件。
+- Windows 自托管自动更新平台改为 `windows-installer`，`windows-x64` ZIP 调整为手动下载 / 后台留存包。
 - FFmpeg 许可证、源码获取、第三方声明和内置运行时说明补充 libvpx、SVT-AV1、WebM、AVI、MPEG-4 Part 2、MJPEG、VP9、AV1 能力。
 
 ### Fixed
@@ -70,7 +74,9 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `rtk dart format lib test tool`。
 - 通过 `rtk flutter analyze`。
 - 通过 `rtk flutter test --concurrency=1 test/app_notification_manager_test.dart test/app_settings_page_test.dart test/app_settings_save_coordinator_test.dart test/drift_app_settings_repository_test.dart test/output_preflight_service_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_task_queue_runner_test.dart test/media_task_use_case_helpers_test.dart test/media_task_notifier_test.dart test/widget_test.dart test/workbench_bottom_bar_test.dart`，共 205 项定向回归。
-- 通过 `rtk flutter test`，共 354 项测试。
+- 通过 `flutter test`，共 358 项测试。
+- 通过 `cd server/admin-web && npm run build`。
+- 通过 `cd server && mvn test`，共 14 项测试通过，2 项 Testcontainers 集成测试因本机无 Docker 跳过。
 - 通过 `rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh` 和 `rtk bash -n scripts/release/build_dmg_macos.sh`。
 - 通过 `rtk git diff --check`。
 
