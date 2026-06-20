@@ -62,7 +62,7 @@ class WorkbenchConversionFormatPanel<T> extends StatelessWidget {
           onChanged(value);
         }
       },
-      height: 34,
+      height: 40,
       showTrailingText: false,
       labelFontSize: 12,
       valueFontSize: 12,
@@ -109,25 +109,51 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
           onChanged: onModeChanged,
         ),
         const SizedBox(height: 10),
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 140),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          child: mode != CompressionMode.targetSize
-              ? _RecommendedPresetRow(
-                  key: const ValueKey('recommended-presets'),
-                  presets: presets,
-                  selectedQualityIndex: selectedQualityIndex,
-                  activePresetTitle: activePresetTitle,
-                  estimatedSizeForPreset: estimatedSizeForPreset,
-                  isPresetEnabled: isPresetEnabled,
-                  onSelected: onPresetSelected,
-                )
-              : _TargetSizePanel(
-                  key: const ValueKey('custom-target-size'),
-                  selectedRatio: selectedTargetSizeRatio,
-                  onChanged: onTargetSizeRatioChanged,
-                ),
+        Container(
+          margin: const EdgeInsets.symmetric(horizontal: 1),
+          child: AnimatedSize(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeInOutCubic,
+            alignment: Alignment.topCenter,
+            clipBehavior: Clip.hardEdge,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              switchInCurve: Curves.easeInOutCubic,
+              switchOutCurve: Curves.easeInOutCubic,
+              layoutBuilder: (currentChild, previousChildren) {
+                return Stack(
+                  alignment: Alignment.topCenter,
+                  clipBehavior: Clip.hardEdge,
+                  children: [...previousChildren, ?currentChild],
+                );
+              },
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SizeTransition(
+                    sizeFactor: animation,
+                    axisAlignment: -1,
+                    child: child,
+                  ),
+                );
+              },
+              child: mode != CompressionMode.targetSize
+                  ? _RecommendedPresetRow(
+                      key: const ValueKey('recommended-presets'),
+                      presets: presets,
+                      selectedQualityIndex: selectedQualityIndex,
+                      activePresetTitle: activePresetTitle,
+                      estimatedSizeForPreset: estimatedSizeForPreset,
+                      isPresetEnabled: isPresetEnabled,
+                      onSelected: onPresetSelected,
+                    )
+                  : _TargetSizePanel(
+                      key: const ValueKey('custom-target-size'),
+                      selectedRatio: selectedTargetSizeRatio,
+                      onChanged: onTargetSizeRatioChanged,
+                    ),
+            ),
+          ),
         ),
       ],
     );
@@ -253,48 +279,50 @@ class WorkbenchTaskFolderSummary extends StatelessWidget {
         ? _dimensionDistribution()
         : _durationSummary();
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(
-          child: DefaultTextStyle(
-            style: TextStyle(
-              color: colors.textTertiary,
-              fontSize: 11.flSp,
-              height: 1.95,
-              fontWeight: FontWeight.w400,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Expanded(
+            child: DefaultTextStyle(
+              style: TextStyle(
+                color: colors.textTertiary,
+                fontSize: 11.flSp,
+                height: 1.95,
+                fontWeight: FontWeight.w400,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('任务数量: ${tasks.length}'),
+                  Text(
+                    '源文件总大小: ${WorkbenchFormatters.formatBytes(totalSize)}'
+                    '${knownSizes.length == tasks.length ? '' : '（已统计 ${knownSizes.length}/${tasks.length}）'}',
+                  ),
+                  Text('格式分布: ${formats.isEmpty ? '-' : formats}'),
+                  Text(detail),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('任务数量: ${tasks.length}'),
-                Text(
-                  '源文件总大小: ${WorkbenchFormatters.formatBytes(totalSize)}'
-                  '${knownSizes.length == tasks.length ? '' : '（已统计 ${knownSizes.length}/${tasks.length}）'}',
-                ),
-                Text('格式分布: ${formats.isEmpty ? '-' : formats}'),
-                Text(detail),
-              ],
+          ),
+          const SizedBox(width: 16),
+          Container(
+            width: 92,
+            constraints: const BoxConstraints(minHeight: 58),
+            decoration: BoxDecoration(
+              color: colors.surfaceDisabled,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colors.border),
+            ),
+            alignment: Alignment.center,
+            child: Icon(
+              Icons.folder_copy_rounded,
+              color: colors.iconMuted,
+              size: 26,
             ),
           ),
-        ),
-        const SizedBox(width: 16),
-        Container(
-          width: 92,
-          height: 58,
-          decoration: BoxDecoration(
-            color: colors.surfaceDisabled,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: colors.border),
-          ),
-          alignment: Alignment.center,
-          child: Icon(
-            Icons.folder_copy_rounded,
-            color: colors.iconMuted,
-            size: 26,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -388,7 +416,7 @@ class _CompressionModeSegmentedControl extends StatelessWidget {
 
     return SizedBox(
       width: double.infinity,
-      height: 34,
+      height: 42,
       child: CupertinoSlidingSegmentedControl<CompressionMode>(
         groupValue: value,
         backgroundColor: colors.surfaceDisabled,

@@ -7,7 +7,7 @@ class ConfigCheckbox extends StatelessWidget {
     required this.label,
     required this.value,
     required this.onChanged,
-    this.height = 34,
+    this.height = 40,
     this.fontSize = 12,
   });
 
@@ -32,7 +32,7 @@ class ConfigCheckbox extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               SizedBox.square(
-                dimension: 15,
+                dimension: 18,
                 child: Checkbox(
                   value: value,
                   onChanged: (next) => onChanged(next ?? false),

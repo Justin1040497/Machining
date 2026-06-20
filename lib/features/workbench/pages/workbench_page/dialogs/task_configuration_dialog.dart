@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:framelean/application/services/ffmpeg_planning/compression_estimator.dart';
@@ -9,6 +11,7 @@ import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
@@ -18,6 +21,7 @@ import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
+import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/audio_config_panel.dart';
@@ -29,6 +33,10 @@ import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
 import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
+import 'package:framelean/app/widgets/form_controls/path_field.dart';
+
+const _taskConfigFieldHeight = 40.0;
+const _taskConfigSegmentedControlHeight = 42.0;
 
 @immutable
 class WorkbenchTaskConfigurationDraft {
@@ -63,6 +71,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
   required ImageProvider? thumbnail,
   Widget? sourceSummary,
   String title = '任务详情设置',
+  bool showOutputLocationInMain = false,
+  String systemOutputDirectoryLabel = '使用应用设置',
+  Future<String?> Function()? onPickOutputDirectory,
   required int selectedQualityIndex,
   required OutputFormat selectedOutputFormat,
   required VideoCodec selectedVideoCodec,
@@ -151,6 +162,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             selectedTargetSizeRatio: draftTargetSizeRatio,
             selectedPurpose: draftPurpose,
             selectedConfig: draftConfig,
+            showOutputLocationInMain: showOutputLocationInMain,
+            systemOutputDirectoryLabel: systemOutputDirectoryLabel,
+            onPickOutputDirectory: onPickOutputDirectory,
             selectedVideoConfig: draftConfig.video,
             selectedImageConfig: draftConfig.image,
             selectedAudioConfig: draftConfig.audio,
@@ -234,8 +248,20 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
             onOutputFormatChanged: (value) {
               updateDialogState(() {
                 draftOutputFormat = value;
+                if (task.mediaKind == MediaKind.video &&
+                    !VideoOutputCompatibility.supports(
+                      value,
+                      draftVideoCodec,
+                    )) {
+                  draftVideoCodec = VideoOutputCompatibility.defaultCodecFor(
+                    value,
+                  );
+                  draftEncoderBackend = EncoderBackend.auto;
+                }
                 draftConfig = draftConfig.copyWith(
                   outputFormat: value,
+                  videoCodec: draftVideoCodec,
+                  encoderBackend: draftEncoderBackend,
                   keepOriginalOutputFormat: value == sourceVideoOutputFormat,
                 );
               });
@@ -347,6 +373,14 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                 draftConfig = draftConfig.copyWith(threadLimit: value);
               });
             },
+            onOutputLocationChanged: (mode, directory) {
+              updateDialogState(() {
+                draftConfig = draftConfig.copyWith(
+                  outputLocationMode: mode,
+                  outputDirectory: directory,
+                );
+              });
+            },
             onTwoPassModeChanged: (value) {
               updateDialogState(() {
                 final currentVideo =
@@ -389,6 +423,9 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     required this.selectedTargetSizeRatio,
     this.selectedPurpose = TaskPurpose.compression,
     this.selectedConfig,
+    this.showOutputLocationInMain = false,
+    this.systemOutputDirectoryLabel = '使用应用设置',
+    this.onPickOutputDirectory,
     this.selectedVideoConfig,
     this.selectedImageConfig,
     this.selectedAudioConfig,
@@ -410,6 +447,7 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
     this.onImageConfigChanged,
     this.onAudioConfigChanged,
     this.onThreadLimitChanged,
+    this.onOutputLocationChanged,
     this.onTwoPassModeChanged,
     this.onSelectedAudioStreamIndexChanged,
   });
@@ -428,6 +466,9 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final double selectedTargetSizeRatio;
   final TaskPurpose selectedPurpose;
   final MediaTaskConfig? selectedConfig;
+  final bool showOutputLocationInMain;
+  final String systemOutputDirectoryLabel;
+  final Future<String?> Function()? onPickOutputDirectory;
   final VideoProcessingConfig? selectedVideoConfig;
   final ImageProcessingConfig? selectedImageConfig;
   final AudioProcessingConfig? selectedAudioConfig;
@@ -449,6 +490,8 @@ class WorkbenchTaskConfigurationDialog extends StatefulWidget {
   final ValueChanged<ImageProcessingConfig>? onImageConfigChanged;
   final ValueChanged<AudioProcessingConfig>? onAudioConfigChanged;
   final ValueChanged<int?>? onThreadLimitChanged;
+  final void Function(OutputLocationMode mode, String directory)?
+  onOutputLocationChanged;
   final ValueChanged<TwoPassMode>? onTwoPassModeChanged;
   final ValueChanged<int?>? onSelectedAudioStreamIndexChanged;
 
@@ -465,6 +508,7 @@ class _WorkbenchTaskConfigurationDialogState
   final ScrollController _bodyScrollController = ScrollController();
   late CompressionMode _mode;
   String? _activePresetTitle;
+  String? _outputLocationError;
 
   static const _recommendedPresets = [
     WorkbenchCompressionPreset(
@@ -614,7 +658,7 @@ class _WorkbenchTaskConfigurationDialogState
                 ),
                 Positioned.fill(
                   top: 46,
-                  bottom: 50,
+                  bottom: 56,
                   child: ScrollConfiguration(
                     behavior: ScrollConfiguration.of(
                       context,
@@ -626,93 +670,129 @@ class _WorkbenchTaskConfigurationDialogState
                       thickness: _scrollbarThickness,
                       radius: const Radius.circular(4),
                       interactive: true,
-                      child: SingleChildScrollView(
-                        controller: _bodyScrollController,
-                        physics: const ClampingScrollPhysics(),
-                        padding: const EdgeInsets.only(right: _scrollbarGutter),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            widget.sourceSummary ??
-                                WorkbenchSourceSummary(
-                                  task: widget.task,
-                                  thumbnail: widget.thumbnail,
-                                ),
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 34,
-                              child:
-                                  CupertinoSlidingSegmentedControl<TaskPurpose>(
-                                    groupValue: widget.selectedPurpose,
-                                    backgroundColor: colors.surfaceDisabled,
-                                    thumbColor: colors.surface,
-                                    padding: const EdgeInsets.all(3),
-                                    children: const {
-                                      TaskPurpose.compression: Text('压缩'),
-                                      TaskPurpose.conversion: Text('格式转换'),
-                                    },
-                                    onValueChanged: (value) {
-                                      if (value != null) {
-                                        widget.onPurposeChanged?.call(value);
-                                      }
-                                    },
+                      child: Container(
+                        margin: const EdgeInsets.fromLTRB(
+                          2,
+                          0,
+                          _scrollbarGutter,
+                          0,
+                        ),
+                        child: SingleChildScrollView(
+                          controller: _bodyScrollController,
+                          physics: const ClampingScrollPhysics(),
+                          clipBehavior: Clip.hardEdge,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              widget.sourceSummary ??
+                                  WorkbenchSourceSummary(
+                                    task: widget.task,
+                                    thumbnail: widget.thumbnail,
                                   ),
-                            ),
-                            const SizedBox(height: 14),
-                            if (isVideoTask &&
-                                widget.selectedPurpose ==
-                                    TaskPurpose.compression) ...[
-                              WorkbenchCompressionOptionsSection(
-                                mode: _mode,
-                                presets: _recommendedPresets,
-                                selectedQualityIndex:
-                                    widget.selectedQualityIndex,
-                                activePresetTitle: _activePresetTitle,
-                                selectedTargetSizeRatio:
-                                    widget.selectedTargetSizeRatio,
-                                estimatedSizeForPreset:
-                                    _estimatedOutputSizeForPreset,
-                                targetSizeModeEnabled: !preserveHdr,
-                                isPresetEnabled: _isPresetEnabled,
-                                onModeChanged: (mode) {
-                                  if (preserveHdr &&
-                                      mode == CompressionMode.targetSize) {
-                                    return;
-                                  }
-                                  setState(() {
-                                    _mode = mode;
-                                  });
-                                  widget.onCompressionModeChanged(mode);
-                                },
-                                onPresetSelected: _applyPreset,
-                                onTargetSizeRatioChanged:
-                                    widget.onTargetSizeRatioChanged,
+                              if (widget.showOutputLocationInMain) ...[
+                                const SizedBox(height: 14),
+                                _OutputLocationSection(
+                                  config: _selectedMediaTaskConfig(),
+                                  systemOutputDirectoryLabel:
+                                      widget.systemOutputDirectoryLabel,
+                                  onChanged:
+                                      widget.onOutputLocationChanged ??
+                                      (_, _) {},
+                                  onPickDirectory: widget.onPickOutputDirectory,
+                                  errorText: _outputLocationError,
+                                ),
+                              ],
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                height: _taskConfigSegmentedControlHeight,
+                                child:
+                                    CupertinoSlidingSegmentedControl<
+                                      TaskPurpose
+                                    >(
+                                      groupValue: widget.selectedPurpose,
+                                      backgroundColor: colors.surfaceDisabled,
+                                      thumbColor: colors.surface,
+                                      padding: const EdgeInsets.all(3),
+                                      children: const {
+                                        TaskPurpose.compression: Text('压缩'),
+                                        TaskPurpose.conversion: Text('格式转换'),
+                                      },
+                                      onValueChanged: (value) {
+                                        if (value != null) {
+                                          widget.onPurposeChanged?.call(value);
+                                        }
+                                      },
+                                    ),
                               ),
                               const SizedBox(height: 14),
+                              if (isVideoTask &&
+                                  widget.selectedPurpose ==
+                                      TaskPurpose.compression) ...[
+                                WorkbenchCompressionOptionsSection(
+                                  mode: _mode,
+                                  presets: _recommendedPresets,
+                                  selectedQualityIndex:
+                                      widget.selectedQualityIndex,
+                                  activePresetTitle: _activePresetTitle,
+                                  selectedTargetSizeRatio:
+                                      widget.selectedTargetSizeRatio,
+                                  estimatedSizeForPreset:
+                                      _estimatedOutputSizeForPreset,
+                                  targetSizeModeEnabled:
+                                      !preserveHdr &&
+                                      VideoOutputCompatibility.supportsTargetSize(
+                                        widget.selectedVideoCodec,
+                                      ),
+                                  isPresetEnabled: _isPresetEnabled,
+                                  onModeChanged: (mode) {
+                                    if (preserveHdr &&
+                                        mode == CompressionMode.targetSize) {
+                                      return;
+                                    }
+                                    setState(() {
+                                      _mode = mode;
+                                    });
+                                    widget.onCompressionModeChanged(mode);
+                                  },
+                                  onPresetSelected: _applyPreset,
+                                  onTargetSizeRatioChanged:
+                                      widget.onTargetSizeRatioChanged,
+                                ),
+                                const SizedBox(height: 14),
+                              ],
+                              _buildMediaConfigPanel(),
+                              const SizedBox(height: 14),
+                              _AdvancedTaskSettingsSection(
+                                task: widget.task,
+                                selectedPurpose: widget.selectedPurpose,
+                                selectedConfig: _selectedMediaTaskConfig(),
+                                selectedVideoConfig:
+                                    widget.selectedVideoConfig ??
+                                    widget.task.config.video,
+                                onThreadLimitChanged:
+                                    widget.onThreadLimitChanged ?? (_) {},
+                                onTwoPassModeChanged:
+                                    widget.onTwoPassModeChanged ?? (_) {},
+                                onSelectedAudioStreamIndexChanged:
+                                    widget.onSelectedAudioStreamIndexChanged ??
+                                    (_) {},
+                                preserveMetadata: _preserveMetadata(),
+                                onPreserveMetadataChanged:
+                                    _onPreserveMetadataChanged,
+                                showOutputLocation:
+                                    !widget.showOutputLocationInMain,
+                                systemOutputDirectoryLabel:
+                                    widget.systemOutputDirectoryLabel,
+                                onOutputLocationChanged:
+                                    widget.onOutputLocationChanged ?? (_, _) {},
+                                onPickOutputDirectory:
+                                    widget.onPickOutputDirectory,
+                                outputLocationError: _outputLocationError,
+                              ),
                             ],
-                            _buildMediaConfigPanel(),
-                            const SizedBox(height: 14),
-                            _AdvancedTaskSettingsSection(
-                              task: widget.task,
-                              selectedPurpose: widget.selectedPurpose,
-                              selectedConfig: _selectedMediaTaskConfig(),
-                              selectedVideoConfig:
-                                  widget.selectedVideoConfig ??
-                                  widget.task.config.video,
-                              onThreadLimitChanged:
-                                  widget.onThreadLimitChanged ?? (_) {},
-                              onTwoPassModeChanged:
-                                  widget.onTwoPassModeChanged ?? (_) {},
-                              onSelectedAudioStreamIndexChanged:
-                                  widget.onSelectedAudioStreamIndexChanged ??
-                                  (_) {},
-                              preserveMetadata: _preserveMetadata(),
-                              onPreserveMetadataChanged:
-                                  _onPreserveMetadataChanged,
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -728,7 +808,7 @@ class _WorkbenchTaskConfigurationDialogState
                       compressed: compressed,
                     ),
                     onCancel: widget.onClose,
-                    onSave: widget.onSave,
+                    onSave: _handleSave,
                   ),
                 ),
               ],
@@ -737,6 +817,18 @@ class _WorkbenchTaskConfigurationDialogState
         ),
       ),
     );
+  }
+
+  void _handleSave() {
+    final config = _selectedMediaTaskConfig();
+    if (config.outputLocationMode == OutputLocationMode.custom &&
+        config.outputDirectory.trim().isEmpty) {
+      setState(() {
+        _outputLocationError = '请选择或填写输出目录';
+      });
+      return;
+    }
+    widget.onSave();
   }
 
   bool _preserveHdrActive() {
@@ -806,7 +898,7 @@ class _WorkbenchTaskConfigurationDialogState
           return WorkbenchConversionFormatPanel<OutputFormat>(
             label: '目标格式',
             value: widget.selectedOutputFormat,
-            values: OutputFormat.values,
+            values: _videoOutputFormats(),
             itemLabel: (value) => value.label,
             onChanged: widget.onOutputFormatChanged,
           );
@@ -887,13 +979,13 @@ class _WorkbenchTaskConfigurationDialogState
           onPreserveMetadataChanged: widget.onVideoPreserveMetadataChanged,
           videoCodecValues: preserveHdr
               ? const [VideoCodec.hevc]
-              : const [VideoCodec.h264, VideoCodec.hevc],
+              : VideoOutputCompatibility.codecsFor(widget.selectedOutputFormat),
           videoCodecEnabled: !preserveHdr,
           showEncoderBackend: false,
           resolutionValues: _resolutionValues(),
           padding: EdgeInsets.zero,
           itemSpacing: 8,
-          dropdownHeight: 34,
+          dropdownHeight: _taskConfigFieldHeight,
           showTrailingText: false,
           resolutionLabelBuilder: _resolutionLabel,
           labelFontSize: 12,
@@ -918,7 +1010,7 @@ class _WorkbenchTaskConfigurationDialogState
               widget.task.analysisResult?.videoHeight,
           padding: EdgeInsets.zero,
           itemSpacing: 8,
-          dropdownHeight: 34,
+          dropdownHeight: _taskConfigFieldHeight,
           showTrailingText: false,
           labelFontSize: 12,
           valueFontSize: 12,
@@ -934,12 +1026,32 @@ class _WorkbenchTaskConfigurationDialogState
           sourceOutputFormat: sourceOutputFormat,
           padding: EdgeInsets.zero,
           itemSpacing: 8,
-          dropdownHeight: 34,
+          dropdownHeight: _taskConfigFieldHeight,
           showTrailingText: false,
           labelFontSize: 12,
           valueFontSize: 12,
         );
     }
+  }
+
+  List<OutputFormat> _videoOutputFormats() {
+    if (_sourceHasAlpha()) {
+      return const [OutputFormat.mov];
+    }
+    return OutputFormat.values;
+  }
+
+  bool _sourceHasAlpha() {
+    final pixelFormat = widget.task.analysisResult?.videoPixelFormat
+        ?.trim()
+        .toLowerCase();
+    return pixelFormat != null &&
+        (pixelFormat.startsWith('yuva') ||
+            pixelFormat == 'rgba' ||
+            pixelFormat == 'bgra' ||
+            pixelFormat == 'argb' ||
+            pixelFormat == 'abgr' ||
+            pixelFormat.startsWith('gbrap'));
   }
 
   bool _isModified() {
@@ -1105,6 +1217,11 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
     required this.onSelectedAudioStreamIndexChanged,
     required this.preserveMetadata,
     required this.onPreserveMetadataChanged,
+    required this.showOutputLocation,
+    required this.systemOutputDirectoryLabel,
+    required this.onOutputLocationChanged,
+    this.onPickOutputDirectory,
+    this.outputLocationError,
   });
 
   final MediaTask task;
@@ -1116,6 +1233,12 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
   final ValueChanged<int?> onSelectedAudioStreamIndexChanged;
   final bool preserveMetadata;
   final ValueChanged<bool> onPreserveMetadataChanged;
+  final bool showOutputLocation;
+  final String systemOutputDirectoryLabel;
+  final void Function(OutputLocationMode mode, String directory)
+  onOutputLocationChanged;
+  final Future<String?> Function()? onPickOutputDirectory;
+  final String? outputLocationError;
 
   @override
   Widget build(BuildContext context) {
@@ -1147,6 +1270,16 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
             ),
           ),
           children: [
+            if (showOutputLocation) ...[
+              _OutputLocationSection(
+                config: selectedConfig,
+                systemOutputDirectoryLabel: systemOutputDirectoryLabel,
+                onChanged: onOutputLocationChanged,
+                onPickDirectory: onPickOutputDirectory,
+                errorText: outputLocationError,
+              ),
+              const SizedBox(height: 12),
+            ],
             ConfigDropdown<int>(
               label: '线程限制',
               trailingText: '',
@@ -1159,7 +1292,7 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
                 }
                 onThreadLimitChanged(value == 0 ? null : value);
               },
-              height: 34,
+              height: _taskConfigFieldHeight,
               showTrailingText: false,
               labelFontSize: 12,
               valueFontSize: 12,
@@ -1169,7 +1302,7 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
               ConfigCheckbox(
                 label: '保留元数据',
                 value: preserveMetadata,
-                height: 34,
+                height: _taskConfigFieldHeight,
                 fontSize: 12,
                 onChanged: onPreserveMetadataChanged,
               ),
@@ -1189,7 +1322,7 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
                   }
                   onTwoPassModeChanged(value);
                 },
-                height: 34,
+                height: _taskConfigFieldHeight,
                 showTrailingText: false,
                 labelFontSize: 12,
                 valueFontSize: 12,
@@ -1222,7 +1355,7 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
                       value == -1 ? null : value,
                     );
                   },
-                  height: 34,
+                  height: _taskConfigFieldHeight,
                   showTrailingText: false,
                   labelFontSize: 12,
                   valueFontSize: 12,
@@ -1254,5 +1387,152 @@ class _AdvancedTaskSettingsSection extends StatelessWidget {
       TwoPassMode.enabled => '开启',
       TwoPassMode.disabled => '关闭',
     };
+  }
+}
+
+class _OutputLocationSection extends StatefulWidget {
+  const _OutputLocationSection({
+    required this.config,
+    required this.systemOutputDirectoryLabel,
+    required this.onChanged,
+    this.onPickDirectory,
+    this.errorText,
+  });
+
+  final MediaTaskConfig config;
+  final String systemOutputDirectoryLabel;
+  final void Function(OutputLocationMode mode, String directory) onChanged;
+  final Future<String?> Function()? onPickDirectory;
+  final String? errorText;
+
+  @override
+  State<_OutputLocationSection> createState() => _OutputLocationSectionState();
+}
+
+class _OutputLocationSectionState extends State<_OutputLocationSection> {
+  late final TextEditingController _controller;
+  late final TextEditingController _effectiveController;
+  bool _dragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.config.outputDirectory);
+    _effectiveController = TextEditingController();
+    _syncEffectiveText();
+  }
+
+  @override
+  void didUpdateWidget(_OutputLocationSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_controller.text != widget.config.outputDirectory) {
+      _controller.text = widget.config.outputDirectory;
+    }
+    _syncEffectiveText();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _effectiveController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final mode = widget.config.outputLocationMode;
+    final enabled = mode == OutputLocationMode.custom;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: ConfigCheckbox(
+                label: '保存到源文件旁',
+                value: mode == OutputLocationMode.source,
+                onChanged: (value) {
+                  widget.onChanged(
+                    value
+                        ? OutputLocationMode.source
+                        : OutputLocationMode.custom,
+                    _controller.text.trim(),
+                  );
+                },
+              ),
+            ),
+            Expanded(
+              child: ConfigCheckbox(
+                label: '使用系统设置',
+                value: mode == OutputLocationMode.system,
+                onChanged: (value) {
+                  widget.onChanged(
+                    value
+                        ? OutputLocationMode.system
+                        : OutputLocationMode.custom,
+                    _controller.text.trim(),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        PathField(
+          controller: enabled ? _controller : _effectiveController,
+          enabled: enabled,
+          hintText: '选择输出目录',
+          highlighted: _dragging,
+          trailingIcon: Icons.folder_open_rounded,
+          height: _taskConfigFieldHeight,
+          onChanged: (value) {
+            widget.onChanged(OutputLocationMode.custom, value);
+          },
+          onTrailingTap: () async {
+            final selected = await widget.onPickDirectory?.call();
+            if (selected == null || selected.trim().isEmpty) {
+              return;
+            }
+            _controller.text = selected.trim();
+            widget.onChanged(OutputLocationMode.custom, selected.trim());
+          },
+          onDraggingChanged: (value) {
+            setState(() => _dragging = value);
+          },
+          onDropped: (items) async {
+            if (items.isEmpty) {
+              return;
+            }
+            final droppedPath = items.first.path;
+            final type = await FileSystemEntity.type(droppedPath);
+            if (!mounted) {
+              return;
+            }
+            setState(() => _dragging = false);
+            if (type == FileSystemEntityType.directory) {
+              _controller.text = droppedPath;
+              widget.onChanged(OutputLocationMode.custom, droppedPath);
+            }
+          },
+        ),
+        if (widget.errorText != null) ...[
+          const SizedBox(height: 5),
+          Text(
+            widget.errorText!,
+            style: TextStyle(
+              color: context.frameLeanColors.statusFailed,
+              fontSize: 10.flSp,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  void _syncEffectiveText() {
+    _effectiveController.text =
+        widget.config.outputLocationMode == OutputLocationMode.source
+        ? '每个源文件所在目录'
+        : widget.systemOutputDirectoryLabel;
   }
 }

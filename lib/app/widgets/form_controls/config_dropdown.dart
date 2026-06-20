@@ -34,6 +34,7 @@ class ConfigDropdown<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
+    final fieldHeight = height ?? 40.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -63,20 +64,42 @@ class ConfigDropdown<T> extends StatelessWidget {
           const SizedBox(height: 9),
         ],
         SizedBox(
-          height: height,
+          height: fieldHeight,
           child: DropdownButtonFormField<T>(
             key: ValueKey('$label-$value'),
             initialValue: value,
-            isDense: true,
+            isDense: false,
+            isExpanded: true,
+            alignment: AlignmentDirectional.centerStart,
             style: TextStyle(
               fontSize: valueFontSize.flSp,
               color: enabled ? colors.textPrimary : colors.textTertiary,
             ),
+            selectedItemBuilder: (context) {
+              return values.map((item) {
+                return Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Text(
+                    itemLabel(item),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: valueFontSize.flSp,
+                      color: enabled ? colors.textPrimary : colors.textTertiary,
+                      height: 1.2,
+                    ),
+                  ),
+                );
+              }).toList();
+            },
             items: values.map((item) {
               return DropdownMenuItem<T>(
                 value: item,
+                alignment: AlignmentDirectional.centerStart,
                 child: Text(
                   itemLabel(item),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: valueFontSize.flSp,
                     color: enabled ? colors.textPrimary : colors.textTertiary,
@@ -92,7 +115,8 @@ class ConfigDropdown<T> extends StatelessWidget {
               size: 20,
             ),
             decoration: InputDecoration(
-              isDense: true,
+              isDense: false,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 14),
               filled: true,
               fillColor: colors.surface,
               enabledBorder: OutlineInputBorder(
@@ -102,6 +126,10 @@ class ConfigDropdown<T> extends StatelessWidget {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(2),
                 borderSide: BorderSide(color: colors.primary),
+              ),
+              disabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(2),
+                borderSide: BorderSide(color: colors.border),
               ),
             ),
             dropdownColor: colors.surface,

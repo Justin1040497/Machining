@@ -31,6 +31,16 @@ extension FrameLeanEncoderBackendLabel on EncoderBackend {
         return 'libx264';
       case EncoderBackend.libx265:
         return 'libx265';
+      case EncoderBackend.libvpxVp9:
+        return 'libvpx-vp9';
+      case EncoderBackend.libsvtav1:
+        return 'SVT-AV1';
+      case EncoderBackend.proresKs:
+        return 'ProRes KS';
+      case EncoderBackend.nativeMpeg4:
+        return 'MPEG-4';
+      case EncoderBackend.nativeMjpeg:
+        return 'MJPEG';
       case EncoderBackend.videotoolbox:
         return 'VideoToolbox';
       case EncoderBackend.nvenc:
@@ -65,6 +75,10 @@ extension FrameLeanOutputFormatLabel on OutputFormat {
         return 'MOV';
       case OutputFormat.mkv:
         return 'MKV';
+      case OutputFormat.webm:
+        return 'WebM';
+      case OutputFormat.avi:
+        return 'AVI';
     }
   }
 }
@@ -75,6 +89,8 @@ extension FrameLeanMediaOutputFormatLabel on MediaOutputFormat {
       MediaOutputFormat.mp4 => 'MP4',
       MediaOutputFormat.mov => 'MOV',
       MediaOutputFormat.mkv => 'MKV',
+      MediaOutputFormat.webm => 'WebM',
+      MediaOutputFormat.avi => 'AVI',
       MediaOutputFormat.jpg => 'JPEG',
       MediaOutputFormat.png => 'PNG',
       MediaOutputFormat.webp => 'WebP',
@@ -229,6 +245,16 @@ extension FrameLeanVideoCodecLabel on VideoCodec {
         return 'H.264';
       case VideoCodec.hevc:
         return 'H.265 / HEVC';
+      case VideoCodec.vp9:
+        return 'VP9';
+      case VideoCodec.av1:
+        return 'AV1';
+      case VideoCodec.proRes:
+        return 'Apple ProRes';
+      case VideoCodec.mpeg4:
+        return 'MPEG-4 Part 2';
+      case VideoCodec.mjpeg:
+        return 'Motion JPEG';
     }
   }
 }

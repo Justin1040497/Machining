@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
@@ -9,13 +10,16 @@ import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
 import 'package:framelean/app/widgets/update_restart_warning_dialog.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
+import 'package:framelean/app/shortcuts/app_hotkey_adapter.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/enums/app_shortcut_action.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -26,6 +30,7 @@ import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
@@ -53,6 +58,7 @@ import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 
 const Object _configValueNotProvided = Object();
 
@@ -171,6 +177,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool windowsPrivilegeNoticeShown = false;
   bool themeModeChangeInFlight = false;
   ProviderSubscription<AsyncValue<List<MediaTask>>>? taskListSubscription;
+  ProviderSubscription<AsyncValue<AppSettings>>? appSettingsSubscription;
+  final Map<AppShortcutAction, HotKey> registeredShortcutHotKeys = {};
+  Map<AppShortcutAction, String> registeredShortcutSignatures = {};
+  HotKey? registeredEscapeHotKey;
 
   @override
   void initState() {
@@ -180,12 +190,24 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       handleTaskListChanged,
       fireImmediately: true,
     );
+    appSettingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
+      appSettingsProvider,
+      (_, next) {
+        final settings = next.asData?.value;
+        if (settings == null) return;
+        unawaited(syncWorkbenchHotKeys(settings.shortcutBindings));
+      },
+      fireImmediately: true,
+    );
+    unawaited(registerWorkbenchEscapeHotKey());
     unawaited(showWindowsAdministratorDragNoticeIfNeeded());
   }
 
   @override
   void dispose() {
     taskListSubscription?.close();
+    appSettingsSubscription?.close();
+    unawaited(unregisterWorkbenchHotKeys());
     super.dispose();
   }
 
@@ -284,8 +306,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               unawaited(showTaskFolderLog(folder));
             },
             onDeleteFolder: deleteTaskFolder,
-            onAddFiles: pickAndAddTasks,
-            onAddFolder: pickAndAddFolder,
+            onAddTasks: pickAndAddImportPaths,
             onOpenSettings: () {
               unawaited(openSettingsPage());
             },
@@ -330,6 +351,122 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         ],
       ),
     );
+  }
+
+  Future<void> registerWorkbenchEscapeHotKey() async {
+    final hotKey = fixedInAppHotKey(LogicalKeyboardKey.escape);
+    registeredEscapeHotKey = hotKey;
+    await hotKeyManager.register(
+      hotKey,
+      keyDownHandler: (_) {
+        if (!isWorkbenchRouteCurrent()) return;
+        handleEscapeShortcut();
+      },
+    );
+  }
+
+  Future<void> syncWorkbenchHotKeys(
+    Map<AppShortcutAction, AppShortcutBinding> bindings,
+  ) async {
+    if (shortcutSignaturesMatch(bindings)) {
+      return;
+    }
+
+    await unregisterWorkbenchShortcutHotKeys();
+    final nextSignatures = <AppShortcutAction, String>{};
+    for (final entry in bindings.entries) {
+      final hotKey = hotKeyForShortcutBinding(entry.value);
+      if (hotKey == null) {
+        continue;
+      }
+      registeredShortcutHotKeys[entry.key] = hotKey;
+      nextSignatures[entry.key] = entry.value.signature;
+      await hotKeyManager.register(
+        hotKey,
+        keyDownHandler: (_) => handleWorkbenchHotKey(entry.key, entry.value),
+      );
+    }
+    registeredShortcutSignatures = nextSignatures;
+  }
+
+  bool shortcutSignaturesMatch(
+    Map<AppShortcutAction, AppShortcutBinding> bindings,
+  ) {
+    if (registeredShortcutSignatures.length != bindings.length) {
+      return false;
+    }
+    for (final entry in bindings.entries) {
+      if (registeredShortcutSignatures[entry.key] != entry.value.signature) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> unregisterWorkbenchHotKeys() async {
+    await unregisterWorkbenchShortcutHotKeys();
+    final escapeHotKey = registeredEscapeHotKey;
+    if (escapeHotKey != null) {
+      await hotKeyManager.unregister(escapeHotKey);
+      registeredEscapeHotKey = null;
+    }
+  }
+
+  Future<void> unregisterWorkbenchShortcutHotKeys() async {
+    final hotKeys = registeredShortcutHotKeys.values.toList();
+    registeredShortcutHotKeys.clear();
+    registeredShortcutSignatures = {};
+    for (final hotKey in hotKeys) {
+      await hotKeyManager.unregister(hotKey);
+    }
+  }
+
+  void handleWorkbenchHotKey(
+    AppShortcutAction action,
+    AppShortcutBinding binding,
+  ) {
+    if (!isWorkbenchRouteCurrent()) return;
+    if (_isOrdinaryShortcutSuppressed(binding)) return;
+
+    switch (action) {
+      case AppShortcutAction.addFiles:
+        unawaited(pickAndAddImportPaths());
+      case AppShortcutAction.toggleWorkbenchExecution:
+        final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+        final hasRunningTask = tasks.any(
+          (task) => task.status == TaskStatus.running,
+        );
+        unawaited(handlePrimaryQueueAction(hasRunningTask));
+      case AppShortcutAction.openSettings:
+        unawaited(openSettingsPage());
+      case AppShortcutAction.openNotificationCenter:
+        openNotificationCenter();
+    }
+  }
+
+  bool isWorkbenchRouteCurrent() {
+    return ModalRoute.of(context)?.isCurrent ?? false;
+  }
+
+  bool _isOrdinaryShortcutSuppressed(AppShortcutBinding binding) {
+    if (binding.primary || binding.alt) return false;
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    return focusContext?.widget is EditableText ||
+        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+
+  void handleEscapeShortcut() {
+    if (ref.read(notificationCenterVisibilityProvider)) {
+      closeNotificationCenter();
+      return;
+    }
+    if (openedTaskFolderId != null) {
+      closeTaskFolder();
+      return;
+    }
+    if (taskSelectionMode) {
+      toggleTaskSelectionMode();
+    }
   }
 
   void handleTaskListChanged(
@@ -846,6 +983,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           selectedResolutionPreset: selectedResolutionPreset,
           selectedSmartPreset: selectedSmartPreset,
         );
+        final appSettings = await ref.read(appSettingsProvider.future);
+        if (!mounted) {
+          return;
+        }
 
         final draft = await showWorkbenchTaskConfigurationEditor(
           context: context,
@@ -856,6 +997,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             tasks: folderTasks,
           ),
           title: '任务夹设置',
+          showOutputLocationInMain: true,
+          systemOutputDirectoryLabel: _systemOutputDirectoryLabel(appSettings),
+          onPickOutputDirectory: () =>
+              ref.read(fileSelectionServiceProvider).pickOutputDirectory(),
           selectedQualityIndex: initialValues.qualityIndex,
           selectedOutputFormat: initialValues.outputFormat,
           selectedVideoCodec: initialValues.videoCodec,
@@ -924,6 +1069,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         selectedResolutionPreset: selectedResolutionPreset,
         selectedSmartPreset: selectedSmartPreset,
       );
+      final appSettings = await ref.read(appSettingsProvider.future);
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         selectedTaskId = task.id;
@@ -942,6 +1091,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         context: context,
         task: task,
         thumbnail: thumbnailForTask(task),
+        systemOutputDirectoryLabel: _systemOutputDirectoryLabel(appSettings),
+        onPickOutputDirectory: () =>
+            ref.read(fileSelectionServiceProvider).pickOutputDirectory(),
         selectedQualityIndex: initialValues.qualityIndex,
         selectedOutputFormat: initialValues.outputFormat,
         selectedVideoCodec: initialValues.videoCodec,
@@ -1031,6 +1183,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     unawaited(showTaskConfigurationDialog(task));
+  }
+
+  String _systemOutputDirectoryLabel(AppSettings settings) {
+    if (settings.saveOutputToSourceDirectory) {
+      return '每个源文件所在目录';
+    }
+    final directory = settings.defaultOutputDirectory?.trim();
+    return directory == null || directory.isEmpty ? '每个源文件所在目录' : directory;
   }
 
   void toggleTaskSelectionMode() {
@@ -1160,6 +1320,24 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
+  Future<void> pickAndAddImportPaths() async {
+    await runWorkbenchActionOnce('pick-and-add-import-paths', () async {
+      try {
+        final paths =
+            (await ref.read(fileSelectionServiceProvider).pickImportPaths())
+                .where((path) => path.trim().isNotEmpty)
+                .toList();
+        if (paths.isEmpty) {
+          return;
+        }
+
+        await importSelectedPaths(paths);
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
   Future<void> pickAndAddTasks() async {
     await runWorkbenchActionOnce('pick-and-add-tasks', () async {
       try {
@@ -1171,18 +1349,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           return;
         }
 
-        final createdTasks = await ref
-            .read(mediaTaskListProvider.notifier)
-            .createDraftsFromPaths(paths);
-        if (createdTasks.isNotEmpty) {
-          setState(() {
-            selectedTaskId = createdTasks.first.id;
-            selectedTaskIds.clear();
-            taskSelectionMode = false;
-            syncedConfigTaskId = null;
-            syncedQualityTaskKey = null;
-          });
-        }
+        await importSelectedPaths(paths);
       } on Object catch (error) {
         showWorkbenchSnackBar(error.toString());
       }
@@ -1232,19 +1399,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
-  Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
-    if (mounted) {
-      setState(() {
-        workbenchImportDragging = false;
-      });
-    }
-
-    if (details.files.isEmpty) {
-      return;
-    }
-
+  Future<void> importSelectedPaths(List<String> paths) async {
     final result = await WorkbenchImportHandler.importDroppedPaths(
-      paths: details.files.map((item) => item.path),
+      paths: paths,
       notifier: ref.read(mediaTaskListProvider.notifier),
     );
 
@@ -1266,6 +1423,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       successCount: result.createdTasks.length,
       failures: result.failures,
     );
+  }
+
+  Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
+    if (mounted) {
+      setState(() {
+        workbenchImportDragging = false;
+      });
+    }
+
+    if (details.files.isEmpty) {
+      return;
+    }
+
+    await importSelectedPaths(details.files.map((item) => item.path).toList());
   }
 
   void showDroppedImportSnackBar({

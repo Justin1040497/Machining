@@ -873,19 +873,24 @@ void main() {
       final scrollController = scrollView.controller!;
       expect(find.byType(Scrollbar), findsOneWidget);
       expect(scrollView.physics, isA<ClampingScrollPhysics>());
-      expect(scrollView.padding, const EdgeInsets.only(right: 12));
+      expect(scrollView.padding, isNull);
+      expect(
+        find.ancestor(
+          of: scrollViewFinder,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Container &&
+                widget.margin == const EdgeInsets.fromLTRB(2, 0, 12, 0),
+          ),
+        ),
+        findsOneWidget,
+      );
       expect(scrollbar.controller, same(scrollController));
       expect(scrollbar.thumbVisibility, isFalse);
       expect(scrollbar.trackVisibility, isFalse);
       expect(scrollbar.thickness, 4);
       expect(scrollbar.radius, const Radius.circular(4));
       expect(scrollbar.interactive, isTrue);
-      expect(
-        tester.getTopRight(scrollViewFinder).dx -
-            tester.getTopRight(purposeControlFinder).dx,
-        greaterThanOrEqualTo(12),
-      );
-
       final topGesture = await tester.startGesture(
         tester.getCenter(scrollViewFinder),
       );
@@ -1397,8 +1402,7 @@ void main() {
               onRelinkFolder: (_) {},
               onShowFolderLog: (_) {},
               onDeleteFolder: (_) {},
-              onAddFiles: () {},
-              onAddFolder: () {},
+              onAddTasks: () {},
               onOpenSettings: () {},
               themeMode: AppThemeMode.light,
               onToggleThemeMode: () {
@@ -1508,8 +1512,7 @@ void main() {
             onDeleteFolder: (folder) {
               deleteCalls.add(folder.id);
             },
-            onAddFiles: () {},
-            onAddFolder: () {},
+            onAddTasks: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -2064,8 +2067,7 @@ void main() {
             onRelinkFolder: (_) {},
             onShowFolderLog: (_) {},
             onDeleteFolder: (_) {},
-            onAddFiles: () {},
-            onAddFolder: () {},
+            onAddTasks: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -2485,8 +2487,7 @@ void main() {
             onRelinkFolder: (_) {},
             onShowFolderLog: (_) {},
             onDeleteFolder: (_) {},
-            onAddFiles: () {},
-            onAddFolder: () {},
+            onAddTasks: () {},
             onOpenSettings: () {},
             themeMode: AppThemeMode.light,
             onToggleThemeMode: () {},
@@ -2560,8 +2561,7 @@ Future<void> _pumpWorkbenchShellForDragTest(
           onRelinkFolder: (_) {},
           onShowFolderLog: (_) {},
           onDeleteFolder: (_) {},
-          onAddFiles: () {},
-          onAddFolder: () {},
+          onAddTasks: () {},
           onOpenSettings: () {},
           themeMode: AppThemeMode.light,
           onToggleThemeMode: () {},

@@ -17,8 +17,7 @@ void main() {
             queueActionInFlight: false,
             selectionMode: false,
             selectionEnabled: false,
-            onAddFiles: () {},
-            onAddFolder: () {},
+            onAddTasks: () {},
             onToggleSelectionMode: () {},
             onOpenSettings: () {
               opened = true;

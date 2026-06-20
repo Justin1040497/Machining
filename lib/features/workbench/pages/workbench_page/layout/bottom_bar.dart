@@ -11,8 +11,7 @@ class WorkbenchBottomBar extends StatelessWidget {
     required this.queueActionInFlight,
     required this.selectionMode,
     required this.selectionEnabled,
-    required this.onAddFiles,
-    required this.onAddFolder,
+    required this.onAddTasks,
     required this.onToggleSelectionMode,
     required this.onOpenSettings,
     required this.onClearTasks,
@@ -24,8 +23,7 @@ class WorkbenchBottomBar extends StatelessWidget {
   final bool queueActionInFlight;
   final bool selectionMode;
   final bool selectionEnabled;
-  final VoidCallback onAddFiles;
-  final VoidCallback onAddFolder;
+  final VoidCallback onAddTasks;
   final VoidCallback onToggleSelectionMode;
   final VoidCallback onOpenSettings;
   final VoidCallback onClearTasks;
@@ -47,9 +45,11 @@ class WorkbenchBottomBar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 22),
               child: Row(
                 children: [
-                  _AddTaskMenuButton(
-                    onImportFiles: onAddFiles,
-                    onImportFolder: onAddFolder,
+                  _DockIconButton(
+                    tooltip: '添加文件或文件夹',
+                    icon: Icons.add_rounded,
+                    onPressed: onAddTasks,
+                    size: 26,
                   ),
                   const SizedBox(width: 12),
                   _DockIconButton(
@@ -100,88 +100,12 @@ class WorkbenchBottomBar extends StatelessWidget {
   }
 }
 
-enum _AddTaskMenuAction { files, folder }
-
-class _AddTaskMenuButton extends StatelessWidget {
-  const _AddTaskMenuButton({
-    required this.onImportFiles,
-    required this.onImportFolder,
-  });
-
-  final VoidCallback onImportFiles;
-  final VoidCallback onImportFolder;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-
-    return PopupMenuButton<_AddTaskMenuAction>(
-      tooltip: '添加任务',
-      color: colors.surface,
-      offset: const Offset(0, -4),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      onSelected: (action) {
-        switch (action) {
-          case _AddTaskMenuAction.files:
-            onImportFiles();
-          case _AddTaskMenuAction.folder:
-            onImportFolder();
-        }
-      },
-      itemBuilder: (context) {
-        return const [
-          PopupMenuItem(
-            value: _AddTaskMenuAction.files,
-            child: _AddTaskMenuItem(
-              icon: Icons.insert_drive_file_outlined,
-              label: '导入文件',
-            ),
-          ),
-          PopupMenuItem(
-            value: _AddTaskMenuAction.folder,
-            child: _AddTaskMenuItem(
-              icon: Icons.folder_open_rounded,
-              label: '导入文件夹',
-            ),
-          ),
-        ];
-      },
-      child: _DockIconButtonContent(
-        tooltip: '添加任务',
-        icon: Icons.add_rounded,
-        forceEnabled: true,
-        size: 26,
-      ),
-    );
-  }
-}
-
-class _AddTaskMenuItem extends StatelessWidget {
-  const _AddTaskMenuItem({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 18, color: colors.iconMuted),
-        const SizedBox(width: 8),
-        Text(label, style: TextStyle(color: colors.textPrimary, fontSize: 12)),
-      ],
-    );
-  }
-}
-
 class _DockIconButton extends StatelessWidget {
   const _DockIconButton({
     required this.tooltip,
     required this.icon,
     required this.onPressed,
+    this.size = 22,
     this.color,
     this.active = false,
   });
@@ -189,6 +113,7 @@ class _DockIconButton extends StatelessWidget {
   final String tooltip;
   final IconData icon;
   final VoidCallback? onPressed;
+  final double size;
   final Color? color;
   final bool active;
 
@@ -198,6 +123,7 @@ class _DockIconButton extends StatelessWidget {
       tooltip: tooltip,
       icon: icon,
       onPressed: onPressed,
+      size: size,
       color: color,
       active: active,
     );
@@ -212,7 +138,6 @@ class _DockIconButtonContent extends StatelessWidget {
     this.size = 22,
     this.color,
     this.active = false,
-    this.forceEnabled = false,
   });
 
   final String tooltip;
@@ -221,12 +146,11 @@ class _DockIconButtonContent extends StatelessWidget {
   final double size;
   final Color? color;
   final bool active;
-  final bool forceEnabled;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final enabled = forceEnabled || onPressed != null;
+    final enabled = onPressed != null;
     final iconColor = !enabled
         ? colors.textTertiary
         : active
@@ -247,13 +171,11 @@ class _DockIconButtonContent extends StatelessWidget {
             color: active && enabled ? colors.primary : Colors.transparent,
           ),
         ),
-        child: forceEnabled && onPressed == null
-            ? Icon(icon, size: size, color: iconColor)
-            : IconButton(
-                onPressed: onPressed,
-                padding: EdgeInsets.zero,
-                icon: Icon(icon, size: size, color: iconColor),
-              ),
+        child: IconButton(
+          onPressed: onPressed,
+          padding: EdgeInsets.zero,
+          icon: Icon(icon, size: size, color: iconColor),
+        ),
       ),
     );
   }

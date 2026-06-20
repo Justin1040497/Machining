@@ -52,8 +52,7 @@ class WorkbenchShell extends StatelessWidget {
     required this.onRelinkFolder,
     required this.onShowFolderLog,
     required this.onDeleteFolder,
-    required this.onAddFiles,
-    required this.onAddFolder,
+    required this.onAddTasks,
     required this.onOpenSettings,
     required this.themeMode,
     required this.onToggleThemeMode,
@@ -101,8 +100,7 @@ class WorkbenchShell extends StatelessWidget {
   final ValueChanged<TaskFolder> onRelinkFolder;
   final ValueChanged<TaskFolder> onShowFolderLog;
   final ValueChanged<TaskFolder> onDeleteFolder;
-  final VoidCallback onAddFiles;
-  final VoidCallback onAddFolder;
+  final VoidCallback onAddTasks;
   final VoidCallback onOpenSettings;
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
@@ -238,8 +236,7 @@ class WorkbenchShell extends StatelessWidget {
                           queueActionInFlight: queueActionInFlight,
                           selectionMode: selectionMode,
                           selectionEnabled: looseTaskCount > 0,
-                          onAddFiles: onAddFiles,
-                          onAddFolder: onAddFolder,
+                          onAddTasks: onAddTasks,
                           onToggleSelectionMode: onToggleSelectionMode,
                           onOpenSettings: onOpenSettings,
                           onClearTasks: onClearTasks,
