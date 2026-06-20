@@ -59,11 +59,16 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - Windows 自托管自动更新平台改为 `windows-installer`，`windows-x64` ZIP 调整为手动下载 / 后台留存包。
 - FFmpeg 许可证、源码获取、第三方声明和内置运行时说明补充 libvpx、SVT-AV1、WebM、AVI、MPEG-4 Part 2、MJPEG、VP9、AV1 能力。
 - 设置页关于分区动作区改为“更新 / 维护”两组，除检查更新外统一使用中性描边按钮，降低按钮颜色噪音。
-- macOS / Windows GitHub Actions 发布打包改为显式注入更新服务、Sparkle 和 Ed25519 签名配置，缺少 GitHub Variables / Secrets 时直接失败，避免产出缺少更新配置的发布包。
+- macOS / Windows GitHub Actions 发布打包改为显式注入更新服务地址；Windows 继续强制 Ed25519 签名配置，macOS Sparkle 配置仅在启用 Sparkle 路线时需要，缺少必要 GitHub Variables / Secrets 时直接失败。
+- macOS 默认更新路线从 Sparkle 自动更新改为 JSON latest / ticket 检查、展示版本日志、下载 DMG 到用户下载目录并打开 DMG 所在位置；Sparkle appcast 仅作为未来可选签名路线保留。
+- 服务端和 Admin Web 放开 macOS DMG 的 Sparkle 签名必填限制；Windows 安装器 Ed25519 签名仍为发布必填。
 - `framelean-delivery` 和 `framelean-release` skills 增加打包新鲜度检查，要求交付和 release 文档生成前核对脚本、Action、YAML、签名和更新元数据链路。
 
 ### Fixed
 
+- 修复 macOS 本地打包在 `macos-x64` 被误放 arm64 FFmpeg 时只报告模糊
+  Universal runtime 错误的问题；现在会打印全部切片架构并明确引导使用
+  `Build macOS Universal` Action 生成单一 Universal 2 DMG。
 - 修复用户在任务运行中删除正在写入的目标文件时，进度仍继续跑到结尾才报错的问题；现在任务会在 partial 丢失后尽快失败并清理状态。
 - 修复旧任务空输出目录语义不清的问题：旧空路径迁移为“源文件旁”，新任务默认使用系统设置。
 - 修复任务结果、设置保存和普通交互通知无法区分持久 / 临时投递的问题。
@@ -77,10 +82,12 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 - 通过 `rtk dart format lib test tool`。
 - 通过 `rtk flutter analyze`。
+- 通过 `rtk flutter test test/app_update_provider_test.dart test/local_app_update_package_downloader_test.dart`。
 - 通过 `rtk flutter test test/app_settings_page_test.dart`。
 - 通过 `rtk flutter test --concurrency=1 test/app_notification_manager_test.dart test/app_settings_page_test.dart test/app_settings_save_coordinator_test.dart test/drift_app_settings_repository_test.dart test/output_preflight_service_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_task_queue_runner_test.dart test/media_task_use_case_helpers_test.dart test/media_task_notifier_test.dart test/widget_test.dart test/workbench_bottom_bar_test.dart`，共 205 项定向回归。
 - 通过 `flutter test`，共 358 项测试。
 - 通过 `cd server/admin-web && npm run build`。
+- 通过 `cd server && rtk mvn test -Dtest=ReleaseServiceTest,UpdateServiceTest`。
 - 通过 `cd server && mvn test`，共 14 项测试通过，2 项 Testcontainers 集成测试因本机无 Docker 跳过。
 - 通过 `rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh` 和 `rtk bash -n scripts/release/build_dmg_macos.sh`。
 - 通过 `rtk git diff --check`。

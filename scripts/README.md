@@ -18,11 +18,18 @@ scripts/
 
 These scripts prepare dependencies. They do not package the FrameLean app.
 
+`macos-arm64` and `macos-x64` are architecture-specific build inputs. They are
+not separate user downloads. The release app consumes only
+`third_party/ffmpeg/macos-universal`, and the final public macOS artifact remains
+one Universal 2 DMG. An Apple Silicon Mac cannot create the native Intel FFmpeg
+slice with the local build script; use the `Build macOS Universal` GitHub
+Actions workflow when both native slices are not already available.
+
 ## Release Scripts
 
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
-| `release/build_dmg_macos.sh` | macOS | Build and validate the release app and DMG | `build/macos/Build/Products/Release/FrameLean-v*.dmg` |
+| `release/build_dmg_macos.sh` | macOS | Build and validate the release app and DMG | `build/macos/Build/Products/Release/FrameLean-v*.dmg` and `FrameLean-v*.dmg.update.json` |
 | `release/build_windows.ps1` | Windows x64 | Canonical Windows publishing entry point. Builds the release directory once, compiles the updater helper, bundles and validates all runtimes, then creates both the portable zip and Inno Setup installer by default | `build/windows/x64/runner/FrameLean-v*-windows-x64.zip` and `build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe` |
 
 Use `build_windows.ps1` for a normal Windows release:
@@ -37,7 +44,12 @@ The default command creates both distribution artifacts from one Flutter build.
 Pass `-SkipZip` or `-SkipInstaller` only when a single artifact is explicitly
 needed. `-IsccPath` can select a non-default Inno Setup compiler.
 
-macOS 可发布构建设置 `FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE=true`、`FRAMELEAN_SPARKLE_FEED_URL` 和 `FRAMELEAN_SPARKLE_PUBLIC_ED_KEY`，并传入启用签名、公证的 dmg 参数。脚本只在 App 签名、DMG 公证装订和 `sign_update` 全部通过后生成 `*.update.json`；无签名本地 DMG 不生成可发布元数据。
+macOS 手动 DMG 更新路线必须设置 `FRAMELEAN_UPDATE_BASE_URL`，脚本会把它写入 Flutter dart-define，客户端通过 JSON latest / ticket 下载 DMG 到用户下载目录。默认脚本会为 DMG 生成不带签名的 `*.update.json`，供 Admin Web 核对 file / size / SHA-256。仅当要启用 Sparkle appcast 自动更新时，额外设置 `FRAMELEAN_USE_SPARKLE_UPDATES=true`、`FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE=true`、`FRAMELEAN_SPARKLE_FEED_URL` 和 `FRAMELEAN_SPARKLE_PUBLIC_ED_KEY`，并传入启用签名、公证的 dmg 参数；脚本只在 App 签名、DMG 公证装订和 `sign_update` 全部通过后生成带 Sparkle 签名的 `*.update.json`。
+
+正常发布给用户的安装包可以只保留 Windows 安装器
+`FrameLean-v*-windows-x64-setup.exe` 和 macOS
+`FrameLean-v*.dmg`。Windows 便携 ZIP 是额外留存成果物，`*.update.json` 是
+Admin Web 发布校验元数据，都不是新的平台安装包。
 
 GitHub Actions 打包需要配置以下 Variables / Secret，否则 workflow 会失败，避免产出缺少更新配置的安装包：
 
@@ -46,12 +58,12 @@ Variables:
 FRAMELEAN_UPDATE_BASE_URL
 FRAMELEAN_RELEASE_KEY_ID
 FRAMELEAN_RELEASE_PUBLIC_KEY
-FRAMELEAN_SPARKLE_FEED_URL
-FRAMELEAN_SPARKLE_PUBLIC_ED_KEY
 
 Secrets:
 FRAMELEAN_RELEASE_PRIVATE_KEY
 ```
+
+Sparkle 相关 Variables 只在显式启用 Sparkle 自动更新路线时需要；默认 macOS DMG 更新路线不依赖 Apple Developer ID 证书或 Sparkle 公钥。
 
 `FRAMELEAN_RELEASE_PRIVATE_KEY` 保存 Windows 更新签名用的 32-byte Ed25519 seed 或其 base64 文本；workflow 会写入 runner 临时文件并通过 `FRAMELEAN_RELEASE_PRIVATE_KEY_FILE` 传给 Windows 发布脚本。
 

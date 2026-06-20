@@ -13,6 +13,7 @@ import 'package:framelean/application/services/framelean_build_info.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
+import 'package:framelean/domain/value_objects/app_release_info.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/infrastructure/services/app_update/cryptography_release_signature_verifier.dart';
@@ -24,6 +25,7 @@ import 'package:framelean/infrastructure/services/app_update/local_updater_helpe
 import 'package:framelean/infrastructure/services/app_update/method_channel_sparkle_update_controller.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
 
 typedef UpdateRestartPreparation = Future<void> Function();
 
@@ -41,6 +43,13 @@ const _defaultUpdateChannel = String.fromEnvironment(
   'FRAMELEAN_UPDATE_CHANNEL',
   defaultValue: 'stable',
 );
+const _useSparkleUpdates = bool.fromEnvironment(
+  'FRAMELEAN_USE_SPARKLE_UPDATES',
+  defaultValue: false,
+);
+const _windowsInstallerPlatform = 'windows-installer';
+const _macosUpdatePlatform = 'macos-universal2';
+const _linuxUpdatePlatform = 'linux-x64';
 
 final enterpriseUpdateConfigStoreProvider =
     Provider<EnterpriseUpdateConfigStore>((ref) {
@@ -72,7 +81,16 @@ final sparkleUpdateControllerProvider = Provider<SparkleUpdateController>((
 });
 
 final useSparkleUpdateProvider = Provider<bool>((ref) {
-  return Platform.isMacOS;
+  return Platform.isMacOS && _useSparkleUpdates;
+});
+
+final currentUpdatePlatformProvider = Provider<String>((ref) {
+  return _currentUpdatePlatform();
+});
+
+final isManualMacosUpdateProvider = Provider<bool>((ref) {
+  return ref.watch(currentUpdatePlatformProvider) == _macosUpdatePlatform &&
+      !ref.watch(useSparkleUpdateProvider);
 });
 
 final appUpdateClientProvider = Provider<AppUpdateClient>((ref) {
@@ -180,7 +198,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           .checkForUpdate(
             currentVersion: FrameLeanBuildInfo.currentVersionLabel,
             currentBuild: FrameLeanBuildInfo.currentBuildNumber,
-            platform: _currentUpdatePlatform(),
+            platform: ref.read(currentUpdatePlatformProvider),
             channel: config.channel.isEmpty
                 ? _defaultUpdateChannel
                 : config.channel,
@@ -388,6 +406,11 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
       return;
     }
 
+    if (release.platform == _macosUpdatePlatform) {
+      await _revealDownloadedMacosDmg(current, release, installerPath);
+      return;
+    }
+
     state = AsyncData(current.copyWith(status: AppUpdateStatus.installing));
     try {
       await ref.read(updateRestartPreparationProvider)();
@@ -416,6 +439,48 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
             source: 'update',
           );
     }
+  }
+
+  Future<void> _revealDownloadedMacosDmg(
+    AppUpdateState current,
+    AppReleaseInfo release,
+    String installerPath,
+  ) async {
+    final result = await ref
+        .read(fileRevealerProvider)
+        .revealPath(installerPath);
+    if (result.succeeded) {
+      state = AsyncData(
+        current.copyWith(
+          status: AppUpdateStatus.downloaded,
+          progress: 1,
+          downloadedFilePath: installerPath,
+          errorMessage: null,
+        ),
+      );
+      await ref
+          .read(appNotificationManagerProvider)
+          .updateUpdateNotification(
+            release: release,
+            status: AppUpdateStatus.downloaded,
+            title: 'DMG 已下载到下载目录',
+            level: AppNotificationLevel.success,
+          );
+      return;
+    }
+
+    final message = result.message ?? '打开 DMG 所在位置失败';
+    state = AsyncData(
+      current.copyWith(status: AppUpdateStatus.failed, errorMessage: message),
+    );
+    await ref
+        .read(appNotificationManagerProvider)
+        .notify(
+          level: AppNotificationLevel.error,
+          title: '打开 DMG 失败',
+          message: message,
+          source: 'update',
+        );
   }
 
   Future<void> _checkForMacosSparkleUpdate(
@@ -481,13 +546,13 @@ EnterpriseUpdateConfig _withResolvedMacosAppcastUrl(
 
 String _currentUpdatePlatform() {
   if (Platform.isWindows) {
-    return 'windows-installer';
+    return _windowsInstallerPlatform;
   }
   if (Platform.isMacOS) {
-    return 'macos-universal2';
+    return _macosUpdatePlatform;
   }
   if (Platform.isLinux) {
-    return 'linux-x64';
+    return _linuxUpdatePlatform;
   }
   return 'unknown';
 }

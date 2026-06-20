@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_update/app_update_client.dart';
@@ -12,6 +13,7 @@ import 'package:framelean/application/services/app_update/app_update_package_dow
 import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
 import 'package:framelean/application/services/app_update/sparkle_update_controller.dart';
 import 'package:framelean/application/services/app_update/updater_helper_launcher.dart';
+import 'package:framelean/application/services/platform/file_revealer.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
@@ -88,6 +90,50 @@ void main() {
     );
   });
 
+  test('macOS update check uses JSON release service by default', () async {
+    final fixture = appUpdateFixture(
+      platform: 'macos-universal2',
+      release: testMacosRelease,
+      downloadedFilePath: '/Users/test/Downloads/FrameLean-v1.2.2.dmg',
+    );
+    addTearDown(fixture.dispose);
+
+    await fixture.container.read(appUpdateProvider.future);
+    await pumpEventQueue();
+
+    final state = fixture.container.read(appUpdateProvider).requireValue;
+    expect(state.status, AppUpdateStatus.available);
+    expect(state.release?.platform, 'macos-universal2');
+    expect(fixture.client.checkedPlatforms, ['macos-universal2']);
+  });
+
+  test('macOS downloaded update reveals DMG without restart helper', () async {
+    final fixture = appUpdateFixture(
+      platform: 'macos-universal2',
+      release: testMacosRelease,
+      downloadedFilePath: '/Users/test/Downloads/FrameLean-v1.2.2.dmg',
+    );
+    addTearDown(fixture.dispose);
+    await fixture.container.read(appUpdateProvider.future);
+    await pumpEventQueue();
+    await fixture.container
+        .read(appUpdateProvider.notifier)
+        .startOrResumeDownload();
+
+    await fixture.container
+        .read(appUpdateProvider.notifier)
+        .installDownloadedUpdate();
+
+    final state = fixture.container.read(appUpdateProvider).requireValue;
+    expect(state.status, AppUpdateStatus.downloaded);
+    expect(fixture.revealer.paths, [
+      '/Users/test/Downloads/FrameLean-v1.2.2.dmg',
+    ]);
+    expect(fixture.launcher.requests, isEmpty);
+    expect(fixture.restartPreparation.calls, 0);
+    expect(fixture.notifications.notifications.single.title, 'DMG 已下载到下载目录');
+  });
+
   test(
     'macOS startup configures Sparkle without an explicit update check',
     () async {
@@ -119,12 +165,17 @@ void main() {
   );
 }
 
-AppUpdateFixture appUpdateFixture() {
-  final client = FakeAppUpdateClient();
-  final downloader = FakeAppUpdatePackageDownloader();
+AppUpdateFixture appUpdateFixture({
+  String platform = 'windows-installer',
+  AppReleaseInfo release = testRelease,
+  String downloadedFilePath = '/tmp/FrameLean-v1.2.2-setup.exe',
+}) {
+  final client = FakeAppUpdateClient(release);
+  final downloader = FakeAppUpdatePackageDownloader(downloadedFilePath);
   final installIdStore = const FakeAppUpdateInstallIdStore();
   final restartPreparation = RecordingRestartPreparation();
   final launcher = FakeUpdaterHelperLauncher(restartPreparation);
+  final revealer = FakeFileRevealer();
   final notifications = RecordingNotificationRepository();
   final notificationManager = AppNotificationManager(
     repository: notifications,
@@ -136,10 +187,12 @@ AppUpdateFixture appUpdateFixture() {
       appUpdateDownloaderProvider.overrideWithValue(downloader),
       appUpdateInstallIdStoreProvider.overrideWithValue(installIdStore),
       updaterHelperLauncherProvider.overrideWithValue(launcher),
+      fileRevealerProvider.overrideWithValue(revealer),
       updateRestartPreparationProvider.overrideWithValue(
         restartPreparation.call,
       ),
       useSparkleUpdateProvider.overrideWithValue(false),
+      currentUpdatePlatformProvider.overrideWithValue(platform),
       appNotificationRepositoryProvider.overrideWithValue(notifications),
       appNotificationManagerProvider.overrideWithValue(notificationManager),
     ],
@@ -149,6 +202,7 @@ AppUpdateFixture appUpdateFixture() {
     client: client,
     downloader: downloader,
     launcher: launcher,
+    revealer: revealer,
     restartPreparation: restartPreparation,
     notifications: notifications,
     notificationManager: notificationManager,
@@ -172,12 +226,30 @@ const testRelease = AppReleaseInfo(
   ),
 );
 
+const testMacosRelease = AppReleaseInfo(
+  version: '1.2.2',
+  buildNumber: 6,
+  channel: 'stable',
+  platform: 'macos-universal2',
+  mandatory: false,
+  minSupportedBuild: 0,
+  notesUrl: '/api/v1/releases/1.2.2/notes',
+  releaseNotesMarkdown: '# FrameLean v1.2.2\n\n- 更新体验优化',
+  releaseNotesSummary: '更新体验优化',
+  package: AppUpdatePackageInfo(
+    fileName: 'FrameLean-v1.2.2-macos-universal2.dmg',
+    sizeBytes: 100,
+    sha256: 'a',
+  ),
+);
+
 class AppUpdateFixture {
   const AppUpdateFixture({
     required this.container,
     required this.client,
     required this.downloader,
     required this.launcher,
+    required this.revealer,
     required this.restartPreparation,
     required this.notifications,
     required this.notificationManager,
@@ -187,6 +259,7 @@ class AppUpdateFixture {
   final FakeAppUpdateClient client;
   final FakeAppUpdatePackageDownloader downloader;
   final FakeUpdaterHelperLauncher launcher;
+  final FakeFileRevealer revealer;
   final RecordingRestartPreparation restartPreparation;
   final RecordingNotificationRepository notifications;
   final AppNotificationManager notificationManager;
@@ -199,7 +272,11 @@ class AppUpdateFixture {
 }
 
 class FakeAppUpdateClient implements AppUpdateClient {
+  FakeAppUpdateClient(this.release);
+
+  final AppReleaseInfo release;
   int checkCount = 0;
+  final List<String> checkedPlatforms = [];
   final List<TicketRequest> ticketRequests = [];
 
   @override
@@ -210,10 +287,8 @@ class FakeAppUpdateClient implements AppUpdateClient {
     required String channel,
   }) async {
     checkCount += 1;
-    return const AppUpdateCheckResult(
-      updateAvailable: true,
-      release: testRelease,
-    );
+    checkedPlatforms.add(platform);
+    return AppUpdateCheckResult(updateAvailable: true, release: release);
   }
 
   @override
@@ -250,6 +325,9 @@ class TicketRequest {
 }
 
 class FakeAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
+  FakeAppUpdatePackageDownloader(this.filePath);
+
+  final String filePath;
   final List<String> downloadedVersions = [];
   final List<String> downloadedPlatforms = [];
 
@@ -265,9 +343,17 @@ class FakeAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
     downloadedPlatforms.add(platform);
     onProgress(25, ticket.package.sizeBytes);
     onProgress(ticket.package.sizeBytes, ticket.package.sizeBytes);
-    return const AppUpdateDownloadResult(
-      filePath: '/tmp/FrameLean-v1.2.2-setup.exe',
-    );
+    return AppUpdateDownloadResult(filePath: filePath);
+  }
+}
+
+class FakeFileRevealer implements FileRevealer {
+  final List<String> paths = [];
+
+  @override
+  Future<FileRevealResult> revealPath(String targetPath) async {
+    paths.add(targetPath);
+    return const FileRevealResult.success();
   }
 }
 

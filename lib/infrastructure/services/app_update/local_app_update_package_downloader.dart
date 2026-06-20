@@ -9,10 +9,17 @@ import 'package:framelean/domain/value_objects/app_update_package_info.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+typedef AppUpdateDownloadDirectoryProvider =
+    Future<Directory> Function({
+      required String version,
+      required String platform,
+    });
+
 class LocalAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
   LocalAppUpdatePackageDownloader({
     HttpClient? httpClient,
     Future<Directory> Function()? supportDirectoryProvider,
+    this.downloadDirectoryProvider,
     this.configCache,
     this.signatureVerifier,
   }) : httpClient = httpClient ?? HttpClient(),
@@ -21,6 +28,7 @@ class LocalAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
 
   final HttpClient httpClient;
   final Future<Directory> Function() supportDirectoryProvider;
+  final AppUpdateDownloadDirectoryProvider? downloadDirectoryProvider;
   final EnterpriseUpdateConfigCache? configCache;
   final ReleaseSignatureVerifier? signatureVerifier;
 
@@ -32,9 +40,9 @@ class LocalAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
     required AppUpdateDownloadCancellationToken cancellationToken,
     required AppUpdateDownloadProgressCallback onProgress,
   }) async {
-    final directory = await supportDirectoryProvider();
-    final updateDirectory = Directory(
-      p.join(directory.path, 'updates', version, platform),
+    final updateDirectory = await _resolveUpdateDirectory(
+      version: version,
+      platform: platform,
     );
     await updateDirectory.create(recursive: true);
 
@@ -149,6 +157,30 @@ class LocalAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
     }
     onProgress(totalBytes, totalBytes);
     return AppUpdateDownloadResult(filePath: file.path);
+  }
+
+  Future<Directory> _resolveUpdateDirectory({
+    required String version,
+    required String platform,
+  }) async {
+    final provider = downloadDirectoryProvider;
+    if (provider != null) {
+      return provider(version: version, platform: platform);
+    }
+
+    if (platform == 'macos-universal2' && Platform.isMacOS) {
+      final downloads = await getDownloadsDirectory();
+      if (downloads != null) {
+        return downloads;
+      }
+      final home = Platform.environment['HOME']?.trim();
+      if (home != null && home.isNotEmpty) {
+        return Directory(p.join(home, 'Downloads'));
+      }
+    }
+
+    final directory = await supportDirectoryProvider();
+    return Directory(p.join(directory.path, 'updates', version, platform));
   }
 
   bool _hasValidContentRange(

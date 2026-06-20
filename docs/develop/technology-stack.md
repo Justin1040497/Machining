@@ -46,7 +46,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + CocoaPods plugin integration + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；桌面插件通过 `macos/Podfile` 和 Runner workspace 集成 |
-| macOS 自动更新 | Sparkle 2 + CocoaPods + appcast | 已使用 | macOS 更新由 Sparkle 负责检查、下载、EdDSA 校验和重启安装；Flutter 通过 MethodChannel 触发检查 |
+| macOS 更新 | JSON latest / ticket + Downloads DMG；Sparkle 2 可选保留 | 已使用 | 默认检查更新后展示版本日志，下载 `macos-universal2` DMG 到用户下载目录并打开所在位置；Sparkle appcast 仅在显式启用并提供签名时使用 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
@@ -281,7 +281,10 @@ third_party/ffmpeg/macos-x64/
 third_party/ffmpeg/macos-universal/
 ```
 
-每个目录保留对应构建信息；正式发布使用的 `macos-universal` 应包含：
+其中 `macos-arm64` 和 `macos-x64` 是构建 Universal 2 时使用的原生架构
+切片，不是面向用户发布的两个 macOS 包。正式发布只读取
+`macos-universal`，并最终生成一个同时支持 Intel 与 Apple Silicon 的 DMG。
+正式发布使用的 `macos-universal` 应包含：
 
 ```text
 ffmpeg
@@ -316,6 +319,11 @@ FrameLean.app/Contents/Resources/legal/
 ```
 
 当前 macOS FFmpeg build phase 只读取 `macos-universal`。`scripts/release/build_dmg_macos.sh` 会在打包前验证 Universal FFmpeg，显式构建 Release app，扫描包内全部 Mach-O 文件均包含 x86_64 / arm64，再进入签名、公证和 DMG 生成步骤。
+
+Apple Silicon 本机只能通过项目脚本原生构建 arm64 切片，不能把该文件复制到
+`macos-x64` 冒充 Intel 运行时。缺少原生 x86_64 切片时应运行 GitHub Actions
+的 `Build macOS Universal` workflow；该 workflow 在 ARM / Intel runner
+分别构建临时切片，合并后只上传一个 Universal 2 DMG 成果物。
 
 macOS Flutter 插件原生依赖通过 CocoaPods 集成。仓库保留 `macos/Podfile`、`macos/Podfile.lock` 和 Runner workspace 的 Pods 引用，用于 `window_manager`、`tray_manager` 等桌面插件注册；`pubspec.yaml` 在 `flutter.config` 中固定 `enable-swift-package-manager: false`，CI 也显式执行 `flutter config --no-enable-swift-package-manager`。`scripts/release/build_dmg_macos.sh` 在构建前后验证 CocoaPods 工程引用、Universal FFmpeg、UTF-8 locale、release app 内运行时和法律资料布局。
 

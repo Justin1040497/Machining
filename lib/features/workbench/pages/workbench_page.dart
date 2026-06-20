@@ -885,6 +885,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                 ref.watch(appUpdateProvider).asData?.value ?? updateState!;
             return UpdateReleaseNotesDialog.current(
               updateState: liveState,
+              manualMacosUpdate: ref.watch(isManualMacosUpdateProvider),
               onStartDownload: () {
                 unawaited(
                   ref.read(appUpdateProvider.notifier).startOrResumeDownload(),
@@ -911,6 +912,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> installUpdateWithTaskCheck() async {
+    if (ref.read(isManualMacosUpdateProvider)) {
+      await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
+      return;
+    }
+
     final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
     final hasUnfinishedTasks = tasks.any(_taskNeedsUpdateRestartWarning);
     if (hasUnfinishedTasks && mounted) {

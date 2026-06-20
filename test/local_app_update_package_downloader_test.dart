@@ -90,6 +90,42 @@ void main() {
     expect(await file.exists(), isFalse);
   });
 
+  test('stores macOS DMG in the selected download directory', () async {
+    final downloadsDirectory = Directory(
+      p.join(supportDirectory.path, 'Downloads'),
+    );
+    final bytes = [1, 2, 3, 4, 5, 6];
+    final server = await _serve((request) async {
+      request.response
+        ..statusCode = HttpStatus.ok
+        ..add(bytes);
+    });
+    addTearDown(() => server.close(force: true));
+
+    final result = await _download(
+      supportDirectory,
+      server,
+      bytes,
+      platform: 'macos-universal2',
+      fileName: 'FrameLean-v1.2.3.dmg',
+      downloadDirectoryProvider: ({required version, required platform}) async {
+        return downloadsDirectory;
+      },
+    );
+
+    expect(
+      result.filePath,
+      p.join(downloadsDirectory.path, 'FrameLean-v1.2.3.dmg'),
+    );
+    expect(await File(result.filePath).readAsBytes(), bytes);
+    expect(
+      await Directory(
+        p.join(supportDirectory.path, 'updates', '1.2.3', 'macos-universal2'),
+      ).exists(),
+      isFalse,
+    );
+  });
+
   test('deletes a corrupt package so the next download can succeed', () async {
     final expected = [1, 2, 3, 4, 5, 6];
     var requests = 0;
@@ -127,26 +163,30 @@ Future<HttpServer> _serve(
   return server;
 }
 
-Future<void> _download(
+Future<AppUpdateDownloadResult> _download(
   Directory supportDirectory,
   HttpServer server,
-  List<int> expected,
-) async {
+  List<int> expected, {
+  String platform = 'windows-installer',
+  String fileName = 'FrameLean-setup.exe',
+  AppUpdateDownloadDirectoryProvider? downloadDirectoryProvider,
+}) async {
   final downloader = LocalAppUpdatePackageDownloader(
     supportDirectoryProvider: () async => supportDirectory,
+    downloadDirectoryProvider: downloadDirectoryProvider,
   );
-  await downloader.download(
+  return downloader.download(
     ticket: AppUpdateDownloadTicket(
       downloadUrl: Uri.parse('http://127.0.0.1:${server.port}/update'),
       expiresAt: DateTime.now().add(const Duration(minutes: 1)),
       package: AppUpdatePackageInfo(
-        fileName: 'FrameLean-setup.exe',
+        fileName: fileName,
         sizeBytes: expected.length,
         sha256: sha256.convert(expected).toString(),
       ),
     ),
     version: '1.2.3',
-    platform: 'windows-installer',
+    platform: platform,
     cancellationToken: AppUpdateDownloadCancellationToken(),
     onProgress: (_, _) {},
   );

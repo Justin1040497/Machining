@@ -22,7 +22,7 @@ FrameLean 更名后的主要版本事实：
 | `v1.1.0` | Windows 运行时和进程控制修复、FFmpeg 输出参数优化、项目 workflow 初始规范 |
 | `v1.1.5` | 媒体处理扩展、专有音频输入适配、工作台主题和任务排序、仓库结构治理 |
 | `v1.2.0` | macOS Universal 2 发布链、输出文件名模板和输出配置生效语义、任务完成音效、媒体默认值与保持原始语义、视频色彩与 HDR 转 SDR 边界 |
-| `v1.2.1` | 自托管更新客户端体验接入、媒体处理可靠性修复、通知中心和任务夹交互重构：更新入口 / 下载 / helper、自托管服务、图片有效压缩验收、透明视频保留、隐藏 partial 输出保护、批量导入任务夹、任务夹队列顺序、通知策略、快捷键和关闭到后台 |
+| `v1.2.1` | 自托管更新客户端体验接入、媒体处理可靠性修复、通知中心和任务夹交互重构：更新入口 / 下载 / Windows helper / macOS 手动 DMG、自托管服务、图片有效压缩验收、透明视频保留、隐藏 partial 输出保护、批量导入任务夹、任务夹队列顺序、通知策略、快捷键和关闭到后台 |
 
 版本事实说明见 `docs/releases/`。
 
@@ -81,9 +81,10 @@ features -> application -> domain
 - macOS 发布使用单一 Universal 2 DMG，同时覆盖 Intel x86_64 和 Apple Silicon arm64。
 - Windows 发布只覆盖 x64；正式发布入口生成便携 ZIP 和 Inno Setup 安装器。
 - Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不提供管理员安装切换，避免后续静默覆盖更新触发 UAC。
-- 自托管更新客户端只消费 `windows-x64` 和 `macos-universal2` 平台包；Windows 直装版安装器作为 Admin / COS 留存成果物，后续供产品官网分发，不会出现在客户端检查更新或下载 ticket 中。
+- 自托管更新客户端消费 `windows-installer` 和 `macos-universal2` 平台包；`windows-x64` ZIP 只作为便携下载 / Admin / COS 留存成果物，不会出现在客户端自动更新检查结果中。
 - 自托管更新客户端从 v1.2.1 开始接入主流程：应用启动自动静默检查一次，设置关于栏可手动检查和启动下载，通知中心按版本去重展示更新通知，工作台顶部在存在更新时持续显示入口。
 - Windows 自托管更新由主应用完成下载、断点续传和 SHA-256 校验，再交给随包提供的独立 `FrameLeanUpdaterHelper.exe` 退出应用、执行安装器、检查退出码并重启应用。
+- macOS 自托管更新默认走 JSON latest / ticket 路线：检查到 `macos-universal2` 后展示版本日志，用户下载 DMG 到系统下载目录，再打开 DMG 所在位置手动安装；默认不调用 Sparkle、不自动替换应用，也不要求 Apple Developer ID 证书。
 - 更新服务端发布前仍处于 `server v1.0.0` / 后端 `v1` 线；v1 线内数据库演进使用 `V*__v1_database_*` 迁移命名，PostgreSQL 保存 release / package / download event 长期数据，Redis 保存短期下载票据、限流计数和 latest cache。
 
 ## 文档阅读入口

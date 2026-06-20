@@ -139,6 +139,11 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
   }
 
   Future<void> installUpdateWithTaskCheck() async {
+    if (ref.read(isManualMacosUpdateProvider)) {
+      await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
+      return;
+    }
+
     final tasks = await ref.read(mediaTaskRepositoryProvider).loadAllTasks();
     final hasUnfinishedTasks = tasks.any(_taskNeedsUpdateRestartWarning);
     if (hasUnfinishedTasks && mounted) {
@@ -152,6 +157,21 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
     }
 
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
+  }
+
+  Future<void> checkUpdateAndOpenReleaseNotes() async {
+    await ref.read(appUpdateProvider.notifier).checkForUpdate();
+    if (!mounted) {
+      return;
+    }
+
+    final updateState = ref.read(appUpdateProvider).asData?.value;
+    final release = updateState?.release;
+    if (release == null || updateState?.status == AppUpdateStatus.failed) {
+      return;
+    }
+
+    context.push('/settings/release-notes?version=${release.version}');
   }
 
   Future<void> openExternalLink(String url) async {
@@ -193,11 +213,15 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                 final updateState =
                     ref.watch(appUpdateProvider).asData?.value ??
                     AppUpdateState.initial();
+                final manualMacosUpdate = ref.watch(
+                  isManualMacosUpdateProvider,
+                );
                 return AppSettingsView(
                   initialSettings: snapshot.requireData,
                   fallbackDefaultDirectory:
                       fileSelectionService.defaultExportPath,
                   updateState: updateState,
+                  manualMacosUpdate: manualMacosUpdate,
                   onPickOutputDirectory:
                       fileSelectionService.pickOutputDirectory,
                   onPickFfmpegPath: fileSelectionService.pickExecutablePath,
@@ -219,11 +243,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                   },
                   onLaunchCleanUninstaller: launchCleanUninstaller,
                   onOpenExternalLink: openExternalLink,
-                  onCheckUpdate: () {
-                    return ref
-                        .read(appUpdateProvider.notifier)
-                        .checkForUpdate();
-                  },
+                  onCheckUpdate: checkUpdateAndOpenReleaseNotes,
                   onStartOrResumeUpdateDownload: () {
                     return ref
                         .read(appUpdateProvider.notifier)
@@ -271,6 +291,7 @@ class AppSettingsView extends StatefulWidget {
     required this.initialSettings,
     required this.fallbackDefaultDirectory,
     required this.updateState,
+    this.manualMacosUpdate = false,
     required this.onPickOutputDirectory,
     required this.onPickFfmpegPath,
     required this.onPickFfprobePath,
@@ -291,6 +312,7 @@ class AppSettingsView extends StatefulWidget {
   final AppSettings initialSettings;
   final String fallbackDefaultDirectory;
   final AppUpdateState updateState;
+  final bool manualMacosUpdate;
   final AppSettingsPathPicker onPickOutputDirectory;
   final AppSettingsPathPicker onPickFfmpegPath;
   final AppSettingsPathPicker onPickFfprobePath;

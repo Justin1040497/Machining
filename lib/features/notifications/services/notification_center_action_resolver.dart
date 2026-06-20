@@ -73,6 +73,9 @@ abstract final class NotificationCenterActionResolver {
 
     final target =
         '${payload.platform}:${payload.version}:${payload.buildNumber}';
+    final downloadLabel = payload.platform == 'macos-universal2'
+        ? '下载 DMG'
+        : '下载更新';
     if (payload.status == AppUpdateStatus.completed) {
       return [
         NotificationCenterActionDescriptor(
@@ -95,8 +98,8 @@ abstract final class NotificationCenterActionResolver {
         NotificationCenterActionDescriptor(
           type: NotificationCenterActionType.startUpdateDownload,
           target: target,
-          tooltip: '下载更新',
-          label: '下载更新',
+          tooltip: downloadLabel,
+          label: downloadLabel,
         ),
     ];
   }

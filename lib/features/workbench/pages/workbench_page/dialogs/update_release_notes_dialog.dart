@@ -14,6 +14,7 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
     required this.onPauseDownload,
     required this.onInstallUpdate,
     required this.onOpenMore,
+    this.manualMacosUpdate = false,
   }) : historicalNotes = null;
 
   const UpdateReleaseNotesDialog.history({
@@ -24,7 +25,8 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
        historicalNotes = notes,
        onStartDownload = null,
        onPauseDownload = null,
-       onInstallUpdate = null;
+       onInstallUpdate = null,
+       manualMacosUpdate = false;
 
   final AppUpdateState? updateState;
   final AppReleaseNotes? historicalNotes;
@@ -32,6 +34,7 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
   final VoidCallback? onPauseDownload;
   final VoidCallback? onInstallUpdate;
   final VoidCallback onOpenMore;
+  final bool manualMacosUpdate;
 
   bool get _isHistory => historicalNotes != null;
 
@@ -103,6 +106,7 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
             else
               _CurrentUpdateActions(
                 state: state ?? AppUpdateState.initial(),
+                manualMacosUpdate: manualMacosUpdate,
                 onStartDownload: onStartDownload,
                 onPauseDownload: onPauseDownload,
                 onInstallUpdate: onInstallUpdate,
@@ -117,12 +121,14 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
 class _CurrentUpdateActions extends StatelessWidget {
   const _CurrentUpdateActions({
     required this.state,
+    required this.manualMacosUpdate,
     required this.onStartDownload,
     required this.onPauseDownload,
     required this.onInstallUpdate,
   });
 
   final AppUpdateState state;
+  final bool manualMacosUpdate;
   final VoidCallback? onStartDownload;
   final VoidCallback? onPauseDownload;
   final VoidCallback? onInstallUpdate;
@@ -134,9 +140,9 @@ class _CurrentUpdateActions extends StatelessWidget {
     final primaryLabel = switch (status) {
       AppUpdateStatus.downloading => '暂停',
       AppUpdateStatus.paused => '继续',
-      AppUpdateStatus.downloaded => '重启更新',
-      AppUpdateStatus.installing => '安装中',
-      _ => '下载',
+      AppUpdateStatus.downloaded => manualMacosUpdate ? '打开 DMG' : '重启更新',
+      AppUpdateStatus.installing => manualMacosUpdate ? '打开中' : '安装中',
+      _ => manualMacosUpdate ? '下载 DMG' : '下载',
     };
     final primaryAction = switch (status) {
       AppUpdateStatus.downloading => onPauseDownload,

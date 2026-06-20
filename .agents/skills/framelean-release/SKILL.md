@@ -53,7 +53,7 @@ Check at minimum:
 
 - macOS and Windows GitHub Actions call the canonical release scripts and pass the required Variables / Secrets / env values.
 - Local release commands, CI workflow steps, artifact names, and upload paths match the current script outputs.
-- macOS Sparkle `SUFeedURL`, `SUPublicEDKey`, signed/notarized DMG expectations, `sign_update`, and `*.update.json` metadata are represented accurately.
+- macOS manual DMG update expectations, `FRAMELEAN_UPDATE_BASE_URL` injection, DMG download/manual install behavior, and optional Sparkle `SUFeedURL` / `SUPublicEDKey` / `sign_update` metadata are represented accurately.
 - Windows update base URL, trusted release key ids, public keys, private-key-file signing, installer target, and `*.update.json` generation are represented accurately.
 - Missing release configuration fails closed instead of producing artifacts that look releasable but lack update configuration.
 

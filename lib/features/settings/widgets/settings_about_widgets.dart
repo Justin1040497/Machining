@@ -202,6 +202,7 @@ class _MaintenanceButton extends StatelessWidget {
 class _UpdateMaintenanceButton extends StatelessWidget {
   const _UpdateMaintenanceButton({
     required this.state,
+    required this.manualMacosUpdate,
     required this.onCheckUpdate,
     required this.onStartOrResumeDownload,
     required this.onPauseDownload,
@@ -209,6 +210,7 @@ class _UpdateMaintenanceButton extends StatelessWidget {
   });
 
   final AppUpdateState state;
+  final bool manualMacosUpdate;
   final Future<void> Function()? onCheckUpdate;
   final Future<void> Function()? onStartOrResumeDownload;
   final VoidCallback? onPauseDownload;
@@ -267,12 +269,17 @@ class _UpdateMaintenanceButton extends StatelessWidget {
   String _labelForState(AppUpdateState state) {
     return switch (state.status) {
       AppUpdateStatus.checking => '检查中',
-      AppUpdateStatus.available => '现在更新',
+      AppUpdateStatus.available => manualMacosUpdate ? '下载 DMG' : '现在更新',
       AppUpdateStatus.downloading => '${state.progressPercent}%',
       AppUpdateStatus.paused => '继续 ${state.progressPercent}%',
-      AppUpdateStatus.downloaded => '重启更新',
-      AppUpdateStatus.installing => '安装中',
-      AppUpdateStatus.failed => state.hasUpdate ? '重试更新' : '检查更新',
+      AppUpdateStatus.downloaded => manualMacosUpdate ? '打开 DMG' : '重启更新',
+      AppUpdateStatus.installing => manualMacosUpdate ? '打开中' : '安装中',
+      AppUpdateStatus.failed =>
+        state.hasUpdate
+            ? manualMacosUpdate
+                  ? '重试下载'
+                  : '重试更新'
+            : '检查更新',
       _ => '检查更新',
     };
   }

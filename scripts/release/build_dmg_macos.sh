@@ -18,16 +18,79 @@ PUBSPEC_PATH="${ROOT}/pubspec.yaml"
 VERIFY_SCRIPT="${ROOT}/scripts/release/verify_macos_universal.sh"
 MERGE_FFMPEG_SCRIPT="${ROOT}/scripts/build/build_ffmpeg_macos_universal.sh"
 MERGE_QMC_SCRIPT="${ROOT}/scripts/build/build_qmc_decrypt_macos_universal.sh"
-SPARKLE_SIGNATURE_JSON_PATH=""
-PUBLISH_BUILD="${FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE:-false}"
+UPDATE_METADATA_JSON_PATH=""
+REQUIRE_SPARKLE_SIGNATURE="${FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE:-false}"
+UPDATE_BASE_URL="${FRAMELEAN_UPDATE_BASE_URL:-}"
+UPDATE_CHANNEL="${FRAMELEAN_UPDATE_CHANNEL:-stable}"
 SPARKLE_FEED_URL="${FRAMELEAN_SPARKLE_FEED_URL:-}"
 SPARKLE_PUBLIC_KEY="${FRAMELEAN_SPARKLE_PUBLIC_ED_KEY:-}"
+USE_SPARKLE_UPDATES="${FRAMELEAN_USE_SPARKLE_UPDATES:-false}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "error: missing required command: $1" >&2
     exit 1
   fi
+}
+
+binary_arches() {
+  local path="$1"
+  if [[ ! -f "$path" ]]; then
+    echo "missing"
+    return
+  fi
+  lipo -archs "$path" 2>/dev/null || echo "unknown"
+}
+
+binary_has_exact_arch() {
+  local path="$1"
+  local expected_arch="$2"
+  [[ -x "$path" && "$(binary_arches "$path")" == "$expected_arch" ]]
+}
+
+binary_is_universal2() {
+  local path="$1"
+  local architectures
+  [[ -x "$path" ]] || return 1
+  architectures="$(binary_arches "$path")"
+  [[ " $architectures " == *" arm64 "* && " $architectures " == *" x86_64 "* ]]
+}
+
+ffmpeg_universal_runtime_is_ready() {
+  binary_is_universal2 "$FFMPEG_DIR/ffmpeg" &&
+    binary_is_universal2 "$FFMPEG_DIR/ffprobe"
+}
+
+ffmpeg_slices_are_ready() {
+  binary_has_exact_arch "$FFMPEG_ARM64_DIR/ffmpeg" arm64 &&
+    binary_has_exact_arch "$FFMPEG_ARM64_DIR/ffprobe" arm64 &&
+    binary_has_exact_arch "$FFMPEG_X64_DIR/ffmpeg" x86_64 &&
+    binary_has_exact_arch "$FFMPEG_X64_DIR/ffprobe" x86_64
+}
+
+print_ffmpeg_runtime_status() {
+  echo "Detected FFmpeg architectures:" >&2
+  echo "  macos-universal/ffmpeg: $(binary_arches "$FFMPEG_DIR/ffmpeg")" >&2
+  echo "  macos-universal/ffprobe: $(binary_arches "$FFMPEG_DIR/ffprobe")" >&2
+  echo "  macos-arm64/ffmpeg: $(binary_arches "$FFMPEG_ARM64_DIR/ffmpeg")" >&2
+  echo "  macos-arm64/ffprobe: $(binary_arches "$FFMPEG_ARM64_DIR/ffprobe")" >&2
+  echo "  macos-x64/ffmpeg: $(binary_arches "$FFMPEG_X64_DIR/ffmpeg")" >&2
+  echo "  macos-x64/ffprobe: $(binary_arches "$FFMPEG_X64_DIR/ffprobe")" >&2
+}
+
+fail_for_unprepared_ffmpeg_runtime() {
+  echo "error: macOS Universal 2 FFmpeg runtime is not ready" >&2
+  print_ffmpeg_runtime_status
+  echo >&2
+  echo "The macos-arm64 and macos-x64 directories are build inputs, not release packages." >&2
+  echo "Do not copy arm64 files into macos-x64; the Intel slice must report x86_64." >&2
+  echo >&2
+  echo "Recommended: run the GitHub Actions workflow 'Build macOS Universal'." >&2
+  echo "It builds both native slices and outputs one final FrameLean-v<version>.dmg." >&2
+  echo >&2
+  echo "For a local build, first provide valid native slices, then run:" >&2
+  echo "  scripts/build/build_ffmpeg_macos_universal.sh" >&2
+  exit 1
 }
 
 resolve_sparkle_sign_update() {
@@ -57,7 +120,7 @@ write_sparkle_signature_metadata() {
   local dmg_path="$1"
   local sign_update_path
   if ! sign_update_path="$(resolve_sparkle_sign_update)"; then
-    if [[ "$PUBLISH_BUILD" == "true" ]]; then
+    if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
       echo "error: Sparkle sign_update was not found" >&2
       exit 1
     fi
@@ -86,8 +149,8 @@ write_sparkle_signature_metadata() {
   local sha256
   sha256="$(shasum -a 256 "$dmg_path" | awk '{print $1}')"
 
-  SPARKLE_SIGNATURE_JSON_PATH="${dmg_path}.update.json"
-  cat >"$SPARKLE_SIGNATURE_JSON_PATH" <<EOF
+  UPDATE_METADATA_JSON_PATH="${dmg_path}.update.json"
+  cat >"$UPDATE_METADATA_JSON_PATH" <<EOF
 {
   "schemaVersion": 1,
   "platform": "macos-universal2",
@@ -95,6 +158,25 @@ write_sparkle_signature_metadata() {
   "size": $length,
   "sha256": "$sha256",
   "ed25519Signature": "$signature"
+}
+EOF
+}
+
+write_manual_update_metadata() {
+  local dmg_path="$1"
+  local length
+  length="$(stat -f '%z' "$dmg_path")"
+  local sha256
+  sha256="$(shasum -a 256 "$dmg_path" | awk '{print $1}')"
+
+  UPDATE_METADATA_JSON_PATH="${dmg_path}.update.json"
+  cat >"$UPDATE_METADATA_JSON_PATH" <<EOF
+{
+  "schemaVersion": 1,
+  "platform": "macos-universal2",
+  "fileName": "$(basename "$dmg_path")",
+  "size": $length,
+  "sha256": "$sha256"
 }
 EOF
 }
@@ -111,7 +193,7 @@ inject_sparkle_settings() {
     /usr/libexec/PlistBuddy -c "Set :SUPublicEDKey $public_key" "$plist_path"
   fi
 
-  if [[ "$PUBLISH_BUILD" == "true" ]]; then
+  if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
     local compiled_feed_url
     local compiled_public_key
     compiled_feed_url="$(/usr/libexec/PlistBuddy -c 'Print :SUFeedURL' "$plist_path")"
@@ -227,17 +309,22 @@ if [[ "$(uname -s)" != "Darwin" ]]; then
   exit 1
 fi
 
-if [[ "$PUBLISH_BUILD" == "true" ]]; then
+if [[ -z "$UPDATE_BASE_URL" || "$UPDATE_BASE_URL" != https://* ]]; then
+  echo "error: FRAMELEAN_UPDATE_BASE_URL must be an HTTPS URL" >&2
+  exit 1
+fi
+
+if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
   if [[ -z "$SPARKLE_FEED_URL" || "$SPARKLE_FEED_URL" != https://* ]]; then
-    echo "error: FRAMELEAN_SPARKLE_FEED_URL must be an HTTPS URL for a publishable build" >&2
+    echo "error: FRAMELEAN_SPARKLE_FEED_URL must be an HTTPS URL when Sparkle signature metadata is required" >&2
     exit 1
   fi
   if [[ ! "$SPARKLE_PUBLIC_KEY" =~ ^[a-zA-Z0-9+/]{43}=$ ]]; then
-    echo "error: FRAMELEAN_SPARKLE_PUBLIC_ED_KEY is required for a publishable build" >&2
+    echo "error: FRAMELEAN_SPARKLE_PUBLIC_ED_KEY is required when Sparkle signature metadata is required" >&2
     exit 1
   fi
   if [[ "$#" -eq 0 || " $* " == *" --no-sign "* || " $* " == *" --no-notarization "* ]]; then
-    echo "error: a publishable build must enable DMG signing and notarization" >&2
+    echo "error: Sparkle signature metadata requires DMG signing and notarization" >&2
     exit 1
   fi
 fi
@@ -245,7 +332,7 @@ fi
 for command_name in dart dmgbuild flutter hdiutil lipo shasum; do
   require_command "$command_name"
 done
-if [[ "$PUBLISH_BUILD" == "true" ]]; then
+if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
   for command_name in codesign spctl xcrun; do
     require_command "$command_name"
   done
@@ -256,19 +343,11 @@ if [[ ! -d "$LEGAL_DIR" ]]; then
   exit 1
 fi
 
-if [[ ! -x "$FFMPEG_DIR/ffmpeg" || ! -x "$FFMPEG_DIR/ffprobe" ]]; then
-  if [[
-    -x "$FFMPEG_ARM64_DIR/ffmpeg" &&
-    -x "$FFMPEG_ARM64_DIR/ffprobe" &&
-    -x "$FFMPEG_X64_DIR/ffmpeg" &&
-    -x "$FFMPEG_X64_DIR/ffprobe"
-  ]]; then
+if ! ffmpeg_universal_runtime_is_ready; then
+  if ffmpeg_slices_are_ready; then
     "$MERGE_FFMPEG_SCRIPT"
   else
-    echo "error: Universal FFmpeg runtime is not ready" >&2
-    echo "Build both architecture slices, then run:" >&2
-    echo "  scripts/build/build_ffmpeg_macos_universal.sh" >&2
-    exit 1
+    fail_for_unprepared_ffmpeg_runtime
   fi
 fi
 
@@ -305,7 +384,10 @@ assert_macos_cocoapods_project
 flutter build macos \
   --release \
   --obfuscate \
-  --split-debug-info=build/debug-macos-info
+  --split-debug-info=build/debug-macos-info \
+  --dart-define="FRAMELEAN_UPDATE_BASE_URL=$UPDATE_BASE_URL" \
+  --dart-define="FRAMELEAN_UPDATE_CHANNEL=$UPDATE_CHANNEL" \
+  --dart-define="FRAMELEAN_USE_SPARKLE_UPDATES=$USE_SPARKLE_UPDATES"
 assert_macos_cocoapods_project
 
 if [[ ! -d "$APP_PATH" ]]; then
@@ -360,19 +442,20 @@ elif [[ ! -f "$DMG_PATH" ]]; then
 fi
 
 hdiutil verify "$DMG_PATH"
-if [[ "$PUBLISH_BUILD" == "true" ]]; then
+if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
   codesign --verify --deep --strict --verbose=2 "$APP_PATH"
   xcrun stapler validate "$DMG_PATH"
   spctl --assess --type install --verbose=2 "$DMG_PATH"
   write_sparkle_signature_metadata "$DMG_PATH"
 else
-  echo "Local DMG built without publishable Sparkle metadata."
+  write_manual_update_metadata "$DMG_PATH"
+  echo "Manual DMG update metadata generated without Sparkle signature."
 fi
 
 echo
 echo "Universal 2 DMG package is ready:"
 echo "$DMG_PATH"
-if [[ -n "$SPARKLE_SIGNATURE_JSON_PATH" ]]; then
-  echo "Sparkle signature metadata:"
-  echo "$SPARKLE_SIGNATURE_JSON_PATH"
+if [[ -n "$UPDATE_METADATA_JSON_PATH" ]]; then
+  echo "Update metadata:"
+  echo "$UPDATE_METADATA_JSON_PATH"
 fi

@@ -4,11 +4,11 @@
 
 v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作区收口。相对 v1.2.0，本版本不再把重点放在视频 / 图片 / 音频统一任务模型、输出模板、HDR / SDR、Universal 2 和基础设置 / 通知中心；这些已经是 v1.2.0 基线能力。v1.2.1 的重点是把自托管更新、任务夹批量工作流、受控并行、隐藏 partial 输出保护、通知策略 / 快捷键 / 关闭到后台和更完整的视频容器矩阵推进到 release 候选状态。
 
-本版本仍按 macOS Universal 2 和 Windows x64 作为主要发布平台。正式发布前，需要在真实 macOS、Windows、COS、Redis 和宝塔反代环境中完成发布产物、签名、公证和更新链路验收。
+本版本仍按 macOS Universal 2 和 Windows x64 作为主要发布平台。正式发布前，需要在真实 macOS、Windows、COS、Redis 和宝塔反代环境中完成发布产物和更新链路验收；macOS 默认采用手动 DMG 下载，不把 Apple Developer ID 证书作为检查更新 / 下载的前置条件。
 
 ## 主要变更
 
-- 自托管更新进入客户端主流程：设置关于栏、工作台顶部入口、通知中心、版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS Sparkle 2 appcast 和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
+- 自托管更新进入客户端主流程：设置关于栏、工作台顶部入口、通知中心、版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS 版本日志 + DMG 下载到下载目录和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
 - 任务夹批量工作流进入工作台：批量导入按媒体类型自动建夹，任务夹支持持久化、夹级配置、左侧夹内任务面板、夹内排序、拖入 / 移出、重命名、清空、批量开始 / 暂停 / 重试和聚合日志。
 - 执行队列改为受控并行：应用设置保存最大并行任务数，队列按工作台、任务夹、单任务三种执行语义调度，并通过资源守卫按设备状态降级实际执行位。
 - 输出链路增加隐藏 partial 保护：FFmpeg 写入同目录 `.framelean-*.partial*`，成功后发布到最终路径；应用启动会清理中断输出，运行中发现 partial 被删除或移动会尽快失败并给出明确提示。
@@ -41,7 +41,7 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 - 数据库 schema version 从 v1.2.0 的 23 升级到 29，新增任务夹、任务策略标签、并行上限、文件夹扫描深度、输出体积、通知策略、快捷键和关闭行为字段。
 - 旧视频兼容列继续写入，`media_config_json` 仍是新媒体配置主字段；回滚到 v1.2.0 前应恢复数据库备份。
 - macOS 发布链当前依赖 CocoaPods `Podfile`、`Podfile.lock` 和 Runner workspace Pods 引用；DMG 脚本会校验 Universal FFmpeg、运行时和法律资料布局。
-- Windows 更新自动安装覆盖 `windows-installer` 当前用户安装器链路；macOS 更新由 Sparkle 2 承担 appcast 检查、下载、签名校验和重启安装。
+- Windows 更新自动安装覆盖 `windows-installer` 当前用户安装器链路；macOS 更新默认通过 JSON latest / ticket 检查和下载 DMG，保存到用户下载目录后由用户手动安装。
 
 ## 发布产物
 
@@ -49,17 +49,19 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 
 ```text
 FrameLean-v1.2.1.dmg
+FrameLean-v1.2.1.dmg.update.json
 FrameLean-v1.2.1-windows-x64.zip
 FrameLean-v1.2.1-windows-x64-setup.exe
 ```
 
-macOS DMG 仍应是 Universal 2 产物，包内主应用、Flutter 运行时、FFmpeg、FFprobe 和 qmc-decrypt 需要同时包含 x86_64 与 arm64 架构。macOS DMG 发布时需要通过 Sparkle `sign_update` 生成 `.sparkle.json` 元数据并登记到 Admin Web。Windows x64 继续提供便携 ZIP 和当前用户安装器；其中 `windows-installer` 安装器是自托管更新客户端的自动更新目标包，ZIP 主要用于手动下载和留存。
+macOS DMG 仍应是 Universal 2 产物，包内主应用、Flutter 运行时、FFmpeg、FFprobe 和 qmc-decrypt 需要同时包含 x86_64 与 arm64 架构。macOS DMG 可直接登记到 Admin Web；当前手动 DMG 路线只要求文件、size 和 SHA-256，Sparkle `sign_update` 元数据可选。Windows x64 继续提供便携 ZIP 和当前用户安装器；其中 `windows-installer` 安装器是自托管更新客户端的自动更新目标包，ZIP 主要用于手动下载和留存。
 
-签名、公证、COS 上传、Redis ticket、宝塔反代、Admin Web 发布确认和客户端检查更新 / 下载 / 安装链路属于正式发布环境验收，不塞入普通 PR CI。
+COS 上传、Redis ticket、宝塔反代、Admin Web 发布确认和客户端检查更新 / 下载 / 安装链路属于正式发布环境验收，不塞入普通 PR CI。Apple Developer ID 签名 / 公证会改善 macOS 安装信任体验，但不是当前手动 DMG 更新链路的阻塞项。
 
 ## 已知风险
 
-- 发布构建必须注入 Windows 更新验签公钥和 Sparkle `SUPublicEDKey`；缺少真实公钥时开发构建可以检查更新，但不能视为生产更新链路验收完成。
+- 发布构建必须注入 Windows 更新验签公钥；缺少真实公钥时开发构建可以检查更新，但不能视为 Windows 生产更新链路验收完成。
+- macOS 手动 DMG 不自动替换正在运行的应用。没有 Developer ID 签名 / 公证时，用户首次打开 DMG 或 App 仍可能遇到 Gatekeeper 提示，需要发布说明明确。
 - Sparkle CocoaPods 依赖需要在可访问 CocoaPods trunk CDN 的环境中执行 `pod install` 更新 `macos/Podfile.lock`。
 - COS 私有桶、预签名上传 / 下载、Redis ticket TTL、latest cache 清理和反代真实 IP 需要在部署环境做端到端验收。
 - Dolby Vision Profile 5 和无 HDR10 兼容层的 Dolby Vision 仍是高风险素材；当前不保留 Dolby Vision 动态元数据。

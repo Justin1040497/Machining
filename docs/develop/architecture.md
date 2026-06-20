@@ -237,8 +237,8 @@ Use Cases：
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
 - 应用设置中的“最大并行任务数”写入 `AppSettings.maxConcurrentExecutions`，表示用户期望上限；实际执行位还会由本机 CPU、内存和当前任务类型通过资源守卫降级。
-- 关于栏承载自托管更新主入口：`检查更新` / `检查中` / `现在更新` / 下载百分比 / `重启更新` 保持固定按钮尺寸；旁边的 `版本日志` 打开 `/settings/release-notes`。
-- `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志。
+- 关于栏承载自托管更新主入口：`检查更新` / `检查中` / 下载百分比 / 暂停继续 / 安装动作保持固定按钮尺寸；Windows 使用 `现在更新` / `重启更新`，macOS 手动 DMG 路线使用 `下载 DMG` / `打开 DMG`。旁边的 `版本日志` 打开 `/settings/release-notes`。
+- `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志；macOS 当前更新版本会在日志页底部显示下载 DMG / 打开 DMG 操作区。
 
 工作台当前支持：
 

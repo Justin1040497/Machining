@@ -258,6 +258,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           children: [
             _UpdateMaintenanceButton(
               state: widget.updateState,
+              manualMacosUpdate: widget.manualMacosUpdate,
               onCheckUpdate: widget.onCheckUpdate,
               onStartOrResumeDownload: widget.onStartOrResumeUpdateDownload,
               onPauseDownload: widget.onPauseUpdateDownload,

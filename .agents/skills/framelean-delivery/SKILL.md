@@ -57,7 +57,7 @@ Check at minimum:
 
 - GitHub Actions pass required Variables / Secrets / env values into the release scripts.
 - Local release commands and docs match the current script parameters, env names, artifact names, and output paths.
-- macOS Sparkle `SUFeedURL` / `SUPublicEDKey` injection is wired from local and CI packaging entry points.
+- macOS manual DMG updates inject `FRAMELEAN_UPDATE_BASE_URL` from local and CI packaging entry points; Sparkle `SUFeedURL` / `SUPublicEDKey` is checked only when the Sparkle route is explicitly enabled.
 - Windows update base URL, trusted key ids, public keys, private-key-file signing, and `*.update.json` generation are wired from local and CI packaging entry points.
 - Missing release configuration fails closed instead of producing artifacts that look releasable but lack update configuration.
 

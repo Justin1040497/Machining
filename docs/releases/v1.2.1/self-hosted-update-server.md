@@ -18,6 +18,7 @@ macOS Sparkle 接口集中在 `/api/v1/sparkle/*`：
 - `GET /appcast` 按 channel 输出 Sparkle appcast XML。
 - `GET /download/{version}` 记录下载审计并 302 到 COS 短期预签名 URL。
 - appcast 内的版本日志和下载地址只使用 `FRAMELEAN_PUBLIC_BASE_URL`，不依赖反向代理传入的 Host。
+- Sparkle appcast 是可选兼容接口；`macos-universal2` 包没有 Sparkle EdDSA 签名时不会出现在 appcast，但仍可通过 JSON latest / ticket 手动下载 DMG。
 
 ## 数据边界
 
@@ -33,9 +34,9 @@ macOS Sparkle 接口集中在 `/api/v1/sparkle/*`：
 - 版本日志非空。
 - `windows-installer/x64` 必须是客户端可见 `.exe`，`macos-universal2/universal2` 必须是客户端可见 `.dmg`；`windows-x64/x64` 只能是可选后台留存 `.zip`。客户端提交的 required / clientVisible 不改变这些规则。
 - package 文件名、COS object key、正数 size 和 64 位十六进制 SHA-256 合法，COS 对象必须存在且实际长度一致。
-- Windows 安装器签名必须是 `keyId:base64` 且解码为 64 字节；macOS Sparkle EdDSA 签名必须是解码后 64 字节的 base64。
+- Windows 安装器签名必须是 `keyId:base64` 且解码为 64 字节；macOS 手动 DMG 路线不强制签名，只强制 SHA-256 和对象长度。若提供 Sparkle EdDSA 签名，必须是解码后 64 字节的 base64。
 - 缺少任一自动更新制品时禁止发布；Windows ZIP 可缺省，但不能替代安装器。
-- Admin Web 可导入构建脚本生成的 `*.update.json`，并在上传前核对平台、文件名、长度、SHA-256 和签名。
+- Admin Web 可导入构建脚本生成的 `*.update.json`，并在上传前核对平台、文件名、长度、SHA-256；Windows 安装器继续核对签名，macOS 签名可留空。
 
 检查更新时按平台可见包过滤，避免“某个平台没有包的新版本”挡住旧平台可用版本。
 
@@ -52,7 +53,7 @@ macOS Sparkle 接口集中在 `/api/v1/sparkle/*`：
 - `ReleaseService.findPublishedLatest` 按 channel、build、platform 和 `client_visible` 过滤。
 - `UpdateService.checkForUpdate` 记录检查审计并返回正确包信息。
 - 下载 ticket 创建写入 Redis，resolve 时签发 COS 预签名 URL 并写入下载事件。
-- Sparkle appcast XML 输出 buildNumber、shortVersionString、release notes link、DMG enclosure、`sparkle:edSignature` 和 length。
+- Sparkle appcast XML 对有签名的 macOS 包输出 buildNumber、shortVersionString、release notes link、DMG enclosure、`sparkle:edSignature` 和 length；无签名 macOS 包不进入 appcast。
 - Sparkle 下载 redirect 写入下载事件并返回 COS 短期 URL。
 - IP 屏蔽能阻断检查更新和 ticket 创建。
 - 发布后清理 latest cache，避免客户端继续看到旧缓存。

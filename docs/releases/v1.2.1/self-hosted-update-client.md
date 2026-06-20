@@ -2,7 +2,7 @@
 
 ## 版本事实
 
-FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windows 更新状态由 `appUpdateProvider` 统一管理并在启动后静默检查；macOS 自动检查只由 Sparkle 调度。设置页“关于”栏提供手动检查和下载入口，通知中心按版本去重展示更新通知，工作台顶部在存在更新或下载任务时保留持续入口。
+FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windows 和 macOS 更新状态由 `appUpdateProvider` 统一管理并在启动后静默检查。设置页“关于”栏提供手动检查和下载入口，手动检查发现新版本后进入版本日志页，通知中心按版本去重展示更新通知，工作台顶部在存在更新或下载任务时保留持续入口。
 
 客户端构建时通过 `FRAMELEAN_UPDATE_BASE_URL` 注入默认服务地址，也可以由托管配置覆盖。未配置该值且没有托管配置时，默认客户端不会看到可下载更新。
 
@@ -10,26 +10,26 @@ FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windo
 
 ## 交互边界
 
-- 设置页“关于”栏主按钮根据状态显示 `检查更新`、`检查中`、`现在更新`、下载百分比、`继续 xx%`、`重启更新` 或错误后的重试入口。
+- 设置页“关于”栏主按钮根据状态显示 `检查更新`、`检查中`、下载百分比、`继续 xx%` 或错误后的重试入口；Windows 可显示 `现在更新` / `重启更新`，macOS 手动 DMG 路线显示 `下载 DMG` / `打开 DMG`。
 - 检查到新版本后，通知中心使用 `update:{platform}:{version}:{buildNumber}` 作为去重键，同一版本跨重启只保留一条更新通知。
 - 工作台顶部入口不直接开始下载，而是打开版本日志弹窗；下载中以圆形进度展示。
-- 版本日志页面读取服务端发布日志列表；当服务端列表为空但当前检查结果带有日志时，回退展示当前更新的日志。
+- 版本日志页面读取服务端发布日志列表；当服务端列表为空但当前检查结果带有日志时，回退展示当前更新的日志。macOS 当前更新版本会在日志页底部显示下载 / 打开 DMG 操作区。
 - Windows 下载使用短期 ticket 解析出的 COS 预签名 URL。只有正确的 `206` / `Content-Range` 才会追加 partial；服务端忽略 Range 时覆盖写入，长度、SHA-256 或 Ed25519 校验失败时删除损坏包。
 - Windows 自动安装由随包 `FrameLeanUpdaterHelper.exe` 执行；重启前统一暂停任务、终止 FFmpeg 并清理 partial，helper 再静默安装、核对注册表和 EXE build number、重启新版本。
-- macOS 关于栏手动检查通过原生 Sparkle 2 MethodChannel 触发；下载、签名校验、安装和重启提示由 Sparkle 管理。Sparkle 重启前 delegate 会等待 Flutter 完成同一套任务停止和 partial 清理。
+- macOS 默认不触发 Sparkle MethodChannel。检查更新使用 JSON latest，下载使用 ticket / COS 预签名 URL，DMG 保存到用户下载目录，点击 `打开 DMG` 时定位该文件，由用户手动挂载和安装。
 
 ## 平台边界
 
 - `windows-installer` 是 Windows 自动安装平台。更新载荷应为当前用户权限可静默覆盖安装的 Inno Setup 安装器；`windows-x64` ZIP 只作为便携下载 / 后台留存包。
-- `macos-universal2` 通过 Sparkle appcast 自动更新。DMG 必须完成签名、公证，并通过 Sparkle `sign_update` 生成 EdDSA 签名。
+- `macos-universal2` 通过 JSON latest / ticket 手动下载 DMG。Sparkle appcast 仅作为未来可选路线保留，默认构建不启用。
 - Linux / Web 工程目录存在，但不属于当前更新服务支持平台。
 
 ## 安全与完整性
 
 - Windows 下载包必须通过 SHA-256 和 Ed25519 校验后才进入待安装状态；受信任公钥由发布构建内置，托管配置只能选择受信任 key id。
-- macOS 更新包签名由 Sparkle `SUPublicEDKey` 和 appcast enclosure 的 `sparkle:edSignature` 校验。
+- macOS 手动 DMG 路线下载后校验服务端元数据中的 SHA-256；服务端 HTTPS、私有 COS 和短期 ticket 是下载可信边界。没有 Apple Developer ID 证书时不会自动替换应用。
 - 更新服务地址不应写成带 `/api` 后缀的路径；客户端会自动拼接 `/api/v1/...`。
-- Windows 正式发布脚本必须注入 HTTPS 更新地址、可信 key id、公钥和本地私钥 seed 文件，并生成 `*.update.json`；macOS 仅在签名、公证和 Sparkle 签名全部通过后生成同结构元数据。
+- Windows 正式发布脚本必须注入 HTTPS 更新地址、可信 key id、公钥和本地私钥 seed 文件，并生成 `*.update.json`；macOS 手动 DMG 只要求产物、size 和 SHA-256 登记到 Admin Web。
 
 ## 卸载边界
 
@@ -39,8 +39,8 @@ FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windo
 
 ## 验证范围
 
-- `appUpdateProvider` 状态机：Windows 自动检查、发现更新、ticket 下载、下载完成和 helper 启动；macOS 检查更新会分流到 Sparkle。
+- `appUpdateProvider` 状态机：Windows 自动检查、发现更新、ticket 下载、下载完成和 helper 启动；macOS 自动检查、发现更新、ticket 下载、保存到下载目录和打开 DMG 所在位置。
 - 设置页、通知中心、工作台顶部入口和版本日志弹窗的状态展示。
 - 断点续传、下载暂停、SHA-256 / Ed25519 校验失败和 helper 启动失败提示。
 - Windows 干净环境覆盖安装、退出码、安装后版本确认和重启应用。
-- macOS Sparkle appcast、托管 appcast 覆盖、签名错误拒绝和重启安装。
+- macOS 手动 DMG 下载、下载目录写入、版本日志页操作区和打开 DMG 所在位置。Sparkle appcast 只验证“有签名才输出 item”的兼容行为。
