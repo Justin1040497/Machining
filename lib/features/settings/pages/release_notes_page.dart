@@ -4,16 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
+import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/widgets/sidebar_page_scaffold.dart';
 import 'package:framelean/app/widgets/simple_markdown_view.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
 
 class ReleaseNotesPage extends ConsumerStatefulWidget {
-  const ReleaseNotesPage({super.key, this.initialVersion});
+  const ReleaseNotesPage({super.key, this.initialVersion, this.from});
 
   final String? initialVersion;
+  final String? from;
 
   @override
   ConsumerState<ReleaseNotesPage> createState() => _ReleaseNotesPageState();
@@ -56,6 +59,7 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
           error: (error, _) => _ReleaseNotesEmptyState(
             message: '版本日志读取失败\n$error',
             onBack: () => _goBack(context),
+            backLabel: _backLabel(),
           ),
         ),
       ),
@@ -73,109 +77,97 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
       return _ReleaseNotesEmptyState(
         message: '暂无版本日志',
         onBack: () => _goBack(context),
+        backLabel: _backLabel(),
       );
     }
 
     final selected = _resolveSelectedNotes(notes);
-    return Row(
-      children: [
-        SizedBox(
-          width: 168,
-          child: DecoratedBox(
-            decoration: BoxDecoration(color: colors.surface),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: 54,
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                      padding: const EdgeInsets.only(left: 16),
-                      child: IconButton(
-                        tooltip: '返回设置',
-                        onPressed: () => _goBack(context),
-                        icon: const Icon(Icons.keyboard_arrow_left_rounded),
-                        color: colors.textPrimary,
-                      ),
-                    ),
-                  ),
+    return SidebarPageScaffold(
+      sidebar: Column(
+        children: [
+          SizedBox(
+            height: AppLayoutConstants.topBarHeight,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: _ReleaseNotesBackButton(
+                  label: _backLabel(),
+                  onPressed: () => _goBack(context),
                 ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    itemCount: notes.length,
-                    itemBuilder: (context, index) {
-                      final item = notes[index];
-                      final selectedItem = item.version == selected.version;
-                      return _ReleaseNotesVersionButton(
-                        version: item.version,
-                        selected: selectedItem,
-                        onPressed: () {
-                          setState(() => selectedVersion = item.version);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
-        ),
-        VerticalDivider(width: 1, thickness: 1, color: colors.border),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(44, 42, 44, 42),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  selected.version,
-                  style: TextStyle(
-                    color: colors.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 760),
-                      child: SimpleMarkdownView(markdown: selected.markdown),
-                    ),
-                  ),
-                ),
-                if (_isCurrentManualMacosUpdate(
-                  selected,
-                  updateState,
-                  manualMacosUpdate,
-                )) ...[
-                  const SizedBox(height: 18),
-                  _ReleaseNotesManualMacosUpdateAction(
-                    state: updateState,
-                    onStartDownload: () {
-                      return ref
-                          .read(appUpdateProvider.notifier)
-                          .startOrResumeDownload();
-                    },
-                    onPauseDownload: () {
-                      ref.read(appUpdateProvider.notifier).pauseDownload();
-                    },
-                    onOpenDmg: () {
-                      return ref
-                          .read(appUpdateProvider.notifier)
-                          .installDownloadedUpdate();
-                    },
-                  ),
-                ],
-              ],
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 8,
+              ),
+              itemCount: notes.length,
+              itemBuilder: (context, index) {
+                final item = notes[index];
+                final selectedItem = item.version == selected.version;
+                return _ReleaseNotesVersionButton(
+                  version: item.version,
+                  selected: selectedItem,
+                  onPressed: () {
+                    setState(() => selectedVersion = item.version);
+                  },
+                );
+              },
             ),
           ),
+        ],
+      ),
+      content: Padding(
+        padding: const EdgeInsets.fromLTRB(44, 42, 44, 42),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              selected.version,
+              style: TextStyle(
+                color: colors.textPrimary,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Expanded(
+              child: SingleChildScrollView(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 760),
+                  child: SimpleMarkdownView(markdown: selected.markdown),
+                ),
+              ),
+            ),
+            if (_isCurrentManualMacosUpdate(
+              selected,
+              updateState,
+              manualMacosUpdate,
+            )) ...[
+              const SizedBox(height: 18),
+              _ReleaseNotesManualMacosUpdateAction(
+                state: updateState,
+                onStartDownload: () {
+                  return ref
+                      .read(appUpdateProvider.notifier)
+                      .startOrResumeDownload();
+                },
+                onPauseDownload: () {
+                  ref.read(appUpdateProvider.notifier).pauseDownload();
+                },
+                onOpenDmg: () {
+                  return ref
+                      .read(appUpdateProvider.notifier)
+                      .installDownloadedUpdate();
+                },
+              ),
+            ],
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -209,7 +201,20 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
       context.pop();
       return;
     }
+    final from = widget.from;
+    if (from == 'workbench') {
+      context.go('/');
+      return;
+    }
     context.go('/settings');
+  }
+
+  String _backLabel() {
+    return switch (widget.from) {
+      'workbench' => '返回工作台',
+      'settings' => '返回设置',
+      _ => '返回',
+    };
   }
 }
 
@@ -362,10 +367,15 @@ class _ReleaseNotesVersionButton extends StatelessWidget {
 }
 
 class _ReleaseNotesEmptyState extends StatelessWidget {
-  const _ReleaseNotesEmptyState({required this.message, required this.onBack});
+  const _ReleaseNotesEmptyState({
+    required this.message,
+    required this.onBack,
+    required this.backLabel,
+  });
 
   final String message;
   final VoidCallback onBack;
+  final String backLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -380,8 +390,54 @@ class _ReleaseNotesEmptyState extends StatelessWidget {
             style: TextStyle(color: colors.textTertiary, fontSize: 13),
           ),
           const SizedBox(height: 16),
-          TextButton(onPressed: onBack, child: const Text('返回设置')),
+          TextButton(onPressed: onBack, child: Text(backLabel)),
         ],
+      ),
+    );
+  }
+
+}
+
+class _ReleaseNotesBackButton extends StatelessWidget {
+  const _ReleaseNotesBackButton({
+    required this.label,
+    required this.onPressed,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return InkWell(
+      borderRadius: BorderRadius.circular(6),
+      onTap: onPressed,
+      child: SizedBox(
+        height: 26,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.chevron_left_rounded,
+              color: colors.textPrimary,
+              size: 24,
+            ),
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

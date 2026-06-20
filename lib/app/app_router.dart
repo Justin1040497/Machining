@@ -27,6 +27,7 @@ final appRouter = GoRouter(
       builder: (context, state) {
         return ReleaseNotesPage(
           initialVersion: state.uri.queryParameters['version'],
+          from: state.uri.queryParameters['from'],
         );
       },
     ),

@@ -17,6 +17,7 @@ import 'package:framelean/application/use_cases/app_maintenance/preview_app_cach
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
+import 'package:framelean/app/widgets/sidebar_page_scaffold.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/widgets/percentage_slider_panel.dart';
 import 'package:framelean/app/widgets/update_restart_warning_dialog.dart';
@@ -171,7 +172,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
       return;
     }
 
-    context.push('/settings/release-notes?version=${release.version}');
+    context.push('/settings/release-notes?version=${release.version}&from=settings');
   }
 
   Future<void> openExternalLink(String url) async {
@@ -254,7 +255,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                   },
                   onInstallUpdate: installUpdateWithTaskCheck,
                   onOpenReleaseNotes: () {
-                    context.push('/settings/release-notes');
+                    context.push('/settings/release-notes?from=settings');
                   },
                   onClose: () => returnToWorkbench(),
                   onSave: saveSettings,
@@ -423,32 +424,18 @@ class _AppSettingsViewState extends State<AppSettingsView> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(color: colors.surface),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          children: [
-            // 侧边栏
-            SizedBox(
-              width: _sidebarWidth,
-              child: _SettingsSidebar(
-                selectedSection: selectedSection,
-                saving: savingSection != null,
-                onClose: closePage,
-                onSectionSelected: (section) {
-                  _revertCurrentSectionIfDirty();
-                  setState(() => selectedSection = section);
-                },
-              ),
-            ),
-            VerticalDivider(width: 1, thickness: 1, color: colors.border),
-            // 内容区域
-            Expanded(child: _SettingsContent(child: buildSelectedSection())),
-          ],
-        ),
+    return SidebarPageScaffold(
+      sidebarWidth: _sidebarWidth,
+      sidebar: _SettingsSidebar(
+        selectedSection: selectedSection,
+        saving: savingSection != null,
+        onClose: closePage,
+        onSectionSelected: (section) {
+          _revertCurrentSectionIfDirty();
+          setState(() => selectedSection = section);
+        },
       ),
+      content: _SettingsContent(child: buildSelectedSection()),
     );
   }
 }

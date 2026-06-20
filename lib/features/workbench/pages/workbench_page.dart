@@ -834,7 +834,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return;
     }
     if (notes == null) {
-      context.push('/settings/release-notes');
+      context.push('/settings/release-notes?from=workbench');
       return;
     }
 
@@ -844,7 +844,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         notes: notes,
         onOpenMore: () {
           Navigator.of(context).pop();
-          context.push('/settings/release-notes?version=${notes.version}');
+          context.push(
+            '/settings/release-notes?version=${notes.version}&from=workbench',
+          );
         },
       ),
     );
@@ -901,7 +903,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                 Navigator.of(dialogContext).pop();
                 final release = liveState.release;
                 context.push(
-                  '/settings/release-notes?version=${release!.version}',
+                  '/settings/release-notes?version=${release!.version}&from=workbench',
                 );
               },
             );
