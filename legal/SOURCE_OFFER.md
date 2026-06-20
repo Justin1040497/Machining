@@ -78,7 +78,7 @@ The documented FFmpeg configure flags include:
 - Opus source: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
 - zimg source: <https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz>
 - libvpx source: <https://github.com/webmproject/libvpx/archive/refs/tags/v1.15.2.tar.gz>
-- SVT-AV1 source: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v3.1.2/SVT-AV1-v3.1.2.tar.gz>
+- SVT-AV1 source: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v2.3.0/SVT-AV1-v2.3.0.tar.gz>
 
 If a release uses different FFmpeg, x264, LAME, libwebp, Opus, zimg, libvpx, or SVT-AV1 versions,
 update this file and the runtime build metadata before distributing that

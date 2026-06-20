@@ -70,6 +70,25 @@ Sparkle 相关 Variables 只在显式启用 Sparkle 自动更新路线时需要�
 
 `FRAMELEAN_RELEASE_PRIVATE_KEY` 保存 Windows 更新签名用的 32-byte Ed25519 seed 或其 base64 文本；workflow 会写入 runner 临时文件并通过 `FRAMELEAN_RELEASE_PRIVATE_KEY_FILE` 传给 Windows 发布脚本。
 
+## Signing Tool
+
+`tool/sign_windows_update.dart` generates the Windows `*.update.json`
+metadata for a built installer. It requires:
+
+```bash
+dart run tool/sign_windows_update.dart \
+  --input <setup.exe>          \
+  --private-key <32-byte-seed> \
+  --key-id <key-id>            \
+  --public-key <base64-pubkey>
+```
+
+The tool outputs a JSON file with `sha256`, `size`, and an
+`ed25519Signature`, consumed by Admin Web to publish the release.
+
+CI runs this automatically; the manual path above is only needed when
+CI is unavailable or the signing key is held offline.
+
 ## Installer Definitions
 
 Installer definitions and uninstall helpers live under `installer/`, rather

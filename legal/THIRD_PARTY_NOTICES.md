@@ -88,7 +88,7 @@ libvpx provides VP9 encoding support for WebM and MKV outputs.
 ### SVT-AV1 / libsvtav1
 
 - Upstream: <https://gitlab.com/AOMediaCodec/SVT-AV1>
-- Source for current documented runtime: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v3.1.2/SVT-AV1-v3.1.2.tar.gz>
+- Source for current documented runtime: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v2.3.0/SVT-AV1-v2.3.0.tar.gz>
 - Used by FrameLean through the FFmpeg runtime via `--enable-libsvtav1`.
 
 SVT-AV1 provides AV1 software encoding support for MP4, MKV, and WebM outputs.

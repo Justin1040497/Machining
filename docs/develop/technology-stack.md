@@ -178,8 +178,8 @@ GitHub Actions Windows 打包：
 .github/workflows/build-windows.yml
 ```
 
-该 workflow 会在 Windows runner 上下载 `deps-ffmpeg-windows-x64-20260430`
-Release 中的 FFmpeg 运行时 zip 并校验 SHA-256，按锁定 commit 构建 Windows
+该 workflow 通过 MSYS2/MinGW-w64 从源码编译 FFmpeg 运行时
+（`scripts/build/build_ffmpeg_windows_x64.sh`），按锁定 commit 构建 Windows
 QMC 适配器，然后调用唯一发布入口 `scripts\release\build_windows.ps1`。一次
 Flutter Release 构建会生成便携 ZIP 和 Inno Setup 安装器，两个产物都会上传为
 Action artifact；Tag 构建还会把两个产物附加到 GitHub Release。
