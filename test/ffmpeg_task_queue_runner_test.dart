@@ -10,6 +10,7 @@ import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capa
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
@@ -21,6 +22,7 @@ import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/infrastructure/services/execution/local_output_preflight_service.dart';
 
 void main() {
   group('DefaultFfmpegTaskQueueRunner', () {
@@ -88,6 +90,43 @@ void main() {
         expect(harness.repository.taskById('first').status, TaskStatus.running);
       },
     );
+
+    test('fails promptly when the hidden working output is deleted', () async {
+      final outputDirectory = Directory.systemTemp.createTempSync(
+        'framelean-working-output-monitor-test-',
+      );
+      addTearDown(() async {
+        if (await outputDirectory.exists()) {
+          await outputDirectory.delete(recursive: true);
+        }
+      });
+      final task = videoTask(id: 'protected', sortOrder: 0);
+      final finalPath = '${outputDirectory.path}/protected.mp4';
+      final harness = QueueHarness(
+        tasks: [task],
+        commandBuilder: FakeCommandBuilder(
+          plan: FfmpegCommandPlan(
+            args: ['-hide_banner', '-i', task.inputPath, finalPath],
+            outputPath: finalPath,
+            logHint: 'working output monitor',
+          ),
+        ),
+        outputPreflightService: LocalOutputPreflightService(),
+      );
+
+      await harness.runner.startSingleTask(task.id);
+      final workingPath = harness.processStarter.starts.single.args.last;
+      expect(workingPath, isNot(finalPath));
+      await File(workingPath).delete();
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+
+      expect(harness.processController.terminateCalls, [task.id]);
+      expect(harness.repository.taskById(task.id).status, TaskStatus.failed);
+      expect(
+        harness.repository.taskById(task.id).errorMessage,
+        contains('临时输出文件被删除或移动'),
+      );
+    });
 
     test('start fills available execution slots in queue order', () async {
       final firstTask = videoTask(id: 'first', sortOrder: 1);
@@ -925,6 +964,8 @@ class QueueHarness {
     FakeProcessStarter? processStarter,
     FakeProcessController? processController,
     FakeProcessObserver? processObserver,
+    OutputPreflightService outputPreflightService =
+        const NoopOutputPreflightService(),
     bool continuousExecutionEnabled = true,
     int maxConcurrentExecutions = 1,
     List<TaskFolder> folders = const [],
@@ -950,6 +991,7 @@ class QueueHarness {
       commandBuilder: commandBuilder ?? FakeCommandBuilder(),
       resourceGuard: const FakeExecutionResourceGuard(),
       mediaInputPreparer: mediaInputPreparer,
+      outputPreflightService: outputPreflightService,
       processStarter: this.processStarter,
       processController: this.processController,
       processObserver: this.processObserver,

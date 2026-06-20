@@ -3,6 +3,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
@@ -73,7 +74,8 @@ MediaTaskConfig buildInitialTaskConfigFromSettings({
   );
 
   final config = mediaConfig.copyWith(
-    outputDirectory: buildOutputDirectoryFromSettings(settings),
+    outputLocationMode: OutputLocationMode.system,
+    outputDirectory: '',
     outputFileName: buildDefaultOutputFileName(
       sourceFileName: sourceFileName,
       mediaKind: mediaKind,
@@ -177,8 +179,11 @@ MediaTaskConfig buildOutputTaskConfigFromSettings({
   required DateTime now,
   int version = 1,
 }) {
+  final outputLocationMode = task.config.outputLocationMode;
   return task.config.copyWith(
-    outputDirectory: buildOutputDirectoryFromSettings(settings),
+    outputDirectory: outputLocationMode == OutputLocationMode.system
+        ? ''
+        : task.config.outputDirectory,
     outputFileName: buildDefaultOutputFileName(
       sourceFileName: path.basename(task.inputPath),
       mediaKind: task.mediaKind,
@@ -317,6 +322,11 @@ String videoCodecFileNameToken(VideoCodec codec) {
     VideoCodec.source => 'h264',
     VideoCodec.h264 => 'h264',
     VideoCodec.hevc => 'h265',
+    VideoCodec.vp9 => 'vp9',
+    VideoCodec.av1 => 'av1',
+    VideoCodec.proRes => 'prores',
+    VideoCodec.mpeg4 => 'mpeg4',
+    VideoCodec.mjpeg => 'mjpeg',
   };
 }
 
@@ -341,10 +351,20 @@ String videoEncoderBackendFileNameToken({
   return switch (backend) {
     EncoderBackend.auto => switch (videoCodec) {
       VideoCodec.hevc => 'x265',
+      VideoCodec.vp9 => 'vpx-vp9',
+      VideoCodec.av1 => 'svt-av1',
+      VideoCodec.proRes => 'prores',
+      VideoCodec.mpeg4 => 'mpeg4',
+      VideoCodec.mjpeg => 'mjpeg',
       VideoCodec.source || VideoCodec.h264 => 'x264',
     },
     EncoderBackend.libx264 => 'x264',
     EncoderBackend.libx265 => 'x265',
+    EncoderBackend.libvpxVp9 => 'vpx-vp9',
+    EncoderBackend.libsvtav1 => 'svt-av1',
+    EncoderBackend.proresKs => 'prores',
+    EncoderBackend.nativeMpeg4 => 'mpeg4',
+    EncoderBackend.nativeMjpeg => 'mjpeg',
     EncoderBackend.videotoolbox => 'videotoolbox',
     EncoderBackend.nvenc => 'nvenc',
     EncoderBackend.qsv => 'qsv',

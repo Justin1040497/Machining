@@ -94,13 +94,19 @@ function Assert-FfmpegCapabilities {
   $EncoderOutput = (& $FfmpegPath -hide_banner -encoders 2>$null) -join "`n"
   $DecoderOutput = (& $FfmpegPath -hide_banner -decoders 2>$null) -join "`n"
   $DemuxerOutput = (& $FfmpegPath -hide_banner -demuxers 2>$null) -join "`n"
+  $MuxerOutput = (& $FfmpegPath -hide_banner -muxers 2>$null) -join "`n"
   $FilterOutput = (& $FfmpegPath -hide_banner -filters 2>$null) -join "`n"
 
   Assert-FfmpegCapability -Output $EncoderOutput -RequiredNames @(
     "libx264",
     "libmp3lame",
     "libwebp",
-    "libopus"
+    "libopus",
+    "libvpx-vp9",
+    "libsvtav1",
+    "mpeg4",
+    "mjpeg",
+    "prores_ks"
   ) -CapabilityName "encoder"
   Assert-FfmpegCapability -Output $DecoderOutput -RequiredNames @(
     "opus",
@@ -109,6 +115,13 @@ function Assert-FfmpegCapabilities {
   Assert-FfmpegCapability -Output $DemuxerOutput -RequiredNames @(
     "ogg"
   ) -CapabilityName "demuxer"
+  Assert-FfmpegCapability -Output $MuxerOutput -RequiredNames @(
+    "mp4",
+    "mov",
+    "matroska",
+    "webm",
+    "avi"
+  ) -CapabilityName "muxer"
   Assert-FfmpegCapability -Output $FilterOutput -RequiredNames @(
     "zscale",
     "tonemap"

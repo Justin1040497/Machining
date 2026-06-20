@@ -7,6 +7,7 @@ import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 
 class FfmpegEncoderResolver {
@@ -42,7 +43,10 @@ class FfmpegEncoderResolver {
           ? null
           : MediaCodecNormalizer.videoCodecForSource(sourceCodec);
       if (sourceVideoCodec != null) {
-        return sourceVideoCodec;
+        final outputFormat = task.config.outputFormat;
+        return VideoOutputCompatibility.supports(outputFormat, sourceVideoCodec)
+            ? sourceVideoCodec
+            : VideoOutputCompatibility.defaultCodecFor(outputFormat);
       }
     }
 
@@ -116,6 +120,11 @@ class FfmpegEncoderResolver {
     return switch (targetCodec) {
       VideoCodec.h264 => EncoderBackend.libx264,
       VideoCodec.hevc => EncoderBackend.libx265,
+      VideoCodec.vp9 => EncoderBackend.libvpxVp9,
+      VideoCodec.av1 => EncoderBackend.libsvtav1,
+      VideoCodec.proRes => EncoderBackend.proresKs,
+      VideoCodec.mpeg4 => EncoderBackend.nativeMpeg4,
+      VideoCodec.mjpeg => EncoderBackend.nativeMjpeg,
       VideoCodec.source => throw const SourceCodecNotResolvedException(),
     };
   }

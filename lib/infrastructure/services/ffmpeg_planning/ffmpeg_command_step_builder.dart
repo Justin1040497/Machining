@@ -9,6 +9,7 @@ import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/two_pass_mode.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_video_argument_builder.dart';
 import 'package:path/path.dart' as path;
@@ -67,6 +68,7 @@ class FfmpegCommandStepBuilder {
     if (canStreamCopyConversion(task, targetCodec)) {
       return [
         '-hide_banner',
+        '-y',
         '-i',
         task.inputPath,
         ...argumentBuilder.buildOutputStreamSelectionArgs(task),
@@ -89,6 +91,7 @@ class FfmpegCommandStepBuilder {
 
     return [
       '-hide_banner',
+      '-y',
       '-i',
       task.inputPath,
       ...argumentBuilder.buildOutputStreamSelectionArgs(task),
@@ -122,10 +125,26 @@ class FfmpegCommandStepBuilder {
       return false;
     }
 
-    if (task.config.outputFormat == OutputFormat.mkv) {
+    final outputFormat = task.config.outputFormat;
+    if (!VideoOutputCompatibility.supports(outputFormat, targetCodec)) {
+      return false;
+    }
+    if (outputFormat == OutputFormat.mkv) {
       return true;
     }
     final audioCodec = task.analysisResult?.audioCodec?.trim().toLowerCase();
+    if (outputFormat == OutputFormat.webm) {
+      return audioCodec == null ||
+          audioCodec.isEmpty ||
+          audioCodec.contains('opus') ||
+          audioCodec.contains('vorbis');
+    }
+    if (outputFormat == OutputFormat.avi) {
+      return audioCodec == null ||
+          audioCodec.isEmpty ||
+          audioCodec.contains('mp3') ||
+          audioCodec.contains('pcm');
+    }
     return audioCodec == null ||
         audioCodec.isEmpty ||
         audioCodec.contains('aac') ||
@@ -145,6 +164,8 @@ class FfmpegCommandStepBuilder {
 
     return task.purpose == TaskPurpose.compression &&
         recommendation.profile == CompressionProfile.targetSize &&
+        videoEncoder != 'prores_ks' &&
+        videoEncoder != 'mjpeg' &&
         !FfmpegEncoderCapabilities.softwareOnly.isHardwareEncoder(videoEncoder);
   }
 
@@ -180,6 +201,7 @@ class FfmpegCommandStepBuilder {
     ];
     final secondPassArgs = [
       '-hide_banner',
+      '-y',
       '-i',
       task.inputPath,
       ...argumentBuilder.buildOutputStreamSelectionArgs(task),
@@ -231,11 +253,15 @@ class FfmpegCommandStepBuilder {
       ];
     }
 
+    final encoderTuningArgs = switch (videoEncoder) {
+      'libvpx-vp9' => const ['-deadline', 'good', '-cpu-used', '2'],
+      'mpeg4' => const <String>[],
+      _ => ['-preset', recommendation.preset],
+    };
     return [
       '-c:v',
       videoEncoder,
-      '-preset',
-      recommendation.preset,
+      ...encoderTuningArgs,
       '-b:v',
       FfmpegCommandFormatters.formatBitrate(targetVideoBitrate),
       '-pass',

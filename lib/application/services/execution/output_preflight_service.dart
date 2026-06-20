@@ -14,6 +14,12 @@ abstract class OutputPreflightService {
     required MediaTask task,
     required FfmpegCommandPlan plan,
   });
+
+  Future<String?> publish(FfmpegCommandStep step);
+
+  Future<void> discardStep(FfmpegCommandStep step);
+
+  Future<void> discardPlan(FfmpegCommandPlan plan);
 }
 
 class NoopOutputPreflightService implements OutputPreflightService {
@@ -26,4 +32,13 @@ class NoopOutputPreflightService implements OutputPreflightService {
   }) async {
     return OutputPreflightResult(plan: plan);
   }
+
+  @override
+  Future<String?> publish(FfmpegCommandStep step) async => step.outputPath;
+
+  @override
+  Future<void> discardStep(FfmpegCommandStep step) async {}
+
+  @override
+  Future<void> discardPlan(FfmpegCommandPlan plan) async {}
 }

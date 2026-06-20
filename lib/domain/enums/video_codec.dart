@@ -6,4 +6,9 @@ enum VideoCodec {
   source,
   h264,
   hevc,
+  vp9,
+  av1,
+  proRes,
+  mpeg4,
+  mjpeg,
 }

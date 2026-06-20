@@ -297,6 +297,11 @@ class DefaultCompressionAdvisor implements CompressionAdvisor {
 
     final codecEfficiencyFactor = switch (resolvedTargetCodecForTask(task)) {
       VideoCodec.hevc => 0.72,
+      VideoCodec.vp9 => 0.68,
+      VideoCodec.av1 => 0.55,
+      VideoCodec.proRes => 2.5,
+      VideoCodec.mpeg4 => 1.2,
+      VideoCodec.mjpeg => 4.0,
       VideoCodec.h264 || VideoCodec.source => 1.0,
     };
     return math.max(

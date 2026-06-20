@@ -21,7 +21,7 @@ clearly linked public source repository, for as long as required by GPLv3.
 ## FFmpeg Runtime
 
 Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264, LAME/libmp3lame,
-libwebp, Opus/libopus, and zimg/libzimg enabled.
+libwebp, Opus/libopus, zimg/libzimg, libvpx, and SVT-AV1 enabled.
 
 The macOS architecture build and Universal 2 merge scripts are:
 
@@ -44,6 +44,8 @@ The documented FFmpeg configure flags include:
 --enable-libwebp
 --enable-libopus
 --enable-libzimg
+--enable-libvpx
+--enable-libsvtav1
 --enable-videotoolbox
 --enable-audiotoolbox
 --disable-shared
@@ -66,8 +68,10 @@ The documented FFmpeg configure flags include:
 - libwebp source: <https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.5.0.tar.gz>
 - Opus source: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
 - zimg source: <https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz>
+- libvpx source: <https://github.com/webmproject/libvpx/archive/refs/tags/v1.15.2.tar.gz>
+- SVT-AV1 source: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v3.1.2/SVT-AV1-v3.1.2.tar.gz>
 
-If a release uses different FFmpeg, x264, LAME, libwebp, Opus, or zimg versions,
+If a release uses different FFmpeg, x264, LAME, libwebp, Opus, zimg, libvpx, or SVT-AV1 versions,
 update this file and the runtime build metadata before distributing that
 release.
 

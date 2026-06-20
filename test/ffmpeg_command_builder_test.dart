@@ -45,6 +45,7 @@ void main() {
       expect(plan.outputPath, '/videos/source_compressed.mp4');
       expect(plan.args, [
         '-hide_banner',
+        '-y',
         '-i',
         '/videos/source.mov',
         '-map',
@@ -277,6 +278,85 @@ void main() {
       expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
       expect(plan.args, containsAllInOrder(['-preset', 'slow', '-crf', '18']));
       expect(plan.args, isNot(contains('-movflags')));
+    });
+
+    test('builds modern and legacy container codec combinations', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final cases =
+          <
+            ({
+              OutputFormat format,
+              VideoCodec codec,
+              String encoder,
+              String audio,
+            })
+          >[
+            (
+              format: OutputFormat.mp4,
+              codec: VideoCodec.av1,
+              encoder: 'libsvtav1',
+              audio: 'aac',
+            ),
+            (
+              format: OutputFormat.webm,
+              codec: VideoCodec.vp9,
+              encoder: 'libvpx-vp9',
+              audio: 'libopus',
+            ),
+            (
+              format: OutputFormat.mov,
+              codec: VideoCodec.proRes,
+              encoder: 'prores_ks',
+              audio: 'aac',
+            ),
+            (
+              format: OutputFormat.avi,
+              codec: VideoCodec.mpeg4,
+              encoder: 'mpeg4',
+              audio: 'libmp3lame',
+            ),
+            (
+              format: OutputFormat.avi,
+              codec: VideoCodec.mjpeg,
+              encoder: 'mjpeg',
+              audio: 'pcm_s16le',
+            ),
+          ];
+
+      for (final testCase in cases) {
+        final plan = builder.build(
+          videoTask(
+            inputPath: '/videos/source.mov',
+            fileName: 'source.mov',
+            purpose: TaskPurpose.conversion,
+            config: VideoTaskConfig.initial().copyWith(
+              outputFormat: testCase.format,
+              videoCodec: testCase.codec,
+            ),
+          ),
+        );
+
+        expect(plan.outputPath, endsWith('.${testCase.format.name}'));
+        expect(plan.args, containsAllInOrder(['-c:v', testCase.encoder]));
+        expect(plan.args, containsAllInOrder(['-c:a', testCase.audio]));
+        expect(plan.args, contains('-y'));
+      }
+    });
+
+    test('rejects codec and container combinations outside the matrix', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        purpose: TaskPurpose.conversion,
+        config: VideoTaskConfig.initial().copyWith(
+          outputFormat: OutputFormat.avi,
+          videoCodec: VideoCodec.hevc,
+        ),
+      );
+
+      expect(
+        () => builder.build(task),
+        throwsA(isA<FfmpegCommandBuildException>()),
+      );
     });
 
     test('stream-copies compatible video conversion without quality loss', () {

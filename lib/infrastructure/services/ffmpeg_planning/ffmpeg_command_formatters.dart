@@ -25,6 +25,8 @@ abstract final class FfmpegCommandFormatters {
       OutputFormat.mp4 => '.mp4',
       OutputFormat.mov => '.mov',
       OutputFormat.mkv => '.mkv',
+      OutputFormat.webm => '.webm',
+      OutputFormat.avi => '.avi',
     };
   }
 
@@ -33,6 +35,11 @@ abstract final class FfmpegCommandFormatters {
       VideoCodec.source => '跟随源文件',
       VideoCodec.h264 => 'H.264',
       VideoCodec.hevc => 'H.265 / HEVC',
+      VideoCodec.vp9 => 'VP9',
+      VideoCodec.av1 => 'AV1',
+      VideoCodec.proRes => 'Apple ProRes',
+      VideoCodec.mpeg4 => 'MPEG-4 Part 2',
+      VideoCodec.mjpeg => 'Motion JPEG',
     };
   }
 
@@ -41,6 +48,11 @@ abstract final class FfmpegCommandFormatters {
       EncoderBackend.auto => '自动选择',
       EncoderBackend.libx264 => 'libx264',
       EncoderBackend.libx265 => 'libx265',
+      EncoderBackend.libvpxVp9 => 'libvpx-vp9',
+      EncoderBackend.libsvtav1 => 'SVT-AV1',
+      EncoderBackend.proresKs => 'ProRes KS',
+      EncoderBackend.nativeMpeg4 => 'MPEG-4',
+      EncoderBackend.nativeMjpeg => 'MJPEG',
       EncoderBackend.videotoolbox => 'VideoToolbox',
       EncoderBackend.nvenc => 'NVIDIA NVENC',
       EncoderBackend.qsv => 'Intel Quick Sync',

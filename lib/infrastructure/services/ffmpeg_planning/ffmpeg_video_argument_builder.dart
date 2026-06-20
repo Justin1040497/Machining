@@ -33,6 +33,32 @@ class FfmpegVideoArgumentBuilder {
   }
 
   List<String> buildConversionArgs(String videoEncoder) {
+    if (videoEncoder == 'prores_ks') {
+      return const ['-c:v', 'prores_ks', '-profile:v', '3', '-qscale:v', '9'];
+    }
+    if (videoEncoder == 'mpeg4') {
+      return const ['-c:v', 'mpeg4', '-q:v', '3'];
+    }
+    if (videoEncoder == 'mjpeg') {
+      return const ['-c:v', 'mjpeg', '-q:v', '2'];
+    }
+    if (videoEncoder == 'libvpx-vp9') {
+      return const [
+        '-c:v',
+        'libvpx-vp9',
+        '-deadline',
+        'good',
+        '-cpu-used',
+        '2',
+        '-crf',
+        '18',
+        '-b:v',
+        '0',
+      ];
+    }
+    if (videoEncoder == 'libsvtav1') {
+      return const ['-c:v', 'libsvtav1', '-preset', '6', '-crf', '18'];
+    }
     if (videoEncoder.endsWith('_videotoolbox')) {
       return ['-c:v', videoEncoder, '-q:v', '80'];
     }
@@ -130,6 +156,70 @@ class FfmpegVideoArgumentBuilder {
       videoEncoder,
     )) {
       return buildHardwareCompressionArgs(recommendation, videoEncoder);
+    }
+
+    if (videoEncoder == 'prores_ks') {
+      return const ['-c:v', 'prores_ks', '-profile:v', '3', '-qscale:v', '9'];
+    }
+    if (videoEncoder == 'mjpeg') {
+      return [
+        '-c:v',
+        'mjpeg',
+        '-q:v',
+        (recommendation.crf / 6).round().clamp(2, 10).toString(),
+      ];
+    }
+    if (videoEncoder == 'mpeg4') {
+      final targetBitrate = recommendation.targetVideoBitrate;
+      return targetBitrate == null
+          ? [
+              '-c:v',
+              'mpeg4',
+              '-q:v',
+              (recommendation.crf / 6).round().clamp(2, 10).toString(),
+            ]
+          : [
+              '-c:v',
+              'mpeg4',
+              '-b:v',
+              FfmpegCommandFormatters.formatBitrate(targetBitrate),
+            ];
+    }
+    if (videoEncoder == 'libvpx-vp9') {
+      final targetBitrate = recommendation.targetVideoBitrate;
+      return [
+        '-c:v',
+        'libvpx-vp9',
+        '-deadline',
+        'good',
+        '-cpu-used',
+        '2',
+        if (targetBitrate == null) ...[
+          '-crf',
+          softwareCrfFor(recommendation.crf).toString(),
+          '-b:v',
+          '0',
+        ] else ...[
+          '-b:v',
+          FfmpegCommandFormatters.formatBitrate(targetBitrate),
+        ],
+      ];
+    }
+    if (videoEncoder == 'libsvtav1') {
+      final targetBitrate = recommendation.targetVideoBitrate;
+      return [
+        '-c:v',
+        'libsvtav1',
+        '-preset',
+        '8',
+        if (targetBitrate == null) ...[
+          '-crf',
+          softwareCrfFor(recommendation.crf).toString(),
+        ] else ...[
+          '-b:v',
+          FfmpegCommandFormatters.formatBitrate(targetBitrate),
+        ],
+      ];
     }
 
     final baseArgs = <String>[
@@ -281,7 +371,12 @@ class FfmpegVideoArgumentBuilder {
       resolutionPreset,
       colorProfile,
     );
-    return '$scaleFilter,format=yuv420p,setsar=1';
+    final pixelFormat = switch (videoEncoder) {
+      'prores_ks' => 'yuv422p10le',
+      'mjpeg' => 'yuvj420p',
+      _ => 'yuv420p',
+    };
+    return '$scaleFilter,format=$pixelFormat,setsar=1';
   }
 
   List<String> buildCommonOutputArgs(
@@ -303,9 +398,14 @@ class FfmpegVideoArgumentBuilder {
       ];
     }
     final preserveHdr = shouldPreserveHdr(task);
+    final pixelFormat = switch (targetCodec) {
+      VideoCodec.proRes => 'yuv422p10le',
+      VideoCodec.mjpeg => 'yuvj420p',
+      _ => preserveHdr ? 'yuv420p10le' : 'yuv420p',
+    };
     final args = <String>[
       '-pix_fmt',
-      preserveHdr ? 'yuv420p10le' : 'yuv420p',
+      pixelFormat,
       ...buildColorMetadataArgs(task),
       ...buildVideoCompatibilityArgs(task, targetCodec, videoEncoder),
       ...buildAudioArgs(task, recommendation, encoderCapabilities),
@@ -593,9 +693,9 @@ class FfmpegVideoArgumentBuilder {
     final args = <String>[];
     if (targetCodec == VideoCodec.h264) {
       args.addAll(['-profile:v', 'high']);
-    } else if (shouldPreserveHdr(task)) {
+    } else if (targetCodec == VideoCodec.hevc && shouldPreserveHdr(task)) {
       args.addAll(['-profile:v', 'main10']);
-    } else {
+    } else if (targetCodec == VideoCodec.hevc) {
       args.addAll(['-profile:v', 'main']);
     }
 
@@ -613,6 +713,16 @@ class FfmpegVideoArgumentBuilder {
   ) {
     if (recommendation.targetAudioBitrate == 0) {
       return const ['-an'];
+    }
+
+    final outputFormat = task.config.outputFormat;
+    if (outputFormat == OutputFormat.webm) {
+      return const ['-c:a', 'libopus', '-b:a', '192k'];
+    }
+    if (outputFormat == OutputFormat.avi) {
+      return task.config.videoCodec == VideoCodec.mjpeg
+          ? const ['-c:a', 'pcm_s16le']
+          : const ['-c:a', 'libmp3lame', '-b:a', '192k'];
     }
 
     if (task.purpose == TaskPurpose.conversion) {

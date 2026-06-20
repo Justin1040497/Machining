@@ -9,6 +9,8 @@ void main() {
         MediaOutputFormat.mp4,
         MediaOutputFormat.mov,
         MediaOutputFormat.mkv,
+        MediaOutputFormat.webm,
+        MediaOutputFormat.avi,
       ]);
     });
 

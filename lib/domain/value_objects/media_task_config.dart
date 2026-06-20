@@ -5,6 +5,7 @@ import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/media_processing_preset.dart';
 import 'package:framelean/domain/enums/output_format.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
@@ -17,6 +18,7 @@ const Object _notProvided = Object();
 
 /// 通用媒体任务处理配置，按媒体类型持有分类型配置。
 class MediaTaskConfig {
+  final OutputLocationMode outputLocationMode;
   final String outputDirectory;
   final String outputFileName;
   final CompressionMode compressionMode;
@@ -29,6 +31,7 @@ class MediaTaskConfig {
   final AudioProcessingConfig? audio;
 
   const MediaTaskConfig({
+    this.outputLocationMode = OutputLocationMode.system,
     required this.outputDirectory,
     required this.outputFileName,
     required this.compressionMode,
@@ -52,6 +55,7 @@ class MediaTaskConfig {
   factory MediaTaskConfig.initialVideo() {
     final video = VideoProcessingConfig.initial();
     return MediaTaskConfig(
+      outputLocationMode: OutputLocationMode.system,
       outputDirectory: '',
       outputFileName: '',
       compressionMode: CompressionMode.preset,
@@ -65,6 +69,7 @@ class MediaTaskConfig {
 
   factory MediaTaskConfig.initialImage() {
     return MediaTaskConfig(
+      outputLocationMode: OutputLocationMode.system,
       outputDirectory: '',
       outputFileName: '',
       compressionMode: CompressionMode.preset,
@@ -78,6 +83,7 @@ class MediaTaskConfig {
 
   factory MediaTaskConfig.initialAudio() {
     return MediaTaskConfig(
+      outputLocationMode: OutputLocationMode.system,
       outputDirectory: '',
       outputFileName: '',
       compressionMode: CompressionMode.preset,
@@ -91,6 +97,7 @@ class MediaTaskConfig {
 
   factory MediaTaskConfig.initialDefaults() {
     return MediaTaskConfig(
+      outputLocationMode: OutputLocationMode.system,
       outputDirectory: '',
       outputFileName: '',
       compressionMode: CompressionMode.preset,
@@ -106,6 +113,9 @@ class MediaTaskConfig {
 
   factory MediaTaskConfig.fromVideoTaskConfig(VideoTaskConfig config) {
     return MediaTaskConfig(
+      outputLocationMode: config.outputDirectory.trim().isEmpty
+          ? OutputLocationMode.source
+          : OutputLocationMode.custom,
       outputDirectory: config.outputDirectory,
       outputFileName: config.outputFileName,
       compressionMode: config.compressionMode,
@@ -153,6 +163,7 @@ class MediaTaskConfig {
 
   MediaTaskConfig forKind(MediaKind mediaKind) {
     return MediaTaskConfig(
+      outputLocationMode: outputLocationMode,
       outputDirectory: outputDirectory,
       outputFileName: outputFileName,
       compressionMode: compressionMode,
@@ -173,6 +184,7 @@ class MediaTaskConfig {
   }
 
   MediaTaskConfig copyWith({
+    OutputLocationMode? outputLocationMode,
     String? outputDirectory,
     String? outputFileName,
     CompressionMode? compressionMode,
@@ -215,6 +227,7 @@ class MediaTaskConfig {
         );
 
     return MediaTaskConfig(
+      outputLocationMode: outputLocationMode ?? this.outputLocationMode,
       outputDirectory: outputDirectory ?? this.outputDirectory,
       outputFileName: outputFileName ?? this.outputFileName,
       compressionMode: compressionMode ?? this.compressionMode,

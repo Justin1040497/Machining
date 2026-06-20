@@ -11,10 +11,12 @@ import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
@@ -134,7 +136,7 @@ void main() {
       () async {
         final renamedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
           fileName: '1.mp4',
-          config: VideoTaskConfig.initial().copyWith(
+          config: systemOutputVideoConfig(
             outputDirectory: '/old',
             outputFileName: 'old',
             videoCodec: VideoCodec.h264,
@@ -142,7 +144,7 @@ void main() {
         );
         final failedTask = readyVideoTask(id: 'failed', sortOrder: 1).copyWith(
           status: TaskStatus.failed,
-          config: VideoTaskConfig.initial().copyWith(
+          config: systemOutputVideoConfig(
             outputDirectory: '/old',
             outputFileName: 'old',
             videoCodec: VideoCodec.h264,
@@ -151,7 +153,7 @@ void main() {
         final cancelledTask = readyVideoTask(id: 'cancelled', sortOrder: 2)
             .copyWith(
               status: TaskStatus.cancelled,
-              config: VideoTaskConfig.initial().copyWith(
+              config: systemOutputVideoConfig(
                 outputDirectory: '/old',
                 outputFileName: 'old',
                 videoCodec: VideoCodec.h264,
@@ -160,7 +162,7 @@ void main() {
         final runningTask = readyVideoTask(id: 'running', sortOrder: 3)
             .copyWith(
               status: TaskStatus.running,
-              config: VideoTaskConfig.initial().copyWith(
+              config: systemOutputVideoConfig(
                 outputDirectory: '/old',
                 outputFileName: 'old',
                 videoCodec: VideoCodec.h264,
@@ -184,17 +186,21 @@ void main() {
         );
 
         final updatedTask = repository.taskById(renamedTask.id);
-        expect(updatedTask.config.outputDirectory, '/exports');
+        expect(
+          updatedTask.config.outputLocationMode,
+          OutputLocationMode.system,
+        );
+        expect(updatedTask.config.outputDirectory, isEmpty);
         expect(updatedTask.config.outputFileName, 'source-h264');
         expect(updatedTask.config.videoCodec, VideoCodec.h264);
         expect(updatedTask.config.outputFileName, isNot(contains('1-')));
         expect(
           repository.taskById(failedTask.id).config.outputDirectory,
-          '/exports',
+          isEmpty,
         );
         expect(
           repository.taskById(cancelledTask.id).config.outputDirectory,
-          '/exports',
+          isEmpty,
         );
         expect(
           repository.taskById(runningTask.id).config.outputDirectory,
@@ -207,7 +213,7 @@ void main() {
       final failedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
         fileName: '1.mp4',
         status: TaskStatus.failed,
-        config: VideoTaskConfig.initial().copyWith(
+        config: systemOutputVideoConfig(
           outputDirectory: '/old',
           outputFileName: 'old',
           videoCodec: VideoCodec.h264,
@@ -239,7 +245,8 @@ void main() {
 
       final updatedTask = repository.taskById(failedTask.id);
       expect(updatedTask.status, TaskStatus.analyzing);
-      expect(updatedTask.config.outputDirectory, '/retry-output');
+      expect(updatedTask.config.outputLocationMode, OutputLocationMode.system);
+      expect(updatedTask.config.outputDirectory, isEmpty);
       expect(updatedTask.config.outputFileName, 'source-h264');
       expect(updatedTask.config.videoCodec, VideoCodec.h264);
       expect(updatedTask.config.outputFileName, isNot(contains('1-')));
@@ -377,6 +384,20 @@ MediaTask readyVideoTask({required String id, required int sortOrder}) {
     analysisResult: MediaAnalysisResult(durationMs: 1000),
     analysisUpdatedAt: 1,
   );
+}
+
+MediaTaskConfig systemOutputVideoConfig({
+  required String outputDirectory,
+  required String outputFileName,
+  required VideoCodec videoCodec,
+}) {
+  return MediaTaskConfig.fromVideoTaskConfig(
+    VideoTaskConfig.initial().copyWith(
+      outputDirectory: outputDirectory,
+      outputFileName: outputFileName,
+      videoCodec: videoCodec,
+    ),
+  ).copyWith(outputLocationMode: OutputLocationMode.system);
 }
 
 class FakeMediaTaskRepository implements MediaTaskRepository {

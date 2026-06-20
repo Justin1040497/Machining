@@ -5,6 +5,7 @@ import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/media_processing_preset.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/two_pass_mode.dart';
@@ -29,7 +30,8 @@ MediaTaskConfig decodeMediaTaskConfig(String text) {
 
 Map<String, Object?> mediaTaskConfigToJson(MediaTaskConfig config) {
   return {
-    'configVersion': 1,
+    'configVersion': 2,
+    'outputLocationMode': config.outputLocationMode.name,
     'outputDirectory': config.outputDirectory,
     'outputFileName': config.outputFileName,
     'compressionMode': config.compressionMode.name,
@@ -44,8 +46,18 @@ Map<String, Object?> mediaTaskConfigToJson(MediaTaskConfig config) {
 }
 
 MediaTaskConfig mediaTaskConfigFromJson(Map<String, dynamic> json) {
+  final outputDirectory = stringValue(json['outputDirectory']) ?? '';
+  final storedOutputLocationMode = nullableEnumValueByName(
+    OutputLocationMode.values,
+    stringValue(json['outputLocationMode']),
+  );
   return MediaTaskConfig(
-    outputDirectory: stringValue(json['outputDirectory']) ?? '',
+    outputLocationMode:
+        storedOutputLocationMode ??
+        (outputDirectory.trim().isEmpty
+            ? OutputLocationMode.source
+            : OutputLocationMode.custom),
+    outputDirectory: outputDirectory,
     outputFileName: stringValue(json['outputFileName']) ?? '',
     compressionMode:
         nullableEnumValueByName(

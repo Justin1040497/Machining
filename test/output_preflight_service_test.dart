@@ -40,7 +40,10 @@ void main() {
         contains(MediaTaskPolicyTag.outputDirectoryCreated),
       );
       expect(result.plan.outputPath, outputPath);
-      expect(result.plan.args.last, outputPath);
+      expect(result.plan.args.last, isNot(outputPath));
+      expect(result.plan.steps.single.outputPath, outputPath);
+      expect(result.plan.steps.single.workingOutputPath, result.plan.args.last);
+      expect(await File(result.plan.args.last).exists(), isTrue);
     });
 
     test('renames duplicate output and rewrites command args', () async {
@@ -67,7 +70,7 @@ void main() {
       expect(result.policyTags, contains(MediaTaskPolicyTag.outputRenamed));
       expect(result.plan.outputPath, renamedPath);
       expect(result.plan.steps.single.outputPath, renamedPath);
-      expect(result.plan.args.last, renamedPath);
+      expect(result.plan.args.last, isNot(renamedPath));
     });
 
     test('renames output that would overwrite the source file', () async {
@@ -91,7 +94,62 @@ void main() {
       final renamedPath = '${tempDirectory.path}/source（1）.mp4';
       expect(result.policyTags, contains(MediaTaskPolicyTag.outputRenamed));
       expect(result.plan.outputPath, renamedPath);
-      expect(result.plan.args.last, renamedPath);
+      expect(result.plan.args.last, isNot(renamedPath));
+    });
+
+    test('publishes hidden working output to the final path', () async {
+      final tempDirectory = Directory.systemTemp.createTempSync(
+        'framelean-preflight-publish-test-',
+      );
+      addTearDown(() async {
+        if (await tempDirectory.exists()) {
+          await tempDirectory.delete(recursive: true);
+        }
+      });
+      final source = File('${tempDirectory.path}/source.mp4')
+        ..writeAsStringSync('source');
+      final outputPath = '${tempDirectory.path}/result.mp4';
+      final service = LocalOutputPreflightService();
+      final result = await service.prepare(
+        task: task(inputPath: source.path),
+        plan: plan(inputPath: source.path, outputPath: outputPath),
+      );
+      final step = result.plan.steps.single;
+      await File(step.workingOutputPath!).writeAsString('encoded');
+
+      final publishedPath = await service.publish(step);
+
+      expect(publishedPath, outputPath);
+      expect(await File(outputPath).readAsString(), 'encoded');
+      expect(await File(step.workingOutputPath!).exists(), isFalse);
+    });
+
+    test('does not overwrite a final path created during execution', () async {
+      final tempDirectory = Directory.systemTemp.createTempSync(
+        'framelean-preflight-late-collision-test-',
+      );
+      addTearDown(() async {
+        if (await tempDirectory.exists()) {
+          await tempDirectory.delete(recursive: true);
+        }
+      });
+      final source = File('${tempDirectory.path}/source.mp4')
+        ..writeAsStringSync('source');
+      final outputPath = '${tempDirectory.path}/result.mp4';
+      final service = LocalOutputPreflightService();
+      final result = await service.prepare(
+        task: task(inputPath: source.path),
+        plan: plan(inputPath: source.path, outputPath: outputPath),
+      );
+      final step = result.plan.steps.single;
+      await File(step.workingOutputPath!).writeAsString('encoded');
+      await File(outputPath).writeAsString('external');
+
+      final publishedPath = await service.publish(step);
+
+      expect(await File(outputPath).readAsString(), 'external');
+      expect(publishedPath, '${tempDirectory.path}/result（1）.mp4');
+      expect(await File(publishedPath!).readAsString(), 'encoded');
     });
   });
 }

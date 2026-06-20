@@ -19,6 +19,7 @@ import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:path/path.dart' as path;
 
@@ -76,6 +77,7 @@ class TaskExecution {
   int stepIndex;
   TaskExecutionState state;
   int runSequence;
+  Timer? outputMonitor;
 
   TaskExecution({
     required this.taskId,
@@ -552,6 +554,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     execution?.state = TaskExecutionState.finishing;
     if (execution != null) {
       await processController.terminate(execution.startedProcess);
+      execution.outputMonitor?.cancel();
+      await outputPreflightService.discardPlan(execution.plan);
       await cleanupPlanFiles(execution.plan);
       await mediaInputPreparer.cleanup(execution.preparedInput);
     }
@@ -584,6 +588,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     for (final execution in [..._executions.values]) {
       execution.state = TaskExecutionState.finishing;
       await processController.terminate(execution.startedProcess);
+      execution.outputMonitor?.cancel();
+      await outputPreflightService.discardPlan(execution.plan);
       await cleanupPlanFiles(execution.plan);
       await mediaInputPreparer.cleanup(execution.preparedInput);
     }
@@ -834,6 +840,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         task,
         purpose: MediaInputPreparationPurpose.execution,
       );
+      final settings = await readSettings();
+      preparedInput = PreparedMediaInput(
+        task: _resolveExecutionOutputLocation(preparedInput.task, settings),
+        proprietaryAudioDecodeResult:
+            preparedInput.proprietaryAudioDecodeResult,
+      );
       plan = commandBuilder.build(
         preparedInput.task,
         allowExtremeCompression: allowExtremeCompression,
@@ -906,6 +918,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       final failedTask = runningTask.markFailed('FFmpeg 启动失败: $error');
       await repository.saveTask(failedTask);
       await publishTaskFailed(failedTask, failureSummary(failedTask));
+      await outputPreflightService.discardPlan(plan);
       await mediaInputPreparer.cleanup(executionInput);
       await _continueAfterTask();
       return FfmpegQueueStartResult(
@@ -917,6 +930,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     _executions[runningTask.id] = execution;
     _queueStatus = FfmpegQueueStatus.running;
+    _startOutputMonitor(execution);
     observeExecution(execution);
 
     return FfmpegQueueStartResult(
@@ -953,7 +967,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final observationFuture = processObserver.observe(
       startedProcess: startedProcess,
       task: taskForStep,
-      outputPath: step.outputPath,
+      outputPath: step.workingOutputPath ?? step.outputPath,
       progressMode: step.progressMode,
       onProgress: (progress) async {
         final currentTasks = await repository.loadAllTasks();
@@ -1005,6 +1019,57 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     );
   }
 
+  void _startOutputMonitor(TaskExecution execution) {
+    execution.outputMonitor?.cancel();
+    final workingPath =
+        execution.plan.steps[execution.stepIndex].workingOutputPath;
+    if (workingPath == null) {
+      return;
+    }
+
+    var consecutiveMissingChecks = 0;
+    execution.outputMonitor = Timer.periodic(
+      const Duration(milliseconds: 250),
+      (timer) {
+        final currentExecution = _executions[execution.taskId];
+        if (currentExecution != execution ||
+            execution.state == TaskExecutionState.finishing) {
+          timer.cancel();
+          return;
+        }
+        if (execution.state != TaskExecutionState.running) {
+          consecutiveMissingChecks = 0;
+          return;
+        }
+
+        if (File(workingPath).existsSync()) {
+          consecutiveMissingChecks = 0;
+          return;
+        }
+        consecutiveMissingChecks += 1;
+        if (consecutiveMissingChecks < 2) {
+          return;
+        }
+
+        timer.cancel();
+        unawaited(
+          processController
+              .terminate(execution.startedProcess)
+              .then(
+                (_) => _serializeCommand(
+                  () => finishObservedTask(
+                    execution.taskId,
+                    const FfmpegProcessObservation.failed(
+                      '运行中的临时输出文件被删除或移动，任务已停止。',
+                    ),
+                  ),
+                ),
+              ),
+        );
+      },
+    );
+  }
+
   Future<FfmpegQueueStartResult> resumeExecution(
     MediaTask task,
     TaskExecution execution,
@@ -1051,6 +1116,8 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final task = findTaskById(await repository.loadAllTasks(), taskId);
     if (task == null || task.status == TaskStatus.cancelled) {
       _executions.remove(taskId);
+      execution.outputMonitor?.cancel();
+      await outputPreflightService.discardPlan(execution.plan);
       await mediaInputPreparer.cleanup(execution.preparedInput);
       await _continueAfterTask();
       return;
@@ -1068,9 +1135,11 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       if (outputIsSmaller == true) {
         completeCurrentPlan = true;
       } else {
-        final ineffectiveOutputSize = currentStep.outputPath == null
+        final ineffectiveOutputPath =
+            currentStep.workingOutputPath ?? currentStep.outputPath;
+        final ineffectiveOutputSize = ineffectiveOutputPath == null
             ? null
-            : await _getFileSize(currentStep.outputPath!);
+            : await _getFileSize(ineffectiveOutputPath);
         await deleteStepOutput(currentStep);
         final mediaLabel = switch (task.mediaKind) {
           MediaKind.video => '视频',
@@ -1087,6 +1156,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           // Continue to the fallback step below.
         } else {
           execution.state = TaskExecutionState.finishing;
+          execution.outputMonitor?.cancel();
           _executions.remove(taskId);
 
           await appendExecutionLogFooter(
@@ -1108,6 +1178,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
             failureSummary(failedTask, outputFileSize: ineffectiveOutputSize),
           );
           await cleanupPlanFiles(execution.plan);
+          await outputPreflightService.discardPlan(execution.plan);
           await mediaInputPreparer.cleanup(execution.preparedInput);
           await _continueAfterTask();
           return;
@@ -1120,6 +1191,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         execution.stepIndex < execution.plan.steps.length - 1) {
       final nextStepIndex = execution.stepIndex + 1;
       try {
+        execution.outputMonitor?.cancel();
         final nextExecution = await startExecutionStep(
           task: task,
           plan: execution.plan,
@@ -1133,10 +1205,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         execution.observationFuture = nextExecution.observationFuture;
         execution.stepIndex = nextStepIndex;
         execution.state = TaskExecutionState.running;
+        _startOutputMonitor(execution);
         observeExecution(execution);
       } on Object catch (error) {
         execution.state = TaskExecutionState.finishing;
+        execution.outputMonitor?.cancel();
         _executions.remove(taskId);
+        await outputPreflightService.discardPlan(execution.plan);
         await cleanupPlanFiles(execution.plan);
         await mediaInputPreparer.cleanup(execution.preparedInput);
 
@@ -1158,14 +1233,34 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     execution.state = TaskExecutionState.finishing;
+    execution.outputMonitor?.cancel();
     _executions.remove(taskId);
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
+      late final String? publishedPath;
+      try {
+        publishedPath = await outputPreflightService.publish(currentStep);
+      } on Object catch (error) {
+        await outputPreflightService.discardPlan(execution.plan);
+        final failedTask = task.markFailed(
+          '输出文件发布失败: $error',
+          failedAt: (await now()).millisecondsSinceEpoch,
+        );
+        await repository.saveTask(failedTask);
+        await publishTaskFailed(failedTask, failureSummary(failedTask));
+        await cleanupPlanFiles(execution.plan);
+        await mediaInputPreparer.cleanup(execution.preparedInput);
+        await _continueAfterTask();
+        return;
+      }
       final completedAt = (await now()).millisecondsSinceEpoch;
-      final outputSize = task.outputPath != null
-          ? await _getFileSize(task.outputPath!)
-          : null;
-      final completedTask = task.markCompleted(
+      final taskWithPublishedPath = publishedPath == null
+          ? task
+          : task.copyWith(outputPath: publishedPath);
+      final outputSize = publishedPath == null
+          ? null
+          : await _getFileSize(publishedPath);
+      final completedTask = taskWithPublishedPath.markCompleted(
         completedAt: completedAt,
         outputFileSize: outputSize,
       );
@@ -1176,7 +1271,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await appendExecutionLogFooter(
         execution.logFile,
         success: true,
-        outputPath: task.outputPath,
+        outputPath: publishedPath,
         outputSize: outputSize,
         durationMs: durationMs,
       );
@@ -1185,10 +1280,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await publishTaskCompleted(
         completedTask,
         TaskExecutionNotificationSummary(
-          sourceFileSize: task.sourceFileFingerprint?.fileSize,
+          sourceFileSize: taskWithPublishedPath.sourceFileFingerprint?.fileSize,
           outputFileSize: outputSize,
           durationMs: durationMs,
-          outputPath: task.outputPath,
+          outputPath: publishedPath,
         ),
       );
     } else {
@@ -1206,6 +1301,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await publishTaskFailed(failedTask, failureSummary(failedTask));
     }
 
+    await outputPreflightService.discardPlan(execution.plan);
     await cleanupPlanFiles(execution.plan);
     await mediaInputPreparer.cleanup(execution.preparedInput);
     await _continueAfterTask();
@@ -1278,7 +1374,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (task.mediaKind != MediaKind.image) {
       return true;
     }
-    final outputPath = step.outputPath;
+    final outputPath = step.workingOutputPath ?? step.outputPath;
     if (outputPath == null) {
       return null;
     }
@@ -1295,17 +1391,17 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   Future<void> deleteStepOutput(FfmpegCommandStep step) async {
-    final outputPath = step.outputPath;
-    if (outputPath == null) {
+    await outputPreflightService.discardStep(step);
+    if (step.workingOutputPath != null || step.outputPath == null) {
       return;
     }
     try {
-      final output = File(outputPath);
-      if (await output.exists()) {
-        await output.delete();
+      final file = File(step.outputPath!);
+      if (await file.exists()) {
+        await file.delete();
       }
     } on Object {
-      // Best-effort cleanup; the task result still reflects ineffective output.
+      // Best-effort cleanup; the task failure remains authoritative.
     }
   }
 
@@ -1413,6 +1509,23 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         }
       }
     }
+  }
+
+  MediaTask _resolveExecutionOutputLocation(
+    MediaTask task,
+    AppSettings settings,
+  ) {
+    final outputDirectory = switch (task.config.outputLocationMode) {
+      OutputLocationMode.source => '',
+      OutputLocationMode.custom => task.config.outputDirectory.trim(),
+      OutputLocationMode.system =>
+        settings.saveOutputToSourceDirectory
+            ? ''
+            : settings.defaultOutputDirectory?.trim() ?? '',
+    };
+    return task.copyWith(
+      config: task.config.copyWith(outputDirectory: outputDirectory),
+    );
   }
 
   Future<void> _continueAfterTask({String? excludedTaskId}) async {

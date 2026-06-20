@@ -11,6 +11,7 @@ import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_log_hint_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_step_builder.dart';
@@ -90,6 +91,16 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     final targetCodec = preserveAlpha
         ? VideoCodec.h264
         : encoderResolver.resolveTargetVideoCodec(task);
+    if (!preserveAlpha &&
+        !VideoOutputCompatibility.supports(
+          task.config.outputFormat,
+          targetCodec,
+        )) {
+      throw FfmpegCommandBuildException(
+        '${task.config.outputFormat.name.toUpperCase()} 不支持 '
+        '${targetCodec.name} 视频编码。',
+      );
+    }
     final streamCopy =
         !preserveAlpha &&
         stepBuilder.canStreamCopyConversion(task, targetCodec);
@@ -457,6 +468,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       case MediaOutputFormat.mp4:
       case MediaOutputFormat.mov:
       case MediaOutputFormat.mkv:
+      case MediaOutputFormat.webm:
+      case MediaOutputFormat.avi:
       case MediaOutputFormat.mp3:
       case MediaOutputFormat.m4a:
       case MediaOutputFormat.aac:
@@ -641,6 +654,8 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       MediaOutputFormat.mp4 ||
       MediaOutputFormat.mov ||
       MediaOutputFormat.mkv ||
+      MediaOutputFormat.webm ||
+      MediaOutputFormat.avi ||
       MediaOutputFormat.jpg ||
       MediaOutputFormat.png ||
       MediaOutputFormat.webp ||

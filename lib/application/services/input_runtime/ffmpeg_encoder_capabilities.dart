@@ -17,6 +17,10 @@ class FfmpegEncoderCapabilities {
       'wmav2',
       'libwebp',
       'prores_ks',
+      'libvpx-vp9',
+      'libsvtav1',
+      'mpeg4',
+      'mjpeg',
     },
     autoBackendPriority: [],
   );
@@ -83,6 +87,10 @@ class FfmpegEncoderCapabilities {
     'libx264',
     'libx265',
     'prores_ks',
+    'libvpx-vp9',
+    'libsvtav1',
+    'mpeg4',
+    'mjpeg',
   };
 
   static const knownAudioEncoderNames = <String>{
@@ -109,6 +117,10 @@ class FfmpegEncoderCapabilities {
     'hevc_qsv',
     'h264_amf',
     'hevc_amf',
+    'vp9_qsv',
+    'av1_nvenc',
+    'av1_qsv',
+    'av1_amf',
   };
 
   static const knownEncoderNames = <String>{
@@ -135,6 +147,10 @@ class FfmpegEncoderCapabilities {
         'wmav2',
         'libwebp',
         'prores_ks',
+        'libvpx-vp9',
+        'libsvtav1',
+        'mpeg4',
+        'mjpeg',
       },
       autoBackendPriority: autoBackendPriority,
     );
@@ -204,6 +220,11 @@ class FfmpegEncoderCapabilities {
     return switch (targetCodec) {
       VideoCodec.h264 => EncoderBackend.libx264,
       VideoCodec.hevc => EncoderBackend.libx265,
+      VideoCodec.vp9 => EncoderBackend.libvpxVp9,
+      VideoCodec.av1 => EncoderBackend.libsvtav1,
+      VideoCodec.proRes => EncoderBackend.proresKs,
+      VideoCodec.mpeg4 => EncoderBackend.nativeMpeg4,
+      VideoCodec.mjpeg => EncoderBackend.nativeMjpeg,
       VideoCodec.source => throw const SourceCodecNotResolvedException(),
     };
   }
@@ -219,6 +240,11 @@ class FfmpegEncoderCapabilities {
     return switch ((targetCodec, backend)) {
       (VideoCodec.h264, EncoderBackend.libx264) => 'libx264',
       (VideoCodec.hevc, EncoderBackend.libx265) => 'libx265',
+      (VideoCodec.vp9, EncoderBackend.libvpxVp9) => 'libvpx-vp9',
+      (VideoCodec.av1, EncoderBackend.libsvtav1) => 'libsvtav1',
+      (VideoCodec.proRes, EncoderBackend.proresKs) => 'prores_ks',
+      (VideoCodec.mpeg4, EncoderBackend.nativeMpeg4) => 'mpeg4',
+      (VideoCodec.mjpeg, EncoderBackend.nativeMjpeg) => 'mjpeg',
       (VideoCodec.h264, EncoderBackend.videotoolbox) => 'h264_videotoolbox',
       (VideoCodec.hevc, EncoderBackend.videotoolbox) => 'hevc_videotoolbox',
       (VideoCodec.h264, EncoderBackend.nvenc) => 'h264_nvenc',
@@ -227,6 +253,10 @@ class FfmpegEncoderCapabilities {
       (VideoCodec.hevc, EncoderBackend.qsv) => 'hevc_qsv',
       (VideoCodec.h264, EncoderBackend.amf) => 'h264_amf',
       (VideoCodec.hevc, EncoderBackend.amf) => 'hevc_amf',
+      (VideoCodec.vp9, EncoderBackend.qsv) => 'vp9_qsv',
+      (VideoCodec.av1, EncoderBackend.nvenc) => 'av1_nvenc',
+      (VideoCodec.av1, EncoderBackend.qsv) => 'av1_qsv',
+      (VideoCodec.av1, EncoderBackend.amf) => 'av1_amf',
       (VideoCodec.source, _) => throw const SourceCodecNotResolvedException(),
       _ => null,
     };

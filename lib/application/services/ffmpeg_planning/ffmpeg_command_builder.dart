@@ -13,6 +13,7 @@ enum FfmpegStepCompletionPolicy {
 class FfmpegCommandStep {
   final List<String> args;
   final String? outputPath;
+  final String? workingOutputPath;
   final String label;
   final ProgressMode progressMode;
   final FfmpegStepCompletionPolicy completionPolicy;
@@ -23,6 +24,7 @@ class FfmpegCommandStep {
     required this.label,
     this.progressMode = ProgressMode.timed,
     this.outputPath,
+    this.workingOutputPath,
     this.completionPolicy = FfmpegStepCompletionPolicy.alwaysContinue,
     this.policyTagsOnStart = const {},
   });
@@ -30,6 +32,7 @@ class FfmpegCommandStep {
   FfmpegCommandStep copyWith({
     List<String>? args,
     String? outputPath,
+    String? workingOutputPath,
     String? label,
     ProgressMode? progressMode,
     FfmpegStepCompletionPolicy? completionPolicy,
@@ -40,6 +43,7 @@ class FfmpegCommandStep {
       label: label ?? this.label,
       progressMode: progressMode ?? this.progressMode,
       outputPath: outputPath ?? this.outputPath,
+      workingOutputPath: workingOutputPath ?? this.workingOutputPath,
       completionPolicy: completionPolicy ?? this.completionPolicy,
       policyTagsOnStart: policyTagsOnStart ?? this.policyTagsOnStart,
     );
@@ -107,6 +111,28 @@ class FfmpegCommandPlan {
       steps: nextSteps,
       outputPath: outputPath == oldPath ? newPath : outputPath,
     );
+  }
+
+  FfmpegCommandPlan replaceExecutionOutputPath({
+    required String finalPath,
+    required String workingPath,
+  }) {
+    List<String> replaceArgs(List<String> source) {
+      return source.map((arg) => arg == finalPath ? workingPath : arg).toList();
+    }
+
+    final nextSteps = steps
+        .map(
+          (step) => step.outputPath == finalPath
+              ? step.copyWith(
+                  args: replaceArgs(step.args),
+                  workingOutputPath: workingPath,
+                )
+              : step,
+        )
+        .toList();
+
+    return copyWith(args: replaceArgs(args), steps: nextSteps);
   }
 }
 

@@ -307,6 +307,11 @@ class FrameLeanCli {
       VideoCodec.source => '跟随源文件',
       VideoCodec.h264 => 'H.264',
       VideoCodec.hevc => 'H.265 / HEVC',
+      VideoCodec.vp9 => 'VP9',
+      VideoCodec.av1 => 'AV1',
+      VideoCodec.proRes => 'Apple ProRes',
+      VideoCodec.mpeg4 => 'MPEG-4 Part 2',
+      VideoCodec.mjpeg => 'Motion JPEG',
     };
   }
 
