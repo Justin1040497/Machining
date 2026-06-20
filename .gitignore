@@ -57,8 +57,6 @@ third_party/ffmpeg/macos-universal/ffmpeg
 third_party/ffmpeg/macos-universal/ffprobe
 third_party/ffmpeg/windows-x64/ffmpeg.exe
 third_party/ffmpeg/windows-x64/ffprobe.exe
-third_party/ffmpeg/windows-x64/*.zip
-third_party/ffmpeg/windows-x64/*.sha256.txt
 
 # QMC adapter build outputs
 third_party/audio_adapters/qmc/macos-x64/qmc-decrypt

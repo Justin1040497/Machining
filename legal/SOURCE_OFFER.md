@@ -30,13 +30,18 @@ scripts/build/build_ffmpeg_macos_arch.sh
 scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-The architecture script is run once on an Apple Silicon host with `arm64` and
-once on an Intel host with `x86_64`. The merge script creates the distributed
-Universal 2 runtime.
+The Windows x64 build script is:
+
+```text
+scripts/build/build_ffmpeg_windows_x64.sh
+```
+
+The script is run once on a Windows x64 host with MSYS2/MinGW-w64.
 
 The documented FFmpeg configure flags include:
 
 ```text
+# Common flags (macOS and Windows)
 --enable-gpl
 --enable-version3
 --enable-libx264
@@ -46,14 +51,18 @@ The documented FFmpeg configure flags include:
 --enable-libzimg
 --enable-libvpx
 --enable-libsvtav1
---enable-videotoolbox
---enable-audiotoolbox
 --disable-shared
 --enable-static
 --disable-sdl2
 --disable-debug
 --disable-doc
 --disable-ffplay
+# macOS only
+--enable-videotoolbox
+--enable-audiotoolbox
+# Windows only
+--enable-d3d11va
+--enable-dxva2
 ```
 
 `--enable-nonfree` must not be used for distributed builds.

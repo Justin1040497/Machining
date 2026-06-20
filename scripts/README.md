@@ -12,8 +12,11 @@ scripts/
 
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
-| `build/build_ffmpeg_macos_arm64.sh` | macOS arm64 | Build the pinned FFmpeg runtime and required codecs | `third_party/ffmpeg/macos-arm64/` |
-| `build/build_qmc_decrypt_macos_arm64.sh` | macOS arm64 | Build the pinned upstream QMC adapter and copy its license files | `third_party/audio_adapters/qmc/macos-arm64/` |
+| `build/build_ffmpeg_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned FFmpeg runtime and required codecs for one architecture | `third_party/ffmpeg/macos-{arch}/` |
+| `build/build_ffmpeg_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 runtime slices | `third_party/ffmpeg/macos-universal/` |
+| `build/build_ffmpeg_windows_x64.sh` | Windows x64 (MSYS2) | Build the pinned FFmpeg runtime and required codecs | `third_party/ffmpeg/windows-x64/` |
+| `build/build_qmc_decrypt_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned upstream QMC adapter and copy its license files for one architecture | `third_party/audio_adapters/qmc/macos-{arch}/` |
+| `build/build_qmc_decrypt_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 QMC adapter slices | `third_party/audio_adapters/qmc/macos-universal/` |
 | `build/build_qmc_decrypt_windows.ps1` | Windows x64 | Build the pinned upstream QMC adapter and copy its license files | `third_party/audio_adapters/qmc/windows-x64/` |
 
 These scripts prepare dependencies. They do not package the FrameLean app.

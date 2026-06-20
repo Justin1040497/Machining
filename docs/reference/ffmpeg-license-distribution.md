@@ -64,9 +64,12 @@ third_party/ffmpeg/macos-universal/README.md
 third_party/ffmpeg/windows-x64/README.md
 scripts/build/build_ffmpeg_macos_arch.sh
 scripts/build/build_ffmpeg_macos_universal.sh
+scripts/build/build_ffmpeg_windows_x64.sh
 ```
 
 ## 构建要求
+
+### macOS
 
 构建前安装：
 
@@ -82,7 +85,26 @@ scripts/build/build_ffmpeg_macos_arch.sh x86_64
 scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-单架构构建在对应原生 macOS host 上执行。Universal 合并后必须通过：
+单架构构建在对应原生 macOS host 上执行。
+
+### Windows
+
+安装 MSYS2 及 MinGW-w64 工具链：
+
+```bash
+pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make \
+  mingw-w64-x86_64-pkg-config mingw-w64-x86_64-cmake \
+  mingw-w64-x86_64-nasm mingw-w64-x86_64-libtool \
+  mingw-w64-x86_64-binutils autoconf automake git curl tar
+```
+
+构建（在 MSYS2 MINGW64 shell 中执行）：
+
+```bash
+bash scripts/build/build_ffmpeg_windows_x64.sh
+```
+
+构建完成后必须通过：
 
 ```text
 Architectures: x86_64 arm64

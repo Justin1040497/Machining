@@ -2,25 +2,11 @@
 set -euo pipefail
 export LC_ALL=C
 
-ARCH="${1:-}"
-case "$ARCH" in
-  arm64)
-    ARCH_LABEL="arm64"
-    ;;
-  x86_64)
-    ARCH_LABEL="x64"
-    ;;
-  *)
-    echo "usage: $0 <arm64|x86_64>" >&2
-    exit 64
-    ;;
-esac
-
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BUILD_DIR="${ROOT}/build/ffmpeg-macos-${ARCH_LABEL}"
+BUILD_DIR="${ROOT}/build/ffmpeg-windows-x64"
 SRC_DIR="${BUILD_DIR}/src"
 PREFIX="${BUILD_DIR}/dist"
-OUT_DIR="${ROOT}/third_party/ffmpeg/macos-${ARCH_LABEL}"
+OUT_DIR="${ROOT}/third_party/ffmpeg/windows-x64"
 FFMPEG_VERSION="${FFMPEG_VERSION:-7.1.1}"
 LAME_VERSION="${LAME_VERSION:-3.100}"
 LIBWEBP_VERSION="${LIBWEBP_VERSION:-1.5.0}"
@@ -28,9 +14,7 @@ OPUS_VERSION="${OPUS_VERSION:-1.5.2}"
 ZIMG_VERSION="${ZIMG_VERSION:-3.0.6}"
 LIBVPX_VERSION="${LIBVPX_VERSION:-1.15.2}"
 SVT_AV1_VERSION="${SVT_AV1_VERSION:-3.1.2}"
-MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.15}"
-JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
-ARCH_FLAGS="-arch ${ARCH} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
+JOBS="${JOBS:-$(nproc)}"
 
 require_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
@@ -39,24 +23,23 @@ require_command() {
   fi
 }
 
-if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "error: this script only builds the macOS FFmpeg runtime" >&2
-  exit 1
-fi
+case "$(uname -s)" in
+  MINGW64_NT* | MSYS_NT* | MINGW32_NT*)
+    ;;
+  *)
+    echo "error: this script must be run under MSYS2/MinGW-w64" >&2
+    exit 1
+    ;;
+esac
 
-if [[ "$(uname -m)" != "$ARCH" ]]; then
-  echo "error: $ARCH runtime must be built on a native $ARCH macOS host" >&2
-  exit 1
-fi
-
-for command_name in clang cmake curl git install lipo make nasm otool pkg-config strip tar; do
+for command_name in gcc g++ cmake curl git install make nasm pkg-config strip tar; do
   require_command "$command_name"
 done
 
-export MACOSX_DEPLOYMENT_TARGET
 rm -rf "$PREFIX"
 mkdir -p "$SRC_DIR" "$PREFIX" "$OUT_DIR"
 
+# ---- LAME ----
 cd "$SRC_DIR"
 if [[ ! -f "lame-${LAME_VERSION}.tar.gz" ]]; then
   curl -L \
@@ -69,15 +52,15 @@ tar -xf "lame-${LAME_VERSION}.tar.gz"
 
 cd "$SRC_DIR/lame-${LAME_VERSION}"
 make distclean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static \
-    --disable-frontend
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static \
+  --disable-frontend
 make -j"$JOBS"
 make install
 
+# ---- libvpx ----
 cd "$SRC_DIR"
 if [[ ! -f "libvpx-${LIBVPX_VERSION}.tar.gz" ]]; then
   curl -L \
@@ -92,18 +75,17 @@ cd "$SRC_DIR/libvpx-${LIBVPX_VERSION}"
 make clean >/dev/null 2>&1 || true
 ./configure \
   --prefix="$PREFIX" \
-  --target="${ARCH}-darwin-gcc" \
+  --target=x86_64-win64-gcc \
   --disable-shared \
   --enable-static \
   --disable-examples \
   --disable-tools \
   --disable-unit-tests \
-  --disable-docs \
-  --extra-cflags="$ARCH_FLAGS" \
-  --extra-ldflags="$ARCH_FLAGS"
+  --disable-docs
 make -j"$JOBS"
 make install
 
+# ---- SVT-AV1 ----
 cd "$SRC_DIR"
 if [[ ! -f "svt-av1-${SVT_AV1_VERSION}.tar.gz" ]]; then
   curl -L \
@@ -119,14 +101,13 @@ cmake \
   -B "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
   -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_APPS=OFF \
   -DBUILD_TESTING=OFF
 cmake --build "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean" --parallel "$JOBS"
 cmake --install "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean"
 
+# ---- libwebp ----
 cd "$SRC_DIR"
 if [[ ! -f "libwebp-${LIBWEBP_VERSION}.tar.gz" ]]; then
   curl -L \
@@ -139,21 +120,21 @@ tar -xf "libwebp-${LIBWEBP_VERSION}.tar.gz"
 
 cd "$SRC_DIR/libwebp-${LIBWEBP_VERSION}"
 make distclean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static \
-    --disable-gl \
-    --disable-sdl \
-    --disable-png \
-    --disable-jpeg \
-    --disable-tiff \
-    --disable-gif \
-    --disable-wic
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static \
+  --disable-gl \
+  --disable-sdl \
+  --disable-png \
+  --disable-jpeg \
+  --disable-tiff \
+  --disable-gif \
+  --disable-wic
 make -j"$JOBS"
 make install
 
+# ---- opus ----
 cd "$SRC_DIR"
 if [[ ! -f "opus-${OPUS_VERSION}.tar.gz" ]]; then
   curl -L \
@@ -166,16 +147,16 @@ tar -xf "opus-${OPUS_VERSION}.tar.gz"
 
 cd "$SRC_DIR/opus-${OPUS_VERSION}"
 make distclean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static \
-    --disable-extra-programs \
-    --disable-doc
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static \
+  --disable-extra-programs \
+  --disable-doc
 make -j"$JOBS"
 make install
 
+# ---- zimg ----
 cd "$SRC_DIR"
 if [[ ! -f "zimg-release-${ZIMG_VERSION}.tar.gz" ]]; then
   curl -L \
@@ -189,21 +170,19 @@ tar -xf "zimg-release-${ZIMG_VERSION}.tar.gz"
 cd "$SRC_DIR/zimg-release-${ZIMG_VERSION}"
 make distclean >/dev/null 2>&1 || true
 if [[ ! -x ./configure ]]; then
-  for command_name in autoreconf aclocal automake glibtoolize; do
+  for command_name in autoreconf aclocal automake libtoolize; do
     require_command "$command_name"
   done
   bash ./autogen.sh
 fi
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  CC=clang \
-  CXX=clang++ \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static
+./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static
 make -j"$JOBS"
 make install
 
+# ---- x264 ----
 cd "$SRC_DIR"
 if [[ ! -d x264 ]]; then
   git clone https://code.videolan.org/videolan/x264.git
@@ -212,15 +191,15 @@ fi
 cd "$SRC_DIR/x264"
 git fetch --tags --quiet || echo "warning: x264 fetch failed; using the local checkout"
 make distclean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
-    --prefix="$PREFIX" \
-    --enable-static \
-    --disable-cli \
-    --disable-opencl
+./configure \
+  --prefix="$PREFIX" \
+  --enable-static \
+  --disable-cli \
+  --disable-opencl
 make -j"$JOBS"
 make install
 
+# ---- FFmpeg ----
 cd "$SRC_DIR"
 if [[ ! -f "ffmpeg-${FFMPEG_VERSION}.tar.xz" ]]; then
   curl -L "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
@@ -237,9 +216,8 @@ PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig" \
 PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
 ./configure \
   --prefix="$PREFIX" \
-  --arch="$ARCH" \
-  --target-os=darwin \
-  --cc=clang \
+  --target-os=mingw32 \
+  --arch=x86_64 \
   --enable-gpl \
   --enable-version3 \
   --enable-libx264 \
@@ -249,8 +227,8 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-libzimg \
   --enable-libvpx \
   --enable-libsvtav1 \
-  --enable-videotoolbox \
-  --enable-audiotoolbox \
+  --enable-d3d11va \
+  --enable-dxva2 \
   --disable-shared \
   --enable-static \
   --disable-sdl2 \
@@ -258,27 +236,41 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --disable-doc \
   --disable-ffplay \
   --pkg-config-flags="--static" \
-  --extra-cflags="${ARCH_FLAGS} -I${PREFIX}/include" \
-  --extra-ldflags="${ARCH_FLAGS} -L${PREFIX}/lib"
+  --extra-cflags="-I${PREFIX}/include" \
+  --extra-ldflags="-L${PREFIX}/lib -static-libgcc -static-libstdc++"
 
 make -j"$JOBS"
 make install
 
-install -m 755 "$PREFIX/bin/ffmpeg" "$OUT_DIR/ffmpeg"
-install -m 755 "$PREFIX/bin/ffprobe" "$OUT_DIR/ffprobe"
+# ---- Install to output directory ----
+install -m 755 "$PREFIX/bin/ffmpeg.exe" "$OUT_DIR/ffmpeg.exe"
+install -m 755 "$PREFIX/bin/ffprobe.exe" "$OUT_DIR/ffprobe.exe"
 
-strip "$OUT_DIR/ffmpeg" >/dev/null 2>&1 || true
-strip "$OUT_DIR/ffprobe" >/dev/null 2>&1 || true
+strip "$OUT_DIR/ffmpeg.exe" >/dev/null 2>&1 || true
+strip "$OUT_DIR/ffprobe.exe" >/dev/null 2>&1 || true
 
-for binary_name in ffmpeg ffprobe; do
+# ---- Architecture verification ----
+for binary_name in ffmpeg.exe ffprobe.exe; do
   binary_path="$OUT_DIR/$binary_name"
-  built_arches="$(lipo -archs "$binary_path")"
-  if [[ "$built_arches" != "$ARCH" ]]; then
-    echo "error: expected $binary_name architecture $ARCH, got $built_arches" >&2
+  file_output="$(file "$binary_path")"
+  if ! echo "$file_output" | grep -qE "PE32\+.*x86-64"; then
+    echo "error: expected $binary_name to be PE32+ x86-64, got: $file_output" >&2
     exit 1
   fi
 done
 
+# ---- DLL dependency check ----
+echo "Checking for unexpected DLL dependencies:"
+for binary_name in ffmpeg.exe ffprobe.exe; do
+  dlls="$(objdump -p "$OUT_DIR/$binary_name" | grep "DLL Name" || true)"
+  if echo "$dlls" | grep -vE '(KERNEL32|ADVAPI32|SHELL32|ole32|OLEAUT32|USER32|WS2_32|GDI32|COMCTL32|COMCTL32|SETUPAPI|bcrypt|PSAPI|WINMM|Secur32|IPHLPAPI|POWRPROF|CFGMGR32|D3D9|DXVA2|MF|MFPlat|MFReadWrite|SHLWAPI|AVICAP32|VERSION|UxTheme|d3d11|dxgi)' | grep -q "DLL Name"; then
+    echo "error: $binary_name has unexpected DLL dependencies" >&2
+    echo "$dlls" >&2
+    exit 1
+  fi
+done
+
+# ---- Build info ----
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
 FFmpeg version: ${FFMPEG_VERSION}
 x264 source: https://code.videolan.org/videolan/x264.git
@@ -295,20 +287,32 @@ libvpx source: https://github.com/webmproject/libvpx/archive/refs/tags/v${LIBVPX
 SVT-AV1 version: ${SVT_AV1_VERSION}
 SVT-AV1 source: https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v${SVT_AV1_VERSION}/SVT-AV1-v${SVT_AV1_VERSION}.tar.gz
 FFmpeg source: https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
-Target: macOS ${ARCH}
-Minimum macOS: ${MACOSX_DEPLOYMENT_TARGET}
+Target: Windows x64
 Nonfree enabled: no
+Configure flags:
+  --target-os=mingw32
+  --arch=x86_64
+  --enable-gpl
+  --enable-version3
+  --enable-libx264
+  --enable-libmp3lame
+  --enable-libwebp
+  --enable-libopus
+  --enable-libzimg
+  --enable-libvpx
+  --enable-libsvtav1
+  --enable-d3d11va
+  --enable-dxva2
+  --disable-shared
+  --enable-static
+  --disable-sdl2
+  --disable-ffplay
+  --disable-doc
+  --disable-debug
+  --pkg-config-flags=--static
 EOF
 
-echo "Checking for Homebrew dynamic library dependencies:"
-for binary_name in ffmpeg ffprobe; do
-  if otool -L "$OUT_DIR/$binary_name" | grep -E '/opt/homebrew|/usr/local/Cellar' >/dev/null; then
-    echo "error: $binary_name still depends on Homebrew libraries" >&2
-    otool -L "$OUT_DIR/$binary_name" >&2
-    exit 1
-  fi
-done
-
+# ---- Capability validation ----
 require_capability() {
   local output="$1"
   local capability="$2"
@@ -323,11 +327,11 @@ require_capability() {
   exit 1
 }
 
-encoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -encoders 2>/dev/null)"
-decoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -decoders 2>/dev/null)"
-demuxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -demuxers 2>/dev/null)"
-muxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -muxers 2>/dev/null)"
-filter_output="$("$OUT_DIR/ffmpeg" -hide_banner -filters 2>/dev/null)"
+encoder_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -encoders 2>/dev/null)"
+decoder_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -decoders 2>/dev/null)"
+demuxer_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -demuxers 2>/dev/null)"
+muxer_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -muxers 2>/dev/null)"
+filter_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -filters 2>/dev/null)"
 
 for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
   require_capability "$encoder_output" "$encoder_name" "encoder"
@@ -344,5 +348,5 @@ for filter_name in zscale tonemap; do
 done
 
 echo
-echo "Built macOS $ARCH FFmpeg runtime:"
+echo "Built Windows x64 FFmpeg runtime:"
 echo "$OUT_DIR"
