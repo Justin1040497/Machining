@@ -27,7 +27,7 @@ LIBWEBP_VERSION="${LIBWEBP_VERSION:-1.5.0}"
 OPUS_VERSION="${OPUS_VERSION:-1.5.2}"
 ZIMG_VERSION="${ZIMG_VERSION:-3.0.6}"
 LIBVPX_VERSION="${LIBVPX_VERSION:-1.15.2}"
-SVT_AV1_VERSION="${SVT_AV1_VERSION:-3.1.2}"
+SVT_AV1_VERSION="${SVT_AV1_VERSION:-2.3.0}"
 MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.15}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 ARCH_FLAGS="-arch ${ARCH} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
@@ -90,10 +90,9 @@ tar -xf "libvpx-${LIBVPX_VERSION}.tar.gz"
 
 cd "$SRC_DIR/libvpx-${LIBVPX_VERSION}"
 make clean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
+./configure \
     --prefix="$PREFIX" \
-    --target="${ARCH}-darwin-gcc" \
+    --target="${ARCH}-darwin19-gcc" \
     --disable-shared \
     --enable-static \
     --disable-examples \
