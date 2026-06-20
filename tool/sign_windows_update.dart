@@ -10,6 +10,8 @@ Future<void> main(List<String> arguments) async {
   final keyId = _required(options, 'key-id');
   final expectedPublicKey = _required(options, 'public-key');
   final output = File(options['output'] ?? '${input.path}.update.json');
+  final version = options['version']?.trim();
+  final buildNumber = int.tryParse(options['build-number']?.trim() ?? '');
 
   if (!await input.exists()) {
     throw StateError('Installer was not found: ${input.path}');
@@ -32,6 +34,8 @@ Future<void> main(List<String> arguments) async {
   final digest = await Sha256().hash(bytes);
   final metadata = <String, Object>{
     'schemaVersion': 1,
+    if (version != null && version.isNotEmpty) 'version': version,
+    if (buildNumber != null) 'buildNumber': buildNumber,
     'platform': 'windows-installer',
     'fileName': input.uri.pathSegments.last,
     'size': bytes.length,

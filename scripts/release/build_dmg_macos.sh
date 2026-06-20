@@ -153,6 +153,8 @@ write_sparkle_signature_metadata() {
   cat >"$UPDATE_METADATA_JSON_PATH" <<EOF
 {
   "schemaVersion": 1,
+  "version": "$APP_VERSION",
+  "buildNumber": $APP_BUILD,
   "platform": "macos-universal2",
   "fileName": "$(basename "$dmg_path")",
   "size": $length,
@@ -173,6 +175,8 @@ write_manual_update_metadata() {
   cat >"$UPDATE_METADATA_JSON_PATH" <<EOF
 {
   "schemaVersion": 1,
+  "version": "$APP_VERSION",
+  "buildNumber": $APP_BUILD,
   "platform": "macos-universal2",
   "fileName": "$(basename "$dmg_path")",
   "size": $length,
@@ -301,6 +305,8 @@ if [[ -z "$APP_VERSION" ]]; then
   echo "error: could not read semantic version from $PUBSPEC_PATH" >&2
   exit 1
 fi
+APP_BUILD="$(sed -nE 's/^version:[[:space:]]*[0-9]+\.[0-9]+\.[0-9]+\+([0-9]+)[[:space:]]*$/\1/p' "$PUBSPEC_PATH" | head -n 1)"
+APP_BUILD="${APP_BUILD:-0}"
 
 DMG_PATH="${RELEASE_DIR}/FrameLean-v${APP_VERSION}.dmg"
 
@@ -381,6 +387,7 @@ echo "Building Universal 2 macOS app..."
 cd "$ROOT"
 rm -rf "${ROOT}/build/macos"
 assert_macos_cocoapods_project
+dart run "${ROOT}/tool/generate_build_info.dart"
 flutter build macos \
   --release \
   --obfuscate \

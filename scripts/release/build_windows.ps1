@@ -411,6 +411,15 @@ $VcRuntimeFiles = @(
   "vcruntime140_1.dll"
 )
 
+# Extract version and build number from pubspec.yaml
+$PubspecContent = Get-Content $PubspecPath -Raw
+$PubspecVersionMatch = [regex]::Match($PubspecContent, '^version:\s*(\d+\.\d+\.\d+)\+(\d+)')
+if (-not $PubspecVersionMatch.Success) {
+  throw "Could not parse version from $PubspecPath"
+}
+$PubspecVersion = $PubspecVersionMatch.Groups[1].Value
+$PubspecBuild = $PubspecVersionMatch.Groups[2].Value
+
 Require-Command "flutter"
 Require-Command "dart"
 Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
@@ -469,6 +478,9 @@ try {
     "--dart-define=FRAMELEAN_RELEASE_PUBLIC_KEYS=$ReleaseKeyId=$ReleasePublicKey",
     "--dart-define=FRAMELEAN_REQUIRE_RELEASE_SIGNATURE=true"
   )
+
+  Write-Host "Generating build info from pubspec.yaml..."
+  Invoke-Checked "dart" @("run", (Join-Path $Root "tool\generate_build_info.dart"))
 
   Write-Host "Building Windows release with: flutter $($BuildArgs -join ' ')"
   Invoke-Checked "flutter" $BuildArgs
@@ -571,7 +583,11 @@ try {
       "--public-key",
       $ReleasePublicKey,
       "--output",
-      "$SetupPath.update.json"
+      "$SetupPath.update.json",
+      "--version",
+      $PubspecVersion,
+      "--build-number",
+      $PubspecBuild
     )
     Require-File "$SetupPath.update.json"
   }

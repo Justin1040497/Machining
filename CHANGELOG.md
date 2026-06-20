@@ -94,6 +94,31 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 Ruby YAML 解析校验 `.github/workflows/build-macos.yml` 和 `.github/workflows/build-windows.yml`。
 - 通过 Ruby YAML frontmatter 校验 `framelean-delivery` 和 `framelean-release` skills；`quick_validate.py` 因本机缺少 `PyYAML` 未运行。
 
+## 2026-06-21｜v1.2.1｜No Release
+
+今天改进版本号与构建号管理链路：构建号由手动硬编码改为 pubspec.yaml 自动生成，并在 .update.json 制品元数据中携带；服务端去掉脆弱的 MAX()+1 计数器，构建号改为 Admin 必填或从制品识别后填入。
+
+### Added
+
+- 新增 `tool/generate_build_info.dart`：从 `pubspec.yaml` 读取 `version: X.Y.Z+N` 并自动生成 `lib/application/services/framelean_build_info.dart`，构建脚本在 Flutter build 前自动执行，无需再手动同步两处版本号。
+- macOS / Windows `.update.json` 制品元数据新增加 `version` 和 `buildNumber` 字段，由构建脚本从 `pubspec.yaml` 提取写入。
+- Admin Web 新建版本草稿表单新增加“构建号”输入框（可留空），草稿详情页上传制品元数据后自动识别并对比构建号：
+  - 构建号未设置时：蓝色提示 +“使用此构建号”按钮。
+  - 与登记不一致时：黄色警告 +“改用识别结果”按钮。
+  - 一致时：绿色“已核对”提示。
+- 新增 `PATCH /api/v1/admin/releases/{version}/build-number` 接口，允许在草稿阶段修改构建号。
+- 新增 `UpdateBuildNumberRequest` DTO 和 `ReleaseService.updateBuildNumber()` 方法。
+
+### Changed
+
+- `framelean_build_info.dart` 现在是自动生成文件，新增 `AUTO-GENERATED — DO NOT EDIT` 头注释。
+- 服务端 `build_number` 来源从 `SELECT MAX(build_number) + 1` 计数器改为 Admin 显式传入；`ReleaseMapper.nextBuildNumber()` 已移除。
+- `CreateReleaseRequest.buildNumber` 从 `Int?` 改为 `Int`，默认值 `0`（留空表示未设置）。
+
+### Removed
+
+- 移除 `ReleaseMapper.nextBuildNumber()` 方法和对应的 `MAX()+1` SQL 查询。
+
 ## 2026-06-19｜v1.2.1｜No Release
 
 今天收口工作台任务夹拖拽、任务夹交互和受控并行队列，并重构执行作用域、批次导入分组、媒体处理意图和任务夹配置摘要。
