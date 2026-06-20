@@ -30,7 +30,34 @@ docs/lessons.md
 docs/work/
 ```
 
-Use `pubspec.yaml`, release scripts, packaging scripts, update manifests, or platform docs only when the release touches those surfaces.
+For every release document, also inspect packaging and update surfaces before claiming release readiness:
+
+```text
+pubspec.yaml
+.github/workflows/*.yml
+scripts/README.md
+scripts/release/*
+macos/Runner/Info.plist
+macos/Runner/Configs/*.xcconfig
+installer/windows/*
+tool/sign_windows_update.dart
+```
+
+Use additional server/Admin files only when the release touches self-hosted update metadata, release package requirements, appcast generation, upload flows, or download-ticket behavior.
+
+## Packaging Freshness Gate
+
+Before drafting or writing the release document, compare the current packaging source files against the release claims. Do not rely on older release docs as proof that packaging still works.
+
+Check at minimum:
+
+- macOS and Windows GitHub Actions call the canonical release scripts and pass the required Variables / Secrets / env values.
+- Local release commands, CI workflow steps, artifact names, and upload paths match the current script outputs.
+- macOS Sparkle `SUFeedURL`, `SUPublicEDKey`, signed/notarized DMG expectations, `sign_update`, and `*.update.json` metadata are represented accurately.
+- Windows update base URL, trusted release key ids, public keys, private-key-file signing, installer target, and `*.update.json` generation are represented accurately.
+- Missing release configuration fails closed instead of producing artifacts that look releasable but lack update configuration.
+
+If the gate finds stale script, Action, YAML, or docs wiring, stop and ask whether to fix it first or record it as a known risk. Record the final gate result under `验证与兼容` and unresolved gaps under `已知风险`.
 
 ## Workflow
 

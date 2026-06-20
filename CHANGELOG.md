@@ -59,6 +59,8 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - Windows 自托管自动更新平台改为 `windows-installer`，`windows-x64` ZIP 调整为手动下载 / 后台留存包。
 - FFmpeg 许可证、源码获取、第三方声明和内置运行时说明补充 libvpx、SVT-AV1、WebM、AVI、MPEG-4 Part 2、MJPEG、VP9、AV1 能力。
 - 设置页关于分区动作区改为“更新 / 维护”两组，除检查更新外统一使用中性描边按钮，降低按钮颜色噪音。
+- macOS / Windows GitHub Actions 发布打包改为显式注入更新服务、Sparkle 和 Ed25519 签名配置，缺少 GitHub Variables / Secrets 时直接失败，避免产出缺少更新配置的发布包。
+- `framelean-delivery` 和 `framelean-release` skills 增加打包新鲜度检查，要求交付和 release 文档生成前核对脚本、Action、YAML、签名和更新元数据链路。
 
 ### Fixed
 
@@ -82,6 +84,8 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `cd server && mvn test`，共 14 项测试通过，2 项 Testcontainers 集成测试因本机无 Docker 跳过。
 - 通过 `rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh` 和 `rtk bash -n scripts/release/build_dmg_macos.sh`。
 - 通过 `rtk git diff --check`。
+- 通过 Ruby YAML 解析校验 `.github/workflows/build-macos.yml` 和 `.github/workflows/build-windows.yml`。
+- 通过 Ruby YAML frontmatter 校验 `framelean-delivery` 和 `framelean-release` skills；`quick_validate.py` 因本机缺少 `PyYAML` 未运行。
 
 ## 2026-06-19｜v1.2.1｜No Release
 

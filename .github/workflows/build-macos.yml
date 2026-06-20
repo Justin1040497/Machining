@@ -135,7 +135,18 @@ jobs:
       - name: Resolve Flutter dependencies
         run: flutter pub get
 
+      - name: Validate macOS update settings
+        env:
+          FRAMELEAN_SPARKLE_FEED_URL: ${{ vars.FRAMELEAN_SPARKLE_FEED_URL }}
+          FRAMELEAN_SPARKLE_PUBLIC_ED_KEY: ${{ vars.FRAMELEAN_SPARKLE_PUBLIC_ED_KEY }}
+        run: |
+          test -n "$FRAMELEAN_SPARKLE_FEED_URL" || { echo "::error::Missing GitHub variable FRAMELEAN_SPARKLE_FEED_URL"; exit 1; }
+          test -n "$FRAMELEAN_SPARKLE_PUBLIC_ED_KEY" || { echo "::error::Missing GitHub variable FRAMELEAN_SPARKLE_PUBLIC_ED_KEY"; exit 1; }
+
       - name: Build Universal DMG
+        env:
+          FRAMELEAN_SPARKLE_FEED_URL: ${{ vars.FRAMELEAN_SPARKLE_FEED_URL }}
+          FRAMELEAN_SPARKLE_PUBLIC_ED_KEY: ${{ vars.FRAMELEAN_SPARKLE_PUBLIC_ED_KEY }}
         run: scripts/release/build_dmg_macos.sh
 
       - name: Upload Universal DMG artifact
