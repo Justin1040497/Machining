@@ -10,7 +10,11 @@ param(
   [int]$WaitForPid = 0,
   [string]$InstallDir = "",
   [switch]$LaunchedFromApp,
-  [switch]$Elevated
+  [switch]$Elevated,
+  [string[]]$OriginalUserDataPaths = @(),
+  [string[]]$OriginalTempPaths = @(),
+  [string[]]$OriginalShortcutPaths = @(),
+  [string]$OriginalUserRegistryRoot = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -37,7 +41,104 @@ function Quote-NativeArgument {
   return '"' + $Value.Replace('"', '\"') + '"'
 }
 
+function Join-ExistingPath {
+  param(
+    [string]$Base,
+    [string]$Child
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Base)) {
+    return $null
+  }
+
+  return Join-Path -Path $Base -ChildPath $Child
+}
+
+function Select-UniqueNonEmptyPath {
+  param([string[]]$Paths)
+
+  $Paths |
+    Where-Object { -not [string]::IsNullOrWhiteSpace($_) } |
+    Select-Object -Unique
+}
+
+function Resolve-DefaultUserDataPaths {
+  Select-UniqueNonEmptyPath @(
+    Join-ExistingPath $env:APPDATA "FrameLean",
+    Join-ExistingPath $env:APPDATA "framelean",
+    Join-ExistingPath $env:APPDATA "com.justin.framelean",
+    Join-ExistingPath $env:APPDATA "com.justin\FrameLean",
+    Join-ExistingPath $env:LOCALAPPDATA "FrameLean",
+    Join-ExistingPath $env:LOCALAPPDATA "framelean",
+    Join-ExistingPath $env:LOCALAPPDATA "com.justin.framelean",
+    Join-ExistingPath $env:LOCALAPPDATA "com.justin\FrameLean"
+  )
+}
+
+function Resolve-DefaultTempPaths {
+  Select-UniqueNonEmptyPath @(
+    Join-ExistingPath $env:TEMP "framelean",
+    Join-ExistingPath $env:TEMP "FrameLean\uninstall"
+  )
+}
+
+function Resolve-DefaultShortcutPaths {
+  Select-UniqueNonEmptyPath @(
+    Join-ExistingPath $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FrameLean.lnk",
+    Join-ExistingPath $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FrameLean\FrameLean.lnk",
+    Join-ExistingPath $env:USERPROFILE "Desktop\FrameLean.lnk",
+    Join-ExistingPath $env:PUBLIC "Desktop\FrameLean.lnk"
+  )
+}
+
+function Resolve-CurrentUserRegistryRoot {
+  try {
+    $sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+    if (-not [string]::IsNullOrWhiteSpace($sid)) {
+      return "Registry::HKEY_USERS\$sid"
+    }
+  } catch {
+    return ""
+  }
+
+  return ""
+}
+
+function Add-StringArrayArgument {
+  param(
+    [string[]]$ArgumentList,
+    [string]$Name,
+    [string[]]$Values
+  )
+
+  if ($null -eq $Values -or $Values.Count -eq 0) {
+    return $ArgumentList
+  }
+
+  $next = @($ArgumentList) + "-$Name"
+  foreach ($value in $Values) {
+    if (-not [string]::IsNullOrWhiteSpace($value)) {
+      $next += Quote-NativeArgument $value
+    }
+  }
+
+  return $next
+}
+
 if (($RemoveAll -or $RemoveMachineConfig) -and -not $Elevated -and -not (Test-Administrator)) {
+  if ($OriginalUserDataPaths.Count -eq 0) {
+    $OriginalUserDataPaths = Resolve-DefaultUserDataPaths
+  }
+  if ($OriginalTempPaths.Count -eq 0) {
+    $OriginalTempPaths = Resolve-DefaultTempPaths
+  }
+  if ($OriginalShortcutPaths.Count -eq 0) {
+    $OriginalShortcutPaths = Resolve-DefaultShortcutPaths
+  }
+  if ([string]::IsNullOrWhiteSpace($OriginalUserRegistryRoot)) {
+    $OriginalUserRegistryRoot = Resolve-CurrentUserRegistryRoot
+  }
+
   $elevatedArgs = @(
     '-NoProfile',
     '-ExecutionPolicy', 'Bypass',
@@ -65,6 +166,21 @@ if (($RemoveAll -or $RemoveMachineConfig) -and -not $Elevated -and -not (Test-Ad
   if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
     $elevatedArgs += @('-InstallDir', (Quote-NativeArgument $InstallDir))
   }
+  $elevatedArgs = Add-StringArrayArgument `
+    -ArgumentList $elevatedArgs `
+    -Name 'OriginalUserDataPaths' `
+    -Values $OriginalUserDataPaths
+  $elevatedArgs = Add-StringArrayArgument `
+    -ArgumentList $elevatedArgs `
+    -Name 'OriginalTempPaths' `
+    -Values $OriginalTempPaths
+  $elevatedArgs = Add-StringArrayArgument `
+    -ArgumentList $elevatedArgs `
+    -Name 'OriginalShortcutPaths' `
+    -Values $OriginalShortcutPaths
+  if (-not [string]::IsNullOrWhiteSpace($OriginalUserRegistryRoot)) {
+    $elevatedArgs += @('-OriginalUserRegistryRoot', (Quote-NativeArgument $OriginalUserRegistryRoot))
+  }
   $process = Start-Process `
     -FilePath 'PowerShell' `
     -ArgumentList ($elevatedArgs -join ' ') `
@@ -77,19 +193,6 @@ if (($RemoveAll -or $RemoveMachineConfig) -and -not $Elevated -and -not (Test-Ad
 function Write-Step {
   param([string]$Message)
   Write-Host "[FrameLean] $Message"
-}
-
-function Join-ExistingPath {
-  param(
-    [string]$Base,
-    [string]$Child
-  )
-
-  if ([string]::IsNullOrWhiteSpace($Base)) {
-    return $null
-  }
-
-  return Join-Path -Path $Base -ChildPath $Child
 }
 
 function Remove-OwnedPath {
@@ -179,28 +282,21 @@ if (-not $Force) {
 Wait-FrameLeanProcess -ProcessId $WaitForPid
 
 $resolvedInstallDir = Resolve-InstallDir
-$appDataPaths = @(
-  Join-ExistingPath $env:APPDATA "FrameLean",
-  Join-ExistingPath $env:APPDATA "framelean",
-  Join-ExistingPath $env:APPDATA "com.justin.framelean",
-  Join-ExistingPath $env:APPDATA "com.justin\FrameLean",
-  Join-ExistingPath $env:LOCALAPPDATA "FrameLean",
-  Join-ExistingPath $env:LOCALAPPDATA "framelean",
-  Join-ExistingPath $env:LOCALAPPDATA "com.justin.framelean",
-  Join-ExistingPath $env:LOCALAPPDATA "com.justin\FrameLean"
-) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-
-$tempPaths = @(
-  Join-ExistingPath $env:TEMP "framelean",
-  Join-ExistingPath $env:TEMP "FrameLean\uninstall"
-) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
-
-$shortcutPaths = @(
-  Join-ExistingPath $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FrameLean.lnk",
-  Join-ExistingPath $env:APPDATA "Microsoft\Windows\Start Menu\Programs\FrameLean\FrameLean.lnk",
-  Join-ExistingPath $env:USERPROFILE "Desktop\FrameLean.lnk",
-  Join-ExistingPath $env:PUBLIC "Desktop\FrameLean.lnk"
-) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) } | Select-Object -Unique
+$appDataPaths = if ($OriginalUserDataPaths.Count -gt 0) {
+  Select-UniqueNonEmptyPath $OriginalUserDataPaths
+} else {
+  Resolve-DefaultUserDataPaths
+}
+$tempPaths = if ($OriginalTempPaths.Count -gt 0) {
+  Select-UniqueNonEmptyPath $OriginalTempPaths
+} else {
+  Resolve-DefaultTempPaths
+}
+$shortcutPaths = if ($OriginalShortcutPaths.Count -gt 0) {
+  Select-UniqueNonEmptyPath $OriginalShortcutPaths
+} else {
+  Resolve-DefaultShortcutPaths
+}
 
 if ($RemoveUserData) {
   foreach ($path in $appDataPaths) {
@@ -215,18 +311,28 @@ if ($RemoveTemp) {
 }
 
 if ($RemoveRegistry) {
-  $registryKeys = @(
-    "HKCU:\Software\FrameLean\FrameLean",
-    "HKCU:\Software\FrameLean",
+  $userRegistryRoots = @('HKCU:')
+  if (-not [string]::IsNullOrWhiteSpace($OriginalUserRegistryRoot)) {
+    $userRegistryRoots += $OriginalUserRegistryRoot
+  }
+
+  $registryKeys = @()
+  foreach ($root in ($userRegistryRoots | Select-Object -Unique)) {
+    $registryKeys += @(
+      "$root\Software\FrameLean\FrameLean",
+      "$root\Software\FrameLean",
+      "$root\Software\Microsoft\Windows\CurrentVersion\Uninstall\FrameLean_is1",
+      "$root\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($AppId)_is1"
+    )
+  }
+  $registryKeys += @(
     "HKLM:\Software\FrameLean\FrameLean",
     "HKLM:\Software\FrameLean",
-    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\FrameLean_is1",
-    "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($AppId)_is1",
     "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\FrameLean_is1",
     "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\$($AppId)_is1"
   )
 
-  foreach ($registryKey in $registryKeys) {
+  foreach ($registryKey in ($registryKeys | Select-Object -Unique)) {
     Remove-OwnedRegistryKey -Path $registryKey
   }
 }

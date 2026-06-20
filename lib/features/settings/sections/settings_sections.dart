@@ -252,15 +252,12 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         ),
         const SizedBox(height: 14),
         _AboutIconLinks(onOpenLink: widget.onOpenExternalLink ?? (_) async {}),
-        const SizedBox(height: 34),
-        Wrap(
-          spacing: 22,
-          runSpacing: 12,
+        const SizedBox(height: 30),
+        _AboutActionCluster(
+          label: '更新',
           children: [
             _UpdateMaintenanceButton(
               state: widget.updateState,
-              color: colors.primary,
-              foregroundColor: colors.onPrimary,
               onCheckUpdate: widget.onCheckUpdate,
               onStartOrResumeDownload: widget.onStartOrResumeUpdateDownload,
               onPauseDownload: widget.onPauseUpdateDownload,
@@ -268,21 +265,25 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
             ),
             _MaintenanceButton(
               label: '版本日志',
-              color: colors.statusPending,
-              foregroundColor: colors.onWarning,
+              icon: Icons.article_outlined,
               onPressed: widget.onOpenReleaseNotes,
             ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _AboutActionCluster(
+          label: '维护',
+          children: [
             _MaintenanceButton(
               label: clearingCache ? '正在清理' : '清空应用缓存',
-              color: colors.statusRunning,
-              foregroundColor: colors.onWarning,
+              icon: Icons.cleaning_services_outlined,
               onPressed: clearingCache ? null : confirmClearAppCache,
             ),
             if (showUninstall)
               _MaintenanceButton(
                 label: uninstalling ? '正在准备' : '卸载应用',
-                color: colors.statusFailed,
-                foregroundColor: colors.onDanger,
+                icon: Icons.delete_outline_rounded,
+                destructive: true,
                 onPressed: uninstalling ? null : confirmUninstallApp,
               ),
           ],

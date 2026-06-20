@@ -129,37 +129,71 @@ class _AboutIconButton extends StatelessWidget {
   }
 }
 
-class _MaintenanceButton extends StatelessWidget {
-  const _MaintenanceButton({
-    required this.label,
-    required this.color,
-    required this.foregroundColor,
-    required this.onPressed,
-  });
+class _AboutActionCluster extends StatelessWidget {
+  const _AboutActionCluster({required this.label, required this.children});
 
   final String label;
-  final Color color;
-  final Color foregroundColor;
-  final VoidCallback? onPressed;
+  final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            color: colors.textTertiary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(spacing: 10, runSpacing: 10, children: children),
+      ],
+    );
+  }
+}
+
+class _MaintenanceButton extends StatelessWidget {
+  const _MaintenanceButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+    this.destructive = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final foregroundColor = destructive
+        ? colors.statusFailed
+        : colors.textPrimary;
+    final borderColor = destructive
+        ? colors.statusFailed.withAlpha(150)
+        : colors.border;
+
     return SizedBox(
-      width: 122,
-      height: 28,
-      child: FilledButton(
-        style: FilledButton.styleFrom(
-          backgroundColor: color,
+      width: 134,
+      height: 32,
+      child: OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(
           foregroundColor: foregroundColor,
-          disabledBackgroundColor: colors.surfaceDisabled,
           disabledForegroundColor: colors.textTertiary,
-          padding: EdgeInsets.zero,
+          side: BorderSide(color: borderColor),
+          padding: const EdgeInsets.symmetric(horizontal: 11),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
         onPressed: onPressed,
-        child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+        icon: Icon(icon, size: 16),
+        label: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
       ),
     );
   }
@@ -168,8 +202,6 @@ class _MaintenanceButton extends StatelessWidget {
 class _UpdateMaintenanceButton extends StatelessWidget {
   const _UpdateMaintenanceButton({
     required this.state,
-    required this.color,
-    required this.foregroundColor,
     required this.onCheckUpdate,
     required this.onStartOrResumeDownload,
     required this.onPauseDownload,
@@ -177,8 +209,6 @@ class _UpdateMaintenanceButton extends StatelessWidget {
   });
 
   final AppUpdateState state;
-  final Color color;
-  final Color foregroundColor;
   final Future<void> Function()? onCheckUpdate;
   final Future<void> Function()? onStartOrResumeDownload;
   final VoidCallback? onPauseDownload;
@@ -195,12 +225,12 @@ class _UpdateMaintenanceButton extends StatelessWidget {
         state.status == AppUpdateStatus.downloaded;
 
     return SizedBox(
-      width: 122,
-      height: 28,
+      width: 134,
+      height: 32,
       child: FilledButton(
         style: FilledButton.styleFrom(
-          backgroundColor: color,
-          foregroundColor: foregroundColor,
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
           disabledBackgroundColor: colors.surfaceDisabled,
           disabledForegroundColor: colors.textTertiary,
           padding: EdgeInsets.zero,
@@ -209,31 +239,27 @@ class _UpdateMaintenanceButton extends StatelessWidget {
         ),
         onPressed: onPressed,
         child: showProgress
-            ? ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: FractionallySizedBox(
-                        widthFactor: state.progress.clamp(0, 1),
-                        child: ColoredBox(
-                          color: colors.primarySoft.withAlpha(120),
+            ? SizedBox.expand(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: FractionallySizedBox(
+                          widthFactor: state.progress.clamp(0, 1),
+                          child: ColoredBox(
+                            color: colors.primarySoft.withAlpha(120),
+                          ),
                         ),
                       ),
-                    ),
-                    Center(
-                      child: Text(
-                        label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                      _UpdateButtonContent(label: label),
+                    ],
+                  ),
                 ),
               )
-            : Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            : _UpdateButtonContent(label: label),
       ),
     );
   }
@@ -286,6 +312,29 @@ class _UpdateMaintenanceButton extends StatelessWidget {
                 unawaited(onCheckUpdate!());
               },
     };
+  }
+}
+
+class _UpdateButtonContent extends StatelessWidget {
+  const _UpdateButtonContent({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.system_update_alt_rounded, size: 16),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ),
+        ],
+      ),
+    );
   }
 }
 

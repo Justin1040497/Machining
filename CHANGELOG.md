@@ -58,6 +58,7 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - macOS 桌面插件集成改为保留 CocoaPods `Podfile` / `Podfile.lock` 和 Runner workspace Pods 引用，用于窗口管理和托盘插件。
 - Windows 自托管自动更新平台改为 `windows-installer`，`windows-x64` ZIP 调整为手动下载 / 后台留存包。
 - FFmpeg 许可证、源码获取、第三方声明和内置运行时说明补充 libvpx、SVT-AV1、WebM、AVI、MPEG-4 Part 2、MJPEG、VP9、AV1 能力。
+- 设置页关于分区动作区改为“更新 / 维护”两组，除检查更新外统一使用中性描边按钮，降低按钮颜色噪音。
 
 ### Fixed
 
@@ -68,11 +69,13 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 修复设置页分区动作被表单布局遗漏导致保存 / 取消按钮不可见的问题。
 - 修复图片 fallback 结果在无 preflight 兼容路径下没有清理无效输出文件的问题。
 - 修复 macOS release 脚本、CI 和文档仍按 v1.2.0 SwiftPM-only 口径描述的问题，当前统一为 CocoaPods 插件集成。
+- 修复 Windows 彻底卸载脚本在 UAC 后可能清理到管理员用户目录的问题，提权前会解析原用户数据、临时目录、快捷方式和用户注册表根并传给 elevated 脚本。
 
 ### Verified
 
 - 通过 `rtk dart format lib test tool`。
 - 通过 `rtk flutter analyze`。
+- 通过 `rtk flutter test test/app_settings_page_test.dart`。
 - 通过 `rtk flutter test --concurrency=1 test/app_notification_manager_test.dart test/app_settings_page_test.dart test/app_settings_save_coordinator_test.dart test/drift_app_settings_repository_test.dart test/output_preflight_service_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_task_queue_runner_test.dart test/media_task_use_case_helpers_test.dart test/media_task_notifier_test.dart test/widget_test.dart test/workbench_bottom_bar_test.dart`，共 205 项定向回归。
 - 通过 `flutter test`，共 358 项测试。
 - 通过 `cd server/admin-web && npm run build`。
