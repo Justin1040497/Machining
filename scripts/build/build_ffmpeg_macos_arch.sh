@@ -90,17 +90,17 @@ tar -xf "libvpx-${LIBVPX_VERSION}.tar.gz"
 
 cd "$SRC_DIR/libvpx-${LIBVPX_VERSION}"
 make clean >/dev/null 2>&1 || true
-./configure \
-  --prefix="$PREFIX" \
-  --target="${ARCH}-darwin-gcc" \
-  --disable-shared \
-  --enable-static \
-  --disable-examples \
-  --disable-tools \
-  --disable-unit-tests \
-  --disable-docs \
-  --extra-cflags="$ARCH_FLAGS" \
-  --extra-ldflags="$ARCH_FLAGS"
+CFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
+  ./configure \
+    --prefix="$PREFIX" \
+    --target="${ARCH}-darwin-gcc" \
+    --disable-shared \
+    --enable-static \
+    --disable-examples \
+    --disable-tools \
+    --disable-unit-tests \
+    --disable-docs \
+    --extra-cflags="$ARCH_FLAGS"
 make -j"$JOBS"
 make install
 

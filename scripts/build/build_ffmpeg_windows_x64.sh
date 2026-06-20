@@ -263,7 +263,7 @@ done
 echo "Checking for unexpected DLL dependencies:"
 for binary_name in ffmpeg.exe ffprobe.exe; do
   dlls="$(objdump -p "$OUT_DIR/$binary_name" | grep "DLL Name" || true)"
-  if echo "$dlls" | grep -vE '(KERNEL32|ADVAPI32|SHELL32|ole32|OLEAUT32|USER32|WS2_32|GDI32|COMCTL32|COMCTL32|SETUPAPI|bcrypt|PSAPI|WINMM|Secur32|IPHLPAPI|POWRPROF|CFGMGR32|D3D9|DXVA2|MF|MFPlat|MFReadWrite|SHLWAPI|AVICAP32|VERSION|UxTheme|d3d11|dxgi)' | grep -q "DLL Name"; then
+  if echo "$dlls" | grep -vE '(KERNEL32|ADVAPI32|SHELL32|ole32|OLEAUT32|USER32|WS2_32|GDI32|COMCTL32|SETUPAPI|bcrypt|PSAPI|WINMM|Secur32|IPHLPAPI|POWRPROF|CFGMGR32|D3D9|DXVA2|MF|MFPlat|MFReadWrite|SHLWAPI|AVICAP32|VERSION|UxTheme|d3d11|dxgi)' | grep -q "DLL Name"; then
     echo "error: $binary_name has unexpected DLL dependencies" >&2
     echo "$dlls" >&2
     exit 1
