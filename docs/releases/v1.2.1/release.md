@@ -8,7 +8,7 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 
 ## 主要变更
 
-- 自托管更新进入客户端主流程：设置关于栏、工作台顶部入口、通知中心、版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS 版本日志 + DMG 下载到下载目录和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
+- 自托管更新进入客户端主流程：设置关于栏、工作台顶部入口、通知中心、版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS 版本日志 + DMG 下载到应用私有目录、下载状态持久化和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
 - 任务夹批量工作流进入工作台：批量导入按媒体类型自动建夹，任务夹支持持久化、夹级配置、左侧夹内任务面板、夹内排序、拖入 / 移出、重命名、清空、批量开始 / 暂停 / 重试和聚合日志。
 - 执行队列改为受控并行：应用设置保存最大并行任务数，队列按工作台、任务夹、单任务三种执行语义调度，并通过资源守卫按设备状态降级实际执行位。
 - 输出链路增加隐藏 partial 保护：FFmpeg 写入同目录 `.framelean-*.partial*`，成功后发布到最终路径；应用启动会清理中断输出，运行中发现 partial 被删除或移动会尽快失败并给出明确提示。
@@ -41,7 +41,7 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 - 数据库 schema version 从 v1.2.0 的 23 升级到 29，新增任务夹、任务策略标签、并行上限、文件夹扫描深度、输出体积、通知策略、快捷键和关闭行为字段。
 - 旧视频兼容列继续写入，`media_config_json` 仍是新媒体配置主字段；回滚到 v1.2.0 前应恢复数据库备份。
 - macOS 发布链当前依赖 CocoaPods `Podfile`、`Podfile.lock` 和 Runner workspace Pods 引用；DMG 脚本会校验 Universal FFmpeg、运行时和法律资料布局。
-- Windows 更新自动安装覆盖 `windows-installer` 当前用户安装器链路；macOS 更新默认通过 JSON latest / ticket 检查和下载 DMG，保存到用户下载目录后由用户手动安装。
+- Windows 更新自动安装覆盖 `windows-installer` 当前用户安装器链路；macOS 更新默认通过 JSON latest / ticket 检查和下载 DMG，保存到应用私有目录后由用户手动安装；下载状态持久化到本地 JSON，重启后自动恢复。
 
 ## 发布产物
 

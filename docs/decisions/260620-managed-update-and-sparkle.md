@@ -11,7 +11,7 @@
 - 普通用户可写配置文件视为不可信并忽略；隐藏文件只用于减少误触，不作为安全边界。
 - Windows 自动更新平台为 `windows-installer`，便携 `windows-x64` ZIP 只作为手动下载和后台留存包。
 - Windows 下载包在 SHA-256 后进行 Ed25519 验签；受信任公钥由发布构建内置，托管配置只能选择 key id。
-- macOS 默认不走 Sparkle 自动更新。Flutter 使用与 Windows 相同的 JSON latest / ticket 协议发现 `macos-universal2`，展示版本日志，下载 DMG 到用户下载目录，并打开 DMG 所在位置由用户手动安装。
+- macOS 默认不走 Sparkle 自动更新。Flutter 使用与 Windows 相同的 JSON latest / ticket 协议发现 `macos-universal2`，展示版本日志，下载 DMG 到应用私有目录，并打开 DMG 所在位置由用户手动安装。下载状态持久化到本地 JSON，重启后如 DMG 仍在且 SHA-256 校验通过则自动恢复已下载状态。
 - Sparkle 2 代码和服务端 `/api/v1/sparkle/*` 作为未来可选路线保留；只有构建显式启用 `FRAMELEAN_USE_SPARKLE_UPDATES=true` 且产物具备 Sparkle 签名时才进入 appcast 路线。
 
 ## 影响

@@ -46,7 +46,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + CocoaPods plugin integration + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；桌面插件通过 `macos/Podfile` 和 Runner workspace 集成 |
-| macOS 更新 | JSON latest / ticket + Downloads DMG；Sparkle 2 可选保留 | 已使用 | 默认检查更新后展示版本日志，下载 `macos-universal2` DMG 到用户下载目录并打开所在位置；Sparkle appcast 仅在显式启用并提供签名时使用 |
+| macOS 更新 | JSON latest / ticket + 应用私有目录 DMG；Sparkle 2 可选保留 | 已使用 | 默认检查更新后展示版本日志，下载 `macos-universal2` DMG 到应用私有目录并打开所在位置，下载状态持久化到本地 JSON 以支持重启恢复；Sparkle appcast 仅在显式启用并提供签名时使用 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 

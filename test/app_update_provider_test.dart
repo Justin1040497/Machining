@@ -8,6 +8,7 @@ import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_update/app_update_client.dart';
+import 'package:framelean/application/services/app_update/app_update_download_state_store.dart';
 import 'package:framelean/application/services/app_update/app_update_install_id_store.dart';
 import 'package:framelean/application/services/app_update/app_update_package_downloader.dart';
 import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
@@ -23,6 +24,8 @@ import 'package:framelean/domain/value_objects/app_update_package_info.dart';
 import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test(
     'automatic check exposes available update and upserts notification',
     () async {
@@ -131,7 +134,7 @@ void main() {
     ]);
     expect(fixture.launcher.requests, isEmpty);
     expect(fixture.restartPreparation.calls, 0);
-    expect(fixture.notifications.notifications.single.title, 'DMG 已下载到下载目录');
+    expect(fixture.notifications.notifications.single.title, 'DMG 已下载');
   });
 
   test(
@@ -169,10 +172,12 @@ AppUpdateFixture appUpdateFixture({
   String platform = 'windows-installer',
   AppReleaseInfo release = testRelease,
   String downloadedFilePath = '/tmp/FrameLean-v1.2.2-setup.exe',
+  FakeAppUpdateDownloadStateStore? downloadStateStore,
 }) {
   final client = FakeAppUpdateClient(release);
   final downloader = FakeAppUpdatePackageDownloader(downloadedFilePath);
   final installIdStore = const FakeAppUpdateInstallIdStore();
+  final stateStore = downloadStateStore ?? FakeAppUpdateDownloadStateStore();
   final restartPreparation = RecordingRestartPreparation();
   final launcher = FakeUpdaterHelperLauncher(restartPreparation);
   final revealer = FakeFileRevealer();
@@ -186,6 +191,7 @@ AppUpdateFixture appUpdateFixture({
       appUpdateClientProvider.overrideWithValue(client),
       appUpdateDownloaderProvider.overrideWithValue(downloader),
       appUpdateInstallIdStoreProvider.overrideWithValue(installIdStore),
+      appUpdateDownloadStateStoreProvider.overrideWithValue(stateStore),
       updaterHelperLauncherProvider.overrideWithValue(launcher),
       fileRevealerProvider.overrideWithValue(revealer),
       updateRestartPreparationProvider.overrideWithValue(
@@ -422,6 +428,23 @@ class FakeSparkleUpdateController implements SparkleUpdateController {
       automaticChecksEnabled: config.allowAutomaticChecks,
       appcastUrl: config.macosAppcastUrl,
     );
+  }
+}
+
+class FakeAppUpdateDownloadStateStore implements AppUpdateDownloadStateStore {
+  PersistedDownloadState? _state;
+
+  @override
+  Future<PersistedDownloadState?> load() async => _state;
+
+  @override
+  Future<void> save(PersistedDownloadState state) async {
+    _state = state;
+  }
+
+  @override
+  Future<void> clear() async {
+    _state = null;
   }
 }
 

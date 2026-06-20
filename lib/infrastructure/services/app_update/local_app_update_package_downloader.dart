@@ -168,17 +168,6 @@ class LocalAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
       return provider(version: version, platform: platform);
     }
 
-    if (platform == 'macos-universal2' && Platform.isMacOS) {
-      final downloads = await getDownloadsDirectory();
-      if (downloads != null) {
-        return downloads;
-      }
-      final home = Platform.environment['HOME']?.trim();
-      if (home != null && home.isNotEmpty) {
-        return Directory(p.join(home, 'Downloads'));
-      }
-    }
-
     final directory = await supportDirectoryProvider();
     return Directory(p.join(directory.path, 'updates', version, platform));
   }

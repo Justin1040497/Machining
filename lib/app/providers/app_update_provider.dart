@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/services/app_update/app_update_client.dart';
+import 'package:framelean/application/services/app_update/app_update_download_state_store.dart';
 import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
 import 'package:framelean/application/services/app_update/app_update_install_id_store.dart';
 import 'package:framelean/application/services/app_update/app_update_package_downloader.dart';
@@ -18,6 +20,7 @@ import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/infrastructure/services/app_update/cryptography_release_signature_verifier.dart';
 import 'package:framelean/infrastructure/services/app_update/enterprise_aware_app_update_client.dart';
+import 'package:framelean/infrastructure/services/app_update/local_app_update_download_state_store.dart';
 import 'package:framelean/infrastructure/services/app_update/local_app_update_install_id_store.dart';
 import 'package:framelean/infrastructure/services/app_update/local_app_update_package_downloader.dart';
 import 'package:framelean/infrastructure/services/app_update/local_enterprise_update_config_store.dart';
@@ -116,6 +119,11 @@ final appUpdateInstallIdStoreProvider = Provider<AppUpdateInstallIdStore>((
   return const LocalAppUpdateInstallIdStore();
 });
 
+final appUpdateDownloadStateStoreProvider =
+    Provider<AppUpdateDownloadStateStore>((ref) {
+      return const LocalAppUpdateDownloadStateStore();
+    });
+
 final updaterHelperLauncherProvider = Provider<UpdaterHelperLauncher>((ref) {
   return const LocalUpdaterHelperLauncher();
 });
@@ -164,6 +172,9 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
   @override
   Future<AppUpdateState> build() async {
     await ref.read(enterpriseUpdateConfigCacheProvider).load();
+
+    final restored = await _tryRestorePersistedDownload();
+
     if (!_autoCheckStarted) {
       _autoCheckStarted = true;
       scheduleMicrotask(() {
@@ -173,7 +184,40 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
     ref.onDispose(() {
       _downloadCancellationToken?.cancel();
     });
-    return AppUpdateState.initial();
+    return restored ?? AppUpdateState.initial();
+  }
+
+  Future<AppUpdateState?> _tryRestorePersistedDownload() async {
+    final store = ref.read(appUpdateDownloadStateStoreProvider);
+    final persisted = await store.load();
+    if (persisted == null) {
+      return null;
+    }
+
+    final file = File(persisted.filePath);
+    if (!await file.exists()) {
+      await store.clear();
+      return null;
+    }
+
+    try {
+      final digest = await sha256.bind(file.openRead()).first;
+      final actual = digest.toString().toLowerCase();
+      if (actual != persisted.release.package.sha256.toLowerCase()) {
+        await store.clear();
+        return null;
+      }
+    } on Object {
+      await store.clear();
+      return null;
+    }
+
+    return AppUpdateState(
+      status: AppUpdateStatus.downloaded,
+      release: persisted.release,
+      progress: 1,
+      downloadedFilePath: persisted.filePath,
+    );
   }
 
   Future<void> checkForUpdate({bool automatic = false}) async {
@@ -205,6 +249,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           );
 
       if (!result.updateAvailable || result.release == null) {
+        await ref.read(appUpdateDownloadStateStoreProvider).clear();
         state = AsyncData(
           AppUpdateState(
             status: AppUpdateStatus.idle,
@@ -221,6 +266,13 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
               );
         }
         return;
+      }
+
+      // Clear persisted state if the new version differs from the
+      // previously downloaded one.
+      if (current.downloadedFilePath != null &&
+          current.release?.version != result.release!.version) {
+        await ref.read(appUpdateDownloadStateStoreProvider).clear();
       }
 
       final nextState = AppUpdateState(
@@ -347,6 +399,12 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           downloadedFilePath: result.filePath,
         ),
       );
+      await ref.read(appUpdateDownloadStateStoreProvider).save(
+            PersistedDownloadState(
+              release: release,
+              filePath: result.filePath,
+            ),
+          );
       await ref
           .read(appNotificationManagerProvider)
           .updateUpdateNotification(
@@ -463,7 +521,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           .updateUpdateNotification(
             release: release,
             status: AppUpdateStatus.downloaded,
-            title: 'DMG 已下载到下载目录',
+            title: 'DMG 已下载',
             level: AppNotificationLevel.success,
           );
       return;

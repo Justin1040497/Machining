@@ -16,7 +16,7 @@ FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windo
 - 版本日志页面读取服务端发布日志列表；当服务端列表为空但当前检查结果带有日志时，回退展示当前更新的日志。macOS 当前更新版本会在日志页底部显示下载 / 打开 DMG 操作区。
 - Windows 下载使用短期 ticket 解析出的 COS 预签名 URL。只有正确的 `206` / `Content-Range` 才会追加 partial；服务端忽略 Range 时覆盖写入，长度、SHA-256 或 Ed25519 校验失败时删除损坏包。
 - Windows 自动安装由随包 `FrameLeanUpdaterHelper.exe` 执行；重启前统一暂停任务、终止 FFmpeg 并清理 partial，helper 再静默安装、核对注册表和 EXE build number、重启新版本。
-- macOS 默认不触发 Sparkle MethodChannel。检查更新使用 JSON latest，下载使用 ticket / COS 预签名 URL，DMG 保存到用户下载目录，点击 `打开 DMG` 时定位该文件，由用户手动挂载和安装。
+- macOS 默认不触发 Sparkle MethodChannel。检查更新使用 JSON latest，下载使用 ticket / COS 预签名 URL，DMG 保存到应用私有目录，点击 `打开 DMG` 时定位该文件，由用户手动挂载和安装。下载状态持久化到本地 JSON，重启后如 DMG 仍在且 SHA-256 校验通过则自动恢复已下载状态，不需要重新下载。
 
 ## 平台边界
 
@@ -39,8 +39,8 @@ FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windo
 
 ## 验证范围
 
-- `appUpdateProvider` 状态机：Windows 自动检查、发现更新、ticket 下载、下载完成和 helper 启动；macOS 自动检查、发现更新、ticket 下载、保存到下载目录和打开 DMG 所在位置。
+- `appUpdateProvider` 状态机：Windows 自动检查、发现更新、ticket 下载、下载完成和 helper 启动；macOS 自动检查、发现更新、ticket 下载、保存到应用私有目录、打开 DMG 所在位置和重启后恢复已下载状态。
 - 设置页、通知中心、工作台顶部入口和版本日志弹窗的状态展示。
 - 断点续传、下载暂停、SHA-256 / Ed25519 校验失败和 helper 启动失败提示。
 - Windows 干净环境覆盖安装、退出码、安装后版本确认和重启应用。
-- macOS 手动 DMG 下载、下载目录写入、版本日志页操作区和打开 DMG 所在位置。Sparkle appcast 只验证“有签名才输出 item”的兼容行为。
+- macOS 手动 DMG 下载、应用私有目录写入、版本日志页操作区、打开 DMG 所在位置和重启后恢复已下载状态。Sparkle appcast 只验证”有签名才输出 item”的兼容行为。
