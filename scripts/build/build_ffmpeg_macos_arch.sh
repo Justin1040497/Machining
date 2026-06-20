@@ -92,7 +92,6 @@ cd "$SRC_DIR/libvpx-${LIBVPX_VERSION}"
 make clean >/dev/null 2>&1 || true
 ./configure \
     --prefix="$PREFIX" \
-    --target="${ARCH}-darwin19-gcc" \
     --disable-shared \
     --enable-static \
     --disable-examples \
@@ -120,6 +119,7 @@ cmake \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
   -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DBUILD_SHARED_LIBS=OFF \
   -DBUILD_APPS=OFF \
   -DBUILD_TESTING=OFF
