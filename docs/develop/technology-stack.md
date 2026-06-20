@@ -29,21 +29,23 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过 `/settings` 全屏页面打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 24 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 29 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
 | 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
 | 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |
 | 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片、音频和部分专有音频输入扩展名会进入任务流程 |
 | 专有音频输入 | Dart 原生 NCM + 外部 QMC 适配器 | 已使用 | NCM 使用本地 Dart 解密；MGG / MFLAC 等 QMC 输入通过适配器或 `qmc-decrypt` 预处理 |
-| 文件选择 | file_selector | 已使用 | 底部导入按钮选择本地文件 |
+| 文件选择 | file_selector + file_picker | 已使用 | `file_selector` 继续用于常规文件 / 文件夹 / 输出目录选择；`file_picker` 用于 macOS 同一对话框多选文件和文件夹 |
+| 快捷键 | hotkey_manager | 已使用 | 注册应用内快捷键并提供快捷键录入能力，避免依赖页面焦点树 |
 | 桌面拖拽 | desktop_drop | 已使用 | 工作台拖入文件创建任务 |
 | UI 动画 | flutter_animate | 已使用 | 工作台右上角通知的进入 / 退出动画，并作为后续动效基础 |
 | 任务完成音效 | Flutter assets + audioplayers | 已使用 | 内置 WAV 资源打包到 `assets/sounds/`，通过 Flutter 音频插件播放，不启动 PowerShell |
+| 桌面窗口生命周期 | window_manager + tray_manager | 已使用 | 拦截窗口关闭，按设置退出或最小化到后台；Windows 使用托盘恢复，macOS 通过 Dock 重新打开窗口 |
 | 响应式尺寸 | flutter_screenutil | 已使用 | 工作台和主题文本使用桌面基准尺寸，小窗口可缩小，4K / 大窗口可在上限内放大 |
 | 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
-| macOS 打包 | Flutter macOS + Swift Package Manager + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；macOS 插件原生依赖走 SwiftPM，不保留 CocoaPods 工程集成 |
+| macOS 打包 | Flutter macOS + CocoaPods plugin integration + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；桌面插件通过 `macos/Podfile` 和 Runner workspace 集成 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
@@ -61,11 +63,15 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `path_provider` | `^2.1.5` | 获取应用支持目录 |
 | `path` | `^1.9.1` | 跨平台路径拼接和规范化 |
 | `args` | `^2.7.0` | 命令参数工具依赖，目前保留在项目依赖中 |
-| `file_selector` | `^1.1.0` | 桌面文件选择 |
+| `file_selector` | `^1.1.0` | 桌面文件、文件夹、输出目录和可执行文件选择 |
+| `file_picker` | `^11.0.2` | macOS 文件和文件夹混合多选导入 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
 | `flutter_animate` | `^4.5.2` | 声明式 UI 动画，当前用于工作台通知浮层 |
 | `flutter_screenutil` | `^5.9.3` | 桌面 UI 文本和尺寸适配 |
 | `audioplayers` | `^6.7.1` | 播放内置任务完成提示音 |
+| `window_manager` | `^0.5.1` | 桌面窗口关闭拦截、隐藏、显示和销毁 |
+| `tray_manager` | `^0.2.4` | Windows 后台运行时的托盘图标和菜单 |
+| `hotkey_manager` | `^0.2.3` | 应用内快捷键注册与快捷键录入 |
 | `pointycastle` | `^4.0.0` | NCM 专有音频输入的本地加密/解密算法支持 |
 | `crypto` | `^3.0.6` | 自托管更新包 SHA-256 校验 |
 
@@ -143,7 +149,7 @@ third_party/
 | 环境 | 说明 |
 | --- | --- |
 | Flutter SDK | 需要满足 Dart SDK `^3.11.0` |
-| macOS 开发 | 需要 Xcode Command Line Tools；Release CI 使用 Flutter stable 并显式启用 Swift Package Manager；构建内置 FFmpeg 时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
+| macOS 开发 | 需要 Xcode Command Line Tools 和 CocoaPods；Release CI 使用 Flutter stable 并显式关闭 Swift Package Manager；构建内置 FFmpeg 时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
 | Windows 开发 | 需要 Visual Studio C++ 桌面构建工具和 Flutter Windows 桌面支持 |
 | FFmpeg / FFprobe | 开发运行可使用 custom、bundled、known system 或 PATH 中的工具；发布包应包含内置运行时 |
 
@@ -234,23 +240,25 @@ ffmpeg -hide_banner -encoders
 
 | 平台 | 自动优先级 |
 | --- | --- |
-| macOS | 默认 VideoToolbox，然后回退到 `libx264` / `libx265`；Apple HDR / HVC1 / 10-bit MOV 等高风险源会优先走可用的软件编码 |
-| Windows | NVENC、Quick Sync、AMF，然后回退到 `libx264` / `libx265` |
+| macOS | 默认 VideoToolbox，然后回退到 `libx264` / `libx265` / `libvpx-vp9` / `libsvtav1` / `prores_ks` / 原生 `mpeg4` / `mjpeg`；Apple HDR / HVC1 / 10-bit MOV 等高风险源会优先走可用的软件编码 |
+| Windows | NVENC、Quick Sync、AMF，然后按编码回退到 `libx264` / `libx265` / `libvpx-vp9` / `libsvtav1` / `prores_ks` / 原生 `mpeg4` / `mjpeg` |
 | Linux | 当前没有额外硬件优先级，默认软件编码 |
 
 支持的编码器名称：
 
 | 类型 | 编码器 |
 | --- | --- |
-| 软件编码 | `libx264`、`libx265` |
+| 软件编码 | `libx264`、`libx265`、`libvpx-vp9`、`libsvtav1`、`prores_ks`、`mpeg4`、`mjpeg` |
 | macOS 硬件编码 | `h264_videotoolbox`、`hevc_videotoolbox` |
-| NVIDIA | `h264_nvenc`、`hevc_nvenc` |
-| Intel Quick Sync | `h264_qsv`、`hevc_qsv` |
-| AMD AMF | `h264_amf`、`hevc_amf` |
+| NVIDIA | `h264_nvenc`、`hevc_nvenc`、`av1_nvenc` |
+| Intel Quick Sync | `h264_qsv`、`hevc_qsv`、`vp9_qsv`、`av1_qsv` |
+| AMD AMF | `h264_amf`、`hevc_amf`、`av1_amf` |
 | 图片编码 | `libwebp` |
 | 音频编码 | `libmp3lame`、`aac`、`aac_at`、`libopus`、`pcm_s16le`、`flac`、`pcm_s16be`、`wmav2` |
 
 图片和音频输出命令按目标格式推导编码器；其中 WebP 依赖 `libwebp`，MP3 依赖 `libmp3lame`，Opus / Ogg Opus 依赖 `libopus`。如果当前 FFmpeg 缺少目标格式对应的编码器，命令规划会在启动 FFmpeg 前失败并给出可读提示。
+
+视频容器和编码器按固定兼容矩阵筛选：MP4 支持 H.264 / HEVC / AV1，MOV 支持 H.264 / HEVC / ProRes，MKV 支持 H.264 / HEVC / VP9 / AV1 / ProRes，WebM 支持 VP9 / AV1，AVI 仅支持 MPEG-4 Part 2 / MJPEG。AVI 只作为传统播放器兼容路径，不承载 HEVC、VP9、AV1 或 ProRes。
 
 视频色彩处理规则：
 
@@ -307,7 +315,7 @@ FrameLean.app/Contents/Resources/legal/
 
 当前 macOS FFmpeg build phase 只读取 `macos-universal`。`scripts/release/build_dmg_macos.sh` 会在打包前验证 Universal FFmpeg，显式构建 Release app，扫描包内全部 Mach-O 文件均包含 x86_64 / arm64，再进入签名、公证和 DMG 生成步骤。
 
-macOS Flutter 插件原生依赖使用 Swift Package Manager。仓库中的 `macos/` 工程不保留 `Podfile`、`Podfile.lock`、`Pods.xcodeproj` workspace 引用、`Pods-Runner` xcconfig include 或 `[CP]` Build Phase。GitHub Actions 会显式执行 `flutter config --enable-swift-package-manager`，`scripts/release/build_dmg_macos.sh` 也会在构建前后拦截 CocoaPods 残留并强制 UTF-8 locale，避免 release runner 回落到 `pod install`。
+macOS Flutter 插件原生依赖通过 CocoaPods 集成。仓库保留 `macos/Podfile`、`macos/Podfile.lock` 和 Runner workspace 的 Pods 引用，用于 `window_manager`、`tray_manager` 等桌面插件注册；`pubspec.yaml` 在 `flutter.config` 中固定 `enable-swift-package-manager: false`，CI 也显式执行 `flutter config --no-enable-swift-package-manager`。`scripts/release/build_dmg_macos.sh` 在构建前后验证 CocoaPods 工程引用、Universal FFmpeg、UTF-8 locale、release app 内运行时和法律资料布局。
 
 ### Windows
 
@@ -370,7 +378,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 音频 | `.mp3`、`.wav`、`.aac`、`.flac`、`.m4a`、`.ogg`、`.oga`、`.opus`、`.weba`、`.aiff`、`.aif`、`.aifc`、`.wma`、`.amr`、`.ape`、`.alac`、`.caf`、`.au`、`.wv`、`.tta` |
 | 专有音频输入 | `.ncm`、`.mgg`、`.mgg0`、`.mgg1`、`.mggl`、`.mflac`、`.mflac0`、`.qmcflac` |
 
-工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、分类型配置面板、处理执行和通用完成弹窗。
+工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、分类型配置面板、处理执行、任务项完成入口和通知中心结果回看。
 
 专有音频输入只作为导入格式，不进入 `MediaOutputFormat` 输出列表。`.ncm` 由 `NativeNcmAudioDecoder` 使用 Dart + `pointycastle` 在本地还原为临时 MP3 / FLAC；`.mgg`、`.mflac` 等 QMC 变体通过 `framelean-qmc-adapter` 或直接放置的 `qmc-decrypt` 外部运行时处理，再交给 FFprobe / FFmpeg 走标准音频链路。
 

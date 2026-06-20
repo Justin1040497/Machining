@@ -29,6 +29,51 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-20｜v1.2.1｜No Release
+
+今天继续收口 v1.2.1 桌面体验：输出运行时保护、任务 / 任务夹输出位置、现代视频容器矩阵、通知策略、快捷键系统和关闭到后台行为完成第一轮实现，并同步 FFmpeg 法律资料、macOS CocoaPods 发布链和 v1.2.1 release 文档。
+
+### Added
+
+- 新增隐藏 partial 输出保护：FFmpeg 先写入同目录隐藏临时文件，成功后原子发布到最终路径；运行中检测到 partial 连续消失会立即终止任务并提示临时输出被删除或移动。
+- 新增应用启动 interrupted output 清理：异常退出后清理遗留 `.framelean-*.partial*`，并把仍处于运行 / 暂停态的任务标记为失败。
+- 新增 `OutputLocationMode`，任务夹主区域和单任务高级设置都可选择“使用系统设置 / 源文件旁 / 自定义目录”，系统模式在执行时读取最新应用设置。
+- 新增视频输出兼容矩阵：MP4、MOV、MKV、WebM、AVI 容器分别限制可用编码，AVI 定位为传统兼容格式，仅支持 MPEG-4 Part 2 和 MJPEG。
+- 新增 VP9、AV1、ProRes、MPEG-4 Part 2、MJPEG 编码规划，以及 WebM / AVI 输出命令构建、能力检测和发布检查。
+- 新增通知策略设置，可按事件选择“通知 / 临时通知 / 不通知”；普通交互和保存成功默认临时通知，任务结果、更新和重要失败默认持久通知。
+- 新增快捷键系统与设置页重映射：Esc 返回 / 关闭顶层界面，F 添加文件或文件夹，Space 开始 / 暂停，主修饰键 + `,` 打开设置，主修饰键 + Shift + N 打开通知中心。
+- 新增窗口关闭行为设置：默认关闭到后台，Windows 使用托盘恢复 / 退出，macOS 通过 Dock 重新打开窗口；显式退出时会确认运行任务并清理 partial 输出。
+
+### Changed
+
+- FFmpeg 命令规划支持把执行输出路径替换为 partial 路径，同时保留任务最终输出路径；发布前会再次规避外部重名，避免覆盖用户文件。
+- 视频格式转换继续优先安全流复制；不兼容时按目标容器自动选择保真转码参数，透明视频仍强制 MOV + ProRes 4444，不提供 AVI。
+- 压缩配置中“推荐方案选项 / 自定义目标体积”切换改为 240ms 尺寸交叉动画，降低弹窗高度跳变。
+- 任务夹设置顶部摘要右侧图标区改为受约束拉伸，跟随摘要高度对齐。
+- 快捷键注册改为基于 `hotkey_manager` 的应用内热键，不再依赖页面焦点树；快捷键录入继续复用应用弹窗风格。
+- 工作台左下角添加入口改为统一批次导入；macOS 通过原生选择器支持同一对话框多选文件和文件夹，Windows 保留文件多选和拖拽文件夹能力。
+- macOS 桌面插件集成改为保留 CocoaPods `Podfile` / `Podfile.lock` 和 Runner workspace Pods 引用，用于窗口管理和托盘插件。
+- FFmpeg 许可证、源码获取、第三方声明和内置运行时说明补充 libvpx、SVT-AV1、WebM、AVI、MPEG-4 Part 2、MJPEG、VP9、AV1 能力。
+
+### Fixed
+
+- 修复用户在任务运行中删除正在写入的目标文件时，进度仍继续跑到结尾才报错的问题；现在任务会在 partial 丢失后尽快失败并清理状态。
+- 修复旧任务空输出目录语义不清的问题：旧空路径迁移为“源文件旁”，新任务默认使用系统设置。
+- 修复任务结果、设置保存和普通交互通知无法区分持久 / 临时投递的问题。
+- 修复任务设置和通知设置中的下拉框高度过矮、通知投递方式未垂直居中，以及快捷键录入时 Esc 误退出整个设置页的问题。
+- 修复设置页分区动作被表单布局遗漏导致保存 / 取消按钮不可见的问题。
+- 修复图片 fallback 结果在无 preflight 兼容路径下没有清理无效输出文件的问题。
+- 修复 macOS release 脚本、CI 和文档仍按 v1.2.0 SwiftPM-only 口径描述的问题，当前统一为 CocoaPods 插件集成。
+
+### Verified
+
+- 通过 `rtk dart format lib test tool`。
+- 通过 `rtk flutter analyze`。
+- 通过 `rtk flutter test --concurrency=1 test/app_notification_manager_test.dart test/app_settings_page_test.dart test/app_settings_save_coordinator_test.dart test/drift_app_settings_repository_test.dart test/output_preflight_service_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_task_queue_runner_test.dart test/media_task_use_case_helpers_test.dart test/media_task_notifier_test.dart test/widget_test.dart test/workbench_bottom_bar_test.dart`，共 205 项定向回归。
+- 通过 `rtk flutter test`，共 354 项测试。
+- 通过 `rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh` 和 `rtk bash -n scripts/release/build_dmg_macos.sh`。
+- 通过 `rtk git diff --check`。
+
 ## 2026-06-19｜v1.2.1｜No Release
 
 今天收口工作台任务夹拖拽、任务夹交互和受控并行队列，并重构执行作用域、批次导入分组、媒体处理意图和任务夹配置摘要。

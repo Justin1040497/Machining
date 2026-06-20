@@ -4,7 +4,7 @@
 
 这份文档记录 FrameLean 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
 
-当前版本持久化本地任务列表、任务夹、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
+当前版本持久化本地任务列表、任务夹、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图、隐藏 partial 输出文件和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
 
 ## 数据库总览
 
@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `26`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `29`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -103,9 +103,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| `output_format` | text | 否 | 无 | `outputFormat` | 输出封装格式：`mp4`、`mov`、`mkv` |
-| `video_codec` | text | 否 | 无 | `videoCodec` | 目标视频编码：`source`、`h264`、`hevc` |
-| `encoder_backend` | text | 否 | 无 | `encoderBackend` | 编码器实现：`auto`、`libx264`、`libx265`、`videotoolbox`、`nvenc`、`qsv`、`amf` |
+| `output_format` | text | 否 | 无 | `outputFormat` | 输出封装格式：`mp4`、`mov`、`mkv`、`webm`、`avi` |
+| `video_codec` | text | 否 | 无 | `videoCodec` | 目标视频编码：`source`、`h264`、`hevc`、`vp9`、`av1`、`proRes`、`mpeg4`、`mjpeg` |
+| `encoder_backend` | text | 否 | 无 | `encoderBackend` | 编码器实现：`auto`、`libx264`、`libx265`、`libvpxVp9`、`libsvtav1`、`proresKs`、`nativeMpeg4`、`nativeMjpeg`、`videotoolbox`、`nvenc`、`qsv`、`amf` |
 | `resolution_preset` | text | 否 | 无 | `resolutionPreset` | 输出分辨率：原始、2160p、1080p、720p、480p |
 | `output_directory` | text | 否 | 无 | `outputDirectory` | 输出目录；空字符串表示跟随源文件目录 |
 | `compression_crf` | integer | 否 | `28` | `compressionCrf` | 推荐方案和普通压缩的 CRF 基准值 |
@@ -134,8 +134,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | JSON 字段 | 说明 |
 | --- | --- |
-| `configVersion` | 当前为 `1` |
-| `outputDirectory` / `outputFileName` | 通用输出目录和文件名 |
+| `configVersion` | 当前为 `2` |
+| `outputLocationMode` | 输出位置模式：`system` 表示执行时读取最新系统设置，`source` 表示源文件旁，`custom` 表示使用 `outputDirectory` |
+| `outputDirectory` / `outputFileName` | 通用自定义输出目录和文件名；旧 JSON 缺少 `outputLocationMode` 时，空目录迁移为 `source`，非空目录迁移为 `custom` |
 | `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
 | `video` | 视频格式、是否保持源格式、编码器、后端、HDR 输出模式、HDR 开启前的编码恢复值、分辨率、CRF、元数据保留开关和旧推荐预设 |
 | `image` | 图片格式、是否保持源格式、无损压缩开关、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
@@ -246,6 +247,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `task_completion_sound` | text | 否 | `clean_success` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
 | `max_concurrent_executions` | integer | 否 | `2` | `maxConcurrentExecutions` | 用户期望的最大并行任务数，领域层归一化到 1 到 3；实际运行并发还会由资源守卫按 CPU、内存和运行任务类型降级 |
 | `folder_import_scan_depth` | integer | 否 | `2` | `folderImportScanDepth` | 文件夹导入递归扫描深度，领域层归一化到 0 到 5；层级越深，导入前遍历时间越长 |
+| `notification_policies_json` | text | 否 | `{}` | `notificationPolicies` | 按 `NotificationEventType` 保存通知投递策略；缺失事件按领域默认补齐 |
+| `shortcut_bindings_json` | text | 否 | `{}` | `shortcutBindings` | 按 `AppShortcutAction` 保存快捷键绑定；缺失动作按默认快捷键补齐 |
+| `close_behavior` | text | 否 | `background` | `closeBehavior` | 点击窗口关闭时的行为：`background` 最小化到后台，`quit` 退出应用 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -381,6 +385,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 24 | 给 `app_notifications` 增加 `dedupe_key`，并为非空去重键创建唯一索引 |
 | 25 | 新增 `task_folders` 表；给 `tasks` 增加 `folder_id`、`folder_sort_order` 和 `policy_tags_json` |
 | 26 | 给 `settings` 增加 `max_concurrent_executions`，持久化受控并行执行上限 |
+| 27 | 给 `settings` 增加 `folder_import_scan_depth`；给 `tasks` 增加 `analysis_audio_streams_json`；给 `task_folders` 增加 `default_purpose` |
+| 28 | 给 `tasks` 增加 `output_file_size`，记录成功完成后的最终输出体积 |
+| 29 | 给 `settings` 增加 `notification_policies_json`、`shortcut_bindings_json` 和 `close_behavior`，持久化通知策略、快捷键和关闭行为 |
 
 ## 修改数据模型的约束
 

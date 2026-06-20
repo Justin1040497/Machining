@@ -128,6 +128,8 @@ docs/
 
 - `FrameLeanApp`：创建 `MaterialApp.router`，配置主题、字体、按钮圆角和图标尺寸。
 - `appRouter`：使用 GoRouter。当前 `/` 指向 `WorkbenchPage`，`/settings` 指向全屏应用设置页。
+- 根级快捷键：`Esc` 固定关闭最上层界面或返回，工作台根页面无操作；工作台注册用户可配置快捷键用于添加文件、开始 / 暂停、打开设置和打开通知中心。
+- 桌面生命周期：`main.dart` 初始化 `window_manager`，`FrameLeanApp` 拦截关闭事件并按 `AppSettings.closeBehavior` 退出或隐藏窗口；Windows 通过 `tray_manager` 提供托盘恢复 / 退出，macOS 通过 Dock 重新打开隐藏窗口。
 - `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏。任务成功 / 失败临时通知保持短摘要，完整结果详情由通知中心展示。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
@@ -168,7 +170,7 @@ Use Cases：
 - `ApplyOutputSettingsToExistingTasksUseCase`：只更新等待中、失败和已取消任务的输出目录与文件名，不覆盖媒体处理配置。
 - `AppSettingsSaveCoordinator`：协调设置保存后的主题缓存、运行时刷新、输出配置回填和通知记录；调用方必须传入设置保存目标，避免保存链路丢失“哪个分区触发”的业务语义。
 - `AppSettingsSaveTarget`：设置保存的结构化事件类型。应用设置、视频 / 图片 / 音频默认任务配置、输出配置和编码器配置拥有各自通知标题；只有输出配置保存会刷新非运行状态任务，任务默认配置只影响后续导入。
-- `AppNotificationManager`：统一记录应用通知，先写入持久化仓储，再向根级通知 Host 发出展示事件；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
+- `AppNotificationManager`：统一投递应用通知，按 `NotificationEventType` 读取 `AppSettings.notificationPolicies` 决定持久通知、临时通知或不通知；设置保存等跨页面异步操作通过它记录成功或失败结果。通知标题应由事件发起方提供真实业务语义，而不是由 Toast 根据泛化文案推断。
 - `AppNotificationManager` 还提供类型化任务完成 / 失败通知，并通过持久化 `payload_json` 保存成果物路径、源 / 输出体积、耗时和失败建议等动作数据；任务通知标题直接表达任务成功或失败，通知中心正文展示完整结果摘要。
 - `AppNotificationManager.notifyInteraction()` 只发出临时浮层，不写入通知仓储、不进入通知中心、不影响未读角标，用于分析中点击等即时交互反馈。
 - `AppNotificationManager` 提供 update 通知 upsert 能力，版本更新通知通过 `dedupeKey` 保证一个版本只在通知中心保留一条记录。
@@ -382,7 +384,9 @@ main()
 主要规则：
 
 - `MediaKind.video` 继续走完整视频规划链路，保留现有压缩、转封装、硬件编码、目标体积和预览片段行为。
+- 视频容器和编码按 `VideoOutputCompatibility` 矩阵过滤：MP4 支持 H.264 / HEVC / AV1，MOV 支持 H.264 / HEVC / ProRes，MKV 支持 H.264 / HEVC / VP9 / AV1 / ProRes，WebM 支持 VP9 / AV1，AVI 只支持 MPEG-4 Part 2 / MJPEG。
 - 透明视频会根据 `videoPixelFormat` 自动进入透明保留策略：输出固定为 MOV + `prores_ks` ProRes 4444，像素格式为 `yuva444p10le`，目标体积和预设只作为尽力压缩意图。
+- 执行前 `OutputPreflightService` 会把每个公开 `outputPath` 替换为同目录隐藏 `workingOutputPath` 写入 FFmpeg 参数；任务仍保存最终路径，成功后发布 working 文件，失败 / 取消 / 异常退出时清理 partial。执行器每 250ms 监测 working 文件是否被外部删除，连续两次消失会终止任务。
 - `MediaKind.image` 压缩任务使用 `ProgressMode.step`，先按源图片格式生成候选输出；候选不小于源文件时清理候选并进入 WebP / JPG fallback。透明图片优先 WebP，非透明图片优先 WebP，缺少 `libwebp` 时非透明图可以降级 JPG，透明图不会降级 JPG。
 - 图片无损压缩限定 PNG、WebP 和 TIFF：WebP 使用 `-lossless 1`，TIFF 使用 Deflate；无损模式不会降级到 JPG，格式转换用途不应用压缩用途的无损开关。
 - `FfmpegCommandStep.completionPolicy` 决定步骤结束后的行为：视频两遍压缩保持总是继续；图片首轮可以在变小时提前完成，fallback 仍无效时任务失败并写入原因。

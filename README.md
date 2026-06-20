@@ -7,7 +7,7 @@
 
 FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具，基于 Flutter、FFmpeg / FFprobe、Riverpod等技术构建。可以处理常用的视频、图片、音频等媒体任务，对齐进行压缩、格式转换，让用户不用手写 FFmpeg 命令也能处理本地媒体文件。
 
-FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后执行 FFmpeg 任务。图片和音频已进入同一任务模型，支持导入、分析、分类型配置、基础输出处理和完成结果展示。
+FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文件信息，选择推荐方案或自定义目标体积，配置编码、分辨率和输出格式，然后执行 FFmpeg 任务。图片和音频已进入同一任务模型，支持导入、分析、分类型配置、基础输出处理、任务夹批量管理和完成结果展示。
 
 完整变更记录见 [CHANGELOG.md](CHANGELOG.md)。
 
@@ -43,25 +43,27 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
   - 13 种图片格式（JPG/JPEG、PNG、WebP、GIF、BMP、TIF/TIFF、HEIC/HEIF、AVIF、ICO、TGA）
   - 20 种音频格式（MP3、WAV、AAC、FLAC、M4A、OGG/OGA、Opus、WEBM、AIFF/AIF/AIFC、WMA、AMR、APE、ALAC、CAF、AU、WV、TTA），以及 NCM、MGG、MFLAC 等专有音频格式。
 
-- 视频任务支持缩略图、预览帧、推荐方案、自定义目标体积、输出封装（MP4 / MOV / MKV）、视频编码（H.264 / H.265 / HEVC）、编码处理器（ libx264 / libx265 / VideoToolbox / NVENC / QSV / AMF）和分辨率配置（保持原始 / 2160p / 1080p / 720p / 480p）。
+- 视频任务支持缩略图、预览帧、推荐方案、自定义目标体积、输出封装（MP4 / MOV / MKV / WebM / AVI）、视频编码（H.264 / HEVC / VP9 / AV1 / ProRes / MPEG-4 Part 2 / MJPEG）、编码处理器（libx264 / libx265 / libvpx-vp9 / libsvtav1 / prores_ks / VideoToolbox / NVENC / QSV / AMF）和分辨率配置（保持原始 / 2160p / 1080p / 720p / 480p）。
 - 图片任务支持输出格式、分辨率、质量，支持 JPEG、PNG、WebP、BMP、TIFF、GIF 等输出方向。
 - 音频任务支持输出格式、码率、采样率、声道，支持 MP3、M4A/AAC、WAV、FLAC、AIFF、WMA、Opus、Ogg Opus 等输出方向。
 - NCM 输入使用本地 Dart 解密适配；MGG、MFLAC 等 QMC 变体通过外部适配器或直接放置的 `qmc-decrypt` 运行时接入。
-- 串行执行任务队列，支持开始、暂停、继续、取消、删除、重试等操作。
-- 任务列表支持拖拽排序，并将顺序持久化到本地 SQLite。
+- 支持受控并行任务队列，底部开始会按总列表顺序连续执行，任务夹开始只执行夹内任务，单任务开始可插队并在执行位满时暂停最早运行者。
+- 批量导入会按媒体类型自动创建任务夹；任务和任务夹支持拖拽排序、夹内任务排序、拖入同类型任务夹和从任务夹移回总列表，并将顺序持久化到本地 SQLite。
 - 应用重启后从本地 SQLite 恢复任务、设置、默认媒体配置和主题偏好。
 - 源文件丢失或变更后提示重新指定或重新分析。
 - 内置或自动查找 FFmpeg / FFprobe，并检测当前运行时可用的视频、图片和音频编码器。
 - 工作台支持深浅主题切换；启动前读取已保存主题，避免打开后从浅色闪到深色。
-- 应用通知中心：工作台右上角统一入口，未读角标、右向左滑入浮层、按类型展示、批量已读和清扫全部通知。
+- 应用通知中心：工作台右上角统一入口，未读角标、右向左滑入浮层、按类型展示、批量已读和清扫全部通知；通知策略可按事件选择通知、临时通知或不通知。
+- 自托管更新客户端已接入主流程：应用启动自动静默检查一次，设置页关于栏可手动检查、下载和重启更新，工作台顶部在存在更新或下载中时保留入口。
 - 输出文件名模板：支持 `{source}`、`{date}`、`{action}`、`{codec}`、`{encoder}`、`{version}` 变量，输入框自由编辑，右侧常用模板菜单快速切换。
+- 运行中的 FFmpeg 输出先写入同目录隐藏 `.framelean-*.partial.*` 文件，成功后发布到最终路径；取消、失败、异常退出和启动恢复会清理未发布输出。
 - HDR10 / HLG 视频自动通过 `zscale + tonemap` 转 SDR；保持 HDR 输出限定为 HEVC Main10，Dolby Vision Profile 5 风险拦截。
 
 ## 怎么用
 
 1. 打开 FrameLean，按需进入左下角设置页面配置默认媒体格式、输出路径和通知偏好。
-2. 将媒体文件拖入窗口，或使用导入按钮选择本地文件。
-3. 在任务列表中选择任务，查看源文件信息、缩略图或媒体摘要。
+2. 将媒体文件或文件夹拖入窗口，或使用导入按钮选择本地文件和文件夹。
+3. 在任务列表中选择任务或任务夹，查看源文件信息、缩略图、媒体摘要或夹级批量配置。
 4. 打开任务详情设置，按媒体类型调整配置：
    - 推荐方案选项：选择均衡推荐、微信发送、清晰优先或体积优先。
    - 自定义目标体积：通过比例滑杆选择希望接近的输出体积。
@@ -69,9 +71,9 @@ FrameLean 当前仍以视频压缩链路最完整：导入视频，分析源文�
    - 音频任务：配置格式、码率、采样率和声道。
 5. 按需调整输出格式、编码相关选项、输出目录和输出文件名。
 6. 点击开始处理，任务进入本地 FFmpeg 队列。
-7. 处理完成后，在完成弹窗或任务信息中打开输出文件所在位置。
+7. 处理完成后，通过任务项尾部入口、临时通知或通知中心打开输出文件所在位置。
 
-如果任务失败，可以查看任务状态和错误提示后重试。若源文件被移动或删除，应用会将任务标记为源文件丢失，需要重新指定文件，如果您想处理的媒体不被支持，可以多多提Issues，作者很需要你的建议！🤗
+如果任务失败，可以查看任务状态、通知中心详情或任务日志后重试。若源文件被移动或删除，应用会将任务标记为源文件丢失，需要重新指定文件。如果你想处理的媒体不被支持，可以提交 Issue 反馈。
 
 ## 开发环境
 
@@ -176,12 +178,12 @@ scripts/build/build_ffmpeg_macos_arch.sh x86_64
 scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
-脚本会构建 zimg、FFmpeg 7.1.1、x264、LAME、libwebp 和 Opus，合并为
+脚本会构建 zimg、FFmpeg 7.1.1、x264、LAME、libwebp、Opus、libvpx 和 SVT-AV1，合并为
 Universal 2 运行时，并检查：
 
 - 没有 Homebrew 动态库依赖。
 - `ffmpeg` / `ffprobe` 同时包含 `x86_64` 和 `arm64`。
-- `libx264`、`libmp3lame`、`libwebp`、`libopus` 等能力可用。
+- `libx264`、`libmp3lame`、`libwebp`、`libopus`、`libvpx-vp9`、`libsvtav1`、`prores_ks`、`mpeg4`、`mjpeg` 和常用 muxer 能力可用。
 
 必须存在的运行时路径：
 
@@ -206,7 +208,7 @@ Release app 和 DMG 位置：
 
 ```text
 build/macos/Build/Products/Release/FrameLean.app
-build/macos/Build/Products/Release/FrameLean-v1.2.0.dmg
+build/macos/Build/Products/Release/FrameLean-v1.2.1.dmg
 ```
 
 验证 app 内置 FFmpeg 和法律资料：
@@ -243,8 +245,8 @@ Release 产物位置：
 
 ```text
 build/windows/x64/runner/Release/
-build/windows/x64/runner/FrameLean-v1.2.0-windows-x64.zip
-build/windows/x64/installer/FrameLean-v1.2.0-windows-x64-setup.exe
+build/windows/x64/runner/FrameLean-v1.2.1-windows-x64.zip
+build/windows/x64/installer/FrameLean-v1.2.1-windows-x64-setup.exe
 ```
 
 Windows CMake 会把运行时复制到：
@@ -254,7 +256,7 @@ build/windows/x64/runner/Release/ffmpeg/
 ```
 
 Windows zip 文件名会读取 `pubspec.yaml` 的语义化版本，解压后顶层目录应为
-`FrameLean-v1.2.0-windows-x64/`。如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，
+`FrameLean-v1.2.1-windows-x64/`。如果 `ffmpeg.exe` 或 `ffprobe.exe` 不存在，
 Windows Release 构建会失败，避免产出缺少内置运行时的发布包。
 
 发布脚本会从 Visual Studio 的 x64 Redistributable 目录复制
@@ -326,7 +328,7 @@ ffmpeg -hide_banner -encoders
 macOS 自动选择优先级：
 
 ```text
-VideoToolbox -> libx264 / libx265
+VideoToolbox -> libx264 / libx265 / libvpx-vp9 / libsvtav1 / prores_ks / mpeg4 / mjpeg
 ```
 
 HDR / HVC1 / 10-bit 等高危源优先使用软件编码，显式选择 VideoToolbox 时仍尊重用户选择。
@@ -334,7 +336,7 @@ HDR / HVC1 / 10-bit 等高危源优先使用软件编码，显式选择 VideoToo
 Windows 自动选择优先级：
 
 ```text
-NVIDIA NVENC -> Intel Quick Sync -> AMD AMF -> libx264 / libx265
+NVIDIA NVENC -> Intel Quick Sync -> AMD AMF -> libx264 / libx265 / libvpx-vp9 / libsvtav1 / prores_ks / mpeg4 / mjpeg
 ```
 
 ## 项目结构
@@ -359,9 +361,10 @@ lib/
   -> FFprobe 分析媒体信息
   -> 生成缩略图和预览素材
   -> 根据任务配置构造 FFmpeg 命令
+  -> 输出 preflight 创建隐藏 partial 并改写执行输出路径
   -> 队列启动 FFmpeg 进程
   -> 解析进度并写回任务状态
-  -> 完成后记录输出路径或失败信息
+  -> 完成后发布到最终路径并记录结果，失败或取消时清理未发布输出
 ```
 
 更多架构说明见 [docs/develop/architecture.md](docs/develop/architecture.md)。
@@ -375,7 +378,7 @@ lib/
 - [docs/work/active.md](docs/work/active.md)：当前正在推进的任务。
 - [docs/work/backlog.md](docs/work/backlog.md)：候选任务池。
 - [docs/work/decisions.md](docs/work/decisions.md)：仍有效的重要决策索引。
-- [docs/releases/v1.2.0/release.md](docs/releases/v1.2.0/release.md)：当前发布说明。
+- [docs/releases/v1.2.1/release.md](docs/releases/v1.2.1/release.md)：当前发布说明。
 - [docs/develop/architecture.md](docs/develop/architecture.md)：项目架构和模块边界。
 - [docs/develop/technology-stack.md](docs/develop/technology-stack.md)：技术栈、依赖和平台范围。
 - [docs/develop/data-model.md](docs/develop/data-model.md)：数据库 schema、任务模型和设置模型。
@@ -392,10 +395,10 @@ FrameLean 项目整体按 `GPL-3.0-or-later` 分发。根目录保留 `LICENSE` 
 - [LICENSE](LICENSE)：GNU General Public License v3 正文。
 - [legal/NOTICE.md](legal/NOTICE.md)：项目版权、无担保和运行时声明。
 - [legal/COPYING](legal/COPYING)：项目 GPLv3+ 分发入口说明。
-- [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、LAME、libwebp、Opus、Flutter/Dart 依赖声明。
+- [legal/THIRD_PARTY_NOTICES.md](legal/THIRD_PARTY_NOTICES.md)：FFmpeg、x264、LAME、libwebp、Opus、libvpx、SVT-AV1、Flutter/Dart 依赖声明。
 - [legal/SOURCE_OFFER.md](legal/SOURCE_OFFER.md)：源码可得性和 FFmpeg 构建信息。
 - [legal/third-party/](legal/third-party)：第三方运行时和依赖资料。
 
-项目当前内置 FFmpeg + x264 + LAME + libwebp + Opus 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264、LAME、libwebp、Opus 等依赖归各自原项目维护，FrameLean 只调用并随应用分发相应运行时。
+项目当前内置 FFmpeg + x264 + LAME + libwebp + Opus + libvpx + SVT-AV1 构建路线。包含该运行时的发布包需要遵守对应 FFmpeg 构建的 GPLv3+ 许可要求。FFmpeg、x264、LAME、libwebp、Opus、libvpx、SVT-AV1 等依赖归各自原项目维护，FrameLean 只调用并随应用分发相应运行时。
 
 详细说明见 [docs/reference/ffmpeg-license-distribution.md](docs/reference/ffmpeg-license-distribution.md)。
