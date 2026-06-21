@@ -1,3 +1,4 @@
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/hdr_output_mode.dart';
@@ -287,7 +288,7 @@ int? normalizeThreadLimit(int? value) {
   if (value == null) {
     return null;
   }
-  return value.clamp(1, 8);
+  return value.clamp(minThreadCount, maxThreadCount);
 }
 
 MediaOutputFormat? mediaOutputFormatFromVideoOutput(OutputFormat? format) {

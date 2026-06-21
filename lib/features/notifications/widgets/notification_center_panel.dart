@@ -12,6 +12,7 @@ import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
+import 'package:framelean/app/constants.dart';
 
 class NotificationCenterPanel extends ConsumerStatefulWidget {
   const NotificationCenterPanel({
@@ -49,8 +50,8 @@ class _NotificationCenterPanelState
     super.initState();
     animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 240),
-      reverseDuration: const Duration(milliseconds: 190),
+      duration: expandCollapseTransition,
+      reverseDuration: reverseTransition,
       value: widget.visible ? 1 : 0,
     );
     barrierAnimation = CurvedAnimation(

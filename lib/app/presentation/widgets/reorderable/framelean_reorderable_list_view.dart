@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ItemExtentBuilder;
 
 import 'src/framelean_reorderable_list_core.dart';
+import 'package:framelean/app/constants.dart';
 
 export 'src/framelean_reorderable_list_core.dart'
     show
@@ -46,8 +47,8 @@ class FrameLeanReorderableListView extends StatefulWidget {
     this.prototypeItem,
     this.proxyDecorator,
     this.acceptedDropProxyDecorator,
-    this.proxyAnimationDuration = const Duration(milliseconds: 250),
-    this.dropAnimationDuration = const Duration(milliseconds: 250),
+    this.proxyAnimationDuration = reorderAnimation,
+    this.dropAnimationDuration = reorderAnimation,
     this.allowCrossAxisDrag = false,
     this.buildDefaultDragHandles = true,
     this.padding,
@@ -89,8 +90,8 @@ class FrameLeanReorderableListView extends StatefulWidget {
     this.prototypeItem,
     this.proxyDecorator,
     this.acceptedDropProxyDecorator,
-    this.proxyAnimationDuration = const Duration(milliseconds: 250),
-    this.dropAnimationDuration = const Duration(milliseconds: 250),
+    this.proxyAnimationDuration = reorderAnimation,
+    this.dropAnimationDuration = reorderAnimation,
     this.allowCrossAxisDrag = false,
     this.buildDefaultDragHandles = true,
     this.padding,

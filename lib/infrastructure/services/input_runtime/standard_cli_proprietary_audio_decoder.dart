@@ -5,6 +5,7 @@ import 'package:framelean/application/services/input_runtime/proprietary_audio_a
 import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
 import 'package:framelean/domain/value_objects/proprietary_audio_decode_result.dart';
 import 'package:path/path.dart' as path;
+import 'package:framelean/app/constants.dart';
 
 class StandardCliProprietaryAudioDecoder implements ProprietaryAudioDecoder {
   static const supportedDecodedExtensions = {
@@ -22,7 +23,7 @@ class StandardCliProprietaryAudioDecoder implements ProprietaryAudioDecoder {
   processRunner;
 
   const StandardCliProprietaryAudioDecoder({
-    this.timeout = const Duration(minutes: 2),
+    this.timeout = audioDecoderTimeout,
     this.processRunner,
   });
 

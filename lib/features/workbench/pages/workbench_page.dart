@@ -9,6 +9,7 @@ import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
 import 'package:framelean/app/presentation/widgets/update_restart_warning_dialog.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/app/shortcuts/app_hotkey_adapter.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
@@ -1178,7 +1179,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             .notifyInteraction(
               title: '正在分析，请稍等',
               message: task.fileName,
-              source: 'workbench',
+              source: notificationSourceWorkbench,
             ),
       );
       return;
@@ -2117,7 +2118,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           .notify(
             level: notificationLevelForWorkbenchMessage(message),
             title: message,
-            source: 'workbench',
+            source: notificationSourceWorkbench,
             action: action == null
                 ? null
                 : AppNotificationAction(

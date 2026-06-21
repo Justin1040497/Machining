@@ -6,6 +6,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/app/constants.dart';
 
 class AppNotificationNotice extends StatelessWidget {
   const AppNotificationNotice({
@@ -200,7 +201,7 @@ class _NoticeCardState extends State<_NoticeCard> {
                               ],
                               const SizedBox(width: 5),
                               AnimatedOpacity(
-                                duration: const Duration(milliseconds: 120),
+                                duration: fastTransition,
                                 opacity: hovered ? 1 : 0.48,
                                 child: _NoticeCloseButton(
                                   onPressed: widget.onDismissed,

@@ -26,6 +26,7 @@ import 'package:framelean/infrastructure/services/app_update/local_app_update_pa
 import 'package:framelean/infrastructure/services/app_update/local_enterprise_update_config_store.dart';
 import 'package:framelean/infrastructure/services/app_update/local_updater_helper_launcher.dart';
 import 'package:framelean/infrastructure/services/app_update/method_channel_sparkle_update_controller.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
@@ -44,16 +45,12 @@ final updateRestartPreparationProvider = Provider<UpdateRestartPreparation>((
 
 const _defaultUpdateChannel = String.fromEnvironment(
   'FRAMELEAN_UPDATE_CHANNEL',
-  defaultValue: 'stable',
+  defaultValue: defaultUpdateChannelKey,
 );
 const _useSparkleUpdates = bool.fromEnvironment(
   'FRAMELEAN_USE_SPARKLE_UPDATES',
   defaultValue: false,
 );
-const _windowsInstallerPlatform = 'windows-installer';
-const _macosUpdatePlatform = 'macos-universal2';
-const _linuxUpdatePlatform = 'linux-x64';
-
 final enterpriseUpdateConfigStoreProvider =
     Provider<EnterpriseUpdateConfigStore>((ref) {
       return const LocalEnterpriseUpdateConfigStore();
@@ -92,7 +89,7 @@ final currentUpdatePlatformProvider = Provider<String>((ref) {
 });
 
 final isManualMacosUpdateProvider = Provider<bool>((ref) {
-  return ref.watch(currentUpdatePlatformProvider) == _macosUpdatePlatform &&
+  return ref.watch(currentUpdatePlatformProvider) == macosUpdatePlatform &&
       !ref.watch(useSparkleUpdateProvider);
 });
 
@@ -262,7 +259,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
               .notify(
                 level: AppNotificationLevel.success,
                 title: '已是最新版本',
-                source: 'update',
+                source: notificationSourceUpdate,
               );
         }
         return;
@@ -338,7 +335,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
               level: AppNotificationLevel.error,
               title: '检查更新失败',
               message: message,
-              source: 'update',
+              source: notificationSourceUpdate,
             );
       }
     }
@@ -469,7 +466,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
             level: AppNotificationLevel.error,
             title: '更新下载失败',
             message: error.toString(),
-            source: 'update',
+            source: notificationSourceUpdate,
           );
     } finally {
       if (identical(_downloadCancellationToken, cancellationToken)) {
@@ -501,7 +498,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
       return;
     }
 
-    if (release.platform == _macosUpdatePlatform) {
+    if (release.platform == macosUpdatePlatform) {
       await _revealDownloadedMacosDmg(current, release, installerPath);
       return;
     }
@@ -531,7 +528,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
             level: AppNotificationLevel.error,
             title: '启动更新助手失败',
             message: error.toString(),
-            source: 'update',
+            source: notificationSourceUpdate,
           );
     }
   }
@@ -574,7 +571,7 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           level: AppNotificationLevel.error,
           title: '打开 DMG 失败',
           message: message,
-          source: 'update',
+          source: notificationSourceUpdate,
         );
   }
 
@@ -632,7 +629,7 @@ EnterpriseUpdateConfig _withResolvedMacosAppcastUrl(
   return config.copyWith(
     macosAppcastUrl: base
         .replace(
-          path: '$basePath/api/v1/sparkle/appcast',
+          path: '$basePath$sparkleAppcastApiPath',
           queryParameters: {'channel': channel},
         )
         .toString(),
@@ -641,13 +638,13 @@ EnterpriseUpdateConfig _withResolvedMacosAppcastUrl(
 
 String _currentUpdatePlatform() {
   if (Platform.isWindows) {
-    return _windowsInstallerPlatform;
+    return windowsUpdatePlatform;
   }
   if (Platform.isMacOS) {
-    return _macosUpdatePlatform;
+    return macosUpdatePlatform;
   }
   if (Platform.isLinux) {
-    return _linuxUpdatePlatform;
+    return linuxUpdatePlatform;
   }
-  return 'unknown';
+  return unknownUpdatePlatform;
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
@@ -143,7 +144,7 @@ class AppNotificationManager {
       level: AppNotificationLevel.warning,
       title: '有 ${release.version} 更新',
       message: release.releaseNotesSummary,
-      source: 'update',
+      source: notificationSourceUpdate,
       dedupeKey: release.notificationDedupeKey,
       payloadJson: payload.toJson(),
       eventType: NotificationEventType.updateAvailable,
@@ -165,7 +166,7 @@ class AppNotificationManager {
       level: level,
       title: title,
       message: release.releaseNotesSummary,
-      source: 'update',
+      source: notificationSourceUpdate,
       dedupeKey: release.notificationDedupeKey,
       payloadJson: payload.toJson(),
       eventType: status == AppUpdateStatus.failed
@@ -193,7 +194,7 @@ class AppNotificationManager {
       level: AppNotificationLevel.success,
       title: '任务成功',
       message: _taskSuccessMessage(task, summary),
-      source: 'task',
+      source: notificationSourceTask,
       payloadJson: payload.toJson(),
       eventType: NotificationEventType.taskCompleted,
     );
@@ -225,7 +226,7 @@ class AppNotificationManager {
         reason: reason,
         suggestion: suggestion,
       ),
-      source: 'task',
+      source: notificationSourceTask,
       payloadJson: payload.toJson(),
       eventType: NotificationEventType.taskFailed,
     );

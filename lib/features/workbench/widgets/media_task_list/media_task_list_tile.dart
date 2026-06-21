@@ -12,6 +12,7 @@ import 'package:framelean/features/workbench/widgets/media_task_list/media_task_
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
 import 'package:path/path.dart' as path;
+import 'package:framelean/app/constants.dart';
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;
@@ -76,7 +77,7 @@ class MediaTaskListTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         onSecondaryTapDown: onSecondaryTapDown,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
+          duration: fastTransition,
           height: 86,
           decoration: BoxDecoration(
             color: colors.surface,
@@ -171,7 +172,7 @@ class MediaTaskListTile extends StatelessWidget {
           return AnimatedFractionallySizedBox(
             alignment: Alignment.centerLeft,
             widthFactor: progress,
-            duration: const Duration(milliseconds: 500),
+            duration: debounceInterval,
             curve: Curves.easeOutCubic,
             child: Container(
               decoration: BoxDecoration(
@@ -362,7 +363,7 @@ class _MaybeTooltip extends StatelessWidget {
 
     return Tooltip(
       message: message,
-      waitDuration: const Duration(milliseconds: 500),
+      waitDuration: debounceInterval,
       child: child,
     );
   }

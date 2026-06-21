@@ -1,3 +1,4 @@
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/infrastructure/database/app_notifications.dart';
 import 'package:framelean/infrastructure/database/settings.dart';
 import 'package:framelean/infrastructure/database/task_folders.dart';
@@ -421,7 +422,7 @@ QueryExecutor openConnection() {
     final directory = await getApplicationSupportDirectory();
 
     /// 拼接系统目录和数据库文件名
-    final databasePath = join(directory.path, 'framelean.sqlite');
+    final databasePath = join(directory.path, databaseFileName);
     final file = File(databasePath);
 
     /// 返回一个数据库 如果没有则创建一个

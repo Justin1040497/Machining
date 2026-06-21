@@ -1,3 +1,4 @@
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/output_format.dart';
@@ -64,7 +65,7 @@ class VideoTaskConfig {
       encoderBackend: EncoderBackend.auto,
       resolutionPreset: ResolutionPreset.original,
       outputDirectory: '',
-      compressionCrf: 28,
+      compressionCrf: defaultCompressionCrf,
       compressionMode: CompressionMode.preset,
       smartPreset: SmartCompressionPreset.balanced,
       targetSizeBytes: null,

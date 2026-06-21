@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
 import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
@@ -99,7 +100,7 @@ Future<Directory> createDefaultTemporaryDirectory(
   return Directory(
     path.join(
       Directory.systemTemp.path,
-      'framelean',
+      tempDirPrefix,
       'audio-adapters',
       '${timestamp}_${format.adapterId}_$safeTaskId',
     ),

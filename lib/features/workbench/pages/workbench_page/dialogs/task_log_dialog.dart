@@ -10,6 +10,7 @@ import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 
@@ -27,7 +28,7 @@ class TaskLogDialog extends ConsumerStatefulWidget {
     super.key,
     required this.task,
     required this.logStore,
-    this.pollInterval = const Duration(milliseconds: 500),
+    this.pollInterval = debounceInterval,
   });
 
   @override
@@ -450,7 +451,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
         .notify(
           level: AppNotificationLevel.success,
           title: '日志已复制到剪贴板',
-          source: 'workbench',
+          source: notificationSourceWorkbench,
         );
   }
 }

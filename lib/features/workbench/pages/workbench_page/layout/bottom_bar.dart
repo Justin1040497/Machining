@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/constants.dart';
 
 class WorkbenchBottomBar extends StatelessWidget {
   const WorkbenchBottomBar({
@@ -160,7 +161,7 @@ class _DockIconButtonContent extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 140),
+        duration: hoverTransition,
         curve: Curves.easeOutCubic,
         width: 36,
         height: 36,

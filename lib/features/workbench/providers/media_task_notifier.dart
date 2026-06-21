@@ -26,6 +26,7 @@ import 'package:framelean/application/services/execution/ffmpeg_task_queue_runne
 import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/input_runtime_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
+import 'package:framelean/app/constants.dart';
 
 /// 工作台任务列表状态
 final mediaTaskListProvider =
@@ -448,7 +449,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
   void startExecutionRefreshPolling() {
     executionRefreshTimer?.cancel();
-    executionRefreshTimer = Timer.periodic(const Duration(milliseconds: 1000), (
+    executionRefreshTimer = Timer.periodic(executionRefreshInterval, (
       timer,
     ) {
       unawaited(refreshExecutionState(timer));

@@ -22,6 +22,7 @@ import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:path/path.dart' as path;
+import 'package:framelean/app/constants.dart';
 
 enum FfmpegQueueStatus { idle, ready, running }
 
@@ -1029,7 +1030,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     var consecutiveMissingChecks = 0;
     execution.outputMonitor = Timer.periodic(
-      const Duration(milliseconds: 250),
+      reorderAnimation,
       (timer) {
         final currentExecution = _executions[execution.taskId];
         if (currentExecution != execution ||

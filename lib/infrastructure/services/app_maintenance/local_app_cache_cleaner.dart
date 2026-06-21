@@ -1,12 +1,13 @@
 import 'dart:io';
 
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
 import 'package:path/path.dart' as p;
 
 class LocalAppCacheCleaner implements AppCacheCleaner {
   LocalAppCacheCleaner({Directory? tempRoot, List<String>? cacheDirectoryNames})
     : _tempRoot =
-          tempRoot ?? Directory(p.join(Directory.systemTemp.path, 'framelean')),
+          tempRoot ?? Directory(p.join(Directory.systemTemp.path, tempDirPrefix)),
       _cacheDirectoryNames = cacheDirectoryNames ?? _defaultCacheDirectoryNames;
 
   static const _defaultCacheDirectoryNames = <String>[

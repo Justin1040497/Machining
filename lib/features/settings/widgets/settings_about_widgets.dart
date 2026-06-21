@@ -43,22 +43,22 @@ class _AboutIconLinks extends StatelessWidget {
     _AboutIconLink(
       label: 'Gitee',
       assetPath: 'assets/icons/gitee.png',
-      url: _frameLeanGiteeUrl,
+      url: giteeUrl,
     ),
     _AboutIconLink(
       label: 'GitHub',
       assetPath: 'assets/icons/github-black.png',
-      url: _frameLeanGitHubUrl,
+      url: githubUrl,
     ),
     _AboutIconLink(
       label: 'Gmail',
       assetPath: 'assets/icons/gmail.png',
-      url: _frameLeanGmailUrl,
+      url: contactEmail,
     ),
     _AboutIconLink(
       label: '掘金',
       assetPath: 'assets/icons/juejin.png',
-      url: _frameLeanJuejinUrl,
+      url: juejinUrl,
     ),
   ];
 

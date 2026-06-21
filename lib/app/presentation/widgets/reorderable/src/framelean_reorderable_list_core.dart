@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
+import 'package:framelean/app/constants.dart';
 
 // Examples can assume:
 // class MyDataObject {}
@@ -218,8 +219,8 @@ class FrameLeanReorderableListCore extends StatefulWidget {
     this.onDrop,
     this.onDropCompleted,
     this.acceptedDropProxyDecorator,
-    this.proxyAnimationDuration = const Duration(milliseconds: 250),
-    this.dropAnimationDuration = const Duration(milliseconds: 250),
+    this.proxyAnimationDuration = reorderAnimation,
+    this.dropAnimationDuration = reorderAnimation,
     this.allowCrossAxisDrag = false,
   }) : assert(itemCount >= 0),
        assert(
@@ -600,8 +601,8 @@ class FrameLeanSliverReorderableList extends StatefulWidget {
     this.prototypeItem,
     this.proxyDecorator,
     this.acceptedDropProxyDecorator,
-    this.proxyAnimationDuration = const Duration(milliseconds: 250),
-    this.dropAnimationDuration = const Duration(milliseconds: 250),
+    this.proxyAnimationDuration = reorderAnimation,
+    this.dropAnimationDuration = reorderAnimation,
     this.allowCrossAxisDrag = false,
     this.dragBoundaryProvider,
     this.gapBehavior,
@@ -1505,7 +1506,7 @@ class _ReorderableItemState extends State<_ReorderableItem> {
           _offsetAnimation =
               AnimationController(
                   vsync: _listState,
-                  duration: const Duration(milliseconds: 250),
+                  duration: reorderAnimation,
                 )
                 ..addListener(rebuild)
                 ..addStatusListener((AnimationStatus status) {

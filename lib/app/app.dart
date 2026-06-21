@@ -22,6 +22,7 @@ import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'app_router.dart';
+import 'constants.dart';
 
 class FrameLeanApp extends ConsumerStatefulWidget {
   const FrameLeanApp({super.key});
@@ -253,7 +254,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
           theme: frameLeanLightTheme(),
           darkTheme: frameLeanDarkTheme(),
           themeMode: themeMode,
-          themeAnimationDuration: const Duration(milliseconds: 200),
+          themeAnimationDuration: themeTransition,
           themeAnimationCurve: Curves.easeIn,
           builder: (context, child) {
             return AppNotificationHost(child: child ?? const SizedBox.shrink());

@@ -1,3 +1,4 @@
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
@@ -36,7 +37,7 @@ class AppSettingsSaveCoordinator {
   }) {
     return notificationManager.track<void>(
       kind: AppNotificationKind.settings,
-      source: 'settings',
+      source: notificationSourceSettings,
       successTitle: target.successTitle,
       successMessage: target.successMessage,
       failureTitle: target.failureTitle,

@@ -9,6 +9,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
+import 'package:framelean/app/constants.dart';
 
 typedef TaskFolderTaskCommitCallback = Future<void> Function(MediaTask task);
 typedef TaskFolderReorderCommitCallback =
@@ -76,8 +77,8 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
     _displayTasks = widget.tasks;
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 240),
-      reverseDuration: const Duration(milliseconds: 190),
+      duration: expandCollapseTransition,
+      reverseDuration: reverseTransition,
       value: widget.visible ? 1 : 0,
     );
     _barrierAnimation = CurvedAnimation(
@@ -208,7 +209,7 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
                     onTap: _dragging ? null : widget.onClose,
                     child: AnimatedContainer(
                       key: const Key('task-folder-drop-scrim'),
-                      duration: const Duration(milliseconds: 120),
+                      duration: fastTransition,
                       color: scrimColor,
                     ),
                   ),

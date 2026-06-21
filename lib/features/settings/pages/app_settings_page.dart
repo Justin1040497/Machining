@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
 import 'package:framelean/application/services/app_maintenance/app_uninstaller.dart';
 import 'package:framelean/application/services/framelean_build_info.dart';
@@ -79,11 +80,6 @@ typedef AppUninstallAvailabilityCallback =
     Future<AppUninstallAvailability> Function();
 typedef AppUninstallLaunchCallback = Future<void> Function();
 typedef AppSettingsExternalLinkCallback = Future<void> Function(String url);
-
-const String _frameLeanGiteeUrl = 'https://gitee.com/zhouycheng/FrameLean';
-const String _frameLeanGitHubUrl = 'https://github.com/zhouycheng/FrameLean';
-const String _frameLeanGmailUrl = 'mailto:justinzhouself@gmail.com';
-const String _frameLeanJuejinUrl = 'https://juejin.cn/user/394062317754227';
 
 class AppSettingsPage extends ConsumerStatefulWidget {
   const AppSettingsPage({super.key});
@@ -187,7 +183,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
       level: AppNotificationLevel.error,
       title: '打开链接失败',
       message: result.message!,
-      source: 'settings',
+      source: notificationSourceSettings,
     );
   }
 

@@ -14,6 +14,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/configuration/
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/features/workbench/presentation_mappers/media_kind_icons.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/constants.dart';
 
 class WorkbenchCompressionPreset {
   const WorkbenchCompressionPreset({
@@ -112,12 +113,12 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
         Container(
           margin: const EdgeInsets.symmetric(horizontal: 1),
           child: AnimatedSize(
-            duration: const Duration(milliseconds: 240),
+            duration: expandCollapseTransition,
             curve: Curves.easeInOutCubic,
             alignment: Alignment.topCenter,
             clipBehavior: Clip.hardEdge,
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 240),
+              duration: expandCollapseTransition,
               switchInCurve: Curves.easeInOutCubic,
               switchOutCurve: Curves.easeInOutCubic,
               layoutBuilder: (currentChild, previousChildren) {
@@ -504,12 +505,12 @@ class _RecommendedPresetCard extends StatelessWidget {
 
     return Tooltip(
       message: enabled ? '${preset.title}：${preset.subtitle}' : '保持 HDR 时不可用',
-      waitDuration: const Duration(milliseconds: 500),
+      waitDuration: debounceInterval,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: enabled ? onTap : null,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 140),
+          duration: hoverTransition,
           height: 72,
           padding: const EdgeInsets.fromLTRB(8, 8, 8, 7),
           decoration: BoxDecoration(

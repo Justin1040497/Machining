@@ -5,12 +5,13 @@ import 'package:framelean/application/services/ffmpeg_planning/media_codec_norma
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_audio_stream_info.dart';
+import 'package:framelean/app/constants.dart';
 
 /// 使用 FFprobe 分析媒体文件基础信息
 class FfprobeMediaAnalyzer implements MediaAnalyzer {
   final Duration timeout;
 
-  FfprobeMediaAnalyzer({this.timeout = const Duration(seconds: 20)});
+  FfprobeMediaAnalyzer({this.timeout = ffprobeAnalysisTimeout});
 
   @override
   Future<MediaAnalysisResult> analyze({

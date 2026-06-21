@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/services/execution/video_thumbnail_generator.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -79,7 +80,7 @@ class WorkbenchTaskThumbnailStore {
       }
 
       final directory = Directory(
-        path.join(Directory.systemTemp.path, 'framelean', 'thumbnails'),
+        path.join(Directory.systemTemp.path, thumbnailsSubDir),
       );
       await directory.create(recursive: true);
 

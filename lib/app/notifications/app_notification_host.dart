@@ -12,6 +12,7 @@ import 'package:framelean/features/notifications/providers/notification_center_p
 import 'package:framelean/app/notifications/app_notification_notice.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';
+import 'package:framelean/app/constants.dart';
 
 class AppNotificationHost extends StatelessWidget {
   const AppNotificationHost({super.key, required this.child});
@@ -39,7 +40,7 @@ class _AppNotificationLayer extends ConsumerStatefulWidget {
 }
 
 class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
-  static const _animationDuration = Duration(milliseconds: 220);
+  static const _animationDuration = notificationTransition;
 
   final ValueNotifier<bool> visible = ValueNotifier(false);
   ProviderSubscription<AsyncValue<AppNotificationPresentation>>? subscription;
@@ -142,14 +143,14 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
   Duration displayDurationFor(AppNotificationPresentation presentation) {
     final notification = presentation.notification;
     if (isTaskCompletionNotification(notification)) {
-      return const Duration(seconds: 8);
+      return errorNotificationDisplay;
     }
 
     return switch (notification.level) {
-      AppNotificationLevel.error => const Duration(seconds: 6),
-      AppNotificationLevel.warning => const Duration(seconds: 5),
+      AppNotificationLevel.error => warningNotificationDisplay,
+      AppNotificationLevel.warning => defaultNotificationDisplay,
       AppNotificationLevel.info ||
-      AppNotificationLevel.success => const Duration(seconds: 3),
+      AppNotificationLevel.success => successNotificationDisplay,
     };
   }
 

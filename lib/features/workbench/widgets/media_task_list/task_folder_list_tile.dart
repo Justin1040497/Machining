@@ -4,6 +4,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
+import 'package:framelean/app/constants.dart';
 
 class TaskFolderListTile extends StatelessWidget {
   const TaskFolderListTile({
@@ -77,11 +78,11 @@ class TaskFolderListTile extends StatelessWidget {
 
     return AnimatedOpacity(
       key: dropStateKey ?? ValueKey('task-folder-drop-state-${folder.id}'),
-      duration: const Duration(milliseconds: 140),
+      duration: hoverTransition,
       curve: Curves.easeOutCubic,
       opacity: contentOpacity,
       child: AnimatedScale(
-        duration: const Duration(milliseconds: 140),
+        duration: hoverTransition,
         curve: Curves.easeOutCubic,
         scale: activeDrop ? 1.018 : 1,
         child: Material(
@@ -91,7 +92,7 @@ class TaskFolderListTile extends StatelessWidget {
             onTap: onOpenSettings,
             onSecondaryTapDown: onSecondaryTapDown,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 140),
+              duration: hoverTransition,
               height: 86,
               decoration: BoxDecoration(
                 color: colors.surface,
