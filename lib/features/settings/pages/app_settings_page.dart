@@ -16,8 +16,6 @@ import 'package:framelean/application/use_cases/app_maintenance/launch_clean_uni
 import 'package:framelean/application/use_cases/app_maintenance/load_app_uninstall_availability_use_case.dart';
 import 'package:framelean/application/use_cases/app_maintenance/preview_app_cache_cleanup_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
-import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/app/presentation/widgets/sidebar_page_scaffold.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/presentation/widgets/percentage_slider_panel.dart';
@@ -425,7 +423,7 @@ class _AppSettingsViewState extends State<AppSettingsView> {
       onBackPressed: closePage,
       isBackLoading: savingSection != null,
       sidebarPadding: const EdgeInsets.fromLTRB(
-        21, AppLayoutConstants.topBarHeight, 20, 18,
+        21, topBarHeight, 20, 18,
       ),
       sidebarWidth: _sidebarWidth,
       sidebar: _SettingsSidebar(

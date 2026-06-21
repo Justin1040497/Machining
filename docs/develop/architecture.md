@@ -262,11 +262,11 @@ Use Cases：
 
 ### features/notifications
 
-`features/notifications` 保存通知中心的 UI 状态、动作解析和右侧浮层：
+`features/notifications` 保存通知中心的 UI 状态和动作解析：
 
 - `providers/notification_center_provider.dart`：保存通知中心开关状态，供工作台和根级临时通知 Host 共享。
-- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为“打开输出文件位置”，更新通知解析为“查看版本日志”和“下载更新”。
-- `widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
+- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为”打开输出文件位置”，更新通知解析为”查看版本日志”和”下载更新”。
+- 通知中心浮层 `NotificationCenterPanel` 位于 `app/presentation/widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
 - 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知中心可以同时展示“查看版本日志”和“下载更新”文字按钮，历史完成通知展示日志查看动作。
 - 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
 - 通知项按标题、创建时间、正文和底部文字按钮组分层展示；任务成功正文展示文件名、源 / 输出体积、压缩比例、保存路径和耗时，任务失败正文展示文件名、原因和建议。

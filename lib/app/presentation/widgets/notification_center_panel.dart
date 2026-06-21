@@ -4,7 +4,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
@@ -171,7 +170,7 @@ class _NotificationCenterPanelState
                     ),
                   ),
                   Positioned(
-                    top: AppLayoutConstants.topBarHeight + 10,
+                    top: topBarHeight + 10,
                     right: 18,
                     bottom: 74,
                     width: panelWidth,

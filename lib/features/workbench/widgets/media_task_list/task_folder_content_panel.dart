@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
@@ -216,7 +215,7 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
                 ),
               ),
               Positioned(
-                top: AppLayoutConstants.topBarHeight + 10,
+                top: topBarHeight + 10,
                 bottom: 74,
                 left: 18,
                 width: panelWidth,

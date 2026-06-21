@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
@@ -1422,7 +1422,7 @@ void main() {
       expect(find.byKey(const Key('windows-notice-safe-area')), findsOneWidget);
       expect(
         tester.getTopLeft(find.byType(MediaTaskListTile)).dy,
-        greaterThanOrEqualTo(AppLayoutConstants.topBarHeight + 30),
+        greaterThanOrEqualTo(topBarHeight + 30),
       );
       expect(find.byTooltip('通知中心'), findsOneWidget);
       expect(

@@ -10,7 +10,6 @@ import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
 import 'package:framelean/app/presentation/widgets/update_restart_warning_dialog.dart';
 import 'package:framelean/app/constants.dart';
-import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/app/shortcuts/app_hotkey_adapter.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
@@ -35,7 +34,7 @@ import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
-import 'package:framelean/features/notifications/widgets/notification_center_panel.dart';
+import 'package:framelean/app/presentation/widgets/notification_center_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
@@ -125,7 +124,7 @@ resolveWorkbenchTaskConfigurationInitialValues({
         : selectedSmartPreset,
     targetSizeRatio: isVideoTask
         ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
-        : MediaConfigurationUiConstants.defaultTargetSizeRatio,
+        : defaultTargetSizeRatio,
   );
 }
 

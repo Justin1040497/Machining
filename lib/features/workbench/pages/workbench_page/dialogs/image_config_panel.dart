@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/presentation/widgets/percentage_slider_panel.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
@@ -223,7 +223,7 @@ class _ImageQualitySelector extends StatelessWidget {
     return PercentageSliderPanel(
       title: '质量',
       summaryBuilder: (ratio) => '保留${(ratio * 100).round()}%的质量',
-      values: MediaConfigurationUiConstants.imageQualityRatios,
+      values: imageQualityRatios,
       selectedValue: selectedQualityRatio,
       onChanged: (value) => onChanged((value * 100).round()),
     );

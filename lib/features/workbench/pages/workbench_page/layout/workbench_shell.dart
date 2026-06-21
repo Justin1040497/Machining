@@ -2,7 +2,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
@@ -119,7 +119,7 @@ class WorkbenchShell extends StatelessWidget {
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows;
     final topInset = reserveTopNoticeArea
-        ? AppLayoutConstants.topBarHeight
+        ? topBarHeight
         : 0.0;
     final looseTaskCount =
         taskList.asData?.value.where((task) => task.folderId == null).length ??
@@ -182,7 +182,7 @@ class WorkbenchShell extends StatelessWidget {
                           left: 0,
                           top: 0,
                           right: 0,
-                          height: AppLayoutConstants.topBarHeight,
+                          height: topBarHeight,
                           child: WorkbenchTopBar(
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,

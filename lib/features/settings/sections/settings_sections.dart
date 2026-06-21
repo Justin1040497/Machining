@@ -318,7 +318,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               defaultMediaConfig = defaultMediaConfig.copyWith(
                 compressionMode: value,
                 targetSizeRatio: value == CompressionMode.targetSize
-                    ? MediaConfigurationUiConstants.defaultTargetSizeRatio
+                    ? defaultTargetSizeRatio
                     : null,
                 targetSizeBytes: null,
               );
@@ -453,7 +453,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           child: PercentageSliderPanel(
             title: '默认图片质量',
             summaryBuilder: (ratio) => '${(ratio * 100).round()}%',
-            values: MediaConfigurationUiConstants.imageQualityRatios,
+            values: imageQualityRatios,
             selectedValue: config.imageQuality.clamp(1, 100).toDouble() / 100,
             showTickLabels: false,
             onChanged: (value) {

@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/app/constants.dart';
@@ -52,7 +51,7 @@ class AppNotificationNotice extends StatelessWidget {
         : preferredMinWidth;
     final top = defaultTargetPlatform == TargetPlatform.windows
         ? 14.0
-        : AppLayoutConstants.topBarHeight;
+        : topBarHeight;
 
     return Positioned(
       top: top,

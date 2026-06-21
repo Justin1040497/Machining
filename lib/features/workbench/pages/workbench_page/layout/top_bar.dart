@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
@@ -33,7 +33,7 @@ class WorkbenchTopBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
-      height: AppLayoutConstants.topBarHeight,
+      height: topBarHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.surface,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
+import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 
 class SidebarPageScaffold extends StatelessWidget {
@@ -11,7 +11,7 @@ class SidebarPageScaffold extends StatelessWidget {
     /// 退出时加载状态
     this.isBackLoading = false,
     this.sidebarPadding = const EdgeInsets.fromLTRB(
-      16, AppLayoutConstants.topBarHeight, 16, 0,
+      16, topBarHeight, 16, 0,
     ),
     required this.sidebar,
     required this.content,
