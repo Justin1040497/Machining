@@ -29,6 +29,14 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-21｜v1.2.1｜No Release
+
+修复 macOS 手动 DMG 更新流程在重启后重复提示下载的问题。
+
+### Fixed
+
+- 修复 `checkForUpdate` 在已有有效 DMG 包时仍显示“下载 DMG”的问题：现在检查更新发现新版本后，会先扫描下载目录是否存在对应版本且 SHA-256 / Ed25519 校验通过的包，存在则直接标记为已下载并显示“打开 DMG”。
+
 ## 2026-06-20｜v1.2.1｜No Release
 
 今天继续收口 v1.2.1 桌面体验：输出运行时保护、任务 / 任务夹输出位置、现代视频容器矩阵、通知策略、快捷键系统和关闭到后台行为完成第一轮实现，并同步 FFmpeg 法律资料、macOS CocoaPods 发布链和 v1.2.1 release 文档。

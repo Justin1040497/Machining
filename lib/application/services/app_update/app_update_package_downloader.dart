@@ -1,4 +1,5 @@
 import 'package:framelean/application/services/app_update/app_update_client.dart';
+import 'package:framelean/domain/value_objects/app_update_package_info.dart';
 
 typedef AppUpdateDownloadProgressCallback =
     void Function(int downloadedBytes, int totalBytes);
@@ -33,5 +34,16 @@ abstract class AppUpdatePackageDownloader {
     required String platform,
     required AppUpdateDownloadCancellationToken cancellationToken,
     required AppUpdateDownloadProgressCallback onProgress,
+  });
+
+  /// Returns the file path of an existing valid package in the download
+  /// directory, or `null` if no valid package exists.
+  ///
+  /// A package is valid when its SHA-256 digest matches [package.sha256] and,
+  /// when the verifier is configured, its Ed25519 signature is verified.
+  Future<String?> findExistingValidPackage({
+    required AppUpdatePackageInfo package,
+    required String version,
+    required String platform,
   });
 }

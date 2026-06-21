@@ -268,6 +268,43 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
         return;
       }
 
+      // Check whether a valid package already exists in the download
+      // directory so we can skip re-downloading.
+      final existingPath = await ref
+          .read(appUpdateDownloaderProvider)
+          .findExistingValidPackage(
+            package: result.release!.package,
+            version: result.release!.version,
+            platform: result.release!.platform,
+          );
+
+      if (existingPath != null) {
+        await ref.read(appUpdateDownloadStateStoreProvider).save(
+              PersistedDownloadState(
+                release: result.release!,
+                filePath: existingPath,
+              ),
+            );
+        state = AsyncData(
+          AppUpdateState(
+            status: AppUpdateStatus.downloaded,
+            release: result.release,
+            progress: 1,
+            downloadedFilePath: existingPath,
+            checkedAt: DateTime.now(),
+          ),
+        );
+        await ref
+            .read(appNotificationManagerProvider)
+            .updateUpdateNotification(
+              release: result.release!,
+              status: AppUpdateStatus.downloaded,
+              title: 'DMG 已下载',
+              level: AppNotificationLevel.success,
+            );
+        return;
+      }
+
       // Clear persisted state if the new version differs from the
       // previously downloaded one.
       if (current.downloadedFilePath != null &&

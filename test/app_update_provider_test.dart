@@ -336,6 +336,16 @@ class FakeAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
   final String filePath;
   final List<String> downloadedVersions = [];
   final List<String> downloadedPlatforms = [];
+  String? existingPackagePath;
+
+  @override
+  Future<String?> findExistingValidPackage({
+    required AppUpdatePackageInfo package,
+    required String version,
+    required String platform,
+  }) async {
+    return existingPackagePath;
+  }
 
   @override
   Future<AppUpdateDownloadResult> download({

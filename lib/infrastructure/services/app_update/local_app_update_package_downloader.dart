@@ -207,6 +207,32 @@ class LocalAppUpdatePackageDownloader implements AppUpdatePackageDownloader {
     }
   }
 
+  @override
+  Future<String?> findExistingValidPackage({
+    required AppUpdatePackageInfo package,
+    required String version,
+    required String platform,
+  }) async {
+    final directory = await _resolveUpdateDirectory(
+      version: version,
+      platform: platform,
+    );
+    final file = File(p.join(directory.path, package.fileName));
+    if (!await file.exists()) {
+      return null;
+    }
+    final fileSize = await file.length();
+    if (fileSize != package.sizeBytes) {
+      return null;
+    }
+    try {
+      await _verifyPackage(file, package);
+      return file.path;
+    } on Object {
+      return null;
+    }
+  }
+
   Future<void> _verifySignature(File file, AppUpdatePackageInfo package) async {
     final verifier = signatureVerifier;
     final cache = configCache;
