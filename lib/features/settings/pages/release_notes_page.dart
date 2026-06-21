@@ -224,75 +224,75 @@ class _ReleaseNotesManualMacosUpdateAction extends StatelessWidget {
       },
     };
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 760),
-        child: DecoratedBox(
+    return Positioned(
+      left: 0,
+      right: 0,
+      bottom: 20,
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 760),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
           decoration: BoxDecoration(
             color: colors.surfaceMuted,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: colors.border),
           ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        state.status == AppUpdateStatus.downloaded
-                            ? 'DMG 已保存'
-                            : 'MacOS 更新将下载 DMG ',
-                        style: TextStyle(
-                          color: colors.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (downloading) ...[
-                        const SizedBox(height: 8),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: LinearProgressIndicator(
-                            value: state.progress,
-                            minHeight: 5,
-                            backgroundColor: colors.surface,
-                            color: colors.primary,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                SizedBox(
-                  width: 112,
-                  height: 30,
-                  child: FilledButton(
-                    onPressed: primaryAction,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: colors.primary,
-                      foregroundColor: colors.onPrimary,
-                      disabledBackgroundColor: colors.surfaceDisabled,
-                      disabledForegroundColor: colors.textTertiary,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      textStyle: const TextStyle(
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      state.status == AppUpdateStatus.downloaded
+                          ? 'DMG 已保存'
+                          : 'MacOS 更新将下载 DMG ',
+                      style: TextStyle(
+                        color: colors.textPrimary,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    child: Text(primaryLabel),
-                  ),
+                    if (downloading) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: state.progress,
+                          minHeight: 5,
+                          backgroundColor: colors.surface,
+                          color: colors.primary,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 16),
+              SizedBox(
+                width: 112,
+                height: 30,
+                child: FilledButton(
+                  onPressed: primaryAction,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colors.primary,
+                    foregroundColor: colors.onPrimary,
+                    disabledBackgroundColor: colors.surfaceDisabled,
+                    disabledForegroundColor: colors.textTertiary,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    textStyle: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  child: Text(primaryLabel),
+                ),
+              ),
+            ],
           ),
         ),
       ),

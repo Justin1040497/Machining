@@ -95,7 +95,7 @@ class _UpdateTopBarButton extends StatelessWidget {
       height: 32,
       child: IconButton(
         key: const Key('workbench-update-topbar-button'),
-        tooltip: '版本更新',
+        tooltip:  state.status == AppUpdateStatus.downloaded ? "版本已下载，点击安装" : '版本更新',
         onPressed: onPressed,
         padding: EdgeInsets.zero,
         style: IconButton.styleFrom(
@@ -116,7 +116,7 @@ class _UpdateTopBarButton extends StatelessWidget {
               )
             : Icon(
                 state.status == AppUpdateStatus.downloaded
-                    ? Icons.system_update_alt_rounded
+                    ? Icons.download_done_outlined
                     : Icons.file_download_outlined,
                 size: 20,
               ),
