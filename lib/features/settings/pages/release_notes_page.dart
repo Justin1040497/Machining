@@ -85,17 +85,14 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
     return SidebarPageScaffold(
       sidebar: Column(
         children: [
-          SizedBox(
-            height: AppLayoutConstants.topBarHeight,
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 16),
-                child: _ReleaseNotesBackButton(
-                  label: _backLabel(),
-                  onPressed: () => _goBack(context),
-                ),
-              ),
+          Padding(
+            padding: const EdgeInsets.only(
+              top: AppLayoutConstants.topBarHeight,
+              left: 16,
+            ),
+            child: _ReleaseNotesBackButton(
+              label: _backLabel(),
+              onPressed: () => _goBack(context),
             ),
           ),
           Expanded(
