@@ -425,11 +425,16 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   @override
   Widget build(BuildContext context) {
     return SidebarPageScaffold(
+      backTitle: '返回工作台',
+      onBackPressed: closePage,
+      isBackLoading: savingSection != null,
+      sidebarPadding: const EdgeInsets.fromLTRB(
+        21, AppLayoutConstants.topBarHeight, 20, 18,
+      ),
       sidebarWidth: _sidebarWidth,
       sidebar: _SettingsSidebar(
         selectedSection: selectedSection,
         saving: savingSection != null,
-        onClose: closePage,
         onSectionSelected: (section) {
           _revertCurrentSectionIfDirty();
           setState(() => selectedSection = section);

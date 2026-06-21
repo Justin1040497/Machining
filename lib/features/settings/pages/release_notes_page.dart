@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
+
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/widgets/sidebar_page_scaffold.dart';
 import 'package:framelean/app/widgets/simple_markdown_view.dart';
@@ -72,7 +72,6 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
     required AppUpdateState updateState,
     required bool manualMacosUpdate,
   }) {
-    final colors = context.frameLeanColors;
     if (notes.isEmpty) {
       return _ReleaseNotesEmptyState(
         message: '暂无版本日志',
@@ -83,55 +82,28 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
 
     final selected = _resolveSelectedNotes(notes);
     return SidebarPageScaffold(
-      sidebar: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(
-              top: AppLayoutConstants.topBarHeight,
-              left: 16,
-            ),
-            child: _ReleaseNotesBackButton(
-              label: _backLabel(),
-              onPressed: () => _goBack(context),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 8,
-              ),
-              itemCount: notes.length,
-              itemBuilder: (context, index) {
-                final item = notes[index];
-                final selectedItem = item.version == selected.version;
-                return _ReleaseNotesVersionButton(
-                  version: item.version,
-                  selected: selectedItem,
-                  onPressed: () {
-                    setState(() => selectedVersion = item.version);
-                  },
-                );
-              },
-            ),
-          ),
-        ],
+      backTitle: _backLabel(),
+      onBackPressed: () => _goBack(context),
+      sidebar: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        itemCount: notes.length,
+        itemBuilder: (context, index) {
+          final item = notes[index];
+          final selectedItem = item.version == selected.version;
+          return _ReleaseNotesVersionButton(
+            version: item.version,
+            selected: selectedItem,
+            onPressed: () {
+              setState(() => selectedVersion = item.version);
+            },
+          );
+        },
       ),
       content: Padding(
         padding: const EdgeInsets.fromLTRB(44, 42, 44, 42),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Text(
-              selected.version,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 18),
-            Expanded(
+            SizedBox.expand(
               child: SingleChildScrollView(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
@@ -143,8 +115,7 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
               selected,
               updateState,
               manualMacosUpdate,
-            )) ...[
-              const SizedBox(height: 18),
+            ))
               _ReleaseNotesManualMacosUpdateAction(
                 state: updateState,
                 onStartDownload: () {
@@ -161,7 +132,6 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
                       .installDownloadedUpdate();
                 },
               ),
-            ],
           ],
         ),
       ),
@@ -275,8 +245,8 @@ class _ReleaseNotesManualMacosUpdateAction extends StatelessWidget {
                     children: [
                       Text(
                         state.status == AppUpdateStatus.downloaded
-                            ? 'DMG 已保存到下载目录'
-                            : 'macOS 更新将下载 DMG 到下载目录',
+                            ? 'DMG 已保存'
+                            : 'MacOS 更新将下载 DMG ',
                         style: TextStyle(
                           color: colors.textPrimary,
                           fontSize: 12,
@@ -395,47 +365,4 @@ class _ReleaseNotesEmptyState extends StatelessWidget {
 
 }
 
-class _ReleaseNotesBackButton extends StatelessWidget {
-  const _ReleaseNotesBackButton({
-    required this.label,
-    required this.onPressed,
-  });
 
-  final String label;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: onPressed,
-      child: SizedBox(
-        height: 26,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.chevron_left_rounded,
-              color: colors.textPrimary,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
