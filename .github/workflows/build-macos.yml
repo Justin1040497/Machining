@@ -130,10 +130,10 @@ jobs:
           scripts/build/build_ffmpeg_macos_universal.sh
           scripts/build/build_qmc_decrypt_macos_universal.sh
 
-      - name: Install dmgbuild
+      - name: Install dmgbuild and Pillow
         run: |
           python3 -m venv "$RUNNER_TEMP/dmgbuild-venv"
-          "$RUNNER_TEMP/dmgbuild-venv/bin/pip" install dmgbuild
+          "$RUNNER_TEMP/dmgbuild-venv/bin/pip" install dmgbuild Pillow
           echo "$RUNNER_TEMP/dmgbuild-venv/bin" >> "$GITHUB_PATH"
 
       - name: Resolve Flutter dependencies

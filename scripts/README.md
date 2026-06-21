@@ -33,6 +33,8 @@ Actions workflow when both native slices are not already available.
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
 | `release/build_dmg_macos.sh` | macOS | Build and validate the release app and DMG | `build/macos/Build/Products/Release/FrameLean-v*.dmg` and `FrameLean-v*.dmg.update.json` |
+| `release/generate_dmg_background.py` | macOS | Generate a branded DMG background image (requires Pillow) | `build/macos/dmg_background.png` |
+| `release/dmg_settings.py` | macOS | Custom dmgbuild settings with branded background and Applications symlink | consumed by `build_dmg_macos.sh` via `--settings` |
 | `release/build_windows.ps1` | Windows x64 | Canonical Windows publishing entry point. Builds the release directory once, compiles the updater helper, bundles and validates all runtimes, then creates both the portable zip and Inno Setup installer by default | `build/windows/x64/runner/FrameLean-v*-windows-x64.zip` and `build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe` |
 
 Use `build_windows.ps1` for a normal Windows release:
@@ -67,6 +69,8 @@ FRAMELEAN_RELEASE_PRIVATE_KEY
 ```
 
 Sparkle 相关 Variables 只在显式启用 Sparkle 自动更新路线时需要；默认 macOS DMG 更新路线不依赖 Apple Developer ID 证书或 Sparkle 公钥。
+
+macOS DMG 构建依赖 Python 3 和 `dmgbuild`（`pip install dmgbuild`）。自定义 DMG 背景图需要 `Pillow`（`pip install Pillow`）。`build_dmg_macos.sh` 在 Pillow 缺失时会降级为 dmgbuild 内置箭头背景，不会阻断构建。
 
 `FRAMELEAN_RELEASE_PRIVATE_KEY` 保存 Windows 更新签名用的 32-byte Ed25519 seed 或其 base64 文本；workflow 会写入 runner 临时文件并通过 `FRAMELEAN_RELEASE_PRIVATE_KEY_FILE` 传给 Windows 发布脚本。
 

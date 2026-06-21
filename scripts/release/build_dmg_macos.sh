@@ -335,7 +335,7 @@ if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
   fi
 fi
 
-for command_name in dart dmgbuild flutter hdiutil lipo shasum; do
+for command_name in dart dmgbuild flutter hdiutil lipo python3 shasum; do
   require_command "$command_name"
 done
 if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
@@ -431,10 +431,17 @@ for adapter_name in framelean-qmc-adapter qmc-decrypt; do
   fi
 done
 
-dmg_args=("$@" "--no-build")
+dmg_args=("$@" "--no-build" "--settings" "$ROOT/scripts/release/dmg_settings.py")
 if [[ "$#" -eq 0 ]]; then
-  dmg_args=(--no-sign --no-notarization --no-build)
+  dmg_args=(--no-sign --no-notarization --no-build --settings "$ROOT/scripts/release/dmg_settings.py")
 fi
+
+# Generate custom DMG background image
+BG_PATH="${ROOT}/build/macos/dmg_background.png"
+echo "Generating DMG background..."
+python3 "$ROOT/scripts/release/generate_dmg_background.py" "$BG_PATH" || {
+  echo "warning: Failed to generate DMG background, falling back to builtin-arrow" >&2
+}
 
 echo "Building DMG with: dart run dmg ${dmg_args[*]}"
 rm -f "$DMG_SOURCE_PATH" "$DMG_PATH"

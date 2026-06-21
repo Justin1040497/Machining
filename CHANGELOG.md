@@ -31,11 +31,15 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 ## 2026-06-21｜v1.2.1｜No Release
 
-修复 macOS 手动 DMG 更新流程在重启后重复提示下载的问题。
+修复 macOS 手动 DMG 更新流程在重启后重复提示下载的问题，并为 macOS DMG 增加自定义品牌化背景。
+
+### Changed
+
+- macOS DMG 构建增加自定义品牌化背景和布局：使用 FrameLean 浅色主题色（`#1D48E6` primary、`#F5F7FB` surfaceCanvas），DMG 打开后显示品牌色箭头、引导文字和 Applications 快捷方式，改善首次安装体验。
 
 ### Fixed
 
-- 修复 `checkForUpdate` 在已有有效 DMG 包时仍显示“下载 DMG”的问题：现在检查更新发现新版本后，会先扫描下载目录是否存在对应版本且 SHA-256 / Ed25519 校验通过的包，存在则直接标记为已下载并显示“打开 DMG”。
+- 修复 `checkForUpdate` 在已有有效 DMG 包时仍显示”下载 DMG”的问题：现在检查更新发现新版本后，会先扫描下载目录是否存在对应版本且 SHA-256 / Ed25519 校验通过的包，存在则直接标记为已下载并显示”打开 DMG”。
 
 ## 2026-06-20｜v1.2.1｜No Release
 
