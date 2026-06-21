@@ -12,7 +12,7 @@ import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
-import 'package:framelean/app/widgets/app_dialog_frame.dart';
+import 'package:framelean/app/presentation/widgets/app_dialog_frame.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/domain/enums/app_close_behavior.dart';
 import 'package:framelean/domain/enums/task_status.dart';

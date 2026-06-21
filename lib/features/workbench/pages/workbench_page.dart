@@ -8,7 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
-import 'package:framelean/app/widgets/update_restart_warning_dialog.dart';
+import 'package:framelean/app/presentation/widgets/update_restart_warning_dialog.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
 import 'package:framelean/app/shortcuts/app_hotkey_adapter.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';

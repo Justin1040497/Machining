@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
-import 'package:framelean/app/widgets/percentage_slider_panel.dart';
+import 'package:framelean/app/presentation/widgets/percentage_slider_panel.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
-import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/config_checkbox.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchImageConfigPanel extends StatelessWidget {
   const WorkbenchImageConfigPanel({

@@ -60,7 +60,6 @@ lib/
     presentation/
     providers/
     theme/
-    widgets/
   domain/
     entities/
     enums/
@@ -134,7 +133,8 @@ docs/
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏。任务成功 / 失败临时通知保持短摘要，完整结果详情由通知中心展示。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
 - `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部入口、通知中心和版本日志弹窗提供检查、下载、暂停、继续和安装 helper 启动动作。
-- `presentation/`、`widgets/`：settings、notifications、workbench 共同使用的布局常量、领域标签和展示组件；`FrameLeanReorderableListView` 封装 Flutter 3.41.2 reorderable fork，对外提供 gap 策略、跨轴拖动和外部 drop，业务列表不直接依赖 fork 内部状态。
+- `presentation/`：settings、notifications、workbench 共同使用的布局常量、领域标签和展示 Widget；`FrameLeanReorderableListView` 封装 Flutter 3.41.2 reorderable fork，对外提供 gap 策略、跨轴拖动和外部 drop，业务列表不直接依赖 fork 内部状态。
+- `theme/`：配色、字体和第三方组件（如 `MarkdownStyleSheet`）的视觉映射。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
 
 ### domain
@@ -233,7 +233,7 @@ Use Cases：
 - `pages/app_settings_page.dart`：`/settings` 页面入口，负责加载和保存 `AppSettings`、接入缓存清理和 Windows 清理卸载入口。
 - `sections/`：设置分区渲染和分区级保存 / 回滚逻辑，当前包含应用、关于、视频、图片、音频、输出和编码器配置。
 - `widgets/`：设置页通用 UI 组件，例如侧边栏、表单容器、分区保存按钮、输入控件和关于页维护组件。
-- 设置页和工作台共同复用 `app/widgets/` 的路径输入、下拉控件和百分比滑杆。
+- 设置页和工作台共同复用 `app/presentation/widgets/` 的路径输入、下拉控件和百分比滑杆。
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
 - 应用设置中的“最大并行任务数”写入 `AppSettings.maxConcurrentExecutions`，表示用户期望上限；实际执行位还会由本机 CPU、内存和当前任务类型通过资源守卫降级。

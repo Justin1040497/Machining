@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/widgets/simple_markdown_view.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
@@ -89,7 +89,12 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
                 ),
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(16),
-                  child: SimpleMarkdownView(markdown: markdown),
+                  child: MarkdownBody(
+                    data: markdown,
+                    styleSheet: context.frameLeanMarkdownStyleSheet,
+                    selectable: true,
+                    shrinkWrap: true,
+                  ),
                 ),
               ),
             ),

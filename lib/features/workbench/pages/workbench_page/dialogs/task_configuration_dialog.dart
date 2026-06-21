@@ -31,9 +31,9 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/video_
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
-import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
-import 'package:framelean/app/widgets/form_controls/path_field.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/config_checkbox.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/path_field.dart';
 
 const _taskConfigFieldHeight = 40.0;
 const _taskConfigSegmentedControlHeight = 42.0;

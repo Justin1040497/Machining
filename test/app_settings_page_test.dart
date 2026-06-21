@@ -11,7 +11,7 @@ import 'package:framelean/application/services/app_settings/app_settings_save_ta
 import 'package:framelean/application/services/platform/file_selection_service.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
-import 'package:framelean/app/widgets/app_dialog_frame.dart';
+import 'package:framelean/app/presentation/widgets/app_dialog_frame.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/enums/app_shortcut_action.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';

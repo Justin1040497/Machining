@@ -4,8 +4,8 @@ import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/app/widgets/form_controls/config_checkbox.dart';
-import 'package:framelean/app/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/config_checkbox.dart';
+import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
 
 class WorkbenchVideoConfigPanel extends StatelessWidget {
   const WorkbenchVideoConfigPanel({

@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
 
 import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/widgets/sidebar_page_scaffold.dart';
-import 'package:framelean/app/widgets/simple_markdown_view.dart';
+import 'package:framelean/app/presentation/widgets/sidebar_page_scaffold.dart';
 import 'package:framelean/domain/enums/app_update_status.dart';
 import 'package:framelean/domain/value_objects/app_release_notes.dart';
 import 'package:framelean/domain/value_objects/app_update_state.dart';
@@ -107,7 +107,12 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
               child: SingleChildScrollView(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 760),
-                  child: SimpleMarkdownView(markdown: selected.markdown),
+                  child: MarkdownBody(
+                    data: selected.markdown,
+                    styleSheet: context.frameLeanMarkdownStyleSheet,
+                    selectable: true,
+                    shrinkWrap: true,
+                  ),
                 ),
               ),
             ),
