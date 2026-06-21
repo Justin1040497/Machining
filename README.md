@@ -114,11 +114,24 @@ flutter run -d windows
 dart run build_runner build --delete-conflicting-outputs
 ```
 
-命令行压缩验证入口：
+命令行入口（视频压缩 / 图片处理 / 音频处理）：
 
 ```bash
+# 视频压缩
 dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4
 dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4 --codec h265 --resolution 1080p
+dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4 -c av1 -e nvenc --crf 26 -p clear -f mkv
+dart run tool/framelean_cli.dart compress ~/Movies/demo.mp4 -m targetSize --target-size 50MB
+# 批量
+dart run tool/framelean_cli.dart compress a.mp4 b.mp4 c.mp4 --codec h265 -r 1080p
+
+# 图片处理
+dart run tool/framelean_cli.dart image ~/Pictures/photo.png --format webp --quality 90
+dart run tool/framelean_cli.dart image ~/Pictures/photo.png --format jpg --resize longEdge1920 -q 85
+
+# 音频处理
+dart run tool/framelean_cli.dart audio ~/Music/song.wav --format mp3 --bitrate k320
+dart run tool/framelean_cli.dart audio ~/Music/song.flac --format m4a --bitrate k192 --channels stereo
 ```
 
 ## 测试
