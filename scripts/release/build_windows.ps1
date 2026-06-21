@@ -413,7 +413,7 @@ $VcRuntimeFiles = @(
 
 # Extract version and build number from pubspec.yaml
 $PubspecContent = Get-Content $PubspecPath -Raw
-$PubspecVersionMatch = [regex]::Match($PubspecContent, '^version:\s*(\d+\.\d+\.\d+)\+(\d+)')
+$PubspecVersionMatch = [regex]::Match($PubspecContent, '(?m)^version:\s*(\d+\.\d+\.\d+)\+(\d+)')
 if (-not $PubspecVersionMatch.Success) {
   throw "Could not parse version from $PubspecPath"
 }
