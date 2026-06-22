@@ -29,6 +29,23 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-22｜v1.2.1｜No Release
+
+移除应用内卸载入口和随包自卸载脚本，避免 Windows 端卸载功能异常影响用户体验。
+
+### Removed
+
+- 移除设置页"关于"区域的"卸载应用"按钮（原仅 Windows 显示），macOS 和 Windows 均不再提供应用内卸载入口。
+- 删除 `AppUninstaller` 服务接口、`WindowsCleanAppUninstaller`、`NoopAppUninstaller` 实现及两个卸载 use case。
+- 删除随包脚本 `installer/macos/FrameLean-Clean-Uninstall.command` 和 `installer/windows/FrameLean-Clean-Uninstall.ps1`。
+- 移除 Windows 安装器 `[UninstallRun]` 自卸载钩子。
+
+### Changed
+
+- 更新 `docs/develop/architecture.md`、`docs/develop/test-plan.md`、`docs/releases/v1.2.1/self-hosted-update-client.md` 中的卸载相关描述。
+
+---
+
 ## 2026-06-21｜v1.2.1｜No Release
 
 修复 macOS 手动 DMG 更新流程在重启后重复提示下载的问题，并为 macOS DMG 增加自定义品牌化背景。

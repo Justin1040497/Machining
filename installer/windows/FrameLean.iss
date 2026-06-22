@@ -46,5 +46,3 @@ Root: HKA; Subkey: "Software\FrameLean"; Flags: uninsdeletekeyifempty
 [Run]
 Filename: "{app}\FrameLean.exe"; Description: "启动 FrameLean"; Flags: nowait postinstall skipifsilent
 
-[UninstallRun]
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\tools\FrameLean-Clean-Uninstall.ps1"" -RemoveUserData -RemoveRegistry -RemoveTemp -RemoveMachineConfig -Force"; Flags: waituntilterminated; RunOnceId: "FrameLeanCleanUninstall"

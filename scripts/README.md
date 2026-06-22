@@ -95,11 +95,9 @@ CI is unavailable or the signing key is held offline.
 
 ## Installer Definitions
 
-Installer definitions and uninstall helpers live under `installer/`, rather
-than `scripts/`, because they are packaged resources:
+Installer definitions live under `installer/`, rather than `scripts/`,
+because they are packaged resources:
 
 ```text
-installer/macos/FrameLean-Clean-Uninstall.command
-installer/windows/FrameLean-Clean-Uninstall.ps1
 installer/windows/FrameLean.iss
 ```

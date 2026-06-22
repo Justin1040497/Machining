@@ -230,7 +230,7 @@ Use Cases：
 
 `features/settings` 是全屏应用设置功能区：
 
-- `pages/app_settings_page.dart`：`/settings` 页面入口，负责加载和保存 `AppSettings`、接入缓存清理和 Windows 清理卸载入口。
+- `pages/app_settings_page.dart`：`/settings` 页面入口，负责加载和保存 `AppSettings`、接入缓存清理。
 - `sections/`：设置分区渲染和分区级保存 / 回滚逻辑，当前包含应用、关于、视频、图片、音频、输出和编码器配置。
 - `widgets/`：设置页通用 UI 组件，例如侧边栏、表单容器、分区保存按钮、输入控件和关于页维护组件。
 - 设置页和工作台共同复用 `app/presentation/widgets/` 的路径输入、下拉控件和百分比滑杆。

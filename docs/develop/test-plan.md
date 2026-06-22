@@ -423,7 +423,7 @@ test/
 - 使用 `/SILENT /SUPPRESSMSGBOXES /NORESTART` 覆盖安装时不触发 UAC，并返回可判断的安装器退出码。
 - 同一 `AppId` 的新版本可以覆盖升级，升级后应用和内置运行时正常。
 - 自托管更新 helper 随包提供 `FrameLeanUpdaterHelper.exe`，主应用下载并校验安装器后启动 helper 并退出；helper 负责等待主程序退出、运行安装器、检查安装器退出码并重启应用。
-- 从 Windows“已安装的应用”卸载后，应用目录、注册表安装信息和用户数据按当前彻底卸载策略清理。
+- 从 Windows”已安装的应用”可正常卸载应用。
 - Windows app 可以启动、导入、压缩和打开输出位置。
 - MGG / MFLAC 输入能够调用安装包内的 `qmc-decrypt.exe`；需要 ekey 的变体显示可读错误。
 - GPU 编码器不可用时可以回退到软件编码。

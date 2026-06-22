@@ -397,7 +397,6 @@ $QmcAdapterDir = Join-Path $Root "third_party\audio_adapters\qmc\windows-x64"
 $LegalDir = Join-Path $Root "legal"
 $PubspecPath = Join-Path $Root "pubspec.yaml"
 $IssPath = Join-Path $Root "installer\windows\FrameLean.iss"
-$CleanupScriptPath = Join-Path $Root "installer\windows\FrameLean-Clean-Uninstall.ps1"
 $UpdaterHelperSourcePath = Join-Path $Root "tool\windows_updater_helper.dart"
 $UpdateSignerPath = Join-Path $Root "tool\sign_windows_update.dart"
 $ReleaseToolsDir = Join-Path $ReleaseDir "tools"
@@ -442,7 +441,6 @@ if (-not $UpdateBaseUrl.StartsWith("https://", [System.StringComparison]::Ordina
 $Iscc = $null
 if (-not $SkipInstaller) {
   Require-File $IssPath
-  Require-File $CleanupScriptPath
   $Iscc = Resolve-IsccPath -ExplicitPath $IsccPath
 }
 
@@ -552,10 +550,6 @@ try {
 
   if (-not $SkipInstaller) {
     New-Item -ItemType Directory -Path $ReleaseToolsDir -Force | Out-Null
-    Copy-Item -LiteralPath $CleanupScriptPath `
-      -Destination (Join-Path $ReleaseToolsDir "FrameLean-Clean-Uninstall.ps1") `
-      -Force
-
     New-Item -ItemType Directory -Path $InstallerDir -Force | Out-Null
     if (Test-Path -LiteralPath $SetupPath -PathType Leaf) {
       Remove-Item -LiteralPath $SetupPath -Force

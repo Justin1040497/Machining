@@ -33,9 +33,8 @@ FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windo
 
 ## 卸载边界
 
-- Windows `-RemoveAll` 会自行请求 UAC，清理应用数据、更新包、helper 请求和日志、临时目录、安装目录、`%ProgramData%\FrameLean` 及 `HKLM\Software\Policies\FrameLean`。
-- macOS `--admin-cleanup` 通过 `sudo` 精确清理 `/Library/Application Support/FrameLean`；用户级支持目录、缓存、偏好和临时文件照常清理。
-- MDM profile 由外部设备管理维护，卸载脚本不删除；用户导出的媒体文件不在扫描和删除范围内。
+- 应用内不提供卸载入口；macOS 通过拖拽 `.app` 到废纸篓手动删除，Windows 通过"已安装的应用"标准卸载流程处理。
+- MDM profile 由外部设备管理维护；用户导出的媒体文件不在任何自动清理范围内。
 
 ## 验证范围
 
