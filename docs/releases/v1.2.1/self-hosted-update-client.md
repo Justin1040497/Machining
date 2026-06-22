@@ -15,7 +15,7 @@ FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windo
 - 工作台顶部入口不直接开始下载，而是打开版本日志弹窗；下载中以圆形进度展示。
 - 版本日志页面读取服务端发布日志列表；当服务端列表为空但当前检查结果带有日志时，回退展示当前更新的日志。macOS 当前更新版本会在日志页底部显示下载 / 打开 DMG 操作区。
 - Windows 下载使用短期 ticket 解析出的 COS 预签名 URL。只有正确的 `206` / `Content-Range` 才会追加 partial；服务端忽略 Range 时覆盖写入，长度、SHA-256 或 Ed25519 校验失败时删除损坏包。
-- Windows 自动安装由随包 `FrameLeanUpdaterHelper.exe` 执行；重启前统一暂停任务、终止 FFmpeg 并清理 partial，helper 再静默安装、核对注册表和 EXE build number、重启新版本。
+- Windows 自动安装由随包 `FrameLeanUpdaterHelper.exe` 执行；重启前统一暂停任务、终止 FFmpeg 并清理 partial。Helper 确认主进程退出后等待 3 秒缓冲期、强杀残留 `FrameLean.exe` 进程，然后静默安装并解析 Inno Setup 安装日志。安装后核对注册表和 EXE build number，验证失败时重试一次（再次清理后重装）。两次均失败时写入失败哨兵文件并重启旧版本；下次启动时应用检测哨兵并展示失败通知。安装成功时清理旧失败哨兵。
 - macOS 默认不触发 Sparkle MethodChannel。检查更新使用 JSON latest，下载使用 ticket / COS 预签名 URL，DMG 保存到应用私有目录，点击 `打开 DMG` 时定位该文件，由用户手动挂载和安装。下载状态持久化到本地 JSON，重启后如 DMG 仍在且 SHA-256 校验通过则自动恢复已下载状态，不需要重新下载。
 
 ## 平台边界

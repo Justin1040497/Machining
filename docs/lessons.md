@@ -2,6 +2,19 @@
 
 这个文件只记录可复用经验，不写每日日志。条目应能帮助后续避免同类错误。
 
+## Windows 静默覆盖安装不应只相信退出码
+
+经验：
+
+- Inno Setup `/VERYSILENT /SUPPRESSMSGBOXES` 下安装可能因文件被占用而静默失败，但退出码仍为 0。
+- 只按 PID 等主进程退出不够：进程列表消失后，Windows 文件锁可能仍需数秒释放；退出前启动的子进程也可能持有文件句柄。
+- 可靠做法：(1) 确认进程退出后再等 2-3 秒；(2) `taskkill /F /IM <进程名>` 强杀残留；(3) 解析安装日志确认无错误行；(4) 安装后验证目标可执行文件版本号确认实际已覆盖。
+
+关联：
+
+- `tool/windows_updater_helper.dart`
+- `installer/windows/FrameLean.iss`
+
 ## 依赖装配不要伪装成 infrastructure
 
 经验：

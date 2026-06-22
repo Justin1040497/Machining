@@ -7,6 +7,7 @@ Future<void> main(List<String> args) async {
     ..writeln('FrameLean updater helper')
     ..writeln('startedAt=$startedAt');
   File? logFile;
+  File? requestFile;
   _UpdaterRequest? request;
 
   void appendLog(String message) {
@@ -31,7 +32,7 @@ Future<void> main(List<String> args) async {
       );
     }
 
-    final requestFile = File(args.single);
+    requestFile = File(args.single);
     logFile = File('${requestFile.path}.log');
     request = _UpdaterRequest.fromJson(
       jsonDecode(await requestFile.readAsString()) as Map<String, Object?>,
@@ -46,9 +47,21 @@ Future<void> main(List<String> args) async {
     }
 
     await _waitForProcessExit(request.currentProcessId, appendLog);
+    await _gracePeriodAndCleanup(appendLog);
     await _runInstaller(request, requestFile, appendLog);
-    await _verifyInstalledVersion(request, appendLog);
+
+    try {
+      await _verifyInstalledVersion(request, appendLog);
+    } on Object catch (verifyError) {
+      appendLog('first install verification failed: $verifyError');
+      appendLog('retrying install after killing remaining processes');
+      await _gracePeriodAndCleanup(appendLog);
+      await _runInstaller(request, requestFile, appendLog);
+      await _verifyInstalledVersion(request, appendLog);
+    }
+
     await _restartApp(request, appendLog);
+    await _clearSentinelFile(requestFile, appendLog);
 
     appendLog('completed');
     await flushLog();
@@ -57,7 +70,8 @@ Future<void> main(List<String> args) async {
     appendLog('failed: $error');
     appendLog(stackTrace.toString());
     stderr.writeln(error);
-    if (request != null) {
+    if (request != null && requestFile != null) {
+      await _writeSentinelFile(requestFile, request, error, appendLog);
       try {
         await _restartApp(request, appendLog);
         appendLog('restarted available app after update failure');
@@ -239,6 +253,35 @@ Future<void> _runInstaller(
   if (code != 0) {
     throw ProcessException(request.installerPath, const [], '', code);
   }
+
+  await _validateInstallerLog(installerLogPath, log);
+}
+
+Future<void> _validateInstallerLog(
+  String installerLogPath,
+  void Function(String message) log,
+) async {
+  final logFile = File(installerLogPath);
+  if (!await logFile.exists()) {
+    log('installer log not found, cannot validate');
+    return;
+  }
+  final content = await logFile.readAsString();
+  final hasError = content.contains('Error on line ') ||
+      content.contains('Internal error:') ||
+      content.contains('Setup was interrupted');
+  if (hasError) {
+    // Extract error lines for diagnostics
+    final errorLines = content
+        .split('\n')
+        .where((line) =>
+            line.contains('Error on line ') ||
+            line.contains('Internal error:') ||
+            line.contains('Setup was interrupted'))
+        .join('; ');
+    throw StateError('Installer log contains errors: $errorLines');
+  }
+  log('installer log validated: no errors detected');
 }
 
 Future<void> _restartApp(
@@ -260,6 +303,71 @@ Future<void> _restartApp(
     mode: ProcessStartMode.detached,
   );
   log('app restarted');
+}
+
+Future<void> _gracePeriodAndCleanup(
+  void Function(String message) log,
+) async {
+  log('waiting grace period for file locks to release');
+  await Future<void>.delayed(const Duration(seconds: 3));
+  await _killFrameLeanProcesses(log);
+}
+
+Future<void> _killFrameLeanProcesses(
+  void Function(String message) log,
+) async {
+  log('killing remaining FrameLean.exe processes');
+  try {
+    final result = await Process.run('taskkill.exe', [
+      '/F',
+      '/IM',
+      'FrameLean.exe',
+    ]);
+    log('taskkill exitCode=${result.exitCode} stdout=${result.stdout}');
+  } on Object catch (e) {
+    log('taskkill failed (non-fatal): $e');
+  }
+}
+
+Future<void> _writeSentinelFile(
+  File requestFile,
+  _UpdaterRequest request,
+  Object error,
+  void Function(String message) log,
+) async {
+  try {
+    final updatesDir = requestFile.parent;
+    final sentinel = File(
+      '${updatesDir.path}${Platform.pathSeparator}update-failed.json',
+    );
+    await sentinel.writeAsString(
+      '{"version":"${request.version}",'
+      '"buildNumber":${request.buildNumber},'
+      '"error":${jsonEncode(error.toString())},'
+      '"timestamp":"${DateTime.now().toIso8601String()}"}',
+    );
+    log('sentinel file written: ${sentinel.path}');
+  } on Object catch (e) {
+    log('failed to write sentinel file: $e');
+  }
+}
+
+Future<void> _clearSentinelFile(
+  File requestFile,
+  void Function(String message) log,
+) async {
+  try {
+    final updatesDir = requestFile.parent;
+    final sentinel = File(
+      '${updatesDir.path}${Platform.pathSeparator}update-failed.json',
+    );
+    if (await sentinel.exists()) {
+      await sentinel.delete();
+      log('sentinel file cleared: ${sentinel.path}');
+    }
+  } on Object catch (e) {
+    log('failed to clear sentinel file: $e');
+  }
 }
 
 class _UpdaterRequest {

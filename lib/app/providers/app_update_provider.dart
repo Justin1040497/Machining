@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
@@ -30,6 +31,8 @@ import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 typedef UpdateRestartPreparation = Future<void> Function();
 
@@ -177,6 +180,9 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
       scheduleMicrotask(() {
         unawaited(checkForUpdate(automatic: true));
       });
+      scheduleMicrotask(() {
+        unawaited(_checkUpdateFailedSentinel());
+      });
     }
     ref.onDispose(() {
       _downloadCancellationToken?.cancel();
@@ -215,6 +221,42 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
       progress: 1,
       downloadedFilePath: persisted.filePath,
     );
+  }
+
+  Future<void> _checkUpdateFailedSentinel() async {
+    final supportDir = await getApplicationSupportDirectory();
+    final sentinel = File(
+      p.join(supportDir.path, 'updates', 'update-failed.json'),
+    );
+    if (!await sentinel.exists()) {
+      return;
+    }
+    try {
+      final content = await sentinel.readAsString();
+      final json = jsonDecode(content) as Map<String, dynamic>;
+      final version = json['version'] as String? ?? '';
+      final error = json['error'] as String? ?? '未知错误';
+      await sentinel.delete();
+      await ref.read(appUpdateDownloadStateStoreProvider).clear();
+      await ref
+          .read(appNotificationManagerProvider)
+          .notify(
+            level: AppNotificationLevel.error,
+            title: '更新安装失败',
+            message: version.isNotEmpty
+                ? '版本 $version 安装失败：$error'
+                : '安装失败：$error',
+            source: notificationSourceUpdate,
+          );
+    } on Object {
+      try {
+        if (await sentinel.exists()) {
+          await sentinel.delete();
+        }
+      } on Object {
+        // best effort
+      }
+    }
   }
 
   Future<void> checkForUpdate({bool automatic = false}) async {
