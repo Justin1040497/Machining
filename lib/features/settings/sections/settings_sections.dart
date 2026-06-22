@@ -214,8 +214,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
     final iconPath = Theme.of(context).brightness == Brightness.dark
         ? 'assets/app_icon/light.png'
         : 'assets/app_icon/dark.png';
-    final showUninstall = Platform.isWindows;
-
     return _SettingsForm(
       title: '关于',
       children: [
@@ -280,13 +278,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               icon: Icons.cleaning_services_outlined,
               onPressed: clearingCache ? null : confirmClearAppCache,
             ),
-            if (showUninstall)
-              _MaintenanceButton(
-                label: uninstalling ? '正在准备' : '卸载应用',
-                icon: Icons.delete_outline_rounded,
-                destructive: true,
-                onPressed: uninstalling ? null : confirmUninstallApp,
-              ),
           ],
         ),
       ],

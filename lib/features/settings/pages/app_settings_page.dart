@@ -8,12 +8,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
-import 'package:framelean/application/services/app_maintenance/app_uninstaller.dart';
 import 'package:framelean/application/services/framelean_build_info.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/application/use_cases/app_maintenance/clear_app_cache_use_case.dart';
-import 'package:framelean/application/use_cases/app_maintenance/launch_clean_uninstaller_use_case.dart';
-import 'package:framelean/application/use_cases/app_maintenance/load_app_uninstall_availability_use_case.dart';
 import 'package:framelean/application/use_cases/app_maintenance/preview_app_cache_cleanup_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
 import 'package:framelean/app/presentation/widgets/sidebar_page_scaffold.dart';
@@ -74,9 +71,6 @@ typedef AppSettingsPathPicker = Future<String?> Function();
 typedef AppCacheCleanupPreviewCallback =
     Future<AppCacheCleanupPreview> Function();
 typedef AppCacheCleanupCallback = Future<AppCacheCleanupResult> Function();
-typedef AppUninstallAvailabilityCallback =
-    Future<AppUninstallAvailability> Function();
-typedef AppUninstallLaunchCallback = Future<void> Function();
 typedef AppSettingsExternalLinkCallback = Future<void> Function(String url);
 
 class AppSettingsPage extends ConsumerStatefulWidget {
@@ -124,13 +118,6 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
         .read(appSettingsSaveCoordinatorProvider)
         .save(settings, target: target);
     ref.invalidate(appSettingsProvider);
-  }
-
-  Future<void> launchCleanUninstaller() async {
-    await LaunchCleanUninstallerUseCase(
-      uninstaller: ref.read(appUninstallerProvider),
-    ).call(currentProcessId: pid);
-    exit(0);
   }
 
   Future<void> installUpdateWithTaskCheck() async {
@@ -231,12 +218,6 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                       cacheCleaner: ref.read(appCacheCleanerProvider),
                     ).call();
                   },
-                  onLoadAppUninstallAvailability: () {
-                    return LoadAppUninstallAvailabilityUseCase(
-                      uninstaller: ref.read(appUninstallerProvider),
-                    ).call();
-                  },
-                  onLaunchCleanUninstaller: launchCleanUninstaller,
                   onOpenExternalLink: openExternalLink,
                   onCheckUpdate: checkUpdateAndOpenReleaseNotes,
                   onStartOrResumeUpdateDownload: () {
@@ -294,8 +275,6 @@ class AppSettingsView extends StatefulWidget {
     this.onClose,
     this.onPreviewAppCacheCleanup,
     this.onClearAppCache,
-    this.onLoadAppUninstallAvailability,
-    this.onLaunchCleanUninstaller,
     this.onOpenExternalLink,
     this.onCheckUpdate,
     this.onStartOrResumeUpdateDownload,
@@ -315,8 +294,6 @@ class AppSettingsView extends StatefulWidget {
   final VoidCallback? onClose;
   final AppCacheCleanupPreviewCallback? onPreviewAppCacheCleanup;
   final AppCacheCleanupCallback? onClearAppCache;
-  final AppUninstallAvailabilityCallback? onLoadAppUninstallAvailability;
-  final AppUninstallLaunchCallback? onLaunchCleanUninstaller;
   final AppSettingsExternalLinkCallback? onOpenExternalLink;
   final Future<void> Function()? onCheckUpdate;
   final Future<void> Function()? onStartOrResumeUpdateDownload;
@@ -356,7 +333,6 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   late AppSettings savedSettings;
   _SettingsSection? savingSection;
   bool clearingCache = false;
-  bool uninstalling = false;
   String? shortcutConflictMessage;
 
   VideoProcessingConfig get videoConfig =>

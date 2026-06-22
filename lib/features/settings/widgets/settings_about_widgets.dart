@@ -161,32 +161,24 @@ class _MaintenanceButton extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.onPressed,
-    this.destructive = false,
   });
 
   final String label;
   final IconData icon;
   final VoidCallback? onPressed;
-  final bool destructive;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final foregroundColor = destructive
-        ? colors.statusFailed
-        : colors.textPrimary;
-    final borderColor = destructive
-        ? colors.statusFailed.withAlpha(150)
-        : colors.border;
 
     return SizedBox(
       width: 134,
       height: 32,
       child: OutlinedButton.icon(
         style: OutlinedButton.styleFrom(
-          foregroundColor: foregroundColor,
+          foregroundColor: colors.textPrimary,
           disabledForegroundColor: colors.textTertiary,
-          side: BorderSide(color: borderColor),
+          side: BorderSide(color: colors.border),
           padding: const EdgeInsets.symmetric(horizontal: 11),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -350,20 +342,17 @@ class _ConfirmMaintenanceDialog extends StatelessWidget {
     required this.title,
     required this.message,
     required this.confirmLabel,
-    this.destructive = false,
     this.singleAction = false,
   });
 
   final String title;
   final String message;
   final String confirmLabel;
-  final bool destructive;
   final bool singleAction;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final actionColor = destructive ? colors.statusFailed : colors.primary;
 
     return AppDialogFrame(
       child: Column(
@@ -394,7 +383,7 @@ class _ConfirmMaintenanceDialog extends StatelessWidget {
               ],
               AppDialogActionButton(
                 label: confirmLabel,
-                backgroundColor: actionColor,
+                backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(true),
                 width: confirmLabel.length > 3 ? 86 : 75,
               ),
