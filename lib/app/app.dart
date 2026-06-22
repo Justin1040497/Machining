@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/notifications/app_notification_host.dart';
@@ -92,7 +93,6 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     await windowManager.setPreventClose(true);
 
     // System-wide hotkey to quit gracefully, even when the tray icon fails.
-    await hotKeyManager.initialize();
     _quitHotKey = HotKey(
       key: LogicalKeyboardKey.keyQ,
       modifiers: [
