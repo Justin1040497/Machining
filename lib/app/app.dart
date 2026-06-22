@@ -18,6 +18,7 @@ import 'package:framelean/domain/enums/app_close_behavior.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/infrastructure/services/execution/local_interrupted_output_cleaner.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -35,6 +36,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     with WidgetsBindingObserver, WindowListener, TrayListener {
   bool _allowWindowDestroy = false;
   bool _handlingWindowClose = false;
+  HotKey? _quitHotKey;
 
   @override
   void initState() {
@@ -70,6 +72,11 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     if (Platform.isWindows) {
       trayManager.removeListener(this);
     }
+    final quitHotKey = _quitHotKey;
+    if (quitHotKey != null) {
+      hotKeyManager.unregister(quitHotKey);
+      _quitHotKey = null;
+    }
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -83,19 +90,40 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
 
   Future<void> _configureDesktopLifecycle() async {
     await windowManager.setPreventClose(true);
+
+    // System-wide hotkey to quit gracefully, even when the tray icon fails.
+    await hotKeyManager.initialize();
+    _quitHotKey = HotKey(
+      key: LogicalKeyboardKey.keyQ,
+      modifiers: [
+        Platform.isMacOS ? HotKeyModifier.meta : HotKeyModifier.control,
+        HotKeyModifier.shift,
+      ],
+      scope: HotKeyScope.system,
+    );
+    await hotKeyManager.register(
+      _quitHotKey!,
+      keyDownHandler: (_) => _requestQuit(),
+    );
+
     if (!Platform.isWindows) return;
     trayManager.addListener(this);
-    await trayManager.setIcon('assets/app_icon/light.png');
-    await trayManager.setToolTip('FrameLean');
-    await trayManager.setContextMenu(
-      Menu(
-        items: [
-          MenuItem(label: '显示 FrameLean', onClick: (_) => _showWindow()),
-          MenuItem.separator(),
-          MenuItem(label: '退出 FrameLean', onClick: (_) => _requestQuit()),
-        ],
-      ),
-    );
+    try {
+      await trayManager.setIcon('assets/app_icon/tray_icon.png');
+      await trayManager.setToolTip('FrameLean');
+      await trayManager.setContextMenu(
+        Menu(
+          items: [
+            MenuItem(label: '显示 FrameLean', onClick: (_) => _showWindow()),
+            MenuItem.separator(),
+            MenuItem(label: '退出 FrameLean', onClick: (_) => _requestQuit()),
+          ],
+        ),
+      );
+      debugPrint('[tray] setup success');
+    } on Object catch (e, st) {
+      debugPrint('[tray] setup failed: $e\n$st');
+    }
   }
 
   Future<void> _showWindow() async {
