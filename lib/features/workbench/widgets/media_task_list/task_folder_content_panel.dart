@@ -2,13 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
-import 'package:framelean/app/constants.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 typedef TaskFolderTaskCommitCallback = Future<void> Function(MediaTask task);
 typedef TaskFolderReorderCommitCallback =
@@ -238,7 +235,7 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
                           child: Row(
                             children: [
                               Icon(
-                                Icons.folder_open_rounded,
+                                WorkbenchIcons.folderOpen,
                                 color: colors.primary,
                               ),
                               const SizedBox(width: 10),
@@ -269,7 +266,7 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
                               IconButton(
                                 tooltip: '关闭',
                                 onPressed: widget.onClose,
-                                icon: const Icon(Icons.close_rounded),
+                                icon: const Icon(WorkbenchIcons.close),
                               ),
                             ],
                           ),
@@ -388,7 +385,7 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
                                         : null,
                                     removeTooltip: '移出任务夹',
                                     removeIcon:
-                                        Icons.remove_circle_outline_rounded,
+                                        WorkbenchIcons.remove,
                                     dragHandle: _FolderTaskDragHandle(
                                       index: index,
                                       enabled: dragEnabled,
@@ -598,7 +595,7 @@ class _FolderTaskDragHandle extends StatelessWidget {
       width: 24,
       height: 48,
       child: Icon(
-        Icons.drag_indicator_rounded,
+        WorkbenchIcons.dragIndicator,
         color: enabled ? colors.iconMuted : colors.statusCancelled,
         size: 18,
       ),

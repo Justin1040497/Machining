@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
-import 'package:framelean/domain/enums/proprietary_audio_format.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 import 'package:path/path.dart' as path;
-import 'package:framelean/app/constants.dart';
 
 typedef ProcessRunner =
     Future<ProcessResult> Function(String executable, List<String> args);

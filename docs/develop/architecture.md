@@ -50,24 +50,36 @@ flowchart LR
 
 ## 源码目录
 
+每层的 `library.dart` 是该层的 barrel 导出门面，按白名单封装公共 API。跨层导入必须经 `library.dart`，同层内部导入可直达文件。详见 `docs/decisions/260623-library-barrel-import-architecture.md`。
+
 ```text
 lib/
   main.dart
   app/
+    library.dart
     app.dart
     app_router.dart
+    constants.dart
     notifications/
     presentation/
+      domain_labels.dart
+      widgets/
     providers/
+    shortcuts/
     theme/
   domain/
+    library.dart
     entities/
     enums/
+    services/
     value_objects/
   application/
+    library.dart
     repositories/
     services/
       app_notifications/
+      app_settings/
+      app_update/
       platform/
       input_runtime/
       ffmpeg_planning/
@@ -76,29 +88,43 @@ lib/
       app_settings/
       media_tasks/
   infrastructure/
+    library.dart
     database/
     repositories/
+      mappers/
     services/
+      app_maintenance/
       app_notifications/
+      app_update/
       platform/
       input_runtime/
       ffmpeg_planning/
       execution/
+      proprietary_audio/
   features/
     notifications/
+      library.dart
       providers/
       services/
-      widgets/
     settings/
+      library.dart
       pages/
       sections/
-      widgets/
     workbench/
+      library.dart
       pages/
         workbench_page/
+          configuration/
+          dialogs/
+            config/
+            confirm/
+            task/
+          layout/
+          overlays/
       providers/
       widgets/
         media_task_list/
+      workbench_icons.dart
 ```
 
 平台与工程目录：

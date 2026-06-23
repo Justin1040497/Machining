@@ -1,5 +1,5 @@
 import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
-import 'package:framelean/domain/value_objects/proprietary_audio_decode_result.dart';
+import 'package:framelean/domain/library.dart';
 
 class ProprietaryAudioDecodeException implements Exception {
   final String message;

@@ -14,17 +14,16 @@ import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
 import 'package:framelean/app/presentation/widgets/app_dialog_frame.dart';
-import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/domain/enums/app_close_behavior.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/infrastructure/services/execution/local_interrupted_output_cleaner.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:window_manager/window_manager.dart';
 
-import 'app_router.dart';
-import 'constants.dart';
+import 'package:framelean/app/app_router.dart';
+import 'package:framelean/app/constants.dart';
 
 class FrameLeanApp extends ConsumerStatefulWidget {
   const FrameLeanApp({super.key});

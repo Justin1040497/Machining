@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
-import 'package:framelean/domain/value_objects/audio_processing_config.dart';
-import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_checkbox.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 
+/// 音频任务详情配置弹窗
 class WorkbenchAudioConfigPanel extends StatelessWidget {
   const WorkbenchAudioConfigPanel({
     super.key,

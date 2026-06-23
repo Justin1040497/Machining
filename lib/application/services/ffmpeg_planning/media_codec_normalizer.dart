@@ -1,4 +1,4 @@
-import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/library.dart';
 
 class MediaCodecNormalizer {
   const MediaCodecNormalizer._();

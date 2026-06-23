@@ -1,5 +1,5 @@
-import 'package:framelean/application/services/input_runtime/proprietary_audio_format_resolver.dart';
-import 'package:framelean/domain/enums/proprietary_audio_format.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class FileExtensionProprietaryAudioFormatResolver
     implements ProprietaryAudioFormatResolver {

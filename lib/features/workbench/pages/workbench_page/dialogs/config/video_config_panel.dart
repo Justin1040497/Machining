@@ -1,12 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_checkbox.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 
+/// 视屏任务详情配置弹窗
 class WorkbenchVideoConfigPanel extends StatelessWidget {
   const WorkbenchVideoConfigPanel({
     super.key,

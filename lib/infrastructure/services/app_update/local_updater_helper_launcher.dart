@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:framelean/application/services/app_update/updater_helper_launcher.dart';
+import 'package:framelean/application/library.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

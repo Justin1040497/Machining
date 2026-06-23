@@ -1,34 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/library.dart';
 
-class ClearTasksDialog extends StatelessWidget {
-  const ClearTasksDialog({super.key});
+class RestartUnelevatedDialog extends StatelessWidget {
+  const RestartUnelevatedDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
 
-    return WorkbenchDialogFrame(
+    return AppDialogFrame(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const WorkbenchDialogTitle('清空列表'),
+          const AppDialogTitle('普通模式重启'),
           const SizedBox(height: 14),
-          const WorkbenchDialogBodyText('确定要清空所有任务和任务夹吗？'),
+          const AppDialogBodyText(
+            '当前有任务正在处理。普通模式重启会关闭当前管理员窗口，并中断正在执行的任务。',
+          ),
           const SizedBox(height: 22),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              WorkbenchDialogActionButton(
+              AppDialogActionButton(
                 label: '取消',
                 backgroundColor: colors.statusCancelled,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               const SizedBox(width: 16),
-              WorkbenchDialogActionButton(
-                label: '清空',
+              AppDialogActionButton(
+                label: '重启',
                 backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(true),
               ),

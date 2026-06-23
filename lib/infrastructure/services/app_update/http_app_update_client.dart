@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:framelean/application/services/app_update/app_update_client.dart';
-import 'package:framelean/domain/value_objects/app_release_info.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
-import 'package:framelean/domain/value_objects/app_update_package_info.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class HttpAppUpdateClient implements AppUpdateClient {
   HttpAppUpdateClient({required this.baseUri, HttpClient? httpClient})

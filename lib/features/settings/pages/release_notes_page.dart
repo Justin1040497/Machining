@@ -4,13 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:framelean/app/providers/app_update_provider.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/presentation/widgets/sidebar_page_scaffold.dart';
-import 'package:framelean/domain/enums/app_update_status.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
-import 'package:framelean/domain/value_objects/app_update_state.dart';
 
 class ReleaseNotesPage extends ConsumerStatefulWidget {
   const ReleaseNotesPage({super.key, this.initialVersion, this.from});

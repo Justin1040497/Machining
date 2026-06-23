@@ -1,7 +1,6 @@
 import 'package:flutter/services.dart';
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
 
 class WindowsFfmpegProcessController implements FfmpegProcessController {
   const WindowsFfmpegProcessController();

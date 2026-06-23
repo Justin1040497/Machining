@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_item_models.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class MediaTaskActionButton extends StatelessWidget {
   const MediaTaskActionButton({
@@ -42,33 +42,33 @@ class MediaTaskActionButton extends StatelessWidget {
     return switch (task.status) {
       TaskStatus.pending when task.analysisResult != null =>
         MediaTaskListAction(
-          tooltip: '开始压缩',
-          icon: Icons.play_circle_fill_rounded,
+          tooltip: task.status.actionTooltip,
+          icon: task.status.actionIcon,
           onPressed: onStart,
         ),
       TaskStatus.running => MediaTaskListAction(
-        tooltip: '暂停任务',
-        icon: Icons.pause_rounded,
+        tooltip: task.status.actionTooltip,
+        icon: task.status.actionIcon,
         onPressed: onPause,
       ),
       TaskStatus.paused => MediaTaskListAction(
-        tooltip: '继续任务',
-        icon: Icons.play_arrow_rounded,
+        tooltip: task.status.actionTooltip,
+        icon: task.status.actionIcon,
         onPressed: onStart,
       ),
       TaskStatus.completed => MediaTaskListAction(
-        tooltip: '重来',
-        icon: Icons.replay_rounded,
+        tooltip: task.status.actionTooltip,
+        icon: task.status.actionIcon,
         onPressed: onRetry,
       ),
       TaskStatus.failed || TaskStatus.cancelled => MediaTaskListAction(
-        tooltip: '重试任务',
-        icon: Icons.refresh_rounded,
+        tooltip: task.status.actionTooltip,
+        icon: task.status.actionIcon,
         onPressed: onRetry,
       ),
       TaskStatus.missingSource => MediaTaskListAction(
-        tooltip: '重新链接源文件',
-        icon: Icons.link_rounded,
+        tooltip: task.status.actionTooltip,
+        icon: task.status.actionIcon,
         onPressed: onRelink,
       ),
       _ => null,

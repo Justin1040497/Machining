@@ -2,17 +2,14 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/value_objects/app_update_state.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/drop_overlay.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchShell extends StatelessWidget {
   const WorkbenchShell({
@@ -305,7 +302,7 @@ class _SelectionActionBar extends StatelessWidget {
             const SizedBox(width: 10),
             FilledButton.icon(
               onPressed: onPressed,
-              icon: const Icon(Icons.create_new_folder_rounded, size: 17),
+              icon: const Icon(WorkbenchIcons.newFolder, size: 17),
               label: const Text('创建任务夹'),
               style: FilledButton.styleFrom(
                 backgroundColor: colors.primary,

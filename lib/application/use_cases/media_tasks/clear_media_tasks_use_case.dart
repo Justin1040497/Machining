@@ -1,7 +1,7 @@
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/library.dart';
 
 class ClearMediaTasksUseCase {
   final MediaTaskRepository repository;

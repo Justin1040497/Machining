@@ -1,20 +1,10 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/app/presentation/widgets/percentage_slider_panel.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
-import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/features/workbench/presentation_mappers/media_kind_icons.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/constants.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchCompressionPreset {
   const WorkbenchCompressionPreset({
@@ -317,7 +307,7 @@ class WorkbenchTaskFolderSummary extends StatelessWidget {
             ),
             alignment: Alignment.center,
             child: Icon(
-              Icons.folder_copy_rounded,
+              WorkbenchIcons.folderCopy,
               color: colors.iconMuted,
               size: 26,
             ),

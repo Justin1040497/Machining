@@ -1,5 +1,5 @@
 import 'package:framelean/application/services/app_update/app_update_client.dart';
-import 'package:framelean/domain/value_objects/app_update_package_info.dart';
+import 'package:framelean/domain/library.dart';
 
 typedef AppUpdateDownloadProgressCallback =
     void Function(int downloadedBytes, int totalBytes);

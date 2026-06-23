@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/input_runtime/media_folder_scanner.dart';
-import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
+import 'package:framelean/application/library.dart';
 
 class LocalMediaFolderScanner implements MediaFolderScanner {
   const LocalMediaFolderScanner({required this.mediaKindResolver});

@@ -1,8 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:framelean/application/repositories/app_notification_repository.dart';
-import 'package:framelean/domain/entities/app_notification_entry.dart';
-import 'package:framelean/domain/enums/app_notification_kind.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 
 class DriftAppNotificationRepository implements AppNotificationRepository {

@@ -1,8 +1,6 @@
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/enums/output_location_mode.dart';
+import 'package:framelean/domain/library.dart';
 
 class ApplyOutputSettingsToExistingTasksUseCase {
   ApplyOutputSettingsToExistingTasksUseCase({

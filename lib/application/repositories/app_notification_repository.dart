@@ -1,4 +1,4 @@
-import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/library.dart';
 
 abstract class AppNotificationRepository {
   Stream<List<AppNotificationEntry>> watchRecentNotifications({int? limit});

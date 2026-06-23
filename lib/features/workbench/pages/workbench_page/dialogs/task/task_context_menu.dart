@@ -1,11 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class TaskContextMenuResult {
   const TaskContextMenuResult(this.action, {this.folderId});
@@ -140,8 +139,8 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                 children: [
                   if (widget.task.status == TaskStatus.missingSource)
                     _ContextMenuItem(
-                      icon: Icons.link_rounded,
-                      label: '重新链接源文件',
+                      icon: TaskContextMenuAction.relinkSource.icon,
+                      label: TaskContextMenuAction.relinkSource.label,
                       onTap: () => Navigator.of(context).pop(
                         const TaskContextMenuResult(
                           TaskContextMenuAction.relinkSource,
@@ -149,8 +148,8 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                       ),
                     ),
                   _ContextMenuItem(
-                    icon: Icons.folder_open_rounded,
-                    label: '打开文件所在位置',
+                    icon: TaskContextMenuAction.revealInFileManager.icon,
+                    label: TaskContextMenuAction.revealInFileManager.label,
                     onTap: () => Navigator.of(context).pop(
                       const TaskContextMenuResult(
                         TaskContextMenuAction.revealInFileManager,
@@ -158,8 +157,8 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                     ),
                   ),
                   _ContextMenuItem(
-                    icon: Icons.drive_file_rename_outline_rounded,
-                    label: '任务重命名',
+                    icon: TaskContextMenuAction.rename.icon,
+                    label: TaskContextMenuAction.rename.label,
                     onTap: () => Navigator.of(context).pop(
                       const TaskContextMenuResult(TaskContextMenuAction.rename),
                     ),
@@ -171,9 +170,9 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                       }
                     },
                     child: _ContextMenuItem(
-                      icon: Icons.create_new_folder_rounded,
-                      trailing: Icons.chevron_right_rounded,
-                      label: '添加到任务夹',
+                      icon: TaskContextMenuAction.moveToFolder.icon,
+                      trailing: WorkbenchIcons.chevronRight,
+                      label: TaskContextMenuAction.moveToFolder.label,
                       enabled: widget.eligibleFolders.isNotEmpty,
                       onTap: widget.eligibleFolders.isEmpty
                           ? null
@@ -183,8 +182,8 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                     ),
                   ),
                   _ContextMenuItem(
-                    icon: Icons.description_outlined,
-                    label: '查看日志',
+                    icon: TaskContextMenuAction.showLog.icon,
+                    label: TaskContextMenuAction.showLog.label,
                     onTap: () => Navigator.of(context).pop(
                       const TaskContextMenuResult(
                         TaskContextMenuAction.showLog,
@@ -192,8 +191,8 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                     ),
                   ),
                   _ContextMenuItem(
-                    icon: Icons.delete_outline_rounded,
-                    label: '删除任务',
+                    icon: TaskContextMenuAction.delete.icon,
+                    label: TaskContextMenuAction.delete.label,
                     danger: true,
                     onTap: () => Navigator.of(context).pop(
                       const TaskContextMenuResult(TaskContextMenuAction.delete),
@@ -219,7 +218,7 @@ class _TaskContextMenuOverlayState extends State<_TaskContextMenuOverlay> {
                       children: [
                         for (final folder in widget.eligibleFolders)
                           _ContextMenuItem(
-                            icon: Icons.folder_rounded,
+                            icon: WorkbenchIcons.folder,
                             label: folder.name,
                             onTap: () => Navigator.of(context).pop(
                               TaskContextMenuResult.moveToFolder(folder.id),
@@ -290,22 +289,22 @@ class _FolderContextMenuOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   _ContextMenuItem(
-                    icon: Icons.drive_file_rename_outline_rounded,
-                    label: '任务夹重命名',
+                    icon: TaskFolderContextMenuAction.rename.icon,
+                    label: TaskFolderContextMenuAction.rename.label,
                     onTap: () => Navigator.of(
                       context,
                     ).pop(TaskFolderContextMenuAction.rename),
                   ),
                   _ContextMenuItem(
-                    icon: Icons.folder_open_rounded,
-                    label: '查看夹内任务',
+                    icon: TaskFolderContextMenuAction.openContents.icon,
+                    label: TaskFolderContextMenuAction.openContents.label,
                     onTap: () => Navigator.of(
                       context,
                     ).pop(TaskFolderContextMenuAction.openContents),
                   ),
                   _ContextMenuItem(
-                    icon: Icons.description_outlined,
-                    label: '查看夹内任务日志',
+                    icon: TaskFolderContextMenuAction.showLog.icon,
+                    label: TaskFolderContextMenuAction.showLog.label,
                     enabled: hasLoggableTask,
                     onTap: hasLoggableTask
                         ? () => Navigator.of(
@@ -314,8 +313,8 @@ class _FolderContextMenuOverlay extends StatelessWidget {
                         : null,
                   ),
                   _ContextMenuItem(
-                    icon: Icons.delete_outline_rounded,
-                    label: '删除任务夹',
+                    icon: TaskFolderContextMenuAction.delete.icon,
+                    label: TaskFolderContextMenuAction.delete.label,
                     danger: true,
                     onTap: () => Navigator.of(
                       context,

@@ -1,11 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
-import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
-import 'package:framelean/domain/value_objects/proprietary_audio_decode_result.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 import 'package:path/path.dart' as path;
-import 'package:framelean/app/constants.dart';
 
 class StandardCliProprietaryAudioDecoder implements ProprietaryAudioDecoder {
   static const supportedDecodedExtensions = {

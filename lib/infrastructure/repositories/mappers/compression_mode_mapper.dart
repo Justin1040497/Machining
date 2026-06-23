@@ -1,4 +1,4 @@
-import 'package:framelean/domain/enums/compression_mode.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/database/persistence_compatibility.dart';
 
 /// Maps persisted compression-mode strings to the current domain vocabulary.

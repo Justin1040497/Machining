@@ -1,6 +1,4 @@
-import 'package:framelean/domain/value_objects/app_release_info.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
-import 'package:framelean/domain/value_objects/app_update_package_info.dart';
+import 'package:framelean/domain/library.dart';
 
 class AppUpdateCheckResult {
   const AppUpdateCheckResult({required this.updateAvailable, this.release});

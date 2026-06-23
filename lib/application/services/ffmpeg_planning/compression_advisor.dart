@@ -1,5 +1,4 @@
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/services/source_compression_assessor.dart';
+import 'package:framelean/domain/library.dart';
 
 enum CompressionProfile { normal, targetSize, extreme }
 

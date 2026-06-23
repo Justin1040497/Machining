@@ -4,6 +4,7 @@
 
 | 日期 | 决策 | 状态 | 正文 | 关联事实 |
 | --- | --- | --- | --- | --- |
+| 260623 | 采用单 package + barrel 白名单封装方案，7 个 `library.dart` 门面统一跨层导入，永久禁止相对路径 | 有效 | `docs/decisions/260623-library-barrel-import-architecture.md` | `docs/develop/architecture.md` |
 | 260620 | 托管更新配置不以隐藏文件为安全边界，Windows 自动更新包切换为安装器，macOS 默认改为版本日志 + 手动 DMG 下载 | 有效 | `docs/decisions/260620-managed-update-and-sparkle.md` | `docs/develop/technology-stack.md`、`docs/releases/v1.2.1/self-hosted-update-client.md`、`docs/releases/v1.2.1/self-hosted-update-server.md` |
 | 260619 | 共享重排列表采用项目内 Flutter 3.41.2 fork，通过公共 facade 提供 gap 与外部 drop 能力 | 有效 | `docs/decisions/260619-shared-reorderable-list.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/develop/test-plan.md` |
 | 260616 | 自托管更新入口采用设置关于栏、通知中心和工作台顶部持续入口，服务端 Redis 只保存短期更新协作状态 | 有效 | `docs/decisions/260616-self-hosted-update-client-server-flow.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/develop/data-model.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/library.dart';
 
 class TaskRenameDialog extends StatefulWidget {
   const TaskRenameDialog({
@@ -37,12 +36,12 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
 
-    return WorkbenchDialogFrame(
+    return AppDialogFrame(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          WorkbenchDialogTitle(widget.title),
+          AppDialogTitle(widget.title),
           const SizedBox(height: 14),
           TextField(
             controller: controller,
@@ -80,13 +79,13 @@ class _TaskRenameDialogState extends State<TaskRenameDialog> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              WorkbenchDialogActionButton(
+              AppDialogActionButton(
                 label: '取消',
                 backgroundColor: colors.statusCancelled,
                 onPressed: () => Navigator.of(context).pop(),
               ),
               const SizedBox(width: 16),
-              WorkbenchDialogActionButton(
+              AppDialogActionButton(
                 label: '保存',
                 backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(controller.text),

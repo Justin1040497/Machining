@@ -1,4 +1,4 @@
-import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
+import 'package:framelean/domain/library.dart';
 
 abstract interface class EnterpriseUpdateConfigStore {
   Future<EnterpriseUpdateConfig> load();

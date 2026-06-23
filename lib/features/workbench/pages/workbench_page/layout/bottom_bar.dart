@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/constants.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchBottomBar extends StatelessWidget {
   const WorkbenchBottomBar({
@@ -48,7 +48,7 @@ class WorkbenchBottomBar extends StatelessWidget {
                 children: [
                   _DockIconButton(
                     tooltip: '添加文件或文件夹',
-                    icon: Icons.add_rounded,
+                    icon: WorkbenchIcons.add,
                     onPressed: onAddTasks,
                     size: 26,
                   ),
@@ -56,8 +56,8 @@ class WorkbenchBottomBar extends StatelessWidget {
                   _DockIconButton(
                     tooltip: selectionMode ? '退出多选' : '多选任务',
                     icon: selectionMode
-                        ? Icons.close_rounded
-                        : Icons.select_all_rounded,
+                        ? WorkbenchIcons.close
+                        : WorkbenchIcons.selectAll,
                     onPressed: selectionEnabled ? onToggleSelectionMode : null,
                     color: selectionMode ? colors.primary : null,
                     active: selectionMode,
@@ -65,13 +65,13 @@ class WorkbenchBottomBar extends StatelessWidget {
                   const SizedBox(width: 12),
                   _DockIconButton(
                     tooltip: '设置',
-                    icon: Icons.settings,
+                    icon: WorkbenchIcons.settings,
                     onPressed: onOpenSettings,
                   ),
                   const Spacer(),
                   _DockIconButton(
                     tooltip: '清空列表',
-                    icon: Icons.delete_outline_rounded,
+                    icon: WorkbenchIcons.delete,
                     color: colors.statusFailed,
                     onPressed: hasTasks ? onClearTasks : null,
                   ),
@@ -216,7 +216,7 @@ class _PrimaryQueueButton extends StatelessWidget {
             elevation: 0,
           ),
           child: Icon(
-            hasRunningTask ? Icons.pause_rounded : Icons.play_arrow_rounded,
+            hasRunningTask ? WorkbenchIcons.pause : WorkbenchIcons.resume,
             size: 34,
           ),
         ),

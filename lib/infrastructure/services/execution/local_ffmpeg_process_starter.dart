@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/library.dart';
 
 class LocalFfmpegProcessStarter implements FfmpegProcessStarter {
   @override

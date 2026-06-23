@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
-import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as p;
 
 class LocalEnterpriseUpdateConfigStore implements EnterpriseUpdateConfigStore {

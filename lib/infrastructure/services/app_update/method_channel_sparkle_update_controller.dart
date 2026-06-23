@@ -1,9 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/application/services/app_update/sparkle_update_controller.dart';
-import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class MethodChannelSparkleUpdateController implements SparkleUpdateController {
   MethodChannelSparkleUpdateController();

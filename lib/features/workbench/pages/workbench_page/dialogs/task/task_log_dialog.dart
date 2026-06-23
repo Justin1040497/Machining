@@ -3,16 +3,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/application/services/execution/execution_log_store.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/library.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/app/constants.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
-import 'package:framelean/app/providers/app_notification_provider.dart';
 
 /// 任务日志弹窗
 ///
@@ -77,7 +73,7 @@ class TaskFolderLogDialog extends StatelessWidget {
       future: _loadAggregatedLog(),
       builder: (context, snapshot) {
         final content = snapshot.data ?? '正在读取日志...';
-        return WorkbenchDialogFrame(
+        return AppDialogFrame(
           maxWidth: 900,
           padding: const EdgeInsets.fromLTRB(24, 22, 24, 21),
           child: SizedBox(
@@ -85,7 +81,7 @@ class TaskFolderLogDialog extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                WorkbenchDialogBackHeader(
+                AppDialogBackHeader(
                   title: title,
                   onClose: () => Navigator.of(context).pop(),
                 ),
@@ -95,7 +91,7 @@ class TaskFolderLogDialog extends StatelessWidget {
                 Row(
                   children: [
                     const Spacer(),
-                    WorkbenchDialogActionButton(
+                    AppDialogActionButton(
                       label: '关闭',
                       backgroundColor: context.frameLeanColors.primary,
                       onPressed: () => Navigator.of(context).pop(),
@@ -234,7 +230,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
   Widget build(BuildContext context) {
     final currentTask = _resolveCurrentTask();
 
-    return WorkbenchDialogFrame(
+    return AppDialogFrame(
       maxWidth: 900,
       padding: const EdgeInsets.fromLTRB(24, 22, 24, 21),
       child: SizedBox(
@@ -258,7 +254,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
     return Row(
       children: [
         Expanded(
-          child: WorkbenchDialogBackHeader(
+          child: AppDialogBackHeader(
             title: currentTask.fileName,
             onClose: () => Navigator.of(context).pop(),
             trailing: MediaTaskStatusBadge(task: currentTask),
@@ -375,7 +371,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.description_outlined,
+              WorkbenchIcons.log,
               size: 48,
               color: colors.textTertiary,
             ),
@@ -403,7 +399,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
         ),
         const Spacer(),
         if (hasLog) ...[
-          WorkbenchDialogActionButton(
+          AppDialogActionButton(
             label: '复制日志',
             backgroundColor: colors.statusCancelled,
             onPressed: _copyLog,
@@ -411,7 +407,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
           ),
           const SizedBox(width: 12),
         ],
-        WorkbenchDialogActionButton(
+        AppDialogActionButton(
           label: '关闭',
           backgroundColor: colors.primary,
           onPressed: () => Navigator.of(context).pop(),

@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
-import 'package:framelean/app/constants.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class TaskFolderListTile extends StatelessWidget {
   const TaskFolderListTile({
@@ -129,7 +127,7 @@ class TaskFolderListTile extends StatelessWidget {
                       const SizedBox(width: 10),
                       dragHandle ?? const SizedBox(width: 24),
                       const SizedBox(width: 5),
-                      Icon(Icons.folder_rounded, color: folderColor, size: 28),
+                      Icon(WorkbenchIcons.folder, color: folderColor, size: 28),
                       const SizedBox(width: 14),
                       Expanded(
                         child: Column(
@@ -176,20 +174,20 @@ class TaskFolderListTile extends StatelessWidget {
                         MediaTaskIconButton(
                           tooltip: '查看夹内任务日志',
                           onPressed: onShowLog,
-                          icon: Icons.description_outlined,
+                          icon: WorkbenchIcons.log,
                         ),
                       ],
                       const SizedBox(width: 4),
                       MediaTaskIconButton(
                         tooltip: '查看夹内任务',
                         onPressed: onOpenContents,
-                        icon: Icons.folder_open_rounded,
+                        icon: WorkbenchIcons.folderOpen,
                       ),
                       const SizedBox(width: 4),
                       MediaTaskIconButton(
                         tooltip: '删除任务夹并释放任务',
                         onPressed: onDelete,
-                        icon: Icons.delete_outline_rounded,
+                        icon: WorkbenchIcons.delete,
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -207,7 +205,7 @@ class TaskFolderListTile extends StatelessWidget {
     if (tasks.any((task) => task.status == TaskStatus.running)) {
       return _TaskFolderPrimaryAction(
         tooltip: '暂停任务夹任务',
-        icon: Icons.pause_rounded,
+        icon: WorkbenchIcons.pause,
         onPressed: onPause,
       );
     }
@@ -215,7 +213,7 @@ class TaskFolderListTile extends StatelessWidget {
     if (tasks.any(_isStartableTask)) {
       return _TaskFolderPrimaryAction(
         tooltip: '开始任务夹下一项',
-        icon: Icons.play_circle_fill_rounded,
+        icon: WorkbenchIcons.play,
         onPressed: onStart,
       );
     }
@@ -223,7 +221,7 @@ class TaskFolderListTile extends StatelessWidget {
     if (tasks.any(_isRetryableTask)) {
       return _TaskFolderPrimaryAction(
         tooltip: '重来任务夹终态任务',
-        icon: Icons.replay_rounded,
+        icon: WorkbenchIcons.replay,
         onPressed: onRetry,
       );
     }

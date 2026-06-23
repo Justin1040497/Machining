@@ -29,6 +29,36 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-23｜v1.2.1｜No Release
+
+实施 library barrel 导入架构治理，重组工作台弹窗目录，并收口工作台图标常量。
+
+### Added
+
+- `lib/domain/library.dart`、`lib/application/library.dart`、`lib/infrastructure/library.dart`、`lib/app/library.dart`：分层 barrel 导出门面，按白名单封装公共 API。
+- `lib/features/workbench/library.dart`、`lib/features/settings/library.dart`、`lib/features/notifications/library.dart`：功能模块 barrel 入口。
+- `lib/app/presentation/widgets/confirm_dialog.dart`：通用二次确认弹窗模板，统一清除、重启、导入失败等确认弹窗样式。
+- `lib/features/workbench/workbench_icons.dart`：工作台图标常量集中管理，包含 MediaKind / TaskStatus / 右键菜单扩展和散落 Icons 常量。
+- `lib/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_state.dart`：任务配置弹窗状态管理。
+- `lib/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_template.dart`：任务配置弹窗布局模板。
+- `docs/decisions/260623-library-barrel-import-architecture.md`：barrel 导入架构决策文档。
+
+### Changed
+
+- 165 个源文件跨层导入从直达文件改写为经 `library.dart` barrel 导入（789 处改写）。
+- `analysis_options.yaml` 启用 `always_use_package_imports: true`，永久禁止相对路径导入。
+- 工作台弹窗从平铺 `dialogs/` 重组为 `dialogs/config/`、`dialogs/confirm/`、`dialogs/task/` 三个子目录。
+- `media_kind_icons.dart` 合并到 `workbench_icons.dart`，删除 `presentation_mappers/` 目录。
+- `workbench_dialog_widgets.dart` 拆解为 `ConfirmDialog`（共享组件）和各弹窗内联辅助方法。
+
+### Verified
+
+- `flutter analyze lib/` 零 warning。
+- `flutter test` 通过 357 个；失败 12 个集中在 `app_update_provider_test.dart`（预存超时 + provider dispose 稳定性问题，barrel 改写无关）。
+- 架构依赖测试失败 4 处为预存依赖方向违规（domain/infrastructure → app），barrel 聚合后更集中可见，属于 ADR 260614 治理范围。
+
+---
+
 ## 2026-06-22｜v1.2.1｜No Release
 
 移除应用内卸载入口和随包自卸载脚本，避免 Windows 端卸载功能异常影响用户体验。

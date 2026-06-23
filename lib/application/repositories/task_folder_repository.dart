@@ -1,4 +1,4 @@
-import 'package:framelean/domain/entities/task_folder.dart';
+import 'package:framelean/domain/library.dart';
 
 class TaskFolderSortOrderUpdate {
   const TaskFolderSortOrderUpdate({

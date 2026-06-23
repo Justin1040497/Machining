@@ -1,18 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
-import 'package:framelean/app/presentation/domain_labels.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
-import 'package:framelean/domain/enums/media_task_policy_tag.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_action_button.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_status_badge.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_thumbnail.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 import 'package:path/path.dart' as path;
-import 'package:framelean/app/constants.dart';
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;
@@ -44,7 +38,7 @@ class MediaTaskListTile extends StatelessWidget {
     this.onRevealOutput,
     this.onRemove,
     this.removeTooltip = '移除任务',
-    this.removeIcon = Icons.close_rounded,
+    this.removeIcon = WorkbenchIcons.close,
     this.onSecondaryTapDown,
     this.dragHandle,
     this.tooltipsEnabled = true,
@@ -132,7 +126,7 @@ class MediaTaskListTile extends StatelessWidget {
                     MediaTaskIconButton(
                       tooltip: '查看日志',
                       onPressed: onShowLog,
-                      icon: Icons.description_outlined,
+                      icon: WorkbenchIcons.log,
                       tooltipsEnabled: tooltipsEnabled,
                     ),
                   if (_shouldShowOutputButton) ...[
@@ -140,7 +134,7 @@ class MediaTaskListTile extends StatelessWidget {
                     MediaTaskIconButton(
                       tooltip: '打开完成文件位置',
                       onPressed: onRevealOutput,
-                      icon: Icons.file_open_outlined,
+                      icon: WorkbenchIcons.fileOpen,
                       tooltipsEnabled: tooltipsEnabled,
                     ),
                   ],

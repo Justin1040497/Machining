@@ -1,26 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
-import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
-import 'package:framelean/application/services/input_runtime/media_folder_scanner.dart';
-import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
-import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
-import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
-import 'package:framelean/application/services/input_runtime/proprietary_audio_format_resolver.dart';
-import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
-import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
-import 'package:framelean/infrastructure/services/input_runtime/bundled_proprietary_audio_adapter_registry.dart';
-import 'package:framelean/infrastructure/services/input_runtime/default_media_input_preparer.dart';
-import 'package:framelean/infrastructure/services/input_runtime/ffprobe_media_analyzer.dart';
-import 'package:framelean/infrastructure/services/input_runtime/file_extension_media_kind_resolver.dart';
-import 'package:framelean/infrastructure/services/input_runtime/file_extension_proprietary_audio_format_resolver.dart';
-import 'package:framelean/infrastructure/services/input_runtime/local_ffmpeg_locator.dart';
-import 'package:framelean/infrastructure/services/input_runtime/local_media_folder_scanner.dart';
-import 'package:framelean/infrastructure/services/input_runtime/local_source_file_checker.dart';
-import 'package:framelean/infrastructure/services/input_runtime/local_source_file_fingerprint_reader.dart';
-import 'package:framelean/infrastructure/services/proprietary_audio/proprietary_audio_decoder_dispatcher.dart';
 
 /// 媒体类型识别服务
 final mediaKindResolverProvider = Provider<MediaKindResolver>((ref) {

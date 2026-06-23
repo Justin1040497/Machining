@@ -2,13 +2,10 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/notifications/library.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
-import 'package:framelean/domain/entities/app_notification_entry.dart';
-import 'package:framelean/domain/enums/app_notification_kind.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/domain/value_objects/task_notification_payload.dart';
-import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/app/notifications/app_notification_notice.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';

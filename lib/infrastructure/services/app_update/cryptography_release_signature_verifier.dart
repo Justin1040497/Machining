@@ -2,9 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:cryptography/cryptography.dart';
-import 'package:framelean/application/services/app_update/release_signature_verifier.dart';
-import 'package:framelean/domain/value_objects/app_update_package_info.dart';
-import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class CryptographyReleaseSignatureVerifier implements ReleaseSignatureVerifier {
   CryptographyReleaseSignatureVerifier({

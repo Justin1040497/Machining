@@ -1,39 +1,35 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/library.dart';
 
-class CompressionConfirmationDialog extends StatelessWidget {
-  const CompressionConfirmationDialog({super.key, required this.message});
-
-  final String message;
+class ClearTasksDialog extends StatelessWidget {
+  const ClearTasksDialog({super.key});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
 
-    return WorkbenchDialogFrame(
+    return AppDialogFrame(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const WorkbenchDialogTitle('确认继续压缩'),
+          const AppDialogTitle('清空列表'),
           const SizedBox(height: 14),
-          WorkbenchDialogBodyText('$message\n继续后会使用更激进的压缩策略。'),
+          const AppDialogBodyText('确定要清空所有任务和任务夹吗？'),
           const SizedBox(height: 22),
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              WorkbenchDialogActionButton(
+              AppDialogActionButton(
                 label: '取消',
                 backgroundColor: colors.statusCancelled,
                 onPressed: () => Navigator.of(context).pop(false),
               ),
               const SizedBox(width: 16),
-              WorkbenchDialogActionButton(
-                label: '继续压缩',
+              AppDialogActionButton(
+                label: '清空',
                 backgroundColor: colors.primary,
                 onPressed: () => Navigator.of(context).pop(true),
-                width: 96,
               ),
             ],
           ),

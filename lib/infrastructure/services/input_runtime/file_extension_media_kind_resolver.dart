@@ -1,6 +1,5 @@
-import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/proprietary_audio_format.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
 
 /// 使用文件扩展名识别媒体类型

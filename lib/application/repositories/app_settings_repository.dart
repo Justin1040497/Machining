@@ -1,4 +1,4 @@
-import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/library.dart';
 
 /// 应用设置存储抽象
 abstract class AppSettingsRepository {

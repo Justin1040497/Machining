@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/app_update/app_update_client.dart';
-import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
-import 'package:framelean/domain/value_objects/app_release_info.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/app_update/http_app_update_client.dart';
 import 'package:framelean/infrastructure/services/app_update/noop_app_update_client.dart';
 

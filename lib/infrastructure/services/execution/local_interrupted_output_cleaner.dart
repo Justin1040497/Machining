@@ -1,8 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/application/repositories/media_task_repository.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
 
 class InterruptedOutputCleanupResult {

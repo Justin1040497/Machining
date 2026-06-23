@@ -4,7 +4,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ItemExtentBuilder;
 
-import 'src/framelean_reorderable_list_core.dart';
+import 'package:framelean/app/presentation/widgets/reorderable/src/framelean_reorderable_list_core.dart';
 import 'package:framelean/app/constants.dart';
 
 export 'src/framelean_reorderable_list_core.dart'

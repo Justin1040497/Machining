@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
 import 'package:path/path.dart' as p;
 
 class LocalAppCacheCleaner implements AppCacheCleaner {

@@ -1,7 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/execution/execution_resource_guard.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class LocalExecutionResourceGuard implements ExecutionResourceGuard {
   const LocalExecutionResourceGuard({

@@ -1,4 +1,4 @@
-import 'package:framelean/domain/enums/proprietary_audio_format.dart';
+import 'package:framelean/domain/library.dart';
 
 class ProprietaryAudioAdapterRuntime {
   final ProprietaryAudioFormat format;

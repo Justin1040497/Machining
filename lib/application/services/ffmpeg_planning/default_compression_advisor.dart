@@ -2,13 +2,7 @@ import 'dart:math' as math;
 
 import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
 import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/services/source_compression_assessor.dart';
-import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/library.dart';
 
 class DefaultCompressionAdvisor implements CompressionAdvisor {
   static const normalCrf = 28;

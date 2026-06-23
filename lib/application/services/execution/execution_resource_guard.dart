@@ -1,5 +1,4 @@
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/library.dart';
 
 class ExecutionCapacity {
   const ExecutionCapacity({

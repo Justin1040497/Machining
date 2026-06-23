@@ -1,8 +1,7 @@
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/library.dart';
 
 class ReconcileMediaTasksResult {
   final List<MediaTask> tasks;

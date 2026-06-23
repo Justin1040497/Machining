@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:async';
 
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 

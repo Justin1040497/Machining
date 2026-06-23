@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/app_update_status.dart';
-import 'package:framelean/domain/value_objects/app_update_state.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchTopBar extends StatelessWidget {
   const WorkbenchTopBar({
@@ -58,8 +56,8 @@ class WorkbenchTopBar extends StatelessWidget {
                 _TopBarIconButton(
                   tooltip: isDark ? '切换为浅色模式' : '切换为深色模式',
                   icon: isDark
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
+                      ? WorkbenchIcons.lightMode
+                      : WorkbenchIcons.darkMode,
                   onPressed: onToggleThemeMode,
                 ),
                 const SizedBox(width: 8),
@@ -116,8 +114,8 @@ class _UpdateTopBarButton extends StatelessWidget {
               )
             : Icon(
                 state.status == AppUpdateStatus.downloaded
-                    ? Icons.download_done_outlined
-                    : Icons.file_download_outlined,
+                    ? WorkbenchIcons.downloadDone
+                    : WorkbenchIcons.fileDownload,
                 size: 20,
               ),
       ),
@@ -145,7 +143,7 @@ class _NotificationTopBarButton extends StatelessWidget {
       children: [
         _TopBarIconButton(
           tooltip: '通知中心',
-          icon: Icons.notifications_none_rounded,
+          icon: WorkbenchIcons.notifications,
           onPressed: onPressed,
         ),
         if (showBadge && unreadCount > 0)

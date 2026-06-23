@@ -2,10 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
   static const int stderrTailLineLimit = 8;

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/constants.dart';
+import 'package:framelean/app/library.dart';
 
 final notificationCenterVisibilityProvider =
     NotifierProvider<NotificationCenterVisibilityController, bool>(

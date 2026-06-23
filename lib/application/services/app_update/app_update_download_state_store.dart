@@ -1,4 +1,4 @@
-import 'package:framelean/domain/value_objects/app_release_info.dart';
+import 'package:framelean/domain/library.dart';
 
 class PersistedDownloadState {
   const PersistedDownloadState({

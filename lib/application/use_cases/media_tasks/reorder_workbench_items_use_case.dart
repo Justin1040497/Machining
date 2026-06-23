@@ -1,8 +1,6 @@
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/library.dart';
 
 enum WorkbenchTopLevelItemKind { task, folder }
 

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:file_selector/file_selector.dart';
-import 'package:framelean/application/services/platform/file_selection_service.dart';
+import 'package:framelean/application/library.dart';
 import 'package:path/path.dart' as path;
 
 class DesktopFileSelectionService implements FileSelectionService {

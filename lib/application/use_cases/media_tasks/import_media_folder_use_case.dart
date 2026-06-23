@@ -6,8 +6,7 @@ import 'package:framelean/application/services/input_runtime/media_kind_resolver
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/import_media_task_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
 
 class ImportMediaFolderFailure {

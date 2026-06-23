@@ -1,7 +1,6 @@
 import 'dart:io';
 
-import 'package:framelean/domain/value_objects/app_update_package_info.dart';
-import 'package:framelean/domain/value_objects/enterprise_update_config.dart';
+import 'package:framelean/domain/library.dart';
 
 abstract interface class ReleaseSignatureVerifier {
   Future<void> verify({

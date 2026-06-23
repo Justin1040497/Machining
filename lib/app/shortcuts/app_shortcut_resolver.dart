@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
-import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
+import 'package:framelean/domain/library.dart';
 
 LogicalKeyboardKey? logicalKeyForShortcut(AppShortcutBinding binding) {
   final knownKey = switch (binding.key.toLowerCase()) {

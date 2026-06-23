@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/enums/app_update_status.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
-import 'package:framelean/domain/value_objects/app_update_state.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/workbench_dialog_widgets.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class UpdateReleaseNotesDialog extends StatelessWidget {
   const UpdateReleaseNotesDialog.current({
@@ -53,7 +50,7 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
         ? history!.markdown
         : release?.releaseNotesMarkdown ?? '';
 
-    return WorkbenchDialogFrame(
+    return AppDialogFrame(
       maxWidth: 720,
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
       child: SizedBox(
@@ -61,7 +58,7 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            WorkbenchDialogBackHeader(
+            AppDialogBackHeader(
               title: title,
               onClose: () => Navigator.of(context).pop(),
               trailing: _isHistory
@@ -102,7 +99,7 @@ class UpdateReleaseNotesDialog extends StatelessWidget {
             if (_isHistory)
               Align(
                 alignment: Alignment.centerRight,
-                child: WorkbenchDialogActionButton(
+                child: AppDialogActionButton(
                   label: '关闭',
                   backgroundColor: colors.primary,
                   onPressed: () => Navigator.of(context).pop(),
@@ -178,14 +175,14 @@ class _CurrentUpdateActions extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            WorkbenchDialogActionButton(
+            AppDialogActionButton(
               label: primaryLabel,
               backgroundColor: colors.primary,
               onPressed: primaryAction,
               width: 88,
             ),
             const SizedBox(width: 12),
-            WorkbenchDialogActionButton(
+            AppDialogActionButton(
               label: '后台下载',
               backgroundColor: colors.statusCancelled,
               onPressed: () => Navigator.of(context).pop(),

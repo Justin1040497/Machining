@@ -5,48 +5,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:framelean/app/theme/app_theme_controller.dart';
-import 'package:framelean/app/providers/platform_provider.dart';
-import 'package:framelean/app/providers/app_update_provider.dart';
-import 'package:framelean/app/presentation/widgets/update_restart_warning_dialog.dart';
-import 'package:framelean/app/constants.dart';
-import 'package:framelean/app/shortcuts/app_hotkey_adapter.dart';
-import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/entities/task_folder.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/app_shortcut_action.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/media_task_config.dart';
-import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
-import 'package:framelean/domain/value_objects/app_update_state.dart';
-import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
-import 'package:framelean/app/presentation/widgets/notification_center_panel.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/notifications/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog_widgets.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/confirm/import_failure_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_context_menu.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_log_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_rename_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/update_release_notes_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
@@ -54,10 +25,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/workbench_task
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
-import 'package:framelean/app/providers/app_notification_provider.dart';
-import 'package:framelean/app/providers/app_settings_provider.dart';
-import 'package:framelean/app/providers/execution_provider.dart';
-import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 const Object _configValueNotProvided = Object();
@@ -560,11 +527,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         false;
 
     if (hasActiveTask) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => const RestartUnelevatedDialog(),
+      final confirmed = await ConfirmDialog.show(
+        context,
+        title: '普通模式重启',
+        body: '当前有任务正在处理。普通模式重启会关闭当前管理员窗口，并中断正在执行的任务。',
+        confirmLabel: '重启',
       );
-      if (confirmed != true) {
+      if (!confirmed) {
         return;
       }
     }
@@ -1451,20 +1420,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     required List<DroppedImportFailure> failures,
   }) {
     if (failures.isEmpty) {
-      showWorkbenchSnackBar('导入成功');
+      showWorkbenchSnackBar('全部导入成功');
       return;
     }
 
-    showWorkbenchSnackBar(
-      '导入完成：成功 $successCount 个，失败 ${failures.length} 个',
-      action: SnackBarAction(
-        label: '日志',
-        onPressed: () => showDroppedImportFailureDialog(failures),
-      ),
-    );
+    showWorkbenchSnackBar('成功 $successCount 个，失败 ${failures.length} 个');
+
+    showDroppedImportFailureDialog(successCount, failures);
   }
 
   Future<void> showDroppedImportFailureDialog(
+    int successCount,
     List<DroppedImportFailure> failures,
   ) async {
     if (!mounted) {
@@ -1473,18 +1439,23 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => ImportFailureDialog(failures: failures),
+      builder: (context) => ImportFailureDialog(
+        successCount: successCount,
+        failures: failures,
+      ),
     );
   }
 
   Future<void> confirmClearTasks() async {
     await runWorkbenchActionOnce('confirm-clear-tasks', () async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => const ClearTasksDialog(),
+      final confirmed = await ConfirmDialog.show(
+        context,
+        title: '清空列表',
+        body: '确定要清空所有任务和任务夹吗？',
+        confirmLabel: '清空',
       );
 
-      if (confirmed != true) {
+      if (!confirmed) {
         return;
       }
 
@@ -1829,8 +1800,12 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return true;
     }
 
-    final confirmed = await showCompressionConfirmationDialog(
-      result.message ?? '该视频已经压缩过，再压缩体积可能变大',
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: '确认继续压缩',
+      body: '${result.message ?? '该视频已经压缩过，再压缩体积可能变大'}\n继续后会使用更激进的压缩策略。',
+      confirmLabel: '继续压缩',
+      confirmWidth: 96,
     );
     if (!mounted) {
       return true;
@@ -1843,15 +1818,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     showWorkbenchSnackBar('已取消本次压缩');
     return true;
-  }
-
-  Future<bool> showCompressionConfirmationDialog(String message) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => CompressionConfirmationDialog(message: message),
-    );
-
-    return confirmed == true;
   }
 
   MediaTask? currentSelectedTask() {

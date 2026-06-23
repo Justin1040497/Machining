@@ -106,3 +106,122 @@ class AppDialogActionButton extends StatelessWidget {
     return colors.onPrimary;
   }
 }
+
+/// 弹窗正文文字 — 13sp / secondary / 1.55 行高
+class AppDialogBodyText extends StatelessWidget {
+  const AppDialogBodyText(this.text, {super.key, this.fontSize = 13});
+
+  final String text;
+  final double fontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return Text(
+      text,
+      style: TextStyle(
+        color: colors.textSecondary,
+        fontSize: fontSize.flSp,
+        height: 1.55,
+        fontWeight: FontWeight.w400,
+      ),
+    );
+  }
+}
+
+/// 带返回键的标题栏 — 用于二级页面型弹窗
+class AppDialogBackHeader extends StatelessWidget {
+  const AppDialogBackHeader({
+    super.key,
+    required this.title,
+    required this.onClose,
+    this.trailing,
+  });
+
+  final String title;
+  final VoidCallback onClose;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return Row(
+      children: [
+        Transform.translate(
+          offset: const Offset(-10, 0),
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: IconButton(
+              tooltip: '关闭',
+              onPressed: onClose,
+              padding: EdgeInsets.zero,
+              icon: Icon(
+                Icons.keyboard_arrow_left_rounded,
+                color: colors.textPrimary,
+                size: 24,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 1),
+        Text(
+          title,
+          style: TextStyle(
+            color: colors.textPrimary,
+            fontSize: 15.flSp,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (trailing != null) ...[const Spacer(), trailing!],
+      ],
+    );
+  }
+}
+
+/// 取消/保存按钮组 — 默认契约：左 leading + 右两按钮
+class AppDialogActions extends StatelessWidget {
+  const AppDialogActions({
+    super.key,
+    required this.onCancel,
+    required this.onSave,
+    this.leading,
+    this.cancelLabel = '取消',
+    this.saveLabel = '保存',
+  });
+
+  final VoidCallback onCancel;
+  final VoidCallback onSave;
+  final Widget? leading;
+  final String cancelLabel;
+  final String saveLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return Row(
+      children: [
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: leading ?? const SizedBox.shrink(),
+          ),
+        ),
+        AppDialogActionButton(
+          label: cancelLabel,
+          backgroundColor: colors.statusCancelled,
+          onPressed: onCancel,
+        ),
+        const SizedBox(width: 16),
+        AppDialogActionButton(
+          label: saveLabel,
+          backgroundColor: colors.primary,
+          onPressed: onSave,
+        ),
+      ],
+    );
+  }
+}

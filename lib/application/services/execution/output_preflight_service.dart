@@ -1,6 +1,5 @@
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/media_task_policy_tag.dart';
+import 'package:framelean/domain/library.dart';
 
 class OutputPreflightResult {
   const OutputPreflightResult({required this.plan, this.policyTags = const {}});

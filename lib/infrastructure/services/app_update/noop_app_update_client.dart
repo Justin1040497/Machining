@@ -1,6 +1,5 @@
-import 'package:framelean/application/services/app_update/app_update_client.dart';
-import 'package:framelean/domain/value_objects/app_release_info.dart';
-import 'package:framelean/domain/value_objects/app_release_notes.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 class NoopAppUpdateClient implements AppUpdateClient {
   const NoopAppUpdateClient();

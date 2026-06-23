@@ -1,9 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:framelean/application/services/app_update/app_update_download_state_store.dart';
-import 'package:framelean/domain/value_objects/app_release_info.dart';
-import 'package:framelean/domain/value_objects/app_update_package_info.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 

@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:framelean/app/shortcuts/app_shortcut_resolver.dart';
-import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 HotKey? hotKeyForShortcutBinding(

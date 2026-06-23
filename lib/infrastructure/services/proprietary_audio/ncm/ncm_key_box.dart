@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
+import 'package:framelean/application/library.dart';
 
 class NcmKeyBox {
   final Uint8List bytes;

@@ -1,10 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/application/repositories/app_settings_repository.dart';
-import 'package:framelean/application/repositories/media_task_repository.dart';
-import 'package:framelean/application/repositories/task_folder_repository.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/providers/database_provider.dart';
-import 'package:framelean/infrastructure/repositories/drift_app_settings_repository.dart';
-import 'package:framelean/infrastructure/repositories/drift_media_task_repository.dart';
 
 /// 应用设置数据库操作管理状态
 /// 这里最好暴露抽象类给外面

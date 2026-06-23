@@ -2,14 +2,10 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/providers/database_provider.dart';
-import 'package:framelean/app/theme/app_theme_controller.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/infrastructure/database/app_database.dart';
-import 'package:framelean/infrastructure/services/platform/local_theme_preferences_cache.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/infrastructure/library.dart';
 import 'package:window_manager/window_manager.dart';
-
-import 'app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
