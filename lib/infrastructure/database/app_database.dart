@@ -1,4 +1,4 @@
-import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
 import 'package:framelean/infrastructure/database/app_notifications.dart';
 import 'package:framelean/infrastructure/database/settings.dart';
 import 'package:framelean/infrastructure/database/task_folders.dart';

@@ -1,4 +1,4 @@
-import 'package:framelean/app/library.dart';
+import 'package:framelean/application/constants.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';

@@ -37,12 +37,15 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 - 新增 `UpdateNoticeDialog`：以 380px 级轻量弹窗展示新版本摘要、下载状态、安装动作和完整日志入口，mandatory 更新隐藏「下次再说」并禁止点击遮罩关闭。
 - 新增更新 snooze 持久化端口和本地实现：同版本点击「下次再说」后，后续自动检查只显示工作台顶部入口，不再自动弹窗；新版本发布后 snooze 自动失效。
+- 新增 Flutter `integration_test` 基础设施和 `integration_test/app_smoke_test.dart`：使用内存 Drift 数据库启动真实 `FrameLeanApp` Widget 树，覆盖应用启动 / 设置路由、文件导入自动建夹、通知中心持久化和手动更新入口等桌面集成烟测。
 - 新增 FFmpeg 进程 stall 检测：长时间无 stdout / stderr 活动时强制终止进程并返回无响应失败，避免任务永久占用执行位。
 - 新增硬件编码器会话失效自动恢复：VideoToolbox / NVENC / QSV / AMF 出现典型 external library 错误时，当前 step 清理残留输出后自动重试一次。
 
 ### Changed
 
 - 工作台顶部更新入口由 32px 图标改为状态胶囊，按 `新版本`、`下载中`、`已暂停`、`已就绪`、`更新失败` 展示版本或进度。
+- 新增 `appRuntimeEffectsEnabledProvider` 测试边界：生产默认开启系统快捷键、窗口 / 托盘监听、启动清理和更新自动检查；集成测试可关闭这些运行期副作用。
+- 跨层共享常量下沉到 `domain/constants.dart` 和 `application/constants.dart`，`app/constants.dart` 只保留 app / UI 侧入口并 re-export 低层常量，避免低层反向依赖 app barrel。
 - 设置页手动检查发现新版本后弹出 L2 更新通知，不再直接进入完整版本日志页；设置页移除独立「版本日志」按钮。
 - 通知中心当前更新通知点击打开 L2 更新通知；历史版本通知直接进入 L3 完整版本日志页。
 - FFprobe 分析从 `Process.run().timeout()` 改为 `Process.start`，超时后主动 kill 子进程并回收输出流。
@@ -52,17 +55,22 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 ### Fixed
 
 - 修复通知中心历史版本在缺少版本号时进入 `/settings/release-notes&from=workbench` 的 URL 拼接错误。
+- 修复更新失败哨兵文件检查在无 `path_provider` 插件环境下抛出未处理异常的问题，保持启动检查 best-effort。
+- 修复 `test/widget_test.dart` 测试适配器未使用可选参数和 `tool/sign_windows_update.dart` 空值 map 写法导致的全量 analyze issue。
+- 修复 `architecture_dependencies_test.dart` 报出的 domain / application / infrastructure 反向导入 `app/library.dart` 问题，恢复 Clean Architecture 依赖护栏。
 - 修复 FFprobe 超时后底层子进程仍可能在后台存活的问题。
 - 修复 FFmpeg 进程挂死时队列一直停留在 `running` 并阻塞后续任务的问题。
 - 修复任务失败通知可能直接暴露 exit code、硬件编码器 stderr 或内部转换失败细节的问题。
 
 ### Verified
 
-- 通过 `rtk dart format` 覆盖本次触达的 18 个 Dart 文件。
-- 通过触达范围定向 `rtk flutter analyze ...`，15 个源码 / 测试文件无 issue。
+- 通过 `rtk dart format` 覆盖本次触达的 Dart 文件。
+- 通过 `rtk flutter test integration_test/app_smoke_test.dart`，4 个桌面集成烟测通过；macOS Debug app 构建阶段仅提示本地未放置 Universal FFmpeg / QMC 运行时。
+- 通过 `rtk flutter test test/app_update_provider_test.dart`，更新自动检查、snooze、下载、安装 helper 和 Sparkle 策略测试共 9 个通过。
+- 通过 `rtk flutter test test/architecture_dependencies_test.dart`，架构依赖护栏测试通过。
+- 通过 `rtk flutter analyze`，全量静态分析无 issue。
+- 通过 `rtk flutter test --file-reporter=json:/private/tmp/framelean_flutter_test_final.json`，全量 Flutter 测试 375 项通过。
 - 通过 `rtk git diff --check`。
-- `rtk flutter analyze` 全量仍有 11 条既有分析项，集中在 `test/widget_test.dart` 未使用可选参数和 `tool/sign_windows_update.dart` null-aware info，非本次新增。
-- 定向 `rtk flutter test test/app_update_provider_test.dart test/app_notification_manager_test.dart test/ffmpeg_process_observer_test.dart` 未能进入测试用例：本机 Xcode 被 `flutter doctor` 标记为 incomplete，且 `xcrun --show-sdk-path` 因系统策略拒绝加载 `libxcrun.dylib`，导致 `objective_c` native-assets hook 失败。
 
 ## 2026-06-23｜v1.2.1｜No Release
 

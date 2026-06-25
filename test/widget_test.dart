@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/application/library.dart';
 import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
@@ -21,7 +22,6 @@ import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/two_pass_mode.dart';
-import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
@@ -34,6 +34,7 @@ import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/app/presentation/widgets/confirm_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_template.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/video_config_panel.dart';
@@ -911,25 +912,15 @@ void main() {
       await topGesture.up();
       await tester.pumpAndSettle();
 
-      final headerBefore = tester.getCenter(
-        find.byType(AppDialogBackHeader),
-      );
-      final actionsBefore = tester.getCenter(
-        find.byType(AppDialogActions),
-      );
+      final headerBefore = tester.getCenter(find.byType(AppDialogBackHeader));
+      final actionsBefore = tester.getCenter(find.byType(AppDialogActions));
       final sourceBefore = tester.getCenter(find.textContaining('源文件大小'));
 
       await tester.drag(scrollViewFinder, const Offset(0, -180));
       await tester.pumpAndSettle();
 
-      expect(
-        tester.getCenter(find.byType(AppDialogBackHeader)),
-        headerBefore,
-      );
-      expect(
-        tester.getCenter(find.byType(AppDialogActions)),
-        actionsBefore,
-      );
+      expect(tester.getCenter(find.byType(AppDialogBackHeader)), headerBefore);
+      expect(tester.getCenter(find.byType(AppDialogActions)), actionsBefore);
       expect(
         tester.getCenter(find.textContaining('源文件大小')).dy,
         lessThan(sourceBefore.dy),
@@ -2597,11 +2588,9 @@ Future<void> _pumpWorkbenchShellForDragTest(
 
 class _TestTaskConfigDialog extends StatelessWidget {
   const _TestTaskConfigDialog({
-    super.key,
     required this.task,
     required this.thumbnail,
     this.sourceSummary,
-    this.title = '任务详情设置',
     required this.selectedQualityIndex,
     required this.selectedOutputFormat,
     required this.selectedVideoCodec,
@@ -2611,10 +2600,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
     required this.selectedSmartPreset,
     required this.selectedTargetSizeRatio,
     this.selectedPurpose = TaskPurpose.compression,
-    this.selectedConfig,
-    this.showOutputLocationInMain = false,
-    this.systemOutputDirectoryLabel = '使用应用设置',
-    this.onPickOutputDirectory,
     this.selectedVideoConfig,
     this.selectedImageConfig,
     this.selectedAudioConfig,
@@ -2635,16 +2620,11 @@ class _TestTaskConfigDialog extends StatelessWidget {
     this.onVideoPreserveMetadataChanged,
     this.onImageConfigChanged,
     this.onAudioConfigChanged,
-    this.onThreadLimitChanged,
-    this.onOutputLocationChanged,
-    this.onTwoPassModeChanged,
-    this.onSelectedAudioStreamIndexChanged,
   });
 
   final MediaTask task;
   final ImageProvider? thumbnail;
   final Widget? sourceSummary;
-  final String title;
   final int selectedQualityIndex;
   final OutputFormat selectedOutputFormat;
   final VideoCodec selectedVideoCodec;
@@ -2654,10 +2634,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
   final SmartCompressionPreset selectedSmartPreset;
   final double selectedTargetSizeRatio;
   final TaskPurpose selectedPurpose;
-  final MediaTaskConfig? selectedConfig;
-  final bool showOutputLocationInMain;
-  final String systemOutputDirectoryLabel;
-  final Future<String?> Function()? onPickOutputDirectory;
   final VideoProcessingConfig? selectedVideoConfig;
   final ImageProcessingConfig? selectedImageConfig;
   final AudioProcessingConfig? selectedAudioConfig;
@@ -2678,11 +2654,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
   final ValueChanged<bool>? onVideoPreserveMetadataChanged;
   final ValueChanged<ImageProcessingConfig>? onImageConfigChanged;
   final ValueChanged<AudioProcessingConfig>? onAudioConfigChanged;
-  final ValueChanged<int?>? onThreadLimitChanged;
-  final void Function(OutputLocationMode mode, String directory)?
-  onOutputLocationChanged;
-  final ValueChanged<TwoPassMode>? onTwoPassModeChanged;
-  final ValueChanged<int?>? onSelectedAudioStreamIndexChanged;
 
   static const _recommendedPresets = [
     WorkbenchCompressionPreset(
@@ -2715,13 +2686,14 @@ class _TestTaskConfigDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final isVideoTask = task.mediaKind == MediaKind.video;
     final videoConfig =
-        selectedVideoConfig ?? task.config.video ?? VideoProcessingConfig.initial();
+        selectedVideoConfig ??
+        task.config.video ??
+        VideoProcessingConfig.initial();
     final preserveHdr =
         videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
         task.analysisResult?.isHdr == true;
     final modified = _isModified();
-    final compressed =
-        isVideoTask && _isSourceAlreadyCompressed();
+    final compressed = isVideoTask && _isSourceAlreadyCompressed();
 
     // ---- build primaryContent ----
     Widget primaryContent;
@@ -2740,10 +2712,10 @@ class _TestTaskConfigDialog extends StatelessWidget {
             estimatedSizeForPreset: (_) => '',
             targetSizeModeEnabled:
                 !preserveHdr &&
-                VideoOutputCompatibility.supportsTargetSize(
-                  selectedVideoCodec,
-                ),
-            isPresetEnabled: (_) => !preserveHdr,
+                VideoOutputCompatibility.supportsTargetSize(selectedVideoCodec),
+            isPresetEnabled: (preset) =>
+                !preserveHdr ||
+                preset.smartPreset == SmartCompressionPreset.balanced,
             onModeChanged: onCompressionModeChanged,
             onPresetSelected: (preset) {
               onCompressionModeChanged(CompressionMode.preset);
@@ -2790,9 +2762,7 @@ class _TestTaskConfigDialog extends StatelessWidget {
               TwoPassMode.disabled => '关闭',
             },
             onChanged: (value) {
-              if (value != null) {
-                onTwoPassModeChanged?.call(value);
-              }
+              // This test adapter does not expose advanced callback assertions.
             },
             height: 40,
             showTrailingText: false,
@@ -2805,10 +2775,7 @@ class _TestTaskConfigDialog extends StatelessWidget {
               label: '音频流',
               trailingText: '',
               value: videoConfig.selectedAudioStreamIndex ?? -1,
-              values: [
-                -1,
-                ...audioStreams.map((stream) => stream.index),
-              ],
+              values: [-1, ...audioStreams.map((stream) => stream.index)],
               itemLabel: (value) {
                 if (value == -1) return '自动';
                 final stream = audioStreams.firstWhere(
@@ -2818,10 +2785,7 @@ class _TestTaskConfigDialog extends StatelessWidget {
                 return stream.displayLabel;
               },
               onChanged: (value) {
-                if (value != null) {
-                  onSelectedAudioStreamIndexChanged
-                      ?.call(value == -1 ? null : value);
-                }
+                // This test adapter does not expose advanced callback assertions.
               },
               height: 40,
               showTrailingText: false,
@@ -2835,7 +2799,7 @@ class _TestTaskConfigDialog extends StatelessWidget {
 
     return TaskConfigDialogTemplate(
       task: task,
-      title: title,
+      title: '任务详情设置',
       onClose: onClose,
       onSave: onSave,
       onOpenSource: onOpenSource,
@@ -2844,8 +2808,8 @@ class _TestTaskConfigDialog extends StatelessWidget {
       selectedPurpose: selectedPurpose,
       onPurposeChanged: onPurposeChanged ?? (_) {},
       primaryContent: primaryContent,
-      threadLimit: selectedConfig?.threadLimit ?? task.config.threadLimit,
-      onThreadLimitChanged: onThreadLimitChanged ?? (_) {},
+      threadLimit: task.config.threadLimit,
+      onThreadLimitChanged: (_) {},
       advancedContent: advancedContent,
       modified: modified,
       compressed: compressed,
@@ -2919,10 +2883,15 @@ class _TestTaskConfigDialog extends StatelessWidget {
         final preserveHdr =
             videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
             task.analysisResult?.isHdr == true;
+        final sourceOutputFormat = mediaOutputFormatForSourceFileName(
+          sourceFileName: task.fileName,
+          mediaKind: task.mediaKind,
+        );
         return WorkbenchVideoConfigPanel(
           selectedOutputFormat: selectedOutputFormat,
-          selectedVideoCodec:
-              preserveHdr ? VideoCodec.hevc : selectedVideoCodec,
+          selectedVideoCodec: preserveHdr
+              ? VideoCodec.hevc
+              : selectedVideoCodec,
           selectedEncoderBackend: selectedEncoderBackend,
           selectedResolutionPreset: selectedResolutionPreset,
           availableEncoderBackends: availableEncoderBackends,
@@ -2930,7 +2899,7 @@ class _TestTaskConfigDialog extends StatelessWidget {
           onVideoCodecChanged: onVideoCodecChanged,
           onEncoderBackendChanged: onEncoderBackendChanged,
           onResolutionPresetChanged: onResolutionPresetChanged,
-          sourceOutputFormat: null,
+          sourceOutputFormat: sourceOutputFormat?.toVideoOutputFormat(),
           keepOriginalOutputFormat: videoConfig.keepOriginalOutputFormat,
           showPreserveHdrOption: task.analysisResult?.isHdr == true,
           preserveHdr: preserveHdr,
@@ -3011,7 +2980,10 @@ class _TestTaskConfigDialog extends StatelessWidget {
   bool _isSourceAlreadyCompressed() {
     if (task.mediaKind != MediaKind.video) return false;
     final codec = task.analysisResult?.videoCodec?.toLowerCase() ?? '';
-    return codec == 'hevc' || codec == 'h265' || codec == 'vp9' || codec == 'av1';
+    return codec == 'hevc' ||
+        codec == 'h265' ||
+        codec == 'vp9' ||
+        codec == 'av1';
   }
 
   bool _preserveMetadata() {
@@ -3046,8 +3018,27 @@ class _TestTaskConfigDialog extends StatelessWidget {
 
   bool _isModified() {
     if (task.purpose != selectedPurpose) return true;
-    final config = selectedConfig ?? task.config;
-    if (task.config.threadLimit != config.threadLimit) return true;
+    if (task.config.compressionMode != selectedCompressionMode) return true;
+    switch (task.mediaKind) {
+      case MediaKind.video:
+        final videoConfig =
+            task.config.video ?? VideoProcessingConfig.initial();
+        if (WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
+          task: task,
+          outputFormat: selectedOutputFormat,
+          videoCodec: selectedVideoCodec,
+          resolutionPreset: selectedResolutionPreset,
+        )) {
+          return true;
+        }
+        if (videoConfig.encoderBackend != selectedEncoderBackend) return true;
+      case MediaKind.image:
+        final selected = selectedImageConfig;
+        if (selected != null && selected != task.config.image) return true;
+      case MediaKind.audio:
+        final selected = selectedAudioConfig;
+        if (selected != null && selected != task.config.audio) return true;
+    }
     return false;
   }
 }

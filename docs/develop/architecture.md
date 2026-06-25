@@ -39,6 +39,7 @@ flowchart LR
 - `infrastructure` 实现数据库、文件系统、FFmpeg / FFprobe 和平台差异，可以依赖 `application` 抽象和 `domain`。
 - `features` 是 UI 和页面状态协调层，通过 Riverpod notifier 调用 application 用例，不直接拼装数据库或 FFmpeg 实现。
 - `app` 负责应用入口、主题、路由、共享展示组件和 Riverpod composition root，不承载领域业务规则。
+- 跨层共享常量按归属放在 `domain/constants.dart` 或 `application/constants.dart`；`app/constants.dart` 只服务 app / UI 侧并可 re-export 低层常量，低层不得为了常量导入 `app/library.dart`。
 
 ## 为什么使用这个架构
 
@@ -158,6 +159,7 @@ docs/
 - `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏。任务成功 / 失败临时通知保持短摘要，完整结果详情由通知中心展示。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
+- `appRuntimeEffectsEnabledProvider`：默认开启系统快捷键、窗口 / 托盘监听、启动清理和更新自动检查等运行期副作用；集成测试可覆盖为 `false`，让真实 `FrameLeanApp` Widget 树在内存数据库中启动而不污染开发机状态。
 - `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部状态胶囊、通知中心、更新通知弹窗和版本日志页提供检查、下载、暂停、继续、snooze 和安装 helper 启动动作。
 - `presentation/`：settings、notifications、workbench 共同使用的布局常量、领域标签和展示 Widget；`FrameLeanReorderableListView` 封装 Flutter 3.41.2 reorderable fork，对外提供 gap 策略、跨轴拖动和外部 drop，业务列表不直接依赖 fork 内部状态。
 - `theme/`：配色、字体和第三方组件（如 `MarkdownStyleSheet`）的视觉映射。

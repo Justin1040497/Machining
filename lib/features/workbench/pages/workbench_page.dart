@@ -152,22 +152,25 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   @override
   void initState() {
     super.initState();
+    final runtimeEffectsEnabled = ref.read(appRuntimeEffectsEnabledProvider);
     taskListSubscription = ref.listenManual<AsyncValue<List<MediaTask>>>(
       mediaTaskListProvider,
       handleTaskListChanged,
       fireImmediately: true,
     );
-    appSettingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
-      appSettingsProvider,
-      (_, next) {
-        final settings = next.asData?.value;
-        if (settings == null) return;
-        unawaited(syncWorkbenchHotKeys(settings.shortcutBindings));
-      },
-      fireImmediately: true,
-    );
-    unawaited(registerWorkbenchEscapeHotKey());
-    unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+    if (runtimeEffectsEnabled) {
+      appSettingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
+        appSettingsProvider,
+        (_, next) {
+          final settings = next.asData?.value;
+          if (settings == null) return;
+          unawaited(syncWorkbenchHotKeys(settings.shortcutBindings));
+        },
+        fireImmediately: true,
+      );
+      unawaited(registerWorkbenchEscapeHotKey());
+      unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+    }
     _autoNoticeSubscription = ref.listenManual<bool>(
       appUpdatePendingAutoNoticeProvider,
       (_, shouldShow) {

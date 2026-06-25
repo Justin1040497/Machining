@@ -36,15 +36,19 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     with WidgetsBindingObserver, WindowListener, TrayListener {
   bool _allowWindowDestroy = false;
   bool _handlingWindowClose = false;
+  late final bool _runtimeEffectsEnabled;
   HotKey? _quitHotKey;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    unawaited(reconcileThemeModeAfterStartup());
-    unawaited(_cleanupInterruptedOutputsAfterStartup());
-    if (Platform.isMacOS || Platform.isWindows) {
+    _runtimeEffectsEnabled = ref.read(appRuntimeEffectsEnabledProvider);
+    if (_runtimeEffectsEnabled) {
+      unawaited(reconcileThemeModeAfterStartup());
+      unawaited(_cleanupInterruptedOutputsAfterStartup());
+    }
+    if (_runtimeEffectsEnabled && (Platform.isMacOS || Platform.isWindows)) {
       windowManager.addListener(this);
       unawaited(_configureDesktopLifecycle());
     }
@@ -66,10 +70,10 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
 
   @override
   void dispose() {
-    if (Platform.isMacOS || Platform.isWindows) {
+    if (_runtimeEffectsEnabled && (Platform.isMacOS || Platform.isWindows)) {
       windowManager.removeListener(this);
     }
-    if (Platform.isWindows) {
+    if (_runtimeEffectsEnabled && Platform.isWindows) {
       trayManager.removeListener(this);
     }
     final quitHotKey = _quitHotKey;
@@ -83,7 +87,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (_runtimeEffectsEnabled && state == AppLifecycleState.resumed) {
       unawaited(_reloadEnterpriseUpdateConfig());
     }
   }
@@ -225,10 +229,12 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     }
 
     await ref.read(ffmpegTaskQueueRunnerProvider).cancelAllExecutions();
-    if (Platform.isWindows) await trayManager.destroy();
-    _allowWindowDestroy = true;
-    await windowManager.setPreventClose(false);
-    await windowManager.destroy();
+    if (_runtimeEffectsEnabled) {
+      if (Platform.isWindows) await trayManager.destroy();
+      _allowWindowDestroy = true;
+      await windowManager.setPreventClose(false);
+      await windowManager.destroy();
+    }
   }
 
   @override

@@ -172,6 +172,13 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
 
   @override
   Future<AppUpdateState> build() async {
+    if (!ref.read(appRuntimeEffectsEnabledProvider)) {
+      ref.onDispose(() {
+        _downloadCancellationToken?.cancel();
+      });
+      return AppUpdateState.initial();
+    }
+
     await ref.read(enterpriseUpdateConfigCacheProvider).load();
 
     final restored = await _tryRestorePersistedDownload();
@@ -225,14 +232,14 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
   }
 
   Future<void> _checkUpdateFailedSentinel() async {
-    final supportDir = await getApplicationSupportDirectory();
-    final sentinel = File(
-      p.join(supportDir.path, 'updates', 'update-failed.json'),
-    );
-    if (!await sentinel.exists()) {
-      return;
-    }
+    File? sentinel;
     try {
+      final supportDir = await getApplicationSupportDirectory();
+      sentinel = File(p.join(supportDir.path, 'updates', 'update-failed.json'));
+      if (!await sentinel.exists()) {
+        return;
+      }
+
       final content = await sentinel.readAsString();
       final json = jsonDecode(content) as Map<String, dynamic>;
       final version = json['version'] as String? ?? '';
@@ -250,9 +257,13 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
             source: notificationSourceUpdate,
           );
     } on Object {
+      final file = sentinel;
+      if (file == null) {
+        return;
+      }
       try {
-        if (await sentinel.exists()) {
-          await sentinel.delete();
+        if (await file.exists()) {
+          await file.delete();
         }
       } on Object {
         // best effort

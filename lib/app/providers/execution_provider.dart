@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/constants.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/library.dart';
@@ -86,9 +85,7 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
 });
 
 Directory ffmpegExecutionLogsDirectory() {
-  return Directory(
-    path.join(Directory.systemTemp.path, ffmpegLogsSubDir),
-  );
+  return Directory(path.join(Directory.systemTemp.path, ffmpegLogsSubDir));
 }
 
 Future<String> createFfmpegExecutionLogFilePath(

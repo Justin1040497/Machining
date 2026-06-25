@@ -1,4 +1,4 @@
-import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/constants.dart';
 import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/output_format.dart';

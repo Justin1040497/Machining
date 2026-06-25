@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:framelean/app/library.dart';
+import 'package:framelean/application/constants.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/application/repositories/app_notification_repository.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';

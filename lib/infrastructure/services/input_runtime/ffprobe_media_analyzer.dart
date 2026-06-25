@@ -4,7 +4,6 @@ import 'dart:io';
 
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
-import 'package:framelean/app/library.dart';
 
 /// 使用 FFprobe 分析媒体文件基础信息
 class FfprobeMediaAnalyzer implements MediaAnalyzer {

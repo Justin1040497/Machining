@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:framelean/app/library.dart';
 import 'package:framelean/application/library.dart';
 import 'package:path/path.dart' as p;
 
@@ -11,11 +10,12 @@ class LocalAppCacheCleaner implements AppCacheCleaner {
     Future<Directory> Function()? supportDirectoryProvider,
     Future<List<String>> Function()? excludeFilePathsProvider,
   }) : _tempRoot =
-            tempRoot ??
-            Directory(p.join(Directory.systemTemp.path, tempDirPrefix)),
-      _cacheDirectoryNames = cacheDirectoryNames ?? _defaultCacheDirectoryNames,
-      _supportDirectoryProvider = supportDirectoryProvider,
-      _excludeFilePathsProvider = excludeFilePathsProvider;
+           tempRoot ??
+           Directory(p.join(Directory.systemTemp.path, tempDirPrefix)),
+       _cacheDirectoryNames =
+           cacheDirectoryNames ?? _defaultCacheDirectoryNames,
+       _supportDirectoryProvider = supportDirectoryProvider,
+       _excludeFilePathsProvider = excludeFilePathsProvider;
 
   static const _defaultCacheDirectoryNames = <String>[
     'ffmpeg-logs',
@@ -127,10 +127,7 @@ class LocalAppCacheCleaner implements AppCacheCleaner {
       }
 
       try {
-        final result = await _clearDirectoryContentsExcluding(
-          target,
-          excludes,
-        );
+        final result = await _clearDirectoryContentsExcluding(target, excludes);
         deletedFileCount += result.deletedFileCount;
         deletedDirectoryCount += result.deletedDirectoryCount;
         releasedBytes += result.releasedBytes;

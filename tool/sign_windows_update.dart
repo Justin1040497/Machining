@@ -35,7 +35,7 @@ Future<void> main(List<String> arguments) async {
   final metadata = <String, Object>{
     'schemaVersion': 1,
     if (version != null && version.isNotEmpty) 'version': version,
-    if (buildNumber != null) 'buildNumber': buildNumber,
+    ...?(buildNumber == null ? null : {'buildNumber': buildNumber}),
     'platform': 'windows-installer',
     'fileName': input.uri.pathSegments.last,
     'size': bytes.length,

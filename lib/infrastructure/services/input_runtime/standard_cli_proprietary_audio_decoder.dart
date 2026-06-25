@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
-import 'package:framelean/app/library.dart';
 import 'package:path/path.dart' as path;
 
 class StandardCliProprietaryAudioDecoder implements ProprietaryAudioDecoder {

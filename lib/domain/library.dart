@@ -7,6 +7,8 @@
 /// 故全部导出。新增仅同层内部使用的辅助类时不进此清单。
 library;
 
+export 'constants.dart';
+
 // entities
 export 'entities/app_notification_entry.dart';
 export 'entities/app_settings.dart';

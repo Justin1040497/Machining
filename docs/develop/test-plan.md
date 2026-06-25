@@ -26,6 +26,12 @@ flutter test
 flutter test test/ffmpeg_command_builder_test.dart
 ```
 
+桌面集成烟测单独运行：
+
+```bash
+flutter test integration_test/app_smoke_test.dart
+```
+
 ## 当前测试文件
 
 ```text
@@ -78,6 +84,9 @@ test/
   workbench_file_revealer_test.dart
   workbench_notice_test.dart
   workbench_preview_notifier_test.dart
+
+integration_test/
+  app_smoke_test.dart
 ```
 
 ## 自动化测试覆盖范围
@@ -127,6 +136,7 @@ test/
 - `application` 不得反向依赖 `app`、`features` 或 `infrastructure`，平台行为通过 application port 表达。
 - `infrastructure` 不得导入 `features`，Riverpod 依赖装配统一放在 `app/providers`。
 - `features` 不得直接依赖 `infrastructure`，跨功能共享展示组件统一放在 `app`。
+- `domain`、`application` 和 `infrastructure` 为了共享常量应使用本层或允许依赖层的 `constants.dart` / `library.dart`，不得导入 `app/library.dart`。
 
 ### 通知中心
 
@@ -272,6 +282,13 @@ test/
 
 - 应用可以构建基础 Widget 树。
 - 主入口和路由不会在基础测试中崩溃。
+
+### 桌面集成烟测
+
+- `integration_test/app_smoke_test.dart` 使用 Flutter 官方 `integration_test` 绑定启动真实 `FrameLeanApp` Widget 树。
+- 烟测使用内存 Drift 数据库，并关闭系统快捷键、窗口 / 托盘监听、启动清理和更新自动检查等运行期副作用，避免污染开发机状态。
+- 当前覆盖：应用启动和设置路由、文件选择导入后同类型批次自动建任务夹、通知中心读取并清空持久化通知、手动更新检查后展示工作台 L1 更新入口并打开 L2 更新通知弹窗。
+- 集成烟测通过 provider override 替换文件选择、媒体分析和更新客户端，保留真实 Riverpod 装配、Drift 仓储、use case 和主要 UI 交互；真实 FFmpeg 转码矩阵仍属于手动 / 发布验证范围。
 
 ## 手动验证范围
 

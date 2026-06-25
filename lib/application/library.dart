@@ -8,6 +8,8 @@
 /// - use_cases/media_tasks/reorder_media_tasks_use_case.dart（当前无引用，疑似废弃）
 library;
 
+export 'constants.dart';
+
 // repositories（端口定义，infrastructure 实现）
 export 'repositories/app_notification_repository.dart';
 export 'repositories/app_settings_repository.dart';

@@ -197,6 +197,9 @@ void main() {
           enterpriseUpdateConfigCacheProvider.overrideWithValue(
             EnterpriseUpdateConfigCache(StaticUpdateConfigStore(config)),
           ),
+          appUpdateDownloadStateStoreProvider.overrideWithValue(
+            FakeAppUpdateDownloadStateStore(),
+          ),
           sparkleUpdateControllerProvider.overrideWithValue(sparkle),
         ],
       );

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:framelean/app/library.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
