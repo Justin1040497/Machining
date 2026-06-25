@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
@@ -6,6 +7,7 @@ import 'package:framelean/application/services/input_runtime/source_file_checker
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
@@ -130,6 +132,7 @@ void main() {
     await ApplyTaskFolderConfigUseCase(
       mediaTaskRepository: repository,
       taskFolderRepository: folderRepository,
+      appSettingsRepository: FakeAppSettingsRepository(),
     ).call(
       folderId: folder.id,
       config: newConfig,
@@ -174,6 +177,7 @@ void main() {
       await ApplyTaskFolderConfigUseCase(
         mediaTaskRepository: repository,
         taskFolderRepository: folderRepository,
+        appSettingsRepository: FakeAppSettingsRepository(),
       ).call(
         folderId: folder.id,
         config: config,
@@ -187,6 +191,51 @@ void main() {
       expect(
         repository.taskById('mov').config.video?.outputFormat,
         MediaOutputFormat.mov,
+      );
+    },
+  );
+
+  test(
+    'folder config renders each task output file name from its own source name',
+    () async {
+      final folder = testFolder();
+      final mp4Task = videoTask(
+        id: 'clip-one',
+        folderId: folder.id,
+      ).copyWith(inputPath: '/videos/clip-one.mp4', fileName: 'clip-one.mp4');
+      final movTask = videoTask(
+        id: 'clip-two',
+        folderId: folder.id,
+      ).copyWith(inputPath: '/videos/clip-two.mov', fileName: 'clip-two.mov');
+      final repository = FakeMediaTaskRepository([mp4Task, movTask]);
+      final folderRepository = FakeTaskFolderRepository([folder]);
+      final newConfig = MediaTaskConfig.initialVideo().copyWith(
+        videoCodec: VideoCodec.hevc,
+      );
+
+      await ApplyTaskFolderConfigUseCase(
+        mediaTaskRepository: repository,
+        taskFolderRepository: folderRepository,
+        appSettingsRepository: FakeAppSettingsRepository(),
+      ).call(
+        folderId: folder.id,
+        config: newConfig,
+        purpose: TaskPurpose.compression,
+      );
+
+      // 默认模板 {source}-{action}，每个任务应使用自己的源名渲染，而不是
+      // 套用夹内第一个任务的源名。
+      expect(
+        repository.taskById('clip-one').config.outputFileName,
+        startsWith('clip-one-'),
+      );
+      expect(
+        repository.taskById('clip-two').config.outputFileName,
+        startsWith('clip-two-'),
+      );
+      expect(
+        repository.taskById('clip-one').config.outputFileName,
+        isNot(repository.taskById('clip-two').config.outputFileName),
       );
     },
   );
@@ -613,5 +662,20 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     return const FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.started,
     );
+  }
+}
+
+class FakeAppSettingsRepository implements AppSettingsRepository {
+  FakeAppSettingsRepository({AppSettings? settings})
+    : _settings = settings ?? AppSettings.initial();
+
+  AppSettings _settings;
+
+  @override
+  Future<AppSettings> loadSettings() async => _settings;
+
+  @override
+  Future<void> saveSettings(AppSettings settings) async {
+    _settings = settings;
   }
 }

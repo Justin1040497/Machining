@@ -1,3 +1,4 @@
+import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
@@ -263,10 +264,12 @@ class ApplyTaskFolderConfigUseCase {
   const ApplyTaskFolderConfigUseCase({
     required this.mediaTaskRepository,
     required this.taskFolderRepository,
+    required this.appSettingsRepository,
   });
 
   final MediaTaskRepository mediaTaskRepository;
   final TaskFolderRepository taskFolderRepository;
+  final AppSettingsRepository appSettingsRepository;
 
   Future<TaskFolderBatchTasksResult> call({
     required String folderId,
@@ -284,6 +287,10 @@ class ApplyTaskFolderConfigUseCase {
       ),
     );
 
+    final settings = await appSettingsRepository.loadSettings();
+    final template = settings.defaultOutputFileNameTemplate;
+    final now = DateTime.now();
+
     final tasks = await mediaTaskRepository.loadAllTasks();
     for (final task in tasks.where((task) => task.folderId == folderId)) {
       if (!_canApplyFolderConfig(task)) {
@@ -294,8 +301,29 @@ class ApplyTaskFolderConfigUseCase {
         sourceFileName: task.inputPath,
         mediaKind: task.mediaKind,
       );
+      // 任务夹共同设置时，每个任务的输出文件名按全局模板 + 各自源名重新渲染，
+      // 避免所有任务套用第一个任务的源名渲染结果。
+      final version = processingVersionForTask(
+        tasks: tasks,
+        inputPath: task.inputPath,
+        mediaKind: task.mediaKind,
+        purpose: purpose,
+        taskId: task.id,
+      );
+      final renderedFileName = buildDefaultOutputFileName(
+        sourceFileName: task.inputPath,
+        mediaKind: task.mediaKind,
+        template: template,
+        purpose: purpose,
+        mediaConfig: taskConfig,
+        now: now,
+        version: version,
+      );
       await mediaTaskRepository.saveTask(
-        task.copyWith(config: taskConfig, purpose: purpose),
+        task.copyWith(
+          config: taskConfig.copyWith(outputFileName: renderedFileName),
+          purpose: purpose,
+        ),
       );
     }
 

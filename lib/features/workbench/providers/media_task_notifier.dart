@@ -215,6 +215,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final result = await ApplyTaskFolderConfigUseCase(
       mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
       taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+      appSettingsRepository: ref.read(appSettingsRepositoryProvider),
     ).call(folderId: folderId, config: config, purpose: purpose);
     state = AsyncData(result.tasks);
     ref.invalidate(taskFolderListProvider);

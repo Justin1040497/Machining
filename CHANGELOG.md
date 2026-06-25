@@ -29,6 +29,19 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-26｜v1.2.1｜No Release
+
+修复任务夹共同设置会错误统一覆盖每个任务输出文件名的 bug。
+
+### Fixed
+
+- 修复任务夹共同设置下发后，夹内所有任务的 `outputFileName` 都被套用第一个任务源名渲染结果的问题：`ApplyTaskFolderConfigUseCase` 现注入 `AppSettingsRepository`，对每个可应用任务按全局模板 + 各自源名重新渲染输出文件名，`{version}` 保留各任务自己的处理序号，`{date}` 用下发时刻。
+
+### Verified
+
+- 通过 `rtk flutter analyze`，全量静态分析无 issue。
+- 通过 `rtk flutter test test/task_folder_use_cases_test.dart`，9 项通过（含新增「按各自源名重渲染」用例）。
+
 ## 2026-06-25｜v1.2.1｜No Release
 
 收口更新提示体验和媒体处理稳定性：更新入口从全量日志弹窗改为 L1 状态胶囊、L2 轻量通知弹窗和 L3 完整版本日志页；FFprobe / FFmpeg 执行链路增加超时、卡死和硬件编码会话失效保护。
