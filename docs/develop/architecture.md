@@ -158,7 +158,7 @@ docs/
 - `AppNotificationHost`：位于应用根节点，订阅应用通知展示事件并显示全局浮层提示；任务成功通知到达时按当前设置触发完成提示音。
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏。任务成功 / 失败临时通知保持短摘要，完整结果详情由通知中心展示。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
-- `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部入口、通知中心和版本日志弹窗提供检查、下载、暂停、继续和安装 helper 启动动作。
+- `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部状态胶囊、通知中心、更新通知弹窗和版本日志页提供检查、下载、暂停、继续、snooze 和安装 helper 启动动作。
 - `presentation/`：settings、notifications、workbench 共同使用的布局常量、领域标签和展示 Widget；`FrameLeanReorderableListView` 封装 Flutter 3.41.2 reorderable fork，对外提供 gap 策略、跨轴拖动和外部 drop，业务列表不直接依赖 fork 内部状态。
 - `theme/`：配色、字体和第三方组件（如 `MarkdownStyleSheet`）的视觉映射。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
@@ -228,9 +228,9 @@ Use Cases：
 
 - `database/`：Drift + SQLite 表、迁移、数据库连接和持久化兼容常量。
 - `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
-- `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析。
+- `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析；FFprobe 超时后会主动终止子进程并回收 stdout / stderr，避免后台进程泄漏。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
-- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、受控并行资源守卫、进度观测、预览帧生成和视频缩略图生成。
+- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、受控并行资源守卫、进度观测、预览帧生成和视频缩略图生成；进程观测器会在长时间无 stdout / stderr 活动时熔断挂死进程，队列 runner 会对典型硬件编码器会话失效做一次自动重试。
 - `services/app_notifications/`：本地任务完成提示音播放实现，使用 `audioplayers` 播放内置 Flutter asset。
 - `services/platform/`：桌面文件选择、Finder / Explorer 定位、系统外链打开和主题缓存实现。
 
@@ -263,8 +263,8 @@ Use Cases：
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
 - 应用设置中的“最大并行任务数”写入 `AppSettings.maxConcurrentExecutions`，表示用户期望上限；实际执行位还会由本机 CPU、内存和当前任务类型通过资源守卫降级。
-- 关于栏承载自托管更新主入口：`检查更新` / `检查中` / 下载百分比 / 暂停继续 / 安装动作保持固定按钮尺寸；Windows 使用 `现在更新` / `重启更新`，macOS 手动 DMG 路线使用 `下载 DMG` / `打开 DMG`。旁边的 `版本日志` 打开 `/settings/release-notes`。
-- `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志；macOS 当前更新版本会在日志页底部显示下载 DMG / 打开 DMG 操作区。
+- 关于栏承载自托管更新主入口：`检查更新` / `检查中` / 下载百分比 / 暂停继续 / 安装动作保持固定按钮尺寸；Windows 使用 `现在更新` / `重启更新`，macOS 手动 DMG 路线使用 `下载 DMG` / `打开 DMG`。手动检查发现新版本时打开 L2 更新通知弹窗，而不是直接进入完整版本日志页。
+- `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志；它作为 L3 入口，主要由 L2 更新通知弹窗的「查看完整日志」和历史版本通知进入。
 
 工作台当前支持：
 
@@ -293,7 +293,7 @@ Use Cases：
 - `providers/notification_center_provider.dart`：保存通知中心开关状态，供工作台和根级临时通知 Host 共享。
 - `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为”打开输出文件位置”，更新通知解析为”查看版本日志”和”下载更新”。
 - 通知中心浮层 `NotificationCenterPanel` 位于 `app/presentation/widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
-- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知中心可以同时展示“查看版本日志”和“下载更新”文字按钮，历史完成通知展示日志查看动作。
+- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知点击进入 L2 更新通知弹窗，历史版本通知进入 L3 版本日志页；通知项仍可同时展示“查看版本日志”和“下载更新”文字按钮。
 - 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
 - 通知项按标题、创建时间、正文和底部文字按钮组分层展示；任务成功正文展示文件名、源 / 输出体积、压缩比例、保存路径和耗时，任务失败正文展示文件名、原因和建议。
 - 右上角临时通知只承载即时反馈，通知中心承载完整历史和动作按钮。临时通知为中等密度卡片，关闭按钮固定在尾部，详情最多两行；成功 / 信息、警告、失败使用不同停留时长。
@@ -465,6 +465,8 @@ start / startOrResumeTask
 - 用户手动选择的任务线程上限优先进入 FFmpeg 参数，同时计入资源预算；高线程任务可能独占当前预算，完成后队列再恢复填充其他执行位。
 - 视频任务被视为重任务，同一时刻默认只允许一个视频 FFmpeg 进程运行；空余执行位优先留给图片或音频等较轻任务，避免多路视频压缩把设备拖卡。
 - `fillAvailableSlots()` 先按 FIFO 恢复被抢占任务，再从当前工作台或任务夹作用域补槽；没有连续作用域和被抢占任务时，单任务完成后不会启动其他待执行任务。
+- 如果 FFmpeg 进程 60 秒没有 stdout / stderr 活动，`LocalFfmpegProcessObserver` 会强制终止进程并返回“无响应超时”失败，避免任务永久卡在 `running` 占用执行位。
+- 如果硬件编码器（VideoToolbox / NVENC / QSV / AMF）在暂停、系统睡眠或驱动抖动后返回 `Generic error in an external library`，队列 runner 会清理当前 step 残留输出并自动重试一次；再次失败时保留技术日志，但通知中心展示友好原因和改用软件编码建议。
 
 暂停和恢复：
 

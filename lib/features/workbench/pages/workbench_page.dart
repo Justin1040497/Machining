@@ -18,7 +18,6 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/t
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_rename_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/update_release_notes_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
@@ -145,6 +144,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   bool themeModeChangeInFlight = false;
   ProviderSubscription<AsyncValue<List<MediaTask>>>? taskListSubscription;
   ProviderSubscription<AsyncValue<AppSettings>>? appSettingsSubscription;
+  ProviderSubscription<bool>? _autoNoticeSubscription;
   final Map<AppShortcutAction, HotKey> registeredShortcutHotKeys = {};
   Map<AppShortcutAction, String> registeredShortcutSignatures = {};
   HotKey? registeredEscapeHotKey;
@@ -168,12 +168,24 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
     unawaited(registerWorkbenchEscapeHotKey());
     unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+    _autoNoticeSubscription = ref.listenManual<bool>(
+      appUpdatePendingAutoNoticeProvider,
+      (_, shouldShow) {
+        if (!shouldShow) return;
+        // Delay so the workbench renders before the notice interrupts.
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          unawaited(showUpdateNotice());
+        });
+      },
+    );
   }
 
   @override
   void dispose() {
     taskListSubscription?.close();
     appSettingsSubscription?.close();
+    _autoNoticeSubscription?.close();
     unawaited(unregisterWorkbenchHotKeys());
     super.dispose();
   }
@@ -284,7 +296,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onOpenNotifications: openNotificationCenter,
             updateState: updateState,
             onOpenUpdate: () {
-              unawaited(showCurrentUpdateDialog());
+              unawaited(showUpdateNotice());
             },
             unreadNotificationCount: unreadNotificationCount,
             showNotificationBadge: !hideNotificationBadge,
@@ -794,31 +806,18 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     if (release != null &&
         target ==
             '${release.platform}:${release.version}:${release.buildNumber}') {
-      await showCurrentUpdateDialog();
+      await showUpdateNotice();
       return;
     }
 
-    final notes = await _findReleaseNotesForTarget(target);
-    if (!mounted) {
-      return;
-    }
-    if (notes == null) {
-      context.push('/settings/release-notes?from=workbench');
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) => UpdateReleaseNotesDialog.history(
-        notes: notes,
-        onOpenMore: () {
-          Navigator.of(context).pop();
-          context.push(
-            '/settings/release-notes?version=${notes.version}&from=workbench',
-          );
-        },
-      ),
-    );
+    // Historical version: go straight to the release notes page (L3).
+    final parts = target.split(':');
+    final version = parts.length >= 2 ? parts[1] : null;
+    if (!mounted) return;
+    final query = version != null
+        ? '?version=$version&from=workbench'
+        : '?from=workbench';
+    context.push('/settings/release-notes$query');
   }
 
   Future<void> startUpdateDownloadFromNotification(String target) async {
@@ -826,35 +825,23 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref.read(appUpdateProvider.notifier).startOrResumeDownload();
   }
 
-  Future<AppReleaseNotes?> _findReleaseNotesForTarget(String target) async {
-    final parts = target.split(':');
-    if (parts.length < 3) {
-      return null;
-    }
-    final version = parts[1];
-    final notes = await ref.read(appReleaseNotesProvider.future);
-    for (final item in notes) {
-      if (item.version == version) {
-        return item;
-      }
-    }
-    return null;
-  }
-
-  Future<void> showCurrentUpdateDialog() async {
+  Future<void> showUpdateNotice() async {
     final updateState = ref.read(appUpdateProvider).asData?.value;
     if (!mounted || updateState?.release == null) {
       return;
     }
 
+    ref.read(appUpdateProvider.notifier).consumeAutoNotice();
+
     await showDialog<void>(
       context: context,
+      barrierDismissible: !(updateState!.release?.mandatory ?? false),
       builder: (dialogContext) {
         return Consumer(
           builder: (dialogContext, ref, _) {
             final liveState =
-                ref.watch(appUpdateProvider).asData?.value ?? updateState!;
-            return UpdateReleaseNotesDialog.current(
+                ref.watch(appUpdateProvider).asData?.value ?? updateState;
+            return UpdateNoticeDialog(
               updateState: liveState,
               manualMacosUpdate: ref.watch(isManualMacosUpdateProvider),
               onStartDownload: () {
@@ -868,12 +855,20 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               onInstallUpdate: () {
                 unawaited(installUpdateWithTaskCheck());
               },
-              onOpenMore: () {
+              onSnooze: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(
+                  ref.read(appUpdateProvider.notifier).snoozeCurrentVersion(),
+                );
+              },
+              onOpenReleaseNotes: () {
                 Navigator.of(dialogContext).pop();
                 final release = liveState.release;
-                context.push(
-                  '/settings/release-notes?version=${release!.version}&from=workbench',
-                );
+                if (release != null) {
+                  context.push(
+                    '/settings/release-notes?version=${release.version}&from=workbench',
+                  );
+                }
               },
             );
           },
@@ -1439,10 +1434,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => ImportFailureDialog(
-        successCount: successCount,
-        failures: failures,
-      ),
+      builder: (context) =>
+          ImportFailureDialog(successCount: successCount, failures: failures),
     );
   }
 

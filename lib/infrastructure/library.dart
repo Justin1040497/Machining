@@ -38,6 +38,7 @@ export 'services/app_update/enterprise_aware_app_update_client.dart';
 export 'services/app_update/local_app_update_download_state_store.dart';
 export 'services/app_update/local_app_update_install_id_store.dart';
 export 'services/app_update/local_app_update_package_downloader.dart';
+export 'services/app_update/local_app_update_snooze_store.dart';
 export 'services/app_update/local_enterprise_update_config_store.dart';
 export 'services/app_update/local_updater_helper_launcher.dart';
 export 'services/app_update/method_channel_sparkle_update_controller.dart';

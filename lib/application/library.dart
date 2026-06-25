@@ -24,6 +24,7 @@ export 'services/app_update/app_update_client.dart';
 export 'services/app_update/app_update_download_state_store.dart';
 export 'services/app_update/app_update_install_id_store.dart';
 export 'services/app_update/app_update_package_downloader.dart';
+export 'services/app_update/app_update_snooze_store.dart';
 export 'services/app_update/enterprise_update_config_store.dart';
 export 'services/app_update/release_signature_verifier.dart';
 export 'services/app_update/sparkle_update_controller.dart';

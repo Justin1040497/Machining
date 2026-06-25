@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -21,25 +22,67 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       throw StateError('源文件不存在: $inputPath');
     }
 
-    final result = await Process.run(
-      ffprobePath,
-      buildArguments(inputPath),
-      stdoutEncoding: utf8,
-      stderrEncoding: utf8,
-    ).timeout(timeout);
+    // 改用 Process.start 而非 Process.run，以便在超时后能主动 kill 子进程。
+    // 原实现用 Process.run(...).timeout(timeout)，但 .timeout() 只会取消
+    // Future 的等待，不会终止底层 ffprobe 进程；遇到损坏文件或网络盘卡住时，
+    // ffprobe 会在后台长期存活，批量分析时累积成僵尸进程泄漏。
+    final process = await Process.start(ffprobePath, buildArguments(inputPath));
 
-    if (result.exitCode != 0) {
-      throw StateError('FFprobe 分析失败: ${result.stderr}');
+    final stdoutBuffer = <int>[];
+    final stderrBuffer = <int>[];
+    final stdoutDone = process.stdout
+        .listen(stdoutBuffer.addAll)
+        .asFuture<void>();
+    final stderrDone = process.stderr
+        .listen(stderrBuffer.addAll)
+        .asFuture<void>();
+
+    try {
+      final exitCode = await process.exitCode.timeout(timeout);
+      await Future.wait([stdoutDone, stderrDone]);
+
+      final stderrText = utf8.decode(stderrBuffer);
+      if (exitCode != 0) {
+        throw StateError('FFprobe 分析失败: $stderrText');
+      }
+
+      final json = jsonDecode(utf8.decode(stdoutBuffer));
+      if (json is! Map<String, dynamic>) {
+        throw StateError('FFprobe 输出格式无效');
+      }
+
+      final fileSize = await file.length();
+
+      return parseResult(json, fileSize: fileSize);
+    } on TimeoutException {
+      // 关键修复：超时后必须主动终止子进程并回收退出码，
+      // 否则 ffprobe 进程句柄会残留，长时间运行下持续泄漏。
+      await _terminateProcess(process, stdoutDone, stderrDone);
+      throw TimeoutException(
+        'FFprobe 分析超时（${timeout.inSeconds} 秒）: $inputPath',
+        timeout,
+      );
     }
+  }
 
-    final json = jsonDecode(result.stdout.toString());
-    if (json is! Map<String, dynamic>) {
-      throw StateError('FFprobe 输出格式无效');
+  /// 强制终止子进程并等待其退出与流关闭，避免僵尸进程或句柄残留。
+  Future<void> _terminateProcess(
+    Process process,
+    Future<void> stdoutDone,
+    Future<void> stderrDone,
+  ) async {
+    try {
+      process.kill(ProcessSignal.sigkill);
+    } on Object {
+      // kill 失败也不阻断清理，继续等待 exitCode 兜底。
     }
-
-    final fileSize = await file.length();
-
-    return parseResult(json, fileSize: fileSize);
+    // 等待进程真正退出与流关闭；这里再加一个较短超时做最终兜底，
+    // 防止极端情况下 kill 本身也卡住导致整个分析链路被拖死。
+    await Future.wait<void>([
+      process.exitCode,
+      stdoutDone,
+      stderrDone,
+    ]).timeout(const Duration(seconds: 2), onTimeout: () => const []);
   }
 
   List<String> buildArguments(String inputPath) {

@@ -262,11 +262,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               onPauseDownload: widget.onPauseUpdateDownload,
               onInstallUpdate: widget.onInstallUpdate,
             ),
-            _MaintenanceButton(
-              label: '版本日志',
-              icon: Icons.article_outlined,
-              onPressed: widget.onOpenReleaseNotes,
-            ),
           ],
         ),
         const SizedBox(height: 14),

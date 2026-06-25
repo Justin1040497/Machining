@@ -348,14 +348,19 @@ String _failureReason(
   MediaTask task,
   TaskExecutionNotificationSummary? summary,
 ) {
-  final reason = summary?.failureReason ?? task.errorMessage;
-  if (reason == null || reason.trim().isEmpty) {
-    return '媒体处理未能完成';
+  // 优先使用 queue runner 已友好化的 failureReason。
+  // 若 summary 缺失（防御场景），不直接暴露 task.errorMessage 里的技术细节，
+  // 统一走兜底友好文案。
+  final reason = summary?.failureReason;
+  if (reason != null && reason.trim().isNotEmpty) {
+    return reason.trim();
   }
-  return reason.trim();
+  return '媒体处理未能完成';
 }
 
 String _failureSuggestion(MediaTask task) {
+  // queue runner 已通过 summary 提供友好建议，此函数仅作 summary 缺失时的兜底。
+  // 保留对已有友好化 errorMessage 的场景判断，避免破坏无 summary 的调用路径。
   final reason = task.errorMessage?.trim() ?? '';
   final ineffectiveOutput =
       reason.contains('不小于源文件') ||
@@ -364,7 +369,10 @@ String _failureSuggestion(MediaTask task) {
   if (task.mediaKind == MediaKind.image && ineffectiveOutput) {
     return '建议切换 WebP/JPG 格式、降低质量，或更换输出格式后重新压缩。';
   }
-  return '建议查看任务日志，确认源文件、输出目录和 FFmpeg 运行时后重试。';
+  if (task.mediaKind == MediaKind.audio && ineffectiveOutput) {
+    return '建议降低音频码率、改用更高压缩率的音频格式后重试。';
+  }
+  return '建议查看任务日志获取详细信息，或重试该任务。';
 }
 
 String _formatBytes(int? bytes) {

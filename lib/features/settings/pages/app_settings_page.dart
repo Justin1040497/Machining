@@ -94,19 +94,62 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
   }
 
-  Future<void> checkUpdateAndOpenReleaseNotes() async {
+  Future<void> checkUpdateAndShowNotice() async {
     await ref.read(appUpdateProvider.notifier).checkForUpdate();
     if (!mounted) {
       return;
     }
 
     final updateState = ref.read(appUpdateProvider).asData?.value;
-    final release = updateState?.release;
-    if (release == null || updateState?.status == AppUpdateStatus.failed) {
+    if (updateState?.release == null ||
+        updateState?.status == AppUpdateStatus.failed) {
       return;
     }
 
-    context.push('/settings/release-notes?version=${release.version}&from=settings');
+    ref.read(appUpdateProvider.notifier).consumeAutoNotice();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !(updateState!.release?.mandatory ?? false),
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (dialogContext, ref, _) {
+            final liveState =
+                ref.watch(appUpdateProvider).asData?.value ?? updateState;
+            return UpdateNoticeDialog(
+              updateState: liveState,
+              manualMacosUpdate: ref.watch(isManualMacosUpdateProvider),
+              onStartDownload: () {
+                unawaited(
+                  ref.read(appUpdateProvider.notifier).startOrResumeDownload(),
+                );
+              },
+              onPauseDownload: () {
+                ref.read(appUpdateProvider.notifier).pauseDownload();
+              },
+              onInstallUpdate: () {
+                unawaited(installUpdateWithTaskCheck());
+              },
+              onSnooze: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(
+                  ref.read(appUpdateProvider.notifier).snoozeCurrentVersion(),
+                );
+              },
+              onOpenReleaseNotes: () {
+                Navigator.of(dialogContext).pop();
+                final release = liveState.release;
+                if (release != null) {
+                  context.push(
+                    '/settings/release-notes?version=${release.version}&from=settings',
+                  );
+                }
+              },
+            );
+          },
+        );
+      },
+    );
   }
 
   Future<void> openExternalLink(String url) async {
@@ -172,7 +215,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                     ).call();
                   },
                   onOpenExternalLink: openExternalLink,
-                  onCheckUpdate: checkUpdateAndOpenReleaseNotes,
+                  onCheckUpdate: checkUpdateAndShowNotice,
                   onStartOrResumeUpdateDownload: () {
                     return ref
                         .read(appUpdateProvider.notifier)
@@ -182,9 +225,6 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                     ref.read(appUpdateProvider.notifier).pauseDownload();
                   },
                   onInstallUpdate: installUpdateWithTaskCheck,
-                  onOpenReleaseNotes: () {
-                    context.push('/settings/release-notes?from=settings');
-                  },
                   onClose: () => returnToWorkbench(),
                   onSave: saveSettings,
                 );
@@ -233,7 +273,6 @@ class AppSettingsView extends StatefulWidget {
     this.onStartOrResumeUpdateDownload,
     this.onPauseUpdateDownload,
     this.onInstallUpdate,
-    this.onOpenReleaseNotes,
   });
 
   final AppSettings initialSettings;
@@ -252,7 +291,6 @@ class AppSettingsView extends StatefulWidget {
   final Future<void> Function()? onStartOrResumeUpdateDownload;
   final VoidCallback? onPauseUpdateDownload;
   final Future<void> Function()? onInstallUpdate;
-  final VoidCallback? onOpenReleaseNotes;
 
   @override
   State<AppSettingsView> createState() => _AppSettingsViewState();
@@ -351,9 +389,7 @@ class _AppSettingsViewState extends State<AppSettingsView> {
       backTitle: '返回工作台',
       onBackPressed: closePage,
       isBackLoading: savingSection != null,
-      sidebarPadding: const EdgeInsets.fromLTRB(
-        21, topBarHeight, 20, 18,
-      ),
+      sidebarPadding: const EdgeInsets.fromLTRB(21, topBarHeight, 20, 18),
       sidebarWidth: _sidebarWidth,
       sidebar: _SettingsSidebar(
         selectedSection: selectedSection,

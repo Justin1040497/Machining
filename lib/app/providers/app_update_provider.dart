@@ -104,6 +104,27 @@ final appUpdateDownloadStateStoreProvider =
       return const LocalAppUpdateDownloadStateStore();
     });
 
+final appUpdateSnoozeStoreProvider = Provider<AppUpdateSnoozeStore>((ref) {
+  return const LocalAppUpdateSnoozeStore();
+});
+
+/// 开机自启 / 自动检查后是否应该自动弹出更新通知弹窗。
+///
+/// 由 [AppUpdateNotifier.checkForUpdate] 在 automatic 模式下设置：
+/// - 发现新版本且未被 snooze → true
+/// - 未发现更新 / 已 snooze / mandatory → false（mandatory 始终弹，由 UI 强制）
+/// UI 监听此 provider，true 时弹出 [UpdateNoticeDialog] 并调用
+/// [AppUpdateNotifier.consumeAutoNotice] 重置。
+final appUpdatePendingAutoNoticeProvider =
+    NotifierProvider<AutoNoticeController, bool>(AutoNoticeController.new);
+
+class AutoNoticeController extends Notifier<bool> {
+  @override
+  bool build() => false;
+
+  void set(bool value) => state = value;
+}
+
 final updaterHelperLauncherProvider = Provider<UpdaterHelperLauncher>((ref) {
   return const LocalUpdaterHelperLauncher();
 });
@@ -253,6 +274,9 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
     try {
       final config = await ref.read(enterpriseUpdateConfigCacheProvider).load();
       if (ref.read(useSparkleUpdateProvider)) {
+        if (automatic) {
+          ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(false);
+        }
         await _checkForMacosSparkleUpdate(config, current, automatic);
         return;
       }
@@ -275,6 +299,9 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
             checkedAt: DateTime.now(),
           ),
         );
+        if (automatic) {
+          ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(false);
+        }
         if (!automatic) {
           await ref
               .read(appNotificationManagerProvider)
@@ -285,6 +312,25 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
               );
         }
         return;
+      }
+
+      // Sync snooze state: a new published version invalidates any previous
+      // snooze for an older version, so the user is naturally re-notified.
+      final snoozeStore = ref.read(appUpdateSnoozeStoreProvider);
+      final snoozedVersion = await snoozeStore.loadSnoozedVersion();
+      if (snoozedVersion != null && snoozedVersion != result.release!.version) {
+        await snoozeStore.clearSnoozedVersion();
+      }
+
+      // On automatic checks, decide whether to auto-show the notice dialog.
+      // Mandatory releases always show (and the dialog is non-dismissable);
+      // non-mandatory releases are suppressed only when the user snoozed this
+      // exact version.
+      if (automatic) {
+        final release = result.release!;
+        final suppressed =
+            !release.mandatory && snoozedVersion == release.version;
+        ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(!suppressed);
       }
 
       // Check whether a valid package already exists in the download
@@ -298,7 +344,9 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           );
 
       if (existingPath != null) {
-        await ref.read(appUpdateDownloadStateStoreProvider).save(
+        await ref
+            .read(appUpdateDownloadStateStoreProvider)
+            .save(
               PersistedDownloadState(
                 release: result.release!,
                 filePath: existingPath,
@@ -350,6 +398,9 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
                 errorMessage: message,
               ),
       );
+      if (automatic) {
+        ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(false);
+      }
       if (!automatic) {
         await ref
             .read(appNotificationManagerProvider)
@@ -379,6 +430,27 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
                 )
               : sparkleConfig,
         );
+  }
+
+  /// Record the current release version as snoozed. The same version will not
+  /// auto-show the notice dialog on subsequent automatic checks, but manual
+  /// entry points (top-bar chip, settings "check for update") still show it.
+  Future<void> snoozeCurrentVersion() async {
+    final release = state.asData?.value.release;
+    if (release == null) {
+      return;
+    }
+    await ref
+        .read(appUpdateSnoozeStoreProvider)
+        .saveSnoozedVersion(release.version);
+    ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(false);
+  }
+
+  /// Called by the UI after it shows the notice dialog in response to
+  /// [appUpdatePendingAutoNoticeProvider] turning true. Resets the flag so the
+  /// dialog is not shown again until the next automatic check finds an update.
+  void consumeAutoNotice() {
+    ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(false);
   }
 
   Future<void> startOrResumeDownload() async {
@@ -455,11 +527,10 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
           downloadedFilePath: result.filePath,
         ),
       );
-      await ref.read(appUpdateDownloadStateStoreProvider).save(
-            PersistedDownloadState(
-              release: release,
-              filePath: result.filePath,
-            ),
+      await ref
+          .read(appUpdateDownloadStateStoreProvider)
+          .save(
+            PersistedDownloadState(release: release, filePath: result.filePath),
           );
       await ref
           .read(appNotificationManagerProvider)

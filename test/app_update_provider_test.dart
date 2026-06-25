@@ -11,6 +11,7 @@ import 'package:framelean/application/services/app_update/app_update_client.dart
 import 'package:framelean/application/services/app_update/app_update_download_state_store.dart';
 import 'package:framelean/application/services/app_update/app_update_install_id_store.dart';
 import 'package:framelean/application/services/app_update/app_update_package_downloader.dart';
+import 'package:framelean/application/services/app_update/app_update_snooze_store.dart';
 import 'package:framelean/application/services/app_update/enterprise_update_config_store.dart';
 import 'package:framelean/application/services/app_update/sparkle_update_controller.dart';
 import 'package:framelean/application/services/app_update/updater_helper_launcher.dart';
@@ -39,6 +40,10 @@ void main() {
       expect(state.status, AppUpdateStatus.available);
       expect(state.release?.version, testRelease.version);
       expect(fixture.client.checkCount, 1);
+      expect(
+        fixture.container.read(appUpdatePendingAutoNoticeProvider),
+        isTrue,
+      );
       expect(fixture.notifications.notifications, hasLength(1));
       expect(
         fixture.notifications.notifications.single.dedupeKey,
@@ -46,6 +51,48 @@ void main() {
       );
     },
   );
+
+  test('automatic notice is suppressed for a snoozed version', () async {
+    final snoozeStore = FakeAppUpdateSnoozeStore(snoozedVersion: '1.2.2');
+    final fixture = appUpdateFixture(snoozeStore: snoozeStore);
+    addTearDown(fixture.dispose);
+
+    await fixture.container.read(appUpdateProvider.future);
+    await pumpEventQueue();
+
+    final state = fixture.container.read(appUpdateProvider).requireValue;
+    expect(state.status, AppUpdateStatus.available);
+    expect(fixture.container.read(appUpdatePendingAutoNoticeProvider), isFalse);
+    expect(snoozeStore.snoozedVersion, '1.2.2');
+  });
+
+  test('snoozed older version expires when a newer release is found', () async {
+    final snoozeStore = FakeAppUpdateSnoozeStore(snoozedVersion: '1.2.1');
+    final fixture = appUpdateFixture(snoozeStore: snoozeStore);
+    addTearDown(fixture.dispose);
+
+    await fixture.container.read(appUpdateProvider.future);
+    await pumpEventQueue();
+
+    expect(fixture.container.read(appUpdatePendingAutoNoticeProvider), isTrue);
+    expect(snoozeStore.snoozedVersion, isNull);
+  });
+
+  test('snooze current version clears the pending automatic notice', () async {
+    final snoozeStore = FakeAppUpdateSnoozeStore();
+    final fixture = appUpdateFixture(snoozeStore: snoozeStore);
+    addTearDown(fixture.dispose);
+    await fixture.container.read(appUpdateProvider.future);
+    await pumpEventQueue();
+    expect(fixture.container.read(appUpdatePendingAutoNoticeProvider), isTrue);
+
+    await fixture.container
+        .read(appUpdateProvider.notifier)
+        .snoozeCurrentVersion();
+
+    expect(snoozeStore.snoozedVersion, '1.2.2');
+    expect(fixture.container.read(appUpdatePendingAutoNoticeProvider), isFalse);
+  });
 
   test('download creates ticket and reaches downloaded state', () async {
     final fixture = appUpdateFixture();
@@ -173,11 +220,13 @@ AppUpdateFixture appUpdateFixture({
   AppReleaseInfo release = testRelease,
   String downloadedFilePath = '/tmp/FrameLean-v1.2.2-setup.exe',
   FakeAppUpdateDownloadStateStore? downloadStateStore,
+  FakeAppUpdateSnoozeStore? snoozeStore,
 }) {
   final client = FakeAppUpdateClient(release);
   final downloader = FakeAppUpdatePackageDownloader(downloadedFilePath);
   final installIdStore = const FakeAppUpdateInstallIdStore();
   final stateStore = downloadStateStore ?? FakeAppUpdateDownloadStateStore();
+  final snooze = snoozeStore ?? FakeAppUpdateSnoozeStore();
   final restartPreparation = RecordingRestartPreparation();
   final launcher = FakeUpdaterHelperLauncher(restartPreparation);
   final revealer = FakeFileRevealer();
@@ -192,6 +241,7 @@ AppUpdateFixture appUpdateFixture({
       appUpdateDownloaderProvider.overrideWithValue(downloader),
       appUpdateInstallIdStoreProvider.overrideWithValue(installIdStore),
       appUpdateDownloadStateStoreProvider.overrideWithValue(stateStore),
+      appUpdateSnoozeStoreProvider.overrideWithValue(snooze),
       updaterHelperLauncherProvider.overrideWithValue(launcher),
       fileRevealerProvider.overrideWithValue(revealer),
       updateRestartPreparationProvider.overrideWithValue(
@@ -212,6 +262,7 @@ AppUpdateFixture appUpdateFixture({
     restartPreparation: restartPreparation,
     notifications: notifications,
     notificationManager: notificationManager,
+    snoozeStore: snooze,
   );
 }
 
@@ -259,6 +310,7 @@ class AppUpdateFixture {
     required this.restartPreparation,
     required this.notifications,
     required this.notificationManager,
+    required this.snoozeStore,
   });
 
   final ProviderContainer container;
@@ -269,6 +321,7 @@ class AppUpdateFixture {
   final RecordingRestartPreparation restartPreparation;
   final RecordingNotificationRepository notifications;
   final AppNotificationManager notificationManager;
+  final FakeAppUpdateSnoozeStore snoozeStore;
 
   void dispose() {
     notificationManager.dispose();
@@ -455,6 +508,28 @@ class FakeAppUpdateDownloadStateStore implements AppUpdateDownloadStateStore {
   @override
   Future<void> clear() async {
     _state = null;
+  }
+}
+
+class FakeAppUpdateSnoozeStore implements AppUpdateSnoozeStore {
+  FakeAppUpdateSnoozeStore({String? snoozedVersion})
+    : _snoozedVersion = snoozedVersion;
+
+  String? _snoozedVersion;
+
+  String? get snoozedVersion => _snoozedVersion;
+
+  @override
+  Future<String?> loadSnoozedVersion() async => _snoozedVersion;
+
+  @override
+  Future<void> saveSnoozedVersion(String version) async {
+    _snoozedVersion = version;
+  }
+
+  @override
+  Future<void> clearSnoozedVersion() async {
+    _snoozedVersion = null;
   }
 }
 

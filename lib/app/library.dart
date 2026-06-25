@@ -29,6 +29,7 @@ export 'presentation/widgets/notification_center_panel.dart';
 export 'presentation/widgets/percentage_slider_panel.dart';
 export 'presentation/widgets/sidebar_page_scaffold.dart';
 export 'presentation/widgets/update_restart_warning_dialog.dart';
+export 'presentation/widgets/update_notice_dialog.dart';
 export 'presentation/widgets/form_controls/config_checkbox.dart';
 export 'presentation/widgets/form_controls/config_dropdown.dart';
 export 'presentation/widgets/form_controls/path_field.dart';

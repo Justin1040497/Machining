@@ -8,7 +8,7 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 
 ## 主要变更
 
-- 自托管更新进入客户端主流程：设置关于栏、工作台顶部入口、通知中心、版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS 版本日志 + DMG 下载到应用私有目录、下载状态持久化和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
+- 自托管更新进入客户端主流程：设置关于栏、工作台顶部 L1 状态胶囊、L2 轻量更新通知弹窗、通知中心、L3 完整版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS 版本日志 + DMG 下载到应用私有目录、下载状态持久化和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
 - 任务夹批量工作流进入工作台：批量导入按媒体类型自动建夹，任务夹支持持久化、夹级配置、左侧夹内任务面板、夹内排序、拖入 / 移出、重命名、清空、批量开始 / 暂停 / 重试和聚合日志。
 - 执行队列改为受控并行：应用设置保存最大并行任务数，队列按工作台、任务夹、单任务三种执行语义调度，并通过资源守卫按设备状态降级实际执行位。
 - 输出链路增加隐藏 partial 保护：FFmpeg 写入同目录 `.framelean-*.partial*`，成功后发布到最终路径；应用启动会清理中断输出，运行中发现 partial 被删除或移动会尽快失败并给出明确提示。
@@ -31,6 +31,10 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 - 修复任务结果、设置保存和普通交互通知无法区分持久 / 临时投递的问题。
 - 修复快捷键录入时 Esc 误退出整个设置页、通知设置下拉框高度过矮和通知投递方式未垂直居中的交互问题。
 - 修复 macOS 发布链文档、CI 和脚本仍按 SwiftPM-only 口径描述的问题，当前 release 候选统一为 CocoaPods。
+- 修复 FFprobe 分析超时后底层子进程可能继续存活的问题；当前超时后会主动 kill 子进程并回收 stdout / stderr。
+- 修复 FFmpeg 进程挂死但不退出、不输出进度时任务永久卡在 `running` 的问题；当前会在长时间无 stdout / stderr 活动后熔断为无响应失败。
+- 修复暂停、系统睡眠或驱动抖动后硬件编码会话失效直接失败的问题；当前会对典型 VideoToolbox / NVENC / QSV / AMF external library 错误自动重试一次。
+- 修复任务失败通知直接暴露 FFmpeg exit code、硬件编码器 stderr 或内部转换失败细节的问题；当前通知展示友好原因和建议，技术细节保留在任务日志。
 
 ## 验证与兼容
 
@@ -38,6 +42,7 @@ v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作�
 - release 前本地已通过 `rtk bash -n scripts/release/build_dmg_macos.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh`。
 - release 前本地已通过设置、通知、输出 preflight、FFmpeg command builder、执行队列、工作台底栏和任务夹 / 任务配置 Widget 定向回归，共 205 项测试。
 - release 前本地已通过 `rtk flutter test` 全量测试，共 354 项。
+- 2026-06-25 交付收口已通过触达范围定向 `rtk flutter analyze ...` 和 `rtk git diff --check`；定向 `rtk flutter test test/app_update_provider_test.dart test/app_notification_manager_test.dart test/ffmpeg_process_observer_test.dart` 因本机 Xcode incomplete / `xcrun --show-sdk-path` 被系统策略拒绝加载 `libxcrun.dylib`，未能进入测试用例。
 - 数据库 schema version 从 v1.2.0 的 23 升级到 29，新增任务夹、任务策略标签、并行上限、文件夹扫描深度、输出体积、通知策略、快捷键和关闭行为字段。
 - 旧视频兼容列继续写入，`media_config_json` 仍是新媒体配置主字段；回滚到 v1.2.0 前应恢复数据库备份。
 - macOS 发布链当前依赖 CocoaPods `Podfile`、`Podfile.lock` 和 Runner workspace Pods 引用；DMG 脚本会校验 Universal FFmpeg、运行时和法律资料布局。
@@ -63,6 +68,7 @@ COS 上传、Redis ticket、宝塔反代、Admin Web 发布确认和客户端检
 - 发布构建必须注入 Windows 更新验签公钥；缺少真实公钥时开发构建可以检查更新，但不能视为 Windows 生产更新链路验收完成。
 - macOS 手动 DMG 不自动替换正在运行的应用。没有 Developer ID 签名 / 公证时，用户首次打开 DMG 或 App 仍可能遇到 Gatekeeper 提示，需要发布说明明确。
 - Sparkle CocoaPods 依赖需要在可访问 CocoaPods trunk CDN 的环境中执行 `pod install` 更新 `macos/Podfile.lock`。
+- 本机 Xcode 安装或系统策略异常会阻塞 Flutter native-assets hook，导致包含 `objective_c` 的 Flutter 测试在进入用例前失败；发布前应在 `flutter doctor` Xcode 项通过的环境复跑定向和全量测试。
 - COS 私有桶、预签名上传 / 下载、Redis ticket TTL、latest cache 清理和反代真实 IP 需要在部署环境做端到端验收。
 - Dolby Vision Profile 5 和无 HDR10 兼容层的 Dolby Vision 仍是高风险素材；当前不保留 Dolby Vision 动态元数据。
 - CRF、VP9、AV1、ProRes、AVI 兼容参数需要继续用真实素材校准，尤其是体积、速度和播放器兼容性的平衡。

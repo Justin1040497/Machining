@@ -84,40 +84,85 @@ class _UpdateTopBarButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    final downloading =
-        state.status == AppUpdateStatus.downloading ||
-        state.status == AppUpdateStatus.paused;
+    final status = state.status;
+    final downloading = status == AppUpdateStatus.downloading;
+    final paused = status == AppUpdateStatus.paused;
 
-    return SizedBox(
-      width: 32,
-      height: 32,
-      child: IconButton(
-        key: const Key('workbench-update-topbar-button'),
-        tooltip:  state.status == AppUpdateStatus.downloaded ? "版本已下载，点击安装" : '版本更新',
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
-        style: IconButton.styleFrom(
-          foregroundColor: colors.primary,
-          hoverColor: colors.primarySoft,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-        icon: downloading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  value: state.progress,
-                  strokeWidth: 2.4,
-                  color: colors.primary,
-                  backgroundColor: colors.primarySoft,
+    final String label;
+    Color dotColor;
+    switch (status) {
+      case AppUpdateStatus.downloading:
+        label = '下载中 ${state.progressPercent}%';
+        dotColor = colors.primary;
+      case AppUpdateStatus.paused:
+        label = '已暂停 ${state.progressPercent}%';
+        dotColor = colors.textTertiary;
+      case AppUpdateStatus.downloaded:
+        label = '已就绪';
+        dotColor = colors.statusRunning;
+      case AppUpdateStatus.failed:
+        label = '更新失败';
+        dotColor = colors.statusFailed;
+      default:
+        final version = state.release?.version;
+        label = version != null ? '新版本 v$version' : '有新版本';
+        dotColor = colors.primary;
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180, minHeight: 28),
+      child: Material(
+        color: colors.primarySoft,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (downloading || paused)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      value: downloading ? state.progress : null,
+                      strokeWidth: 2,
+                      color: colors.primary,
+                      backgroundColor: colors.primarySoft.withAlpha(120),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-              )
-            : Icon(
-                state.status == AppUpdateStatus.downloaded
-                    ? WorkbenchIcons.downloadDone
-                    : WorkbenchIcons.fileDownload,
-                size: 20,
-              ),
+                const SizedBox(width: 3),
+                Icon(
+                  WorkbenchIcons.chevronRight,
+                  size: 14,
+                  color: colors.textTertiary,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

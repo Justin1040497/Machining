@@ -74,6 +74,10 @@ class TaskExecution {
   int runSequence;
   Timer? outputMonitor;
 
+  /// 当前 step 因可恢复故障（如系统睡眠导致 VideoToolbox 会话失效）
+  /// 已自动重试的次数。超过上限后不再重试，按普通失败处理。
+  int hardwareRetryCount;
+
   TaskExecution({
     required this.taskId,
     required this.ffmpegPath,
@@ -85,6 +89,7 @@ class TaskExecution {
     required this.stepIndex,
     required this.state,
     required this.runSequence,
+    this.hardwareRetryCount = 0,
   });
 }
 
@@ -1023,46 +1028,43 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     var consecutiveMissingChecks = 0;
-    execution.outputMonitor = Timer.periodic(
-      reorderAnimation,
-      (timer) {
-        final currentExecution = _executions[execution.taskId];
-        if (currentExecution != execution ||
-            execution.state == TaskExecutionState.finishing) {
-          timer.cancel();
-          return;
-        }
-        if (execution.state != TaskExecutionState.running) {
-          consecutiveMissingChecks = 0;
-          return;
-        }
-
-        if (File(workingPath).existsSync()) {
-          consecutiveMissingChecks = 0;
-          return;
-        }
-        consecutiveMissingChecks += 1;
-        if (consecutiveMissingChecks < 2) {
-          return;
-        }
-
+    execution.outputMonitor = Timer.periodic(reorderAnimation, (timer) {
+      final currentExecution = _executions[execution.taskId];
+      if (currentExecution != execution ||
+          execution.state == TaskExecutionState.finishing) {
         timer.cancel();
-        unawaited(
-          processController
-              .terminate(execution.startedProcess)
-              .then(
-                (_) => _serializeCommand(
-                  () => finishObservedTask(
-                    execution.taskId,
-                    const FfmpegProcessObservation.failed(
-                      '运行中的临时输出文件被删除或移动，任务已停止。',
-                    ),
+        return;
+      }
+      if (execution.state != TaskExecutionState.running) {
+        consecutiveMissingChecks = 0;
+        return;
+      }
+
+      if (File(workingPath).existsSync()) {
+        consecutiveMissingChecks = 0;
+        return;
+      }
+      consecutiveMissingChecks += 1;
+      if (consecutiveMissingChecks < 2) {
+        return;
+      }
+
+      timer.cancel();
+      unawaited(
+        processController
+            .terminate(execution.startedProcess)
+            .then(
+              (_) => _serializeCommand(
+                () => finishObservedTask(
+                  execution.taskId,
+                  const FfmpegProcessObservation.failed(
+                    '运行中的临时输出文件被删除或移动，任务已停止。',
                   ),
                 ),
               ),
-        );
-      },
-    );
+            ),
+      );
+    });
   }
 
   Future<FfmpegQueueStartResult> resumeExecution(
@@ -1227,6 +1229,18 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return;
     }
 
+    // 硬件编码器会话失效自动重试。
+    // 场景：用户暂停任务（SIGSTOP）后系统睡眠，唤醒恢复（SIGCONT）时
+    // VideoToolbox / NVENC / QSV / AMF 的硬件编码会话已被系统回收，
+    // ffmpeg 报 "Generic error in an external library" 后退出。
+    // 此时从头重启该 step 即可恢复，无需让任务直接失败。
+    if (observation.status == FfmpegProcessObservationStatus.failed &&
+        _isHardwareEncoderSessionFailure(observation) &&
+        execution.hardwareRetryCount < maxHardwareEncoderRetries) {
+      await _retryHardwareEncoderStep(execution, task, currentStep);
+      return;
+    }
+
     execution.state = TaskExecutionState.finishing;
     execution.outputMonitor?.cancel();
     _executions.remove(taskId);
@@ -1302,6 +1316,83 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     await _continueAfterTask();
   }
 
+  /// 硬件编码器会话失效的最大自动重试次数。
+  /// 1 次足够覆盖"暂停+睡眠"单次中断；多次连续失效通常意味着
+  /// 硬件本身有问题，不应无限重试。
+  static const int maxHardwareEncoderRetries = 1;
+
+  /// 判断失败是否由硬件编码器会话失效引起。
+  ///
+  /// 特征：stderr 中同时出现硬件编码器名称（videotoolbox / nvenc / _qsv /
+  /// _amf）与 "generic error in an external library"。这是 macOS 睡眠唤醒后
+  /// VideoToolbox 会话失效、或 GPU 驱动抖动时的典型报错。软件编码器（libx264
+  /// 等）的普通失败不会命中此条件，不会误触发重试。
+  bool _isHardwareEncoderSessionFailure(FfmpegProcessObservation observation) {
+    final message = observation.message ?? '';
+    if (message.isEmpty) {
+      return false;
+    }
+    final lower = message.toLowerCase();
+    final hasHardwareEncoder =
+        lower.contains('videotoolbox') ||
+        lower.contains('nvenc') ||
+        lower.contains('_qsv') ||
+        lower.contains('_amf');
+    final hasExternalLibraryError = lower.contains(
+      'generic error in an external library',
+    );
+    return hasHardwareEncoder && hasExternalLibraryError;
+  }
+
+  /// 从头重启当前 step，用于硬件编码器会话失效后的自动恢复。
+  Future<void> _retryHardwareEncoderStep(
+    TaskExecution execution,
+    MediaTask task,
+    FfmpegCommandStep currentStep,
+  ) async {
+    execution.hardwareRetryCount += 1;
+
+    // 清理上一轮失败留下的残缺输出，避免污染重试结果。
+    await deleteStepOutput(currentStep);
+
+    try {
+      final retryExecution = await startExecutionStep(
+        task: task,
+        plan: execution.plan,
+        preparedInput: execution.preparedInput,
+        stepIndex: execution.stepIndex,
+        ffmpegPath: execution.ffmpegPath,
+        logFile: execution.logFile,
+        runSequence: execution.runSequence,
+      );
+      execution.startedProcess = retryExecution.startedProcess;
+      execution.observationFuture = retryExecution.observationFuture;
+      execution.state = TaskExecutionState.running;
+      _startOutputMonitor(execution);
+      observeExecution(execution);
+    } on Object catch (error) {
+      // 重试启动本身就失败了，按普通失败处理。
+      execution.state = TaskExecutionState.finishing;
+      execution.outputMonitor?.cancel();
+      _executions.remove(execution.taskId);
+      await appendExecutionLogFooter(
+        execution.logFile,
+        success: false,
+        message: '硬件编码器会话失效后重试启动失败: $error',
+      );
+      final failedTask = task.markFailed(
+        '硬件编码器会话失效后重试启动失败: $error',
+        failedAt: (await now()).millisecondsSinceEpoch,
+      );
+      await repository.saveTask(failedTask);
+      await publishTaskFailed(failedTask, failureSummary(failedTask));
+      await outputPreflightService.discardPlan(execution.plan);
+      await cleanupPlanFiles(execution.plan);
+      await mediaInputPreparer.cleanup(execution.preparedInput);
+      await _continueAfterTask();
+    }
+  }
+
   Future<void> publishTaskCompleted(
     MediaTask task, [
     TaskExecutionNotificationSummary? summary,
@@ -1337,29 +1428,126 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     int? outputFileSize,
     int? durationMs,
   }) {
+    // 通知层展示友好化的失败原因；task.errorMessage 保留原始技术信息
+    // 供任务日志对话框等"主动查看详情"的场景使用。
+    final rawError = task.errorMessage?.trim() ?? '';
+    final friendly = _friendlyFailureInfo(rawError, task.mediaKind);
     return TaskExecutionNotificationSummary(
       sourceFileSize: task.sourceFileFingerprint?.fileSize,
       outputFileSize: outputFileSize,
       durationMs: durationMs,
       outputPath: task.outputPath,
-      failureReason: task.errorMessage,
-      failureSuggestion: failureSuggestionFor(task),
+      failureReason: friendly.reason,
+      failureSuggestion: friendly.suggestion,
     );
   }
 
+  /// 将原始 FFmpeg/系统错误信息翻译成用户友好的通知文案。
+  /// 返回 (友好原因, 友好建议)。未识别的错误走兜底文案，
+  /// 不再把 stderr 技术细节直接暴露给通知和通知中心。
+  ({String reason, String suggestion}) _friendlyFailureInfo(
+    String rawError,
+    MediaKind mediaKind,
+  ) {
+    if (rawError.isEmpty) {
+      return (reason: '媒体处理未能完成', suggestion: '建议查看任务日志获取详细信息，或重试该任务。');
+    }
+
+    final lower = rawError.toLowerCase();
+
+    // 已有的友好化消息（无效压缩、输出文件缺失等）直接透传。
+    if (rawError.contains('不小于源文件') ||
+        rawError.contains('未有效压缩') ||
+        rawError.contains('无法验证')) {
+      final suggestion = mediaKind == MediaKind.image
+          ? '建议切换 WebP/JPG 格式、降低质量，或更换输出格式后重新压缩。'
+          : mediaKind == MediaKind.audio
+          ? '建议降低音频码率、改用更高压缩率的音频格式后重试。'
+          : '建议查看任务日志，确认源文件、输出目录和 FFmpeg 运行时后重试。';
+      return (reason: rawError, suggestion: suggestion);
+    }
+    if (rawError.contains('临时输出文件被删除或移动')) {
+      return (reason: rawError, suggestion: '请确认输出目录未被其他程序占用后重试。');
+    }
+    if (rawError.contains('无响应超时')) {
+      return (
+        reason: '处理进程长时间无响应，已自动终止',
+        suggestion: '可能由网络盘 IO 卡顿或硬件编码器死锁引起，建议重试该任务。',
+      );
+    }
+    if (rawError.contains('硬件编码器会话失效后重试启动失败')) {
+      return (
+        reason: '系统挂起或睡眠导致硬件编码中断，自动恢复未能成功',
+        suggestion: '建议改用软件编码（H.264/H.265 软件模式）后重试该任务。',
+      );
+    }
+
+    // 硬件编码器会话失效（VideoToolbox / NVENC / QSV / AMF）。
+    if ((lower.contains('videotoolbox') ||
+            lower.contains('nvenc') ||
+            lower.contains('_qsv') ||
+            lower.contains('_amf')) &&
+        lower.contains('generic error in an external library')) {
+      return (
+        reason: '系统挂起或睡眠导致硬件编码会话中断',
+        suggestion: '任务已自动尝试恢复。如仍失败，建议改用软件编码后重试。',
+      );
+    }
+
+    // 源文件不可访问。
+    if (lower.contains('no such file or directory') ||
+        lower.contains('could not find file') ||
+        rawError.contains('源文件不存在')) {
+      return (
+        reason: '源文件不可访问，可能已被移动或移除',
+        suggestion: '请确认源文件仍在原位置，且 U 盘/移动硬盘已正确连接后重试。',
+      );
+    }
+
+    // 权限问题。
+    if (lower.contains('permission denied')) {
+      return (reason: '没有输出位置的写入权限', suggestion: '请检查输出目录权限，或选择其他保存位置后重试。');
+    }
+
+    // 磁盘空间不足。
+    if (lower.contains('no space left on device') ||
+        lower.contains('disk full') ||
+        lower.contains('磁盘空间不足')) {
+      return (
+        reason: '磁盘空间不足，无法写入输出文件',
+        suggestion: '请清理磁盘空间（至少保留与源文件大小相当的可用空间）后重试。',
+      );
+    }
+
+    // 编码器不可用。
+    if (lower.contains('unknown encoder') ||
+        lower.contains('encoder not found') ||
+        lower.contains('not currently supported in build')) {
+      return (
+        reason: '当前 FFmpeg 版本不支持所需的编码器',
+        suggestion: '建议在设置中检查 FFmpeg 版本，或改用其他编码器后重试。',
+      );
+    }
+
+    // 源文件损坏 / 格式问题。
+    if (lower.contains('invalid data found') ||
+        lower.contains('moov atom not found') ||
+        lower.contains('error while decoding') ||
+        lower.contains('malformed') ||
+        lower.contains('truncated')) {
+      return (
+        reason: '源文件可能已损坏或格式不受支持',
+        suggestion: '请尝试用其他播放器确认源文件能否正常播放；如文件损坏需重新获取源文件。',
+      );
+    }
+
+    // 兜底：不再暴露 stderr 细节。
+    return (reason: '媒体处理未能完成', suggestion: '建议查看任务日志获取详细信息，或重试该任务。');
+  }
+
   String failureSuggestionFor(MediaTask task) {
-    final reason = task.errorMessage?.trim() ?? '';
-    final ineffectiveOutput =
-        reason.contains('不小于源文件') ||
-        reason.contains('未有效压缩') ||
-        reason.contains('无法验证');
-    if (task.mediaKind == MediaKind.image && ineffectiveOutput) {
-      return '建议切换 WebP/JPG 格式、降低质量，或更换输出格式后重新压缩。';
-    }
-    if (task.mediaKind == MediaKind.audio && ineffectiveOutput) {
-      return '建议降低音频码率、改用更高压缩率的音频格式后重试。';
-    }
-    return '建议查看任务日志，确认源文件、输出目录和 FFmpeg 运行时后重试。';
+    final rawError = task.errorMessage?.trim() ?? '';
+    return _friendlyFailureInfo(rawError, task.mediaKind).suggestion;
   }
 
   Future<bool?> isStepOutputSmallerThanSource(

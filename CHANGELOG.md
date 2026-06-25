@@ -29,6 +29,41 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-25｜v1.2.1｜No Release
+
+收口更新提示体验和媒体处理稳定性：更新入口从全量日志弹窗改为 L1 状态胶囊、L2 轻量通知弹窗和 L3 完整版本日志页；FFprobe / FFmpeg 执行链路增加超时、卡死和硬件编码会话失效保护。
+
+### Added
+
+- 新增 `UpdateNoticeDialog`：以 380px 级轻量弹窗展示新版本摘要、下载状态、安装动作和完整日志入口，mandatory 更新隐藏「下次再说」并禁止点击遮罩关闭。
+- 新增更新 snooze 持久化端口和本地实现：同版本点击「下次再说」后，后续自动检查只显示工作台顶部入口，不再自动弹窗；新版本发布后 snooze 自动失效。
+- 新增 FFmpeg 进程 stall 检测：长时间无 stdout / stderr 活动时强制终止进程并返回无响应失败，避免任务永久占用执行位。
+- 新增硬件编码器会话失效自动恢复：VideoToolbox / NVENC / QSV / AMF 出现典型 external library 错误时，当前 step 清理残留输出后自动重试一次。
+
+### Changed
+
+- 工作台顶部更新入口由 32px 图标改为状态胶囊，按 `新版本`、`下载中`、`已暂停`、`已就绪`、`更新失败` 展示版本或进度。
+- 设置页手动检查发现新版本后弹出 L2 更新通知，不再直接进入完整版本日志页；设置页移除独立「版本日志」按钮。
+- 通知中心当前更新通知点击打开 L2 更新通知；历史版本通知直接进入 L3 完整版本日志页。
+- FFprobe 分析从 `Process.run().timeout()` 改为 `Process.start`，超时后主动 kill 子进程并回收输出流。
+- 任务失败通知改为展示友好失败原因和建议，原始 FFmpeg stderr 继续保留在任务日志中。
+- macOS Sparkle xcconfig 注释改为当前默认手动 DMG 更新路线；Sparkle feed 和公钥只在显式启用 Sparkle appcast 路线时填写。
+
+### Fixed
+
+- 修复通知中心历史版本在缺少版本号时进入 `/settings/release-notes&from=workbench` 的 URL 拼接错误。
+- 修复 FFprobe 超时后底层子进程仍可能在后台存活的问题。
+- 修复 FFmpeg 进程挂死时队列一直停留在 `running` 并阻塞后续任务的问题。
+- 修复任务失败通知可能直接暴露 exit code、硬件编码器 stderr 或内部转换失败细节的问题。
+
+### Verified
+
+- 通过 `rtk dart format` 覆盖本次触达的 18 个 Dart 文件。
+- 通过触达范围定向 `rtk flutter analyze ...`，15 个源码 / 测试文件无 issue。
+- 通过 `rtk git diff --check`。
+- `rtk flutter analyze` 全量仍有 11 条既有分析项，集中在 `test/widget_test.dart` 未使用可选参数和 `tool/sign_windows_update.dart` null-aware info，非本次新增。
+- 定向 `rtk flutter test test/app_update_provider_test.dart test/app_notification_manager_test.dart test/ffmpeg_process_observer_test.dart` 未能进入测试用例：本机 Xcode 被 `flutter doctor` 标记为 incomplete，且 `xcrun --show-sdk-path` 因系统策略拒绝加载 `libxcrun.dylib`，导致 `objective_c` native-assets hook 失败。
+
 ## 2026-06-23｜v1.2.1｜No Release
 
 实施 library barrel 导入架构治理，重组工作台弹窗目录，并收口工作台图标常量。

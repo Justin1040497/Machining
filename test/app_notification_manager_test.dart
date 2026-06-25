@@ -226,6 +226,70 @@ void main() {
       expect(notification.message, contains('降低质量'));
     },
   );
+
+  test(
+    'hardware encoder session failure shows friendly reason without stderr',
+    () async {
+      // 验证：硬件编码会话失效时，通知不再暴露 exitCode/stderr 技术细节，
+      // 而是展示用户友好的原因和建议。
+      final repository = FakeAppNotificationRepository();
+      final manager = AppNotificationManager(repository: repository);
+      addTearDown(manager.dispose);
+      final failedTask =
+          MediaTask.draft(
+            inputPath: '/input/DJI_0009.MP4',
+            fileName: 'DJI_0009.MP4',
+            mediaKind: MediaKind.video,
+            sortOrder: 0,
+          ).markFailed(
+            'FFmpeg 退出码: 187\n'
+            '[vost#0:0/h264_videotoolbox @ 0xcb6ca8000] Error encoding a frame: Generic error in an external library\n'
+            '[vost#0:0/h264_videotoolbox @ 0xcb6ca8000] Task finished with error code: -542398533 (Generic error in an external library)\n'
+            'Conversion failed!',
+          );
+
+      final notification = await manager.notifyTaskFailed(
+        failedTask,
+        const TaskExecutionNotificationSummary(
+          failureReason: '系统挂起或睡眠导致硬件编码会话中断',
+          failureSuggestion: '任务已自动尝试恢复。如仍失败，建议改用软件编码后重试。',
+        ),
+      );
+
+      expect(notification.message, contains('文件：DJI_0009.MP4'));
+      expect(notification.message, contains('系统挂起或睡眠导致硬件编码会话中断'));
+      expect(notification.message, isNot(contains('exitCode')));
+      expect(notification.message, isNot(contains('h264_videotoolbox')));
+      expect(notification.message, isNot(contains('Generic error')));
+      expect(notification.message, isNot(contains('Conversion failed')));
+      expect(notification.message, contains('软件编码'));
+    },
+  );
+
+  test(
+    'missing summary falls back to friendly reason without exposing stderr',
+    () async {
+      // 验证：summary 缺失时，_failureReason 不直接吐 task.errorMessage 里的技术细节。
+      final repository = FakeAppNotificationRepository();
+      final manager = AppNotificationManager(repository: repository);
+      addTearDown(manager.dispose);
+      final failedTask =
+          MediaTask.draft(
+            inputPath: '/input/demo.mp4',
+            fileName: 'demo.mp4',
+            mediaKind: MediaKind.video,
+            sortOrder: 0,
+          ).markFailed(
+            'FFmpeg 退出码: 1\nSome internal stderr garbage\nConversion failed!',
+          );
+
+      final notification = await manager.notifyTaskFailed(failedTask);
+
+      expect(notification.message, contains('媒体处理未能完成'));
+      expect(notification.message, isNot(contains('FFmpeg 退出码')));
+      expect(notification.message, isNot(contains('stderr garbage')));
+    },
+  );
 }
 
 class FakeAppNotificationRepository implements AppNotificationRepository {
