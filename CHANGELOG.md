@@ -29,6 +29,30 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-06-28｜v1.2.1｜No Release
+
+重写自托管更新后端，迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X，保留客户端更新协议、COS 私有桶分发、Redis 短期票据和既有发布数据模型。
+
+### Added
+
+- 新增 `ruoyi-modules/ruoyi-framelean` 业务模块，提供公开更新 API、Sparkle appcast、发布管理、COS 预签名上传 / 下载、下载票据、更新检查审计、下载审计和 IP 屏蔽。
+- 新增 plus-ui FrameLean 后台页面：发布版本、更新审计、运行诊断，并把旧 `/web` 重定向到新后台入口。
+- 新增 PostgreSQL Flyway 迁移，导入 RuoYi 系统表并保留 `releases`、`release_packages`、`release_artifact_requirements`、`download_events`、`update_check_events` 和 `ip_block_rules`。
+
+### Changed
+
+- `server/` 从旧 Kotlin + 手写 React Admin 改为 RuoYi-Vue-Plus 5.X 多模块后端和官方 plus-ui 5.X 前端；旧主密码 / challenge 登录和 `admin_auth_config` 认证流废弃。
+- 部署配置改为 PostgreSQL + Redis + COS + Sa-Token secret 的 RuoYi 单容器 API，Dockerfile 改为 plus-ui build + `ruoyi-admin` Maven build。
+- `FRAMELEAN_PUBLIC_BASE_URL` 作为公网根地址，旧 `FRAMELEAN_UPDATE_BASE_URL` 继续作为 fallback。
+
+### Verified
+
+- 通过 `rtk mvn --settings /private/tmp/framelean-maven-settings.xml -Dmaven.wagon.rto=180000 -Dmaven.wagon.http.retryHandler.count=3 -pl ruoyi-admin -am -DskipTests package`，RuoYi 后端和 `ruoyi-framelean` 模块编译成功。
+- 通过 `rtk npm install --registry=https://registry.npmmirror.com --fetch-timeout=60000 --fetch-retries=1` 安装 plus-ui 依赖；Node 23 下仅有 engine warning。
+- 通过 `rtk npm run build:prod`，plus-ui 生产构建成功。
+- 通过 `rtk proxy env SA_TOKEN_JWT_SECRET=test-secret FRAMELEAN_PUBLIC_BASE_URL=https://framelean.example.com docker compose config`。
+- 通过 `rtk git diff --check`。
+
 ## 2026-06-26｜v1.2.1｜No Release
 
 修复任务夹共同设置会错误统一覆盖每个任务输出文件名的 bug。

@@ -92,11 +92,12 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 
 | 依赖 | 用途 |
 | --- | --- |
-| `spring-boot-starter-data-redis` | Redis 连接，用于更新票据、限流计数和 latest cache |
-| `spring-boot-testcontainers` | Spring Boot Testcontainers `@ServiceConnection` 测试支持 |
+| RuoYi-Vue-Plus 5.X | 服务端后台骨架，基于 Spring Boot 3.5、Sa-Token、MyBatis-Plus、Redisson 和 RuoYi 系统模块 |
+| PostgreSQL + Flyway | 生产唯一关系数据库和 schema 迁移；保留既有发布、制品、审计和 IP 屏蔽业务表，新增 RuoYi `sys_*` 系统表 |
+| Redis / Redisson | 更新票据、限流计数、latest cache 和 RuoYi 缓存 / 会话能力 |
 | Tencent COS Java SDK `cos_api` | 服务端生成上传 / 下载预签名 URL，并通过官方 Java SDK 管理分片上传生命周期 |
-| React + Vite + Ant Design | 服务端 Admin Web，源码位于 `server/admin-web`，构建后由 Spring Boot 托管 `/web` |
-| `argon2-browser` | Admin Web 主密码派生密钥，用于加密 / 解密本地生成的管理员私钥信封 |
+| plus-ui 5.X + Vue 3 + TypeScript + Element Plus | 服务端 Admin Web，源码位于 `server/admin-web`，构建后由 `ruoyi-admin` 托管 |
+| Docker Compose | 本地和宝塔部署入口，组合单容器 API、PostgreSQL 和 Redis |
 
 ## 项目目录结构
 

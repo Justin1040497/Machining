@@ -85,7 +85,7 @@ features -> application -> domain
 - 自托管更新客户端从 v1.2.1 开始接入主流程：应用启动自动静默检查一次，发现未跳过的新版本会延迟弹出轻量更新通知；设置关于栏可手动检查并打开同一通知弹窗，通知中心按版本去重展示更新通知，工作台顶部在存在更新时以状态胶囊持续显示入口，完整版本日志只从更新通知弹窗进入。
 - Windows 自托管更新由主应用完成下载、断点续传和 SHA-256 校验，再交给随包提供的独立 `FrameLeanUpdaterHelper.exe` 退出应用、执行安装器、检查退出码并重启应用。
 - macOS 自托管更新默认走 JSON latest / ticket 路线：检查到 `macos-universal2` 后展示版本日志，用户下载 DMG 到应用私有目录，再打开 DMG 所在位置手动安装；默认不调用 Sparkle、不自动替换应用，也不要求 Apple Developer ID 证书。下载状态持久化到本地 JSON，重启后如 DMG 仍在且 SHA-256 校验通过，自动恢复已下载状态，不需要重新下载。
-- 更新服务端发布前仍处于 `server v1.0.0` / 后端 `v1` 线；v1 线内数据库演进使用 `V*__v1_database_*` 迁移命名，PostgreSQL 保存 release / package / download event 长期数据，Redis 保存短期下载票据、限流计数和 latest cache。
+- 更新服务端已迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X 初版：RuoYi 负责后台登录、菜单、角色、权限和日志，FrameLean 业务模块继续提供公开更新 API、COS 私有桶预签名分发、Redis 短期票据 / latest cache / 限流计数，并保留既有 PostgreSQL 发布和审计业务表。
 
 ## 文档阅读入口
 
