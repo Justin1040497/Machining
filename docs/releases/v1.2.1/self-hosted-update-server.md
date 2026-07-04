@@ -2,7 +2,7 @@
 
 ## 版本事实
 
-FrameLean server v1.0.0 使用 Kotlin Spring Boot、PostgreSQL、Flyway、MyBatis-Plus、Redis 和腾讯云 COS 承担自托管更新服务。公开客户端接口提供检查更新、版本日志、下载 ticket 创建和解析；管理接口负责 release / package 长期事实和对象存储上传授权。
+FrameLean server 当前使用 RuoYi-Vue-Plus 5.X + plus-ui 5.X、Java Spring Boot、PostgreSQL、Flyway、MyBatis-Plus、Redis 和腾讯云 COS 承担自托管更新服务。`ruoyi-admin` 是后端入口模块，`ruoyi-modules/ruoyi-framelean` 保存 FrameLean 业务逻辑，`server/admin-web` 提供后台页面。公开客户端接口提供检查更新、版本日志、下载 ticket 创建和解析；管理接口负责 release / package 长期事实和对象存储上传授权。
 
 公开客户端 JSON 更新接口集中在 `/api/v1/releases/*`：
 
@@ -40,6 +40,8 @@ macOS Sparkle 接口集中在 `/api/v1/sparkle/*`：
 
 检查更新时按平台可见包过滤，避免“某个平台没有包的新版本”挡住旧平台可用版本。
 
+历史版本缺包时不要进入当前 `published` 自动更新通道。`v1.0.0`、`v1.1.0`、`v1.1.5` 等只有 DMG、缺少 Windows `.exe` 安装器的版本，可以作为 draft / 归档清单保存在 Admin 和 COS 中，但不能伪造 `windows-installer` 或用 `windows-x64` ZIP 替代安装器。若需要公开展示这些历史日志，应先新增归档状态或公开归档接口，避免破坏 `/latest` 的自动更新语义。
+
 ## 部署边界
 
 - `FRAMELEAN_UPDATE_BASE_URL` 面向客户端构建配置，应指向公网根域名，例如 `https://framelean.zhoust.cn`。
@@ -47,6 +49,7 @@ macOS Sparkle 接口集中在 `/api/v1/sparkle/*`：
 - 宝塔单容器部署时不能只看 `/api/v1/health` 或 `docker compose config`。需要检查运行中 API 容器的实际环境变量；如果日志仍显示 `localhost:5432`，通常说明容器创建时没有带上 `DB_HOST=postgres` 等配置。
 - 宝塔形态下推荐 PostgreSQL / Redis 继续由 Compose 管理，API 容器加入同一 Docker network 后绑定到 `127.0.0.1`，由宝塔 / Nginx 反代到公网域名。
 - 不要在含生产数据的部署上随意执行 `docker compose down -v`，该命令可能删除 PostgreSQL 数据卷。
+- 生产部署先发布一个完整自动更新版本，再导入缺包历史版本。完整版本必须同时登记 `windows-installer` 和 `macos-universal2`，历史版本只登记已有 DMG / ZIP 和日志并保持 draft，直到后续实现归档状态。
 
 ## 验证范围
 

@@ -29,6 +29,20 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-04｜v1.2.1｜No Release
+
+校准 RuoYi-Vue-Plus 后台和自托管更新部署文档，明确旧 Admin Web 已废弃以及历史缺包版本的归档策略。
+
+### Changed
+
+- 更新 v1.2.1 Admin Web / 自托管更新服务文档，把旧 React Admin 主密码和 challenge 登录描述替换为当前 RuoYi / Sa-Token 登录态与 `X-Api-Key` 兼容鉴权。
+- 明确自动更新发布要求：`windows-installer` 和 `macos-universal2` 是当前客户端可见必填包，缺少 Windows `.exe` 安装器的历史版本只能作为 draft / 归档留存，不进入 `/latest` 发布通道。
+- 校准技术栈文档中的后台鉴权和会话存储事实，标注 `admin_auth_config` 仅为历史表。
+
+### Verified
+
+- 通过文档 diff 审查和打包 / 更新配置新鲜度检查，确认 GitHub Actions、本地 release 脚本和当前文档中的更新地址、签名和制品路径语义一致。
+
 ## 2026-06-28｜v1.2.1｜No Release
 
 重写自托管更新后端，迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X，保留客户端更新协议、COS 私有桶分发、Redis 短期票据和既有发布数据模型。

@@ -372,8 +372,9 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | release artifact requirement | PostgreSQL | Admin 端配置的每个版本平台成果物要求及必填状态；Windows 安装器是客户端更新包，Windows ZIP 是留存包 |
 | update check event | PostgreSQL | 检查更新审计、IP 筛选和封禁依据 |
 | download event | PostgreSQL | 下载统计和审计 |
-| admin auth envelope | PostgreSQL | 唯一管理员的 Argon2id 参数、加密私钥和公钥；不保存主密码或密码哈希 |
-| admin session / challenge | Redis | Admin Web 登录 challenge、HttpOnly Cookie 会话和 CSRF token |
+| RuoYi users / roles / menus / logs | PostgreSQL | RuoYi-Vue-Plus 后台登录、角色权限、菜单和操作日志是当前 Admin Web 权威后台能力 |
+| RuoYi / Sa-Token session | Redis | 后台登录态、在线用户、验证码和平台缓存；旧 challenge 登录不再使用 |
+| `admin_auth_config` | PostgreSQL | 旧 React Admin 主密码 / challenge 登录表，仅历史保留，不作为当前鉴权来源 |
 | ip block rule | PostgreSQL | 管理端维护的 IP 屏蔽规则 |
 | download ticket | Redis | 10 分钟 TTL，resolve 后签发 COS 短期 URL |
 | rate limit / latest cache | Redis | 限流窗口和短期最新版本缓存 |
