@@ -873,6 +873,22 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                   );
                 }
               },
+              onOpenGitHub: () {
+                final url = liveState.release?.githubDownloadUrl;
+                if (url != null && url.isNotEmpty) {
+                  unawaited(
+                    ref.read(externalLinkOpenerProvider).open(url),
+                  );
+                }
+              },
+              onOpenGitee: () {
+                final url = liveState.release?.giteeDownloadUrl;
+                if (url != null && url.isNotEmpty) {
+                  unawaited(
+                    ref.read(externalLinkOpenerProvider).open(url),
+                  );
+                }
+              },
             );
           },
         );

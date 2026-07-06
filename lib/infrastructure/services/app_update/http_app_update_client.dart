@@ -196,6 +196,8 @@ class HttpAppUpdateClient implements AppUpdateClient {
         sha256: json['sha256'] as String,
         ed25519Signature: json['ed25519Signature'] as String?,
       ),
+      githubDownloadUrl: json['githubDownloadUrl'] as String?,
+      giteeDownloadUrl: json['giteeDownloadUrl'] as String?,
     );
   }
 }

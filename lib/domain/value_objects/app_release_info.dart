@@ -12,6 +12,8 @@ class AppReleaseInfo {
     required this.releaseNotesMarkdown,
     required this.releaseNotesSummary,
     required this.package,
+    this.githubDownloadUrl,
+    this.giteeDownloadUrl,
   });
 
   final String version;
@@ -24,6 +26,8 @@ class AppReleaseInfo {
   final String releaseNotesMarkdown;
   final String releaseNotesSummary;
   final AppUpdatePackageInfo package;
+  final String? githubDownloadUrl;
+  final String? giteeDownloadUrl;
 
   String get notificationDedupeKey => 'update:$platform:$version:$buildNumber';
 }

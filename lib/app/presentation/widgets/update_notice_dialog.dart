@@ -23,6 +23,8 @@ class UpdateNoticeDialog extends StatelessWidget {
     required this.onInstallUpdate,
     required this.onSnooze,
     required this.onOpenReleaseNotes,
+    this.onOpenGitHub,
+    this.onOpenGitee,
   });
 
   final AppUpdateState updateState;
@@ -32,6 +34,8 @@ class UpdateNoticeDialog extends StatelessWidget {
   final VoidCallback onInstallUpdate;
   final VoidCallback onSnooze;
   final VoidCallback onOpenReleaseNotes;
+  final VoidCallback? onOpenGitHub;
+  final VoidCallback? onOpenGitee;
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +75,8 @@ class UpdateNoticeDialog extends StatelessWidget {
                 onInstallUpdate: onInstallUpdate,
                 onSnooze: onSnooze,
                 onOpenReleaseNotes: onOpenReleaseNotes,
+                onOpenGitHub: onOpenGitHub,
+                onOpenGitee: onOpenGitee,
               ),
             ],
           ),
@@ -314,6 +320,8 @@ class _NoticeActions extends StatelessWidget {
     required this.onInstallUpdate,
     required this.onSnooze,
     required this.onOpenReleaseNotes,
+    this.onOpenGitHub,
+    this.onOpenGitee,
   });
 
   final AppUpdateState state;
@@ -324,6 +332,12 @@ class _NoticeActions extends StatelessWidget {
   final VoidCallback onInstallUpdate;
   final VoidCallback onSnooze;
   final VoidCallback onOpenReleaseNotes;
+  final VoidCallback? onOpenGitHub;
+  final VoidCallback? onOpenGitee;
+
+  bool get _hasExternalLinks =>
+      state.release?.githubDownloadUrl != null ||
+      state.release?.giteeDownloadUrl != null;
 
   @override
   Widget build(BuildContext context) {
@@ -337,25 +351,15 @@ class _NoticeActions extends StatelessWidget {
         _PrimaryButton(label: '继续下载', onPressed: onStartDownload),
         _SecondaryButton(label: '后台下载', onPressed: onSnooze),
       ],
-      AppUpdateStatus.downloaded => [
-        _PrimaryButton(
-          label: manualMacosUpdate ? '打开 DMG' : '重启更新',
-          onPressed: onInstallUpdate,
-        ),
-        _SecondaryButton(label: '后台隐藏', onPressed: onSnooze),
-      ],
+      AppUpdateStatus.downloaded =>
+        _downloadedActions(),
       AppUpdateStatus.installing => [
         _PrimaryButton(label: '安装中', onPressed: null),
       ],
-      AppUpdateStatus.failed => [
-        _PrimaryButton(label: '重试', onPressed: onStartDownload),
-        _SecondaryButton(label: '后台隐藏', onPressed: onSnooze),
-      ],
-      _ => [
-        _PrimaryButton(label: '立即更新', onPressed: onStartDownload),
-        if (!mandatory) _SecondaryButton(label: '下次再说', onPressed: onSnooze),
-        _TextLinkButton(label: '查看完整日志', onPressed: onOpenReleaseNotes),
-      ],
+      AppUpdateStatus.failed =>
+        _failedActions(),
+      _ =>
+        _availableActions(),
     };
 
     return Row(
@@ -363,6 +367,67 @@ class _NoticeActions extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: _interleave(children, const SizedBox(width: 10)),
     );
+  }
+
+  List<Widget> _downloadedActions() {
+    if (_hasExternalLinks) {
+      return [
+        _PrimaryButton(
+          label: manualMacosUpdate ? '打开 DMG' : '重启更新',
+          onPressed: onInstallUpdate,
+        ),
+        _SecondaryButton(label: '后台隐藏', onPressed: onSnooze),
+      ];
+    }
+    return [
+      _PrimaryButton(
+        label: manualMacosUpdate ? '打开 DMG' : '重启更新',
+        onPressed: onInstallUpdate,
+      ),
+      _SecondaryButton(label: '后台隐藏', onPressed: onSnooze),
+    ];
+  }
+
+  List<Widget> _failedActions() {
+    if (_hasExternalLinks) {
+      return _externalLinkActions(withRetry: false);
+    }
+    return [
+      _PrimaryButton(label: '重试', onPressed: onStartDownload),
+      _SecondaryButton(label: '后台隐藏', onPressed: onSnooze),
+    ];
+  }
+
+  List<Widget> _availableActions() {
+    if (_hasExternalLinks) {
+      return _externalLinkActions();
+    }
+    return [
+      _PrimaryButton(label: '立即更新', onPressed: onStartDownload),
+      if (!mandatory) _SecondaryButton(label: '下次再说', onPressed: onSnooze),
+      _TextLinkButton(label: '查看完整日志', onPressed: onOpenReleaseNotes),
+    ];
+  }
+
+  List<Widget> _externalLinkActions({bool withRetry = true}) {
+    final buttons = <Widget>[];
+    final githubUrl = state.release?.githubDownloadUrl;
+    final giteeUrl = state.release?.giteeDownloadUrl;
+
+    if (githubUrl != null && githubUrl.isNotEmpty) {
+      buttons.add(_PrimaryLinkButton(label: '前往 GitHub', onPressed: onOpenGitHub));
+    }
+    if (giteeUrl != null && giteeUrl.isNotEmpty) {
+      buttons.add(_PrimaryLinkButton(label: '前往 Gitee', onPressed: onOpenGitee));
+    }
+    if (withRetry) {
+      buttons.add(_SecondaryButton(label: '重试', onPressed: onStartDownload));
+    }
+    if (!mandatory) {
+      buttons.add(_SecondaryButton(label: '下次再说', onPressed: onSnooze));
+    }
+    buttons.add(_TextLinkButton(label: '查看完整日志', onPressed: onOpenReleaseNotes));
+    return buttons;
   }
 
   List<Widget> _interleave(List<Widget> items, Widget separator) {
@@ -375,7 +440,6 @@ class _NoticeActions extends StatelessWidget {
     ];
   }
 }
-
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({required this.label, required this.onPressed});
 
@@ -400,6 +464,36 @@ class _PrimaryButton extends StatelessWidget {
           textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
         ),
         child: Text(label),
+      ),
+    );
+  }
+}
+
+
+class _PrimaryLinkButton extends StatelessWidget {
+  const _PrimaryLinkButton({required this.label, this.onPressed});
+
+  final String label;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    return SizedBox(
+      height: 30,
+      child: FilledButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.open_in_new_rounded, size: 14),
+        style: FilledButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
+          disabledBackgroundColor: colors.surfaceDisabled,
+          disabledForegroundColor: colors.textTertiary,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+        label: Text(label),
       ),
     );
   }
