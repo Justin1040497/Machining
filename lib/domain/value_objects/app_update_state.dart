@@ -35,6 +35,7 @@ class AppUpdateState {
 
   bool get canStartDownload =>
       release != null &&
+      !(release?.hasExternalDownloadLinks ?? false) &&
       (status == AppUpdateStatus.available ||
           status == AppUpdateStatus.paused ||
           status == AppUpdateStatus.failed);

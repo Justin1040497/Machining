@@ -191,15 +191,33 @@ class HttpAppUpdateClient implements AppUpdateClient {
       releaseNotesMarkdown: notesMarkdown,
       releaseNotesSummary: notesSummary,
       package: AppUpdatePackageInfo(
-        fileName: json['fileName'] as String,
-        sizeBytes: (json['size'] as num).toInt(),
-        sha256: json['sha256'] as String,
-        ed25519Signature: json['ed25519Signature'] as String?,
+        fileName: _readString(json['fileName']),
+        sizeBytes: _readInt(json['size']),
+        sha256: _readString(json['sha256']),
+        ed25519Signature: _readNullableString(json['ed25519Signature']),
       ),
-      githubDownloadUrl: json['githubDownloadUrl'] as String?,
-      giteeDownloadUrl: json['giteeDownloadUrl'] as String?,
+      githubDownloadUrl: _readNullableString(json['githubDownloadUrl']),
+      giteeDownloadUrl: _readNullableString(json['giteeDownloadUrl']),
+      backupDownloadUrl: _readNullableString(json['backupDownloadUrl']),
     );
   }
+}
+
+
+String _readString(Object? value) {
+  return value is String ? value : '';
+}
+
+String? _readNullableString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
+}
+
+int _readInt(Object? value) {
+  return value is num ? value.toInt() : 0;
 }
 
 String _summarizeMarkdown(String markdown) {

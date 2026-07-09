@@ -68,7 +68,9 @@ abstract final class NotificationCenterActionResolver {
 
     final target =
         '${payload.platform}:${payload.version}:${payload.buildNumber}';
-    final downloadLabel = payload.platform == 'macos-universal2'
+    final downloadLabel = payload.hasExternalDownloadLinks
+        ? '查看下载地址'
+        : payload.platform == 'macos-universal2'
         ? '下载 DMG'
         : '下载更新';
     if (payload.status == AppUpdateStatus.completed) {

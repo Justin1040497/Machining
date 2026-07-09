@@ -14,6 +14,7 @@ class AppReleaseInfo {
     required this.package,
     this.githubDownloadUrl,
     this.giteeDownloadUrl,
+    this.backupDownloadUrl,
   });
 
   final String version;
@@ -28,6 +29,16 @@ class AppReleaseInfo {
   final AppUpdatePackageInfo package;
   final String? githubDownloadUrl;
   final String? giteeDownloadUrl;
+  final String? backupDownloadUrl;
+
+  bool get hasExternalDownloadLinks =>
+      _hasText(githubDownloadUrl) ||
+      _hasText(giteeDownloadUrl) ||
+      _hasText(backupDownloadUrl);
+
+  bool get hasPackageDownloadMetadata => package.hasDownloadMetadata;
 
   String get notificationDedupeKey => 'update:$platform:$version:$buildNumber';
 }
+
+bool _hasText(String? value) => value != null && value.trim().isNotEmpty;

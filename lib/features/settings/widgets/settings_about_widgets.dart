@@ -261,14 +261,21 @@ class _UpdateMaintenanceButton extends StatelessWidget {
   String _labelForState(AppUpdateState state) {
     return switch (state.status) {
       AppUpdateStatus.checking => '检查中',
-      AppUpdateStatus.available => manualMacosUpdate ? '下载 DMG' : '现在更新',
+      AppUpdateStatus.available =>
+        (state.release?.hasExternalDownloadLinks ?? false)
+            ? '查看下载'
+            : manualMacosUpdate
+            ? '下载 DMG'
+            : '现在更新',
       AppUpdateStatus.downloading => '${state.progressPercent}%',
       AppUpdateStatus.paused => '继续 ${state.progressPercent}%',
       AppUpdateStatus.downloaded => manualMacosUpdate ? '打开 DMG' : '重启更新',
       AppUpdateStatus.installing => manualMacosUpdate ? '打开中' : '安装中',
       AppUpdateStatus.failed =>
         state.hasUpdate
-            ? manualMacosUpdate
+            ? (state.release?.hasExternalDownloadLinks ?? false)
+                  ? '查看下载'
+                  : manualMacosUpdate
                   ? '重试下载'
                   : '重试更新'
             : '检查更新',

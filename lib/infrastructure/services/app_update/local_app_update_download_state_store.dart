@@ -36,7 +36,11 @@ class LocalAppUpdateDownloadStateStore implements AppUpdateDownloadStateStore {
           fileName: pkg['fileName'] as String,
           sizeBytes: pkg['sizeBytes'] as int,
           sha256: pkg['sha256'] as String,
+          ed25519Signature: pkg['ed25519Signature'] as String?,
         ),
+        githubDownloadUrl: json['githubDownloadUrl'] as String?,
+        giteeDownloadUrl: json['giteeDownloadUrl'] as String?,
+        backupDownloadUrl: json['backupDownloadUrl'] as String?,
       );
       return PersistedDownloadState(
         release: release,
@@ -61,10 +65,14 @@ class LocalAppUpdateDownloadStateStore implements AppUpdateDownloadStateStore {
       'notesUrl': state.release.notesUrl,
       'releaseNotesMarkdown': state.release.releaseNotesMarkdown,
       'releaseNotesSummary': state.release.releaseNotesSummary,
+      'githubDownloadUrl': state.release.githubDownloadUrl,
+      'giteeDownloadUrl': state.release.giteeDownloadUrl,
+      'backupDownloadUrl': state.release.backupDownloadUrl,
       'package': {
         'fileName': state.release.package.fileName,
         'sizeBytes': state.release.package.sizeBytes,
         'sha256': state.release.package.sha256,
+        'ed25519Signature': state.release.package.ed25519Signature,
       },
       'filePath': state.filePath,
     };

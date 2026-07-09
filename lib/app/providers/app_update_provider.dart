@@ -205,6 +205,11 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
       return null;
     }
 
+    if (!persisted.release.hasPackageDownloadMetadata) {
+      await store.clear();
+      return null;
+    }
+
     final file = File(persisted.filePath);
     if (!await file.exists()) {
       await store.clear();
@@ -344,61 +349,68 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
         ref.read(appUpdatePendingAutoNoticeProvider.notifier).set(!suppressed);
       }
 
-      // Check whether a valid package already exists in the download
-      // directory so we can skip re-downloading.
-      final existingPath = await ref
-          .read(appUpdateDownloaderProvider)
-          .findExistingValidPackage(
-            package: result.release!.package,
-            version: result.release!.version,
-            platform: result.release!.platform,
-          );
+      final release = result.release!;
 
-      if (existingPath != null) {
-        await ref
-            .read(appUpdateDownloadStateStoreProvider)
-            .save(
-              PersistedDownloadState(
-                release: result.release!,
-                filePath: existingPath,
-              ),
+      if (!release.hasExternalDownloadLinks &&
+          release.hasPackageDownloadMetadata) {
+        // Check whether a valid package already exists in the download
+        // directory so we can skip re-downloading. Releases that only provide
+        // external download links intentionally bypass the retained self-update
+        // package flow.
+        final existingPath = await ref
+            .read(appUpdateDownloaderProvider)
+            .findExistingValidPackage(
+              package: release.package,
+              version: release.version,
+              platform: release.platform,
             );
-        state = AsyncData(
-          AppUpdateState(
-            status: AppUpdateStatus.downloaded,
-            release: result.release,
-            progress: 1,
-            downloadedFilePath: existingPath,
-            checkedAt: DateTime.now(),
-          ),
-        );
-        await ref
-            .read(appNotificationManagerProvider)
-            .updateUpdateNotification(
-              release: result.release!,
+
+        if (existingPath != null) {
+          await ref
+              .read(appUpdateDownloadStateStoreProvider)
+              .save(
+                PersistedDownloadState(
+                  release: release,
+                  filePath: existingPath,
+                ),
+              );
+          state = AsyncData(
+            AppUpdateState(
               status: AppUpdateStatus.downloaded,
-              title: 'DMG 已下载',
-              level: AppNotificationLevel.success,
-            );
-        return;
+              release: release,
+              progress: 1,
+              downloadedFilePath: existingPath,
+              checkedAt: DateTime.now(),
+            ),
+          );
+          await ref
+              .read(appNotificationManagerProvider)
+              .updateUpdateNotification(
+                release: release,
+                status: AppUpdateStatus.downloaded,
+                title: 'DMG 已下载',
+                level: AppNotificationLevel.success,
+              );
+          return;
+        }
       }
 
       // Clear persisted state if the new version differs from the
       // previously downloaded one.
       if (current.downloadedFilePath != null &&
-          current.release?.version != result.release!.version) {
+          current.release?.version != release.version) {
         await ref.read(appUpdateDownloadStateStoreProvider).clear();
       }
 
       final nextState = AppUpdateState(
         status: AppUpdateStatus.available,
-        release: result.release,
+        release: release,
         checkedAt: DateTime.now(),
       );
       state = AsyncData(nextState);
       await ref
           .read(appNotificationManagerProvider)
-          .notifyUpdateAvailable(result.release!);
+          .notifyUpdateAvailable(release);
     } on Object catch (error) {
       final message = error.toString();
       state = AsyncData(
@@ -474,6 +486,28 @@ class AppUpdateNotifier extends AsyncNotifier<AppUpdateState> {
     if (current == null ||
         release == null ||
         current.status == AppUpdateStatus.downloading) {
+      return;
+    }
+
+    if (release.hasExternalDownloadLinks) {
+      await ref
+          .read(appNotificationManagerProvider)
+          .notify(
+            level: AppNotificationLevel.info,
+            title: '请在更新弹窗中选择下载地址',
+            message: '此版本通过 GitHub、Gitee 或备用地址跳转下载，不再由客户端自动下载安装包。',
+            source: notificationSourceUpdate,
+          );
+      return;
+    }
+
+    if (!release.hasPackageDownloadMetadata) {
+      state = AsyncData(
+        current.copyWith(
+          status: AppUpdateStatus.failed,
+          errorMessage: '更新包信息不完整，请使用下载地址手动获取新版。',
+        ),
+      );
       return;
     }
 

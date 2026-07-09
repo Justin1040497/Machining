@@ -25,6 +25,7 @@ class UpdateNoticeDialog extends StatelessWidget {
     required this.onOpenReleaseNotes,
     this.onOpenGitHub,
     this.onOpenGitee,
+    this.onOpenBackup,
   });
 
   final AppUpdateState updateState;
@@ -36,6 +37,7 @@ class UpdateNoticeDialog extends StatelessWidget {
   final VoidCallback onOpenReleaseNotes;
   final VoidCallback? onOpenGitHub;
   final VoidCallback? onOpenGitee;
+  final VoidCallback? onOpenBackup;
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +79,7 @@ class UpdateNoticeDialog extends StatelessWidget {
                 onOpenReleaseNotes: onOpenReleaseNotes,
                 onOpenGitHub: onOpenGitHub,
                 onOpenGitee: onOpenGitee,
+                onOpenBackup: onOpenBackup,
               ),
             ],
           ),
@@ -231,6 +234,9 @@ class _NoticeBody extends StatelessWidget {
     final summary = release.releaseNotesSummary;
     final packageInfo = release.package;
     final sizeMb = (packageInfo.sizeBytes / 1024 / 1024).toStringAsFixed(1);
+    final detailText = release.hasExternalDownloadLinks
+        ? '请选择下方 GitHub、Gitee 或备用地址，跳转到指定页面下载。'
+        : '安装包 $sizeMb MB · ${release.platform}';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -248,7 +254,7 @@ class _NoticeBody extends StatelessWidget {
           ),
         const SizedBox(height: 8),
         Text(
-          '安装包 $sizeMb MB · ${release.platform}',
+          detailText,
           style: TextStyle(color: colors.textTertiary, fontSize: 11),
         ),
       ],
@@ -322,6 +328,7 @@ class _NoticeActions extends StatelessWidget {
     required this.onOpenReleaseNotes,
     this.onOpenGitHub,
     this.onOpenGitee,
+    this.onOpenBackup,
   });
 
   final AppUpdateState state;
@@ -334,10 +341,9 @@ class _NoticeActions extends StatelessWidget {
   final VoidCallback onOpenReleaseNotes;
   final VoidCallback? onOpenGitHub;
   final VoidCallback? onOpenGitee;
+  final VoidCallback? onOpenBackup;
 
-  bool get _hasExternalLinks =>
-      state.release?.githubDownloadUrl != null ||
-      state.release?.giteeDownloadUrl != null;
+  bool get _hasExternalLinks => state.release?.hasExternalDownloadLinks ?? false;
 
   @override
   Widget build(BuildContext context) {
@@ -362,22 +368,21 @@ class _NoticeActions extends StatelessWidget {
         _availableActions(),
     };
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: _interleave(children, const SizedBox(width: 10)),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Wrap(
+        alignment: WrapAlignment.end,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 10,
+        runSpacing: 8,
+        children: children,
+      ),
     );
   }
 
   List<Widget> _downloadedActions() {
     if (_hasExternalLinks) {
-      return [
-        _PrimaryButton(
-          label: manualMacosUpdate ? '打开 DMG' : '重启更新',
-          onPressed: onInstallUpdate,
-        ),
-        _SecondaryButton(label: '后台隐藏', onPressed: onSnooze),
-      ];
+      return _externalLinkActions();
     }
     return [
       _PrimaryButton(
@@ -390,7 +395,7 @@ class _NoticeActions extends StatelessWidget {
 
   List<Widget> _failedActions() {
     if (_hasExternalLinks) {
-      return _externalLinkActions(withRetry: false);
+      return _externalLinkActions();
     }
     return [
       _PrimaryButton(label: '重试', onPressed: onStartDownload),
@@ -409,37 +414,37 @@ class _NoticeActions extends StatelessWidget {
     ];
   }
 
-  List<Widget> _externalLinkActions({bool withRetry = true}) {
+  List<Widget> _externalLinkActions() {
     final buttons = <Widget>[];
-    final githubUrl = state.release?.githubDownloadUrl;
-    final giteeUrl = state.release?.giteeDownloadUrl;
+    final githubUrl = state.release?.githubDownloadUrl?.trim();
+    final giteeUrl = state.release?.giteeDownloadUrl?.trim();
+    final backupUrl = state.release?.backupDownloadUrl?.trim();
 
     if (githubUrl != null && githubUrl.isNotEmpty) {
-      buttons.add(_PrimaryLinkButton(label: '前往 GitHub', onPressed: onOpenGitHub));
+      buttons.add(
+        _PrimaryLinkButton(label: '前往 GitHub', onPressed: onOpenGitHub),
+      );
     }
     if (giteeUrl != null && giteeUrl.isNotEmpty) {
-      buttons.add(_PrimaryLinkButton(label: '前往 Gitee', onPressed: onOpenGitee));
+      buttons.add(
+        _PrimaryLinkButton(label: '前往 Gitee', onPressed: onOpenGitee),
+      );
     }
-    if (withRetry) {
-      buttons.add(_SecondaryButton(label: '重试', onPressed: onStartDownload));
+    if (backupUrl != null && backupUrl.isNotEmpty) {
+      buttons.add(
+        _PrimaryLinkButton(label: '备用地址', onPressed: onOpenBackup),
+      );
     }
     if (!mandatory) {
       buttons.add(_SecondaryButton(label: '下次再说', onPressed: onSnooze));
     }
-    buttons.add(_TextLinkButton(label: '查看完整日志', onPressed: onOpenReleaseNotes));
+    buttons.add(
+      _TextLinkButton(label: '完整日志', onPressed: onOpenReleaseNotes),
+    );
     return buttons;
   }
-
-  List<Widget> _interleave(List<Widget> items, Widget separator) {
-    if (items.length <= 1) return items;
-    return [
-      for (var i = 0; i < items.length; i++) ...[
-        if (i > 0) separator,
-        items[i],
-      ],
-    ];
-  }
 }
+
 class _PrimaryButton extends StatelessWidget {
   const _PrimaryButton({required this.label, required this.onPressed});
 

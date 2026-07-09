@@ -11,6 +11,9 @@ class UpdateNotificationPayload {
     required this.status,
     required this.notesMarkdown,
     required this.notesSummary,
+    this.githubDownloadUrl,
+    this.giteeDownloadUrl,
+    this.backupDownloadUrl,
   });
 
   factory UpdateNotificationPayload.fromRelease(
@@ -24,6 +27,9 @@ class UpdateNotificationPayload {
       status: status,
       notesMarkdown: release.releaseNotesMarkdown,
       notesSummary: release.releaseNotesSummary,
+      githubDownloadUrl: release.githubDownloadUrl,
+      giteeDownloadUrl: release.giteeDownloadUrl,
+      backupDownloadUrl: release.backupDownloadUrl,
     );
   }
 
@@ -33,6 +39,14 @@ class UpdateNotificationPayload {
   final AppUpdateStatus status;
   final String notesMarkdown;
   final String notesSummary;
+  final String? githubDownloadUrl;
+  final String? giteeDownloadUrl;
+  final String? backupDownloadUrl;
+
+  bool get hasExternalDownloadLinks =>
+      _hasText(githubDownloadUrl) ||
+      _hasText(giteeDownloadUrl) ||
+      _hasText(backupDownloadUrl);
 
   String toJson() {
     return jsonEncode({
@@ -42,6 +56,9 @@ class UpdateNotificationPayload {
       'status': status.name,
       'notesMarkdown': notesMarkdown,
       'notesSummary': notesSummary,
+      'githubDownloadUrl': githubDownloadUrl,
+      'giteeDownloadUrl': giteeDownloadUrl,
+      'backupDownloadUrl': backupDownloadUrl,
     });
   }
 
@@ -77,9 +94,23 @@ class UpdateNotificationPayload {
         status: status,
         notesMarkdown: decoded['notesMarkdown'] as String? ?? '',
         notesSummary: decoded['notesSummary'] as String? ?? '',
+        githubDownloadUrl: _readNullableString(decoded['githubDownloadUrl']),
+        giteeDownloadUrl: _readNullableString(decoded['giteeDownloadUrl']),
+        backupDownloadUrl: _readNullableString(decoded['backupDownloadUrl']),
       );
     } on Object {
       return null;
     }
   }
+}
+
+
+bool _hasText(String? value) => value != null && value.trim().isNotEmpty;
+
+String? _readNullableString(Object? value) {
+  if (value is! String) {
+    return null;
+  }
+  final trimmed = value.trim();
+  return trimmed.isEmpty ? null : trimmed;
 }

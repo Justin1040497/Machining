@@ -147,6 +147,7 @@ class _ReleaseNotesPageState extends ConsumerState<ReleaseNotesPage> {
     final release = state.release;
     return manualMacosUpdate &&
         release != null &&
+        !release.hasExternalDownloadLinks &&
         release.version == selected.version &&
         release.buildNumber == selected.buildNumber &&
         state.isActive;

@@ -145,6 +145,24 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                   );
                 }
               },
+              onOpenGitHub: () {
+                final url = liveState.release?.githubDownloadUrl;
+                if (url != null && url.isNotEmpty) {
+                  unawaited(openExternalLink(url));
+                }
+              },
+              onOpenGitee: () {
+                final url = liveState.release?.giteeDownloadUrl;
+                if (url != null && url.isNotEmpty) {
+                  unawaited(openExternalLink(url));
+                }
+              },
+              onOpenBackup: () {
+                final url = liveState.release?.backupDownloadUrl;
+                if (url != null && url.isNotEmpty) {
+                  unawaited(openExternalLink(url));
+                }
+              },
             );
           },
         );
@@ -217,6 +235,11 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                   onOpenExternalLink: openExternalLink,
                   onCheckUpdate: checkUpdateAndShowNotice,
                   onStartOrResumeUpdateDownload: () {
+                    final updateState =
+                        ref.read(appUpdateProvider).asData?.value;
+                    if (updateState?.release?.hasExternalDownloadLinks ?? false) {
+                      return checkUpdateAndShowNotice();
+                    }
                     return ref
                         .read(appUpdateProvider.notifier)
                         .startOrResumeDownload();

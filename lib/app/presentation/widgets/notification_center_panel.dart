@@ -616,7 +616,7 @@ class _NotificationActionButton extends StatelessWidget {
     return switch (type) {
       NotificationCenterActionType.revealOutput => '打开输出文件位置',
       NotificationCenterActionType.openUpdateLog => '查看版本日志',
-      NotificationCenterActionType.startUpdateDownload => '下载更新',
+      NotificationCenterActionType.startUpdateDownload => '查看下载地址',
     };
   }
 

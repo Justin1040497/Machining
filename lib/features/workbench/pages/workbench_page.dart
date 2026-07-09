@@ -825,7 +825,31 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> startUpdateDownloadFromNotification(String target) async {
     closeNotificationCenter();
+    final updateState = ref.read(appUpdateProvider).asData?.value;
+    if (updateState?.release?.hasExternalDownloadLinks ?? false) {
+      await showUpdateNotice();
+      return;
+    }
     await ref.read(appUpdateProvider.notifier).startOrResumeDownload();
+  }
+
+  Future<void> openUpdateDownloadLink(String? url) async {
+    final trimmedUrl = url?.trim() ?? '';
+    if (trimmedUrl.isEmpty) {
+      return;
+    }
+    final notificationManager = ref.read(appNotificationManagerProvider);
+    final result = await ref.read(externalLinkOpenerProvider).open(trimmedUrl);
+    if (result.succeeded) {
+      return;
+    }
+
+    await notificationManager.notify(
+      level: AppNotificationLevel.error,
+      title: '打开下载地址失败',
+      message: result.message!,
+      source: notificationSourceUpdate,
+    );
   }
 
   Future<void> showUpdateNotice() async {
@@ -874,20 +898,19 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
                 }
               },
               onOpenGitHub: () {
-                final url = liveState.release?.githubDownloadUrl;
-                if (url != null && url.isNotEmpty) {
-                  unawaited(
-                    ref.read(externalLinkOpenerProvider).open(url),
-                  );
-                }
+                unawaited(
+                  openUpdateDownloadLink(liveState.release?.githubDownloadUrl),
+                );
               },
               onOpenGitee: () {
-                final url = liveState.release?.giteeDownloadUrl;
-                if (url != null && url.isNotEmpty) {
-                  unawaited(
-                    ref.read(externalLinkOpenerProvider).open(url),
-                  );
-                }
+                unawaited(
+                  openUpdateDownloadLink(liveState.release?.giteeDownloadUrl),
+                );
+              },
+              onOpenBackup: () {
+                unawaited(
+                  openUpdateDownloadLink(liveState.release?.backupDownloadUrl),
+                );
               },
             );
           },
