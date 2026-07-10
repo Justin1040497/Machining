@@ -2,16 +2,18 @@
 
 ## 状态
 
-审查中，待讨论。
+历史审查快照，不作为当前发布门禁。260623 之后 mandatory 弹窗、版本 snooze、轻量更新通知、FFmpeg 稳定性和 Windows helper 失败恢复已有后续实现；260710 起公开更新默认使用外部下载地址，本文关于 package 下载的风险只适用于保留兼容链。
 
 ## 审查范围
 
 基于以下实际代码的逐行审查：
 
-- 客户端：`lib/app/providers/app_update_provider.dart`、`lib/application/services/app_update/*`、`lib/infrastructure/services/app_update/*`、`lib/domain/value_objects/*update*`、`lib/features/workbench/pages/workbench_page/dialogs/update_release_notes_dialog.dart`
-- 服务端：`server/src/main/kotlin/com/framelean/backend/service/UpdateService.kt`
+- 客户端：`lib/app/providers/app_update_provider.dart`、`lib/application/services/app_update/*`、`lib/infrastructure/services/app_update/*`、`lib/domain/value_objects/*update*`、`lib/app/presentation/widgets/update_notice_dialog.dart`
+- 服务端：`server/ruoyi-modules/ruoyi-framelean/src/main/java/org/dromara/framelean/service/UpdateService.java`
 - 测试：`test/app_update_provider_test.dart`
 - 决策文档：`docs/decisions/260616-*`、`docs/decisions/260620-*`
+
+当前事实以 `docs/decisions/260710-external-download-default.md`、`docs/releases/v1.2.1/self-hosted-update-client.md` 和实际代码为准；以下内容保留为当时审查证据，不表示每项问题仍未解决。
 
 ## 已做得好的部分（先肯定）
 

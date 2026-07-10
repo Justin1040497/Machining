@@ -45,4 +45,3 @@ Root: HKA; Subkey: "Software\FrameLean"; Flags: uninsdeletekeyifempty
 
 [Run]
 Filename: "{app}\FrameLean.exe"; Description: "启动 FrameLean"; Flags: nowait postinstall skipifsilent
-

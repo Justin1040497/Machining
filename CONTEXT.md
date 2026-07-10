@@ -22,7 +22,7 @@ FrameLean 更名后的主要版本事实：
 | `v1.1.0` | Windows 运行时和进程控制修复、FFmpeg 输出参数优化、项目 workflow 初始规范 |
 | `v1.1.5` | 媒体处理扩展、专有音频输入适配、工作台主题和任务排序、仓库结构治理 |
 | `v1.2.0` | macOS Universal 2 发布链、输出文件名模板和输出配置生效语义、任务完成音效、媒体默认值与保持原始语义、视频色彩与 HDR 转 SDR 边界 |
-| `v1.2.1` | 自托管更新客户端体验接入、媒体处理可靠性修复、通知中心和任务夹交互重构：更新入口 / 下载 / Windows helper / macOS 手动 DMG、自托管服务、图片有效压缩验收、透明视频保留、隐藏 partial 输出保护、批量导入任务夹、任务夹队列顺序、通知策略、快捷键和关闭到后台 |
+| `v1.2.1` | 更新检查、版本日志与外部下载入口接入，保留 package 自更新兼容链；同时完成媒体处理可靠性修复、通知中心和任务夹交互重构、隐藏 partial 输出保护、受控并行、快捷键和关闭到后台 |
 
 版本事实说明见 `docs/releases/`。
 
@@ -81,11 +81,10 @@ features -> application -> domain
 - macOS 发布使用单一 Universal 2 DMG，同时覆盖 Intel x86_64 和 Apple Silicon arm64。
 - Windows 发布只覆盖 x64；正式发布入口生成便携 ZIP 和 Inno Setup 安装器。
 - Windows 安装器固定为当前用户安装到 `%LOCALAPPDATA%\Programs\FrameLean`，不提供管理员安装切换，避免后续静默覆盖更新触发 UAC。
-- 自托管更新客户端消费 `windows-installer` 和 `macos-universal2` 平台包；`windows-x64` ZIP 只作为便携下载 / Admin / COS 留存成果物，不会出现在客户端自动更新检查结果中。
-- 自托管更新客户端从 v1.2.1 开始接入主流程：应用启动自动静默检查一次，发现未跳过的新版本会延迟弹出轻量更新通知；设置关于栏可手动检查并打开同一通知弹窗，通知中心按版本去重展示更新通知，工作台顶部在存在更新时以状态胶囊持续显示入口，完整版本日志只从更新通知弹窗进入。
-- Windows 自托管更新由主应用完成下载、断点续传和 SHA-256 校验，再交给随包提供的独立 `FrameLeanUpdaterHelper.exe` 退出应用、执行安装器、检查退出码并重启应用。
-- macOS 自托管更新默认走 JSON latest / ticket 路线：检查到 `macos-universal2` 后展示版本日志，用户下载 DMG 到应用私有目录，再打开 DMG 所在位置手动安装；默认不调用 Sparkle、不自动替换应用，也不要求 Apple Developer ID 证书。下载状态持久化到本地 JSON，重启后如 DMG 仍在且 SHA-256 校验通过，自动恢复已下载状态，不需要重新下载。
-- 更新服务端已迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X 初版：RuoYi 负责后台登录、菜单、角色、权限和日志，FrameLean 业务模块继续提供公开更新 API、COS 私有桶预签名分发、Redis 短期票据 / latest cache / 限流计数，并保留既有 PostgreSQL 发布和审计业务表。
+- v1.2.1 的公开更新默认由服务端返回 GitHub、Gitee 或备用下载地址；客户端发现任一外部地址时只展示日志和跳转入口，不创建 download ticket，也不直接下载或安装 EXE、DMG、ZIP。
+- 更新客户端在 v1.2.1 接入主流程：应用启动自动静默检查一次，发现未跳过的新版本会延迟弹出轻量更新通知；设置关于栏可手动检查并打开同一通知弹窗，通知中心按版本去重展示更新通知，工作台顶部在存在更新时以状态胶囊持续显示入口，完整版本日志从更新通知弹窗进入。
+- package 自更新链继续保留但不再是当前默认发布路径。没有外部下载地址且服务端提供完整 package 元数据时，Windows 仍可断点下载、SHA-256 + Ed25519 验签并交给 `FrameLeanUpdaterHelper.exe` 安装；macOS 仍可把 DMG 下载到应用私有目录后由用户手动安装，Sparkle 保持可选。
+- 更新服务端已迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X：RuoYi 负责后台登录、菜单、角色、权限和日志，FrameLean 业务模块提供公开更新 API、外部下载地址、Redis latest cache / 短期票据、可选 COS package 分发，以及 PostgreSQL 发布和审计业务表。Admin 默认登记外部下载地址，暂时隐藏 package 上传界面。
 
 ## 文档阅读入口
 

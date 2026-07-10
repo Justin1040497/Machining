@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/domain/library.dart';
 
-
 class ReleaseNotesPage extends ConsumerStatefulWidget {
   const ReleaseNotesPage({super.key, this.initialVersion, this.from});
 
@@ -364,7 +363,4 @@ class _ReleaseNotesEmptyState extends StatelessWidget {
       ),
     );
   }
-
 }
-
-

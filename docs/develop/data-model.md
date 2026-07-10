@@ -43,7 +43,7 @@ lib/infrastructure/database/app_database.dart
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 | `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含类型、级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
-| `AppReleaseInfo` / `AppUpdateState` | `lib/domain/value_objects/app_release_info.dart`、`lib/domain/value_objects/app_update_state.dart` | 自托管更新的可用版本、安装包元数据、下载进度和安装状态 |
+| `AppReleaseInfo` / `AppUpdateState` | `lib/domain/value_objects/app_release_info.dart`、`lib/domain/value_objects/app_update_state.dart` | 可用版本、GitHub / Gitee / 备用下载地址、可选 package 元数据、下载进度和安装状态 |
 | `MediaTaskPolicyTag` | `lib/domain/enums/media_task_policy_tag.dart` | 任务自动策略标签，用于展示透明保留、输出改名、目录创建、图片 fallback 和未有效压缩 |
 
 数据库和领域模型之间的转换由仓储映射完成：
@@ -273,7 +273,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `dismissed_at` | integer | 是 | `null` | `dismissedAt` | 通知被关闭或归档的时间 |
 | `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName`、可选 `outputPath`、源 / 输出体积、耗时、失败原因和失败建议 |
 
-通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析“打开输出文件位置”动作，并在正文展示体积、压缩比例、保存路径和耗时。版本更新通知通过 `kind = update`、`dedupe_key` 和 `payload_json` 中的版本、平台、构建号、更新状态和日志摘要解析版本日志和下载动作。
+通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析“打开输出文件位置”动作，并在正文展示体积、压缩比例、保存路径和耗时。版本更新通知通过 `kind = update`、`dedupe_key` 和 `payload_json` 中的版本、平台、构建号、日志摘要及 GitHub / Gitee / 备用地址解析 L2 更新通知和外部下载动作。
 
 ## 枚举值
 

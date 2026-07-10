@@ -49,7 +49,9 @@ The default command creates both distribution artifacts from one Flutter build.
 Pass `-SkipZip` or `-SkipInstaller` only when a single artifact is explicitly
 needed. `-IsccPath` can select a non-default Inno Setup compiler.
 
-macOS 手动 DMG 更新路线必须设置 `FRAMELEAN_UPDATE_BASE_URL`，脚本会把它写入 Flutter dart-define，客户端通过 JSON latest / ticket 下载 DMG 到用户下载目录。默认脚本会为 DMG 生成不带签名的 `*.update.json`，供 Admin Web 核对 file / size / SHA-256。仅当要启用 Sparkle appcast 自动更新时，额外设置 `FRAMELEAN_USE_SPARKLE_UPDATES=true`、`FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE=true`、`FRAMELEAN_SPARKLE_FEED_URL` 和 `FRAMELEAN_SPARKLE_PUBLIC_ED_KEY`，并传入启用签名、公证的 dmg 参数；脚本只在 App 签名、DMG 公证装订和 `sign_update` 全部通过后生成带 Sparkle 签名的 `*.update.json`。
+macOS 手动 DMG package 路线必须设置 `FRAMELEAN_UPDATE_BASE_URL`，脚本会把它写入 Flutter dart-define；启用该保留路线时，客户端通过 JSON latest / ticket 把 DMG 下载到应用支持目录中的私有更新缓存。默认脚本会为 DMG 生成不带签名的 `*.update.json`，供 package 登记时核对 file / size / SHA-256。仅当要启用 Sparkle appcast 自动更新时，额外设置 `FRAMELEAN_USE_SPARKLE_UPDATES=true`、`FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE=true`、`FRAMELEAN_SPARKLE_FEED_URL` 和 `FRAMELEAN_SPARKLE_PUBLIC_ED_KEY`，并传入启用签名、公证的 dmg 参数；脚本只在 App 签名、DMG 公证装订和 `sign_update` 全部通过后生成带 Sparkle 签名的 `*.update.json`。
+
+当前公开更新默认由服务端返回 GitHub、Gitee 或备用下载地址，客户端只跳转外部页面。canonical release 脚本仍按保留 package 链 fail closed，继续要求更新配置完整并生成 `*.update.json`；这不代表 Admin 默认发布必须登记 package。
 
 正常发布给用户的安装包可以只保留 Windows 安装器
 `FrameLean-v*-windows-x64-setup.exe` 和 macOS

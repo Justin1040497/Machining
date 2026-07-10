@@ -46,7 +46,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
 | macOS 打包 | Flutter macOS + CocoaPods plugin integration + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；桌面插件通过 `macos/Podfile` 和 Runner workspace 集成 |
-| macOS 更新 | JSON latest / ticket + 应用私有目录 DMG；Sparkle 2 可选保留 | 已使用 | 默认检查更新后展示版本日志，下载 `macos-universal2` DMG 到应用私有目录并打开所在位置，下载状态持久化到本地 JSON 以支持重启恢复；Sparkle appcast 仅在显式启用并提供签名时使用 |
+| 应用更新 | 外部下载地址优先；JSON latest / ticket package 链和 Sparkle 2 可选保留 | 已使用 | 默认检查更新后展示版本日志与 GitHub / Gitee / 备用下载入口；只有 release 没有外部地址且 package 元数据完整时，才下载 Windows 安装器或把 macOS DMG 保存到应用私有目录；Sparkle appcast 仅在显式启用并提供签名时使用 |
 | Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
 | Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
 
@@ -190,8 +190,9 @@ Windows Release 脚本会从 Visual Studio Redistributable 目录装入
 和安装器的必需文件，缺失时发布构建失败。
 
 Windows Release 脚本会从 `tool/windows_updater_helper.dart` 编译
-`FrameLeanUpdaterHelper.exe` 并放入 Release 根目录。客户端完成下载和
-SHA-256 校验后启动该 helper，helper 等待主进程退出、静默运行 Inno Setup
+`FrameLeanUpdaterHelper.exe` 并放入 Release 根目录。当前公开更新默认打开
+外部下载地址；只有保留的 package 路线被启用时，客户端才在完成 SHA-256 和
+Ed25519 校验后启动该 helper，由 helper 等待主进程退出、静默运行 Inno Setup
 安装器、检查安装器退出码并重启应用。
 
 Windows 安装器使用 `{localappdata}\Programs\FrameLean` 作为固定默认目录，
@@ -361,15 +362,15 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 预览帧 | 系统临时目录 `framelean/previews/<taskId>` | 参数指纹变化后重新生成 |
 | 两遍压缩 pass log | 输出目录附近的隐藏前缀文件 | 任务完成或取消后 best-effort 清理 |
 | 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `（1）`、`（2）` 等后缀 |
-| 更新安装包缓存 | 应用支持目录 `updates/<version>/<platform>/` | 自托管更新下载器保存安装包，支持断点续传和完成后 SHA-256 校验 |
+| 更新安装包缓存 | 应用支持目录 `updates/<version>/<platform>/` | 保留 package 路线的下载缓存，支持断点续传、SHA-256 校验和 Windows Ed25519 验签；外部下载地址模式不写入该目录 |
 
 服务端数据边界：
 
 | 数据 | 位置 / 机制 | 说明 |
 | --- | --- | --- |
-| release / package / notes / Sparkle appcast metadata | PostgreSQL | 长期发布事实；`release_packages.client_visible` 区分客户端更新包和官网 / Admin 留存包；客户端可见包必须有 Ed25519 / Sparkle 签名 |
-| release artifact files / notes md | 腾讯云 COS | Admin Web 通过服务端预签名分片上传写入 `releases/...`，客户端只通过下载 ticket 获取可见平台包的短期下载 URL |
-| release artifact requirement | PostgreSQL | Admin 端配置的每个版本平台成果物要求及必填状态；Windows 安装器是客户端更新包，Windows ZIP 是留存包 |
+| release / package / notes / external download URL / Sparkle appcast metadata | PostgreSQL | 长期发布事实；默认 release 保存 GitHub / Gitee / 备用下载地址，package 元数据可选；登记 package 时 `client_visible` 和签名规则仍按平台规范化 |
+| release artifact files / notes md | 腾讯云 COS | 版本日志文件可以通过预签名上传；保留 package 路线可继续存放安装包并通过 download ticket 分发，外部下载地址模式不要求把安装包上传 COS |
+| release artifact requirement | PostgreSQL | 保留每个版本的平台成果物要求记录；当前三个平台 requirement 均为非必填，Admin 默认隐藏 requirement 和 package 界面 |
 | update check event | PostgreSQL | 检查更新审计、IP 筛选和封禁依据 |
 | download event | PostgreSQL | 下载统计和审计 |
 | RuoYi users / roles / menus / logs | PostgreSQL | RuoYi-Vue-Plus 后台登录、角色权限、菜单和操作日志是当前 Admin Web 权威后台能力 |

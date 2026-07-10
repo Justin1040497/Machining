@@ -8,6 +8,7 @@
 
 ## 进行中
 
-当前无。
+### v1.2.1 Release 与交付收口
 
-v1.2.1 release 前本地代码审查、文档同步和验证已收口；正式发布环境中的 macOS / Windows 打包、签名 / 公证、自托管更新下载、COS、Redis 和宝塔反代验收继续按 `docs/releases/v1.2.1/release.md` 跟进。
+- 当前状态：根仓库与独立 `server` 仓库正在统一为外部下载地址优先策略；package 自更新链继续保留但不再作为默认发布门禁。
+- 下一步：确认 `v1.2.1` Release 草稿，写回正式 release 文档，完成文档 diff、发布脚本、Flutter 和 server 定向验证并输出 Commit / PR 文案。
