@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:framelean/application/services/input_runtime/proprietary_audio_decoder.dart';
+import 'package:framelean/application/library.dart';
 import 'package:framelean/infrastructure/services/proprietary_audio/ncm/ncm_crypto.dart';
 import 'package:framelean/infrastructure/services/proprietary_audio/ncm/ncm_key_box.dart';
 

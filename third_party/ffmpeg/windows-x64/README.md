@@ -1,6 +1,6 @@
 # Windows x64 FFmpeg Runtime
 
-This directory is the local drop point for the bundled Windows x64 `ffmpeg.exe`
+This directory is the build output for the bundled Windows x64 `ffmpeg.exe`
 and `ffprobe.exe` binaries.
 
 The binaries are intentionally ignored by Git:
@@ -8,17 +8,17 @@ The binaries are intentionally ignored by Git:
 - `ffmpeg.exe`
 - `ffprobe.exe`
 
-Before building on Windows, place the binaries here:
+Build them on Windows (MSYS2/MinGW-w64) with:
 
-```text
-third_party/ffmpeg/windows-x64/ffmpeg.exe
-third_party/ffmpeg/windows-x64/ffprobe.exe
+```bash
+scripts/build/build_ffmpeg_windows_x64.sh
 ```
 
 The release script validates that `ffmpeg.exe` includes the output encoders
-required by the current app surface: `libx264`, `libmp3lame`, `libwebp`, and
-`libopus`. It also validates the HDR-to-SDR filters required by video color
-repair: `zscale` and `tonemap`.
+required by the current app surface: `libx264`, `libmp3lame`, `libwebp`,
+`libopus`, `libvpx-vp9`, `libsvtav1`, `mpeg4`, `mjpeg`, and `prores_ks`.
+It also validates the MP4 / MOV / Matroska / WebM / AVI muxers and the
+HDR-to-SDR filters required by video color repair: `zscale` and `tonemap`.
 
 The Windows CMake install step copies these files into:
 

@@ -1,10 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
+import 'package:framelean/app/library.dart';
 
 abstract final class WorkbenchWindowsPrivilege {
   static const MethodChannel _channel = MethodChannel(
-    'framelean/process_control',
+    processControlChannel,
   );
 
   static Future<bool> isRunningElevated() async {

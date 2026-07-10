@@ -4,6 +4,11 @@
 
 | 日期 | 决策 | 状态 | 正文 | 关联事实 |
 | --- | --- | --- | --- | --- |
+| 260623 | 更新提示收敛为 L1 工作台状态胶囊、L2 轻量通知弹窗和 L3 完整版本日志页，同版本 snooze 只抑制自动弹窗 | 有效 | `docs/decisions/260623-update-ux-redesign.md` | `CONTEXT.md`、`docs/releases/v1.2.1/self-hosted-update-client.md`、`docs/develop/architecture.md`、`docs/develop/test-plan.md` |
+| 260623 | 采用单 package + barrel 白名单封装方案，7 个 `library.dart` 门面统一跨层导入，永久禁止相对路径 | 有效 | `docs/decisions/260623-library-barrel-import-architecture.md` | `docs/develop/architecture.md` |
+| 260620 | 托管更新配置不以隐藏文件为安全边界，Windows 自动更新包切换为安装器，macOS 默认改为版本日志 + 手动 DMG 下载 | 有效 | `docs/decisions/260620-managed-update-and-sparkle.md` | `docs/develop/technology-stack.md`、`docs/releases/v1.2.1/self-hosted-update-client.md`、`docs/releases/v1.2.1/self-hosted-update-server.md` |
+| 260619 | 共享重排列表采用项目内 Flutter 3.41.2 fork，通过公共 facade 提供 gap 与外部 drop 能力 | 有效 | `docs/decisions/260619-shared-reorderable-list.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/develop/test-plan.md` |
+| 260616 | 自托管更新入口采用设置关于栏、通知中心和工作台顶部持续入口，服务端 Redis 只保存短期更新协作状态 | 有效 | `docs/decisions/260616-self-hosted-update-client-server-flow.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/develop/data-model.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |
 | 260614 | Riverpod 依赖装配归属 `app` composition root，平台能力通过 application port 接入，跨功能展示组件归属 `app` | 有效 | `docs/decisions/260614-clean-architecture-composition-root.md` | `docs/develop/architecture.md`、`docs/develop/test-plan.md` |
 | 260613 | 应用通知统一由 `AppNotificationManager` 持久化，临时浮层和通知中心分离 | 有效 | `docs/decisions/260613-app-notification-center-boundary.md` | `docs/develop/architecture.md`、`docs/develop/data-model.md` |
 | 260613 | Windows 使用当前用户 Inno Setup 安装器作为自托管更新载荷，ZIP 仅作为便携分发备用 | 有效 | `docs/decisions/260613-windows-installer-update-payload.md` | `CONTEXT.md`、`docs/develop/technology-stack.md`、`docs/develop/test-plan.md` |

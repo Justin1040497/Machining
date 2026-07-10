@@ -4,6 +4,8 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
   Widget buildSelectedSection() {
     return switch (selectedSection) {
       _SettingsSection.app => buildAppSettingsSection(),
+      _SettingsSection.notifications => buildNotificationSettingsSection(),
+      _SettingsSection.shortcuts => buildShortcutSettingsSection(),
       _SettingsSection.about => buildAboutSection(),
       _SettingsSection.video => buildVideoSection(),
       _SettingsSection.image => buildImageSection(),
@@ -43,12 +45,63 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           },
         ),
         const SizedBox(height: 18),
-        _SettingsCheckbox(
-          label: '任务完成后以弹窗的形式提示',
-          value: showTaskCompletionDialog,
+        _SettingsDropdown<AppCloseBehavior>(
+          label: '关闭窗口时',
+          value: closeBehavior,
+          values: AppCloseBehavior.values,
+          itemLabel: (value) => value.settingsLabel,
           onChanged: (value) {
-            updateViewState(() => showTaskCompletionDialog = value);
+            if (value != null) {
+              updateViewState(() => closeBehavior = value);
+            }
           },
+        ),
+        const SizedBox(height: 18),
+        _SettingsDropdown<int>(
+          label: '最大并行任务数',
+          value: maxConcurrentExecutions,
+          values: const [
+            minConcurrentExecutions,
+            defaultMaxConcurrentExecutions,
+            maxConcurrentExecutionsLimit,
+          ],
+          itemLabel: (value) =>
+              value == defaultMaxConcurrentExecutions ? '$value（推荐）' : '$value',
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => maxConcurrentExecutions = value);
+          },
+        ),
+        const SizedBox(height: 18),
+        _SettingsDropdown<int>(
+          label: '文件夹扫描层级',
+          value: folderImportScanDepth,
+          values: const [
+            minFolderImportScanDepth,
+            1,
+            defaultFolderImportScanDepth,
+            3,
+            maxFolderImportScanDepth,
+          ],
+          itemLabel: (value) =>
+              value == defaultFolderImportScanDepth ? '$value（默认）' : '$value',
+          onChanged: (value) {
+            if (value == null) {
+              return;
+            }
+            updateViewState(() => folderImportScanDepth = value);
+          },
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '扫描层级越深，导入前遍历时间越长。',
+          style: TextStyle(
+            color: context.frameLeanColors.textSecondary,
+            fontSize: 12,
+            height: 1.4,
+          ),
         ),
         const SizedBox(height: 18),
         _SettingsCheckbox(
@@ -69,16 +122,100 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
     );
   }
 
+  Widget buildNotificationSettingsSection() {
+    return _SettingsForm(
+      title: '通知设置',
+      children: [
+        Text(
+          '通知会写入通知中心；临时通知只在当前界面短暂显示；不通知会完全抑制该事件。提示音仍由应用设置独立控制。',
+          style: TextStyle(
+            color: context.frameLeanColors.textSecondary,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 18),
+        _NotificationPolicyTable(
+          policies: notificationPolicies,
+          onChanged: (event, mode) {
+            updateViewState(() {
+              notificationPolicies = {...notificationPolicies, event: mode};
+            });
+          },
+        ),
+        const SizedBox(height: 28),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.notifications),
+          saving: savingSection == _SettingsSection.notifications,
+          onCancel: () => _revertSection(_SettingsSection.notifications),
+          onSave: () => _saveSection(_SettingsSection.notifications),
+        ),
+      ],
+    );
+  }
+
+  Widget buildShortcutSettingsSection() {
+    return _SettingsForm(
+      title: '快捷键',
+      children: [
+        Text(
+          'Esc 固定用于关闭最上层界面或返回，工作台根页面不执行任何操作。输入框聚焦时会抑制普通无修饰键快捷键。',
+          style: TextStyle(
+            color: context.frameLeanColors.textSecondary,
+            fontSize: 12,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 18),
+        for (final action in AppShortcutAction.values) ...[
+          _ShortcutBindingRow(
+            action: action,
+            binding:
+                shortcutBindings[action] ?? defaultAppShortcutBindings[action]!,
+            onRecord: () => recordShortcut(action),
+          ),
+          if (action != AppShortcutAction.values.last)
+            const SizedBox(height: 10),
+        ],
+        if (shortcutConflictMessage != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            shortcutConflictMessage!,
+            style: TextStyle(
+              color: context.frameLeanColors.statusFailed,
+              fontSize: 12,
+            ),
+          ),
+        ],
+        const SizedBox(height: 18),
+        TextButton.icon(
+          onPressed: () {
+            updateViewState(() {
+              shortcutConflictMessage = null;
+              shortcutBindings = Map.of(defaultAppShortcutBindings);
+            });
+          },
+          icon: const Icon(Icons.restart_alt_rounded, size: 16),
+          label: const Text('恢复默认快捷键'),
+        ),
+        const SizedBox(height: 22),
+        _SectionActions(
+          dirty: isSectionDirty(_SettingsSection.shortcuts),
+          saving: savingSection == _SettingsSection.shortcuts,
+          onCancel: () => _revertSection(_SettingsSection.shortcuts),
+          onSave: () => _saveSection(_SettingsSection.shortcuts),
+        ),
+      ],
+    );
+  }
+
   Widget buildAboutSection() {
     final colors = context.frameLeanColors;
     final iconPath = Theme.of(context).brightness == Brightness.dark
         ? 'assets/app_icon/light.png'
         : 'assets/app_icon/dark.png';
-    final showUninstall = Platform.isWindows;
-
     return _SettingsForm(
       title: '关于',
-      maxWidth: 560,
       children: [
         ClipRRect(
           borderRadius: BorderRadius.circular(7),
@@ -113,24 +250,29 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         ),
         const SizedBox(height: 14),
         _AboutIconLinks(onOpenLink: widget.onOpenExternalLink ?? (_) async {}),
-        const SizedBox(height: 34),
-        Wrap(
-          spacing: 22,
-          runSpacing: 12,
+        const SizedBox(height: 30),
+        _AboutActionCluster(
+          label: '更新',
+          children: [
+            _UpdateMaintenanceButton(
+              state: widget.updateState,
+              manualMacosUpdate: widget.manualMacosUpdate,
+              onCheckUpdate: widget.onCheckUpdate,
+              onStartOrResumeDownload: widget.onStartOrResumeUpdateDownload,
+              onPauseDownload: widget.onPauseUpdateDownload,
+              onInstallUpdate: widget.onInstallUpdate,
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _AboutActionCluster(
+          label: '维护',
           children: [
             _MaintenanceButton(
               label: clearingCache ? '正在清理' : '清空应用缓存',
-              color: colors.statusRunning,
-              foregroundColor: colors.onWarning,
+              icon: Icons.cleaning_services_outlined,
               onPressed: clearingCache ? null : confirmClearAppCache,
             ),
-            if (showUninstall)
-              _MaintenanceButton(
-                label: uninstalling ? '正在准备' : '卸载应用',
-                color: colors.statusFailed,
-                foregroundColor: colors.onDanger,
-                onPressed: uninstalling ? null : confirmUninstallApp,
-              ),
           ],
         ),
       ],
@@ -162,7 +304,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
               defaultMediaConfig = defaultMediaConfig.copyWith(
                 compressionMode: value,
                 targetSizeRatio: value == CompressionMode.targetSize
-                    ? MediaConfigurationUiConstants.defaultTargetSizeRatio
+                    ? defaultTargetSizeRatio
                     : null,
                 targetSizeBytes: null,
               );
@@ -193,10 +335,20 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
             updateVideoConfig(config.copyWith(keepOriginalOutputFormat: value));
           },
           onChanged: (value) {
+            final outputFormat = value.toVideoOutputFormat();
+            final nextCodec =
+                VideoOutputCompatibility.supports(
+                  outputFormat,
+                  config.videoCodec,
+                )
+                ? config.videoCodec
+                : VideoOutputCompatibility.defaultCodecFor(outputFormat);
             updateVideoConfig(
               config.copyWith(
                 outputFormat: value,
                 keepOriginalOutputFormat: false,
+                videoCodec: nextCodec,
+                encoderBackend: EncoderBackend.auto,
               ),
             );
           },
@@ -207,7 +359,9 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
             _SettingsDropdown<VideoCodec>(
               label: '默认编码格式',
               value: config.videoCodec,
-              values: VideoCodec.values,
+              values: VideoOutputCompatibility.codecsFor(
+                config.outputFormat.toVideoOutputFormat(),
+              ),
               itemLabel: (value) => value.label,
               onChanged: (value) {
                 if (value == null) {
@@ -220,6 +374,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
                   ),
                 );
               },
+              enabled: !config.keepOriginalOutputFormat,
             ),
             _SettingsDropdown<ResolutionPreset>(
               label: '默认视频分辨率',
@@ -284,7 +439,7 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           child: PercentageSliderPanel(
             title: '默认图片质量',
             summaryBuilder: (ratio) => '${(ratio * 100).round()}%',
-            values: MediaConfigurationUiConstants.imageQualityRatios,
+            values: imageQualityRatios,
             selectedValue: config.imageQuality.clamp(1, 100).toDouble() / 100,
             showTickLabels: false,
             onChanged: (value) {

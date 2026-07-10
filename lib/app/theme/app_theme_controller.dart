@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/domain/library.dart';
 
 final initialAppSettingsProvider = Provider<AppSettings>((ref) {
   return AppSettings.initial();

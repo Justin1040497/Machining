@@ -1,20 +1,8 @@
+import 'dart:convert';
+
 import 'package:drift/drift.dart';
-import 'package:framelean/application/repositories/app_settings_repository.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/hdr_output_mode.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
-import 'package:framelean/domain/enums/media_processing_preset.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/task_completion_sound.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/app_compression_settings.dart';
-import 'package:framelean/domain/value_objects/audio_processing_config.dart';
-import 'package:framelean/domain/value_objects/image_processing_config.dart';
-import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 import 'package:framelean/infrastructure/repositories/mappers/media_task_config_json_mapper.dart'
     as media_config_json;
@@ -84,8 +72,16 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             ),
             themeMode: Value(settings.themeMode.name),
             hideNotificationBadge: Value(settings.hideNotificationBadge),
-            showTaskCompletionDialog: Value(settings.showTaskCompletionDialog),
             taskCompletionSound: Value(settings.taskCompletionSound.id),
+            maxConcurrentExecutions: Value(settings.maxConcurrentExecutions),
+            folderImportScanDepth: Value(settings.folderImportScanDepth),
+            notificationPoliciesJson: Value(
+              encodeNotificationPolicies(settings.notificationPolicies),
+            ),
+            shortcutBindingsJson: Value(
+              encodeShortcutBindings(settings.shortcutBindings),
+            ),
+            closeBehavior: Value(settings.closeBehavior.name),
             createdAt: Value(existing?.createdAt ?? now),
             updatedAt: Value(now),
           ),
@@ -117,8 +113,18 @@ extension SettingsRowMapper on SettingsRow {
         ),
         themeMode: appThemeModeFromSettings(themeMode),
         hideNotificationBadge: hideNotificationBadge,
-        showTaskCompletionDialog: showTaskCompletionDialog,
         taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
+        maxConcurrentExecutions: maxConcurrentExecutions,
+        folderImportScanDepth: folderImportScanDepth,
+        notificationPolicies: decodeNotificationPolicies(
+          notificationPoliciesJson,
+        ),
+        shortcutBindings: decodeShortcutBindings(shortcutBindingsJson),
+        closeBehavior: enumValueOrFallback(
+          AppCloseBehavior.values,
+          closeBehavior,
+          AppCloseBehavior.background,
+        ),
       );
     }
 
@@ -145,8 +151,18 @@ extension SettingsRowMapper on SettingsRow {
       ),
       themeMode: appThemeModeFromSettings(themeMode),
       hideNotificationBadge: hideNotificationBadge,
-      showTaskCompletionDialog: showTaskCompletionDialog,
       taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
+      maxConcurrentExecutions: maxConcurrentExecutions,
+      folderImportScanDepth: folderImportScanDepth,
+      notificationPolicies: decodeNotificationPolicies(
+        notificationPoliciesJson,
+      ),
+      shortcutBindings: decodeShortcutBindings(shortcutBindingsJson),
+      closeBehavior: enumValueOrFallback(
+        AppCloseBehavior.values,
+        closeBehavior,
+        AppCloseBehavior.background,
+      ),
     );
   }
 }
@@ -226,4 +242,98 @@ String outputFileNameTemplateFromSettings(String value) {
     'sourceFileNameOnly' => '{source}',
     _ => normalizeDefaultOutputFileNameTemplate(value),
   };
+}
+
+String encodeNotificationPolicies(
+  Map<NotificationEventType, NotificationDeliveryMode> policies,
+) {
+  return jsonEncode({
+    for (final entry in policies.entries) entry.key.name: entry.value.name,
+  });
+}
+
+Map<NotificationEventType, NotificationDeliveryMode> decodeNotificationPolicies(
+  String text,
+) {
+  final result = <NotificationEventType, NotificationDeliveryMode>{};
+  try {
+    final decoded = jsonDecode(text);
+    if (decoded is Map) {
+      for (final entry in decoded.entries) {
+        final event = enumValueOrNull(
+          NotificationEventType.values,
+          entry.key.toString(),
+        );
+        final mode = enumValueOrNull(
+          NotificationDeliveryMode.values,
+          entry.value.toString(),
+        );
+        if (event != null && mode != null) {
+          result[event] = mode;
+        }
+      }
+    }
+  } on Object {
+    // Corrupted preference JSON falls back to product defaults.
+  }
+  return result;
+}
+
+String encodeShortcutBindings(
+  Map<AppShortcutAction, AppShortcutBinding> bindings,
+) {
+  return jsonEncode({
+    for (final entry in bindings.entries)
+      entry.key.name: {
+        'key': entry.value.key,
+        'primary': entry.value.primary,
+        'shift': entry.value.shift,
+        'alt': entry.value.alt,
+      },
+  });
+}
+
+Map<AppShortcutAction, AppShortcutBinding> decodeShortcutBindings(String text) {
+  final result = <AppShortcutAction, AppShortcutBinding>{};
+  try {
+    final decoded = jsonDecode(text);
+    if (decoded is Map) {
+      for (final entry in decoded.entries) {
+        final action = enumValueOrNull(
+          AppShortcutAction.values,
+          entry.key.toString(),
+        );
+        final value = entry.value;
+        if (action == null || value is! Map) {
+          continue;
+        }
+        final key = value['key']?.toString().trim();
+        if (key == null || key.isEmpty) {
+          continue;
+        }
+        result[action] = AppShortcutBinding(
+          key: key,
+          primary: value['primary'] == true,
+          shift: value['shift'] == true,
+          alt: value['alt'] == true,
+        );
+      }
+    }
+  } on Object {
+    // Corrupted preference JSON falls back to product defaults.
+  }
+  return result;
+}
+
+T enumValueOrFallback<T extends Enum>(List<T> values, String name, T fallback) {
+  return enumValueOrNull(values, name) ?? fallback;
+}
+
+T? enumValueOrNull<T extends Enum>(List<T> values, String name) {
+  for (final value in values) {
+    if (value.name == name) {
+      return value;
+    }
+  }
+  return null;
 }

@@ -82,6 +82,10 @@ require_single_arch_binary() {
   actual_arches="$(lipo -archs "$path")"
   if [[ "$actual_arches" != "$expected_arch" ]]; then
     echo "error: expected $expected_arch binary at $path, got $actual_arches" >&2
+    if [[ "$expected_arch" == "x86_64" && "$actual_arches" == "arm64" ]]; then
+      echo "Do not copy the Apple Silicon runtime into macos-x64." >&2
+      echo "Build the Intel slice on an x86_64 macOS runner or use the GitHub Actions workflow 'Build macOS Universal'." >&2
+    fi
     exit 1
   fi
 }
@@ -116,8 +120,9 @@ done
 encoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -encoders 2>/dev/null)"
 decoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -decoders 2>/dev/null)"
 demuxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -demuxers 2>/dev/null)"
+muxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -muxers 2>/dev/null)"
 filter_output="$("$OUT_DIR/ffmpeg" -hide_banner -filters 2>/dev/null)"
-for encoder_name in libx264 libmp3lame libwebp libopus; do
+for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
   if ! grep "$encoder_name" <<<"$encoder_output" >/dev/null; then
     echo "error: Universal FFmpeg is missing encoder: $encoder_name" >&2
     exit 1
@@ -133,6 +138,12 @@ if ! grep "ogg" <<<"$demuxer_output" >/dev/null; then
   echo "error: Universal FFmpeg is missing demuxer: ogg" >&2
   exit 1
 fi
+for muxer_name in mp4 mov matroska webm avi; do
+  if ! grep "$muxer_name" <<<"$muxer_output" >/dev/null; then
+    echo "error: Universal FFmpeg is missing muxer: $muxer_name" >&2
+    exit 1
+  fi
+done
 for filter_name in zscale tonemap; do
   if ! grep "$filter_name" <<<"$filter_output" >/dev/null; then
     echo "error: Universal FFmpeg is missing filter: $filter_name" >&2

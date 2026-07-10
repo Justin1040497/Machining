@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/platform/file_revealer.dart';
+import 'package:framelean/application/library.dart';
 import 'package:path/path.dart' as path;
 
 class FileRevealTarget {

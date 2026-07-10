@@ -5,6 +5,10 @@ param(
   [string]$BuildName = "",
   [string]$BuildNumber = "",
   [string]$IsccPath = "",
+  [string]$UpdateBaseUrl = $env:FRAMELEAN_UPDATE_BASE_URL,
+  [string]$ReleaseKeyId = $env:FRAMELEAN_RELEASE_KEY_ID,
+  [string]$ReleasePublicKey = $env:FRAMELEAN_RELEASE_PUBLIC_KEY,
+  [string]$ReleasePrivateKeyFile = $env:FRAMELEAN_RELEASE_PRIVATE_KEY_FILE,
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$ExtraFlutterArgs
 )
@@ -24,6 +28,17 @@ function Require-File {
 
   if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
     throw "Required file was not found: $Path"
+  }
+}
+
+function Require-Value {
+  param(
+    [string]$Name,
+    [string]$Value
+  )
+
+  if ([string]::IsNullOrWhiteSpace($Value)) {
+    throw "Missing required release setting: $Name"
   }
 }
 
@@ -94,13 +109,19 @@ function Assert-FfmpegCapabilities {
   $EncoderOutput = (& $FfmpegPath -hide_banner -encoders 2>$null) -join "`n"
   $DecoderOutput = (& $FfmpegPath -hide_banner -decoders 2>$null) -join "`n"
   $DemuxerOutput = (& $FfmpegPath -hide_banner -demuxers 2>$null) -join "`n"
+  $MuxerOutput = (& $FfmpegPath -hide_banner -muxers 2>$null) -join "`n"
   $FilterOutput = (& $FfmpegPath -hide_banner -filters 2>$null) -join "`n"
 
   Assert-FfmpegCapability -Output $EncoderOutput -RequiredNames @(
     "libx264",
     "libmp3lame",
     "libwebp",
-    "libopus"
+    "libopus",
+    "libvpx-vp9",
+    "libsvtav1",
+    "mpeg4",
+    "mjpeg",
+    "prores_ks"
   ) -CapabilityName "encoder"
   Assert-FfmpegCapability -Output $DecoderOutput -RequiredNames @(
     "opus",
@@ -109,6 +130,13 @@ function Assert-FfmpegCapabilities {
   Assert-FfmpegCapability -Output $DemuxerOutput -RequiredNames @(
     "ogg"
   ) -CapabilityName "demuxer"
+  Assert-FfmpegCapability -Output $MuxerOutput -RequiredNames @(
+    "mp4",
+    "mov",
+    "matroska",
+    "webm",
+    "avi"
+  ) -CapabilityName "muxer"
   Assert-FfmpegCapability -Output $FilterOutput -RequiredNames @(
     "zscale",
     "tonemap"
@@ -333,6 +361,7 @@ function Assert-ZipLayout {
 
     $RequiredEntries = @(
       "${RootPrefix}FrameLean.exe",
+      "${RootPrefix}FrameLeanUpdaterHelper.exe",
       "${RootPrefix}flutter_windows.dll",
       "${RootPrefix}msvcp140.dll",
       "${RootPrefix}vcruntime140.dll",
@@ -368,7 +397,8 @@ $QmcAdapterDir = Join-Path $Root "third_party\audio_adapters\qmc\windows-x64"
 $LegalDir = Join-Path $Root "legal"
 $PubspecPath = Join-Path $Root "pubspec.yaml"
 $IssPath = Join-Path $Root "installer\windows\FrameLean.iss"
-$CleanupScriptPath = Join-Path $Root "installer\windows\FrameLean-Clean-Uninstall.ps1"
+$UpdaterHelperSourcePath = Join-Path $Root "tool\windows_updater_helper.dart"
+$UpdateSignerPath = Join-Path $Root "tool\sign_windows_update.dart"
 $ReleaseToolsDir = Join-Path $ReleaseDir "tools"
 $QmcAdapterNames = @(
   "framelean-qmc-adapter.exe",
@@ -380,21 +410,45 @@ $VcRuntimeFiles = @(
   "vcruntime140_1.dll"
 )
 
+# Extract version and build number from pubspec.yaml
+$PubspecContent = Get-Content $PubspecPath -Raw
+$PubspecVersionMatch = [regex]::Match($PubspecContent, '(?m)^version:\s*(\d+\.\d+\.\d+)\+(\d+)')
+if (-not $PubspecVersionMatch.Success) {
+  throw "Could not parse version from $PubspecPath"
+}
+$PubspecVersion = $PubspecVersionMatch.Groups[1].Value
+$PubspecBuild = $PubspecVersionMatch.Groups[2].Value
+
 Require-Command "flutter"
+Require-Command "dart"
 Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
 Require-File (Join-Path $FfmpegDir "ffprobe.exe")
 Require-Directory $LegalDir
 Require-File (Join-Path $Root "LICENSE")
 Require-File (Join-Path $LegalDir "NOTICE.md")
+Require-File $UpdaterHelperSourcePath
+Require-File $UpdateSignerPath
+Require-Value "FRAMELEAN_UPDATE_BASE_URL" $UpdateBaseUrl
+Require-Value "FRAMELEAN_RELEASE_KEY_ID" $ReleaseKeyId
+Require-Value "FRAMELEAN_RELEASE_PUBLIC_KEY" $ReleasePublicKey
+Require-Value "FRAMELEAN_RELEASE_PRIVATE_KEY_FILE" $ReleasePrivateKeyFile
+Require-File $ReleasePrivateKeyFile
+$ReleasePrivateKeyFile = (Resolve-Path -LiteralPath $ReleasePrivateKeyFile).Path
+if (-not $UpdateBaseUrl.StartsWith("https://", [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw "FRAMELEAN_UPDATE_BASE_URL must use HTTPS for a release build."
+}
 
 $Iscc = $null
 if (-not $SkipInstaller) {
   Require-File $IssPath
-  Require-File $CleanupScriptPath
   $Iscc = Resolve-IsccPath -ExplicitPath $IsccPath
 }
 
-$Version = Get-PubspecVersion -Path $PubspecPath
+$Version = if ([string]::IsNullOrWhiteSpace($BuildName)) {
+  Get-PubspecVersion -Path $PubspecPath
+} else {
+  $BuildName.Trim()
+}
 $PackageName = "FrameLean-v$Version-windows-x64"
 $ZipPath = Join-Path $ZipDir "$PackageName.zip"
 $SetupPath = Join-Path $InstallerDir "$PackageName-setup.exe"
@@ -416,6 +470,15 @@ try {
   if ($ExtraFlutterArgs) {
     $BuildArgs += $ExtraFlutterArgs
   }
+  $BuildArgs += @(
+    "--dart-define=FRAMELEAN_UPDATE_BASE_URL=$UpdateBaseUrl",
+    "--dart-define=FRAMELEAN_TRUSTED_RELEASE_KEY_IDS=$ReleaseKeyId",
+    "--dart-define=FRAMELEAN_RELEASE_PUBLIC_KEYS=$ReleaseKeyId=$ReleasePublicKey",
+    "--dart-define=FRAMELEAN_REQUIRE_RELEASE_SIGNATURE=true"
+  )
+
+  Write-Host "Generating build info from pubspec.yaml..."
+  Invoke-Checked "dart" @("run", (Join-Path $Root "tool\generate_build_info.dart"))
 
   Write-Host "Building Windows release with: flutter $($BuildArgs -join ' ')"
   Invoke-Checked "flutter" $BuildArgs
@@ -435,6 +498,16 @@ try {
   foreach ($VcRuntimeFile in $VcRuntimeFiles) {
     Require-File (Join-Path $ReleaseDir $VcRuntimeFile)
   }
+
+  Write-Host "Building updater helper..."
+  Invoke-Checked "dart" @(
+    "compile",
+    "exe",
+    $UpdaterHelperSourcePath,
+    "-o",
+    (Join-Path $ReleaseDir "FrameLeanUpdaterHelper.exe")
+  )
+  Require-File (Join-Path $ReleaseDir "FrameLeanUpdaterHelper.exe")
 
   $QmcAdapterSources = @(
     $QmcAdapterNames | ForEach-Object {
@@ -477,10 +550,6 @@ try {
 
   if (-not $SkipInstaller) {
     New-Item -ItemType Directory -Path $ReleaseToolsDir -Force | Out-Null
-    Copy-Item -LiteralPath $CleanupScriptPath `
-      -Destination (Join-Path $ReleaseToolsDir "FrameLean-Clean-Uninstall.ps1") `
-      -Force
-
     New-Item -ItemType Directory -Path $InstallerDir -Force | Out-Null
     if (Test-Path -LiteralPath $SetupPath -PathType Leaf) {
       Remove-Item -LiteralPath $SetupPath -Force
@@ -494,6 +563,27 @@ try {
       throw "Inno Setup failed with exit code $LASTEXITCODE."
     }
     Require-File $SetupPath
+
+    Write-Host "Signing Windows update installer..."
+    Invoke-Checked "dart" @(
+      "run",
+      $UpdateSignerPath,
+      "--input",
+      $SetupPath,
+      "--private-key",
+      $ReleasePrivateKeyFile,
+      "--key-id",
+      $ReleaseKeyId,
+      "--public-key",
+      $ReleasePublicKey,
+      "--output",
+      "$SetupPath.update.json",
+      "--version",
+      $PubspecVersion,
+      "--build-number",
+      $PubspecBuild
+    )
+    Require-File "$SetupPath.update.json"
   }
 
   Write-Host ""
@@ -504,6 +594,7 @@ try {
   }
   if (-not $SkipInstaller) {
     Write-Host $SetupPath
+    Write-Host "$SetupPath.update.json"
   }
 }
 finally {

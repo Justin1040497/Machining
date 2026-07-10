@@ -4,7 +4,7 @@
 
 这份文档记录 FrameLean 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
 
-当前版本持久化本地任务列表、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
+当前版本持久化本地任务列表、任务夹、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图、隐藏 partial 输出文件和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
 
 ## 数据库总览
 
@@ -14,13 +14,14 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `23`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `29`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
 | 表 | Drift 类 | 用途 |
 | --- | --- | --- |
 | `tasks` | `TaskRows` | 保存导入媒体任务、执行状态、输出配置、源文件指纹和 FFprobe 分析结果 |
+| `task_folders` | `TaskFolderRows` | 保存工作台任务夹、媒体类型、排序和任务夹默认配置 |
 | `settings` | `SettingsRows` | 保存应用级设置；当前只保存一行全局设置，固定 `id = 1` |
 | `app_notifications` | `AppNotificationRows` | 保存应用内通知历史，供全局提示和后续通知中心读取 |
 
@@ -30,10 +31,11 @@ lib/infrastructure/database/app_database.dart
 
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
-| `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果和时间戳 |
+| `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果、完成输出体积和时间戳 |
+| `TaskFolder` | `lib/domain/entities/task_folder.dart` | 工作台任务夹实体，包含名称、媒体类型、排序和默认配置 |
 | `MediaTaskConfig` | `lib/domain/value_objects/media_task_config.dart` | 单任务通用输出、压缩和分类型配置入口 |
 | `VideoProcessingConfig` | `lib/domain/value_objects/video_processing_config.dart` | 视频输出与压缩配置 |
-| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量和元数据保留配置 |
+| `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量、无损压缩和元数据保留配置 |
 | `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、码率、采样率和声道配置 |
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频、封装、色彩和 HDR / Dolby Vision 元数据 |
@@ -41,6 +43,8 @@ lib/infrastructure/database/app_database.dart
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 | `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含类型、级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
+| `AppReleaseInfo` / `AppUpdateState` | `lib/domain/value_objects/app_release_info.dart`、`lib/domain/value_objects/app_update_state.dart` | 自托管更新的可用版本、安装包元数据、下载进度和安装状态 |
+| `MediaTaskPolicyTag` | `lib/domain/enums/media_task_policy_tag.dart` | 任务自动策略标签，用于展示透明保留、输出改名、目录创建、图片 fallback 和未有效压缩 |
 
 数据库和领域模型之间的转换由仓储映射完成：
 
@@ -67,6 +71,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `media_kind` | text | 否 | `video` | `mediaKind` | 媒体类型枚举；当前支持 `video`、`image`、`audio` 导入、分析和基础 FFmpeg 处理 |
 | `purpose` | text | 否 | 无 | `purpose` | 任务用途：`compression` 或 `conversion` |
 | `sort_order` | integer | 否 | 无 | `sortOrder` | 任务列表排序，读取时按 `sort_order ASC, created_at ASC` |
+| `folder_id` | text | 是 | `null` | `folderId` | 任务所属任务夹 ID；为空时任务显示在工作台总列表 |
+| `folder_sort_order` | integer | 是 | `null` | `folderSortOrder` | 任务在夹内的排序；移出任务夹后清空 |
 
 ### 状态和执行结果字段
 
@@ -75,7 +81,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `status` | text | 否 | 无 | `status` | 任务状态，见“任务状态”一节 |
 | `progress` | real | 否 | `0` | `progress` | 0 到 1 的进度值；实体构造时断言范围合法 |
 | `output_path` | text | 是 | `null` | `outputPath` | FFmpeg 计划生成的输出文件路径 |
+| `output_file_size` | integer | 是 | `null` | `outputFileSize` | 成功完成后记录的最终输出体积；重试或重新执行时清空 |
 | `error_message` | text | 是 | `null` | `errorMessage` | 执行、分析或命令构造失败时保存的用户可见错误 |
+| `policy_tags_json` | text | 是 | `null` | `policyTags` | 任务自动策略标签 JSON 数组；为空表示没有标签 |
 | `created_at` | integer | 否 | 无 | `createdAt` | 毫秒时间戳，默认由实体构造时写入 |
 | `started_at` | integer | 是 | `null` | `startedAt` | 任务交给 FFmpeg 进程时写入 |
 | `completed_at` | integer | 是 | `null` | `completedAt` | FFmpeg 观测到成功完成时写入 |
@@ -95,9 +103,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
-| `output_format` | text | 否 | 无 | `outputFormat` | 输出封装格式：`mp4`、`mov`、`mkv` |
-| `video_codec` | text | 否 | 无 | `videoCodec` | 目标视频编码：`source`、`h264`、`hevc` |
-| `encoder_backend` | text | 否 | 无 | `encoderBackend` | 编码器实现：`auto`、`libx264`、`libx265`、`videotoolbox`、`nvenc`、`qsv`、`amf` |
+| `output_format` | text | 否 | 无 | `outputFormat` | 输出封装格式：`mp4`、`mov`、`mkv`、`webm`、`avi` |
+| `video_codec` | text | 否 | 无 | `videoCodec` | 目标视频编码：`source`、`h264`、`hevc`、`vp9`、`av1`、`proRes`、`mpeg4`、`mjpeg` |
+| `encoder_backend` | text | 否 | 无 | `encoderBackend` | 编码器实现：`auto`、`libx264`、`libx265`、`libvpxVp9`、`libsvtav1`、`proresKs`、`nativeMpeg4`、`nativeMjpeg`、`videotoolbox`、`nvenc`、`qsv`、`amf` |
 | `resolution_preset` | text | 否 | 无 | `resolutionPreset` | 输出分辨率：原始、2160p、1080p、720p、480p |
 | `output_directory` | text | 否 | 无 | `outputDirectory` | 输出目录；空字符串表示跟随源文件目录 |
 | `compression_crf` | integer | 否 | `28` | `compressionCrf` | 推荐方案和普通压缩的 CRF 基准值 |
@@ -126,14 +134,17 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | JSON 字段 | 说明 |
 | --- | --- |
-| `configVersion` | 当前为 `1` |
-| `outputDirectory` / `outputFileName` | 通用输出目录和文件名 |
+| `configVersion` | 当前为 `2` |
+| `outputLocationMode` | 输出位置模式：`system` 表示执行时读取最新系统设置，`source` 表示源文件旁，`custom` 表示使用 `outputDirectory` |
+| `outputDirectory` / `outputFileName` | 通用自定义输出目录和文件名；旧 JSON 缺少 `outputLocationMode` 时，空目录迁移为 `source`，非空目录迁移为 `custom` |
 | `compressionMode` / `preset` / `targetSizeBytes` / `targetSizeRatio` | 通用处理策略字段 |
 | `video` | 视频格式、是否保持源格式、编码器、后端、HDR 输出模式、HDR 开启前的编码恢复值、分辨率、CRF、元数据保留开关和旧推荐预设 |
-| `image` | 图片格式、是否保持源格式、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
+| `image` | 图片格式、是否保持源格式、无损压缩开关、分辨率预设、质量和元数据保留开关；输出编码由后台按图片格式推导 |
 | `audio` | 音频格式、是否保持源格式、码率、采样率、声道和元数据保留开关；当前输出格式包含 `mp3`、`m4a`、`aac`、`wav`、`flac`、`aiff`、`wma`、`opus`、`oggOpus`，输出编码由后台按音频格式推导 |
 
 `keepOriginalOutputFormat` 不保存伪格式。导入任务时会按源文件扩展名解析成真实 `MediaOutputFormat`，例如 `.mp4` 写入 `mp4`、`.mov` 写入 `mov`、`.png` 写入 `png`、`.ogg` 写入 `oggOpus`；不支持的源格式会回退到默认输出格式并关闭保持状态。应用默认设置中视频、图片、音频均默认开启保持源文件格式。视频 `hdrOutputMode` 当前支持 `convertToSdr` 和 `preserveHdr`。`preserveHdr` 只承诺 HDR10 / HLG 基础 10-bit HEVC 输出和基础色彩标记，不承诺保留 Dolby Vision 动态元数据。视频、图片和音频 `preserveMetadata` 缺省均为 `true`。
+
+图片 `losslessCompression` 缺省为 `false`，旧 JSON 缺失该字段时同样按 `false` 读取。无损压缩当前只允许 PNG、WebP 和 TIFF；格式转换用途不会沿用压缩用途中的无损开关。
 
 ### 源文件指纹字段
 
@@ -198,6 +209,20 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 3. `analysis_container_bitrate`
 4. `analysis_estimated_bitrate`
 
+## `task_folders` 表
+
+`task_folders` 保存工作台任务夹。任务夹是本地批处理分组，不映射真实系统文件夹；删除任务夹只释放夹内任务，不删除任务或源文件。
+
+| 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
+| --- | --- | --- | --- | --- | --- |
+| `id` | text | 否 | 无 | `TaskFolder.id` | UUID 字符串，主键 |
+| `name` | text | 否 | 无 | `name` | 工作台展示名称 |
+| `media_kind` | text | 否 | 无 | `mediaKind` | 任务夹媒体类型；首版不混放视频 / 图片 / 音频 |
+| `sort_order` | integer | 否 | 无 | `sortOrder` | 任务夹在工作台总列表中的排序 |
+| `default_config_json` | text | 否 | 无 | `defaultConfig` | 任务夹默认媒体处理配置，使用 `MediaTaskConfig` JSON 结构 |
+| `created_at` | integer | 否 | 无 | `createdAt` | 创建时间毫秒时间戳 |
+| `updated_at` | integer | 否 | 无 | `updatedAt` | 更新时间毫秒时间戳 |
+
 ## `settings` 表
 
 `settings` 保存应用级偏好。当前只使用一行，仓储层固定 `id = 1`；如果数据库里没有这一行，`loadSettings()` 会返回 `AppSettings.initial()`。
@@ -218,8 +243,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_media_config_json` | text | 是 | `null` | `defaultMediaConfig` | 通用默认媒体处理配置 JSON；读取时优先于旧视频默认字段，保存时继续同步旧视频字段以便回滚 |
 | `theme_mode` | text | 否 | `system` | `themeMode` | 应用主题偏好；当前支持 `system`、`light`、`dark`，是主题设置的 source of truth |
 | `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
-| `show_task_completion_dialog` | boolean | 否 | `true` | `showTaskCompletionDialog` | 任务完成后是否弹出完成提示弹窗；关闭后仍保存任务通知并使用停留更久的临时通知承接完成反馈 |
+| `show_task_completion_dialog` | boolean | 否 | `true` | 旧兼容列 | 历史完成弹窗偏好列；当前 domain / UI 不再映射为可修改设置，任务完成只走完成提示音、通知中心和任务项完成文件入口 |
 | `task_completion_sound` | text | 否 | `clean_success` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
+| `max_concurrent_executions` | integer | 否 | `2` | `maxConcurrentExecutions` | 用户期望的最大并行任务数，领域层归一化到 1 到 3；实际运行并发还会由资源守卫按 CPU、内存和运行任务类型降级 |
+| `folder_import_scan_depth` | integer | 否 | `2` | `folderImportScanDepth` | 文件夹导入递归扫描深度，领域层归一化到 0 到 5；层级越深，导入前遍历时间越长 |
+| `notification_policies_json` | text | 否 | `{}` | `notificationPolicies` | 按 `NotificationEventType` 保存通知投递策略；缺失事件按领域默认补齐 |
+| `shortcut_bindings_json` | text | 否 | `{}` | `shortcutBindings` | 按 `AppShortcutAction` 保存快捷键绑定；缺失动作按默认快捷键补齐 |
+| `close_behavior` | text | 否 | `background` | `closeBehavior` | 点击窗口关闭时的行为：`background` 最小化到后台，`quit` 退出应用 |
 | `created_at` | integer | 否 | 无 | 仓储维护 | 第一次创建设置行的时间 |
 | `updated_at` | integer | 否 | 无 | 仓储维护 | 最近保存设置的时间 |
 
@@ -227,22 +257,23 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 ## `app_notifications` 表
 
-`app_notifications` 保存应用内通知历史。业务代码通过 `AppNotificationManager` 记录通知；根级通知 Host 订阅同一 manager 的展示事件并弹出临时提示。后续通知中心面板应读取这张表，而不是从页面局部状态拼装历史。
+`app_notifications` 保存应用内通知历史。业务代码通过 `AppNotificationManager` 记录通知；根级通知 Host 订阅同一 manager 的展示事件并弹出临时提示。通知中心面板读取这张表，而不是从页面局部状态拼装历史。`AppNotificationKind.interaction` 只用于临时交互提示，不写入这张表。
 
 | 字段 | 类型 | 可空 | 默认值 | 领域字段 | 说明 |
 | --- | --- | --- | --- | --- | --- |
 | `id` | text | 否 | 无 | `id` | UUID 字符串，主键 |
-| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`；后续可扩展更新等类型 |
+| `kind` | text | 否 | `general` | `kind` | 通知类型：`general`、`settings`、`task`、`update`；`interaction` 为临时展示类型，正常不持久化 |
 | `level` | text | 否 | 无 | `level` | 通知级别：`info`、`success`、`warning`、`error` |
 | `title` | text | 否 | 无 | `title` | 通知标题 |
 | `message` | text | 否 | `''` | `message` | 通知正文或失败原因 |
 | `source` | text | 否 | 无 | `source` | 通知来源，例如 `settings`、`workbench` |
+| `dedupe_key` | text | 是 | `null` | `dedupeKey` | 通知去重键；版本更新通知使用 `update:{platform}:{version}:{buildNumber}` |
 | `created_at` | integer | 否 | 无 | `createdAt` | 通知创建时间，毫秒时间戳 |
 | `read_at` | integer | 是 | `null` | `readAt` | 通知被标记为已读的时间 |
 | `dismissed_at` | integer | 是 | `null` | `dismissedAt` | 通知被关闭或归档的时间 |
-| `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName` 和可选 `outputPath` |
+| `payload_json` | text | 是 | `null` | `payloadJson` | 通知中心动作扩展载荷；任务通知当前保存 `taskId`、`fileName`、可选 `outputPath`、源 / 输出体积、耗时、失败原因和失败建议 |
 
-通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析成果物文件夹动作。
+通知中心只读取 `dismissed_at IS NULL` 的记录。打开通知中心会批量填写未读记录的 `read_at`；清扫会批量填写 `dismissed_at`，保留历史数据但不再展示。任务成功通知通过 `kind = task`、`level = success` 和 `payload_json.outputPath` 解析“打开输出文件位置”动作，并在正文展示体积、压缩比例、保存路径和耗时。版本更新通知通过 `kind = update`、`dedupe_key` 和 `payload_json` 中的版本、平台、构建号、更新状态和日志摘要解析版本日志和下载动作。
 
 ## 枚举值
 
@@ -264,7 +295,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 存储值 | 含义 | 当前实现 |
 | --- | --- | --- |
 | `compression` | 文件压缩 | 当前主路径，使用压缩建议、CRF、目标体积等策略 |
-| `conversion` | 格式转换 | 命令构造已支持基础转封装和重编码，UI 仍以压缩工作台为主 |
+| `conversion` | 格式转换 | UI 主区域只选择目标格式；命令构造优先无损转封装，并在需要重编码时自动使用保真参数 |
 
 ### 媒体类型
 
@@ -312,18 +343,20 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 ### 执行和进度
 
-1. 队列只从 `pending` 或已有暂停执行中启动任务。
+1. 队列只从 `pending` 或已有暂停执行中启动任务；候选顺序来自总列表顶层项排序，遇到任务夹时按夹内 `folder_sort_order` 展开。
 2. 启动前再次检查源文件和 FFmpeg 运行时。
-3. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
-4. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
-5. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
-6. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
-7. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`。
-8. 进程失败、输出文件缺失或监听错误时写入 `failed` 和 `failed_at`。
+3. 队列按 `settings.max_concurrent_executions` 读取用户上限，再由资源守卫按设备能力和运行任务类型决定当前可用执行位；多个任务可同时写入 `running`。
+4. 手动任务在执行位满时暂停最早运行者；被抢占任务只保存在运行期 FIFO 中，不新增数据库字段，应用重启后仍按普通 `paused` 任务处理。
+5. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
+6. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
+7. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
+8. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
+9. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`；图片和音频压缩还会验证输出小于源文件。
+10. 进程失败、输出文件缺失、无效压缩或监听错误时写入 `failed` 和 `failed_at`。
 
 ## 迁移历史
 
-当前迁移逻辑位于 `AppDatabase.migration.onUpgrade`。所有 `addColumn` 调用通过 `_safeAddColumn` helper 实现幂等（若列已存在则安全跳过），防止开发阶段反复打包时因 Drift `onCreate` 已创建完整表而导致 `duplicate column name` 错误。新增列时继续使用 `_safeAddColumn`，不要直接调用 `migrator.addColumn`。
+当前迁移逻辑位于 `AppDatabase.migration.onUpgrade`。所有 `addColumn` 调用通过 `_safeAddColumn` helper 实现幂等（若列已存在则安全跳过），防止开发阶段反复打包时因 Drift `onCreate` 已创建完整表而导致 `duplicate column name` 错误。新增列时继续使用 `_safeAddColumn`，新增表使用 `_safeCreateTable` 幂等创建，不要直接调用裸 `migrator.addColumn`。
 
 | 目标版本 | 变更 |
 | --- | --- |
@@ -349,6 +382,12 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 21 | 给 `settings` 增加 `show_task_completion_dialog`，持久化任务完成后是否弹窗提示 |
 | 22 | 将仍停留在旧默认值的设置升级到新默认：推荐方案 `chat`、输出模板 `{source}-{action}`、完成提示音 `clean_success` |
 | 23 | 将已停留在 `{source}-{date}` 过渡默认值的设置升级到 `{source}-{action}` |
+| 24 | 给 `app_notifications` 增加 `dedupe_key`，并为非空去重键创建唯一索引 |
+| 25 | 新增 `task_folders` 表；给 `tasks` 增加 `folder_id`、`folder_sort_order` 和 `policy_tags_json` |
+| 26 | 给 `settings` 增加 `max_concurrent_executions`，持久化受控并行执行上限 |
+| 27 | 给 `settings` 增加 `folder_import_scan_depth`；给 `tasks` 增加 `analysis_audio_streams_json`；给 `task_folders` 增加 `default_purpose` |
+| 28 | 给 `tasks` 增加 `output_file_size`，记录成功完成后的最终输出体积 |
+| 29 | 给 `settings` 增加 `notification_policies_json`、`shortcut_bindings_json` 和 `close_behavior`，持久化通知策略、快捷键和关闭行为 |
 
 ## 修改数据模型的约束
 

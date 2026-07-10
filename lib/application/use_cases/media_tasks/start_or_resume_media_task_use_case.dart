@@ -9,7 +9,7 @@ class StartOrResumeMediaTaskUseCase {
     String taskId, {
     bool allowExtremeCompression = false,
   }) {
-    return queueRunner.startOrResumeTask(
+    return queueRunner.startSingleTask(
       taskId,
       allowExtremeCompression: allowExtremeCompression,
     );

@@ -1,3 +1,5 @@
+import 'package:framelean/domain/value_objects/media_audio_stream_info.dart';
+
 /// 媒体文件分析结果 Ffprobe分析结果
 class MediaAnalysisResult {
   /// 预计使用时长
@@ -65,6 +67,9 @@ class MediaAnalysisResult {
   /// 可转码主音频流在 FFprobe `streams` 中的全局索引。
   final int? audioStreamIndex;
 
+  /// FFprobe 识别出的可转码音频流列表。
+  final List<MediaAudioStreamInfo> audioStreams;
+
   /// 静态图片宽高和编码信息。
   final int? imageWidth;
   final int? imageHeight;
@@ -107,6 +112,7 @@ class MediaAnalysisResult {
     this.audioSampleRate,
     this.audioChannelLayout,
     this.audioStreamIndex,
+    this.audioStreams = const [],
     this.imageWidth,
     this.imageHeight,
     this.imageCodec,
@@ -149,6 +155,7 @@ class MediaAnalysisResult {
     int? audioSampleRate,
     String? audioChannelLayout,
     int? audioStreamIndex,
+    List<MediaAudioStreamInfo>? audioStreams,
     int? imageWidth,
     int? imageHeight,
     String? imageCodec,
@@ -194,6 +201,7 @@ class MediaAnalysisResult {
       audioSampleRate: audioSampleRate ?? this.audioSampleRate,
       audioChannelLayout: audioChannelLayout ?? this.audioChannelLayout,
       audioStreamIndex: audioStreamIndex ?? this.audioStreamIndex,
+      audioStreams: audioStreams ?? this.audioStreams,
       imageWidth: imageWidth ?? this.imageWidth,
       imageHeight: imageHeight ?? this.imageHeight,
       imageCodec: imageCodec ?? this.imageCodec,

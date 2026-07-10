@@ -1,5 +1,5 @@
 import 'package:framelean/application/repositories/app_settings_repository.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/library.dart';
 
 class LoadAppSettingsUseCase {
   final AppSettingsRepository repository;

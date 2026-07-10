@@ -1,14 +1,5 @@
-import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/hdr_output_mode.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 
 class FfmpegVideoArgumentBuilder {
@@ -19,13 +10,81 @@ class FfmpegVideoArgumentBuilder {
     CompressionRecommendation recommendation,
     String videoEncoder,
   ) {
+    if (shouldPreserveAlpha(task)) {
+      return const ['-c:v', 'prores_ks', '-profile:v', '4', '-qscale:v', '9'];
+    }
+
     return switch (task.purpose) {
       TaskPurpose.compression => buildCompressionArgs(
         recommendation,
         videoEncoder,
       ),
-      TaskPurpose.conversion => ['-c:v', videoEncoder],
+      TaskPurpose.conversion => buildConversionArgs(videoEncoder),
     };
+  }
+
+  List<String> buildConversionArgs(String videoEncoder) {
+    if (videoEncoder == 'prores_ks') {
+      return const ['-c:v', 'prores_ks', '-profile:v', '3', '-qscale:v', '9'];
+    }
+    if (videoEncoder == 'mpeg4') {
+      return const ['-c:v', 'mpeg4', '-q:v', '3'];
+    }
+    if (videoEncoder == 'mjpeg') {
+      return const ['-c:v', 'mjpeg', '-q:v', '2'];
+    }
+    if (videoEncoder == 'libvpx-vp9') {
+      return const [
+        '-c:v',
+        'libvpx-vp9',
+        '-deadline',
+        'good',
+        '-cpu-used',
+        '2',
+        '-crf',
+        '18',
+        '-b:v',
+        '0',
+      ];
+    }
+    if (videoEncoder == 'libsvtav1') {
+      return const ['-c:v', 'libsvtav1', '-preset', '6', '-crf', '18'];
+    }
+    if (videoEncoder.endsWith('_videotoolbox')) {
+      return ['-c:v', videoEncoder, '-q:v', '80'];
+    }
+    if (videoEncoder.endsWith('_nvenc')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-preset',
+        'p7',
+        '-rc',
+        'vbr',
+        '-cq',
+        '16',
+        '-b:v',
+        '0',
+      ];
+    }
+    if (videoEncoder.endsWith('_qsv')) {
+      return ['-c:v', videoEncoder, '-global_quality', '16'];
+    }
+    if (videoEncoder.endsWith('_amf')) {
+      return [
+        '-c:v',
+        videoEncoder,
+        '-quality',
+        'quality',
+        '-rc',
+        'cqp',
+        '-qp_i',
+        '16',
+        '-qp_p',
+        '16',
+      ];
+    }
+    return ['-c:v', videoEncoder, '-preset', 'slow', '-crf', '18'];
   }
 
   List<String> buildOutputStreamSelectionArgs(MediaTask task) {
@@ -44,6 +103,12 @@ class FfmpegVideoArgumentBuilder {
   }
 
   List<String> buildAudioStreamSelectionArgs(MediaTask task) {
+    final selectedAudioStreamIndex =
+        task.config.video?.selectedAudioStreamIndex;
+    if (selectedAudioStreamIndex != null && selectedAudioStreamIndex >= 0) {
+      return ['-map', '0:$selectedAudioStreamIndex?'];
+    }
+
     final analysis = task.analysisResult;
     if (analysis == null) {
       return const ['-map', '0:a:0?'];
@@ -61,6 +126,15 @@ class FfmpegVideoArgumentBuilder {
     return const [];
   }
 
+  List<String> buildThreadArgs(MediaTask task) {
+    final threadLimit = task.config.threadLimit;
+    if (threadLimit == null) {
+      return const [];
+    }
+
+    return ['-threads', threadLimit.toString()];
+  }
+
   List<String> buildVideoOnlyStreamSelectionArgs() {
     return const ['-map', '0:v:0'];
   }
@@ -73,6 +147,70 @@ class FfmpegVideoArgumentBuilder {
       videoEncoder,
     )) {
       return buildHardwareCompressionArgs(recommendation, videoEncoder);
+    }
+
+    if (videoEncoder == 'prores_ks') {
+      return const ['-c:v', 'prores_ks', '-profile:v', '3', '-qscale:v', '9'];
+    }
+    if (videoEncoder == 'mjpeg') {
+      return [
+        '-c:v',
+        'mjpeg',
+        '-q:v',
+        (recommendation.crf / 6).round().clamp(2, 10).toString(),
+      ];
+    }
+    if (videoEncoder == 'mpeg4') {
+      final targetBitrate = recommendation.targetVideoBitrate;
+      return targetBitrate == null
+          ? [
+              '-c:v',
+              'mpeg4',
+              '-q:v',
+              (recommendation.crf / 6).round().clamp(2, 10).toString(),
+            ]
+          : [
+              '-c:v',
+              'mpeg4',
+              '-b:v',
+              FfmpegCommandFormatters.formatBitrate(targetBitrate),
+            ];
+    }
+    if (videoEncoder == 'libvpx-vp9') {
+      final targetBitrate = recommendation.targetVideoBitrate;
+      return [
+        '-c:v',
+        'libvpx-vp9',
+        '-deadline',
+        'good',
+        '-cpu-used',
+        '2',
+        if (targetBitrate == null) ...[
+          '-crf',
+          softwareCrfFor(recommendation.crf).toString(),
+          '-b:v',
+          '0',
+        ] else ...[
+          '-b:v',
+          FfmpegCommandFormatters.formatBitrate(targetBitrate),
+        ],
+      ];
+    }
+    if (videoEncoder == 'libsvtav1') {
+      final targetBitrate = recommendation.targetVideoBitrate;
+      return [
+        '-c:v',
+        'libsvtav1',
+        '-preset',
+        '8',
+        if (targetBitrate == null) ...[
+          '-crf',
+          softwareCrfFor(recommendation.crf).toString(),
+        ] else ...[
+          '-b:v',
+          FfmpegCommandFormatters.formatBitrate(targetBitrate),
+        ],
+      ];
     }
 
     final baseArgs = <String>[
@@ -205,20 +343,31 @@ class FfmpegVideoArgumentBuilder {
 
   String buildVideoFilter(MediaTask task, String videoEncoder) {
     final analysis = task.analysisResult;
+    final resolutionPreset = task.purpose == TaskPurpose.conversion
+        ? ResolutionPreset.original
+        : task.config.resolutionPreset;
     ensureSupportedColorInput(analysis);
+    if (shouldPreserveAlpha(task)) {
+      return buildPreserveAlphaFilter(resolutionPreset);
+    }
     if (analysis?.isHdr == true) {
       if (shouldPreserveHdr(task)) {
-        return buildPreserveHdrFilter(task.config.resolutionPreset, task);
+        return buildPreserveHdrFilter(resolutionPreset, task);
       }
-      return buildHdrToSdrFilter(task.config.resolutionPreset, analysis!);
+      return buildHdrToSdrFilter(resolutionPreset, analysis!);
     }
 
     final colorProfile = resolveOutputColorProfile(task);
     final scaleFilter = buildSoftwareScaleFilter(
-      task.config.resolutionPreset,
+      resolutionPreset,
       colorProfile,
     );
-    return '$scaleFilter,format=yuv420p,setsar=1';
+    final pixelFormat = switch (videoEncoder) {
+      'prores_ks' => 'yuv422p10le',
+      'mjpeg' => 'yuvj420p',
+      _ => 'yuv420p',
+    };
+    return '$scaleFilter,format=$pixelFormat,setsar=1';
   }
 
   List<String> buildCommonOutputArgs(
@@ -229,10 +378,25 @@ class FfmpegVideoArgumentBuilder {
     FfmpegEncoderCapabilities encoderCapabilities,
   ) {
     ensureSupportedColorInput(task.analysisResult);
+    if (shouldPreserveAlpha(task)) {
+      return [
+        '-pix_fmt',
+        'yuva444p10le',
+        ...buildAudioArgs(task, recommendation, encoderCapabilities),
+        ...buildFrameTimingArgs(task),
+        '-movflags',
+        '+faststart',
+      ];
+    }
     final preserveHdr = shouldPreserveHdr(task);
+    final pixelFormat = switch (targetCodec) {
+      VideoCodec.proRes => 'yuv422p10le',
+      VideoCodec.mjpeg => 'yuvj420p',
+      _ => preserveHdr ? 'yuv420p10le' : 'yuv420p',
+    };
     final args = <String>[
       '-pix_fmt',
-      preserveHdr ? 'yuv420p10le' : 'yuv420p',
+      pixelFormat,
       ...buildColorMetadataArgs(task),
       ...buildVideoCompatibilityArgs(task, targetCodec, videoEncoder),
       ...buildAudioArgs(task, recommendation, encoderCapabilities),
@@ -255,7 +419,30 @@ class FfmpegVideoArgumentBuilder {
 
   bool shouldPreserveHdr(MediaTask task) {
     return task.analysisResult?.isHdr == true &&
-        task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+        (task.purpose == TaskPurpose.conversion ||
+            task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr);
+  }
+
+  bool shouldPreserveAlpha(MediaTask task) {
+    final pixelFormat = task.analysisResult?.videoPixelFormat
+        ?.trim()
+        .toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return false;
+    }
+
+    return pixelFormat.startsWith('yuva') ||
+        pixelFormat == 'rgba' ||
+        pixelFormat == 'bgra' ||
+        pixelFormat == 'argb' ||
+        pixelFormat == 'abgr' ||
+        pixelFormat.startsWith('gbrap');
+  }
+
+  String buildPreserveAlphaFilter(ResolutionPreset preset) {
+    final size = scaleSizeExpression(preset);
+    return 'scale=${size.width}:${size.height}:flags=lanczos,'
+        'format=yuva444p10le,setsar=1';
   }
 
   String buildSoftwareScaleFilter(
@@ -497,9 +684,9 @@ class FfmpegVideoArgumentBuilder {
     final args = <String>[];
     if (targetCodec == VideoCodec.h264) {
       args.addAll(['-profile:v', 'high']);
-    } else if (shouldPreserveHdr(task)) {
+    } else if (targetCodec == VideoCodec.hevc && shouldPreserveHdr(task)) {
       args.addAll(['-profile:v', 'main10']);
-    } else {
+    } else if (targetCodec == VideoCodec.hevc) {
       args.addAll(['-profile:v', 'main']);
     }
 
@@ -517,6 +704,29 @@ class FfmpegVideoArgumentBuilder {
   ) {
     if (recommendation.targetAudioBitrate == 0) {
       return const ['-an'];
+    }
+
+    final outputFormat = task.config.outputFormat;
+    if (outputFormat == OutputFormat.webm) {
+      return const ['-c:a', 'libopus', '-b:a', '192k'];
+    }
+    if (outputFormat == OutputFormat.avi) {
+      return task.config.videoCodec == VideoCodec.mjpeg
+          ? const ['-c:a', 'pcm_s16le']
+          : const ['-c:a', 'libmp3lame', '-b:a', '192k'];
+    }
+
+    if (task.purpose == TaskPurpose.conversion) {
+      final channels = task.analysisResult?.audioChannels;
+      final sampleRate = targetAudioSampleRate(task);
+      return [
+        '-c:a',
+        'aac',
+        '-b:a',
+        '320k',
+        if (channels != null && channels > 0) ...['-ac', '$channels'],
+        if (sampleRate != null) ...['-ar', '$sampleRate'],
+      ];
     }
 
     final audioBitrate = recommendation.targetAudioBitrate == null

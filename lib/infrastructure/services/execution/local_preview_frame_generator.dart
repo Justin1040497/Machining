@@ -1,9 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
-import 'package:framelean/application/services/execution/preview_frame_generator.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
 import 'package:path/path.dart' as path;
 
@@ -28,7 +26,7 @@ typedef PreviewFrameCommandRunner =
 typedef PreviewDirectoryFactory = Directory Function(MediaTask task);
 
 class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
-  static const defaultRatios = <double>[0.05, 0.275, 0.5, 0.725, 0.95];
+  static const defaultRatios = defaultPreviewFrameRatios;
 
   final DefaultFfmpegCommandBuilder commandBuilder;
   final CompressionAdvisor compressionAdvisor;
@@ -270,7 +268,7 @@ class LocalPreviewFrameGenerator implements PreviewFrameGenerator {
 
   static Directory defaultPreviewDirectoryFactory(MediaTask task) {
     return Directory(
-      path.join(Directory.systemTemp.path, 'framelean', 'previews', task.id),
+      path.join(Directory.systemTemp.path, previewsSubDir, task.id),
     );
   }
 

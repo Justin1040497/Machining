@@ -24,8 +24,8 @@ See the root LICENSE file and legal/COPYING in this repository.
 - Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
 - Current FrameLean configuration: GPLv3-or-later route, because the runtime is
   built with `--enable-gpl`, `--enable-version3`, `--enable-libx264`,
-  `--enable-libmp3lame`, `--enable-libwebp`, `--enable-libopus`, and
-  `--enable-libzimg`.
+  `--enable-libmp3lame`, `--enable-libwebp`, `--enable-libopus`,
+  `--enable-libzimg`, `--enable-libvpx`, and `--enable-libsvtav1`.
 - Nonfree configuration: `--enable-nonfree` must not be enabled for distributed
   builds.
 - Local build reference: `scripts/build/build_ffmpeg_macos_arm64.sh`
@@ -76,6 +76,22 @@ runtime.
 
 zimg provides the `zscale` filter used by FrameLean's HDR10 / HLG to SDR
 conversion path.
+
+### libvpx
+
+- Upstream: <https://chromium.googlesource.com/webm/libvpx/>
+- Source for current documented runtime: <https://github.com/webmproject/libvpx/archive/refs/tags/v1.15.2.tar.gz>
+- Used by FrameLean through the FFmpeg runtime via `--enable-libvpx`.
+
+libvpx provides VP9 encoding support for WebM and MKV outputs.
+
+### SVT-AV1 / libsvtav1
+
+- Upstream: <https://gitlab.com/AOMediaCodec/SVT-AV1>
+- Source for current documented runtime: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v2.3.0/SVT-AV1-v2.3.0.tar.gz>
+- Used by FrameLean through the FFmpeg runtime via `--enable-libsvtav1`.
+
+SVT-AV1 provides AV1 software encoding support for MP4, MKV, and WebM outputs.
 
 ## Flutter and Dart
 

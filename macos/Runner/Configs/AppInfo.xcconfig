@@ -12,3 +12,9 @@ PRODUCT_BUNDLE_IDENTIFIER = com.justin.framelean
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.justin. All rights reserved.
+
+// Sparkle defaults. The default self-hosted update route uses JSON latest and
+// manual DMG installation, so these stay empty unless Sparkle is explicitly
+// enabled for a signed appcast route.
+FRAMELEAN_SPARKLE_FEED_URL =
+FRAMELEAN_SPARKLE_PUBLIC_ED_KEY =

@@ -1,15 +1,15 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
-import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
-import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 /// 使用 FFprobe 分析媒体文件基础信息
 class FfprobeMediaAnalyzer implements MediaAnalyzer {
   final Duration timeout;
 
-  FfprobeMediaAnalyzer({this.timeout = const Duration(seconds: 20)});
+  FfprobeMediaAnalyzer({this.timeout = ffprobeAnalysisTimeout});
 
   @override
   Future<MediaAnalysisResult> analyze({
@@ -21,25 +21,67 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       throw StateError('源文件不存在: $inputPath');
     }
 
-    final result = await Process.run(
-      ffprobePath,
-      buildArguments(inputPath),
-      stdoutEncoding: utf8,
-      stderrEncoding: utf8,
-    ).timeout(timeout);
+    // 改用 Process.start 而非 Process.run，以便在超时后能主动 kill 子进程。
+    // 原实现用 Process.run(...).timeout(timeout)，但 .timeout() 只会取消
+    // Future 的等待，不会终止底层 ffprobe 进程；遇到损坏文件或网络盘卡住时，
+    // ffprobe 会在后台长期存活，批量分析时累积成僵尸进程泄漏。
+    final process = await Process.start(ffprobePath, buildArguments(inputPath));
 
-    if (result.exitCode != 0) {
-      throw StateError('FFprobe 分析失败: ${result.stderr}');
+    final stdoutBuffer = <int>[];
+    final stderrBuffer = <int>[];
+    final stdoutDone = process.stdout
+        .listen(stdoutBuffer.addAll)
+        .asFuture<void>();
+    final stderrDone = process.stderr
+        .listen(stderrBuffer.addAll)
+        .asFuture<void>();
+
+    try {
+      final exitCode = await process.exitCode.timeout(timeout);
+      await Future.wait([stdoutDone, stderrDone]);
+
+      final stderrText = utf8.decode(stderrBuffer);
+      if (exitCode != 0) {
+        throw StateError('FFprobe 分析失败: $stderrText');
+      }
+
+      final json = jsonDecode(utf8.decode(stdoutBuffer));
+      if (json is! Map<String, dynamic>) {
+        throw StateError('FFprobe 输出格式无效');
+      }
+
+      final fileSize = await file.length();
+
+      return parseResult(json, fileSize: fileSize);
+    } on TimeoutException {
+      // 关键修复：超时后必须主动终止子进程并回收退出码，
+      // 否则 ffprobe 进程句柄会残留，长时间运行下持续泄漏。
+      await _terminateProcess(process, stdoutDone, stderrDone);
+      throw TimeoutException(
+        'FFprobe 分析超时（${timeout.inSeconds} 秒）: $inputPath',
+        timeout,
+      );
     }
+  }
 
-    final json = jsonDecode(result.stdout.toString());
-    if (json is! Map<String, dynamic>) {
-      throw StateError('FFprobe 输出格式无效');
+  /// 强制终止子进程并等待其退出与流关闭，避免僵尸进程或句柄残留。
+  Future<void> _terminateProcess(
+    Process process,
+    Future<void> stdoutDone,
+    Future<void> stderrDone,
+  ) async {
+    try {
+      process.kill(ProcessSignal.sigkill);
+    } on Object {
+      // kill 失败也不阻断清理，继续等待 exitCode 兜底。
     }
-
-    final fileSize = await file.length();
-
-    return parseResult(json, fileSize: fileSize);
+    // 等待进程真正退出与流关闭；这里再加一个较短超时做最终兜底，
+    // 防止极端情况下 kill 本身也卡住导致整个分析链路被拖死。
+    await Future.wait<void>([
+      process.exitCode,
+      stdoutDone,
+      stderrDone,
+    ]).timeout(const Duration(seconds: 2), onTimeout: () => const []);
   }
 
   List<String> buildArguments(String inputPath) {
@@ -56,7 +98,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
           'sample_aspect_ratio,display_aspect_ratio,field_order,'
           'chroma_location,'
           'channels,channel_layout,sample_rate:'
-          'stream_tags=rotate:'
+          'stream_tags=rotate,language,title:'
           'stream_side_data=side_data_type,rotation,'
           'red_x,red_y,green_x,green_y,blue_x,blue_y,'
           'white_point_x,white_point_y,min_luminance,max_luminance,'
@@ -76,6 +118,9 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
 
     final videoStream = findStream(streams, 'video');
     final audioStream = findUsableAudioStream(streams);
+    final audioStreams = findUsableAudioStreams(
+      streams,
+    ).map(parseAudioStreamInfo).toList(growable: false);
 
     if (videoStream == null && audioStream == null) {
       throw StateError('媒体文件没有可用媒体流');
@@ -144,6 +189,7 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       audioSampleRate: parseInt(audioStream?['sample_rate']),
       audioChannelLayout: parseString(audioStream?['channel_layout']),
       audioStreamIndex: parseInt(audioStream?['index']),
+      audioStreams: audioStreams,
       imageWidth: parseInt(videoStream?['width']),
       imageHeight: parseInt(videoStream?['height']),
       imageCodec: parseString(videoStream?['codec_name']),
@@ -164,6 +210,15 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
   }
 
   Map<String, dynamic>? findUsableAudioStream(List<dynamic> streams) {
+    for (final stream in findUsableAudioStreams(streams)) {
+      return stream;
+    }
+
+    return null;
+  }
+
+  List<Map<String, dynamic>> findUsableAudioStreams(List<dynamic> streams) {
+    final audioStreams = <Map<String, dynamic>>[];
     for (final stream in streams) {
       if (stream is! Map<String, dynamic> || stream['codec_type'] != 'audio') {
         continue;
@@ -172,11 +227,25 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
       if (MediaCodecNormalizer.isUsableAudioForTranscode(
         parseString(stream['codec_name']),
       )) {
-        return stream;
+        audioStreams.add(stream);
       }
     }
 
-    return null;
+    return audioStreams;
+  }
+
+  MediaAudioStreamInfo parseAudioStreamInfo(Map<String, dynamic> stream) {
+    final tags = stream['tags'];
+    final tagMap = tags is Map<String, dynamic> ? tags : const {};
+    return MediaAudioStreamInfo(
+      index: parseInt(stream['index']) ?? 0,
+      codec: parseString(stream['codec_name']),
+      channels: parseInt(stream['channels']),
+      sampleRate: parseInt(stream['sample_rate']),
+      channelLayout: parseString(stream['channel_layout']),
+      language: parseString(tagMap['language']),
+      title: parseString(tagMap['title']),
+    );
   }
 
   int? parseDurationMs(

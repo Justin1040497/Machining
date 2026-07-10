@@ -14,6 +14,7 @@ enum ImageResizePreset {
 class ImageProcessingConfig {
   final MediaOutputFormat outputFormat;
   final bool keepOriginalOutputFormat;
+  final bool losslessCompression;
   final int imageQuality;
   final ImageResizePreset resizePreset;
   final bool preserveMetadata;
@@ -21,6 +22,7 @@ class ImageProcessingConfig {
   const ImageProcessingConfig({
     required this.outputFormat,
     required this.keepOriginalOutputFormat,
+    required this.losslessCompression,
     required this.imageQuality,
     required this.resizePreset,
     required this.preserveMetadata,
@@ -30,6 +32,7 @@ class ImageProcessingConfig {
     return const ImageProcessingConfig(
       outputFormat: MediaOutputFormat.jpg,
       keepOriginalOutputFormat: true,
+      losslessCompression: false,
       imageQuality: 80,
       resizePreset: ImageResizePreset.original,
       preserveMetadata: true,
@@ -39,6 +42,7 @@ class ImageProcessingConfig {
   ImageProcessingConfig copyWith({
     MediaOutputFormat? outputFormat,
     bool? keepOriginalOutputFormat,
+    bool? losslessCompression,
     int? imageQuality,
     ImageResizePreset? resizePreset,
     bool? preserveMetadata,
@@ -47,9 +51,20 @@ class ImageProcessingConfig {
       outputFormat: outputFormat ?? this.outputFormat,
       keepOriginalOutputFormat:
           keepOriginalOutputFormat ?? this.keepOriginalOutputFormat,
+      losslessCompression: losslessCompression ?? this.losslessCompression,
       imageQuality: imageQuality ?? this.imageQuality,
       resizePreset: resizePreset ?? this.resizePreset,
       preserveMetadata: preserveMetadata ?? this.preserveMetadata,
     );
   }
+}
+
+const losslessImageOutputFormats = {
+  MediaOutputFormat.png,
+  MediaOutputFormat.webp,
+  MediaOutputFormat.tiff,
+};
+
+bool supportsLosslessImageCompression(MediaOutputFormat format) {
+  return losslessImageOutputFormats.contains(format);
 }

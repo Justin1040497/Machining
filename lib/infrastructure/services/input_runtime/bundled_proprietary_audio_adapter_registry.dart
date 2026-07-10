@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:framelean/application/services/input_runtime/proprietary_audio_adapter_registry.dart';
-import 'package:framelean/domain/enums/proprietary_audio_format.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
 
 typedef ProcessRunner =
@@ -15,7 +15,7 @@ class BundledProprietaryAudioAdapterRegistry
   final List<String> Function(ProprietaryAudioFormat format)? candidateBuilder;
 
   const BundledProprietaryAudioAdapterRegistry({
-    this.validateTimeout = const Duration(seconds: 3),
+    this.validateTimeout = ffprobeValidationTimeout,
     this.processRunner,
     this.candidateBuilder,
   });

@@ -1,15 +1,4 @@
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/audio_processing_config.dart';
-import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/domain/library.dart';
 
 extension FrameLeanCompressionModeLabel on CompressionMode {
   String get label {
@@ -31,6 +20,16 @@ extension FrameLeanEncoderBackendLabel on EncoderBackend {
         return 'libx264';
       case EncoderBackend.libx265:
         return 'libx265';
+      case EncoderBackend.libvpxVp9:
+        return 'libvpx-vp9';
+      case EncoderBackend.libsvtav1:
+        return 'SVT-AV1';
+      case EncoderBackend.proresKs:
+        return 'ProRes KS';
+      case EncoderBackend.nativeMpeg4:
+        return 'MPEG-4';
+      case EncoderBackend.nativeMjpeg:
+        return 'MJPEG';
       case EncoderBackend.videotoolbox:
         return 'VideoToolbox';
       case EncoderBackend.nvenc:
@@ -65,6 +64,10 @@ extension FrameLeanOutputFormatLabel on OutputFormat {
         return 'MOV';
       case OutputFormat.mkv:
         return 'MKV';
+      case OutputFormat.webm:
+        return 'WebM';
+      case OutputFormat.avi:
+        return 'AVI';
     }
   }
 }
@@ -75,6 +78,8 @@ extension FrameLeanMediaOutputFormatLabel on MediaOutputFormat {
       MediaOutputFormat.mp4 => 'MP4',
       MediaOutputFormat.mov => 'MOV',
       MediaOutputFormat.mkv => 'MKV',
+      MediaOutputFormat.webm => 'WebM',
+      MediaOutputFormat.avi => 'AVI',
       MediaOutputFormat.jpg => 'JPEG',
       MediaOutputFormat.png => 'PNG',
       MediaOutputFormat.webp => 'WebP',
@@ -229,6 +234,16 @@ extension FrameLeanVideoCodecLabel on VideoCodec {
         return 'H.264';
       case VideoCodec.hevc:
         return 'H.265 / HEVC';
+      case VideoCodec.vp9:
+        return 'VP9';
+      case VideoCodec.av1:
+        return 'AV1';
+      case VideoCodec.proRes:
+        return 'Apple ProRes';
+      case VideoCodec.mpeg4:
+        return 'MPEG-4 Part 2';
+      case VideoCodec.mjpeg:
+        return 'Motion JPEG';
     }
   }
 }

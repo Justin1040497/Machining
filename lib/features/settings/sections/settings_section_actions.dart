@@ -1,6 +1,34 @@
 part of '../pages/app_settings_page.dart';
 
 extension _AppSettingsViewSectionActions on _AppSettingsViewState {
+  Future<void> recordShortcut(AppShortcutAction action) async {
+    final binding = await showDialog<AppShortcutBinding>(
+      context: context,
+      builder: (context) => _ShortcutRecorderDialog(action: action),
+    );
+    if (!mounted || binding == null) return;
+
+    AppShortcutAction? conflict;
+    for (final entry in shortcutBindings.entries) {
+      if (entry.key != action && entry.value.signature == binding.signature) {
+        conflict = entry.key;
+        break;
+      }
+    }
+    if (conflict != null) {
+      updateViewState(() {
+        shortcutConflictMessage =
+            '“${shortcutBindingLabel(binding)}”已用于“${conflict!.settingsLabel}”。';
+      });
+      return;
+    }
+
+    updateViewState(() {
+      shortcutConflictMessage = null;
+      shortcutBindings = {...shortcutBindings, action: binding};
+    });
+  }
+
   Future<void> pickOutputDirectory() async {
     final selectedPath = await widget.onPickOutputDirectory();
     if (!mounted || selectedPath == null || selectedPath.trim().isEmpty) {
@@ -148,53 +176,4 @@ extension _AppSettingsViewSectionActions on _AppSettingsViewState {
     }
   }
 
-  Future<void> confirmUninstallApp() async {
-    final availabilityCallback = widget.onLoadAppUninstallAvailability;
-    final launchCallback = widget.onLaunchCleanUninstaller;
-    if (availabilityCallback == null || launchCallback == null) {
-      return;
-    }
-
-    updateViewState(() => uninstalling = true);
-    try {
-      final availability = await availabilityCallback();
-      if (!mounted) {
-        return;
-      }
-
-      if (!availability.available) {
-        await showDialog<void>(
-          context: context,
-          builder: (context) => _ConfirmMaintenanceDialog(
-            title: '无法卸载',
-            message: availability.unavailableReason ?? '当前运行方式未找到安装器卸载信息。',
-            confirmLabel: '知道了',
-            singleAction: true,
-          ),
-        );
-        return;
-      }
-
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => const _ConfirmMaintenanceDialog(
-          title: '卸载 FrameLean',
-          message:
-              '确认后应用会关闭，并启动清理卸载脚本。脚本会删除应用程序、设置、数据库、缓存和注册表记录，'
-              '不会扫描或删除你导出的媒体文件。',
-          confirmLabel: '卸载应用',
-          destructive: true,
-        ),
-      );
-      if (!mounted || confirmed != true) {
-        return;
-      }
-
-      await launchCallback();
-    } finally {
-      if (mounted) {
-        updateViewState(() => uninstalling = false);
-      }
-    }
-  }
 }

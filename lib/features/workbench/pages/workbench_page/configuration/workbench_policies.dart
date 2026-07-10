@@ -1,13 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 
@@ -66,7 +60,7 @@ abstract final class WorkbenchQualityPolicy {
   static int qualityIndexForTargetSizeRatio(double? targetSizeRatio) {
     if (targetSizeRatio == null || targetSizeRatio <= 0) {
       return qualityIndexForTargetSizeRatio(
-        MediaConfigurationUiConstants.defaultTargetSizeRatio,
+        defaultTargetSizeRatio,
       );
     }
 
@@ -120,10 +114,10 @@ abstract final class WorkbenchQualityPolicy {
 
   static double normalizeTargetSizeRatio(double? targetSizeRatio) {
     if (targetSizeRatio == null || targetSizeRatio <= 0) {
-      return MediaConfigurationUiConstants.defaultTargetSizeRatio;
+      return defaultTargetSizeRatio;
     }
 
-    var nearestRatio = MediaConfigurationUiConstants.defaultTargetSizeRatio;
+    var nearestRatio = defaultTargetSizeRatio;
     var nearestDistance = double.infinity;
     for (final ratio in WorkbenchConstants.targetSizeRatios) {
       final distance = (ratio - targetSizeRatio).abs();
@@ -227,27 +221,48 @@ abstract final class WorkbenchEncoderPolicy {
     required VideoCodec videoCodec,
     required EncoderBackend selectedBackend,
   }) {
-    final softwareBackend = videoCodec == VideoCodec.hevc
-        ? EncoderBackend.libx265
-        : EncoderBackend.libx264;
+    final softwareBackend = switch (videoCodec) {
+      VideoCodec.h264 => EncoderBackend.libx264,
+      VideoCodec.hevc => EncoderBackend.libx265,
+      VideoCodec.vp9 => EncoderBackend.libvpxVp9,
+      VideoCodec.av1 => EncoderBackend.libsvtav1,
+      VideoCodec.proRes => EncoderBackend.proresKs,
+      VideoCodec.mpeg4 => EncoderBackend.nativeMpeg4,
+      VideoCodec.mjpeg => EncoderBackend.nativeMjpeg,
+      VideoCodec.source => EncoderBackend.auto,
+    };
 
     late final List<EncoderBackend> backends;
     if (Platform.isMacOS) {
       backends = [
         EncoderBackend.auto,
-        EncoderBackend.videotoolbox,
-        softwareBackend,
+        if (videoCodec == VideoCodec.h264 || videoCodec == VideoCodec.hevc)
+          EncoderBackend.videotoolbox,
+        if (softwareBackend != EncoderBackend.auto) softwareBackend,
       ];
     } else if (Platform.isWindows) {
       backends = [
         EncoderBackend.auto,
-        EncoderBackend.nvenc,
-        EncoderBackend.qsv,
-        EncoderBackend.amf,
-        softwareBackend,
+        if (videoCodec == VideoCodec.h264 ||
+            videoCodec == VideoCodec.hevc ||
+            videoCodec == VideoCodec.av1)
+          EncoderBackend.nvenc,
+        if (videoCodec == VideoCodec.h264 ||
+            videoCodec == VideoCodec.hevc ||
+            videoCodec == VideoCodec.vp9 ||
+            videoCodec == VideoCodec.av1)
+          EncoderBackend.qsv,
+        if (videoCodec == VideoCodec.h264 ||
+            videoCodec == VideoCodec.hevc ||
+            videoCodec == VideoCodec.av1)
+          EncoderBackend.amf,
+        if (softwareBackend != EncoderBackend.auto) softwareBackend,
       ];
     } else {
-      backends = [EncoderBackend.auto, softwareBackend];
+      backends = [
+        EncoderBackend.auto,
+        if (softwareBackend != EncoderBackend.auto) softwareBackend,
+      ];
     }
 
     if (!backends.contains(selectedBackend)) {
@@ -264,7 +279,64 @@ abstract final class WorkbenchEncoderPolicy {
     return switch (backend) {
       EncoderBackend.libx264 => codec == VideoCodec.h264,
       EncoderBackend.libx265 => codec == VideoCodec.hevc,
-      _ => true,
+      EncoderBackend.libvpxVp9 => codec == VideoCodec.vp9,
+      EncoderBackend.libsvtav1 => codec == VideoCodec.av1,
+      EncoderBackend.proresKs => codec == VideoCodec.proRes,
+      EncoderBackend.nativeMpeg4 => codec == VideoCodec.mpeg4,
+      EncoderBackend.nativeMjpeg => codec == VideoCodec.mjpeg,
+      EncoderBackend.videotoolbox =>
+        codec == VideoCodec.h264 || codec == VideoCodec.hevc,
+      EncoderBackend.nvenc || EncoderBackend.amf =>
+        codec == VideoCodec.h264 ||
+            codec == VideoCodec.hevc ||
+            codec == VideoCodec.av1,
+      EncoderBackend.qsv =>
+        codec == VideoCodec.h264 ||
+            codec == VideoCodec.hevc ||
+            codec == VideoCodec.vp9 ||
+            codec == VideoCodec.av1,
+      EncoderBackend.auto => codec != VideoCodec.source,
     };
+  }
+}
+
+/// 编解码器与 HDR 策略。
+///
+/// 消除 task_configuration_dialog.dart 中两处重复的 onVideoCodecChanged 逻辑。
+abstract final class WorkbenchCodecPolicy {
+  /// 解析编解码器变更请求，返回修正后的 (codec, backend) 组合。
+  ///
+  /// 处理两类约束：
+  /// 1. HDR 约束：当 [preservingHdr] 为 true 时强制使用 HEVC。
+  /// 2. 兼容性约束：如果当前 [currentBackend] 不兼容目标 codec，
+  ///    回退到 [EncoderBackend.auto]。
+  static ({VideoCodec codec, EncoderBackend backend}) resolveCodecChange({
+    required VideoCodec requested,
+    required EncoderBackend currentBackend,
+    required bool preservingHdr,
+  }) {
+    var codec = requested;
+    var backend = currentBackend;
+
+    if (preservingHdr && codec != VideoCodec.hevc) {
+      codec = VideoCodec.hevc;
+    }
+
+    if (!WorkbenchEncoderPolicy.isBackendCompatibleWithCodec(backend, codec)) {
+      backend = EncoderBackend.auto;
+    }
+
+    return (codec: codec, backend: backend);
+  }
+
+  /// 给定的智能预设是否兼容 HDR 输出。
+  static bool isHdrCompatibleSmartPreset(SmartCompressionPreset preset) {
+    return preset == SmartCompressionPreset.balanced ||
+        preset == SmartCompressionPreset.clear;
+  }
+
+  /// 给定的视频编解码器是否兼容 HDR 输出。
+  static bool isHdrCompatibleCodec(VideoCodec codec) {
+    return codec == VideoCodec.hevc || codec == VideoCodec.proRes;
   }
 }

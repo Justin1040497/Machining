@@ -1,11 +1,5 @@
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/hdr_output_mode.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 
 class FfmpegEncoderResolver {
@@ -31,6 +25,21 @@ class FfmpegEncoderResolver {
   VideoCodec resolveTargetVideoCodec(MediaTask task) {
     if (shouldPreserveHdr(task)) {
       return VideoCodec.hevc;
+    }
+
+    if (task.purpose == TaskPurpose.conversion) {
+      final sourceCodec = MediaCodecNormalizer.normalize(
+        task.analysisResult?.videoCodec,
+      );
+      final sourceVideoCodec = sourceCodec == null
+          ? null
+          : MediaCodecNormalizer.videoCodecForSource(sourceCodec);
+      if (sourceVideoCodec != null) {
+        final outputFormat = task.config.outputFormat;
+        return VideoOutputCompatibility.supports(outputFormat, sourceVideoCodec)
+            ? sourceVideoCodec
+            : VideoOutputCompatibility.defaultCodecFor(outputFormat);
+      }
     }
 
     final configuredCodec = task.config.videoCodec;
@@ -103,6 +112,11 @@ class FfmpegEncoderResolver {
     return switch (targetCodec) {
       VideoCodec.h264 => EncoderBackend.libx264,
       VideoCodec.hevc => EncoderBackend.libx265,
+      VideoCodec.vp9 => EncoderBackend.libvpxVp9,
+      VideoCodec.av1 => EncoderBackend.libsvtav1,
+      VideoCodec.proRes => EncoderBackend.proresKs,
+      VideoCodec.mpeg4 => EncoderBackend.nativeMpeg4,
+      VideoCodec.mjpeg => EncoderBackend.nativeMjpeg,
       VideoCodec.source => throw const SourceCodecNotResolvedException(),
     };
   }
@@ -141,7 +155,8 @@ class FfmpegEncoderResolver {
 
   bool shouldPreserveHdr(MediaTask task) {
     return task.analysisResult?.isHdr == true &&
-        task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr;
+        (task.purpose == TaskPurpose.conversion ||
+            task.config.video?.hdrOutputMode == HdrOutputMode.preserveHdr);
   }
 
   bool isHighRiskAppleHdrSource(MediaTask task) {

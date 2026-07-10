@@ -1,8 +1,6 @@
 import 'package:drift/drift.dart';
-import 'package:framelean/application/repositories/app_notification_repository.dart';
-import 'package:framelean/domain/entities/app_notification_entry.dart';
-import 'package:framelean/domain/enums/app_notification_kind.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 
 class DriftAppNotificationRepository implements AppNotificationRepository {
@@ -48,6 +46,46 @@ class DriftAppNotificationRepository implements AppNotificationRepository {
     return database
         .into(database.appNotificationRows)
         .insertOnConflictUpdate(notification.toCompanion());
+  }
+
+  @override
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  ) async {
+    final dedupeKey = notification.dedupeKey?.trim();
+    if (dedupeKey == null || dedupeKey.isEmpty) {
+      await saveNotification(notification);
+      return notification;
+    }
+
+    final existing = await (database.select(
+      database.appNotificationRows,
+    )..where((table) => table.dedupeKey.equals(dedupeKey))).getSingleOrNull();
+
+    if (existing == null) {
+      await saveNotification(notification);
+      return notification;
+    }
+
+    final updated = AppNotificationEntry(
+      id: existing.id,
+      kind: notification.kind,
+      level: notification.level,
+      title: notification.title,
+      message: notification.message,
+      source: notification.source,
+      createdAt: notification.createdAt,
+      dedupeKey: dedupeKey,
+      readAt: existing.readAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(existing.readAt!),
+      dismissedAt: existing.dismissedAt == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(existing.dismissedAt!),
+      payloadJson: notification.payloadJson,
+    );
+    await saveNotification(updated);
+    return updated;
   }
 
   @override
@@ -106,6 +144,7 @@ extension AppNotificationRowMapper on AppNotificationRow {
       message: message,
       source: source,
       createdAt: DateTime.fromMillisecondsSinceEpoch(createdAt),
+      dedupeKey: dedupeKey,
       readAt: readAt == null
           ? null
           : DateTime.fromMillisecondsSinceEpoch(readAt!),
@@ -126,6 +165,7 @@ extension AppNotificationEntryMapper on AppNotificationEntry {
       title: Value(title),
       message: Value(message),
       source: Value(source),
+      dedupeKey: Value(dedupeKey),
       createdAt: Value(createdAt.millisecondsSinceEpoch),
       readAt: Value(readAt?.millisecondsSinceEpoch),
       dismissedAt: Value(dismissedAt?.millisecondsSinceEpoch),

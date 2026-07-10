@@ -29,6 +29,420 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-04｜v1.2.1｜No Release
+
+校准 RuoYi-Vue-Plus 后台和自托管更新部署文档，明确旧 Admin Web 已废弃以及历史缺包版本的归档策略。
+
+### Changed
+
+- 更新 v1.2.1 Admin Web / 自托管更新服务文档，把旧 React Admin 主密码和 challenge 登录描述替换为当前 RuoYi / Sa-Token 登录态与 `X-Api-Key` 兼容鉴权。
+- 明确自动更新发布要求：`windows-installer` 和 `macos-universal2` 是当前客户端可见必填包，缺少 Windows `.exe` 安装器的历史版本只能作为 draft / 归档留存，不进入 `/latest` 发布通道。
+- 校准技术栈文档中的后台鉴权和会话存储事实，标注 `admin_auth_config` 仅为历史表。
+
+### Verified
+
+- 通过文档 diff 审查和打包 / 更新配置新鲜度检查，确认 GitHub Actions、本地 release 脚本和当前文档中的更新地址、签名和制品路径语义一致。
+
+## 2026-06-28｜v1.2.1｜No Release
+
+重写自托管更新后端，迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X，保留客户端更新协议、COS 私有桶分发、Redis 短期票据和既有发布数据模型。
+
+### Added
+
+- 新增 `ruoyi-modules/ruoyi-framelean` 业务模块，提供公开更新 API、Sparkle appcast、发布管理、COS 预签名上传 / 下载、下载票据、更新检查审计、下载审计和 IP 屏蔽。
+- 新增 plus-ui FrameLean 后台页面：发布版本、更新审计、运行诊断，并把旧 `/web` 重定向到新后台入口。
+- 新增 PostgreSQL Flyway 迁移，导入 RuoYi 系统表并保留 `releases`、`release_packages`、`release_artifact_requirements`、`download_events`、`update_check_events` 和 `ip_block_rules`。
+
+### Changed
+
+- `server/` 从旧 Kotlin + 手写 React Admin 改为 RuoYi-Vue-Plus 5.X 多模块后端和官方 plus-ui 5.X 前端；旧主密码 / challenge 登录和 `admin_auth_config` 认证流废弃。
+- 部署配置改为 PostgreSQL + Redis + COS + Sa-Token secret 的 RuoYi 单容器 API，Dockerfile 改为 plus-ui build + `ruoyi-admin` Maven build。
+- `FRAMELEAN_PUBLIC_BASE_URL` 作为公网根地址，旧 `FRAMELEAN_UPDATE_BASE_URL` 继续作为 fallback。
+
+### Verified
+
+- 通过 `rtk mvn --settings /private/tmp/framelean-maven-settings.xml -Dmaven.wagon.rto=180000 -Dmaven.wagon.http.retryHandler.count=3 -pl ruoyi-admin -am -DskipTests package`，RuoYi 后端和 `ruoyi-framelean` 模块编译成功。
+- 通过 `rtk npm install --registry=https://registry.npmmirror.com --fetch-timeout=60000 --fetch-retries=1` 安装 plus-ui 依赖；Node 23 下仅有 engine warning。
+- 通过 `rtk npm run build:prod`，plus-ui 生产构建成功。
+- 通过 `rtk proxy env SA_TOKEN_JWT_SECRET=test-secret FRAMELEAN_PUBLIC_BASE_URL=https://framelean.example.com docker compose config`。
+- 通过 `rtk git diff --check`。
+
+## 2026-06-26｜v1.2.1｜No Release
+
+修复任务夹共同设置会错误统一覆盖每个任务输出文件名的 bug。
+
+### Fixed
+
+- 修复任务夹共同设置下发后，夹内所有任务的 `outputFileName` 都被套用第一个任务源名渲染结果的问题：`ApplyTaskFolderConfigUseCase` 现注入 `AppSettingsRepository`，对每个可应用任务按全局模板 + 各自源名重新渲染输出文件名，`{version}` 保留各任务自己的处理序号，`{date}` 用下发时刻。
+
+### Verified
+
+- 通过 `rtk flutter analyze`，全量静态分析无 issue。
+- 通过 `rtk flutter test test/task_folder_use_cases_test.dart`，9 项通过（含新增「按各自源名重渲染」用例）。
+
+## 2026-06-25｜v1.2.1｜No Release
+
+收口更新提示体验和媒体处理稳定性：更新入口从全量日志弹窗改为 L1 状态胶囊、L2 轻量通知弹窗和 L3 完整版本日志页；FFprobe / FFmpeg 执行链路增加超时、卡死和硬件编码会话失效保护。
+
+### Added
+
+- 新增 `UpdateNoticeDialog`：以 380px 级轻量弹窗展示新版本摘要、下载状态、安装动作和完整日志入口，mandatory 更新隐藏「下次再说」并禁止点击遮罩关闭。
+- 新增更新 snooze 持久化端口和本地实现：同版本点击「下次再说」后，后续自动检查只显示工作台顶部入口，不再自动弹窗；新版本发布后 snooze 自动失效。
+- 新增 Flutter `integration_test` 基础设施和 `integration_test/app_smoke_test.dart`：使用内存 Drift 数据库启动真实 `FrameLeanApp` Widget 树，覆盖应用启动 / 设置路由、文件导入自动建夹、通知中心持久化和手动更新入口等桌面集成烟测。
+- 新增 FFmpeg 进程 stall 检测：长时间无 stdout / stderr 活动时强制终止进程并返回无响应失败，避免任务永久占用执行位。
+- 新增硬件编码器会话失效自动恢复：VideoToolbox / NVENC / QSV / AMF 出现典型 external library 错误时，当前 step 清理残留输出后自动重试一次。
+
+### Changed
+
+- 工作台顶部更新入口由 32px 图标改为状态胶囊，按 `新版本`、`下载中`、`已暂停`、`已就绪`、`更新失败` 展示版本或进度。
+- 新增 `appRuntimeEffectsEnabledProvider` 测试边界：生产默认开启系统快捷键、窗口 / 托盘监听、启动清理和更新自动检查；集成测试可关闭这些运行期副作用。
+- 跨层共享常量下沉到 `domain/constants.dart` 和 `application/constants.dart`，`app/constants.dart` 只保留 app / UI 侧入口并 re-export 低层常量，避免低层反向依赖 app barrel。
+- 设置页手动检查发现新版本后弹出 L2 更新通知，不再直接进入完整版本日志页；设置页移除独立「版本日志」按钮。
+- 通知中心当前更新通知点击打开 L2 更新通知；历史版本通知直接进入 L3 完整版本日志页。
+- FFprobe 分析从 `Process.run().timeout()` 改为 `Process.start`，超时后主动 kill 子进程并回收输出流。
+- 任务失败通知改为展示友好失败原因和建议，原始 FFmpeg stderr 继续保留在任务日志中。
+- macOS Sparkle xcconfig 注释改为当前默认手动 DMG 更新路线；Sparkle feed 和公钥只在显式启用 Sparkle appcast 路线时填写。
+
+### Fixed
+
+- 修复通知中心历史版本在缺少版本号时进入 `/settings/release-notes&from=workbench` 的 URL 拼接错误。
+- 修复更新失败哨兵文件检查在无 `path_provider` 插件环境下抛出未处理异常的问题，保持启动检查 best-effort。
+- 修复 `test/widget_test.dart` 测试适配器未使用可选参数和 `tool/sign_windows_update.dart` 空值 map 写法导致的全量 analyze issue。
+- 修复 `architecture_dependencies_test.dart` 报出的 domain / application / infrastructure 反向导入 `app/library.dart` 问题，恢复 Clean Architecture 依赖护栏。
+- 修复 FFprobe 超时后底层子进程仍可能在后台存活的问题。
+- 修复 FFmpeg 进程挂死时队列一直停留在 `running` 并阻塞后续任务的问题。
+- 修复任务失败通知可能直接暴露 exit code、硬件编码器 stderr 或内部转换失败细节的问题。
+
+### Verified
+
+- 通过 `rtk dart format` 覆盖本次触达的 Dart 文件。
+- 通过 `rtk flutter test integration_test/app_smoke_test.dart`，4 个桌面集成烟测通过；macOS Debug app 构建阶段仅提示本地未放置 Universal FFmpeg / QMC 运行时。
+- 通过 `rtk flutter test test/app_update_provider_test.dart`，更新自动检查、snooze、下载、安装 helper 和 Sparkle 策略测试共 9 个通过。
+- 通过 `rtk flutter test test/architecture_dependencies_test.dart`，架构依赖护栏测试通过。
+- 通过 `rtk flutter analyze`，全量静态分析无 issue。
+- 通过 `rtk flutter test --file-reporter=json:/private/tmp/framelean_flutter_test_final.json`，全量 Flutter 测试 375 项通过。
+- 通过 `rtk git diff --check`。
+
+## 2026-06-23｜v1.2.1｜No Release
+
+实施 library barrel 导入架构治理，重组工作台弹窗目录，并收口工作台图标常量。
+
+### Added
+
+- `lib/domain/library.dart`、`lib/application/library.dart`、`lib/infrastructure/library.dart`、`lib/app/library.dart`：分层 barrel 导出门面，按白名单封装公共 API。
+- `lib/features/workbench/library.dart`、`lib/features/settings/library.dart`、`lib/features/notifications/library.dart`：功能模块 barrel 入口。
+- `lib/app/presentation/widgets/confirm_dialog.dart`：通用二次确认弹窗模板，统一清除、重启、导入失败等确认弹窗样式。
+- `lib/features/workbench/workbench_icons.dart`：工作台图标常量集中管理，包含 MediaKind / TaskStatus / 右键菜单扩展和散落 Icons 常量。
+- `lib/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_state.dart`：任务配置弹窗状态管理。
+- `lib/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_template.dart`：任务配置弹窗布局模板。
+- `docs/decisions/260623-library-barrel-import-architecture.md`：barrel 导入架构决策文档。
+
+### Changed
+
+- 165 个源文件跨层导入从直达文件改写为经 `library.dart` barrel 导入（789 处改写）。
+- `analysis_options.yaml` 启用 `always_use_package_imports: true`，永久禁止相对路径导入。
+- 工作台弹窗从平铺 `dialogs/` 重组为 `dialogs/config/`、`dialogs/confirm/`、`dialogs/task/` 三个子目录。
+- `media_kind_icons.dart` 合并到 `workbench_icons.dart`，删除 `presentation_mappers/` 目录。
+- `workbench_dialog_widgets.dart` 拆解为 `ConfirmDialog`（共享组件）和各弹窗内联辅助方法。
+
+### Verified
+
+- `flutter analyze lib/` 零 warning。
+- `flutter test` 通过 357 个；失败 12 个集中在 `app_update_provider_test.dart`（预存超时 + provider dispose 稳定性问题，barrel 改写无关）。
+- 架构依赖测试失败 4 处为预存依赖方向违规（domain/infrastructure → app），barrel 聚合后更集中可见，属于 ADR 260614 治理范围。
+
+---
+
+## 2026-06-22｜v1.2.1｜No Release
+
+移除应用内卸载入口和随包自卸载脚本，避免 Windows 端卸载功能异常影响用户体验。
+
+### Removed
+
+- 移除设置页"关于"区域的"卸载应用"按钮（原仅 Windows 显示），macOS 和 Windows 均不再提供应用内卸载入口。
+- 删除 `AppUninstaller` 服务接口、`WindowsCleanAppUninstaller`、`NoopAppUninstaller` 实现及两个卸载 use case。
+- 删除随包脚本 `installer/macos/FrameLean-Clean-Uninstall.command` 和 `installer/windows/FrameLean-Clean-Uninstall.ps1`。
+- 移除 Windows 安装器 `[UninstallRun]` 自卸载钩子。
+
+### Changed
+
+- 更新 `docs/develop/architecture.md`、`docs/develop/test-plan.md`、`docs/releases/v1.2.1/self-hosted-update-client.md` 中的卸载相关描述。
+
+---
+
+## 2026-06-21｜v1.2.1｜No Release
+
+修复 macOS 手动 DMG 更新流程在重启后重复提示下载的问题，并为 macOS DMG 增加自定义品牌化背景。
+
+### Changed
+
+- macOS DMG 构建增加自定义品牌化背景和布局：使用 FrameLean 浅色主题色（`#1D48E6` primary、`#F5F7FB` surfaceCanvas），DMG 打开后显示品牌色箭头、引导文字和 Applications 快捷方式，改善首次安装体验。
+
+### Fixed
+
+- 修复 `checkForUpdate` 在已有有效 DMG 包时仍显示”下载 DMG”的问题：现在检查更新发现新版本后，会先扫描下载目录是否存在对应版本且 SHA-256 / Ed25519 校验通过的包，存在则直接标记为已下载并显示”打开 DMG”。
+
+## 2026-06-20｜v1.2.1｜No Release
+
+今天继续收口 v1.2.1 桌面体验：输出运行时保护、任务 / 任务夹输出位置、现代视频容器矩阵、通知策略、快捷键系统和关闭到后台行为完成第一轮实现，并同步 FFmpeg 法律资料、macOS CocoaPods 发布链和 v1.2.1 release 文档。
+
+### Added
+
+- 新增隐藏 partial 输出保护：FFmpeg 先写入同目录隐藏临时文件，成功后原子发布到最终路径；运行中检测到 partial 连续消失会立即终止任务并提示临时输出被删除或移动。
+- 新增应用启动 interrupted output 清理：异常退出后清理遗留 `.framelean-*.partial*`，并把仍处于运行 / 暂停态的任务标记为失败。
+- 新增 `OutputLocationMode`，任务夹主区域和单任务高级设置都可选择“使用系统设置 / 源文件旁 / 自定义目录”，系统模式在执行时读取最新应用设置。
+- 新增视频输出兼容矩阵：MP4、MOV、MKV、WebM、AVI 容器分别限制可用编码，AVI 定位为传统兼容格式，仅支持 MPEG-4 Part 2 和 MJPEG。
+- 新增 VP9、AV1、ProRes、MPEG-4 Part 2、MJPEG 编码规划，以及 WebM / AVI 输出命令构建、能力检测和发布检查。
+- 新增通知策略设置，可按事件选择“通知 / 临时通知 / 不通知”；普通交互和保存成功默认临时通知，任务结果、更新和重要失败默认持久通知。
+- 新增快捷键系统与设置页重映射：Esc 返回 / 关闭顶层界面，F 添加文件或文件夹，Space 开始 / 暂停，主修饰键 + `,` 打开设置，主修饰键 + Shift + N 打开通知中心。
+- 新增窗口关闭行为设置：默认关闭到后台，Windows 使用托盘恢复 / 退出，macOS 通过 Dock 重新打开窗口；显式退出时会确认运行任务并清理 partial 输出。
+- 新增托管更新配置快照：macOS 支持 MDM / `/Library` 托管配置，Windows 支持 HKLM policy / `%ProgramData%` 托管配置，用户可写配置会被忽略。
+- 新增 Windows 更新包 Ed25519 强制验签、严格断点恢复、重启前任务清理和 updater helper 安装后 build 确认。
+- 新增 macOS Sparkle 2 更新桥接、重启前 Flutter 准备回调、Sparkle appcast 服务端接口、Admin Web 元数据导入和统一签名元数据生成。
+
+### Changed
+
+- FFmpeg 命令规划支持把执行输出路径替换为 partial 路径，同时保留任务最终输出路径；发布前会再次规避外部重名，避免覆盖用户文件。
+- 视频格式转换继续优先安全流复制；不兼容时按目标容器自动选择保真转码参数，透明视频仍强制 MOV + ProRes 4444，不提供 AVI。
+- 压缩配置中“推荐方案选项 / 自定义目标体积”切换改为 240ms 尺寸交叉动画，降低弹窗高度跳变。
+- 任务夹设置顶部摘要右侧图标区改为受约束拉伸，跟随摘要高度对齐。
+- 快捷键注册改为基于 `hotkey_manager` 的应用内热键，不再依赖页面焦点树；快捷键录入继续复用应用弹窗风格。
+- 工作台左下角添加入口改为统一批次导入；macOS 通过原生选择器支持同一对话框多选文件和文件夹，Windows 保留文件多选和拖拽文件夹能力。
+- macOS 桌面插件集成改为保留 CocoaPods `Podfile` / `Podfile.lock` 和 Runner workspace Pods 引用，用于窗口管理和托盘插件。
+- Windows 自托管自动更新平台改为 `windows-installer`，`windows-x64` ZIP 调整为手动下载 / 后台留存包。
+- FFmpeg 许可证、源码获取、第三方声明和内置运行时说明补充 libvpx、SVT-AV1、WebM、AVI、MPEG-4 Part 2、MJPEG、VP9、AV1 能力。
+- 设置页关于分区动作区改为“更新 / 维护”两组，除检查更新外统一使用中性描边按钮，降低按钮颜色噪音。
+- macOS / Windows GitHub Actions 发布打包改为显式注入更新服务地址；Windows 继续强制 Ed25519 签名配置，macOS Sparkle 配置仅在启用 Sparkle 路线时需要，缺少必要 GitHub Variables / Secrets 时直接失败。
+- macOS 默认更新路线从 Sparkle 自动更新改为 JSON latest / ticket 检查、展示版本日志、下载 DMG 到用户下载目录并打开 DMG 所在位置；Sparkle appcast 仅作为未来可选签名路线保留。
+- 服务端和 Admin Web 放开 macOS DMG 的 Sparkle 签名必填限制；Windows 安装器 Ed25519 签名仍为发布必填。
+- `framelean-delivery` 和 `framelean-release` skills 增加打包新鲜度检查，要求交付和 release 文档生成前核对脚本、Action、YAML、签名和更新元数据链路。
+
+### Fixed
+
+- 修复 macOS 本地打包在 `macos-x64` 被误放 arm64 FFmpeg 时只报告模糊
+  Universal runtime 错误的问题；现在会打印全部切片架构并明确引导使用
+  `Build macOS Universal` Action 生成单一 Universal 2 DMG。
+- 修复用户在任务运行中删除正在写入的目标文件时，进度仍继续跑到结尾才报错的问题；现在任务会在 partial 丢失后尽快失败并清理状态。
+- 修复旧任务空输出目录语义不清的问题：旧空路径迁移为“源文件旁”，新任务默认使用系统设置。
+- 修复任务结果、设置保存和普通交互通知无法区分持久 / 临时投递的问题。
+- 修复任务设置和通知设置中的下拉框高度过矮、通知投递方式未垂直居中，以及快捷键录入时 Esc 误退出整个设置页的问题。
+- 修复设置页分区动作被表单布局遗漏导致保存 / 取消按钮不可见的问题。
+- 修复图片 fallback 结果在无 preflight 兼容路径下没有清理无效输出文件的问题。
+- 修复 macOS release 脚本、CI 和文档仍按 v1.2.0 SwiftPM-only 口径描述的问题，当前统一为 CocoaPods 插件集成。
+- 修复 Windows 彻底卸载脚本在 UAC 后可能清理到管理员用户目录的问题，提权前会解析原用户数据、临时目录、快捷方式和用户注册表根并传给 elevated 脚本。
+
+### Verified
+
+- 通过 `rtk dart format lib test tool`。
+- 通过 `rtk flutter analyze`。
+- 通过 `rtk flutter test test/app_update_provider_test.dart test/local_app_update_package_downloader_test.dart`。
+- 通过 `rtk flutter test test/app_settings_page_test.dart`。
+- 通过 `rtk flutter test --concurrency=1 test/app_notification_manager_test.dart test/app_settings_page_test.dart test/app_settings_save_coordinator_test.dart test/drift_app_settings_repository_test.dart test/output_preflight_service_test.dart test/ffmpeg_command_builder_test.dart test/ffmpeg_task_queue_runner_test.dart test/media_task_use_case_helpers_test.dart test/media_task_notifier_test.dart test/widget_test.dart test/workbench_bottom_bar_test.dart`，共 205 项定向回归。
+- 通过 `flutter test`，共 358 项测试。
+- 通过 `cd server/admin-web && npm run build`。
+- 通过 `cd server && rtk mvn test -Dtest=ReleaseServiceTest,UpdateServiceTest`。
+- 通过 `cd server && mvn test`，共 14 项测试通过，2 项 Testcontainers 集成测试因本机无 Docker 跳过。
+- 通过 `rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh` 和 `rtk bash -n scripts/release/build_dmg_macos.sh`。
+- 通过 `rtk git diff --check`。
+- 通过 Ruby YAML 解析校验 `.github/workflows/build-macos.yml` 和 `.github/workflows/build-windows.yml`。
+- 通过 Ruby YAML frontmatter 校验 `framelean-delivery` 和 `framelean-release` skills；`quick_validate.py` 因本机缺少 `PyYAML` 未运行。
+
+## 2026-06-21｜v1.2.1｜No Release
+
+今天改进版本号与构建号管理链路：构建号由手动硬编码改为 pubspec.yaml 自动生成，并在 .update.json 制品元数据中携带；服务端去掉脆弱的 MAX()+1 计数器，构建号改为 Admin 必填或从制品识别后填入。
+
+### Added
+
+- 新增 `tool/generate_build_info.dart`：从 `pubspec.yaml` 读取 `version: X.Y.Z+N` 并自动生成 `lib/application/services/framelean_build_info.dart`，构建脚本在 Flutter build 前自动执行，无需再手动同步两处版本号。
+- macOS / Windows `.update.json` 制品元数据新增加 `version` 和 `buildNumber` 字段，由构建脚本从 `pubspec.yaml` 提取写入。
+- Admin Web 新建版本草稿表单新增加“构建号”输入框（可留空），草稿详情页上传制品元数据后自动识别并对比构建号：
+  - 构建号未设置时：蓝色提示 +“使用此构建号”按钮。
+  - 与登记不一致时：黄色警告 +“改用识别结果”按钮。
+  - 一致时：绿色“已核对”提示。
+- 新增 `PATCH /api/v1/admin/releases/{version}/build-number` 接口，允许在草稿阶段修改构建号。
+- 新增 `UpdateBuildNumberRequest` DTO 和 `ReleaseService.updateBuildNumber()` 方法。
+
+### Changed
+
+- `framelean_build_info.dart` 现在是自动生成文件，新增 `AUTO-GENERATED — DO NOT EDIT` 头注释。
+- 服务端 `build_number` 来源从 `SELECT MAX(build_number) + 1` 计数器改为 Admin 显式传入；`ReleaseMapper.nextBuildNumber()` 已移除。
+- `CreateReleaseRequest.buildNumber` 从 `Int?` 改为 `Int`，默认值 `0`（留空表示未设置）。
+
+### Removed
+
+- 移除 `ReleaseMapper.nextBuildNumber()` 方法和对应的 `MAX()+1` SQL 查询。
+
+## 2026-06-19｜v1.2.1｜No Release
+
+今天收口工作台任务夹拖拽、任务夹交互和受控并行队列，并重构执行作用域、批次导入分组、媒体处理意图和任务夹配置摘要。
+
+### Added
+
+- 新增全应用 `FrameLeanReorderableListView`，支持拖拽更新、三种 gap 策略、排序 / 外部接收 / 取消 drop、跨轴拖动和外部接收代理装饰。
+- 任务夹内任务可通过拖拽柄移到面板外遮罩，释放后在落点缩小淡出并移回总列表。
+- 新增受控并行执行：设置页可选择 1 到 3 个最大并行任务数，队列通过资源守卫按 CPU、内存和任务类型决定实际执行位。
+- 新增任务和任务夹项目风格右键菜单；任务可通过“添加到任务夹”二级菜单加入同媒体类型任务夹，任务夹可右键重命名。
+- 图片任务详情新增无损压缩开关；开启后仅提供 PNG、WebP、TIFF，WebP 使用 lossless 模式，TIFF 使用 Deflate，并隐藏有损质量滑杆。
+- 导入入口新增文件夹选择和拖拽文件夹扫描；扫描深度默认 2 层并可在设置页调整，每种媒体独立达到 2 个时才创建对应任务夹。
+- 任务详情新增“压缩 / 格式转换”意图切换和默认收起的高级设置，支持线程限制、视频两遍压缩模式及多音频流选择。
+
+### Changed
+
+- 任务详情和任务夹设置改用 Flutter 原生 Cupertino 滑动分段控件与复选框选项，并固定顶部标题栏和底部操作区；中间配置使用无回弹滚动和独立滚动条安全槽。
+- 工作台顶层拖拽保留官方 ReorderableList 的拖拽代理、自动滚动和 gap 动画，同时增加同类型任务夹整行冻结、返回任务夹时 gap 复位和 drop 消费钩子。
+- 同类型任务夹中部释放仍走入夹；上下 16px 边缘释放、普通任务和跨类型任务夹仍走排序路径，跨类型任务夹保持禁用视觉且不显示拒绝提示。
+- 顶层排序采用乐观视觉顺序衔接异步 Drift 持久化；提交成功后由仓储结果接管，失败时回滚，避免 drop 动画结束后列表项短暂返回旧位置。
+- 夹内排序同样使用乐观视觉顺序；移出持久化失败时恢复任务行，面板标题区和内部空白区释放按取消处理。
+- 任务夹内容浮层改为从左侧滑入，与通知中心右侧浮层保持对称动画；多选创建任务夹入口改为应用左侧批量操作条。
+- 新任务和新任务夹插入到未完成项之后、已完成项之前；任务夹默认名称改为媒体类型加序号。
+- 队列改为工作台、任务夹和单任务三种执行语义；满执行位时单任务抢占最早运行者，被抢占任务按 FIFO 优先恢复，底部暂停后单开任务不会重启旧队列。
+- 格式转换主区域只保留目标格式，图片、音频和视频由后台使用保真策略；压缩模式继续显示适用的质量、码率和尺寸选项。
+- 任务夹设置顶部改为任务数、总源体积、格式分布和总时长 / 尺寸分布，不再借用首个任务信息。
+- 已完成压缩任务的列表摘要改为“源体积 - 输出体积 · 压缩比例”，格式转换任务改为“源格式 - 目标格式”，不再显示压缩百分比。
+
+### Fixed
+
+- 修复文件选择、文件拖入和文件夹扫描的自动建夹规则不一致，以及同类型单个媒体被错误放入任务夹的问题。
+- 修复任务夹“保持原格式”配置直接复用首个格式的问题，现按每个源文件独立解析。
+- 修复音频压缩可能把不小于源文件的输出标记为成功的问题。
+
+- 移出任务的 `sortOrder` 现在同时参考普通任务和任务夹，确保位于整个顶层混排列表尾部。
+- 移除任务配置上下文和任务行视觉选中态的耦合；普通和多选模式均不再显示蓝色任务行边框。
+- 修正左侧任务夹内容浮层打开时缺少滑入动画的问题。
+- 修复总列表任务夹在运行结束后仍保留聚合进度底色的问题，非运行状态恢复普通卡片背景。
+
+### Verified
+
+- 通过本次触达的 23 个 Dart 文件 `rtk dart format --set-exit-if-changed` 检查。
+- 通过 `rtk flutter analyze`。
+- 通过队列、导入、命令构建、任务夹和 Widget 定向回归，共 152 项测试。
+- 通过 `rtk flutter test`，共 346 项测试。
+
+## 2026-06-18｜v1.2.1｜No Release
+
+今天收口自托管更新、Admin 版本制品管理、媒体处理可靠性和任务夹重构近期改动：优化 Admin Web 版本制品页布局，补齐 v1.2.1 自托管更新客户端 / 服务端 / Admin Web 版本事实文档，新增客户端更新状态机和 server 更新服务核心测试，并支持在 Admin Web 删除登记版本时同步清理 COS 对象和数据库依赖记录。主项目同步修复图片压缩越压越大、透明视频错误输出、输出路径启动后才失败和批量任务缺少容器的问题。
+
+### Added
+
+- 新增 `docs/releases/v1.2.1/` 版本事实文档，记录自托管更新客户端、server 更新服务和 Admin Web 版本管理边界。
+- 新增 `test/app_update_provider_test.dart`，覆盖自动检查更新、下载完成和 Windows updater helper 启动状态流。
+- 新增 server `UpdateServiceTest`，覆盖按平台可见包过滤 latest、下载 ticket resolve 签发 COS URL、下载审计事件和 IP 屏蔽审计。
+- 新增 Admin 删除登记版本入口：删除 release 登记时会同步删除版本日志和 package 对应的 COS 对象，并清理 download events、packages、requirements 和 release 记录。
+- 新增图片压缩结果验收和 fallback 计划：首轮按源格式尝试，未变小时清理候选并改用 WebP / JPG 重试；第二轮仍无效时任务失败并提示原因。
+- 新增透明视频保留策略标签和 MOV / ProRes 4444 输出策略，FFmpeg 缺少 `prores_ks` 时在命令构造阶段失败。
+- 新增输出 preflight 服务，FFmpeg 启动前创建输出目录、规避同源覆盖 / 重名、检查可写性，并给任务打 `目录已创建` / `输出已改名` 标签。
+- 新增任务夹领域模型、Drift `task_folders` 表、任务 `folderId` / `folderSortOrder` / `policyTags` 字段和任务夹仓储 / use case。
+- 新增工作台任务夹列表项和左侧夹内任务浮层，批量导入会按媒体类型自动创建任务夹。
+- 新增任务夹批量工作流：任务夹设置批量应用、多选 FAB 按媒体类型建夹、未入夹任务通过拖拽柄拖入同类型任务夹、跨类型任务夹禁用视觉、任务夹尾部批量开始 / 暂停 / 重试 / 重链入口。
+- 新增通知中心任务结果详情：任务成功记录源 / 输出体积、压缩比例、保存路径和耗时，任务失败记录明确原因和建议；通知中心动作改为正文下方文字按钮组。
+- 新增工作台总列表任务 / 任务夹混排排序、夹内任务排序、普通模式框选进入多选、Command / Control 框选反选和分析中点击的临时交互通知。
+- 新增任务项尾部“打开完成文件位置”入口、任务夹日志聚合弹窗、空任务夹自动清理和清空任务时同步清空任务夹。
+
+### Changed
+
+- 优化 Admin Web 版本制品页信息结构，将版本索引、基础信息、制品列表、版本日志和发布操作重新整理为更清晰的工作区。
+- server README 同步记录 `DELETE /api/v1/admin/releases/{v}` 删除登记版本接口。
+- 图片保持源格式时，命令规划改为优先解析源图片 codec / 扩展名作为首轮输出格式，再按透明能力选择 fallback。
+- 工作台总列表改为显示任务夹和未入夹任务，夹内任务默认不在总列表重复出现。
+- 任务夹主体点击打开夹级配置弹窗，尾部查看按钮才打开左侧夹内任务浮层；浮层内任务复用普通任务行样式和操作按钮。
+- 移除任务完成弹窗链路和设置页“任务完成后以弹窗的形式提示”选项；完成后只保留提示音、通知中心记录和任务项完成文件入口。
+- 队列启动顺序改为按总列表从上到下展开任务夹，夹内按 `folderSortOrder` 执行；单任务开始仍作为插队入口，插队完成后继续按最新顺序推进。
+- 任务夹尾部去掉重链按钮，副标题追加源文件丢失计数；总列表多选时任务夹拖拽手柄置灰但不变成复选框。
+- Windows 默认启动窗口宽度收敛到当前最小宽度；Inno 安装器增加可选桌面快捷方式。
+
+### Fixed
+
+- 修复图片压缩在任意质量百分比下可能输出更大文件但仍被标记成功的问题。
+- 修复透明视频被常规 H.264 / yuv420p 策略破坏 alpha 通道的问题。
+- 修复任务行右侧开始 / 暂停 / 重试 / 移除按钮点击时同时触发任务配置弹窗的问题。
+- 修复版本日志页返回按钮总是跳到设置页的问题，优先按路由栈返回上一页。
+
+### Verified
+
+- 通过 `flutter analyze`。
+- 通过 `flutter test`，共 299 项测试。
+- 通过 `cd server && mvn test`，12 项运行，2 项在无 Docker 环境下跳过。
+- 通过 `cd server/admin-web && npm run build`；仍保留 Vite 大 chunk 提示。
+- 通过主项目和 server 的 `git diff --check`。
+- 通过 `flutter test test/ffmpeg_command_builder_test.dart`，覆盖图片 fallback 和透明 ProRes 4444 命令。
+- 通过 `flutter test test/ffmpeg_task_queue_runner_test.dart`，覆盖图片首轮无效进入 fallback、fallback 仍无效时失败和清理输出。
+- 通过 `flutter test test/output_preflight_service_test.dart`，覆盖目录创建、重名改名、同源保护和 FFmpeg args 回写。
+- 通过 `flutter test test/media_task_policy_tags_test.dart`，覆盖重试、换源和重分析后的策略标签刷新。
+- 通过 `flutter test test/drift_media_task_repository_test.dart`，覆盖任务夹持久化和任务 folder / policy tags 往返。
+- 通过 `flutter test test/task_folder_use_cases_test.dart`，覆盖任务夹批量配置、终态任务批量重试和夹内下一项启动。
+- 通过 `flutter test test/widget_test.dart`，覆盖任务夹总列表、夹级设置、侧边栏夹内任务操作、多选 FAB、拖入任务夹和任务行按钮误触边界。
+- 通过 `flutter test test/app_notification_manager_test.dart test/app_settings_page_test.dart test/drift_app_settings_repository_test.dart test/media_task_execution_use_cases_test.dart test/task_folder_use_cases_test.dart test/reorder_workbench_items_use_case_test.dart test/ffmpeg_task_queue_runner_test.dart test/notification_center_panel_test.dart test/widget_test.dart`，覆盖通知、设置、清空任务夹、任务夹排序、队列展开和通知中心布局。
+
+## 2026-06-17｜v1.2.1｜No Release
+
+今天为 server v1.0.0 增加内置 Admin 管理端第一版：`/web` 由 Spring Boot 直接托管 React + Ant Design 后台，支持下载统计、检查更新审计、下载 IP 记录、IP 屏蔽，以及版本成果物管理。管理端采用唯一管理员主密码机制，主密码只在浏览器本地用于解密私钥并签名登录 challenge，服务端不保存密码或密码哈希。
+
+### Added
+
+- 新增 `server/admin-web` React + Vite + Ant Design 管理端，使用深蓝侧边栏、白色内容区、灰色分割线和蓝色主色。
+- 新增 Admin Web 首次初始化、主密码登录、HttpOnly Cookie 会话和 CSRF 校验。
+- 新增 `admin_auth_config`、`release_artifact_requirements`、`update_check_events` 和 `ip_block_rules` 数据表。
+- 新增 Admin dashboard、检查更新审计、下载审计、IP 屏蔽和版本详情 / 必填成果物接口。
+- 新增 `/web` 静态入口，Dockerfile 多阶段构建会把 Admin Web dist 打包进后端 jar。
+- 新增 Admin 版本草稿创建流程：一次拖拽上传 Windows x64、macOS Universal 和版本日志 md，可选上传 Windows 直装版留存包，上传完成后进入草稿确认页。
+- 新增 COS 分片上传管理接口，Admin Web 通过服务端预签名 URL 支持大文件断点续传。
+- 新增 `release_packages.client_visible` 和 `releases.notes_object_key`，区分客户端更新成果物、官网留存成果物和日志 md 的 COS 对象。
+
+### Changed
+
+- 管理接口保留 `X-Api-Key` 脚本鉴权，同时支持 Admin Web Cookie 会话。
+- 检查更新和下载 ticket 创建统一读取反代后的真实 IP，并在 IP 被屏蔽时拒绝继续。
+- 发布前校验扩展为按版本配置的必填平台成果物逐项检查，Windows 直装版成果物在服务端归一化为可选。
+- Admin 版本创建不再填写 Build，服务端在 `server v1.0.0` / 后端 `v1` 线内自动递增内部 build number。
+- Admin 版本成果物从“先建版本、再单独上传包”改为“创建草稿、草稿确认、点击发行”。
+- 客户端更新检查和下载 ticket 接口切换到 `/api/v1/releases/latest` 与 `/api/v1/releases/download-ticket` 路径。
+- 客户端更新接口只接受 `windows-x64` 和 `macos-universal2`；Windows 直装版仅上传留存，不会进入检查更新或下载 ticket。
+
+### Fixed
+
+- 修复 Admin Web 页面标题在浏览器顶部被裁切的问题，根节点、Header 和内容滚动区重新分离。
+- 修复新建版本弹窗过长且无法上传成果物文件的问题，改为可滚动的四槽位拖拽上传表单。
+- 修复新建版本时 Windows 直装版留存包被强制上传，导致无直装版时不能完成草稿创建和发行确认的问题。
+- 修复 Admin Web 上传成果物时按文件名强制校验平台和架构，导致旧版 macOS 包无法进入草稿的问题；草稿基础信息改为展示包架构支持标签。
+
+### Verified
+
+- 通过 `cd server && mvn -DskipTests package`。
+- 通过 `cd server && mvn test`；当前无 Docker 环境下 Testcontainers smoke test 自动跳过。
+- 通过 `cd server/admin-web && npm run build`。
+- `docker build -t framelean-backend-admin-web:test .` 未执行成功：本机 Docker daemon 未运行，无法连接 `/Users/leftzhou/.docker/run/docker.sock`。
+
+## 2026-06-16｜v1.2.1｜No Release
+
+今天接入自托管更新 v1.2.1 客户端主流程和 server v1.0.0 更新服务加固：设置页关于栏可以自动 / 手动检查更新并进入下载、暂停、继续和待重启状态，通知中心支持单版本更新通知和双动作，工作台顶部在存在更新时持续显示入口，版本日志页面和日志弹窗开始承接 Markdown 日志。服务端加入 Redis，用于下载票据、限流和 latest cache，并修复平台包过滤、发布前校验、测试依赖和 validation 400 返回。
+
+### Added
+
+- 新增客户端更新状态模型、更新服务抽象、HTTP 更新客户端、断点下载器、安装 ID 存储和 Windows updater helper launcher。
+- 新增 `app_notifications.dedupe_key`，更新通知使用 `update:{platform}:{version}:{buildNumber}` 去重。
+- 新增设置关于栏 `检查更新` / `现在更新` / 进度 / `重启更新` 固定尺寸按钮和 `版本日志` 入口。
+- 新增工作台顶部持续更新入口、更新日志弹窗和 `/settings/release-notes` 版本日志页面。
+- 服务端新增 Redis 依赖、Redis 限流、短期下载票据创建 / resolve 接口和版本日志列表接口。
+
+### Changed
+
+- 应用版本升级为 `1.2.1+5`，`FrameLeanBuildInfo` 同步为 `1.2.1` / build `5`。
+- 更新检查最新版本查询改为按平台可用包过滤，避免无当前平台包的新 release 挡住旧可用版本。
+- 服务端发布 release 前校验 notes、package、COS object key、size、sha256 和 signature。
+
+### Fixed
+
+- 修复服务端 `@ServiceConnection` 测试依赖缺失问题，补 `spring-boot-testcontainers`。
+- 修复 Kotlin Spring final class 可能影响事务代理的问题，启用 Kotlin Spring all-open compiler plugin。
+- 修复 validation / 参数错误落入通用 500 的问题。
+
+### Verified
+
+- 通过 `flutter analyze`。
+- 通过 `flutter test`。
+- 通过 `cd server && mvn -DskipTests package`。
+- 通过 `cd server && mvn test`；当前无 Docker 环境下 Testcontainers smoke test 自动跳过。
+
 ## 2026-06-14｜v1.2.0｜Release
 
 完成 v1.2.0 发布准备。本版本从 v1.1.5 起扩展视频、图片和音频统一处理能力，加入专有音频输入、完整设置页、通知中心、输出文件名模板、任务完成提示音、HDR / SDR 色彩处理，以及 macOS Universal 2 和 Windows 安装器发布链。本次收口同时完成 P0-P2 架构治理，并修复 v1.2.0 打包流水线与桌面体验校验问题。

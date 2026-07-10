@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -175,6 +176,36 @@ void main() {
       expect(result.status, FfmpegProcessObservationStatus.failed);
       expect(result.message, '输出文件缺失');
     });
+
+    test(
+      'kills stalled process and reports failure when no output exceeds stallTimeout',
+      () async {
+        // 模拟 ffmpeg 挂死：stdout/stderr 不产生任何数据，exitCode 永不完成，
+        // 直到 kill 被调用。验证 stall 检测能主动终止进程并标记任务失败，
+        // 而不是让任务永久卡 running 阻塞队列。
+        final observer = LocalFfmpegProcessObserver(
+          outputPathExists: (_) => true,
+          stallTimeout: const Duration(milliseconds: 120),
+          stallCheckInterval: const Duration(milliseconds: 40),
+        );
+        final logFile = await createTempLogFile();
+        final process = StallingProcess();
+
+        final result = await observer.observe(
+          startedProcess: StartedFfmpegProcess(
+            process: process,
+            logFile: logFile,
+          ),
+          task: videoTaskWithDuration(durationMs: 10000),
+          outputPath: '/videos/output.mp4',
+          onProgress: (_) async {},
+        );
+
+        expect(result.status, FfmpegProcessObservationStatus.failed);
+        expect(result.message, contains('无响应超时'));
+        expect(process.killed, isTrue);
+      },
+    );
   });
 }
 
@@ -221,6 +252,43 @@ class FakeProcess implements Process {
 
   @override
   bool kill([ProcessSignal signal = ProcessSignal.sigterm]) {
+    return true;
+  }
+}
+
+/// 模拟挂死的 ffmpeg 进程：流不产生数据，exitCode 永不完成，
+/// 直到 kill() 被调用才会完成 exitCode 并关闭流。
+class StallingProcess implements Process {
+  final _exitCompleter = Completer<int>();
+  final _stdoutController = StreamController<List<int>>();
+  final _stderrController = StreamController<List<int>>();
+  bool killed = false;
+
+  @override
+  Future<int> get exitCode => _exitCompleter.future;
+
+  @override
+  int get pid => 2;
+
+  @override
+  IOSink get stdin => throw UnimplementedError();
+
+  @override
+  Stream<List<int>> get stdout => _stdoutController.stream;
+
+  @override
+  Stream<List<int>> get stderr => _stderrController.stream;
+
+  @override
+  bool kill([ProcessSignal signal = ProcessSignal.sigterm]) {
+    if (killed) {
+      return false;
+    }
+    killed = true;
+    // 模拟 kill 后进程退出，让 exitCode Future 完成以解除主流程阻塞。
+    _exitCompleter.complete(137);
+    _stdoutController.close();
+    _stderrController.close();
     return true;
   }
 }

@@ -1,25 +1,13 @@
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/application/services/execution/execution_log_store.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:framelean/application/services/execution/preview_frame_generator.dart';
-import 'package:framelean/application/services/execution/video_thumbnail_generator.dart';
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/ffmpeg_planning_provider.dart';
 import 'package:framelean/app/providers/input_runtime_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
-import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_observer.dart';
-import 'package:framelean/infrastructure/services/execution/local_ffmpeg_process_starter.dart';
-import 'package:framelean/infrastructure/services/execution/local_preview_frame_generator.dart';
-import 'package:framelean/infrastructure/services/execution/local_video_thumbnail_generator.dart';
-import 'package:framelean/infrastructure/services/execution/signal_ffmpeg_process_controller.dart';
-import 'package:framelean/infrastructure/services/execution/windows_ffmpeg_process_controller.dart';
 import 'package:path/path.dart' as path;
 
 /// FFmpeg 预览帧生成服务，按当前压缩参数生成 5 组原始/压缩对比帧
@@ -63,14 +51,28 @@ final executionLogStoreProvider = Provider<ExecutionLogStore>((ref) {
   return ExecutionLogStore(logsDirectory: ffmpegExecutionLogsDirectory());
 });
 
+final outputPreflightServiceProvider = Provider<LocalOutputPreflightService>((
+  ref,
+) {
+  return LocalOutputPreflightService();
+});
+
+final executionResourceGuardProvider = Provider<ExecutionResourceGuard>((ref) {
+  return const LocalExecutionResourceGuard();
+});
+
 /// FFmpeg 任务队列执行器。Provider 会在容器生命周期内维持同一个执行器实例。
 final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
   return DefaultFfmpegTaskQueueRunner(
     repository: ref.read(mediaTaskRepositoryProvider),
+    taskFolderRepository: ref.read(taskFolderRepositoryProvider),
     sourceFileChecker: ref.read(sourceFileCheckerProvider),
+    readSettings: () => ref.read(appSettingsRepositoryProvider).loadSettings(),
     readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
     commandBuilder: ref.read(ffmpegCommandBuilderProvider),
+    resourceGuard: ref.read(executionResourceGuardProvider),
     mediaInputPreparer: ref.read(mediaInputPreparerProvider),
+    outputPreflightService: ref.read(outputPreflightServiceProvider),
     processStarter: ref.read(ffmpegProcessStarterProvider),
     processController: ref.read(ffmpegProcessControllerProvider),
     processObserver: ref.read(ffmpegProcessObserverProvider),
@@ -83,9 +85,7 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
 });
 
 Directory ffmpegExecutionLogsDirectory() {
-  return Directory(
-    path.join(Directory.systemTemp.path, 'framelean', 'ffmpeg-logs'),
-  );
+  return Directory(path.join(Directory.systemTemp.path, ffmpegLogsSubDir));
 }
 
 Future<String> createFfmpegExecutionLogFilePath(

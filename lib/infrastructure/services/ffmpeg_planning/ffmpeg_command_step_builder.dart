@@ -1,11 +1,7 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_video_argument_builder.dart';
 import 'package:path/path.dart' as path;
@@ -61,8 +57,33 @@ class FfmpegCommandStepBuilder {
     required FfmpegEncoderCapabilities encoderCapabilities,
     required String outputPath,
   }) {
+    if (canStreamCopyConversion(task, targetCodec)) {
+      return [
+        '-hide_banner',
+        '-y',
+        '-i',
+        task.inputPath,
+        ...argumentBuilder.buildOutputStreamSelectionArgs(task),
+        '-c:v',
+        'copy',
+        '-c:a',
+        'copy',
+        ...argumentBuilder.buildFrameTimingArgs(task),
+        if (task.config.outputFormat == OutputFormat.mp4 ||
+            task.config.outputFormat == OutputFormat.mov) ...[
+          '-movflags',
+          '+faststart',
+        ],
+        ...argumentBuilder.buildThreadArgs(task),
+        '-progress',
+        'pipe:1',
+        outputPath,
+      ];
+    }
+
     return [
       '-hide_banner',
+      '-y',
       '-i',
       task.inputPath,
       ...argumentBuilder.buildOutputStreamSelectionArgs(task),
@@ -75,10 +96,52 @@ class FfmpegCommandStepBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,
     ];
+  }
+
+  bool canStreamCopyConversion(MediaTask task, VideoCodec targetCodec) {
+    if (task.purpose != TaskPurpose.conversion) {
+      return false;
+    }
+    final sourceCodec = MediaCodecNormalizer.normalize(
+      task.analysisResult?.videoCodec,
+    );
+    final sourceVideoCodec = sourceCodec == null
+        ? null
+        : MediaCodecNormalizer.videoCodecForSource(sourceCodec);
+    if (sourceVideoCodec == null || sourceVideoCodec != targetCodec) {
+      return false;
+    }
+
+    final outputFormat = task.config.outputFormat;
+    if (!VideoOutputCompatibility.supports(outputFormat, targetCodec)) {
+      return false;
+    }
+    if (outputFormat == OutputFormat.mkv) {
+      return true;
+    }
+    final audioCodec = task.analysisResult?.audioCodec?.trim().toLowerCase();
+    if (outputFormat == OutputFormat.webm) {
+      return audioCodec == null ||
+          audioCodec.isEmpty ||
+          audioCodec.contains('opus') ||
+          audioCodec.contains('vorbis');
+    }
+    if (outputFormat == OutputFormat.avi) {
+      return audioCodec == null ||
+          audioCodec.isEmpty ||
+          audioCodec.contains('mp3') ||
+          audioCodec.contains('pcm');
+    }
+    return audioCodec == null ||
+        audioCodec.isEmpty ||
+        audioCodec.contains('aac') ||
+        audioCodec.contains('mp3') ||
+        audioCodec.contains('alac');
   }
 
   bool shouldUseTwoPassTargetSize({
@@ -86,8 +149,15 @@ class FfmpegCommandStepBuilder {
     required CompressionRecommendation recommendation,
     required String videoEncoder,
   }) {
+    final twoPassMode = task.config.video?.twoPassMode ?? TwoPassMode.automatic;
+    if (twoPassMode == TwoPassMode.disabled) {
+      return false;
+    }
+
     return task.purpose == TaskPurpose.compression &&
         recommendation.profile == CompressionProfile.targetSize &&
+        videoEncoder != 'prores_ks' &&
+        videoEncoder != 'mjpeg' &&
         !FfmpegEncoderCapabilities.softwareOnly.isHardwareEncoder(videoEncoder);
   }
 
@@ -113,6 +183,7 @@ class FfmpegCommandStepBuilder {
         passLogFile: passLogFile,
       ),
       ...argumentBuilder.buildVideoFilterArgs(task, videoEncoder),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       '-an',
@@ -122,6 +193,7 @@ class FfmpegCommandStepBuilder {
     ];
     final secondPassArgs = [
       '-hide_banner',
+      '-y',
       '-i',
       task.inputPath,
       ...argumentBuilder.buildOutputStreamSelectionArgs(task),
@@ -139,6 +211,7 @@ class FfmpegCommandStepBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,
@@ -172,11 +245,15 @@ class FfmpegCommandStepBuilder {
       ];
     }
 
+    final encoderTuningArgs = switch (videoEncoder) {
+      'libvpx-vp9' => const ['-deadline', 'good', '-cpu-used', '2'],
+      'mpeg4' => const <String>[],
+      _ => ['-preset', recommendation.preset],
+    };
     return [
       '-c:v',
       videoEncoder,
-      '-preset',
-      recommendation.preset,
+      ...encoderTuningArgs,
       '-b:v',
       FfmpegCommandFormatters.formatBitrate(targetVideoBitrate),
       '-pass',

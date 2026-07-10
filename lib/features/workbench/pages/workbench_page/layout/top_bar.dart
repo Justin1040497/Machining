@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchTopBar extends StatelessWidget {
   const WorkbenchTopBar({
@@ -9,6 +9,8 @@ class WorkbenchTopBar extends StatelessWidget {
     required this.themeMode,
     required this.onToggleThemeMode,
     required this.onOpenNotifications,
+    this.updateState,
+    this.onOpenUpdate,
     this.unreadNotificationCount = 0,
     this.showNotificationBadge = true,
     this.showBottomBorder = false,
@@ -17,6 +19,8 @@ class WorkbenchTopBar extends StatelessWidget {
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
   final VoidCallback onOpenNotifications;
+  final AppUpdateState? updateState;
+  final VoidCallback? onOpenUpdate;
   final int unreadNotificationCount;
   final bool showNotificationBadge;
   final bool showBottomBorder;
@@ -27,7 +31,7 @@ class WorkbenchTopBar extends StatelessWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SizedBox(
-      height: AppLayoutConstants.topBarHeight,
+      height: topBarHeight,
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: colors.surface,
@@ -42,11 +46,18 @@ class WorkbenchTopBar extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                if (updateState?.isActive == true && onOpenUpdate != null) ...[
+                  _UpdateTopBarButton(
+                    state: updateState!,
+                    onPressed: onOpenUpdate!,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 _TopBarIconButton(
                   tooltip: isDark ? '切换为浅色模式' : '切换为深色模式',
                   icon: isDark
-                      ? Icons.light_mode_outlined
-                      : Icons.dark_mode_outlined,
+                      ? WorkbenchIcons.lightMode
+                      : WorkbenchIcons.darkMode,
                   onPressed: onToggleThemeMode,
                 ),
                 const SizedBox(width: 8),
@@ -54,6 +65,99 @@ class WorkbenchTopBar extends StatelessWidget {
                   unreadCount: unreadNotificationCount,
                   showBadge: showNotificationBadge,
                   onPressed: onOpenNotifications,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _UpdateTopBarButton extends StatelessWidget {
+  const _UpdateTopBarButton({required this.state, required this.onPressed});
+
+  final AppUpdateState state;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+    final status = state.status;
+    final downloading = status == AppUpdateStatus.downloading;
+    final paused = status == AppUpdateStatus.paused;
+
+    final String label;
+    Color dotColor;
+    switch (status) {
+      case AppUpdateStatus.downloading:
+        label = '下载中 ${state.progressPercent}%';
+        dotColor = colors.primary;
+      case AppUpdateStatus.paused:
+        label = '已暂停 ${state.progressPercent}%';
+        dotColor = colors.textTertiary;
+      case AppUpdateStatus.downloaded:
+        label = '已就绪';
+        dotColor = colors.statusRunning;
+      case AppUpdateStatus.failed:
+        label = '更新失败';
+        dotColor = colors.statusFailed;
+      default:
+        final version = state.release?.version;
+        label = version != null ? '新版本 v$version' : '有新版本';
+        dotColor = colors.primary;
+    }
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180, minHeight: 28),
+      child: Material(
+        color: colors.primarySoft,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(14),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (downloading || paused)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      value: downloading ? state.progress : null,
+                      strokeWidth: 2,
+                      color: colors.primary,
+                      backgroundColor: colors.primarySoft.withAlpha(120),
+                    ),
+                  )
+                else
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: dotColor,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: colors.textPrimary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(width: 3),
+                Icon(
+                  WorkbenchIcons.chevronRight,
+                  size: 14,
+                  color: colors.textTertiary,
                 ),
               ],
             ),
@@ -84,7 +188,7 @@ class _NotificationTopBarButton extends StatelessWidget {
       children: [
         _TopBarIconButton(
           tooltip: '通知中心',
-          icon: Icons.notifications_none_rounded,
+          icon: WorkbenchIcons.notifications,
           onPressed: onPressed,
         ),
         if (showBadge && unreadCount > 0)

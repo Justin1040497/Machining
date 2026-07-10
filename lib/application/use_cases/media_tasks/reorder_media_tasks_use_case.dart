@@ -1,6 +1,5 @@
 import 'package:framelean/application/repositories/media_task_repository.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/library.dart';
 
 List<MediaTask> reorderMediaTasksInMemory(
   List<MediaTask> tasks, {

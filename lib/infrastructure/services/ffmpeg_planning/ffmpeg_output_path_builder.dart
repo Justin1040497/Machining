@@ -1,10 +1,6 @@
 import 'dart:io';
 
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:path/path.dart' as path;
 
@@ -148,10 +144,29 @@ class FfmpegOutputPathBuilder {
 
   MediaOutputFormat mediaOutputFormatFor(MediaTask task) {
     return switch (task.mediaKind) {
-      MediaKind.video => task.config.video!.outputFormat,
+      MediaKind.video =>
+        videoHasAlpha(task)
+            ? MediaOutputFormat.mov
+            : task.config.video!.outputFormat,
       MediaKind.image => task.config.image!.outputFormat,
       MediaKind.audio => task.config.audio!.outputFormat,
     };
+  }
+
+  bool videoHasAlpha(MediaTask task) {
+    final pixelFormat = task.analysisResult?.videoPixelFormat
+        ?.trim()
+        .toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return false;
+    }
+
+    return pixelFormat.startsWith('yuva') ||
+        pixelFormat == 'rgba' ||
+        pixelFormat == 'bgra' ||
+        pixelFormat == 'argb' ||
+        pixelFormat == 'abgr' ||
+        pixelFormat.startsWith('gbrap');
   }
 
   String extensionForMedia(MediaOutputFormat outputFormat) {
@@ -159,6 +174,8 @@ class FfmpegOutputPathBuilder {
       MediaOutputFormat.mp4 => '.mp4',
       MediaOutputFormat.mov => '.mov',
       MediaOutputFormat.mkv => '.mkv',
+      MediaOutputFormat.webm => '.webm',
+      MediaOutputFormat.avi => '.avi',
       MediaOutputFormat.jpg => '.jpg',
       MediaOutputFormat.png => '.png',
       MediaOutputFormat.webp => '.webp',
@@ -182,6 +199,8 @@ const _mediaFileExtensions = {
   '.mp4',
   '.mov',
   '.mkv',
+  '.webm',
+  '.avi',
   '.jpg',
   '.png',
   '.webp',

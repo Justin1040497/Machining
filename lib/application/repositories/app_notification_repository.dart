@@ -1,4 +1,4 @@
-import 'package:framelean/domain/entities/app_notification_entry.dart';
+import 'package:framelean/domain/library.dart';
 
 abstract class AppNotificationRepository {
   Stream<List<AppNotificationEntry>> watchRecentNotifications({int? limit});
@@ -6,6 +6,10 @@ abstract class AppNotificationRepository {
   Future<List<AppNotificationEntry>> loadRecentNotifications({int? limit});
 
   Future<void> saveNotification(AppNotificationEntry notification);
+
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  );
 
   Future<void> markAsRead(String id, DateTime readAt);
 

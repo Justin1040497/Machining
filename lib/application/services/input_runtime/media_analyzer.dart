@@ -1,4 +1,4 @@
-import 'package:framelean/domain/value_objects/media_analysis_result.dart';
+import 'package:framelean/domain/library.dart';
 
 /// 任务中的 媒体文件分析服务抽象
 abstract class MediaAnalyzer {

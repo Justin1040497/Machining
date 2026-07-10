@@ -3,7 +3,7 @@ import 'package:framelean/application/services/input_runtime/media_kind_resolver
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
 
 class ReplaceMissingSourceUseCase {

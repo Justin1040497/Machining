@@ -1,17 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
 
 /// 使用本地文件系统和系统 PATH 解析 FFmpeg / FFprobe
 class LocalFfmpegLocator implements FfmpegLocator {
   final Duration validateTimeout;
 
-  LocalFfmpegLocator({this.validateTimeout = const Duration(seconds: 3)});
+  LocalFfmpegLocator({this.validateTimeout = ffprobeValidationTimeout});
 
   @override
   Future<ResolvedFfmpegRuntime> resolve({

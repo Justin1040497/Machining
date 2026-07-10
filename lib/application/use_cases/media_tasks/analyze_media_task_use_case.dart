@@ -4,8 +4,7 @@ import 'package:framelean/application/services/input_runtime/media_input_prepare
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/library.dart';
 
 class AnalyzeMediaTaskUseCase {
   final MediaTaskRepository repository;

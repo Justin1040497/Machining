@@ -1,5 +1,4 @@
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/value_objects/proprietary_audio_decode_result.dart';
+import 'package:framelean/domain/library.dart';
 
 enum MediaInputPreparationPurpose { analysis, execution }
 

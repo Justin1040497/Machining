@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:framelean/application/services/platform/external_link_opener.dart';
+import 'package:framelean/application/library.dart';
 
 class ExternalLinkCommand {
   const ExternalLinkCommand({

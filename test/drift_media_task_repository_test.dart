@@ -2,7 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:drift/native.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
@@ -111,6 +113,7 @@ void main() {
         outputFileName: 'web-hero',
         image: ImageProcessingConfig.initial().copyWith(
           outputFormat: MediaOutputFormat.webp,
+          losslessCompression: true,
           imageQuality: 74,
           resizePreset: ImageResizePreset.longEdge1920,
           preserveMetadata: true,
@@ -126,6 +129,7 @@ void main() {
         config: config,
         progress: 0,
         sortOrder: 0,
+        outputFileSize: 1024,
         createdAt: 1,
         analysisResult: MediaAnalysisResult(
           imageWidth: 1200,
@@ -143,6 +147,7 @@ void main() {
         fileName: 'source.png',
         mediaKind: 'image',
         mediaConfigJson: companion.mediaConfigJson.value,
+        outputFileSize: companion.outputFileSize.value,
         analysisImageWidth: companion.analysisImageWidth.value,
         analysisImageHeight: companion.analysisImageHeight.value,
         analysisImageCodec: companion.analysisImageCodec.value,
@@ -156,7 +161,9 @@ void main() {
       expect(restored.config.outputDirectory, '/exports');
       expect(restored.config.outputFileName, 'web-hero');
       expect(restored.config.image!.outputFormat, MediaOutputFormat.webp);
+      expect(restored.config.image!.losslessCompression, isTrue);
       expect(restored.config.image!.imageQuality, 74);
+      expect(restored.outputFileSize, 1024);
       expect(
         restored.config.image!.resizePreset,
         ImageResizePreset.longEdge1920,
@@ -195,6 +202,73 @@ void main() {
       expect(restoredRunning.progress, 0.5);
       expect(restoredRunning.outputPath, '/videos/running.out.mp4');
     });
+
+    test('persists and restores task folder fields and policy tags', () async {
+      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(database.close);
+      final repository = DriftMediaTaskRepository(database);
+      final task = mediaTask(id: 'foldered').copyWith(
+        folderId: 'folder-1',
+        folderSortOrder: 2,
+        policyTags: const {
+          MediaTaskPolicyTag.imageFormatFallback,
+          MediaTaskPolicyTag.ineffectiveCompression,
+        },
+      );
+
+      await repository.replaceAllTasks([task]);
+
+      final restored = (await repository.loadAllTasks()).single;
+      expect(restored.folderId, 'folder-1');
+      expect(restored.folderSortOrder, 2);
+      expect(
+        restored.policyTags,
+        containsAll([
+          MediaTaskPolicyTag.imageFormatFallback,
+          MediaTaskPolicyTag.ineffectiveCompression,
+        ]),
+      );
+    });
+
+    test('task folder repository saves, orders, and deletes folders', () async {
+      final database = AppDatabase.forTesting(NativeDatabase.memory());
+      addTearDown(database.close);
+      final repository = DriftTaskFolderRepository(database);
+      final laterFolder = TaskFolder(
+        id: 'folder-later',
+        name: '后导入',
+        mediaKind: MediaKind.video,
+        sortOrder: 1,
+        defaultConfig: MediaTaskConfig.initialVideo(),
+        createdAt: 20,
+        updatedAt: 20,
+      );
+      final earlierFolder = TaskFolder(
+        id: 'folder-earlier',
+        name: '先导入',
+        mediaKind: MediaKind.image,
+        sortOrder: 0,
+        defaultConfig: MediaTaskConfig.initialImage(),
+        createdAt: 10,
+        updatedAt: 10,
+      );
+
+      await repository.saveFolder(laterFolder);
+      await repository.saveFolder(earlierFolder);
+
+      final folders = await repository.loadAllFolders();
+      expect(folders.map((folder) => folder.id), [
+        'folder-earlier',
+        'folder-later',
+      ]);
+      expect(folders.first.defaultConfig.image, isNotNull);
+      expect(folders.last.defaultConfig.video, isNotNull);
+
+      await repository.deleteFolderById('folder-earlier');
+
+      final remainingFolders = await repository.loadAllFolders();
+      expect(remainingFolders.map((folder) => folder.id), ['folder-later']);
+    });
   });
 }
 
@@ -228,6 +302,7 @@ TaskRow taskRow({
   String fileName = 'source.mp4',
   String mediaKind = 'video',
   String? mediaConfigJson,
+  int? outputFileSize,
   int? analysisImageWidth,
   int? analysisImageHeight,
   String? analysisImageCodec,
@@ -243,6 +318,7 @@ TaskRow taskRow({
     status: 'pending',
     progress: 0,
     sortOrder: 0,
+    outputFileSize: outputFileSize,
     analysisDurationMs: 1000,
     analysisVideoWidth: 3840,
     analysisVideoHeight: 2160,

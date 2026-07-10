@@ -1,51 +1,30 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:framelean/app/theme/app_theme_controller.dart';
-import 'package:framelean/app/providers/platform_provider.dart';
-import 'package:framelean/app/presentation/media_configuration_ui_constants.dart';
-import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
-import 'package:framelean/application/use_cases/app_settings/load_app_settings_use_case.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/media_task_config.dart';
-import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
-import 'package:framelean/features/notifications/widgets/notification_center_panel.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/notifications/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/clear_tasks_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/compression_confirmation_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/import_failure_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/restart_unelevated_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_completed_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_configuration_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_context_menu.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_log_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task_rename_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/confirm/import_failure_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_context_menu.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_log_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_rename_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
-import 'package:framelean/app/providers/app_notification_provider.dart';
-import 'package:framelean/app/providers/app_settings_provider.dart';
-import 'package:framelean/app/providers/execution_provider.dart';
-import 'package:framelean/app/providers/repository_provider.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
+import 'package:hotkey_manager/hotkey_manager.dart';
 
 const Object _configValueNotProvided = Object();
 
@@ -111,8 +90,27 @@ resolveWorkbenchTaskConfigurationInitialValues({
         : selectedSmartPreset,
     targetSizeRatio: isVideoTask
         ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
-        : MediaConfigurationUiConstants.defaultTargetSizeRatio,
+        : defaultTargetSizeRatio,
   );
+}
+
+@visibleForTesting
+List<MediaTask> resolveOpenedTaskFolderTasks({
+  required List<MediaTask> tasks,
+  required TaskFolder? openedFolder,
+}) {
+  final folderId = openedFolder?.id;
+  if (folderId == null) {
+    return <MediaTask>[];
+  }
+
+  final folderTasks = tasks.where((task) => task.folderId == folderId).toList();
+  folderTasks.sort(
+    (a, b) => (a.folderSortOrder ?? a.sortOrder).compareTo(
+      b.folderSortOrder ?? b.sortOrder,
+    ),
+  );
+  return folderTasks;
 }
 
 class WorkbenchPage extends ConsumerStatefulWidget {
@@ -131,6 +129,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   CompressionMode selectedCompressionMode = CompressionMode.preset;
   SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced;
   String? selectedTaskId;
+  String? openedTaskFolderId;
+  bool taskSelectionMode = false;
+  final Set<String> selectedTaskIds = {};
   String? syncedConfigTaskId;
   String? syncedQualityTaskKey;
   bool workbenchImportDragging = false;
@@ -138,36 +139,74 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   final WorkbenchTaskThumbnailStore thumbnailStore =
       WorkbenchTaskThumbnailStore();
   final Set<String> notifiedAnalysisErrorKeys = {};
-  final Set<String> notifiedCompletedTaskKeys = {};
   final Set<String> workbenchActionsInFlight = {};
   bool windowsPrivilegeNoticeShown = false;
   bool themeModeChangeInFlight = false;
   ProviderSubscription<AsyncValue<List<MediaTask>>>? taskListSubscription;
+  ProviderSubscription<AsyncValue<AppSettings>>? appSettingsSubscription;
+  ProviderSubscription<bool>? _autoNoticeSubscription;
+  final Map<AppShortcutAction, HotKey> registeredShortcutHotKeys = {};
+  Map<AppShortcutAction, String> registeredShortcutSignatures = {};
+  HotKey? registeredEscapeHotKey;
 
   @override
   void initState() {
     super.initState();
+    final runtimeEffectsEnabled = ref.read(appRuntimeEffectsEnabledProvider);
     taskListSubscription = ref.listenManual<AsyncValue<List<MediaTask>>>(
       mediaTaskListProvider,
       handleTaskListChanged,
       fireImmediately: true,
     );
-    unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+    if (runtimeEffectsEnabled) {
+      appSettingsSubscription = ref.listenManual<AsyncValue<AppSettings>>(
+        appSettingsProvider,
+        (_, next) {
+          final settings = next.asData?.value;
+          if (settings == null) return;
+          unawaited(syncWorkbenchHotKeys(settings.shortcutBindings));
+        },
+        fireImmediately: true,
+      );
+      unawaited(registerWorkbenchEscapeHotKey());
+      unawaited(showWindowsAdministratorDragNoticeIfNeeded());
+    }
+    _autoNoticeSubscription = ref.listenManual<bool>(
+      appUpdatePendingAutoNoticeProvider,
+      (_, shouldShow) {
+        if (!shouldShow) return;
+        // Delay so the workbench renders before the notice interrupts.
+        Future.delayed(const Duration(seconds: 2), () {
+          if (!mounted) return;
+          unawaited(showUpdateNotice());
+        });
+      },
+    );
   }
 
   @override
   void dispose() {
     taskListSubscription?.close();
+    appSettingsSubscription?.close();
+    _autoNoticeSubscription?.close();
+    unawaited(unregisterWorkbenchHotKeys());
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final taskList = ref.watch(mediaTaskListProvider);
+    final taskFolders = ref.watch(taskFolderListProvider);
     final tasks = taskList.hasValue
         ? taskList.requireValue
         : const <MediaTask>[];
-    final selectedTask = resolveSelectedTask(tasks);
+    final folders = taskFolders.asData?.value ?? const <TaskFolder>[];
+    final openedFolder = resolveOpenedTaskFolder(folders);
+    syncOpenedTaskFolderAfterBuild(openedFolder);
+    final openedFolderTasks = resolveOpenedTaskFolderTasks(
+      tasks: tasks,
+      openedFolder: openedFolder,
+    );
     syncTaskThumbnailsAfterBuild(tasks);
 
     final hasRunningTask = tasks.any(
@@ -182,6 +221,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     final notificationCenterVisible = ref.watch(
       notificationCenterVisibilityProvider,
     );
+    final updateState =
+        ref.watch(appUpdateProvider).asData?.value ?? AppUpdateState.initial();
 
     return Scaffold(
       body: Stack(
@@ -189,7 +230,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         children: [
           WorkbenchShell(
             taskList: taskList,
-            selectedTask: selectedTask,
+            taskFolders: taskFolders,
+            selectedTaskIds: selectedTaskIds,
+            selectionMode: taskSelectionMode,
             importEnabled: true,
             importDragging: workbenchImportDragging,
             hasRunningTask: hasRunningTask,
@@ -209,10 +252,43 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             onRetry: retryTask,
             onRelink: relinkMissingSource,
             onShowLog: showTaskLog,
+            onRevealOutput: revealTaskOutput,
             onContextMenu: (task, position) {
               unawaited(showTaskContextMenu(task, position));
             },
-            onAddTask: pickAndAddTasks,
+            onFolderContextMenu: (folder, position) {
+              unawaited(showTaskFolderContextMenu(folder, position));
+            },
+            onToggleSelectionMode: toggleTaskSelectionMode,
+            onToggleTaskSelection: toggleTaskSelection,
+            onSelectTasksWithRectangle: selectTasksWithRectangle,
+            onCreateFolderFromSelection: () {
+              unawaited(createTaskFoldersFromSelection());
+            },
+            onMoveTaskToFolder: (task, folder) {
+              unawaited(moveTaskIntoFolder(task, folder));
+            },
+            onOpenFolderSettings: (folder) {
+              unawaited(showTaskFolderConfigurationDialog(folder));
+            },
+            onOpenFolderContents: openTaskFolder,
+            onStartFolder: (folder) {
+              unawaited(startTaskFolder(folder));
+            },
+            onPauseFolder: (folder) {
+              unawaited(pauseTaskFolder(folder));
+            },
+            onRetryFolder: (folder) {
+              unawaited(retryTaskFolder(folder));
+            },
+            onRelinkFolder: (folder) {
+              unawaited(relinkTaskFolderMissingSource(folder));
+            },
+            onShowFolderLog: (folder) {
+              unawaited(showTaskFolderLog(folder));
+            },
+            onDeleteFolder: deleteTaskFolder,
+            onAddTasks: pickAndAddImportPaths,
             onOpenSettings: () {
               unawaited(openSettingsPage());
             },
@@ -221,6 +297,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
               unawaited(toggleThemeMode());
             },
             onOpenNotifications: openNotificationCenter,
+            updateState: updateState,
+            onOpenUpdate: () {
+              unawaited(showUpdateNotice());
+            },
             unreadNotificationCount: unreadNotificationCount,
             showNotificationBadge: !hideNotificationBadge,
             onClearTasks: confirmClearTasks,
@@ -232,10 +312,143 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
             visible: notificationCenterVisible,
             onClose: closeNotificationCenter,
             onRevealOutput: revealPathInFileManager,
+            onOpenUpdateLog: openUpdateLogFromNotification,
+            onStartUpdateDownload: startUpdateDownloadFromNotification,
+          ),
+          TaskFolderContentPanel(
+            visible: openedFolder != null,
+            folder: openedFolder,
+            tasks: openedFolderTasks,
+            thumbnailForTask: thumbnailForTask,
+            onClose: closeTaskFolder,
+            onRemoveTask: removeTaskFromFolder,
+            onStart: startOrResumeTask,
+            onPause: pauseTask,
+            onRetry: retryTask,
+            onRelink: relinkMissingSource,
+            onShowLog: showTaskLog,
+            onRevealOutput: revealTaskOutput,
+            onReorder: reorderOpenedTaskFolderTasks,
           ),
         ],
       ),
     );
+  }
+
+  Future<void> registerWorkbenchEscapeHotKey() async {
+    final hotKey = fixedInAppHotKey(LogicalKeyboardKey.escape);
+    registeredEscapeHotKey = hotKey;
+    await hotKeyManager.register(
+      hotKey,
+      keyDownHandler: (_) {
+        if (!isWorkbenchRouteCurrent()) return;
+        handleEscapeShortcut();
+      },
+    );
+  }
+
+  Future<void> syncWorkbenchHotKeys(
+    Map<AppShortcutAction, AppShortcutBinding> bindings,
+  ) async {
+    if (shortcutSignaturesMatch(bindings)) {
+      return;
+    }
+
+    await unregisterWorkbenchShortcutHotKeys();
+    final nextSignatures = <AppShortcutAction, String>{};
+    for (final entry in bindings.entries) {
+      final hotKey = hotKeyForShortcutBinding(entry.value);
+      if (hotKey == null) {
+        continue;
+      }
+      registeredShortcutHotKeys[entry.key] = hotKey;
+      nextSignatures[entry.key] = entry.value.signature;
+      await hotKeyManager.register(
+        hotKey,
+        keyDownHandler: (_) => handleWorkbenchHotKey(entry.key, entry.value),
+      );
+    }
+    registeredShortcutSignatures = nextSignatures;
+  }
+
+  bool shortcutSignaturesMatch(
+    Map<AppShortcutAction, AppShortcutBinding> bindings,
+  ) {
+    if (registeredShortcutSignatures.length != bindings.length) {
+      return false;
+    }
+    for (final entry in bindings.entries) {
+      if (registeredShortcutSignatures[entry.key] != entry.value.signature) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<void> unregisterWorkbenchHotKeys() async {
+    await unregisterWorkbenchShortcutHotKeys();
+    final escapeHotKey = registeredEscapeHotKey;
+    if (escapeHotKey != null) {
+      await hotKeyManager.unregister(escapeHotKey);
+      registeredEscapeHotKey = null;
+    }
+  }
+
+  Future<void> unregisterWorkbenchShortcutHotKeys() async {
+    final hotKeys = registeredShortcutHotKeys.values.toList();
+    registeredShortcutHotKeys.clear();
+    registeredShortcutSignatures = {};
+    for (final hotKey in hotKeys) {
+      await hotKeyManager.unregister(hotKey);
+    }
+  }
+
+  void handleWorkbenchHotKey(
+    AppShortcutAction action,
+    AppShortcutBinding binding,
+  ) {
+    if (!isWorkbenchRouteCurrent()) return;
+    if (_isOrdinaryShortcutSuppressed(binding)) return;
+
+    switch (action) {
+      case AppShortcutAction.addFiles:
+        unawaited(pickAndAddImportPaths());
+      case AppShortcutAction.toggleWorkbenchExecution:
+        final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+        final hasRunningTask = tasks.any(
+          (task) => task.status == TaskStatus.running,
+        );
+        unawaited(handlePrimaryQueueAction(hasRunningTask));
+      case AppShortcutAction.openSettings:
+        unawaited(openSettingsPage());
+      case AppShortcutAction.openNotificationCenter:
+        openNotificationCenter();
+    }
+  }
+
+  bool isWorkbenchRouteCurrent() {
+    return ModalRoute.of(context)?.isCurrent ?? false;
+  }
+
+  bool _isOrdinaryShortcutSuppressed(AppShortcutBinding binding) {
+    if (binding.primary || binding.alt) return false;
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    return focusContext?.widget is EditableText ||
+        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null;
+  }
+
+  void handleEscapeShortcut() {
+    if (ref.read(notificationCenterVisibilityProvider)) {
+      closeNotificationCenter();
+      return;
+    }
+    if (openedTaskFolderId != null) {
+      closeTaskFolder();
+      return;
+    }
+    if (taskSelectionMode) {
+      toggleTaskSelectionMode();
+    }
   }
 
   void handleTaskListChanged(
@@ -244,14 +457,55 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   ) {
     if (previous != null) {
       notifyAnalysisErrors(next.asData?.value);
-      notifyCompletedTasks(previous.asData?.value, next.asData?.value);
     }
 
     final tasks = next.asData?.value ?? const <MediaTask>[];
     final selectedTask = resolveSelectedTask(tasks);
     syncSelectedTaskIdAfterBuild(selectedTask);
+    syncSelectedTaskIdsAfterBuild(tasks);
     syncSelectedTaskConfigAfterBuild(selectedTask);
     syncQualityPresetAfterBuild(selectedTask);
+  }
+
+  void syncSelectedTaskIdsAfterBuild(List<MediaTask> tasks) {
+    if (selectedTaskIds.isEmpty) {
+      return;
+    }
+
+    final selectableIds = {
+      for (final task in tasks)
+        if (task.folderId == null) task.id,
+    };
+    final staleIds = selectedTaskIds.difference(selectableIds);
+    if (staleIds.isEmpty) {
+      return;
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || staleIds.every((id) => !selectedTaskIds.contains(id))) {
+        return;
+      }
+      setState(() {
+        selectedTaskIds.removeAll(staleIds);
+        if (selectedTaskIds.isEmpty) {
+          taskSelectionMode = false;
+        }
+      });
+    });
+  }
+
+  void syncOpenedTaskFolderAfterBuild(TaskFolder? openedFolder) {
+    if (openedTaskFolderId == null || openedFolder != null) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || openedTaskFolderId == null) {
+        return;
+      }
+      setState(() {
+        openedTaskFolderId = null;
+      });
+    });
   }
 
   Future<void> showWindowsAdministratorDragNoticeIfNeeded() async {
@@ -288,11 +542,13 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         false;
 
     if (hasActiveTask) {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => const RestartUnelevatedDialog(),
+      final confirmed = await ConfirmDialog.show(
+        context,
+        title: '普通模式重启',
+        body: '当前有任务正在处理。普通模式重启会关闭当前管理员窗口，并中断正在执行的任务。',
+        confirmLabel: '重启',
       );
-      if (confirmed != true) {
+      if (!confirmed) {
         return;
       }
     }
@@ -437,95 +693,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  void notifyCompletedTasks(
-    List<MediaTask>? previousTasks,
-    List<MediaTask>? nextTasks,
-  ) {
-    if (previousTasks == null || nextTasks == null) {
-      return;
-    }
-
-    final previousStatusById = {
-      for (final task in previousTasks) task.id: task.status,
-    };
-
-    for (final task in nextTasks) {
-      if (task.status != TaskStatus.completed) {
-        continue;
-      }
-
-      if (previousStatusById[task.id] == TaskStatus.completed) {
-        continue;
-      }
-
-      final key = '${task.id}:${task.outputPath}:${task.completedAt}';
-      if (!notifiedCompletedTaskKeys.add(key)) {
-        continue;
-      }
-
-      unawaited(showCompletionFeedback(task));
-    }
-  }
-
-  Future<void> showCompletionFeedback(MediaTask task) async {
-    final showCompletionDialog = await ref
-        .read(appSettingsProvider.future)
-        .then((settings) => settings.showTaskCompletionDialog)
-        .catchError((_) => true);
-    if (!showCompletionDialog) {
-      return;
-    }
-
-    await showTaskCompletedDialog(task);
-  }
-
-  Future<void> showTaskCompletedDialog(MediaTask task) async {
-    if (!mounted) {
-      return;
-    }
-
-    final outputPath = task.outputPath?.trim();
-    final outputFileSize = await readOutputFileSize(outputPath);
-    if (!mounted) {
-      return;
-    }
-
-    await showDialog<void>(
-      context: context,
-      builder: (context) {
-        return TaskCompletedDialog(
-          outputPath: outputPath,
-          sourceFileSize: task.sourceFileFingerprint?.fileSize,
-          outputFileSize: outputFileSize,
-          onClose: () => Navigator.of(context).pop(),
-          onReveal: outputPath == null || outputPath.isEmpty
-              ? null
-              : () {
-                  Navigator.of(context).pop();
-                  unawaited(revealPathInFileManager(outputPath));
-                },
-        );
-      },
-    );
-  }
-
-  Future<int?> readOutputFileSize(String? outputPath) async {
-    if (outputPath == null || outputPath.isEmpty) {
-      return null;
-    }
-
-    try {
-      final outputFile = File(outputPath);
-      if (!await outputFile.exists()) {
-        return null;
-      }
-
-      return outputFile.length();
-    } on Object {
-      return null;
-    }
-  }
-
   ImageProvider? thumbnailForTask(MediaTask task) {
     return thumbnailStore.imageForTask(task);
   }
@@ -556,17 +723,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
-  void reorderTasks(int oldIndex, int newIndex) {
-    final reorderFuture = ref
-        .read(mediaTaskListProvider.notifier)
-        .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
-    unawaited(
-      reorderFuture.catchError((Object error, StackTrace stackTrace) {
-        if (mounted) {
-          showWorkbenchSnackBar('任务排序保存失败: $error');
-        }
-      }),
-    );
+  Future<void> reorderTasks(int oldIndex, int newIndex) async {
+    try {
+      await ref
+          .read(mediaTaskListProvider.notifier)
+          .reorderTasks(oldIndex: oldIndex, newIndex: newIndex);
+    } on Object catch (error, stackTrace) {
+      if (mounted) {
+        showWorkbenchSnackBar('任务排序保存失败: $error');
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
   }
 
   Future<void> openSettingsPage() async {
@@ -635,6 +802,274 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     ref.read(notificationCenterVisibilityProvider.notifier).close();
   }
 
+  Future<void> openUpdateLogFromNotification(String target) async {
+    closeNotificationCenter();
+    final current = ref.read(appUpdateProvider).asData?.value;
+    final release = current?.release;
+    if (release != null &&
+        target ==
+            '${release.platform}:${release.version}:${release.buildNumber}') {
+      await showUpdateNotice();
+      return;
+    }
+
+    // Historical version: go straight to the release notes page (L3).
+    final parts = target.split(':');
+    final version = parts.length >= 2 ? parts[1] : null;
+    if (!mounted) return;
+    final query = version != null
+        ? '?version=$version&from=workbench'
+        : '?from=workbench';
+    context.push('/settings/release-notes$query');
+  }
+
+  Future<void> startUpdateDownloadFromNotification(String target) async {
+    closeNotificationCenter();
+    final updateState = ref.read(appUpdateProvider).asData?.value;
+    if (updateState?.release?.hasExternalDownloadLinks ?? false) {
+      await showUpdateNotice();
+      return;
+    }
+    await ref.read(appUpdateProvider.notifier).startOrResumeDownload();
+  }
+
+  Future<void> openUpdateDownloadLink(String? url) async {
+    final trimmedUrl = url?.trim() ?? '';
+    if (trimmedUrl.isEmpty) {
+      return;
+    }
+    final notificationManager = ref.read(appNotificationManagerProvider);
+    final result = await ref.read(externalLinkOpenerProvider).open(trimmedUrl);
+    if (result.succeeded) {
+      return;
+    }
+
+    await notificationManager.notify(
+      level: AppNotificationLevel.error,
+      title: '打开下载地址失败',
+      message: result.message!,
+      source: notificationSourceUpdate,
+    );
+  }
+
+  Future<void> showUpdateNotice() async {
+    final updateState = ref.read(appUpdateProvider).asData?.value;
+    if (!mounted || updateState?.release == null) {
+      return;
+    }
+
+    ref.read(appUpdateProvider.notifier).consumeAutoNotice();
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: !(updateState!.release?.mandatory ?? false),
+      builder: (dialogContext) {
+        return Consumer(
+          builder: (dialogContext, ref, _) {
+            final liveState =
+                ref.watch(appUpdateProvider).asData?.value ?? updateState;
+            return UpdateNoticeDialog(
+              updateState: liveState,
+              manualMacosUpdate: ref.watch(isManualMacosUpdateProvider),
+              onStartDownload: () {
+                unawaited(
+                  ref.read(appUpdateProvider.notifier).startOrResumeDownload(),
+                );
+              },
+              onPauseDownload: () {
+                ref.read(appUpdateProvider.notifier).pauseDownload();
+              },
+              onInstallUpdate: () {
+                unawaited(installUpdateWithTaskCheck());
+              },
+              onSnooze: () {
+                Navigator.of(dialogContext).pop();
+                unawaited(
+                  ref.read(appUpdateProvider.notifier).snoozeCurrentVersion(),
+                );
+              },
+              onOpenReleaseNotes: () {
+                Navigator.of(dialogContext).pop();
+                final release = liveState.release;
+                if (release != null) {
+                  context.push(
+                    '/settings/release-notes?version=${release.version}&from=workbench',
+                  );
+                }
+              },
+              onOpenGitHub: () {
+                unawaited(
+                  openUpdateDownloadLink(liveState.release?.githubDownloadUrl),
+                );
+              },
+              onOpenGitee: () {
+                unawaited(
+                  openUpdateDownloadLink(liveState.release?.giteeDownloadUrl),
+                );
+              },
+              onOpenBackup: () {
+                unawaited(
+                  openUpdateDownloadLink(liveState.release?.backupDownloadUrl),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Future<void> installUpdateWithTaskCheck() async {
+    if (ref.read(isManualMacosUpdateProvider)) {
+      await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
+      return;
+    }
+
+    final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+    final hasUnfinishedTasks = tasks.any(_taskNeedsUpdateRestartWarning);
+    if (hasUnfinishedTasks && mounted) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => const UpdateRestartWarningDialog(),
+      );
+      if (confirmed != true) {
+        return;
+      }
+    }
+
+    await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
+  }
+
+  MediaTaskConfig resolveVideoDraftConfig({
+    required MediaTask task,
+    required WorkbenchTaskConfigurationDraft draft,
+    required bool usePerTaskTargetSize,
+  }) {
+    final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
+    final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
+      draft.targetSizeRatio,
+    );
+    final resolvedQualityIndex = isTargetSize
+        ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(targetSizeRatio)
+        : draft.qualityIndex;
+    final qualityOption =
+        WorkbenchConstants.qualityOptions[resolvedQualityIndex];
+    final targetSizeBytes = usePerTaskTargetSize
+        ? WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
+            task,
+            targetSizeRatio,
+          )
+        : null;
+
+    return draft.config.copyWith(
+      outputFormat: draft.outputFormat,
+      videoCodec: draft.videoCodec,
+      encoderBackend: draft.encoderBackend,
+      resolutionPreset: draft.resolutionPreset,
+      compressionCrf: qualityOption.crf,
+      compressionMode: isTargetSize
+          ? CompressionMode.targetSize
+          : CompressionMode.preset,
+      smartPreset: isTargetSize ? null : draft.smartPreset,
+      targetSizeBytes: isTargetSize ? targetSizeBytes : null,
+      targetSizeRatio: isTargetSize ? targetSizeRatio : null,
+    );
+  }
+
+  Future<void> showTaskFolderConfigurationDialog(TaskFolder folder) async {
+    await runWorkbenchActionOnce(
+      'show-task-folder-configuration-dialog',
+      () async {
+        final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+        final folderTasks = resolveOpenedTaskFolderTasks(
+          tasks: tasks,
+          openedFolder: folder,
+        );
+        final representativeTask = taskFolderRepresentativeTask(folder: folder);
+        final isVideoTask = representativeTask.mediaKind == MediaKind.video;
+        final initialValues = resolveWorkbenchTaskConfigurationInitialValues(
+          task: representativeTask,
+          selectedQualityIndex: selectedQualityIndex,
+          selectedOutputFormat: selectedOutputFormat,
+          selectedVideoCodec: selectedVideoCodec,
+          selectedEncoderBackend: selectedEncoderBackend,
+          selectedResolutionPreset: selectedResolutionPreset,
+          selectedSmartPreset: selectedSmartPreset,
+        );
+        final appSettings = await ref.read(appSettingsProvider.future);
+        if (!mounted) {
+          return;
+        }
+
+        final draft = await showWorkbenchTaskConfigurationEditor(
+          context: context,
+          task: representativeTask,
+          thumbnail: null,
+          sourceSummary: WorkbenchTaskFolderSummary(
+            folder: folder,
+            tasks: folderTasks,
+          ),
+          title: '任务夹设置',
+          showOutputLocationInMain: true,
+          systemOutputDirectoryLabel: _systemOutputDirectoryLabel(appSettings),
+          onPickOutputDirectory: () =>
+              ref.read(fileSelectionServiceProvider).pickOutputDirectory(),
+          selectedQualityIndex: initialValues.qualityIndex,
+          selectedOutputFormat: initialValues.outputFormat,
+          selectedVideoCodec: initialValues.videoCodec,
+          selectedEncoderBackend: initialValues.encoderBackend,
+          selectedResolutionPreset: initialValues.resolutionPreset,
+          selectedCompressionMode: initialValues.compressionMode,
+          selectedSmartPreset: initialValues.smartPreset,
+          selectedTargetSizeRatio: initialValues.targetSizeRatio,
+          onOpenSource: null,
+        );
+        if (!mounted || draft == null) {
+          return;
+        }
+
+        final updatedConfig = isVideoTask
+            ? resolveVideoDraftConfig(
+                task: representativeTask,
+                draft: draft,
+                usePerTaskTargetSize: false,
+              )
+            : draft.config;
+
+        try {
+          await ref
+              .read(mediaTaskListProvider.notifier)
+              .applyTaskFolderConfig(
+                folderId: folder.id,
+                config: updatedConfig,
+                purpose: draft.purpose,
+              );
+          if (!mounted) {
+            return;
+          }
+          showWorkbenchSnackBar('任务夹设置已应用');
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      },
+    );
+  }
+
+  MediaTask taskFolderRepresentativeTask({required TaskFolder folder}) {
+    return MediaTask(
+      id: 'folder-config-${folder.id}',
+      inputPath: folder.name,
+      fileName: folder.name,
+      mediaKind: folder.mediaKind,
+      purpose: folder.defaultPurpose,
+      status: TaskStatus.pending,
+      config: folder.defaultConfig,
+      progress: 0,
+      sortOrder: folder.sortOrder,
+      createdAt: folder.createdAt,
+    );
+  }
+
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     await runWorkbenchActionOnce('show-task-configuration-dialog', () async {
       final isVideoTask = task.mediaKind == MediaKind.video;
@@ -647,6 +1082,10 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         selectedResolutionPreset: selectedResolutionPreset,
         selectedSmartPreset: selectedSmartPreset,
       );
+      final appSettings = await ref.read(appSettingsProvider.future);
+      if (!mounted) {
+        return;
+      }
 
       setState(() {
         selectedTaskId = task.id;
@@ -665,6 +1104,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         context: context,
         task: task,
         thumbnail: thumbnailForTask(task),
+        systemOutputDirectoryLabel: _systemOutputDirectoryLabel(appSettings),
+        onPickOutputDirectory: () =>
+            ref.read(fileSelectionServiceProvider).pickOutputDirectory(),
         selectedQualityIndex: initialValues.qualityIndex,
         selectedOutputFormat: initialValues.outputFormat,
         selectedVideoCodec: initialValues.videoCodec,
@@ -683,58 +1125,47 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
       if (!isVideoTask) {
         try {
-          await updateSelectedTaskConfig(config: draft.config);
+          await updateSelectedTaskConfig(
+            config: draft.config,
+            purpose: draft.purpose,
+          );
         } on Object catch (error) {
           showWorkbenchSnackBar(error.toString());
         }
         return;
       }
 
-      final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
-      final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
-        draft.targetSizeRatio,
-      );
-      final resolvedQualityIndex = isTargetSize
-          ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
-              targetSizeRatio,
-            )
-          : draft.qualityIndex;
-      final qualityOption =
-          WorkbenchConstants.qualityOptions[resolvedQualityIndex];
-      final targetSizeBytes =
-          WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
-            task,
-            targetSizeRatio,
-          );
-
       try {
-        final updatedConfig = draft.config.copyWith(
-          outputFormat: draft.outputFormat,
-          videoCodec: draft.videoCodec,
-          encoderBackend: draft.encoderBackend,
-          resolutionPreset: draft.resolutionPreset,
-          compressionCrf: qualityOption.crf,
-          compressionMode: isTargetSize
-              ? CompressionMode.targetSize
-              : CompressionMode.preset,
-          smartPreset: isTargetSize ? null : draft.smartPreset,
-          targetSizeBytes: isTargetSize ? targetSizeBytes : null,
-          targetSizeRatio: isTargetSize ? targetSizeRatio : null,
+        final updatedConfig = resolveVideoDraftConfig(
+          task: task,
+          draft: draft,
+          usePerTaskTargetSize: true,
         );
 
-        await updateSelectedTaskConfig(config: updatedConfig);
+        await updateSelectedTaskConfig(
+          config: updatedConfig,
+          purpose: draft.purpose,
+        );
 
         if (!mounted) {
           return;
         }
 
         setState(() {
-          selectedQualityIndex = resolvedQualityIndex;
+          selectedQualityIndex =
+              draft.compressionMode == CompressionMode.targetSize
+              ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
+                  WorkbenchQualityPolicy.normalizeTargetSizeRatio(
+                    draft.targetSizeRatio,
+                  ),
+                )
+              : draft.qualityIndex;
           selectedOutputFormat = draft.outputFormat;
           selectedVideoCodec = draft.videoCodec;
           selectedEncoderBackend = draft.encoderBackend;
           selectedResolutionPreset = draft.resolutionPreset;
-          selectedCompressionMode = isTargetSize
+          selectedCompressionMode =
+              draft.compressionMode == CompressionMode.targetSize
               ? CompressionMode.targetSize
               : CompressionMode.preset;
           selectedSmartPreset = draft.smartPreset;
@@ -746,12 +1177,135 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   void openTask(MediaTask task) {
+    if (task.status == TaskStatus.analyzing) {
+      unawaited(
+        ref
+            .read(appNotificationManagerProvider)
+            .notifyInteraction(
+              title: '正在分析，请稍等',
+              message: task.fileName,
+              source: notificationSourceWorkbench,
+            ),
+      );
+      return;
+    }
+
     if (task.status == TaskStatus.missingSource) {
       unawaited(relinkMissingSource(task));
       return;
     }
 
     unawaited(showTaskConfigurationDialog(task));
+  }
+
+  String _systemOutputDirectoryLabel(AppSettings settings) {
+    if (settings.saveOutputToSourceDirectory) {
+      return '每个源文件所在目录';
+    }
+    final directory = settings.defaultOutputDirectory?.trim();
+    return directory == null || directory.isEmpty ? '每个源文件所在目录' : directory;
+  }
+
+  void toggleTaskSelectionMode() {
+    setState(() {
+      taskSelectionMode = !taskSelectionMode;
+      if (!taskSelectionMode) {
+        selectedTaskIds.clear();
+      }
+    });
+  }
+
+  void toggleTaskSelection(MediaTask task) {
+    if (task.folderId != null) {
+      return;
+    }
+
+    setState(() {
+      taskSelectionMode = true;
+      if (!selectedTaskIds.add(task.id)) {
+        selectedTaskIds.remove(task.id);
+      }
+      if (selectedTaskIds.isEmpty) {
+        taskSelectionMode = true;
+      }
+    });
+  }
+
+  void selectTasksWithRectangle(Set<String> taskIds, {bool toggle = false}) {
+    if (taskIds.isEmpty) {
+      return;
+    }
+    setState(() {
+      taskSelectionMode = true;
+      if (toggle) {
+        for (final taskId in taskIds) {
+          if (!selectedTaskIds.add(taskId)) {
+            selectedTaskIds.remove(taskId);
+          }
+        }
+      } else {
+        selectedTaskIds
+          ..clear()
+          ..addAll(taskIds);
+      }
+    });
+  }
+
+  Future<void> createTaskFoldersFromSelection() async {
+    await runWorkbenchActionOnce(
+      'create-task-folders-from-selection',
+      () async {
+        if (selectedTaskIds.isEmpty) {
+          return;
+        }
+
+        try {
+          final folders = await ref
+              .read(mediaTaskListProvider.notifier)
+              .createTaskFoldersFromTaskIds(selectedTaskIds.toList());
+          if (!mounted) {
+            return;
+          }
+
+          setState(() {
+            selectedTaskIds.clear();
+            taskSelectionMode = false;
+            openedTaskFolderId = folders.length == 1 ? folders.single.id : null;
+          });
+          showWorkbenchSnackBar(
+            folders.length == 1 ? '已创建任务夹' : '已按媒体类型创建 ${folders.length} 个任务夹',
+          );
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      },
+    );
+  }
+
+  Future<void> moveTaskIntoFolder(MediaTask task, TaskFolder folder) async {
+    await runWorkbenchActionOnce('move-task-to-folder:${task.id}', () async {
+      if (task.mediaKind != folder.mediaKind || task.folderId != null) {
+        showWorkbenchSnackBar('任务夹只接受同类型媒体');
+        return;
+      }
+
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .moveTaskToFolder(taskId: task.id, folderId: folder.id);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          selectedTaskIds.remove(task.id);
+          if (selectedTaskIds.isEmpty) {
+            taskSelectionMode = false;
+          }
+        });
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
   }
 
   Future<void> handlePrimaryQueueAction(bool hasRunningTask) async {
@@ -779,6 +1333,24 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
   }
 
+  Future<void> pickAndAddImportPaths() async {
+    await runWorkbenchActionOnce('pick-and-add-import-paths', () async {
+      try {
+        final paths =
+            (await ref.read(fileSelectionServiceProvider).pickImportPaths())
+                .where((path) => path.trim().isNotEmpty)
+                .toList();
+        if (paths.isEmpty) {
+          return;
+        }
+
+        await importSelectedPaths(paths);
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
   Future<void> pickAndAddTasks() async {
     await runWorkbenchActionOnce('pick-and-add-tasks', () async {
       try {
@@ -790,20 +1362,80 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           return;
         }
 
-        final createdTasks = await ref
-            .read(mediaTaskListProvider.notifier)
-            .createDraftsFromPaths(paths);
-        if (createdTasks.isNotEmpty) {
-          setState(() {
-            selectedTaskId = createdTasks.first.id;
-            syncedConfigTaskId = null;
-            syncedQualityTaskKey = null;
-          });
-        }
+        await importSelectedPaths(paths);
       } on Object catch (error) {
         showWorkbenchSnackBar(error.toString());
       }
     });
+  }
+
+  Future<void> pickAndAddFolder() async {
+    await runWorkbenchActionOnce('pick-and-add-folder', () async {
+      try {
+        final folderPath = await ref
+            .read(fileSelectionServiceProvider)
+            .pickMediaDirectory();
+        if (folderPath == null || folderPath.trim().isEmpty) {
+          return;
+        }
+
+        final result = await ref
+            .read(mediaTaskListProvider.notifier)
+            .importFolderFromPath(folderPath);
+        if (result.createdTasks.isNotEmpty) {
+          setState(() {
+            selectedTaskId = result.createdTasks.first.id;
+            selectedTaskIds.clear();
+            taskSelectionMode = false;
+            syncedConfigTaskId = null;
+            syncedQualityTaskKey = null;
+          });
+        }
+
+        final failures = <DroppedImportFailure>[
+          if (result.foundNoMedia)
+            DroppedImportFailure(path: folderPath, reason: '未找到可识别媒体文件'),
+          ...result.failures.map(
+            (failure) => DroppedImportFailure(
+              path: failure.path,
+              reason: failure.reason,
+            ),
+          ),
+        ];
+        showDroppedImportSnackBar(
+          successCount: result.createdTasks.length,
+          failures: failures,
+        );
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
+  Future<void> importSelectedPaths(List<String> paths) async {
+    final result = await WorkbenchImportHandler.importDroppedPaths(
+      paths: paths,
+      notifier: ref.read(mediaTaskListProvider.notifier),
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (result.createdTasks.isNotEmpty) {
+      setState(() {
+        selectedTaskId = result.createdTasks.first.id;
+        selectedTaskIds.clear();
+        taskSelectionMode = false;
+        syncedConfigTaskId = null;
+        syncedQualityTaskKey = null;
+      });
+    }
+
+    showDroppedImportSnackBar(
+      successCount: result.createdTasks.length,
+      failures: result.failures,
+    );
   }
 
   Future<void> handleWorkbenchImportDrop(DropDoneDetails details) async {
@@ -817,27 +1449,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return;
     }
 
-    final result = await WorkbenchImportHandler.importDroppedPaths(
-      paths: details.files.map((item) => item.path),
-      notifier: ref.read(mediaTaskListProvider.notifier),
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    if (result.createdTasks.isNotEmpty) {
-      setState(() {
-        selectedTaskId = result.createdTasks.first.id;
-        syncedConfigTaskId = null;
-        syncedQualityTaskKey = null;
-      });
-    }
-
-    showDroppedImportSnackBar(
-      successCount: result.createdTasks.length,
-      failures: result.failures,
-    );
+    await importSelectedPaths(details.files.map((item) => item.path).toList());
   }
 
   void showDroppedImportSnackBar({
@@ -845,20 +1457,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     required List<DroppedImportFailure> failures,
   }) {
     if (failures.isEmpty) {
-      showWorkbenchSnackBar('导入成功');
+      showWorkbenchSnackBar('全部导入成功');
       return;
     }
 
-    showWorkbenchSnackBar(
-      '导入完成：成功 $successCount 个，失败 ${failures.length} 个',
-      action: SnackBarAction(
-        label: '日志',
-        onPressed: () => showDroppedImportFailureDialog(failures),
-      ),
-    );
+    showWorkbenchSnackBar('成功 $successCount 个，失败 ${failures.length} 个');
+
+    showDroppedImportFailureDialog(successCount, failures);
   }
 
   Future<void> showDroppedImportFailureDialog(
+    int successCount,
     List<DroppedImportFailure> failures,
   ) async {
     if (!mounted) {
@@ -867,24 +1476,29 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => ImportFailureDialog(failures: failures),
+      builder: (context) =>
+          ImportFailureDialog(successCount: successCount, failures: failures),
     );
   }
 
   Future<void> confirmClearTasks() async {
     await runWorkbenchActionOnce('confirm-clear-tasks', () async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => const ClearTasksDialog(),
+      final confirmed = await ConfirmDialog.show(
+        context,
+        title: '清空列表',
+        body: '确定要清空所有任务和任务夹吗？',
+        confirmLabel: '清空',
       );
 
-      if (confirmed != true) {
+      if (!confirmed) {
         return;
       }
 
       await ref.read(mediaTaskListProvider.notifier).clearTasks();
       setState(() {
         selectedTaskId = null;
+        selectedTaskIds.clear();
+        taskSelectionMode = false;
         syncedConfigTaskId = null;
         syncedQualityTaskKey = null;
       });
@@ -899,6 +1513,14 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           selectedTaskId = null;
           syncedConfigTaskId = null;
           syncedQualityTaskKey = null;
+        });
+      }
+      if (selectedTaskIds.contains(task.id)) {
+        setState(() {
+          selectedTaskIds.remove(task.id);
+          if (selectedTaskIds.isEmpty) {
+            taskSelectionMode = false;
+          }
         });
       }
     });
@@ -938,17 +1560,21 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     Offset globalPosition,
   ) async {
     await runWorkbenchActionOnce('show-task-context-menu', () async {
-      final selectedAction = await showWorkbenchTaskContextMenu(
+      final folders =
+          ref.read(taskFolderListProvider).asData?.value ??
+          const <TaskFolder>[];
+      final selectedResult = await showWorkbenchTaskContextMenu(
         context: context,
         task: task,
         globalPosition: globalPosition,
+        candidateFolders: folders,
       );
 
-      if (!mounted || selectedAction == null) {
+      if (!mounted || selectedResult == null) {
         return;
       }
 
-      switch (selectedAction) {
+      switch (selectedResult.action) {
         case TaskContextMenuAction.revealInFileManager:
           await revealTaskInFileManager(task);
         case TaskContextMenuAction.relinkSource:
@@ -957,8 +1583,61 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           await renameTask(task);
         case TaskContextMenuAction.showLog:
           await showTaskLog(task);
+        case TaskContextMenuAction.moveToFolder:
+          final folderId = selectedResult.folderId;
+          if (folderId == null) {
+            return;
+          }
+          TaskFolder? targetFolder;
+          for (final folder in folders) {
+            if (folder.id == folderId) {
+              targetFolder = folder;
+              break;
+            }
+          }
+          if (targetFolder == null) {
+            showWorkbenchSnackBar('任务夹不存在或已被删除');
+            return;
+          }
+          await moveTaskIntoFolder(task, targetFolder);
         case TaskContextMenuAction.delete:
           await deleteTask(task);
+      }
+    });
+  }
+
+  Future<void> showTaskFolderContextMenu(
+    TaskFolder folder,
+    Offset globalPosition,
+  ) async {
+    await runWorkbenchActionOnce('show-task-folder-context-menu', () async {
+      final tasks =
+          ref.read(mediaTaskListProvider).asData?.value ?? const <MediaTask>[];
+      final folderTasks = tasks.where((task) => task.folderId == folder.id);
+      final selectedAction = await showWorkbenchTaskFolderContextMenu(
+        context: context,
+        folder: folder,
+        hasLoggableTask: folderTasks.any(
+          (task) =>
+              task.status == TaskStatus.completed ||
+              task.status == TaskStatus.failed,
+        ),
+        globalPosition: globalPosition,
+      );
+
+      if (!mounted || selectedAction == null) {
+        return;
+      }
+
+      switch (selectedAction) {
+        case TaskFolderContextMenuAction.rename:
+          await renameTaskFolder(folder);
+        case TaskFolderContextMenuAction.openContents:
+          openTaskFolder(folder);
+        case TaskFolderContextMenuAction.showLog:
+          await showTaskFolderLog(folder);
+        case TaskFolderContextMenuAction.delete:
+          deleteTaskFolder(folder);
       }
     });
   }
@@ -971,6 +1650,16 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     if (!result.succeeded) {
       showWorkbenchSnackBar(result.message!);
     }
+  }
+
+  Future<void> revealTaskOutput(MediaTask task) async {
+    final outputPath = task.outputPath?.trim();
+    if (outputPath == null || outputPath.isEmpty) {
+      showWorkbenchSnackBar('任务还没有完成文件');
+      return;
+    }
+
+    await revealPathInFileManager(outputPath);
   }
 
   Future<void> revealPathInFileManager(String targetPath) async {
@@ -1000,6 +1689,37 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       await ref
           .read(mediaTaskListProvider.notifier)
           .saveTask(task.copyWith(fileName: trimmedName));
+    });
+  }
+
+  Future<void> renameTaskFolder(TaskFolder folder) async {
+    await runWorkbenchActionOnce('rename-task-folder:${folder.id}', () async {
+      final nextName = await showDialog<String>(
+        context: context,
+        builder: (context) => TaskRenameDialog(
+          initialName: folder.name,
+          title: '任务夹重命名',
+          label: '任务夹名称',
+        ),
+      );
+
+      if (!mounted || nextName == null) {
+        return;
+      }
+
+      final trimmedName = nextName.trim();
+      if (trimmedName.isEmpty) {
+        showWorkbenchSnackBar('任务夹名称不能为空');
+        return;
+      }
+
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .renameTaskFolder(folderId: folder.id, name: trimmedName);
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
     });
   }
 
@@ -1115,8 +1835,12 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       return true;
     }
 
-    final confirmed = await showCompressionConfirmationDialog(
-      result.message ?? '该视频已经压缩过，再压缩体积可能变大',
+    final confirmed = await ConfirmDialog.show(
+      context,
+      title: '确认继续压缩',
+      body: '${result.message ?? '该视频已经压缩过，再压缩体积可能变大'}\n继续后会使用更激进的压缩策略。',
+      confirmLabel: '继续压缩',
+      confirmWidth: 96,
     );
     if (!mounted) {
       return true;
@@ -1131,15 +1855,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     return true;
   }
 
-  Future<bool> showCompressionConfirmationDialog(String message) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => CompressionConfirmationDialog(message: message),
-    );
-
-    return confirmed == true;
-  }
-
   MediaTask? currentSelectedTask() {
     final taskList = ref.read(mediaTaskListProvider);
     if (!taskList.hasValue) {
@@ -1147,6 +1862,207 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     return resolveSelectedTask(taskList.requireValue);
+  }
+
+  TaskFolder? resolveOpenedTaskFolder(List<TaskFolder> folders) {
+    final folderId = openedTaskFolderId;
+    if (folderId == null) {
+      return null;
+    }
+
+    for (final folder in folders) {
+      if (folder.id == folderId) {
+        return folder;
+      }
+    }
+    return null;
+  }
+
+  void openTaskFolder(TaskFolder folder) {
+    setState(() {
+      openedTaskFolderId = folder.id;
+    });
+  }
+
+  void closeTaskFolder() {
+    setState(() {
+      openedTaskFolderId = null;
+    });
+  }
+
+  Future<void> reorderOpenedTaskFolderTasks(int oldIndex, int newIndex) async {
+    final folderId = openedTaskFolderId;
+    if (folderId == null) {
+      return;
+    }
+    try {
+      await ref
+          .read(mediaTaskListProvider.notifier)
+          .reorderFolderTasks(
+            folderId: folderId,
+            oldIndex: oldIndex,
+            newIndex: newIndex,
+          );
+    } on Object catch (error, stackTrace) {
+      if (mounted) {
+        showWorkbenchSnackBar('任务夹排序保存失败: $error');
+      }
+      Error.throwWithStackTrace(error, stackTrace);
+    }
+  }
+
+  void deleteTaskFolder(TaskFolder folder) {
+    unawaited(
+      runWorkbenchActionOnce('delete-task-folder:${folder.id}', () async {
+        try {
+          await ref
+              .read(mediaTaskListProvider.notifier)
+              .deleteTaskFolder(folder.id);
+          if (openedTaskFolderId == folder.id) {
+            closeTaskFolder();
+          }
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+        }
+      }),
+    );
+  }
+
+  Future<void> startTaskFolder(
+    TaskFolder folder, {
+    bool allowExtremeCompression = false,
+  }) async {
+    await runWorkbenchActionOnce('start-task-folder:${folder.id}', () {
+      return startTaskFolderUnchecked(
+        folder,
+        allowExtremeCompression: allowExtremeCompression,
+      );
+    });
+  }
+
+  Future<void> startTaskFolderUnchecked(
+    TaskFolder folder, {
+    bool allowExtremeCompression = false,
+  }) async {
+    try {
+      final result = await ref
+          .read(mediaTaskListProvider.notifier)
+          .startNextTaskInFolder(
+            folder.id,
+            allowExtremeCompression: allowExtremeCompression,
+          );
+      if (await confirmAndRestartWhenCompressionRequiresConfirmation(
+        result,
+        () => startTaskFolderUnchecked(folder, allowExtremeCompression: true),
+      )) {
+        return;
+      }
+      if (result.message != null) {
+        showWorkbenchSnackBar(result.message!);
+      }
+    } on Object catch (error) {
+      showWorkbenchSnackBar(error.toString());
+    }
+  }
+
+  Future<void> pauseTaskFolder(TaskFolder folder) async {
+    await runWorkbenchActionOnce('pause-task-folder:${folder.id}', () async {
+      try {
+        final result = await ref
+            .read(mediaTaskListProvider.notifier)
+            .pauseRunningTaskInFolder(folder.id);
+        if (result.message != null) {
+          showWorkbenchSnackBar(result.message!);
+        }
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
+  Future<void> retryTaskFolder(TaskFolder folder) async {
+    await runWorkbenchActionOnce('retry-task-folder:${folder.id}', () async {
+      try {
+        await ref
+            .read(mediaTaskListProvider.notifier)
+            .retryTerminalTasksInFolder(folder.id);
+        showWorkbenchSnackBar('任务夹终态任务已重置');
+      } on Object catch (error) {
+        showWorkbenchSnackBar(error.toString());
+      }
+    });
+  }
+
+  Future<void> relinkTaskFolderMissingSource(TaskFolder folder) async {
+    await runWorkbenchActionOnce('relink-task-folder:${folder.id}', () async {
+      final task = firstTaskInFolderWhere(
+        folder: folder,
+        predicate: (task) => task.status == TaskStatus.missingSource,
+      );
+      if (task == null) {
+        showWorkbenchSnackBar('任务夹内没有缺失源文件任务');
+        return;
+      }
+      await relinkMissingSource(task);
+    });
+  }
+
+  Future<void> showTaskFolderLog(TaskFolder folder) async {
+    await runWorkbenchActionOnce('show-task-folder-log:${folder.id}', () async {
+      final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+      final folderTasks = resolveOpenedTaskFolderTasks(
+        tasks: tasks,
+        openedFolder: folder,
+      );
+      if (folderTasks.isEmpty) {
+        showWorkbenchSnackBar('任务夹内没有任务');
+        return;
+      }
+      await TaskFolderLogDialog.show(
+        context,
+        title: '${folder.name} 日志',
+        tasks: folderTasks,
+        logStore: ref.read(executionLogStoreProvider),
+      );
+    });
+  }
+
+  MediaTask? firstTaskInFolderWhere({
+    required TaskFolder folder,
+    required bool Function(MediaTask task) predicate,
+  }) {
+    final tasks = ref.read(mediaTaskListProvider).asData?.value ?? const [];
+    for (final task in resolveOpenedTaskFolderTasks(
+      tasks: tasks,
+      openedFolder: folder,
+    )) {
+      if (predicate(task)) {
+        return task;
+      }
+    }
+    return null;
+  }
+
+  Future<void> removeTaskFromFolder(MediaTask task) async {
+    await runWorkbenchActionOnce(
+      'remove-task-from-folder:${task.id}',
+      () async {
+        try {
+          await ref
+              .read(mediaTaskListProvider.notifier)
+              .removeTaskFromFolder(task.id);
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            selectedTaskIds.remove(task.id);
+          });
+        } on Object catch (error) {
+          showWorkbenchSnackBar(error.toString());
+          rethrow;
+        }
+      },
+    );
   }
 
   Future<void> updateSelectedTaskConfig({
@@ -1162,6 +2078,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     Object? targetSizeBytes = _configValueNotProvided,
     Object? targetSizeRatio = _configValueNotProvided,
     String? outputFileName,
+    TaskPurpose? purpose,
   }) async {
     final task = currentSelectedTask();
     if (task == null) {
@@ -1169,6 +2086,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     final updatedTask = task.copyWith(
+      purpose: purpose,
       config:
           config ??
           task.config.copyWith(
@@ -1200,7 +2118,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           .notify(
             level: notificationLevelForWorkbenchMessage(message),
             title: message,
-            source: 'workbench',
+            source: notificationSourceWorkbench,
             action: action == null
                 ? null
                 : AppNotificationAction(
@@ -1223,4 +2141,11 @@ AppNotificationLevel notificationLevelForWorkbenchMessage(String message) {
     return AppNotificationLevel.success;
   }
   return AppNotificationLevel.info;
+}
+
+bool _taskNeedsUpdateRestartWarning(MediaTask task) {
+  return task.status == TaskStatus.running ||
+      task.status == TaskStatus.paused ||
+      task.status == TaskStatus.pending ||
+      task.status == TaskStatus.analyzing;
 }

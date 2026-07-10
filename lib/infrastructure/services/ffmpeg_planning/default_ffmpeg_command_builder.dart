@@ -1,21 +1,12 @@
-import 'package:framelean/application/services/ffmpeg_planning/compression_advisor.dart';
-import 'package:framelean/application/services/ffmpeg_planning/default_compression_advisor.dart';
-import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
-import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/audio_processing_config.dart';
-import 'package:framelean/domain/value_objects/image_processing_config.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_formatters.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_log_hint_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_command_step_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_encoder_resolver.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_output_path_builder.dart';
 import 'package:framelean/infrastructure/services/ffmpeg_planning/ffmpeg_video_argument_builder.dart';
+import 'package:path/path.dart' as path;
 
 class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
   final CompressionAdvisor compressionAdvisor;
@@ -78,24 +69,52 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     required bool allowExtremeCompression,
     required FfmpegEncoderCapabilities encoderCapabilities,
   }) {
-    encoderResolver.ensureSupportedTask(task, encoderCapabilities);
+    final preserveAlpha = argumentBuilder.shouldPreserveAlpha(task);
     ensureOutputFormatBelongsToKind(
       task.config.video?.outputFormat ?? MediaOutputFormat.mp4,
       MediaKind.video,
     );
 
     final outputPath = outputPathBuilder.buildOutputPath(task);
-    final targetCodec = encoderResolver.resolveTargetVideoCodec(task);
+    final targetCodec = preserveAlpha
+        ? VideoCodec.h264
+        : encoderResolver.resolveTargetVideoCodec(task);
+    if (!preserveAlpha &&
+        !VideoOutputCompatibility.supports(
+          task.config.outputFormat,
+          targetCodec,
+        )) {
+      throw FfmpegCommandBuildException(
+        '${task.config.outputFormat.name.toUpperCase()} 不支持 '
+        '${targetCodec.name} 视频编码。',
+      );
+    }
+    final streamCopy =
+        !preserveAlpha &&
+        stepBuilder.canStreamCopyConversion(task, targetCodec);
+    if (!preserveAlpha && !streamCopy) {
+      encoderResolver.ensureSupportedTask(task, encoderCapabilities);
+    } else if (preserveAlpha &&
+        !encoderCapabilities.encoderNames.contains('prores_ks')) {
+      throw const FfmpegCommandBuildException(
+        '当前 FFmpeg 不支持透明保留输出编码器: prores_ks。'
+        '请在设置中指定带该编码器的 FFmpeg，或改用非透明素材。',
+      );
+    }
     final recommendation = compressionAdvisor.recommend(
       task,
       allowExtremeCompression: allowExtremeCompression,
     );
-    final videoEncoder = encoderResolver.resolveVideoEncoderForTask(
-      task: task,
-      targetCodec: targetCodec,
-      backend: task.config.encoderBackend,
-      encoderCapabilities: encoderCapabilities,
-    );
+    final videoEncoder = preserveAlpha
+        ? 'prores_ks'
+        : streamCopy
+        ? 'copy'
+        : encoderResolver.resolveVideoEncoderForTask(
+            task: task,
+            targetCodec: targetCodec,
+            backend: task.config.encoderBackend,
+            encoderCapabilities: encoderCapabilities,
+          );
     ensureCompressionConfirmed(task, recommendation);
     final steps = stepBuilder.buildCommandSteps(
       task: task,
@@ -134,7 +153,88 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
     ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.image);
 
-    final outputPath = outputPathBuilder.buildOutputPath(task);
+    final isConversion = task.purpose == TaskPurpose.conversion;
+    final primaryOutputFormat = imagePrimaryOutputFormatFor(task, config);
+    final primaryConfig = config.copyWith(
+      outputFormat: primaryOutputFormat,
+      resizePreset: isConversion
+          ? ImageResizePreset.original
+          : config.resizePreset,
+      imageQuality: isConversion ? 100 : config.imageQuality,
+      losslessCompression: isConversion
+          ? primaryOutputFormat == MediaOutputFormat.webp
+          : config.losslessCompression,
+    );
+    final primaryTask = task.copyWith(
+      config: task.config.copyWith(image: primaryConfig),
+    );
+
+    final outputPath = outputPathBuilder.buildOutputPath(primaryTask);
+    final fallbackFormat = task.purpose == TaskPurpose.compression
+        ? imageFallbackFormatFor(
+            primaryTask,
+            primaryConfig,
+            encoderCapabilities,
+          )
+        : null;
+    final steps = <FfmpegCommandStep>[
+      buildImageCommandStep(
+        task: primaryTask,
+        config: primaryConfig,
+        outputPath: outputPath,
+        encoderCapabilities: encoderCapabilities,
+        label: '按当前图片格式生成输出文件',
+        completionPolicy: task.purpose == TaskPurpose.compression
+            ? (fallbackFormat == null
+                  ? FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource
+                  : FfmpegStepCompletionPolicy
+                        .completeIfOutputSmallerThanSource)
+            : FfmpegStepCompletionPolicy.alwaysContinue,
+      ),
+    ];
+
+    if (fallbackFormat != null) {
+      final fallbackConfig = primaryConfig.copyWith(
+        outputFormat: fallbackFormat,
+        keepOriginalOutputFormat: false,
+      );
+      final fallbackTask = primaryTask.copyWith(
+        config: task.config.copyWith(image: fallbackConfig),
+      );
+      steps.add(
+        buildImageCommandStep(
+          task: fallbackTask,
+          config: fallbackConfig,
+          outputPath: outputPathBuilder.buildOutputPath(fallbackTask),
+          encoderCapabilities: encoderCapabilities,
+          label: '改用 ${fallbackFormat.name.toUpperCase()} 再次压缩图片',
+          completionPolicy:
+              FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+          policyTagsOnStart: const {MediaTaskPolicyTag.imageFormatFallback},
+        ),
+      );
+    }
+    final args = steps.last.args;
+
+    return FfmpegCommandPlan(
+      args: args,
+      steps: steps,
+      outputPath: outputPath,
+      logHint:
+          '图片处理 ${primaryConfig.outputFormat.name} '
+          '${primaryConfig.losslessCompression ? '无损压缩' : '质量 ${primaryConfig.imageQuality}'}',
+    );
+  }
+
+  FfmpegCommandStep buildImageCommandStep({
+    required MediaTask task,
+    required ImageProcessingConfig config,
+    required String outputPath,
+    required FfmpegEncoderCapabilities encoderCapabilities,
+    required String label,
+    required FfmpegStepCompletionPolicy completionPolicy,
+    Set<MediaTaskPolicyTag> policyTagsOnStart = const {},
+  }) {
     final args = <String>[
       '-hide_banner',
       '-y',
@@ -142,20 +242,17 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       task.inputPath,
       ...buildImageFilterArgs(config),
       ...buildImageOutputArgs(config, encoderCapabilities),
+      ...argumentBuilder.buildThreadArgs(task),
       outputPath,
     ];
-    final step = FfmpegCommandStep(
+
+    return FfmpegCommandStep(
       args: args,
-      label: '生成图片输出文件',
+      label: label,
       outputPath: outputPath,
       progressMode: ProgressMode.step,
-    );
-
-    return FfmpegCommandPlan(
-      args: args,
-      steps: [step],
-      outputPath: outputPath,
-      logHint: '图片处理 ${config.outputFormat.name} 质量 ${config.imageQuality}',
+      completionPolicy: completionPolicy,
+      policyTagsOnStart: policyTagsOnStart,
     );
   }
 
@@ -170,6 +267,14 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
     ensureOutputFormatBelongsToKind(config.outputFormat, MediaKind.audio);
 
+    final isConversion = task.purpose == TaskPurpose.conversion;
+    final effectiveConfig = isConversion
+        ? config.copyWith(
+            bitratePreset: _conversionAudioBitrate(config.outputFormat),
+            sampleRate: AudioSampleRatePreset.source,
+            channels: AudioChannelsPreset.source,
+          )
+        : config;
     final outputPath = outputPathBuilder.buildOutputPath(task);
     final args = <String>[
       '-hide_banner',
@@ -177,8 +282,13 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       '-i',
       task.inputPath,
       '-vn',
-      ...buildAudioOutputArgs(config, encoderCapabilities),
-      ...buildAudioMetadataArgs(config),
+      ...buildAudioOutputArgs(
+        effectiveConfig,
+        encoderCapabilities,
+        preserveQuality: isConversion,
+      ),
+      ...buildAudioMetadataArgs(effectiveConfig),
+      ...argumentBuilder.buildThreadArgs(task),
       '-progress',
       'pipe:1',
       outputPath,
@@ -186,8 +296,18 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     return FfmpegCommandPlan(
       args: args,
+      steps: [
+        FfmpegCommandStep(
+          args: args,
+          label: isConversion ? '转换音频格式' : '压缩音频',
+          outputPath: outputPath,
+          completionPolicy: isConversion
+              ? FfmpegStepCompletionPolicy.alwaysContinue
+              : FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+        ),
+      ],
       outputPath: outputPath,
-      logHint: '音频处理 ${config.outputFormat.name}',
+      logHint: '音频处理 ${effectiveConfig.outputFormat.name}',
     );
   }
 
@@ -233,6 +353,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
         videoEncoder,
         encoderCapabilities,
       ),
+      ...argumentBuilder.buildThreadArgs(task),
       outputPath,
     ];
 
@@ -282,6 +403,7 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     switch (config.outputFormat) {
       case MediaOutputFormat.jpg:
+        ensureLosslessImageFormatSupported(config);
         return [
           '-frames:v',
           '1',
@@ -303,19 +425,39 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           '1',
           '-c:v',
           'libwebp',
-          '-quality',
-          config.imageQuality.toString(),
+          if (config.losslessCompression) ...[
+            '-lossless',
+            '1',
+            '-compression_level',
+            '6',
+            '-quality',
+            '100',
+          ] else ...[
+            '-quality',
+            config.imageQuality.toString(),
+          ],
           ...metadataArgs,
         ];
       case MediaOutputFormat.bmp:
+        ensureLosslessImageFormatSupported(config);
         return ['-frames:v', '1', '-c:v', 'bmp', ...metadataArgs];
       case MediaOutputFormat.tiff:
-        return ['-frames:v', '1', '-c:v', 'tiff', ...metadataArgs];
+        return [
+          '-frames:v',
+          '1',
+          '-c:v',
+          'tiff',
+          if (config.losslessCompression) ...['-compression_algo', 'deflate'],
+          ...metadataArgs,
+        ];
       case MediaOutputFormat.gif:
+        ensureLosslessImageFormatSupported(config);
         return ['-frames:v', '1', '-c:v', 'gif', ...metadataArgs];
       case MediaOutputFormat.mp4:
       case MediaOutputFormat.mov:
       case MediaOutputFormat.mkv:
+      case MediaOutputFormat.webm:
+      case MediaOutputFormat.avi:
       case MediaOutputFormat.mp3:
       case MediaOutputFormat.m4a:
       case MediaOutputFormat.aac:
@@ -329,6 +471,108 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
           '图片任务不支持输出 ${config.outputFormat.name}',
         );
     }
+  }
+
+  MediaOutputFormat? imageFallbackFormatFor(
+    MediaTask task,
+    ImageProcessingConfig config,
+    FfmpegEncoderCapabilities encoderCapabilities,
+  ) {
+    if (!config.keepOriginalOutputFormat) {
+      return null;
+    }
+
+    if (config.losslessCompression) {
+      if (config.outputFormat != MediaOutputFormat.webp &&
+          encoderCapabilities.supportsImageEncoder('libwebp')) {
+        return MediaOutputFormat.webp;
+      }
+      return null;
+    }
+
+    final hasAlpha = imageHasAlpha(task);
+    if (config.outputFormat != MediaOutputFormat.webp &&
+        encoderCapabilities.supportsImageEncoder('libwebp')) {
+      return MediaOutputFormat.webp;
+    }
+
+    if (!hasAlpha && config.outputFormat != MediaOutputFormat.jpg) {
+      return MediaOutputFormat.jpg;
+    }
+
+    return null;
+  }
+
+  MediaOutputFormat imagePrimaryOutputFormatFor(
+    MediaTask task,
+    ImageProcessingConfig config,
+  ) {
+    final format =
+        task.purpose == TaskPurpose.conversion ||
+            !config.keepOriginalOutputFormat
+        ? config.outputFormat
+        : imageFormatFromCodec(task.analysisResult?.imageCodec) ??
+              imageFormatFromExtension(path.extension(task.fileName)) ??
+              imageFormatFromExtension(path.extension(task.inputPath)) ??
+              config.outputFormat;
+
+    if (config.losslessCompression &&
+        !supportsLosslessImageCompression(format)) {
+      return MediaOutputFormat.webp;
+    }
+    return format;
+  }
+
+  void ensureLosslessImageFormatSupported(ImageProcessingConfig config) {
+    if (config.losslessCompression &&
+        !supportsLosslessImageCompression(config.outputFormat)) {
+      throw FfmpegCommandBuildException(
+        '${config.outputFormat.name.toUpperCase()} 不支持无损图片压缩，'
+        '请改用 PNG、WebP 或 TIFF。',
+      );
+    }
+  }
+
+  MediaOutputFormat? imageFormatFromCodec(String? codec) {
+    final normalized = codec?.trim().toLowerCase();
+    return switch (normalized) {
+      'jpeg' || 'mjpeg' || 'jpg' => MediaOutputFormat.jpg,
+      'png' => MediaOutputFormat.png,
+      'webp' => MediaOutputFormat.webp,
+      'bmp' => MediaOutputFormat.bmp,
+      'tiff' || 'tif' => MediaOutputFormat.tiff,
+      'gif' => MediaOutputFormat.gif,
+      _ => null,
+    };
+  }
+
+  MediaOutputFormat? imageFormatFromExtension(String extension) {
+    return switch (extension.trim().toLowerCase()) {
+      '.jpeg' || '.jpg' => MediaOutputFormat.jpg,
+      '.png' => MediaOutputFormat.png,
+      '.webp' => MediaOutputFormat.webp,
+      '.bmp' => MediaOutputFormat.bmp,
+      '.tiff' || '.tif' => MediaOutputFormat.tiff,
+      '.gif' => MediaOutputFormat.gif,
+      _ => null,
+    };
+  }
+
+  bool imageHasAlpha(MediaTask task) {
+    final pixelFormat = task.analysisResult?.imagePixelFormat
+        ?.trim()
+        .toLowerCase();
+    if (pixelFormat == null || pixelFormat.isEmpty) {
+      return task.config.image?.outputFormat == MediaOutputFormat.png ||
+          task.config.image?.outputFormat == MediaOutputFormat.webp;
+    }
+
+    return pixelFormat.startsWith('yuva') ||
+        pixelFormat == 'rgba' ||
+        pixelFormat == 'bgra' ||
+        pixelFormat == 'argb' ||
+        pixelFormat == 'abgr' ||
+        pixelFormat.startsWith('gbrap');
   }
 
   int jpegQualityScale(int quality) {
@@ -345,9 +589,13 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
   List<String> buildAudioOutputArgs(
     AudioProcessingConfig config,
-    FfmpegEncoderCapabilities encoderCapabilities,
-  ) {
-    final encoderName = audioEncoderName(config.outputFormat);
+    FfmpegEncoderCapabilities encoderCapabilities, {
+    bool preserveQuality = false,
+  }) {
+    final encoderName = audioEncoderName(
+      config.outputFormat,
+      preserveQuality: preserveQuality,
+    );
     if (!encoderCapabilities.supportsAudioEncoder(encoderName)) {
       throw FfmpegCommandBuildException(
         '当前 FFmpeg 不支持 ${config.outputFormat.name.toUpperCase()} '
@@ -379,18 +627,23 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     return config.preserveMetadata ? const [] : const ['-map_metadata', '-1'];
   }
 
-  String audioEncoderName(MediaOutputFormat outputFormat) {
+  String audioEncoderName(
+    MediaOutputFormat outputFormat, {
+    bool preserveQuality = false,
+  }) {
     return switch (outputFormat) {
       MediaOutputFormat.mp3 => 'libmp3lame',
       MediaOutputFormat.m4a || MediaOutputFormat.aac => 'aac',
       MediaOutputFormat.opus || MediaOutputFormat.oggOpus => 'libopus',
-      MediaOutputFormat.wav => 'pcm_s16le',
+      MediaOutputFormat.wav => preserveQuality ? 'pcm_s24le' : 'pcm_s16le',
       MediaOutputFormat.flac => 'flac',
-      MediaOutputFormat.aiff => 'pcm_s16be',
+      MediaOutputFormat.aiff => preserveQuality ? 'pcm_s24be' : 'pcm_s16be',
       MediaOutputFormat.wma => 'wmav2',
       MediaOutputFormat.mp4 ||
       MediaOutputFormat.mov ||
       MediaOutputFormat.mkv ||
+      MediaOutputFormat.webm ||
+      MediaOutputFormat.avi ||
       MediaOutputFormat.jpg ||
       MediaOutputFormat.png ||
       MediaOutputFormat.webp ||
@@ -399,6 +652,21 @@ class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
       MediaOutputFormat.gif => throw FfmpegCommandBuildException(
         '音频任务不支持输出 ${outputFormat.name}',
       ),
+    };
+  }
+
+  AudioBitratePreset _conversionAudioBitrate(MediaOutputFormat format) {
+    return switch (format) {
+      MediaOutputFormat.mp3 ||
+      MediaOutputFormat.m4a ||
+      MediaOutputFormat.aac ||
+      MediaOutputFormat.wma ||
+      MediaOutputFormat.opus ||
+      MediaOutputFormat.oggOpus => AudioBitratePreset.k320,
+      MediaOutputFormat.wav ||
+      MediaOutputFormat.flac ||
+      MediaOutputFormat.aiff => AudioBitratePreset.source,
+      _ => AudioBitratePreset.source,
     };
   }
 

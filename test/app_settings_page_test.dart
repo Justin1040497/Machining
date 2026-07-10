@@ -1,16 +1,26 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
+import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/services/app_maintenance/app_cache_cleaner.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
+import 'package:framelean/application/services/platform/file_selection_service.dart';
+import 'package:framelean/app/providers/platform_provider.dart';
+import 'package:framelean/app/providers/repository_provider.dart';
+import 'package:framelean/app/presentation/widgets/app_dialog_frame.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/enums/app_shortcut_action.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_completion_sound.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/app_update_state.dart';
 import 'package:framelean/features/settings/pages/app_settings_page.dart';
 
 void main() {
@@ -22,6 +32,8 @@ void main() {
     expect(find.text('任务设置'), findsOneWidget);
     expect(find.text('输入和输出'), findsOneWidget);
     expect(find.text('应用设置'), findsWidgets);
+    expect(find.text('通知设置'), findsOneWidget);
+    expect(find.text('快捷键'), findsOneWidget);
     expect(find.text('关于'), findsOneWidget);
     expect(find.text('视频任务'), findsOneWidget);
     expect(find.text('图片任务'), findsOneWidget);
@@ -30,7 +42,7 @@ void main() {
     expect(find.text('编码器配置'), findsOneWidget);
     expect(find.text('应用主题颜色'), findsOneWidget);
     expect(find.text('完成音频设置'), findsOneWidget);
-    expect(find.text('任务完成后以弹窗的形式提示'), findsOneWidget);
+    expect(find.text('任务完成后以弹窗的形式提示'), findsNothing);
     expect(find.text('关闭通知角标'), findsOneWidget);
     expect(find.text('跟随系统'), findsOneWidget);
     expect(find.text('清脆完成'), findsOneWidget);
@@ -64,9 +76,11 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('柔云提示').last);
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('关闭通知角标'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('关闭通知角标'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     expect(savedSettings, isNotNull);
@@ -79,6 +93,93 @@ void main() {
     expect(savedTarget, AppSettingsSaveTarget.application);
   });
 
+  testWidgets('records shortcuts with the app dialog style', (tester) async {
+    AppSettings? savedSettings;
+
+    await pumpSettingsPage(
+      tester,
+      onSave: (settings) async => savedSettings = settings,
+    );
+
+    await tester.tap(find.text('快捷键'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('F'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppDialogFrame), findsOneWidget);
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('设置“添加文件或文件夹”快捷键'), findsOneWidget);
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.keyG);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AppDialogFrame), findsNothing);
+    expect(find.text('G'), findsOneWidget);
+
+    await tapSectionAction(tester, '保存');
+    await tester.pumpAndSettle();
+
+    expect(
+      savedSettings?.shortcutBindings[AppShortcutAction.addFiles]?.key,
+      '0x${LogicalKeyboardKey.keyG.keyId.toRadixString(16)}',
+    );
+  });
+
+  testWidgets(
+    'escape closes shortcut recorder without leaving settings route',
+    (tester) async {
+      final router = GoRouter(
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) {
+              return Scaffold(
+                body: TextButton(
+                  onPressed: () => context.push('/settings'),
+                  child: const Text('打开设置'),
+                ),
+              );
+            },
+          ),
+          GoRoute(
+            path: '/settings',
+            builder: (context, state) => const AppSettingsPage(),
+          ),
+        ],
+      );
+      addTearDown(router.dispose);
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            appSettingsRepositoryProvider.overrideWithValue(
+              _FakeAppSettingsRepository(AppSettings.initial()),
+            ),
+            fileSelectionServiceProvider.overrideWithValue(
+              const _FakeFileSelectionService(),
+            ),
+          ],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+
+      await tester.tap(find.text('打开设置'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('快捷键'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('F'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppDialogFrame), findsOneWidget);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AppDialogFrame), findsNothing);
+      expect(find.text('返回工作台'), findsOneWidget);
+    },
+  );
+
   testWidgets('cancel restores notification badge preference', (tester) async {
     AppSettings? savedSettings;
 
@@ -87,11 +188,13 @@ void main() {
       onSave: (settings) async => savedSettings = settings,
     );
 
+    await tester.ensureVisible(find.text('关闭通知角标'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('关闭通知角标'));
     await tester.pumpAndSettle();
     expect(tester.widget<Checkbox>(find.byType(Checkbox).last).value, isFalse);
 
-    await tester.tap(find.text('取消'));
+    await tapSectionAction(tester, '取消');
     await tester.pumpAndSettle();
 
     expect(savedSettings, isNull);
@@ -135,7 +238,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('深色').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('取消'));
+    await tapSectionAction(tester, '取消');
     await tester.pumpAndSettle();
 
     expect(savedSettings, isNull);
@@ -184,13 +287,13 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('深色').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     expect(savedSettings?.themeMode, AppThemeMode.dark);
     expect(find.text('深色'), findsOneWidget);
 
-    await tester.tap(find.text('取消'));
+    await tapSectionAction(tester, '取消');
     await tester.pumpAndSettle();
 
     expect(find.text('跟随系统'), findsOneWidget);
@@ -214,7 +317,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('深色').last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pump();
     await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
 
@@ -285,7 +388,7 @@ void main() {
 
     await tester.enterText(find.byType(TextField).last, '{source}-custom');
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     expect(savedSettings, isNotNull);
@@ -315,7 +418,7 @@ void main() {
       '{source}-1920×1080-{encoder}-x264',
     );
 
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
     expect(
       savedSettings!.defaultOutputFileNameTemplate,
@@ -337,7 +440,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_horiz_rounded).last);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     expect(savedSettings, isNotNull);
@@ -361,13 +464,15 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('清晰优先').last);
     await tester.pumpAndSettle();
+    await tester.tap(find.text('默认保持源文件视频格式'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<VideoCodec>));
     await tester.pumpAndSettle();
     await tester.tap(find.text('H.265 / HEVC').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('保留视频元数据'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     final video = savedSettings!.defaultMediaConfig.video;
@@ -401,7 +506,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('保留图片元数据'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     final image = savedSettings!.defaultMediaConfig.image;
@@ -431,7 +536,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('保留音频元数据'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('保存'));
+    await tapSectionAction(tester, '保存');
     await tester.pumpAndSettle();
 
     final audio = savedSettings!.defaultMediaConfig.audio;
@@ -512,6 +617,7 @@ Future<void> pumpSettingsPage(
         body: AppSettingsView(
           initialSettings: initialSettings ?? AppSettings.initial(),
           fallbackDefaultDirectory: '/tmp/framelean-output',
+          updateState: AppUpdateState.initial(),
           onSave: (settings, target) {
             final scopedCallback = onSaveWithTarget;
             if (scopedCallback != null) {
@@ -544,4 +650,53 @@ Future<void> pumpSettingsPage(
     ),
   );
   await tester.pumpAndSettle();
+}
+
+Future<void> tapSectionAction(WidgetTester tester, String label) async {
+  final action = find.text(label).last;
+  await tester.ensureVisible(action);
+  await tester.pumpAndSettle();
+  await tester.tap(action);
+}
+
+class _FakeAppSettingsRepository implements AppSettingsRepository {
+  _FakeAppSettingsRepository(this.settings);
+
+  AppSettings settings;
+
+  @override
+  Future<AppSettings> loadSettings() async => settings;
+
+  @override
+  Future<void> saveSettings(AppSettings settings) async {
+    this.settings = settings;
+  }
+}
+
+class _FakeFileSelectionService implements FileSelectionService {
+  const _FakeFileSelectionService();
+
+  @override
+  String get defaultExportPath => '/tmp/framelean-output';
+
+  @override
+  Future<String?> pickExecutablePath() async => '/usr/local/bin/ffmpeg';
+
+  @override
+  Future<List<String>> pickImportPaths() async => const [];
+
+  @override
+  Future<List<String>> pickMediaDirectories() async => const [];
+
+  @override
+  Future<String?> pickMediaDirectory() async => null;
+
+  @override
+  Future<String?> pickMediaFile() async => null;
+
+  @override
+  Future<List<String>> pickMediaFiles() async => const [];
+
+  @override
+  Future<String?> pickOutputDirectory() async => '/tmp/framelean-picked';
 }

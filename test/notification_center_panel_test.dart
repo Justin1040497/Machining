@@ -12,7 +12,7 @@ import 'package:framelean/domain/enums/app_notification_kind.dart';
 import 'package:framelean/domain/enums/app_notification_level.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
 import 'package:framelean/features/notifications/services/notification_center_action_resolver.dart';
-import 'package:framelean/features/notifications/widgets/notification_center_panel.dart';
+import 'package:framelean/app/presentation/widgets/notification_center_panel.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 
 void main() {
@@ -47,7 +47,13 @@ void main() {
           kind: AppNotificationKind.task,
           level: AppNotificationLevel.success,
           title: '任务成功',
-          message: 'demo.mp4 已处理完成，输出配置已保存，非运行状态的任务已更新；正在处理的任务将在下次处理时使用新配置',
+          message: [
+            '文件：demo.mp4',
+            '体积：10 MB -> 6 MB',
+            '压缩比例：40.0%',
+            '保存至：/output/demo.mp4',
+            '耗时：7 秒',
+          ].join('\n'),
           source: 'task',
           createdAt: DateTime(2026, 6, 11, 10, 30),
           payloadJson: const TaskNotificationPayload(
@@ -113,11 +119,12 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('通知中心'), findsOneWidget);
       expect(find.text('任务成功'), findsOneWidget);
-      final subtitleFinder = find.textContaining('demo.mp4 已处理完成');
+      final subtitleFinder = find.textContaining('体积：10 MB -> 6 MB');
       expect(subtitleFinder, findsOneWidget);
       final subtitle = tester.widget<Text>(subtitleFinder);
       expect(subtitle.maxLines, isNull);
       expect(subtitle.overflow, isNull);
+      expect(find.widgetWithText(FilledButton, '打开输出文件位置'), findsOneWidget);
       expect(find.textContaining('10:30'), findsOneWidget);
       expect(tester.getSize(panelFinder).width, 380);
       expect(repository.markAllAsReadCalls, greaterThan(0));
@@ -211,6 +218,7 @@ class FakeNotificationCenterRepository implements AppNotificationRepository {
           message: notification.message,
           source: notification.source,
           createdAt: notification.createdAt,
+          dedupeKey: notification.dedupeKey,
           readAt: readAt,
           dismissedAt: notification.dismissedAt,
           payloadJson: notification.payloadJson,
@@ -223,6 +231,21 @@ class FakeNotificationCenterRepository implements AppNotificationRepository {
   Future<void> saveNotification(AppNotificationEntry notification) async {
     _notifications = [notification, ..._notifications];
     _emit();
+  }
+
+  @override
+  Future<AppNotificationEntry> upsertNotificationByDedupeKey(
+    AppNotificationEntry notification,
+  ) async {
+    _notifications = [
+      notification,
+      ..._notifications.where(
+        (item) =>
+            item.dedupeKey == null || item.dedupeKey != notification.dedupeKey,
+      ),
+    ];
+    _emit();
+    return notification;
   }
 
   @override

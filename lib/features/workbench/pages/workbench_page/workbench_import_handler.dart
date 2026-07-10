@@ -1,6 +1,7 @@
 import 'dart:io';
+import 'dart:async';
 
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
 
@@ -20,6 +21,7 @@ abstract final class WorkbenchImportHandler {
     required MediaTaskListNotifier notifier,
   }) async {
     final createdTasks = <MediaTask>[];
+    final createdFileTasks = <MediaTask>[];
     final failures = <DroppedImportFailure>[];
 
     for (final rawPath in paths) {
@@ -32,16 +34,39 @@ abstract final class WorkbenchImportHandler {
       }
 
       final entityType = FileSystemEntity.typeSync(inputPath);
+      if (entityType == FileSystemEntityType.directory) {
+        final result = await notifier.importFolderFromPath(inputPath);
+        createdTasks.addAll(result.createdTasks);
+        if (result.foundNoMedia) {
+          failures.add(
+            DroppedImportFailure(path: inputPath, reason: '未找到可识别媒体文件'),
+          );
+        }
+        failures.addAll(
+          result.failures.map(
+            (failure) => DroppedImportFailure(
+              path: failure.path,
+              reason: failure.reason,
+            ),
+          ),
+        );
+        continue;
+      }
+
       if (entityType != FileSystemEntityType.file) {
         failures.add(
-          DroppedImportFailure(path: inputPath, reason: '只能导入媒体文件，不能导入文件夹'),
+          DroppedImportFailure(path: inputPath, reason: '路径不是可导入的文件或文件夹'),
         );
         continue;
       }
 
       try {
-        final task = await notifier.createDraftFromPath(inputPath);
+        final task = await notifier.createDraftFromPath(
+          inputPath,
+          analyzeInBackground: false,
+        );
         createdTasks.add(task);
+        createdFileTasks.add(task);
       } on Object catch (error) {
         failures.add(
           DroppedImportFailure(
@@ -50,6 +75,15 @@ abstract final class WorkbenchImportHandler {
           ),
         );
       }
+    }
+
+    await notifier.createTaskFoldersForImportedBatch(createdFileTasks);
+    if (createdFileTasks.isNotEmpty) {
+      unawaited(
+        notifier.analyzeTasksInBackground(
+          createdFileTasks.map((task) => task.id).toList(),
+        ),
+      );
     }
 
     return WorkbenchImportResult(

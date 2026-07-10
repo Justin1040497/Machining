@@ -2,16 +2,14 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/notifications/library.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
-import 'package:framelean/domain/entities/app_notification_entry.dart';
-import 'package:framelean/domain/enums/app_notification_kind.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
-import 'package:framelean/domain/value_objects/task_notification_payload.dart';
-import 'package:framelean/features/notifications/providers/notification_center_provider.dart';
 import 'package:framelean/app/notifications/app_notification_notice.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/app_settings_provider.dart';
+import 'package:framelean/app/constants.dart';
 
 class AppNotificationHost extends StatelessWidget {
   const AppNotificationHost({super.key, required this.child});
@@ -39,7 +37,7 @@ class _AppNotificationLayer extends ConsumerStatefulWidget {
 }
 
 class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
-  static const _animationDuration = Duration(milliseconds: 220);
+  static const _animationDuration = notificationTransition;
 
   final ValueNotifier<bool> visible = ValueNotifier(false);
   ProviderSubscription<AsyncValue<AppNotificationPresentation>>? subscription;
@@ -142,23 +140,14 @@ class _AppNotificationLayerState extends ConsumerState<_AppNotificationLayer> {
   Duration displayDurationFor(AppNotificationPresentation presentation) {
     final notification = presentation.notification;
     if (isTaskCompletionNotification(notification)) {
-      final showCompletionDialog =
-          ref
-              .read(appSettingsProvider)
-              .asData
-              ?.value
-              .showTaskCompletionDialog ??
-          true;
-      if (!showCompletionDialog) {
-        return const Duration(seconds: 8);
-      }
+      return errorNotificationDisplay;
     }
 
     return switch (notification.level) {
-      AppNotificationLevel.error => const Duration(seconds: 6),
-      AppNotificationLevel.warning => const Duration(seconds: 5),
+      AppNotificationLevel.error => warningNotificationDisplay,
+      AppNotificationLevel.warning => defaultNotificationDisplay,
       AppNotificationLevel.info ||
-      AppNotificationLevel.success => const Duration(seconds: 3),
+      AppNotificationLevel.success => successNotificationDisplay,
     };
   }
 

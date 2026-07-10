@@ -5,6 +5,7 @@ import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
@@ -90,7 +91,8 @@ void main() {
         now: DateTime(2026),
       );
 
-      expect(config.outputDirectory, '/tmp/output');
+      expect(config.outputLocationMode, OutputLocationMode.system);
+      expect(config.outputDirectory, isEmpty);
       expect(config.outputFileName, 'photo-处理');
       expect(config.video, isNull);
       expect(config.audio, isNull);

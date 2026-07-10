@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchDropOverlay extends StatelessWidget {
   const WorkbenchDropOverlay({super.key});
@@ -30,7 +31,7 @@ class WorkbenchDropOverlay extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
-                    Icons.file_upload_outlined,
+                    WorkbenchIcons.fileUpload,
                     color: colors.primary,
                     size: 28,
                   ),

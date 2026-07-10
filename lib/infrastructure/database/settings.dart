@@ -40,6 +40,21 @@ class SettingsRows extends Table {
   TextColumn get taskCompletionSound => text()
       .named('task_completion_sound')
       .withDefault(const Constant('clean_success'))();
+  IntColumn get maxConcurrentExecutions => integer()
+      .named('max_concurrent_executions')
+      .withDefault(const Constant(2))();
+  IntColumn get folderImportScanDepth => integer()
+      .named('folder_import_scan_depth')
+      .withDefault(const Constant(2))();
+  TextColumn get notificationPoliciesJson => text()
+      .named('notification_policies_json')
+      .withDefault(const Constant('{}'))();
+  TextColumn get shortcutBindingsJson => text()
+      .named('shortcut_bindings_json')
+      .withDefault(const Constant('{}'))();
+  TextColumn get closeBehavior => text()
+      .named('close_behavior')
+      .withDefault(const Constant('background'))();
   IntColumn get createdAt => integer().named('created_at')();
   IntColumn get updatedAt => integer().named('updated_at')();
 

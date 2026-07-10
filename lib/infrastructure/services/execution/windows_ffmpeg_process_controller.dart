@@ -1,13 +1,10 @@
 import 'package:flutter/services.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
-import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/library.dart';
 
 class WindowsFfmpegProcessController implements FfmpegProcessController {
   const WindowsFfmpegProcessController();
 
-  static const MethodChannel _channel = MethodChannel(
-    'framelean/process_control',
-  );
+  static const MethodChannel _channel = MethodChannel(processControlChannel);
 
   @override
   Future<void> pause(StartedFfmpegProcess startedProcess) {

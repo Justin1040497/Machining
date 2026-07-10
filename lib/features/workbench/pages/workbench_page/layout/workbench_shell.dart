@@ -2,21 +2,22 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
-import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
+import 'package:framelean/app/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/overlays/drop_overlay.dart';
+import 'package:framelean/features/workbench/workbench_icons.dart';
 
 class WorkbenchShell extends StatelessWidget {
   const WorkbenchShell({
     super.key,
     required this.taskList,
-    required this.selectedTask,
+    required this.taskFolders,
+    required this.selectedTaskIds,
+    required this.selectionMode,
     required this.importEnabled,
     required this.importDragging,
     required this.hasRunningTask,
@@ -32,12 +33,29 @@ class WorkbenchShell extends StatelessWidget {
     required this.onRetry,
     required this.onRelink,
     required this.onShowLog,
+    required this.onRevealOutput,
     required this.onContextMenu,
-    required this.onAddTask,
+    this.onFolderContextMenu = _ignoreFolderContextMenu,
+    required this.onToggleSelectionMode,
+    required this.onToggleTaskSelection,
+    required this.onSelectTasksWithRectangle,
+    required this.onCreateFolderFromSelection,
+    required this.onMoveTaskToFolder,
+    required this.onOpenFolderSettings,
+    required this.onOpenFolderContents,
+    required this.onStartFolder,
+    required this.onPauseFolder,
+    required this.onRetryFolder,
+    required this.onRelinkFolder,
+    required this.onShowFolderLog,
+    required this.onDeleteFolder,
+    required this.onAddTasks,
     required this.onOpenSettings,
     required this.themeMode,
     required this.onToggleThemeMode,
     required this.onOpenNotifications,
+    this.updateState,
+    this.onOpenUpdate,
     this.unreadNotificationCount = 0,
     this.showNotificationBadge = true,
     required this.onClearTasks,
@@ -45,7 +63,9 @@ class WorkbenchShell extends StatelessWidget {
   });
 
   final AsyncValue<List<MediaTask>> taskList;
-  final MediaTask? selectedTask;
+  final AsyncValue<List<TaskFolder>> taskFolders;
+  final Set<String> selectedTaskIds;
+  final bool selectionMode;
   final bool importEnabled;
   final bool importDragging;
   final bool hasRunningTask;
@@ -53,7 +73,7 @@ class WorkbenchShell extends StatelessWidget {
   final ImageProvider? Function(MediaTask task) thumbnailForTask;
   final ValueChanged<bool> onImportDraggingChanged;
   final ValueChanged<DropDoneDetails> onImportDrop;
-  final ReorderCallback onReorder;
+  final WorkbenchReorderCommitCallback onReorder;
   final ValueChanged<MediaTask> onOpenTask;
   final ValueChanged<MediaTask> onStart;
   final ValueChanged<MediaTask> onPause;
@@ -61,12 +81,29 @@ class WorkbenchShell extends StatelessWidget {
   final ValueChanged<MediaTask> onRetry;
   final ValueChanged<MediaTask> onRelink;
   final ValueChanged<MediaTask> onShowLog;
+  final ValueChanged<MediaTask> onRevealOutput;
   final WorkbenchTaskPositionCallback onContextMenu;
-  final VoidCallback onAddTask;
+  final WorkbenchTaskFolderPositionCallback onFolderContextMenu;
+  final VoidCallback onToggleSelectionMode;
+  final ValueChanged<MediaTask> onToggleTaskSelection;
+  final WorkbenchTaskSelectionCallback onSelectTasksWithRectangle;
+  final VoidCallback onCreateFolderFromSelection;
+  final WorkbenchTaskFolderDropCallback onMoveTaskToFolder;
+  final ValueChanged<TaskFolder> onOpenFolderSettings;
+  final ValueChanged<TaskFolder> onOpenFolderContents;
+  final ValueChanged<TaskFolder> onStartFolder;
+  final ValueChanged<TaskFolder> onPauseFolder;
+  final ValueChanged<TaskFolder> onRetryFolder;
+  final ValueChanged<TaskFolder> onRelinkFolder;
+  final ValueChanged<TaskFolder> onShowFolderLog;
+  final ValueChanged<TaskFolder> onDeleteFolder;
+  final VoidCallback onAddTasks;
   final VoidCallback onOpenSettings;
   final AppThemeMode themeMode;
   final VoidCallback onToggleThemeMode;
   final VoidCallback onOpenNotifications;
+  final AppUpdateState? updateState;
+  final VoidCallback? onOpenUpdate;
   final int unreadNotificationCount;
   final bool showNotificationBadge;
   final VoidCallback onClearTasks;
@@ -79,8 +116,12 @@ class WorkbenchShell extends StatelessWidget {
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows;
     final topInset = reserveTopNoticeArea
-        ? AppLayoutConstants.topBarHeight
+        ? topBarHeight
         : 0.0;
+    final looseTaskCount =
+        taskList.asData?.value.where((task) => task.folderId == null).length ??
+        0;
+    final selectedCount = selectedTaskIds.length;
 
     return DropTarget(
       enable: importEnabled,
@@ -126,6 +167,8 @@ class WorkbenchShell extends StatelessWidget {
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
                             onOpenNotifications: onOpenNotifications,
+                            updateState: updateState,
+                            onOpenUpdate: onOpenUpdate,
                             unreadNotificationCount: unreadNotificationCount,
                             showNotificationBadge: showNotificationBadge,
                           ),
@@ -136,11 +179,13 @@ class WorkbenchShell extends StatelessWidget {
                           left: 0,
                           top: 0,
                           right: 0,
-                          height: AppLayoutConstants.topBarHeight,
+                          height: topBarHeight,
                           child: WorkbenchTopBar(
                             themeMode: themeMode,
                             onToggleThemeMode: onToggleThemeMode,
                             onOpenNotifications: onOpenNotifications,
+                            updateState: updateState,
+                            onOpenUpdate: onOpenUpdate,
                             unreadNotificationCount: unreadNotificationCount,
                             showNotificationBadge: showNotificationBadge,
                             showBottomBorder: true,
@@ -151,7 +196,9 @@ class WorkbenchShell extends StatelessWidget {
                         bottom: 48,
                         child: WorkbenchTaskListCard(
                           taskList: taskList,
-                          selectedTask: selectedTask,
+                          taskFolders: taskFolders,
+                          selectedTaskIds: selectedTaskIds,
+                          selectionMode: selectionMode,
                           thumbnailForTask: thumbnailForTask,
                           onReorder: onReorder,
                           onOpenTask: onOpenTask,
@@ -161,7 +208,21 @@ class WorkbenchShell extends StatelessWidget {
                           onRetry: onRetry,
                           onRelink: onRelink,
                           onShowLog: onShowLog,
+                          onRevealOutput: onRevealOutput,
                           onContextMenu: onContextMenu,
+                          onFolderContextMenu: onFolderContextMenu,
+                          onToggleTaskSelection: onToggleTaskSelection,
+                          onSelectTasksWithRectangle:
+                              onSelectTasksWithRectangle,
+                          onMoveTaskToFolder: onMoveTaskToFolder,
+                          onOpenFolderSettings: onOpenFolderSettings,
+                          onOpenFolderContents: onOpenFolderContents,
+                          onStartFolder: onStartFolder,
+                          onPauseFolder: onPauseFolder,
+                          onRetryFolder: onRetryFolder,
+                          onRelinkFolder: onRelinkFolder,
+                          onShowFolderLog: onShowFolderLog,
+                          onDeleteFolder: onDeleteFolder,
                         ),
                       ),
                       Align(
@@ -170,12 +231,24 @@ class WorkbenchShell extends StatelessWidget {
                           taskList: taskList,
                           hasRunningTask: hasRunningTask,
                           queueActionInFlight: queueActionInFlight,
-                          onAddTask: onAddTask,
+                          selectionMode: selectionMode,
+                          selectionEnabled: looseTaskCount > 0,
+                          onAddTasks: onAddTasks,
+                          onToggleSelectionMode: onToggleSelectionMode,
                           onOpenSettings: onOpenSettings,
                           onClearTasks: onClearTasks,
                           onPrimaryQueuePressed: onPrimaryQueuePressed,
                         ),
                       ),
+                      if (selectedCount > 0)
+                        Positioned(
+                          left: 24,
+                          bottom: 78,
+                          child: _SelectionActionBar(
+                            selectedCount: selectedCount,
+                            onPressed: onCreateFolderFromSelection,
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -184,6 +257,66 @@ class WorkbenchShell extends StatelessWidget {
           ),
           if (importDragging) const WorkbenchDropOverlay(),
         ],
+      ),
+    );
+  }
+}
+
+void _ignoreFolderContextMenu(TaskFolder folder, Offset position) {}
+
+class _SelectionActionBar extends StatelessWidget {
+  const _SelectionActionBar({
+    required this.selectedCount,
+    required this.onPressed,
+  });
+
+  final int selectedCount;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.frameLeanColors;
+
+    return Material(
+      color: colors.surface,
+      elevation: 2,
+      shadowColor: colors.shadow,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: colors.border),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '已选 $selectedCount',
+              style: TextStyle(
+                color: colors.textSecondary,
+                fontSize: 12.flSp,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 10),
+            FilledButton.icon(
+              onPressed: onPressed,
+              icon: const Icon(WorkbenchIcons.newFolder, size: 17),
+              label: const Text('创建任务夹'),
+              style: FilledButton.styleFrom(
+                backgroundColor: colors.primary,
+                foregroundColor: colors.onPrimary,
+                minimumSize: const Size(0, 34),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(7),
+                ),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

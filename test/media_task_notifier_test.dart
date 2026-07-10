@@ -2,17 +2,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/output_location_mode.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
@@ -95,8 +99,7 @@ void main() {
       expect(task.config.outputDirectory, isEmpty);
       expect(task.config.videoCodec, VideoCodec.hevc);
       expect(task.config.smartPreset, SmartCompressionPreset.chat);
-      expect(task.config.outputFileName, contains('source'));
-      expect(task.config.outputFileName, isNot(contains('压缩')));
+      expect(task.config.outputFileName, 'source-压缩');
     });
 
     test(
@@ -133,7 +136,7 @@ void main() {
       () async {
         final renamedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
           fileName: '1.mp4',
-          config: VideoTaskConfig.initial().copyWith(
+          config: systemOutputVideoConfig(
             outputDirectory: '/old',
             outputFileName: 'old',
             videoCodec: VideoCodec.h264,
@@ -141,7 +144,7 @@ void main() {
         );
         final failedTask = readyVideoTask(id: 'failed', sortOrder: 1).copyWith(
           status: TaskStatus.failed,
-          config: VideoTaskConfig.initial().copyWith(
+          config: systemOutputVideoConfig(
             outputDirectory: '/old',
             outputFileName: 'old',
             videoCodec: VideoCodec.h264,
@@ -150,7 +153,7 @@ void main() {
         final cancelledTask = readyVideoTask(id: 'cancelled', sortOrder: 2)
             .copyWith(
               status: TaskStatus.cancelled,
-              config: VideoTaskConfig.initial().copyWith(
+              config: systemOutputVideoConfig(
                 outputDirectory: '/old',
                 outputFileName: 'old',
                 videoCodec: VideoCodec.h264,
@@ -159,7 +162,7 @@ void main() {
         final runningTask = readyVideoTask(id: 'running', sortOrder: 3)
             .copyWith(
               status: TaskStatus.running,
-              config: VideoTaskConfig.initial().copyWith(
+              config: systemOutputVideoConfig(
                 outputDirectory: '/old',
                 outputFileName: 'old',
                 videoCodec: VideoCodec.h264,
@@ -183,17 +186,21 @@ void main() {
         );
 
         final updatedTask = repository.taskById(renamedTask.id);
-        expect(updatedTask.config.outputDirectory, '/exports');
+        expect(
+          updatedTask.config.outputLocationMode,
+          OutputLocationMode.system,
+        );
+        expect(updatedTask.config.outputDirectory, isEmpty);
         expect(updatedTask.config.outputFileName, 'source-h264');
         expect(updatedTask.config.videoCodec, VideoCodec.h264);
         expect(updatedTask.config.outputFileName, isNot(contains('1-')));
         expect(
           repository.taskById(failedTask.id).config.outputDirectory,
-          '/exports',
+          isEmpty,
         );
         expect(
           repository.taskById(cancelledTask.id).config.outputDirectory,
-          '/exports',
+          isEmpty,
         );
         expect(
           repository.taskById(runningTask.id).config.outputDirectory,
@@ -206,7 +213,7 @@ void main() {
       final failedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
         fileName: '1.mp4',
         status: TaskStatus.failed,
-        config: VideoTaskConfig.initial().copyWith(
+        config: systemOutputVideoConfig(
           outputDirectory: '/old',
           outputFileName: 'old',
           videoCodec: VideoCodec.h264,
@@ -238,7 +245,8 @@ void main() {
 
       final updatedTask = repository.taskById(failedTask.id);
       expect(updatedTask.status, TaskStatus.analyzing);
-      expect(updatedTask.config.outputDirectory, '/retry-output');
+      expect(updatedTask.config.outputLocationMode, OutputLocationMode.system);
+      expect(updatedTask.config.outputDirectory, isEmpty);
       expect(updatedTask.config.outputFileName, 'source-h264');
       expect(updatedTask.config.videoCodec, VideoCodec.h264);
       expect(updatedTask.config.outputFileName, isNot(contains('1-')));
@@ -328,6 +336,9 @@ ProviderContainer testContainer({
             FakeAppSettingsRepository(AppSettings.initial()),
       ),
       mediaTaskRepositoryProvider.overrideWithValue(repository),
+      taskFolderRepositoryProvider.overrideWithValue(
+        FakeTaskFolderRepository(),
+      ),
       sourceFileCheckerProvider.overrideWithValue(sourceFileChecker),
       sourceFileFingerprintReaderProvider.overrideWithValue(fingerprintReader),
       ffmpegTaskQueueRunnerProvider.overrideWithValue(
@@ -373,6 +384,20 @@ MediaTask readyVideoTask({required String id, required int sortOrder}) {
     analysisResult: MediaAnalysisResult(durationMs: 1000),
     analysisUpdatedAt: 1,
   );
+}
+
+MediaTaskConfig systemOutputVideoConfig({
+  required String outputDirectory,
+  required String outputFileName,
+  required VideoCodec videoCodec,
+}) {
+  return MediaTaskConfig.fromVideoTaskConfig(
+    VideoTaskConfig.initial().copyWith(
+      outputDirectory: outputDirectory,
+      outputFileName: outputFileName,
+      videoCodec: videoCodec,
+    ),
+  ).copyWith(outputLocationMode: OutputLocationMode.system);
 }
 
 class FakeMediaTaskRepository implements MediaTaskRepository {
@@ -430,6 +455,22 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(
+        folderSortOrder: update.folderSortOrder,
+      );
+    }
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     final index = tasks.indexWhere((existingTask) {
       return existingTask.id == task.id;
@@ -444,6 +485,48 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
 
   MediaTask taskById(String id) {
     return tasks.singleWhere((task) => task.id == id);
+  }
+}
+
+class FakeTaskFolderRepository implements TaskFolderRepository {
+  final List<TaskFolder> folders = [];
+
+  @override
+  Future<void> clearAllFolders() async {
+    folders.clear();
+  }
+
+  @override
+  Future<void> deleteFolderById(String folderId) async {
+    folders.removeWhere((folder) => folder.id == folderId);
+  }
+
+  @override
+  Future<List<TaskFolder>> loadAllFolders() async => [...folders];
+
+  @override
+  Future<void> saveFolder(TaskFolder folder) async {
+    final index = folders.indexWhere((existing) => existing.id == folder.id);
+    if (index == -1) {
+      folders.add(folder);
+      return;
+    }
+    folders[index] = folder;
+  }
+
+  @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = folders.indexWhere(
+        (folder) => folder.id == update.folderId,
+      );
+      if (index == -1) {
+        continue;
+      }
+      folders[index] = folders[index].copyWith(sortOrder: update.sortOrder);
+    }
   }
 }
 
@@ -497,6 +580,19 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   String? foregroundTaskId;
 
   @override
+  Set<String> get runningTaskIds =>
+      foregroundTaskId == null ? const {} : {foregroundTaskId!};
+
+  @override
+  int get activeExecutionCount => runningTaskIds.length;
+
+  @override
+  int get effectiveMaxConcurrentExecutions => 1;
+
+  @override
+  ExecutionScope get executionScope => const ExecutionScope.none();
+
+  @override
   FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
 
   @override
@@ -524,12 +620,19 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
+  Future<FfmpegQueueStartResult> pauseFolderQueue(String folderId) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
   Future<FfmpegQueueStatus> refreshStatus() async {
     return queueStatus;
   }
 
   @override
-  Future<FfmpegQueueStartResult> start({
+  Future<FfmpegQueueStartResult> startWorkbenchQueue({
     bool allowExtremeCompression = false,
   }) async {
     return const FfmpegQueueStartResult(
@@ -538,8 +641,18 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
-  Future<FfmpegQueueStartResult> startOrResumeTask(
+  Future<FfmpegQueueStartResult> startSingleTask(
     String taskId, {
+    bool allowExtremeCompression = false,
+  }) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.notReady,
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> startFolderQueue(
+    String folderId, {
     bool allowExtremeCompression = false,
   }) async {
     return const FfmpegQueueStartResult(

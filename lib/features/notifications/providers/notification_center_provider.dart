@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:framelean/app/library.dart';
 
 final notificationCenterVisibilityProvider =
     NotifierProvider<NotificationCenterVisibilityController, bool>(
@@ -41,7 +42,7 @@ class NotificationCenterHighlightController extends Notifier<String?> {
   void highlight(String notificationId) {
     _timer?.cancel();
     state = notificationId;
-    _timer = Timer(const Duration(milliseconds: 2200), clear);
+    _timer = Timer(notificationCenterClearDelay, clear);
   }
 
   void clear() {

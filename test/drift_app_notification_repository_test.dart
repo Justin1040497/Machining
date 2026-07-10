@@ -52,4 +52,45 @@ void main() {
     await repository.dismissAll(DateTime.fromMillisecondsSinceEpoch(4000));
     expect(await repository.loadRecentNotifications(), isEmpty);
   });
+
+  test('upsert by dedupe key keeps one update notification', () async {
+    final database = AppDatabase.forTesting(NativeDatabase.memory());
+    addTearDown(database.close);
+    final repository = DriftAppNotificationRepository(database);
+    const dedupeKey = 'update:windows-x64:1.2.1:5';
+
+    await repository.upsertNotificationByDedupeKey(
+      AppNotificationEntry(
+        id: 'first-update',
+        kind: AppNotificationKind.update,
+        level: AppNotificationLevel.warning,
+        title: '有 1.2.1 更新',
+        message: '第一版摘要',
+        source: 'update',
+        dedupeKey: dedupeKey,
+        createdAt: DateTime.fromMillisecondsSinceEpoch(1000),
+      ),
+    );
+    final saved = await repository.upsertNotificationByDedupeKey(
+      AppNotificationEntry(
+        id: 'second-update',
+        kind: AppNotificationKind.update,
+        level: AppNotificationLevel.success,
+        title: '更新完成',
+        message: '完成摘要',
+        source: 'update',
+        dedupeKey: dedupeKey,
+        createdAt: DateTime.fromMillisecondsSinceEpoch(2000),
+      ),
+    );
+
+    final notifications = await repository.loadRecentNotifications();
+
+    expect(notifications, hasLength(1));
+    expect(saved.id, 'first-update');
+    expect(notifications.single.id, 'first-update');
+    expect(notifications.single.title, '更新完成');
+    expect(notifications.single.level, AppNotificationLevel.success);
+    expect(notifications.single.dedupeKey, dedupeKey);
+  });
 }

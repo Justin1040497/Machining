@@ -3,21 +3,68 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
+import 'package:framelean/application/services/execution/execution_resource_guard.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
+import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
+import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/infrastructure/services/execution/local_output_preflight_service.dart';
 
 void main() {
   group('DefaultFfmpegTaskQueueRunner', () {
+    test('expanded execution order unfolds folders in top-level order', () {
+      final firstFolder = taskFolder(id: 'folder-a', sortOrder: 0);
+      final secondFolder = taskFolder(id: 'folder-b', sortOrder: 2);
+      final firstFolderSecond = videoTask(
+        id: 'folder-a-second',
+        sortOrder: 8,
+      ).copyWith(folderId: firstFolder.id, folderSortOrder: 1);
+      final looseTask = videoTask(id: 'loose', sortOrder: 1);
+      final firstFolderFirst = videoTask(
+        id: 'folder-a-first',
+        sortOrder: 9,
+      ).copyWith(folderId: firstFolder.id, folderSortOrder: 0);
+      final secondFolderTask = videoTask(
+        id: 'folder-b-task',
+        sortOrder: 10,
+      ).copyWith(folderId: secondFolder.id, folderSortOrder: 0);
+      final harness = QueueHarness(
+        tasks: [
+          looseTask,
+          firstFolderSecond,
+          secondFolderTask,
+          firstFolderFirst,
+        ],
+        folders: [firstFolder, secondFolder],
+      );
+
+      final ordered = harness.runner.expandedExecutionOrder(
+        harness.repository.tasks,
+        harness.taskFolderRepository.folders,
+      );
+
+      expect(ordered.map((task) => task.id), [
+        'folder-a-first',
+        'folder-a-second',
+        'loose',
+        'folder-b-task',
+      ]);
+    });
+
     test('refreshStatus returns ready when pending tasks exist', () async {
       final harness = QueueHarness(tasks: [videoTask(sortOrder: 0)]);
 
@@ -44,8 +91,232 @@ void main() {
       },
     );
 
+    test('fails promptly when the hidden working output is deleted', () async {
+      final outputDirectory = Directory.systemTemp.createTempSync(
+        'framelean-working-output-monitor-test-',
+      );
+      addTearDown(() async {
+        if (await outputDirectory.exists()) {
+          await outputDirectory.delete(recursive: true);
+        }
+      });
+      final task = videoTask(id: 'protected', sortOrder: 0);
+      final finalPath = '${outputDirectory.path}/protected.mp4';
+      final harness = QueueHarness(
+        tasks: [task],
+        commandBuilder: FakeCommandBuilder(
+          plan: FfmpegCommandPlan(
+            args: ['-hide_banner', '-i', task.inputPath, finalPath],
+            outputPath: finalPath,
+            logHint: 'working output monitor',
+          ),
+        ),
+        outputPreflightService: LocalOutputPreflightService(),
+      );
+
+      await harness.runner.startSingleTask(task.id);
+      final workingPath = harness.processStarter.starts.single.args.last;
+      expect(workingPath, isNot(finalPath));
+      await File(workingPath).delete();
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+
+      expect(harness.processController.terminateCalls, [task.id]);
+      expect(harness.repository.taskById(task.id).status, TaskStatus.failed);
+      expect(
+        harness.repository.taskById(task.id).errorMessage,
+        contains('临时输出文件被删除或移动'),
+      );
+    });
+
+    test('start fills available execution slots in queue order', () async {
+      final firstTask = videoTask(id: 'first', sortOrder: 1);
+      final secondTask = videoTask(id: 'second', sortOrder: 2);
+      final thirdTask = videoTask(id: 'third', sortOrder: 3);
+      final harness = QueueHarness(
+        tasks: [firstTask, secondTask, thirdTask],
+        maxConcurrentExecutions: 2,
+      );
+
+      final result = await harness.runner.start();
+
+      expect(result.outcome, FfmpegQueueStartOutcome.started);
+      expect(harness.runner.runningTaskIds, {'first', 'second'});
+      expect(harness.runner.activeExecutionCount, 2);
+      expect(harness.processStarter.starts.map((start) => start.taskId), [
+        'first',
+        'second',
+      ]);
+      expect(harness.repository.taskById('third').status, TaskStatus.pending);
+    });
+
     test(
-      'startOrResumeTask suspends current foreground and starts target task',
+      'single task completion does not start unrelated pending task',
+      () async {
+        final firstTask = videoTask(id: 'first', sortOrder: 1);
+        final secondTask = videoTask(id: 'second', sortOrder: 2);
+        final harness = QueueHarness(tasks: [firstTask, secondTask]);
+
+        await harness.runner.startSingleTask('first');
+        harness.processObserver.complete(
+          'first',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('first', TaskStatus.completed);
+
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          'first',
+        ]);
+        expect(
+          harness.repository.taskById('second').status,
+          TaskStatus.pending,
+        );
+        expect(harness.runner.executionScope.type, ExecutionScopeType.none);
+      },
+    );
+
+    test(
+      'folder queue fills slots and never starts task outside folder',
+      () async {
+        final folder = taskFolder(id: 'folder', sortOrder: 0);
+        final first = videoTask(
+          id: 'first',
+          sortOrder: 5,
+        ).copyWith(folderId: folder.id, folderSortOrder: 0);
+        final second = videoTask(
+          id: 'second',
+          sortOrder: 6,
+        ).copyWith(folderId: folder.id, folderSortOrder: 1);
+        final third = videoTask(
+          id: 'third',
+          sortOrder: 7,
+        ).copyWith(folderId: folder.id, folderSortOrder: 2);
+        final loose = videoTask(id: 'loose', sortOrder: 1);
+        final harness = QueueHarness(
+          tasks: [loose, first, second, third],
+          folders: [folder],
+          maxConcurrentExecutions: 2,
+        );
+
+        await harness.runner.startFolderQueue(folder.id);
+
+        expect(harness.runner.runningTaskIds, {'first', 'second'});
+        harness.processObserver.complete(
+          'first',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForStartedProcesses(3);
+        expect(harness.processStarter.starts.last.taskId, 'third');
+
+        harness.processObserver.complete(
+          'second',
+          const FfmpegProcessObservation.completed(),
+        );
+        harness.processObserver.complete(
+          'third',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('third', TaskStatus.completed);
+
+        expect(harness.repository.taskById('loose').status, TaskStatus.pending);
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          'first',
+          'second',
+          'third',
+        ]);
+      },
+    );
+
+    test(
+      'preempted tasks resume in FIFO order across execution slots',
+      () async {
+        final tasks = [
+          videoTask(id: 'a', sortOrder: 1),
+          videoTask(id: 'b', sortOrder: 2),
+          videoTask(id: 'c', sortOrder: 3),
+          videoTask(id: 'd', sortOrder: 4),
+          videoTask(id: 'unrelated', sortOrder: 5),
+        ];
+        final harness = QueueHarness(tasks: tasks, maxConcurrentExecutions: 2);
+
+        await harness.runner.startSingleTask('a');
+        await harness.runner.startSingleTask('b');
+        await harness.runner.startSingleTask('c');
+        await harness.runner.startSingleTask('d');
+
+        expect(harness.processController.pauseCalls, ['a', 'b']);
+        expect(harness.runner.runningTaskIds, {'c', 'd'});
+
+        harness.processObserver.complete(
+          'c',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('a', TaskStatus.running);
+        harness.processObserver.complete(
+          'd',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('b', TaskStatus.running);
+
+        expect(harness.processController.resumeCalls, ['a', 'b']);
+        expect(
+          harness.repository.taskById('unrelated').status,
+          TaskStatus.pending,
+        );
+      },
+    );
+
+    test(
+      'displaced task resumes before ordinary workbench candidate',
+      () async {
+        final tasks = [
+          videoTask(id: 'a', sortOrder: 1),
+          videoTask(id: 'b', sortOrder: 2),
+          videoTask(id: 'c', sortOrder: 3),
+          videoTask(id: 'd', sortOrder: 4),
+          videoTask(id: 'e', sortOrder: 5),
+        ];
+        final harness = QueueHarness(tasks: tasks, maxConcurrentExecutions: 2);
+
+        await harness.runner.startWorkbenchQueue();
+        await harness.runner.startSingleTask('e');
+        harness.processObserver.complete(
+          'b',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('a', TaskStatus.running);
+
+        expect(harness.processController.pauseCalls, ['a']);
+        expect(harness.processController.resumeCalls, ['a']);
+        expect(harness.repository.taskById('c').status, TaskStatus.pending);
+        expect(harness.repository.taskById('d').status, TaskStatus.pending);
+      },
+    );
+
+    test('failed preempting start restores displaced task', () async {
+      final starter = FakeProcessStarter(
+        error: StateError('cannot start'),
+        errorTaskId: 'second',
+      );
+      final harness = QueueHarness(
+        tasks: [
+          videoTask(id: 'first', sortOrder: 1),
+          videoTask(id: 'second', sortOrder: 2),
+        ],
+        processStarter: starter,
+      );
+
+      await harness.runner.startSingleTask('first');
+      final result = await harness.runner.startSingleTask('second');
+
+      expect(result.outcome, FfmpegQueueStartOutcome.processStartFailed);
+      expect(harness.processController.pauseCalls, ['first']);
+      expect(harness.processController.resumeCalls, ['first']);
+      expect(harness.repository.taskById('first').status, TaskStatus.running);
+      expect(harness.runner.runningTaskIds, {'first'});
+    });
+
+    test(
+      'single task preempts oldest running task when no slot is free',
       () async {
         final firstTask = videoTask(id: 'first', sortOrder: 1);
         final secondTask = videoTask(id: 'second', sortOrder: 2);
@@ -68,22 +339,25 @@ void main() {
     );
 
     test(
-      'startOrResumeTask resumes a paused task and suspends foreground task',
+      'startOrResumeTask resumes a paused execution when a slot is free',
       () async {
         final firstTask = videoTask(id: 'first', sortOrder: 1);
         final secondTask = videoTask(id: 'second', sortOrder: 2);
         final harness = QueueHarness(tasks: [firstTask, secondTask]);
 
         await harness.runner.start();
-        await harness.runner.startOrResumeTask('second');
+        await harness.runner.pauseAllRunningTasks();
         final result = await harness.runner.startOrResumeTask('first');
 
         expect(result.outcome, FfmpegQueueStartOutcome.resumed);
         expect(result.task?.id, 'first');
         expect(harness.runner.foregroundTaskId, 'first');
         expect(harness.repository.taskById('first').status, TaskStatus.running);
-        expect(harness.repository.taskById('second').status, TaskStatus.paused);
-        expect(harness.processController.pauseCalls, ['first', 'second']);
+        expect(
+          harness.repository.taskById('second').status,
+          TaskStatus.pending,
+        );
+        expect(harness.processController.pauseCalls, ['first']);
         expect(harness.processController.resumeCalls, ['first']);
       },
     );
@@ -130,6 +404,37 @@ void main() {
         expect(harness.runner.queueStatus, FfmpegQueueStatus.ready);
         expect(harness.processController.pauseCalls, ['first']);
         expect(harness.processStarter.starts, hasLength(1));
+      },
+    );
+
+    test(
+      'manual start after pause all does not reactivate old queue',
+      () async {
+        final firstTask = videoTask(id: 'first', sortOrder: 1);
+        final secondTask = videoTask(id: 'second', sortOrder: 2);
+        final thirdTask = videoTask(id: 'third', sortOrder: 3);
+        final harness = QueueHarness(
+          tasks: [firstTask, secondTask, thirdTask],
+          maxConcurrentExecutions: 2,
+        );
+
+        await harness.runner.startWorkbenchQueue();
+        await harness.runner.pauseAllRunningTasks();
+        await harness.runner.startSingleTask('third');
+        harness.processObserver.complete(
+          'third',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('third', TaskStatus.completed);
+
+        expect(harness.runner.executionScope.type, ExecutionScopeType.none);
+        expect(harness.repository.taskById('first').status, TaskStatus.paused);
+        expect(harness.repository.taskById('second').status, TaskStatus.paused);
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          'first',
+          'second',
+          'third',
+        ]);
       },
     );
 
@@ -182,7 +487,7 @@ void main() {
       expect(harness.repository.taskById('second').status, TaskStatus.pending);
     });
 
-    test('startOrResumeTask cuts in without changing queue order', () async {
+    test('single task preempts and displaced task resumes first', () async {
       final firstTask = videoTask(id: 'first', sortOrder: 1);
       final secondTask = videoTask(id: 'second', sortOrder: 2);
       final thirdTask = videoTask(id: 'third', sortOrder: 3);
@@ -201,6 +506,16 @@ void main() {
       expect(harness.repository.taskById('second').sortOrder, 2);
       expect(harness.repository.taskById('third').sortOrder, 3);
       expect(harness.processController.pauseCalls, ['first']);
+
+      harness.processObserver.complete(
+        'third',
+        const FfmpegProcessObservation.completed(),
+      );
+      await harness.waitForTaskStatus('first', TaskStatus.running);
+
+      expect(harness.processController.resumeCalls, ['first']);
+      expect(harness.repository.taskById('second').status, TaskStatus.pending);
+      expect(harness.repository.taskById('first').status, TaskStatus.running);
     });
 
     test(
@@ -236,7 +551,7 @@ void main() {
         final harness = QueueHarness(tasks: [firstTask, secondTask]);
 
         await harness.runner.start();
-        await harness.runner.startOrResumeTask('second');
+        await harness.runner.pauseAllRunningTasks();
         final result = await harness.runner.cancelTask('first');
 
         expect(result.outcome, FfmpegQueueStartOutcome.cancelled);
@@ -247,7 +562,7 @@ void main() {
         );
         expect(
           harness.repository.taskById('second').status,
-          TaskStatus.running,
+          TaskStatus.pending,
         );
         expect(harness.processController.pauseCalls, ['first']);
         expect(harness.processController.terminateCalls, ['first']);
@@ -268,7 +583,10 @@ void main() {
         expect(harness.runner.foregroundTaskId, isNull);
         expect(harness.runner.queueStatus, FfmpegQueueStatus.idle);
         expect(harness.processController.pauseCalls, ['first']);
-        expect(harness.processController.terminateCalls, ['first', 'second']);
+        expect(
+          harness.processController.terminateCalls,
+          containsAll(['first', 'second']),
+        );
       },
     );
 
@@ -369,6 +687,137 @@ void main() {
       );
       expect(harness.runner.foregroundTaskId, isNull);
     });
+
+    test('starts image fallback when source-format output is larger', () async {
+      final tempDirectory = Directory.systemTemp.createTempSync(
+        'framelean-image-fallback-test-',
+      );
+      addTearDown(() async {
+        if (await tempDirectory.exists()) {
+          await tempDirectory.delete(recursive: true);
+        }
+      });
+      final source = File('${tempDirectory.path}/source.png')
+        ..writeAsBytesSync(List<int>.filled(100, 1));
+      final firstOutput = File('${tempDirectory.path}/source_compressed.png');
+      final fallbackOutput = File(
+        '${tempDirectory.path}/source_compressed.webp',
+      );
+      final task = imageTask(
+        id: 'image-fallback',
+        inputPath: source.path,
+        sortOrder: 0,
+      );
+      final harness = QueueHarness(
+        tasks: [task],
+        commandBuilder: FakeCommandBuilder(
+          plan: imageFallbackPlan(
+            inputPath: source.path,
+            firstOutputPath: firstOutput.path,
+            fallbackOutputPath: fallbackOutput.path,
+          ),
+        ),
+      );
+
+      await harness.runner.start();
+      firstOutput.writeAsBytesSync(List<int>.filled(120, 2));
+      harness.processObserver.complete(
+        'image-fallback',
+        const FfmpegProcessObservation.completed(),
+      );
+      await harness.waitForStartedProcesses(2);
+
+      expect(await firstOutput.exists(), isFalse);
+      expect(
+        harness.repository.taskById('image-fallback').policyTags,
+        contains(MediaTaskPolicyTag.imageFormatFallback),
+      );
+      expect(
+        harness.repository.taskById('image-fallback').outputPath,
+        fallbackOutput.path,
+      );
+
+      fallbackOutput.writeAsBytesSync(List<int>.filled(60, 3));
+      harness.processObserver.complete(
+        'image-fallback',
+        const FfmpegProcessObservation.completed(),
+      );
+      await harness.waitForTaskStatus('image-fallback', TaskStatus.completed);
+
+      final completedTask = harness.repository.taskById('image-fallback');
+      expect(completedTask.outputPath, fallbackOutput.path);
+      expect(completedTask.outputFileSize, 60);
+      expect(
+        completedTask.policyTags,
+        contains(MediaTaskPolicyTag.imageFormatFallback),
+      );
+      expect(harness.completedNotifications, ['image-fallback']);
+      expect(await fallbackOutput.exists(), isTrue);
+    });
+
+    test(
+      'fails image task when fallback output is still not smaller',
+      () async {
+        final tempDirectory = Directory.systemTemp.createTempSync(
+          'framelean-image-failure-test-',
+        );
+        addTearDown(() async {
+          if (await tempDirectory.exists()) {
+            await tempDirectory.delete(recursive: true);
+          }
+        });
+        final source = File('${tempDirectory.path}/source.png')
+          ..writeAsBytesSync(List<int>.filled(100, 1));
+        final firstOutput = File('${tempDirectory.path}/source_compressed.png');
+        final fallbackOutput = File(
+          '${tempDirectory.path}/source_compressed.webp',
+        );
+        final task = imageTask(
+          id: 'image-failure',
+          inputPath: source.path,
+          sortOrder: 0,
+        );
+        final harness = QueueHarness(
+          tasks: [task],
+          commandBuilder: FakeCommandBuilder(
+            plan: imageFallbackPlan(
+              inputPath: source.path,
+              firstOutputPath: firstOutput.path,
+              fallbackOutputPath: fallbackOutput.path,
+            ),
+          ),
+        );
+
+        await harness.runner.start();
+        firstOutput.writeAsBytesSync(List<int>.filled(120, 2));
+        harness.processObserver.complete(
+          'image-failure',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForStartedProcesses(2);
+
+        fallbackOutput.writeAsBytesSync(List<int>.filled(110, 3));
+        harness.processObserver.complete(
+          'image-failure',
+          const FfmpegProcessObservation.completed(),
+        );
+        await harness.waitForTaskStatus('image-failure', TaskStatus.failed);
+
+        final failedTask = harness.repository.taskById('image-failure');
+        expect(failedTask.outputPath, isNull);
+        expect(failedTask.errorMessage, contains('图片未有效压缩'));
+        expect(
+          failedTask.policyTags,
+          containsAll([
+            MediaTaskPolicyTag.imageFormatFallback,
+            MediaTaskPolicyTag.ineffectiveCompression,
+          ]),
+        );
+        expect(harness.failedNotifications, ['image-failure']);
+        expect(await firstOutput.exists(), isFalse);
+        expect(await fallbackOutput.exists(), isFalse);
+      },
+    );
 
     test('start fails the task when FFmpeg is unavailable', () async {
       final task = videoTask(id: 'no-ffmpeg', sortOrder: 0);
@@ -491,6 +940,7 @@ void main() {
 
 class QueueHarness {
   final FakeMediaTaskRepository repository;
+  final FakeTaskFolderRepository taskFolderRepository;
   final FakeProcessStarter processStarter;
   final FakeProcessController processController;
   final FakeProcessObserver processObserver;
@@ -514,8 +964,13 @@ class QueueHarness {
     FakeProcessStarter? processStarter,
     FakeProcessController? processController,
     FakeProcessObserver? processObserver,
+    OutputPreflightService outputPreflightService =
+        const NoopOutputPreflightService(),
     bool continuousExecutionEnabled = true,
+    int maxConcurrentExecutions = 1,
+    List<TaskFolder> folders = const [],
   }) : repository = FakeMediaTaskRepository(tasks),
+       taskFolderRepository = FakeTaskFolderRepository(folders),
        processStarter = processStarter ?? FakeProcessStarter(),
        processController = processController ?? FakeProcessController(),
        processObserver = processObserver ?? FakeProcessObserver(),
@@ -524,23 +979,29 @@ class QueueHarness {
        ) {
     runner = DefaultFfmpegTaskQueueRunner(
       repository: repository,
+      taskFolderRepository: taskFolderRepository,
       sourceFileChecker: FakeSourceFileChecker(
         existingPaths:
             existingPaths ?? tasks.map((task) => task.inputPath).toSet(),
       ),
+      readSettings: () async => AppSettings.initial().copyWith(
+        maxConcurrentExecutions: maxConcurrentExecutions,
+      ),
       readRuntime: () async => runtime,
       commandBuilder: commandBuilder ?? FakeCommandBuilder(),
+      resourceGuard: const FakeExecutionResourceGuard(),
       mediaInputPreparer: mediaInputPreparer,
+      outputPreflightService: outputPreflightService,
       processStarter: this.processStarter,
       processController: this.processController,
       processObserver: this.processObserver,
       createLogFilePath: (task, plan) async {
         return logFileFor(task.id).path;
       },
-      onTaskCompleted: (task) async {
+      onTaskCompleted: (task, [summary]) async {
         completedNotifications.add(task.id);
       },
-      onTaskFailed: (task) async {
+      onTaskFailed: (task, [summary]) async {
         failedNotifications.add(task.id);
       },
       continuousExecutionEnabled: continuousExecutionEnabled,
@@ -579,6 +1040,29 @@ class QueueHarness {
     }
 
     fail('Timed out waiting for $description');
+  }
+}
+
+class FakeExecutionResourceGuard implements ExecutionResourceGuard {
+  const FakeExecutionResourceGuard();
+
+  @override
+  Future<ExecutionCapacity> capacity({
+    required int userMaxConcurrentExecutions,
+    required List<MediaTask> runningTasks,
+  }) async {
+    return ExecutionCapacity(
+      effectiveMaxConcurrentExecutions: userMaxConcurrentExecutions,
+    );
+  }
+
+  @override
+  Future<bool> canStartTask({
+    required MediaTask task,
+    required List<MediaTask> runningTasks,
+    required int userMaxConcurrentExecutions,
+  }) async {
+    return runningTasks.length < userMaxConcurrentExecutions;
   }
 }
 
@@ -636,6 +1120,31 @@ MediaTask videoTask({String id = 'task', required int sortOrder}) {
   ).copyWith(id: id);
 }
 
+TaskFolder taskFolder({required String id, required int sortOrder}) {
+  return TaskFolder(
+    id: id,
+    name: id,
+    mediaKind: MediaKind.video,
+    sortOrder: sortOrder,
+    defaultConfig: MediaTaskConfig.initialVideo(),
+    createdAt: sortOrder,
+    updatedAt: sortOrder,
+  );
+}
+
+MediaTask imageTask({
+  required String id,
+  required String inputPath,
+  required int sortOrder,
+}) {
+  return MediaTask.draft(
+    inputPath: inputPath,
+    fileName: inputPath.split('/').last,
+    mediaKind: MediaKind.image,
+    sortOrder: sortOrder,
+  ).copyWith(id: id);
+}
+
 MediaTask audioTask({required String id, required String inputPath}) {
   return MediaTask.draft(
     inputPath: inputPath,
@@ -643,6 +1152,45 @@ MediaTask audioTask({required String id, required String inputPath}) {
     mediaKind: MediaKind.audio,
     sortOrder: 0,
   ).copyWith(id: id);
+}
+
+FfmpegCommandPlan imageFallbackPlan({
+  required String inputPath,
+  required String firstOutputPath,
+  required String fallbackOutputPath,
+}) {
+  final fallbackArgs = [
+    '-hide_banner',
+    '-i',
+    inputPath,
+    '-c:v',
+    'libwebp',
+    fallbackOutputPath,
+  ];
+  return FfmpegCommandPlan(
+    args: fallbackArgs,
+    outputPath: firstOutputPath,
+    logHint: '图片 fallback 测试命令',
+    steps: [
+      FfmpegCommandStep(
+        args: ['-hide_banner', '-i', inputPath, firstOutputPath],
+        label: '源格式压缩',
+        outputPath: firstOutputPath,
+        progressMode: ProgressMode.step,
+        completionPolicy:
+            FfmpegStepCompletionPolicy.completeIfOutputSmallerThanSource,
+      ),
+      FfmpegCommandStep(
+        args: fallbackArgs,
+        label: 'WebP 重试',
+        outputPath: fallbackOutputPath,
+        progressMode: ProgressMode.step,
+        completionPolicy:
+            FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+        policyTagsOnStart: const {MediaTaskPolicyTag.imageFormatFallback},
+      ),
+    ],
+  );
 }
 
 class FakeMediaTaskRepository implements MediaTaskRepository {
@@ -690,6 +1238,22 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(
+        folderSortOrder: update.folderSortOrder,
+      );
+    }
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     final index = tasks.indexWhere(
       (existingTask) => existingTask.id == task.id,
@@ -707,6 +1271,59 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 }
 
+class FakeTaskFolderRepository implements TaskFolderRepository {
+  FakeTaskFolderRepository([List<TaskFolder> initialFolders = const []])
+    : folders = [...initialFolders];
+
+  final List<TaskFolder> folders;
+
+  @override
+  Future<void> clearAllFolders() async {
+    folders.clear();
+  }
+
+  @override
+  Future<void> deleteFolderById(String folderId) async {
+    folders.removeWhere((folder) => folder.id == folderId);
+  }
+
+  @override
+  Future<List<TaskFolder>> loadAllFolders() async {
+    return [...folders]..sort((first, second) {
+      final order = first.sortOrder.compareTo(second.sortOrder);
+      if (order != 0) {
+        return order;
+      }
+      return first.createdAt.compareTo(second.createdAt);
+    });
+  }
+
+  @override
+  Future<void> saveFolder(TaskFolder folder) async {
+    final index = folders.indexWhere((existing) => existing.id == folder.id);
+    if (index == -1) {
+      folders.add(folder);
+      return;
+    }
+    folders[index] = folder;
+  }
+
+  @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = folders.indexWhere(
+        (folder) => folder.id == update.folderId,
+      );
+      if (index == -1) {
+        continue;
+      }
+      folders[index] = folders[index].copyWith(sortOrder: update.sortOrder);
+    }
+  }
+}
+
 class FakeSourceFileChecker implements SourceFileChecker {
   final Set<String> existingPaths;
 
@@ -721,9 +1338,10 @@ class FakeSourceFileChecker implements SourceFileChecker {
 class FakeCommandBuilder implements FfmpegCommandBuilder {
   final Object? error;
   final List<List<String>>? stepArgs;
+  final FfmpegCommandPlan? plan;
   final List<bool> allowExtremeCompressionValues = [];
 
-  FakeCommandBuilder({this.error, this.stepArgs});
+  FakeCommandBuilder({this.error, this.stepArgs, this.plan});
 
   @override
   FfmpegCommandPlan build(
@@ -736,6 +1354,10 @@ class FakeCommandBuilder implements FfmpegCommandBuilder {
     final error = this.error;
     if (error != null) {
       throw error;
+    }
+    final plan = this.plan;
+    if (plan != null) {
+      return plan;
     }
 
     final defaultArgs = [
@@ -807,9 +1429,10 @@ class FakeProcessStart {
 
 class FakeProcessStarter implements FfmpegProcessStarter {
   final Object? error;
+  final String? errorTaskId;
   final List<FakeProcessStart> starts = [];
 
-  FakeProcessStarter({this.error});
+  FakeProcessStarter({this.error, this.errorTaskId});
 
   @override
   Future<StartedFfmpegProcess> start({
@@ -817,14 +1440,13 @@ class FakeProcessStarter implements FfmpegProcessStarter {
     required List<String> args,
     required File logFile,
   }) async {
-    final error = this.error;
-    if (error != null) {
-      throw error;
-    }
-
     final inputIndex = args.indexOf('-i');
     final inputPath = inputIndex == -1 ? '' : args[inputIndex + 1];
     final taskId = inputPath.split('/').last.split('.').first;
+    final error = this.error;
+    if (error != null && (errorTaskId == null || errorTaskId == taskId)) {
+      throw error;
+    }
     final process = FakeProcess(taskId);
     starts.add(
       FakeProcessStart(

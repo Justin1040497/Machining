@@ -1,6 +1,6 @@
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
+import 'package:framelean/domain/library.dart';
 
 class SaveAppSettingsUseCase {
   final AppSettingsRepository repository;

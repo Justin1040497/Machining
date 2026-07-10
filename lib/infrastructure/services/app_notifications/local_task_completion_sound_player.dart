@@ -1,6 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
-import 'package:framelean/application/services/app_notifications/task_completion_sound_player.dart';
-import 'package:framelean/domain/enums/task_completion_sound.dart';
+import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 
 typedef TaskCompletionSoundAssetPlayer =
     Future<void> Function(String assetPath);

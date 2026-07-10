@@ -6,6 +6,7 @@ import 'package:framelean/domain/enums/compression_mode.dart';
 import 'package:framelean/domain/enums/encoder_backend.dart';
 import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
 import 'package:framelean/domain/enums/resolution_preset.dart';
@@ -44,6 +45,7 @@ void main() {
       expect(plan.outputPath, '/videos/source_compressed.mp4');
       expect(plan.args, [
         '-hide_banner',
+        '-y',
         '-i',
         '/videos/source.mov',
         '-map',
@@ -274,7 +276,110 @@ void main() {
 
       expect(plan.outputPath, '/exports/source_converted.mkv');
       expect(plan.args, containsAllInOrder(['-c:v', 'libx264']));
+      expect(plan.args, containsAllInOrder(['-preset', 'slow', '-crf', '18']));
       expect(plan.args, isNot(contains('-movflags')));
+    });
+
+    test('builds modern and legacy container codec combinations', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final cases =
+          <
+            ({
+              OutputFormat format,
+              VideoCodec codec,
+              String encoder,
+              String audio,
+            })
+          >[
+            (
+              format: OutputFormat.mp4,
+              codec: VideoCodec.av1,
+              encoder: 'libsvtav1',
+              audio: 'aac',
+            ),
+            (
+              format: OutputFormat.webm,
+              codec: VideoCodec.vp9,
+              encoder: 'libvpx-vp9',
+              audio: 'libopus',
+            ),
+            (
+              format: OutputFormat.mov,
+              codec: VideoCodec.proRes,
+              encoder: 'prores_ks',
+              audio: 'aac',
+            ),
+            (
+              format: OutputFormat.avi,
+              codec: VideoCodec.mpeg4,
+              encoder: 'mpeg4',
+              audio: 'libmp3lame',
+            ),
+            (
+              format: OutputFormat.avi,
+              codec: VideoCodec.mjpeg,
+              encoder: 'mjpeg',
+              audio: 'pcm_s16le',
+            ),
+          ];
+
+      for (final testCase in cases) {
+        final plan = builder.build(
+          videoTask(
+            inputPath: '/videos/source.mov',
+            fileName: 'source.mov',
+            purpose: TaskPurpose.conversion,
+            config: VideoTaskConfig.initial().copyWith(
+              outputFormat: testCase.format,
+              videoCodec: testCase.codec,
+            ),
+          ),
+        );
+
+        expect(plan.outputPath, endsWith('.${testCase.format.name}'));
+        expect(plan.args, containsAllInOrder(['-c:v', testCase.encoder]));
+        expect(plan.args, containsAllInOrder(['-c:a', testCase.audio]));
+        expect(plan.args, contains('-y'));
+      }
+    });
+
+    test('rejects codec and container combinations outside the matrix', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        purpose: TaskPurpose.conversion,
+        config: VideoTaskConfig.initial().copyWith(
+          outputFormat: OutputFormat.avi,
+          videoCodec: VideoCodec.hevc,
+        ),
+      );
+
+      expect(
+        () => builder.build(task),
+        throwsA(isA<FfmpegCommandBuildException>()),
+      );
+    });
+
+    test('stream-copies compatible video conversion without quality loss', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/source.mp4',
+        fileName: 'source.mp4',
+        purpose: TaskPurpose.conversion,
+        analysisResult: MediaAnalysisResult(
+          videoCodec: 'h264',
+          audioCodec: 'aac',
+        ),
+        config: VideoTaskConfig.initial().copyWith(
+          outputFormat: OutputFormat.mkv,
+          resolutionPreset: ResolutionPreset.p720,
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.args, containsAllInOrder(['-c:v', 'copy', '-c:a', 'copy']));
+      expect(plan.args, isNot(contains('-vf')));
+      expect(plan.args, isNot(contains('-crf')));
     });
 
     test('uses source directory when output directory is empty', () {
@@ -478,6 +583,38 @@ void main() {
       );
       expect(plan.args, containsAllInOrder(['-color_trc', 'bt709']));
       expect(plan.args, containsAllInOrder(['-tag:v', 'hvc1']));
+    });
+
+    test('preserves transparent video as MOV ProRes 4444', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = videoTask(
+        inputPath: '/videos/overlay.webm',
+        fileName: 'overlay.webm',
+        config: VideoTaskConfig.initial().copyWith(
+          videoCodec: VideoCodec.h264,
+          resolutionPreset: ResolutionPreset.p1080,
+        ),
+        analysisResult: MediaAnalysisResult(
+          videoHeight: 1080,
+          videoPixelFormat: 'yuva444p10le',
+          videoBitrate: 8000000,
+        ),
+      );
+
+      final plan = builder.build(
+        task,
+        encoderCapabilities: const FfmpegEncoderCapabilities(
+          encoderNames: {'libx264', 'prores_ks', 'aac'},
+          autoBackendPriority: [],
+        ),
+      );
+
+      expect(plan.outputPath, '/videos/overlay_compressed.mov');
+      expect(plan.args, containsAllInOrder(['-c:v', 'prores_ks']));
+      expect(plan.args, containsAllInOrder(['-profile:v', '4']));
+      expect(plan.args, containsAllInOrder(['-pix_fmt', 'yuva444p10le']));
+      expect(plan.args, isNot(contains('yuv420p')));
+      expect(plan.args, isNot(contains('libx264')));
     });
 
     test('preserves HDR without passing BT.2020 matrix through scale', () {
@@ -969,6 +1106,7 @@ void main() {
         config: MediaTaskConfig.initialImage().copyWith(
           image: ImageProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
             imageQuality: 76,
             resizePreset: ImageResizePreset.longEdge1920,
           ),
@@ -990,6 +1128,158 @@ void main() {
       expect(plan.args.last, '/images/source_compressed.webp');
     });
 
+    test('image compression tries source format before WebP fallback', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(imageQuality: 70),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+        analysisResult: MediaAnalysisResult(
+          imageCodec: 'png',
+          imagePixelFormat: 'rgba',
+        ),
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/images/source_compressed.png');
+      expect(plan.args.last, '/images/source_compressed.webp');
+      expect(plan.steps, hasLength(2));
+      expect(plan.steps.first.outputPath, '/images/source_compressed.png');
+      expect(
+        plan.steps.first.completionPolicy,
+        FfmpegStepCompletionPolicy.completeIfOutputSmallerThanSource,
+      );
+      expect(plan.steps.first.args, containsAllInOrder(['-i', task.inputPath]));
+      expect(
+        plan.steps.first.args,
+        containsAllInOrder(['-compression_level', '9']),
+      );
+      expect(plan.steps.last.outputPath, '/images/source_compressed.webp');
+      expect(
+        plan.steps.last.completionPolicy,
+        FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+      );
+      expect(
+        plan.steps.last.policyTagsOnStart,
+        contains(MediaTaskPolicyTag.imageFormatFallback),
+      );
+      expect(plan.steps.last.args, containsAllInOrder(['-c:v', 'libwebp']));
+      expect(plan.steps.last.args, containsAllInOrder(['-quality', '70']));
+    });
+
+    test('builds lossless WebP compression without lossy quality setting', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image-lossless',
+        inputPath: '/images/source.jpg',
+        fileName: 'source.jpg',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
+            losslessCompression: true,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(plan.outputPath, '/images/source_compressed.webp');
+      expect(
+        plan.args,
+        containsAllInOrder([
+          '-c:v',
+          'libwebp',
+          '-lossless',
+          '1',
+          '-compression_level',
+          '6',
+          '-quality',
+          '100',
+        ]),
+      );
+    });
+
+    test('builds lossless TIFF compression with deflate', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image-lossless-tiff',
+        inputPath: '/images/source.png',
+        fileName: 'source.png',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage().copyWith(
+          image: ImageProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.tiff,
+            keepOriginalOutputFormat: false,
+            losslessCompression: true,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(
+        plan.args,
+        containsAllInOrder(['-c:v', 'tiff', '-compression_algo', 'deflate']),
+      );
+    });
+
+    test('transparent WebP does not fall back to JPG without libwebp', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-image',
+        inputPath: '/images/source.webp',
+        fileName: 'source.webp',
+        mediaKind: MediaKind.image,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialImage(),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+        analysisResult: MediaAnalysisResult(
+          imageCodec: 'webp',
+          imagePixelFormat: 'rgba',
+        ),
+      );
+
+      expect(
+        () => builder.build(
+          task,
+          encoderCapabilities: const FfmpegEncoderCapabilities(
+            encoderNames: {'libx264', 'aac'},
+            autoBackendPriority: [],
+          ),
+        ),
+        throwsA(
+          isA<FfmpegCommandBuildException>()
+              .having((error) => error.message, 'message', contains('WebP'))
+              .having((error) => error.message, 'message', contains('libwebp')),
+        ),
+      );
+    });
+
     test('rejects WebP output when FFmpeg lacks libwebp', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
       final task = MediaTask(
@@ -1002,6 +1292,7 @@ void main() {
         config: MediaTaskConfig.initialImage().copyWith(
           image: ImageProcessingConfig.initial().copyWith(
             outputFormat: MediaOutputFormat.webp,
+            keepOriginalOutputFormat: false,
           ),
         ),
         progress: 0,
@@ -1063,6 +1354,7 @@ void main() {
           config: MediaTaskConfig.initialImage().copyWith(
             image: ImageProcessingConfig.initial().copyWith(
               outputFormat: outputFormat,
+              keepOriginalOutputFormat: false,
             ),
           ),
           progress: 0,
@@ -1083,6 +1375,37 @@ void main() {
       expect(gifPlan.outputPath, '/images/source_converted.gif');
       expect(gifPlan.args, containsAllInOrder(['-c:v', 'gif']));
     });
+
+    test(
+      'image conversion ignores compression controls and preserves quality',
+      () {
+        final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+        final task = MediaTask(
+          id: 'task-image',
+          inputPath: '/images/source.png',
+          fileName: 'source.png',
+          mediaKind: MediaKind.image,
+          purpose: TaskPurpose.conversion,
+          status: TaskStatus.pending,
+          config: MediaTaskConfig.initialImage().copyWith(
+            image: ImageProcessingConfig.initial().copyWith(
+              outputFormat: MediaOutputFormat.webp,
+              keepOriginalOutputFormat: false,
+              imageQuality: 20,
+              resizePreset: ImageResizePreset.longEdge720,
+            ),
+          ),
+          progress: 0,
+          sortOrder: 0,
+          createdAt: 1,
+        );
+
+        final plan = builder.build(task);
+
+        expect(plan.args, containsAllInOrder(['-lossless', '1']));
+        expect(plan.args, isNot(contains('-vf')));
+      },
+    );
 
     test('rejects image tasks with non-image output format', () {
       final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
@@ -1232,7 +1555,7 @@ void main() {
 
       final aiffPlan = builder.build(audioTask(MediaOutputFormat.aiff));
       expect(aiffPlan.outputPath, '/audio/source_converted.aiff');
-      expect(aiffPlan.args, containsAllInOrder(['-c:a', 'pcm_s16be']));
+      expect(aiffPlan.args, containsAllInOrder(['-c:a', 'pcm_s24be']));
 
       final wmaPlan = builder.build(audioTask(MediaOutputFormat.wma));
       expect(wmaPlan.outputPath, '/audio/source_converted.wma');
@@ -1268,6 +1591,65 @@ void main() {
       final oggOpusPlan = builder.build(audioTask(MediaOutputFormat.oggOpus));
       expect(oggOpusPlan.outputPath, '/audio/source_converted.ogg');
       expect(oggOpusPlan.args, containsAllInOrder(['-c:a', 'libopus']));
+    });
+
+    test('audio conversion uses fixed high-quality settings', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-audio',
+        inputPath: '/audio/source.wav',
+        fileName: 'source.wav',
+        mediaKind: MediaKind.audio,
+        purpose: TaskPurpose.conversion,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialAudio().copyWith(
+          audio: AudioProcessingConfig.initial().copyWith(
+            outputFormat: MediaOutputFormat.mp3,
+            bitratePreset: AudioBitratePreset.k64,
+            sampleRate: AudioSampleRatePreset.hz32000,
+            channels: AudioChannelsPreset.mono,
+          ),
+        ),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(
+        plan.args,
+        containsAllInOrder(['-c:a', 'libmp3lame', '-b:a', '320k']),
+      );
+      expect(plan.args, isNot(contains('-ar')));
+      expect(plan.args, isNot(contains('-ac')));
+      expect(
+        plan.steps.single.completionPolicy,
+        FfmpegStepCompletionPolicy.alwaysContinue,
+      );
+    });
+
+    test('audio compression requires output to be smaller than source', () {
+      final builder = DefaultFfmpegCommandBuilder(pathExists: (_) => false);
+      final task = MediaTask(
+        id: 'task-audio',
+        inputPath: '/audio/source.wav',
+        fileName: 'source.wav',
+        mediaKind: MediaKind.audio,
+        purpose: TaskPurpose.compression,
+        status: TaskStatus.pending,
+        config: MediaTaskConfig.initialAudio(),
+        progress: 0,
+        sortOrder: 0,
+        createdAt: 1,
+      );
+
+      final plan = builder.build(task);
+
+      expect(
+        plan.steps.single.completionPolicy,
+        FfmpegStepCompletionPolicy.failIfOutputNotSmallerThanSource,
+      );
     });
 
     test('rejects audio tasks with non-audio output format', () {

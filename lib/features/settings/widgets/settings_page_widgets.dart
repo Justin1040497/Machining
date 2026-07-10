@@ -10,7 +10,10 @@ class _SettingsLoading extends StatelessWidget {
       child: SizedBox(
         width: 28,
         height: 28,
-        child: CircularProgressIndicator(strokeWidth: 2, color: colors.primary),
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          color: colors.primary,
+        ),
       ),
     );
   }
@@ -41,24 +44,30 @@ class _SettingsLoadError extends StatelessWidget {
             children: [
               Text(
                 '设置加载失败',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: colors.textPrimary,
-                  fontWeight: FontWeight.w700,
-                ),
+                style: Theme.of(context).textTheme.titleLarge
+                    ?.copyWith(
+                      color: colors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const SizedBox(height: 12),
               Text(
                 error,
-                style: Theme.of(
-                  context,
-                ).textTheme.bodyMedium?.copyWith(color: colors.textSecondary),
+                style: Theme.of(context).textTheme.bodyMedium
+                    ?.copyWith(color: colors.textSecondary),
               ),
               const SizedBox(height: 20),
               Row(
                 children: [
-                  FilledButton(onPressed: onRetry, child: const Text('重试')),
+                  FilledButton(
+                    onPressed: onRetry,
+                    child: const Text('重试'),
+                  ),
                   const SizedBox(width: 12),
-                  TextButton(onPressed: onBack, child: const Text('返回工作台')),
+                  TextButton(
+                    onPressed: onBack,
+                    child: const Text('返回工作台'),
+                  ),
                 ],
               ),
             ],
@@ -79,9 +88,8 @@ class _SettingsContent extends StatelessWidget {
     final colors = context.frameLeanColors;
     return DecoratedBox(
       decoration: BoxDecoration(color: colors.surface),
-      child: Container(
-        padding: EdgeInsets.only(top: 34),
-        alignment: AlignmentDirectional.topStart,
+      child: Padding(
+        padding: const EdgeInsets.only(top: 34),
         child: child,
       ),
     );
@@ -89,39 +97,48 @@ class _SettingsContent extends StatelessWidget {
 }
 
 class _SettingsForm extends StatelessWidget {
-  const _SettingsForm({
-    required this.title,
-    required this.children,
-    this.maxWidth = 520,
-  });
+  const _SettingsForm({required this.title, required this.children});
 
   final String title;
   final List<Widget> children;
-  final double maxWidth;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(31, 21, 31, 32),
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(
-                color: colors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                height: 1.2,
+    final hasFooterActions =
+        children.isNotEmpty && children.last is _SectionActions;
+    final bodyChildren = hasFooterActions
+        ? children.sublist(0, children.length - 1)
+        : children;
+
+    return Align(
+      alignment: Alignment.topLeft,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.vertical,
+        padding: const EdgeInsets.fromLTRB(31, 21, 31, 0),
+        clipBehavior: Clip.hardEdge,
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom: hasFooterActions ? 16 : 32,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  color: colors.textPrimary,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  height: 1.2,
+                ),
               ),
-            ),
-            const SizedBox(height: 34),
-            ...children,
-          ],
+              const SizedBox(height: 34),
+              ...bodyChildren,
+              if (hasFooterActions) children.last,
+            ],
+          ),
         ),
       ),
     );
@@ -132,110 +149,70 @@ class _SettingsSidebar extends StatelessWidget {
   const _SettingsSidebar({
     required this.selectedSection,
     required this.saving,
-    required this.onClose,
     required this.onSectionSelected,
   });
 
   final _SettingsSection selectedSection;
   final bool saving;
-  final VoidCallback onClose;
   final ValueChanged<_SettingsSection> onSectionSelected;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.frameLeanColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(color: colors.surface),
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          21,
-          AppLayoutConstants.topBarHeight,
-          20,
-          18,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _BackToWorkbenchButton(saving: saving, onPressed: onClose),
-            const SizedBox(height: 34),
-            _SidebarGroup(
-              label: '常规配置',
-              sections: const [_SettingsSection.app, _SettingsSection.about],
-              selectedSection: selectedSection,
-              onSectionSelected: onSectionSelected,
-            ),
-            const SizedBox(height: 30),
-            _SidebarGroup(
-              label: '任务设置',
-              sections: const [
-                _SettingsSection.video,
-                _SettingsSection.image,
-                _SettingsSection.audio,
-              ],
-              selectedSection: selectedSection,
-              onSectionSelected: onSectionSelected,
-            ),
-            const SizedBox(height: 30),
-            _SidebarGroup(
-              label: '输入和输出',
-              sections: const [
-                _SettingsSection.output,
-                _SettingsSection.encoder,
-              ],
-              selectedSection: selectedSection,
-              onSectionSelected: onSectionSelected,
-            ),
-            const Spacer(),
-            if (saving)
-              Text(
-                '正在保存...',
-                style: TextStyle(color: colors.textTertiary, fontSize: 11),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _BackToWorkbenchButton extends StatelessWidget {
-  const _BackToWorkbenchButton({required this.saving, required this.onPressed});
-
-  final bool saving;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.frameLeanColors;
-    return InkWell(
-      borderRadius: BorderRadius.circular(6),
-      onTap: saving ? null : onPressed,
-      child: SizedBox(
-        height: 26,
-        child: Row(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            Icon(
-              Icons.chevron_left_rounded,
-              color: colors.textPrimary,
-              size: 24,
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '返回工作台',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: colors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SidebarGroup(
+                  label: '常规配置',
+                  sections: const [
+                    _SettingsSection.app,
+                    _SettingsSection.notifications,
+                    _SettingsSection.shortcuts,
+                    _SettingsSection.about,
+                  ],
+                  selectedSection: selectedSection,
+                  onSectionSelected: onSectionSelected,
                 ),
-              ),
+                const SizedBox(height: 30),
+                _SidebarGroup(
+                  label: '任务设置',
+                  sections: const [
+                    _SettingsSection.video,
+                    _SettingsSection.image,
+                    _SettingsSection.audio,
+                  ],
+                  selectedSection: selectedSection,
+                  onSectionSelected: onSectionSelected,
+                ),
+                const SizedBox(height: 30),
+                _SidebarGroup(
+                  label: '输入和输出',
+                  sections: const [
+                    _SettingsSection.output,
+                    _SettingsSection.encoder,
+                  ],
+                  selectedSection: selectedSection,
+                  onSectionSelected: onSectionSelected,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+        const SizedBox(height: 12),
+        if (saving)
+          Text(
+            '正在保存...',
+            style: TextStyle(
+              color: colors.textTertiary,
+              fontSize: 11,
+            ),
+          ),
+      ],
     );
   }
 }
@@ -319,7 +296,9 @@ class _SidebarItem extends StatelessWidget {
                   style: TextStyle(
                     color: colors.textPrimary,
                     fontSize: 13,
-                    fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                    fontWeight: selected
+                        ? FontWeight.w600
+                        : FontWeight.w500,
                   ),
                 ),
               ),

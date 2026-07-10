@@ -1,4 +1,4 @@
-import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/library.dart';
 
 /// 读取源文件快速指纹
 abstract class SourceFileFingerprintReader {

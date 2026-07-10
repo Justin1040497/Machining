@@ -1,4 +1,4 @@
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/library.dart';
 
 class VideoThumbnailRequest {
   final String ffmpegPath;

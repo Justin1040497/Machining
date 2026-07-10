@@ -1,5 +1,5 @@
 import 'package:framelean/application/services/input_runtime/ffmpeg_encoder_capabilities.dart';
-import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/library.dart';
 
 class PreviewFrameFingerprint {
   final String value;

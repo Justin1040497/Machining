@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:framelean/infrastructure/database/app_database.dart';
+import 'package:framelean/infrastructure/library.dart';
 
 // Owns the database lifetime for the root ProviderScope.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {

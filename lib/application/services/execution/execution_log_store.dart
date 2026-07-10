@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
+import 'package:framelean/application/constants.dart';
 
 class ExecutionLogSnapshot {
   final String? filePath;
@@ -18,7 +19,7 @@ class ExecutionLogSnapshot {
 }
 
 class ExecutionLogStore {
-  static const defaultMaxReadBytes = 1024 * 1024;
+  static const defaultMaxReadBytes = maxLogReadBytes;
 
   final Directory logsDirectory;
   final int maxReadBytes;
@@ -96,7 +97,7 @@ class ExecutionLogStore {
 
   Stream<ExecutionLogSnapshot> watchLatestForTask(
     String taskId, {
-    Duration interval = const Duration(milliseconds: 500),
+    Duration interval = debounceInterval,
   }) async* {
     ExecutionLogSnapshot? previous;
     while (true) {

@@ -26,6 +26,8 @@ LAME_VERSION="${LAME_VERSION:-3.100}"
 LIBWEBP_VERSION="${LIBWEBP_VERSION:-1.5.0}"
 OPUS_VERSION="${OPUS_VERSION:-1.5.2}"
 ZIMG_VERSION="${ZIMG_VERSION:-3.0.6}"
+LIBVPX_VERSION="${LIBVPX_VERSION:-1.15.2}"
+SVT_AV1_VERSION="${SVT_AV1_VERSION:-2.3.0}"
 MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.15}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 ARCH_FLAGS="-arch ${ARCH} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
@@ -47,7 +49,7 @@ if [[ "$(uname -m)" != "$ARCH" ]]; then
   exit 1
 fi
 
-for command_name in clang curl git install lipo make nasm otool pkg-config strip tar; do
+for command_name in clang cmake curl git install lipo make nasm otool pkg-config strip tar; do
   require_command "$command_name"
 done
 
@@ -75,6 +77,54 @@ CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
     --disable-frontend
 make -j"$JOBS"
 make install
+
+cd "$SRC_DIR"
+if [[ ! -f "libvpx-${LIBVPX_VERSION}.tar.gz" ]]; then
+  curl -L \
+    "https://github.com/webmproject/libvpx/archive/refs/tags/v${LIBVPX_VERSION}.tar.gz" \
+    -o "libvpx-${LIBVPX_VERSION}.tar.gz"
+fi
+
+rm -rf "libvpx-${LIBVPX_VERSION}"
+tar -xf "libvpx-${LIBVPX_VERSION}.tar.gz"
+
+cd "$SRC_DIR/libvpx-${LIBVPX_VERSION}"
+make clean >/dev/null 2>&1 || true
+./configure \
+    --prefix="$PREFIX" \
+    --disable-shared \
+    --enable-static \
+    --disable-examples \
+    --disable-tools \
+    --disable-unit-tests \
+    --disable-docs \
+    --extra-cflags="$ARCH_FLAGS"
+make -j"$JOBS"
+make install
+
+cd "$SRC_DIR"
+if [[ ! -f "svt-av1-${SVT_AV1_VERSION}.tar.gz" ]]; then
+  curl -L \
+    "https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v${SVT_AV1_VERSION}/SVT-AV1-v${SVT_AV1_VERSION}.tar.gz" \
+    -o "svt-av1-${SVT_AV1_VERSION}.tar.gz"
+fi
+
+rm -rf "SVT-AV1-v${SVT_AV1_VERSION}"
+tar -xf "svt-av1-${SVT_AV1_VERSION}.tar.gz"
+
+cmake \
+  -S "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}" \
+  -B "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean" \
+  -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
+  -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
+  -DBUILD_SHARED_LIBS=OFF \
+  -DBUILD_APPS=OFF \
+  -DBUILD_TESTING=OFF
+cmake --build "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean" --parallel "$JOBS"
+cmake --install "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean"
 
 cd "$SRC_DIR"
 if [[ ! -f "libwebp-${LIBWEBP_VERSION}.tar.gz" ]]; then
@@ -196,6 +246,8 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-libwebp \
   --enable-libopus \
   --enable-libzimg \
+  --enable-libvpx \
+  --enable-libsvtav1 \
   --enable-videotoolbox \
   --enable-audiotoolbox \
   --disable-shared \
@@ -237,6 +289,10 @@ Opus version: ${OPUS_VERSION}
 Opus source: https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz
 zimg version: ${ZIMG_VERSION}
 zimg source: https://github.com/sekrit-twc/zimg/archive/refs/tags/release-${ZIMG_VERSION}.tar.gz
+libvpx version: ${LIBVPX_VERSION}
+libvpx source: https://github.com/webmproject/libvpx/archive/refs/tags/v${LIBVPX_VERSION}.tar.gz
+SVT-AV1 version: ${SVT_AV1_VERSION}
+SVT-AV1 source: https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v${SVT_AV1_VERSION}/SVT-AV1-v${SVT_AV1_VERSION}.tar.gz
 FFmpeg source: https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
 Target: macOS ${ARCH}
 Minimum macOS: ${MACOSX_DEPLOYMENT_TARGET}
@@ -269,15 +325,19 @@ require_capability() {
 encoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -encoders 2>/dev/null)"
 decoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -decoders 2>/dev/null)"
 demuxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -demuxers 2>/dev/null)"
+muxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -muxers 2>/dev/null)"
 filter_output="$("$OUT_DIR/ffmpeg" -hide_banner -filters 2>/dev/null)"
 
-for encoder_name in libx264 libmp3lame libwebp libopus; do
+for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
   require_capability "$encoder_output" "$encoder_name" "encoder"
 done
 for decoder_name in opus vorbis; do
   require_capability "$decoder_output" "$decoder_name" "decoder"
 done
 require_capability "$demuxer_output" "ogg" "demuxer"
+for muxer_name in mp4 mov matroska webm avi; do
+  require_capability "$muxer_output" "$muxer_name" "muxer"
+done
 for filter_name in zscale tonemap; do
   require_capability "$filter_output" "$filter_name" "filter"
 done

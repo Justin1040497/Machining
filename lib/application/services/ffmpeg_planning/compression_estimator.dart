@@ -1,11 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:framelean/application/services/ffmpeg_planning/media_codec_normalizer.dart';
-import 'package:framelean/domain/entities/media_task.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/services/source_compression_assessor.dart';
+import 'package:framelean/domain/library.dart';
 
 enum EstimateConfidence { low, medium, high }
 
@@ -224,6 +220,11 @@ class DefaultCompressionEstimator implements CompressionEstimator {
       VideoCodec.hevc => 0.75,
       VideoCodec.h264 when sourceIsHevc => 1.20,
       VideoCodec.h264 => 1.0,
+      VideoCodec.vp9 => 0.70,
+      VideoCodec.av1 => 0.55,
+      VideoCodec.proRes => 2.50,
+      VideoCodec.mpeg4 => 1.20,
+      VideoCodec.mjpeg => 4.0,
       VideoCodec.source => 1.0,
     };
   }

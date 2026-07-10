@@ -1,5 +1,7 @@
+import 'package:framelean/application/library.dart';
 import 'package:framelean/infrastructure/database/app_notifications.dart';
 import 'package:framelean/infrastructure/database/settings.dart';
+import 'package:framelean/infrastructure/database/task_folders.dart';
 import 'package:framelean/infrastructure/database/tasks.dart';
 import 'package:path/path.dart';
 import 'dart:io';
@@ -12,7 +14,9 @@ import 'package:path_provider/path_provider.dart';
 part 'app_database.g.dart';
 
 /// 数据库管理
-@DriftDatabase(tables: [SettingsRows, TaskRows, AppNotificationRows])
+@DriftDatabase(
+  tables: [SettingsRows, TaskRows, TaskFolderRows, AppNotificationRows],
+)
 class AppDatabase extends _$AppDatabase {
   /// 创建AppDatabase时 自动打开数据库
   AppDatabase() : super(openConnection());
@@ -38,8 +42,20 @@ class AppDatabase extends _$AppDatabase {
     }
   }
 
+  Future<void> _safeCreateTable(Migrator migrator, TableInfo table) async {
+    try {
+      await migrator.createTable(table);
+    } catch (e) {
+      final message = e.toString();
+      if (message.contains('already exists')) {
+        return;
+      }
+      rethrow;
+    }
+  }
+
   @override
-  int get schemaVersion => 23;
+  int get schemaVersion => 29;
 
   @override
   MigrationStrategy get migration {
@@ -333,6 +349,67 @@ class AppDatabase extends _$AppDatabase {
             "WHERE default_output_file_name_template = '{source}-{date}'",
           );
         }
+        if (from < 24) {
+          await _safeAddColumn(
+            migrator,
+            appNotificationRows,
+            appNotificationRows.dedupeKey,
+          );
+          await customStatement(
+            'CREATE UNIQUE INDEX IF NOT EXISTS idx_app_notifications_dedupe_key '
+            'ON app_notifications (dedupe_key) WHERE dedupe_key IS NOT NULL',
+          );
+        }
+        if (from < 25) {
+          await _safeCreateTable(migrator, taskFolderRows);
+          await _safeAddColumn(migrator, taskRows, taskRows.folderId);
+          await _safeAddColumn(migrator, taskRows, taskRows.folderSortOrder);
+          await _safeAddColumn(migrator, taskRows, taskRows.policyTagsJson);
+        }
+        if (from < 26) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.maxConcurrentExecutions,
+          );
+        }
+        if (from < 27) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.folderImportScanDepth,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskRows,
+            taskRows.analysisAudioStreamsJson,
+          );
+          await _safeAddColumn(
+            migrator,
+            taskFolderRows,
+            taskFolderRows.defaultPurpose,
+          );
+        }
+        if (from < 28) {
+          await _safeAddColumn(migrator, taskRows, taskRows.outputFileSize);
+        }
+        if (from < 29) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.notificationPoliciesJson,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.shortcutBindingsJson,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.closeBehavior,
+          );
+        }
       },
     );
   }
@@ -345,7 +422,7 @@ QueryExecutor openConnection() {
     final directory = await getApplicationSupportDirectory();
 
     /// 拼接系统目录和数据库文件名
-    final databasePath = join(directory.path, 'framelean.sqlite');
+    final databasePath = join(directory.path, databaseFileName);
     final file = File(databasePath);
 
     /// 返回一个数据库 如果没有则创建一个

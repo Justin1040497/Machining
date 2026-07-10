@@ -1,7 +1,8 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart' as file_picker;
 import 'package:file_selector/file_selector.dart';
-import 'package:framelean/application/services/platform/file_selection_service.dart';
+import 'package:framelean/application/library.dart';
 import 'package:path/path.dart' as path;
 
 class DesktopFileSelectionService implements FileSelectionService {
@@ -111,6 +112,21 @@ class DesktopFileSelectionService implements FileSelectionService {
   ];
 
   @override
+  Future<List<String>> pickImportPaths() async {
+    if (Platform.isMacOS) {
+      final paths = await file_picker.FilePicker.pickFileAndDirectoryPaths(
+        type: file_picker.FileType.any,
+      );
+      if (paths != null) {
+        return paths.where((path) => path.trim().isNotEmpty).toList();
+      }
+      return const <String>[];
+    }
+
+    return pickMediaFiles();
+  }
+
+  @override
   Future<List<String>> pickMediaFiles() async {
     try {
       final files = await openFiles(acceptedTypeGroups: mediaTypeGroups);
@@ -133,6 +149,20 @@ class DesktopFileSelectionService implements FileSelectionService {
     } on UnimplementedError {
       return (await openFile())?.path;
     }
+  }
+
+  @override
+  Future<List<String>> pickMediaDirectories() async {
+    final paths = await getDirectoryPaths(confirmButtonText: '导入文件夹');
+    return paths
+        .whereType<String>()
+        .where((path) => path.trim().isNotEmpty)
+        .toList();
+  }
+
+  @override
+  Future<String?> pickMediaDirectory() {
+    return getDirectoryPath(confirmButtonText: '导入文件夹');
   }
 
   @override

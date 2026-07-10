@@ -6,6 +6,8 @@ enum MediaOutputFormat {
   mp4,
   mov,
   mkv,
+  webm,
+  avi,
   jpg,
   png,
   webp,
@@ -27,6 +29,8 @@ enum MediaOutputFormat {
       OutputFormat.mp4 => MediaOutputFormat.mp4,
       OutputFormat.mov => MediaOutputFormat.mov,
       OutputFormat.mkv => MediaOutputFormat.mkv,
+      OutputFormat.webm => MediaOutputFormat.webm,
+      OutputFormat.avi => MediaOutputFormat.avi,
     };
   }
 
@@ -35,6 +39,8 @@ enum MediaOutputFormat {
       MediaOutputFormat.mp4 => OutputFormat.mp4,
       MediaOutputFormat.mov => OutputFormat.mov,
       MediaOutputFormat.mkv => OutputFormat.mkv,
+      MediaOutputFormat.webm => OutputFormat.webm,
+      MediaOutputFormat.avi => OutputFormat.avi,
       _ => throw StateError('不是视频输出格式: $name'),
     };
   }
@@ -45,6 +51,8 @@ enum MediaOutputFormat {
         MediaOutputFormat.mp4,
         MediaOutputFormat.mov,
         MediaOutputFormat.mkv,
+        MediaOutputFormat.webm,
+        MediaOutputFormat.avi,
       ],
       MediaKind.image => const [
         MediaOutputFormat.jpg,

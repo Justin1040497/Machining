@@ -10,6 +10,7 @@ class AppNotificationEntry {
     required this.message,
     required this.source,
     required this.createdAt,
+    this.dedupeKey,
     this.readAt,
     this.dismissedAt,
     this.payloadJson,
@@ -22,6 +23,7 @@ class AppNotificationEntry {
   final String message;
   final String source;
   final DateTime createdAt;
+  final String? dedupeKey;
   final DateTime? readAt;
   final DateTime? dismissedAt;
   final String? payloadJson;

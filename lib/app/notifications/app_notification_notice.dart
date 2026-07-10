@@ -3,9 +3,9 @@ import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'package:framelean/app/presentation/app_layout_constants.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
-import 'package:framelean/domain/enums/app_notification_level.dart';
+import 'package:framelean/domain/library.dart';
+import 'package:framelean/app/constants.dart';
 
 class AppNotificationNotice extends StatelessWidget {
   const AppNotificationNotice({
@@ -51,7 +51,7 @@ class AppNotificationNotice extends StatelessWidget {
         : preferredMinWidth;
     final top = defaultTargetPlatform == TargetPlatform.windows
         ? 14.0
-        : AppLayoutConstants.topBarHeight;
+        : topBarHeight;
 
     return Positioned(
       top: top,
@@ -200,7 +200,7 @@ class _NoticeCardState extends State<_NoticeCard> {
                               ],
                               const SizedBox(width: 5),
                               AnimatedOpacity(
-                                duration: const Duration(milliseconds: 120),
+                                duration: fastTransition,
                                 opacity: hovered ? 1 : 0.48,
                                 child: _NoticeCloseButton(
                                   onPressed: widget.onDismissed,

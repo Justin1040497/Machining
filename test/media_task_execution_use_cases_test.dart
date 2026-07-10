@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/use_cases/media_tasks/clear_media_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/delete_media_task_use_case.dart';
@@ -8,6 +9,7 @@ import 'package:framelean/application/use_cases/media_tasks/pause_media_task_exe
 import 'package:framelean/application/use_cases/media_tasks/start_execution_queue_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/start_or_resume_media_task_use_case.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
@@ -96,15 +98,18 @@ void main() {
       final repository = FakeMediaTaskRepository([
         testTask(id: 'task-1', status: TaskStatus.running),
       ]);
+      final folderRepository = FakeTaskFolderRepository();
       final runner = FakeFfmpegTaskQueueRunner();
 
       final remainingTasks = await ClearMediaTasksUseCase(
         repository: repository,
+        taskFolderRepository: folderRepository,
         queueRunner: runner,
       ).call();
 
       expect(runner.cancelAllCallCount, 1);
       expect(repository.tasks, isEmpty);
+      expect(folderRepository.clearAllCallCount, 1);
       expect(remainingTasks, isEmpty);
     });
   });
@@ -163,6 +168,22 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {
+    for (final update in updates) {
+      final index = tasks.indexWhere((task) => task.id == update.taskId);
+      if (index == -1) {
+        continue;
+      }
+
+      tasks[index] = tasks[index].copyWith(
+        folderSortOrder: update.folderSortOrder,
+      );
+    }
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     final index = tasks.indexWhere((existingTask) {
       return existingTask.id == task.id;
@@ -176,9 +197,45 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   }
 }
 
+class FakeTaskFolderRepository implements TaskFolderRepository {
+  int clearAllCallCount = 0;
+
+  @override
+  Future<void> clearAllFolders() async {
+    clearAllCallCount += 1;
+  }
+
+  @override
+  Future<void> deleteFolderById(String folderId) async {}
+
+  @override
+  Future<List<TaskFolder>> loadAllFolders() async => const [];
+
+  @override
+  Future<void> saveFolder(TaskFolder folder) async {}
+
+  @override
+  Future<void> updateFolderSortOrders(
+    List<TaskFolderSortOrderUpdate> updates,
+  ) async {}
+}
+
 class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   @override
   String? foregroundTaskId;
+
+  @override
+  Set<String> get runningTaskIds =>
+      foregroundTaskId == null ? const {} : {foregroundTaskId!};
+
+  @override
+  int get activeExecutionCount => runningTaskIds.length;
+
+  @override
+  int get effectiveMaxConcurrentExecutions => 1;
+
+  @override
+  ExecutionScope get executionScope => const ExecutionScope.none();
 
   @override
   FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
@@ -221,12 +278,19 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
+  Future<FfmpegQueueStartResult> pauseFolderQueue(String folderId) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.paused,
+    );
+  }
+
+  @override
   Future<FfmpegQueueStatus> refreshStatus() async {
     return queueStatus;
   }
 
   @override
-  Future<FfmpegQueueStartResult> start({
+  Future<FfmpegQueueStartResult> startWorkbenchQueue({
     bool allowExtremeCompression = false,
   }) async {
     startAllowExtremeCompression = allowExtremeCompression;
@@ -236,7 +300,7 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
-  Future<FfmpegQueueStartResult> startOrResumeTask(
+  Future<FfmpegQueueStartResult> startSingleTask(
     String taskId, {
     bool allowExtremeCompression = false,
   }) async {
@@ -244,6 +308,16 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     startOrResumeAllowExtremeCompression = allowExtremeCompression;
     return const FfmpegQueueStartResult(
       outcome: FfmpegQueueStartOutcome.resumed,
+    );
+  }
+
+  @override
+  Future<FfmpegQueueStartResult> startFolderQueue(
+    String folderId, {
+    bool allowExtremeCompression = false,
+  }) async {
+    return const FfmpegQueueStartResult(
+      outcome: FfmpegQueueStartOutcome.started,
     );
   }
 }

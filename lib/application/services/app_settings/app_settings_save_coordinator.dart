@@ -1,10 +1,9 @@
+import 'package:framelean/application/constants.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
 import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
-import 'package:framelean/domain/enums/app_notification_kind.dart';
-import 'package:framelean/domain/enums/app_theme_mode.dart';
 
 typedef AppThemeModeSetter = void Function(AppThemeMode mode);
 typedef AppThemeCacheWriter = Future<void> Function(AppThemeMode mode);
@@ -36,7 +35,7 @@ class AppSettingsSaveCoordinator {
   }) {
     return notificationManager.track<void>(
       kind: AppNotificationKind.settings,
-      source: 'settings',
+      source: notificationSourceSettings,
       successTitle: target.successTitle,
       successMessage: target.successMessage,
       failureTitle: target.failureTitle,
