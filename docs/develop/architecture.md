@@ -160,7 +160,7 @@ docs/
 - `AppNotificationHost` 对临时通知做单槽展示：新通知到达时当前通知先退出，再展示最新通知；通知中心打开时临时通知隐藏。任务成功 / 失败临时通知保持短摘要，完整结果详情由通知中心展示。
 - `providers/`：Riverpod composition root，负责把 application 抽象绑定到 infrastructure 实现，并管理数据库、仓储、运行时和平台服务生命周期。
 - `appRuntimeEffectsEnabledProvider`：默认开启系统快捷键、窗口 / 托盘监听、启动清理和更新自动检查等运行期副作用；集成测试可覆盖为 `false`，让真实 `FrameLeanApp` Widget 树在内存数据库中启动而不污染开发机状态。
-- `app_update_provider`：自托管更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部状态胶囊、通知中心、更新通知弹窗和版本日志页提供检查、下载、暂停、继续、snooze 和安装 helper 启动动作。
+- `app_update_provider`：更新状态入口，应用启动后自动静默检查一次，并向设置页、工作台顶部状态胶囊、通知中心、更新通知弹窗和版本日志页提供检查与 snooze。release 带外部下载地址时只提供 GitHub / Gitee / 备用入口；只有没有外部地址且 package 元数据完整时，才启用保留的下载、暂停、继续和安装 helper 动作。
 - `presentation/`：settings、notifications、workbench 共同使用的布局常量、领域标签和展示 Widget；`FrameLeanReorderableListView` 封装 Flutter 3.41.2 reorderable fork，对外提供 gap 策略、跨轴拖动和外部 drop，业务列表不直接依赖 fork 内部状态。
 - `theme/`：配色、字体和第三方组件（如 `MarkdownStyleSheet`）的视觉映射。
 - `main.dart`：初始化 Flutter binding，创建 Riverpod `ProviderScope`。
@@ -265,7 +265,7 @@ Use Cases：
 - 应用设置中的“关闭通知角标”写入 `AppSettings.hideNotificationBadge`；工作台通过共享 `appSettingsProvider` 读取并仅控制角标可见性。
 - 应用设置中的“完成音频设置”写入 `AppSettings.taskCompletionSound`；根级通知 Host 在任务成功通知到达时读取该设置并播放对应内置提示音。
 - 应用设置中的“最大并行任务数”写入 `AppSettings.maxConcurrentExecutions`，表示用户期望上限；实际执行位还会由本机 CPU、内存和当前任务类型通过资源守卫降级。
-- 关于栏承载自托管更新主入口：`检查更新` / `检查中` / 下载百分比 / 暂停继续 / 安装动作保持固定按钮尺寸；Windows 使用 `现在更新` / `重启更新`，macOS 手动 DMG 路线使用 `下载 DMG` / `打开 DMG`。手动检查发现新版本时打开 L2 更新通知弹窗，而不是直接进入完整版本日志页。
+- 关于栏承载更新主入口：默认 release 展示 GitHub、Gitee 或备用下载按钮并由系统浏览器打开；保留 package 路线才显示下载百分比、暂停 / 继续和安装动作。手动检查发现新版本时打开 L2 更新通知弹窗，而不是直接进入完整版本日志页。
 - `/settings/release-notes` 沿用设置页左右布局，左侧为版本号列表，右侧渲染对应版本 Markdown 日志；它作为 L3 入口，主要由 L2 更新通知弹窗的「查看完整日志」和历史版本通知进入。
 
 工作台当前支持：
@@ -293,9 +293,9 @@ Use Cases：
 `features/notifications` 保存通知中心的 UI 状态和动作解析：
 
 - `providers/notification_center_provider.dart`：保存通知中心开关状态，供工作台和根级临时通知 Host 共享。
-- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为”打开输出文件位置”，更新通知解析为”查看版本日志”和”下载更新”。
+- `services/notification_center_action_resolver.dart`：按通知类型和持久化载荷解析可执行动作；当前任务成功通知解析为”打开输出文件位置”，更新通知解析为”查看版本日志”和打开可用下载入口。
 - 通知中心浮层 `NotificationCenterPanel` 位于 `app/presentation/widgets/notification_center_panel.dart`：自制右侧浮层，使用 `AnimationController` 和 `SlideTransition` 从右向左进入，不使用 Flutter `Drawer`，支持遮罩 / `Esc` 关闭、批量已读和清扫。
-- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。当前版本通知点击进入 L2 更新通知弹窗，历史版本通知进入 L3 版本日志页；通知项仍可同时展示“查看版本日志”和“下载更新”文字按钮。
+- 更新通知使用 `AppNotificationKind.update` 和 `UpdateNotificationPayload`。载荷保存 GitHub、Gitee 和备用下载地址；当前版本通知点击进入 L2 更新通知弹窗，历史版本通知进入 L3 版本日志页。
 - 工作台顶栏未读角标直接订阅持久化通知流；打开通知中心后，当前和浮层打开期间新产生的通知会被标记为已读。
 - 通知项按标题、创建时间、正文和底部文字按钮组分层展示；任务成功正文展示文件名、源 / 输出体积、压缩比例、保存路径和耗时，任务失败正文展示文件名、原因和建议。
 - 右上角临时通知只承载即时反馈，通知中心承载完整历史和动作按钮。临时通知为中等密度卡片，关闭按钮固定在尾部，详情最多两行；成功 / 信息、警告、失败使用不同停留时长。

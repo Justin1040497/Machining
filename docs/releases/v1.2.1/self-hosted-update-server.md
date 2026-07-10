@@ -1,62 +1,52 @@
-# v1.2.1 自托管更新服务端
+# v1.2.1 更新服务端
 
 ## 版本事实
 
-FrameLean server 当前使用 RuoYi-Vue-Plus 5.X + plus-ui 5.X、Java Spring Boot、PostgreSQL、Flyway、MyBatis-Plus、Redis 和腾讯云 COS 承担自托管更新服务。`ruoyi-admin` 是后端入口模块，`ruoyi-modules/ruoyi-framelean` 保存 FrameLean 业务逻辑，`server/admin-web` 提供后台页面。公开客户端接口提供检查更新、版本日志、下载 ticket 创建和解析；管理接口负责 release / package 长期事实和对象存储上传授权。
+FrameLean server 当前使用 RuoYi-Vue-Plus 5.X + plus-ui 5.X、Java Spring Boot、PostgreSQL、Flyway、MyBatis-Plus、Redis 和腾讯云 COS。`ruoyi-admin` 是入口模块，`ruoyi-modules/ruoyi-framelean` 保存更新业务，`server/admin-web` 提供后台页面。
 
-公开客户端 JSON 更新接口集中在 `/api/v1/releases/*`：
+当前公开发布以版本日志和外部下载地址为默认。release 可保存 GitHub、Gitee 和备用下载地址；客户端检查更新时优先消费这些地址。原 release package、COS、download ticket 和 Sparkle appcast 能力继续保留，但 package 不再是发布必填项。
 
-- `GET /latest` 根据当前 build、channel 和 platform 查找可用发布。
+公开客户端接口集中在 `/api/v1/releases/*`：
+
+- `GET /latest` 根据当前 build、channel 和 platform 查找可用发布，并返回可选 package 元数据及外部下载地址。
 - `GET /{version}/notes` 返回 Markdown 版本日志。
 - `GET /notes` 返回已发布版本日志列表。
-- `POST /download-ticket` 创建 Redis 短期下载票据。
-- `POST /download-ticket/{ticketId}/resolve` 解析票据并签发 COS 预签名下载 URL。
-- `POST /{version}/packages/{platform}/ticket` 保留旧客户端兼容路径。
+- `POST /download-ticket`、`POST /download-ticket/{ticketId}/resolve` 和旧版 package ticket 路径保留给 package 兼容链。
 
-macOS Sparkle 接口集中在 `/api/v1/sparkle/*`：
-
-- `GET /appcast` 按 channel 输出 Sparkle appcast XML。
-- `GET /download/{version}` 记录下载审计并 302 到 COS 短期预签名 URL。
-- appcast 内的版本日志和下载地址只使用 `FRAMELEAN_PUBLIC_BASE_URL`，不依赖反向代理传入的 Host。
-- Sparkle appcast 是可选兼容接口；`macos-universal2` 包没有 Sparkle EdDSA 签名时不会出现在 appcast，但仍可通过 JSON latest / ticket 手动下载 DMG。
+macOS Sparkle 接口集中在 `/api/v1/sparkle/*`。appcast 只包含具备 Sparkle 签名的 `macos-universal2` package；无签名或只登记外部地址的 release 仍可通过 JSON latest 展示版本日志和外部入口。
 
 ## 数据边界
 
-- PostgreSQL 保存长期事实：`releases`、`release_packages`、`release_artifact_requirements`、`download_events`、`update_check_events`、`ip_block_rules` 和 `admin_auth_config`。
-- Redis 只保存短期协作状态：下载 ticket、latest cache 和限流计数。Redis 数据丢失后可以重建，不应作为 release、package 或审计的唯一来源。
-- COS 桶保持私有读写，客户端和 Admin Web 都只通过服务端签发的预签名 URL 访问对象。
-- `release_packages.client_visible` 用来区分客户端可见包和后台留存包。Windows 安装器是客户端可见自动更新包；Windows ZIP 是后台留存 / 手动下载包。
+- PostgreSQL 保存 release、外部下载地址、可选 package、版本日志、更新检查、下载事件、IP 屏蔽和 RuoYi 后台事实。
+- Redis 保存 latest cache、package download ticket 和限流计数。Redis 数据丢失后可以重建，不是 release 或审计的唯一来源。
+- COS 可以保存上传的版本日志文件和可选 package。外部下载地址模式不要求把安装包上传 COS。
+- `release_packages.client_visible` 继续区分客户端 package 与后台留存包；只有 package 兼容链会消费这些字段。
 
 ## 发布校验
 
-服务端发布 release 前校验：
+服务端发布 release 前执行以下规则：
 
-- 版本日志非空。
-- `windows-installer/x64` 必须是客户端可见 `.exe`，`macos-universal2/universal2` 必须是客户端可见 `.dmg`；`windows-x64/x64` 只能是可选后台留存 `.zip`。客户端提交的 required / clientVisible 不改变这些规则。
-- package 文件名、COS object key、正数 size 和 64 位十六进制 SHA-256 合法，COS 对象必须存在且实际长度一致。
-- Windows 安装器签名必须是 `keyId:base64` 且解码为 64 字节；macOS 手动 DMG 路线不强制签名，只强制 SHA-256 和对象长度。若提供 Sparkle EdDSA 签名，必须是解码后 64 字节的 base64。
-- 缺少任一自动更新制品时禁止发布；Windows ZIP 可缺省，但不能替代安装器。
-- Admin Web 可导入构建脚本生成的 `*.update.json`，并在上传前核对平台、文件名、长度、SHA-256；Windows 安装器继续核对签名，macOS 签名可留空。
+- 版本日志正文或日志文件至少存在一种；使用日志文件时，COS 对象必须存在且非空。
+- 没有登记 package 时，GitHub、Gitee 或备用下载地址至少存在一个，并且必须是带 host 的 HTTP(S) URL。
+- 当前 `windows-x64`、`windows-installer` 和 `macos-universal2` requirement 都规范化为非必填；Admin 提交的 required / clientVisible 不改变服务端平台规范。
+- 只要登记 package，仍校验平台、架构、扩展名、object key、正数 size、64 位十六进制 SHA-256 和 COS 对象长度。
+- 登记 `windows-installer` 时 Ed25519 必须是 `keyId:base64` 且解码为 64 字节；`macos-universal2` Sparkle 签名可选，但填写后必须是 64 字节签名。
+- release 同时包含外部地址和 package 时仍可发布；客户端按外部地址优先策略绕过 package 下载。
 
-检查更新时按平台可见包过滤，避免“某个平台没有包的新版本”挡住旧平台可用版本。
+`/latest` 只有在 release 至少拥有当前平台 package 或任一外部下载地址时才返回更新。外部地址 release 的 package 字段使用空值占位，客户端不得据此创建 ticket。
 
-历史版本缺包时不要进入当前 `published` 自动更新通道。`v1.0.0`、`v1.1.0`、`v1.1.5` 等只有 DMG、缺少 Windows `.exe` 安装器的版本，可以作为 draft / 归档清单保存在 Admin 和 COS 中，但不能伪造 `windows-installer` 或用 `windows-x64` ZIP 替代安装器。若需要公开展示这些历史日志，应先新增归档状态或公开归档接口，避免破坏 `/latest` 的自动更新语义。
+## Admin 与部署边界
 
-## 部署边界
-
-- `FRAMELEAN_UPDATE_BASE_URL` 面向客户端构建配置，应指向公网根域名，例如 `https://framelean.zhoust.cn`。
-- `FRAMELEAN_PUBLIC_BASE_URL` 面向服务端 appcast，生产环境必须是公网 HTTPS 根地址；Compose 启动时要求显式配置。只有 localhost / loopback 本地开发允许 HTTP。
-- 宝塔单容器部署时不能只看 `/api/v1/health` 或 `docker compose config`。需要检查运行中 API 容器的实际环境变量；如果日志仍显示 `localhost:5432`，通常说明容器创建时没有带上 `DB_HOST=postgres` 等配置。
-- 宝塔形态下推荐 PostgreSQL / Redis 继续由 Compose 管理，API 容器加入同一 Docker network 后绑定到 `127.0.0.1`，由宝塔 / Nginx 反代到公网域名。
-- 不要在含生产数据的部署上随意执行 `docker compose down -v`，该命令可能删除 PostgreSQL 数据卷。
-- 生产部署先发布一个完整自动更新版本，再导入缺包历史版本。完整版本必须同时登记 `windows-installer` 和 `macos-universal2`，历史版本只登记已有 DMG / ZIP 和日志并保持 draft，直到后续实现归档状态。
+- Admin Web 默认展示版本、构建号、日志和 GitHub / Gitee / 备用地址编辑；COS package 上传、requirements 和 package 登记界面暂时隐藏，后端兼容 API 仍保留。
+- `FRAMELEAN_PUBLIC_BASE_URL` 是服务端公开根地址，生产环境必须使用 HTTPS；旧 `FRAMELEAN_UPDATE_BASE_URL` 只作为 fallback。
+- 宝塔单容器部署时需要检查运行中 API 容器的真实 DB、Redis 和公网地址环境变量，不能只依赖 `/api/v1/health` 或静态 Compose 输出。
+- PostgreSQL / Redis 可继续由 Compose 管理，API 绑定到受控网络或本机端口后由宝塔 / Nginx 反代。
+- 不要在含生产数据的部署上执行 `docker compose down -v`。
 
 ## 验证范围
 
-- `ReleaseService.findPublishedLatest` 按 channel、build、platform 和 `client_visible` 过滤。
-- `UpdateService.checkForUpdate` 记录检查审计并返回正确包信息。
-- 下载 ticket 创建写入 Redis，resolve 时签发 COS 预签名 URL 并写入下载事件。
-- Sparkle appcast XML 对有签名的 macOS 包输出 buildNumber、shortVersionString、release notes link、DMG enclosure、`sparkle:edSignature` 和 length；无签名 macOS 包不进入 appcast。
-- Sparkle 下载 redirect 写入下载事件并返回 COS 短期 URL。
-- IP 屏蔽能阻断检查更新和 ticket 创建。
-- 发布后清理 latest cache，避免客户端继续看到旧缓存。
+- 仅日志 + 外部地址的 draft 可以发布，三类外部地址逐项校验并由 `/latest` 返回。
+- 没有 package 且没有外部地址时发布失败；日志缺失或日志对象不可读时发布失败。
+- 客户端按 platform 检查外部地址 release 时得到更新；Redis latest cache 在发布或修改后保持一致。
+- package 兼容链继续验证平台、签名、COS 对象、ticket、resolve、下载审计和 Sparkle appcast。
+- RuoYi 登录态与 `X-Api-Key` 兼容鉴权、更新审计、下载审计、运行诊断和 IP 屏蔽正常工作。

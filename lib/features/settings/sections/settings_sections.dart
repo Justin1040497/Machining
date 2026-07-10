@@ -228,19 +228,19 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         ),
         const SizedBox(height: 18),
         _AboutTextBlock(
-          title: '项目简介',
+          title: '简介',
           body:
-              'FrameLean（帧轻）是一个本地桌面媒体压缩与格式处理工具。'
-              '基于 Flutter Desktop、FFmpeg / FFprobe、Riverpod、Drift 和 SQLite 构建。'
-              '它把常用的视频、图片、音频分析、压缩、格式输出配置和任务队列能力封装成图形界面，'
-              '让用户不用手写 FFmpeg 命令也能处理本地媒体文件。',
+              'FrameLean（帧轻）是一款轻量、易用的本地媒体处理工具，'
+              '它可以帮你快速压缩视频、图片和音频，支持常见格式转换与批量任务处理。'
+              '所有文件都在本机完成，不需要上传到云端，'
+              '无需了解命令和参数，多选或单选文件，可以对不同的媒体文件进行批量处理。',
         ),
         const SizedBox(height: 18),
         _AboutTextBlock(
           title: '作者想说的话',
           body:
-              '非常感谢你下载并使用我的应用，作者我通过比赛接触了 Flutter 和移动端开发近 2 年，'
-              '这是我的第一款独立开发的应用。在使用过程中如果遇到了什么问题或者什么功能让你感到不方便，'
+              '非常感谢你下载并使用我的应用，这是我的第一款独立开发的应用，'
+              '在使用过程中如果遇到了什么问题或者什么功能让你感到不方便，'
               '可以通过下面的方式联系作者，作者非常需要你提出的宝贵建议。',
         ),
         const SizedBox(height: 12),

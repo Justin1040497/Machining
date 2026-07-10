@@ -2,99 +2,102 @@
 
 ## 版本摘要
 
-v1.2.1 汇总 `v1.2.0..develop/v1.2.1` 的已提交历史和 release 前工作区收口。相对 v1.2.0，本版本不再把重点放在视频 / 图片 / 音频统一任务模型、输出模板、HDR / SDR、Universal 2 和基础设置 / 通知中心；这些已经是 v1.2.0 基线能力。v1.2.1 的重点是把自托管更新、任务夹批量工作流、受控并行、隐藏 partial 输出保护、通知策略 / 快捷键 / 关闭到后台和更完整的视频容器矩阵推进到 release 候选状态。
+v1.2.1 汇总根仓库 `v1.2.0..HEAD` 的桌面客户端变更，并关联独立 `server` 仓库当前 `main` 的更新服务与 Admin Web 事实。应用版本为 `1.2.1+5`，主要发布平台仍是 macOS Universal 2 和 Windows x64。
 
-本版本仍按 macOS Universal 2 和 Windows x64 作为主要发布平台。正式发布前，需要在真实 macOS、Windows、COS、Redis 和宝塔反代环境中完成发布产物和更新链路验收；macOS 默认采用手动 DMG 下载，不把 Apple Developer ID 证书作为检查更新 / 下载的前置条件。
+本版本集中完成更新体验、任务夹批量工作流、受控并行、隐藏 partial 输出保护、媒体容器 / 编码矩阵、通知策略、快捷键和桌面关闭行为。更新服务迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X；当前公开发布默认展示 GitHub、Gitee 或备用下载地址，客户端不直接下载安装包。原 package、COS ticket、Windows updater helper、macOS 私有 DMG 缓存和 Sparkle appcast 链继续保留，但不再是 Admin 默认发布门禁。
 
 ## 主要变更
 
-- 自托管更新进入客户端主流程：设置关于栏、工作台顶部 L1 状态胶囊、L2 轻量更新通知弹窗、通知中心、L3 完整版本日志页面、托管更新配置、Windows 断点下载 / Ed25519 验签 / updater helper、macOS 版本日志 + DMG 下载到应用私有目录、下载状态持久化和服务端 release / download ticket 接口完成对接；server v1.0.0 和 Admin Web 版本管理作为 v1.2.1 发布链路事实记录。
-- 任务夹批量工作流进入工作台：批量导入按媒体类型自动建夹，任务夹支持持久化、夹级配置、左侧夹内任务面板、夹内排序、拖入 / 移出、重命名、清空、批量开始 / 暂停 / 重试和聚合日志。
-- 执行队列改为受控并行：应用设置保存最大并行任务数，队列按工作台、任务夹、单任务三种执行语义调度，并通过资源守卫按设备状态降级实际执行位。
-- 输出链路增加隐藏 partial 保护：FFmpeg 写入同目录 `.framelean-*.partial*`，成功后发布到最终路径；应用启动会清理中断输出，运行中发现 partial 被删除或移动会尽快失败并给出明确提示。
-- 输出位置模型细化为系统设置、源文件旁和自定义目录；旧空目录语义迁移为源文件旁，新任务默认跟随系统设置，执行时读取最新应用设置。
-- 视频输出矩阵扩展到 MP4、MOV、MKV、WebM、AVI；编码覆盖 H.264、HEVC、VP9、AV1、ProRes、MPEG-4 Part 2 和 MJPEG，并在命令构建阶段按容器限制可用编码。
-- 图片和音频压缩增加结果验收：图片压缩无效时按策略 fallback 到更合适格式，音频压缩输出不小于源文件时不会再误判成功。
-- 通知系统增加投递策略：任务结果、更新和重要失败默认持久通知，普通交互和保存成功默认临时通知，用户可以按事件选择通知、临时通知或不通知。
-- 快捷键系统进入应用设置：支持添加文件 / 文件夹、开始 / 暂停、返回 / 关闭顶层界面、打开设置和打开通知中心，并允许用户重新绑定。
-- 桌面关闭行为可配置：默认关闭到后台；Windows 使用托盘恢复 / 退出，macOS 通过 Dock 重新打开隐藏窗口，显式退出时会确认运行任务并清理 partial 输出。
-- macOS 发布链从 v1.2.0 的 SwiftPM-only 调整回 CocoaPods 插件集成；`pubspec.yaml` 固定关闭 Flutter Swift Package Manager，CI 和 DMG 脚本同步校验 CocoaPods 工程引用。
+- 更新体验形成 L1 工作台状态胶囊、L2 轻量更新通知和 L3 完整版本日志三级入口；通知按版本去重，同版本 snooze 只抑制自动弹窗。
+- 客户端和通知载荷支持 GitHub、Gitee、备用下载地址。release 存在任一外部地址时只展示跳转按钮，不创建 download ticket，也不启动 package 下载或安装。
+- 独立 server 迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X，保留公开更新 API、PostgreSQL 发布 / 审计事实、Redis latest cache / ticket、可选 COS package 和 `X-Api-Key` 兼容鉴权。
+- Admin Web 默认登记 Markdown / 文本版本日志与三个外部下载地址，暂时隐藏 package 上传、requirements 和制品登记；无 package 时以"日志 + 至少一个合法外部地址"作为发布门禁。
+- 任务夹成为本地持久化实体：批量导入按媒体类型自动建夹，支持夹级配置、夹内面板、排序、拖入 / 移出、重命名、批量执行和聚合日志。
+- 执行队列支持工作台、任务夹和单任务三种作用域，并按用户并行上限和资源守卫分配执行位；手动任务可抢占并按 FIFO 恢复。
+- FFmpeg 输出先写入同目录隐藏 `.framelean-*.partial*`，通过 preflight 后执行，成功再发布到最终路径；异常退出、取消和 partial 被外部删除时能清理或尽快失败。
+- 视频输出扩展到 MP4、MOV、MKV、WebM、AVI，覆盖 H.264、HEVC、VP9、AV1、ProRes、MPEG-4 Part 2 和 MJPEG，并按容器限制编码组合。
+- 图片与音频压缩增加结果验收；透明视频自动走 MOV + ProRes 4444，保留 alpha 通道。
+- 设置页增加通知投递策略、快捷键重映射、最大并行任务数和关闭到后台行为；Windows 使用托盘恢复，macOS 通过 Dock 重新打开。
+- 架构统一为 package import + 分层 `library.dart` 白名单门面，并增加真实 `FrameLeanApp` 桌面集成烟测。
 
 ## 修复与稳定性
 
-- 修复用户在任务运行中删除正在写入的目标文件时，进度继续跑到结尾才失败的问题。
-- 修复透明视频被常规 H.264 / yuv420p 策略破坏 alpha 通道的问题；透明输出固定走 MOV + ProRes 4444。
-- 修复图片压缩在任意质量百分比下可能越压越大的问题。
-- 修复音频压缩输出不小于源文件仍被标记成功的问题。
-- 修复输出路径、目录权限或重名冲突在 FFmpeg 启动后才暴露的问题，改为启动前 preflight 并为任务追加可见策略标签。
-- 修复旧任务空输出目录语义不清的问题，避免“系统设置”和“源文件旁”在迁移后混淆。
-- 修复任务结果、设置保存和普通交互通知无法区分持久 / 临时投递的问题。
-- 修复快捷键录入时 Esc 误退出整个设置页、通知设置下拉框高度过矮和通知投递方式未垂直居中的交互问题。
-- 修复 macOS 发布链文档、CI 和脚本仍按 SwiftPM-only 口径描述的问题，当前 release 候选统一为 CocoaPods。
-- 修复 FFprobe 分析超时后底层子进程可能继续存活的问题；当前超时后会主动 kill 子进程并回收 stdout / stderr。
-- 修复 FFmpeg 进程挂死但不退出、不输出进度时任务永久卡在 `running` 的问题；当前会在长时间无 stdout / stderr 活动后熔断为无响应失败。
-- 修复暂停、系统睡眠或驱动抖动后硬件编码会话失效直接失败的问题；当前会对典型 VideoToolbox / NVENC / QSV / AMF external library 错误自动重试一次。
-- 修复任务失败通知直接暴露 FFmpeg exit code、硬件编码器 stderr 或内部转换失败细节的问题；当前通知展示友好原因和建议，技术细节保留在任务日志。
+- 修复运行中目标或 partial 文件被删除后任务继续到末尾才失败的问题。
+- 修复输出目录、权限和重名冲突在 FFmpeg 启动后才暴露的问题。
+- 修复图片压缩后体积反而增大、音频输出不小于源文件仍被标记成功的问题。
+- 修复透明视频被 H.264 / yuv420p 常规策略破坏 alpha 通道的问题。
+- 修复 FFprobe 超时后子进程继续存活，以及 FFmpeg 无输出卡死永久占用执行位的问题。
+- 修复 VideoToolbox、NVENC、QSV、AMF 会话失效后直接失败的问题，典型 external library 错误会自动重试一次。
+- 修复任务失败通知直接暴露 FFmpeg stderr / exit code 的问题，用户通知改为友好原因和建议，原始细节保留在日志。
+- 修复任务夹共同设置把第一个源文件名套用到全部任务输出名的问题。
+- 修复快捷键录入时 Esc 退出整个设置页、设置取消 / 切换未回滚、通知控件布局和角标语义问题。
+- 修复 macOS CocoaPods 发布链、Windows 安装器、更新元数据和文档口径不一致的问题。
+- 修复候选范围内 `FrameLean.iss` 和版本日志页面的多余空行，使候选 diff 可通过 whitespace 检查。
 
 ## 验证与兼容
 
-- release 前本地已通过 `rtk dart format lib test tool`、`rtk flutter analyze`、`rtk git diff --check`。
-- release 前本地已通过 `rtk bash -n scripts/release/build_dmg_macos.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_arch.sh`、`rtk bash -n scripts/build/build_ffmpeg_macos_universal.sh`。
-- release 前本地已通过设置、通知、输出 preflight、FFmpeg command builder、执行队列、工作台底栏和任务夹 / 任务配置 Widget 定向回归，共 205 项测试。
-- release 前本地已通过 `rtk flutter test` 全量测试，共 354 项。
-- 2026-06-25 交付收口已通过触达范围定向 `rtk flutter analyze ...` 和 `rtk git diff --check`；定向 `rtk flutter test test/app_update_provider_test.dart test/app_notification_manager_test.dart test/ffmpeg_process_observer_test.dart` 因本机 Xcode incomplete / `xcrun --show-sdk-path` 被系统策略拒绝加载 `libxcrun.dylib`，未能进入测试用例。
-- 数据库 schema version 从 v1.2.0 的 23 升级到 29，新增任务夹、任务策略标签、并行上限、文件夹扫描深度、输出体积、通知策略、快捷键和关闭行为字段。
-- 旧视频兼容列继续写入，`media_config_json` 仍是新媒体配置主字段；回滚到 v1.2.0 前应恢复数据库备份。
-- macOS 发布链当前依赖 CocoaPods `Podfile`、`Podfile.lock` 和 Runner workspace Pods 引用；DMG 脚本会校验 Universal FFmpeg、运行时和法律资料布局。
-- Windows 更新自动安装覆盖 `windows-installer` 当前用户安装器链路；macOS 更新默认通过 JSON latest / ticket 检查和下载 DMG，保存到应用私有目录后由用户手动安装；下载状态持久化到本地 JSON，重启后自动恢复。
+- 通过 `flutter test` 全量测试，共 376 项。
+- 通过更新、通知、设置、签名和下载器定向回归，共 49 项。
+- 通过 `flutter test integration_test/app_smoke_test.dart`，4 项桌面烟测覆盖应用外壳、设置、批次建夹、通知中心和更新入口。
+- 通过 `mvn -pl ruoyi-admin -am -DskipTests package`，RuoYi 27 个 reactor 模块构建成功。
+- 通过 `npm run build:prod`，plus-ui Admin Web 生产构建成功。
+- 通过 `docker compose config`，确认 PostgreSQL、Redis、API 和公网地址变量可解析。
+- 通过 macOS release / FFmpeg 脚本 `bash -n`，并通过两份 GitHub Actions YAML 解析。
+- 通过候选工作树 `git diff --check v1.2.0` 和独立 server 文档 diff 检查。
+- 打包新鲜度门禁确认：macOS / Windows Actions 调用 canonical release 脚本；macOS 注入 HTTPS `FRAMELEAN_UPDATE_BASE_URL`；Windows 注入更新地址、key id、公钥和临时私钥文件；脚本继续生成 `*.update.json`，缺少配置时 fail closed。
+- `flutter analyze` 当前未通过：Flutter SDK 对两个 `cacheExtent` 和一个 `axisAlignment` 用法报告 3 条弃用级 `info`。它们不是本轮文档改动引入，但在替换为新 API 前静态分析命令仍返回非零。
+- Drift schema version 从 v1.2.0 的 23 升级到 29；旧媒体兼容列继续写入，`media_config_json` 仍是新配置主字段。
 
 ## 发布产物
 
-正式发布应生成：
+面向用户的正式发布产物：
 
 ```text
 FrameLean-v1.2.1.dmg
-FrameLean-v1.2.1.dmg.update.json
-FrameLean-v1.2.1-windows-x64.zip
 FrameLean-v1.2.1-windows-x64-setup.exe
+FrameLean-v1.2.1-windows-x64.zip
 ```
 
-macOS DMG 仍应是 Universal 2 产物，包内主应用、Flutter 运行时、FFmpeg、FFprobe 和 qmc-decrypt 需要同时包含 x86_64 与 arm64 架构。macOS DMG 可直接登记到 Admin Web；当前手动 DMG 路线只要求文件、size 和 SHA-256，Sparkle `sign_update` 元数据可选。Windows x64 继续提供便携 ZIP 和当前用户安装器；其中 `windows-installer` 安装器是自托管更新客户端的自动更新目标包，ZIP 主要用于手动下载和留存。
+Windows ZIP 是可选便携包。canonical release 脚本还会生成保留 package 链使用的元数据：
 
-COS 上传、Redis ticket、宝塔反代、Admin Web 发布确认和客户端检查更新 / 下载 / 安装链路属于正式发布环境验收，不塞入普通 PR CI。Apple Developer ID 签名 / 公证会改善 macOS 安装信任体验，但不是当前手动 DMG 更新链路的阻塞项。
+```text
+FrameLean-v1.2.1.dmg.update.json
+FrameLean-v1.2.1-windows-x64-setup.exe.update.json
+```
+
+当前 Admin 默认发布只需把用户下载产物发布到 GitHub、Gitee 或备用站点，再登记对应下载页；`*.update.json`、COS package 和 ticket 链只有在重新启用直接 package 更新时才进入 Admin 验收。
 
 ## 已知风险
 
-- 发布构建必须注入 Windows 更新验签公钥；缺少真实公钥时开发构建可以检查更新，但不能视为 Windows 生产更新链路验收完成。
-- macOS 手动 DMG 不自动替换正在运行的应用。没有 Developer ID 签名 / 公证时，用户首次打开 DMG 或 App 仍可能遇到 Gatekeeper 提示，需要发布说明明确。
-- Sparkle CocoaPods 依赖需要在可访问 CocoaPods trunk CDN 的环境中执行 `pod install` 更新 `macos/Podfile.lock`。
-- 本机 Xcode 安装或系统策略异常会阻塞 Flutter native-assets hook，导致包含 `objective_c` 的 Flutter 测试在进入用例前失败；发布前应在 `flutter doctor` Xcode 项通过的环境复跑定向和全量测试。
-- COS 私有桶、预签名上传 / 下载、Redis ticket TTL、latest cache 清理和反代真实 IP 需要在部署环境做端到端验收。
-- Dolby Vision Profile 5 和无 HDR10 兼容层的 Dolby Vision 仍是高风险素材；当前不保留 Dolby Vision 动态元数据。
-- CRF、VP9、AV1、ProRes、AVI 兼容参数需要继续用真实素材校准，尤其是体积、速度和播放器兼容性的平衡。
-- `workbench_page.dart` 和 `task_configuration_dialog.dart` 体量偏大，release 前不做大拆分；后续应作为 UI / 状态边界治理 backlog 处理。
+- 正式 macOS Universal 2 DMG、Windows x64 安装器 / ZIP、签名、公证和包内运行时尚未在本轮本机生成；需要在对应 GitHub Actions runner 或真实平台完成。
+- `flutter analyze` 存在 3 条 Flutter 新 SDK 弃用信息并返回非零，发布前应决定修复或接受为已知风险。
+- 当前 Flutter 测试覆盖保留 package 路线，但没有专门断言"外部地址与 package 同时存在时必须绕过 ticket / 下载"的回归用例；当前结论来自源代码交叉检查。
+- server `ruoyi-framelean` 当前没有针对外部地址发布门禁的模块测试；本轮只完成 Maven 编译、Admin build、Compose 解析和源码核对。
+- 外部下载地址、版本日志上传、Redis latest cache、审计和反代真实 IP 尚未在生产 RuoYi / COS / Redis / 宝塔环境端到端验收。
+- package 自更新、COS ticket、Windows helper、macOS 私有 DMG 缓存和 Sparkle appcast 是保留能力，不属于当前默认发布阻塞项；重新启用前必须重新做真实包验签、下载和安装回归。
+- macOS 产物未签名 / 公证时仍可能触发 Gatekeeper 提示；当前外部下载 + 手动安装策略不消除该平台提示。
 
 ## 升级与回滚说明
 
-- 可从 v1.2.0 直接升级到 v1.2.1，启动时会按 Drift 迁移升级本地数据库。
-- 升级前建议备份应用支持目录中的 `framelean.sqlite`。
-- v1.2.1 新增的任务夹、通知策略、快捷键、关闭行为、输出位置模式和隐藏 partial 运行时状态无法由 v1.2.0 完整理解；生产回滚前应恢复升级前数据库备份。
-- 回滚后已发布到最终路径的媒体文件不会被数据库回滚自动删除；隐藏 partial 文件属于运行时保护文件，异常退出后应由新版启动清理，手动回滚前可检查输出目录附近是否残留 `.framelean-*.partial*`。
-- Windows 更新失败时优先保留下载包和安装器日志；更新助手在安装前等待 3 秒缓冲期并强杀残留 FrameLean 进程，第一次安装验证失败后重试一次，两次均失败时写入失败哨兵文件并回滚重启旧版本，应用下次启动时展示失败通知。
+- 可从 v1.2.0 直接升级到 v1.2.1；启动时由 Drift 把本地数据库迁移到 schema 29。
+- 升级前建议备份应用支持目录中的 `framelean.sqlite`。v1.2.0 无法完整理解任务夹、通知策略、快捷键、关闭行为、输出位置模式和 partial 运行时状态；回滚前应恢复升级前数据库备份。
+- 当前默认由用户从外部下载页手动安装新版；回滚时重新安装 v1.2.0，并恢复对应数据库备份。
+- 已发布的媒体输出不会随数据库回滚自动删除；回滚前应检查输出目录附近是否残留 `.framelean-*.partial*`。
+- server 独立部署，升级前应备份 PostgreSQL、Redis 配置和 COS 日志对象，并在生产数据副本验证 Flyway；客户端回滚不自动回滚服务端。
 
 ## 关联记录
 
-- Git 比较范围：`v1.2.0..develop/v1.2.1`
+- 根仓库 Git 比较范围：`v1.2.0..HEAD`
+- 独立 server 事实快照：`main`
 - `CHANGELOG.md`
 - `CONTEXT.md`
 - `docs/releases/v1.2.1/overview.md`
 - `docs/releases/v1.2.1/self-hosted-update-client.md`
 - `docs/releases/v1.2.1/self-hosted-update-server.md`
 - `docs/releases/v1.2.1/admin-web-release-management.md`
-- `docs/decisions/260616-self-hosted-update-client-server-flow.md`
-- `docs/decisions/260619-shared-reorderable-list.md`
+- `docs/decisions/260710-external-download-default.md`
 - `docs/develop/architecture.md`
 - `docs/develop/data-model.md`
 - `docs/develop/technology-stack.md`
 - `docs/develop/test-plan.md`
-- `docs/reference/ffmpeg-license-distribution.md`
+- `scripts/README.md`

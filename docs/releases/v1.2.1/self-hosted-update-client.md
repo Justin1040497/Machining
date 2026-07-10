@@ -1,46 +1,49 @@
-# v1.2.1 自托管更新客户端
+# v1.2.1 更新客户端
 
 ## 版本事实
 
-FrameLean 在 v1.2.1 开发期把自托管更新客户端接入主体验。Windows 和 macOS 更新状态由 `appUpdateProvider` 统一管理并在启动后静默检查。设置页“关于”栏提供手动检查入口，手动检查发现新版本后打开轻量更新通知弹窗；通知中心按版本去重展示更新通知，工作台顶部在存在更新或下载任务时保留持续状态胶囊。
+FrameLean 在 v1.2.1 把更新检查接入主体验。Windows 和 macOS 统一由 `appUpdateProvider` 管理状态并在启动后静默检查；设置页“关于”栏提供手动入口，工作台顶部提供 L1 状态胶囊，L2 更新通知展示摘要和动作，通知中心按版本去重，L3 页面展示完整版本日志。
 
-客户端构建时通过 `FRAMELEAN_UPDATE_BASE_URL` 注入默认服务地址，也可以由托管配置覆盖。未配置该值且没有托管配置时，默认客户端不会看到可下载更新。
+当前公开发布以 GitHub、Gitee 或备用下载地址为默认。`AppReleaseInfo` 同时支持外部地址和可选 package 元数据；只要 release 返回任一外部地址，客户端就只展示跳转按钮，不创建 download ticket，也不直接下载或安装 EXE、DMG、ZIP。
 
-托管更新配置由只读配置快照承载，应用启动时读取一次，运行中的更新流程使用内存快照。macOS 优先读取 MDM managed preferences 和 `/Library/Application Support/FrameLean` 下的系统级 JSON，Windows 优先读取 `HKLM\Software\Policies\FrameLean` 和 `%ProgramData%\FrameLean` 下的系统级 JSON。普通用户可写的托管 JSON 会被视为不可信并忽略；隐藏文件只用于减少误触，不作为安全边界。
+客户端构建时通过 `FRAMELEAN_UPDATE_BASE_URL` 注入默认服务地址，也可以由托管配置覆盖。未配置该值且没有托管配置时，默认客户端不会看到服务端更新。
 
-## 交互边界
+托管更新配置由只读快照承载，应用启动时读取一次。macOS 优先读取 MDM managed preferences 和 `/Library/Application Support/FrameLean` 下的系统级 JSON，Windows 优先读取 `HKLM\Software\Policies\FrameLean` 和 `%ProgramData%\FrameLean` 下的系统级 JSON。普通用户可写配置视为不可信并忽略；隐藏文件只用于减少误触，不作为安全边界。
 
-- 设置页“关于”栏主按钮根据状态显示 `检查更新`、`检查中`、下载百分比、`继续 xx%` 或错误后的重试入口；Windows 可显示 `现在更新` / `重启更新`，macOS 手动 DMG 路线显示 `下载 DMG` / `打开 DMG`。
-- 检查到新版本后，通知中心使用 `update:{platform}:{version}:{buildNumber}` 作为去重键，同一版本跨重启只保留一条更新通知。
-- 工作台顶部入口不直接开始下载，而是以 L1 胶囊展示 `新版本 vX.X.X`、`下载中 xx%`、`已暂停 xx%`、`已就绪` 或 `更新失败`；点击打开 L2 轻量更新通知弹窗。
-- L2 更新通知弹窗展示版本、摘要、平台和安装包大小，按状态提供立即更新、暂停、继续、后台下载 / 隐藏、重启更新或打开 DMG 等动作；非 mandatory 更新可点「下次再说」记录当前版本 snooze，同版本后续自动检查只显示 L1，不再自动弹窗，服务端发布新版本后 snooze 自动失效。
-- 完整版本日志页作为 L3 入口保留，只从 L2「查看完整日志」或历史版本通知进入；页面读取服务端发布日志列表，当服务端列表为空但当前检查结果带有日志时，回退展示当前更新的日志。
-- Windows 下载使用短期 ticket 解析出的 COS 预签名 URL。只有正确的 `206` / `Content-Range` 才会追加 partial；服务端忽略 Range 时覆盖写入，长度、SHA-256 或 Ed25519 校验失败时删除损坏包。
-- Windows 自动安装由随包 `FrameLeanUpdaterHelper.exe` 执行；重启前统一暂停任务、终止 FFmpeg 并清理 partial。Helper 确认主进程退出后等待 3 秒缓冲期、强杀残留 `FrameLean.exe` 进程，然后静默安装并解析 Inno Setup 安装日志。安装后核对注册表和 EXE build number，验证失败时重试一次（再次清理后重装）。两次均失败时写入失败哨兵文件并重启旧版本；下次启动时应用检测哨兵并展示失败通知。安装成功时清理旧失败哨兵。
-- macOS 默认不触发 Sparkle MethodChannel。检查更新使用 JSON latest，下载使用 ticket / COS 预签名 URL，DMG 保存到应用私有目录，点击 `打开 DMG` 时定位该文件，由用户手动挂载和安装。下载状态持久化到本地 JSON，重启后如 DMG 仍在且 SHA-256 校验通过则自动恢复已下载状态，不需要重新下载。
+## 默认外部下载流程
 
-## 平台边界
+- 自动或手动检查发现新版本后，L2 更新通知展示版本、摘要、平台和完整日志入口。
+- release 提供 GitHub、Gitee 或备用地址时，弹窗按实际存在的地址展示“前往 GitHub”“前往 Gitee”或“备用地址”。
+- 点击外部地址通过平台外链服务调用系统浏览器；打开失败时写入可读通知。
+- 非 mandatory 更新可点“下次再说”记录当前版本 snooze。同版本后续自动检查只显示 L1，不再自动弹窗；新版本发布后 snooze 自动失效。
+- 完整版本日志页从 L2 或历史更新通知进入；服务端日志列表为空时，回退展示当前检查结果携带的日志。
 
-- `windows-installer` 是 Windows 自动安装平台。更新载荷应为当前用户权限可静默覆盖安装的 Inno Setup 安装器；`windows-x64` ZIP 只作为便携下载 / 后台留存包。
-- `macos-universal2` 通过 JSON latest / ticket 手动下载 DMG。Sparkle appcast 仅作为未来可选路线保留，默认构建不启用。
-- Linux / Web 工程目录存在，但不属于当前更新服务支持平台。
+## 保留 package 路线
 
-## 安全与完整性
+没有外部下载地址且 release 提供完整 package 元数据时，客户端仍保留原自更新能力：
 
-- Windows 下载包必须通过 SHA-256 和 Ed25519 校验后才进入待安装状态；受信任公钥由发布构建内置，托管配置只能选择受信任 key id。
-- macOS 手动 DMG 路线下载后校验服务端元数据中的 SHA-256；服务端 HTTPS、私有 COS 和短期 ticket 是下载可信边界。没有 Apple Developer ID 证书时不会自动替换应用。
-- 更新服务地址不应写成带 `/api` 后缀的路径；客户端会自动拼接 `/api/v1/...`。
-- Windows 正式发布脚本必须注入 HTTPS 更新地址、可信 key id、公钥和本地私钥 seed 文件，并生成 `*.update.json`；macOS 手动 DMG 只要求产物、size 和 SHA-256 登记到 Admin Web。
+- Windows 下载使用短期 ticket 和 COS 预签名 URL，严格校验 `206` / `Content-Range`、size、SHA-256 和 Ed25519；损坏包会被删除。
+- Windows 安装由随包 `FrameLeanUpdaterHelper.exe` 执行。重启前暂停任务、终止 FFmpeg 并清理 partial；helper 等待主进程退出、静默覆盖安装、核对版本，失败时重试并写入失败哨兵。
+- macOS package 路线使用 JSON latest / ticket 把 DMG 保存到应用支持目录 `updates/<version>/macos-universal2/`，校验后打开所在位置，由用户手动挂载和安装。
+- 下载状态持久化到本地 JSON；重启恢复路径会重新检查文件与 SHA-256。Sparkle MethodChannel 只有构建显式设置 `FRAMELEAN_USE_SPARKLE_UPDATES=true` 时启用。
+- release 同时提供外部地址和 package 时，外部地址优先，package 下载链被主动绕过。
+
+## 安全与发布边界
+
+- 外部下载入口只接受服务端保存的 HTTP(S) 地址；最终下载页和安装包可信度由对应外部平台、发布说明和用户确认共同承担。
+- 更新服务地址不应带 `/api` 后缀，客户端会自动拼接 `/api/v1/...`。
+- 保留 Windows package 路线必须通过 SHA-256 和 Ed25519 验签；受信任公钥由发布构建内置，托管配置只能选择受信任 key id。
+- 保留 macOS 手动 DMG 路线至少校验服务端元数据中的 SHA-256；没有 Apple Developer ID 签名 / 公证时不会自动替换应用。
+- canonical release 脚本继续要求 HTTPS 更新地址、Windows key id、公钥和私钥文件，并生成 `*.update.json`。这是保留 package 路线的 fail-closed 约束，不是当前 Admin 外部地址发布的 package 必填要求。
 
 ## 卸载边界
 
-- 应用内不提供卸载入口；macOS 通过拖拽 `.app` 到废纸篓手动删除，Windows 通过"已安装的应用"标准卸载流程处理。
+- 应用内不提供卸载入口；macOS 通过拖拽 `.app` 到废纸篓手动删除，Windows 通过“已安装的应用”标准卸载流程处理。
 - MDM profile 由外部设备管理维护；用户导出的媒体文件不在任何自动清理范围内。
 
 ## 验证范围
 
-- `appUpdateProvider` 状态机：Windows 自动检查、发现更新、ticket 下载、下载完成和 helper 启动；macOS 自动检查、发现更新、ticket 下载、保存到应用私有目录、打开 DMG 所在位置和重启后恢复已下载状态。
-- 设置页、通知中心、工作台顶部 L1 胶囊、L2 更新通知弹窗和 L3 版本日志页的状态展示。
-- 断点续传、下载暂停、SHA-256 / Ed25519 校验失败和 helper 启动失败提示。
-- Windows 干净环境覆盖安装、退出码、安装后版本确认和重启应用。
-- macOS 手动 DMG 下载、应用私有目录写入、版本日志页操作区、打开 DMG 所在位置和重启后恢复已下载状态。Sparkle appcast 只验证”有签名才输出 item”的兼容行为。
+- 外部地址 release：自动 / 手动检查、L1 / L2 / L3、通知去重、snooze、GitHub / Gitee / 备用按钮和外链打开失败提示。
+- 外部地址优先：release 同时带外部地址和 package 时，不查找本地 package、不创建 ticket、不启动下载。
+- package 兼容：Windows ticket 下载、断点续传、SHA-256 / Ed25519、helper 启动；macOS 私有缓存、手动打开 DMG 和重启恢复。
+- 托管配置来源、HTTPS 服务地址、受信任 key id 和 Sparkle 显式启用边界。

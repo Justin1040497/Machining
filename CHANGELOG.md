@@ -29,6 +29,18 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-10｜v1.2.1｜No Release
+
+收口 v1.2.1 当前更新发布策略：公开 release 默认展示外部下载入口，原 package 自更新链保留但不再作为 Admin 默认发布路径。
+
+### Changed
+
+- 客户端支持 GitHub、Gitee 和备用下载地址；release 存在任一外部地址时只展示日志与跳转按钮，不创建 download ticket，也不直接下载安装包。
+- RuoYi 更新服务允许“版本日志 + 至少一个外部下载地址”发布；三类 package requirement 调整为非必填，登记 package 时仍保留平台、size、SHA-256、签名和 COS 对象校验。
+- Admin Web 默认展示下载地址登记，暂时隐藏 COS package 上传、制品要求和制品登记界面；Markdown / 文本版本日志仍通过 COS 上传。
+- canonical macOS / Windows release 脚本和 GitHub Actions 继续按保留 package 链 fail closed，要求更新配置完整并生成 `*.update.json`。
+- 新增外部下载优先决策，并同步项目上下文、架构、数据模型、测试计划、版本事实和 server README。
+
 ## 2026-07-04｜v1.2.1｜No Release
 
 校准 RuoYi-Vue-Plus 后台和自托管更新部署文档，明确旧 Admin Web 已废弃以及历史缺包版本的归档策略。

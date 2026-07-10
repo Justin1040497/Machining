@@ -2,53 +2,59 @@
 
 ## 版本事实
 
-FrameLean server 当前后台已迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X。`ruoyi-admin` 是后端入口模块，`ruoyi-modules/ruoyi-framelean` 承载 FrameLean 自托管更新业务，`server/admin-web` 承载 plus-ui 后台页面。RuoYi 负责后台登录、菜单、角色、权限和操作日志，FrameLean 模块继续提供公开更新 API、发布版本、更新审计、运行诊断、COS 私有桶预签名分发、Redis 短期票据 / latest cache / 限流计数，以及 PostgreSQL 发布和审计业务表。
+FrameLean server 后台已迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X。`ruoyi-admin` 是后端入口，`ruoyi-modules/ruoyi-framelean` 承载更新业务，`server/admin-web` 承载管理页面。RuoYi 负责账号密码登录、菜单、角色、权限和操作日志；`/api/v1/admin/**` 同时接受 RuoYi / Sa-Token 登录态和脚本用 `X-Api-Key`。
 
-旧版 React + Vite + Ant Design Admin、唯一管理员主密码、challenge 签名登录和 `admin_auth_config` 认证流已经废弃；`admin_auth_config` 仅作为历史表保留。当前 `/api/v1/admin/**` 兼容两种访问方式：浏览器后台使用 RuoYi / Sa-Token 登录态，脚本和自动化可继续使用 `X-Api-Key`，其中 `FRAMELEAN_API_KEY` 只用于兼容 API Key，不再用于首次初始化管理员。
+旧 React Admin、唯一管理员主密码、challenge 签名登录和 `admin_auth_config` 认证流已经废弃；`admin_auth_config` 仅作为历史表保留。
 
-## 版本管理边界
+## 当前发布工作流
 
-- 管理端提供发布版本、更新审计和运行诊断三个 FrameLean 页面。发布版本页支持创建 draft release、编辑构建号和版本日志、生成 COS 上传 URL、登记平台制品元数据、发布和删除登记版本。
-- 大文件上传通过服务端 COS 预签名 URL 或分片上传接口完成，前端只拿预签名 URL，不持有 COS 密钥。
-- 草稿详情页展示基础信息、发布要求、版本日志、已登记 package、客户端可见状态和累计下载信息。
-- 发布动作只支持将草稿切换为 `published`；已发布版本的日志、构建号和制品不在页面内编辑。
-- 删除登记版本会先删除该版本日志和所有登记 package 对应的 COS 对象，再删除下载事件、package、requirements 和 release 记录；如果 COS 删除失败，数据库记录保留，便于重试。
+- 发布版本页支持创建 draft、编辑构建号、把 Markdown / 文本版本日志上传到 COS、填写 GitHub / Gitee / 备用下载地址、发布和删除版本。
+- 当前默认交付方式是外部下载地址。创建或编辑 draft 时可填写一个或多个 HTTP(S) 下载页；客户端按实际存在的地址展示按钮。
+- Admin 明确提示“客户端只展示更新日志和下载入口，不再直接下载 EXE / DMG / ZIP”。
+- COS 上传 URL、分片上传、制品要求和 package 登记 UI 由 `enableArtifactUpload = false` 暂时隐藏；后端 API 和数据结构继续保留，便于未来重新启用。
+- 发布动作只允许 draft 切换为 `published`；已发布版本不可继续修改构建号、日志和下载地址。
+- 删除版本时，仍会按登记数据清理日志或 package COS 对象及其依赖记录；COS 删除失败时数据库记录保留，便于重试。
 
-## 制品要求和历史版本缺包策略
+## 发布门禁
 
-当前自动更新发布校验以客户端可安全消费为边界：
+当前默认发布校验为：
 
-| 平台 | 架构 | 是否必填 | 客户端可见 | 文件 | 签名 |
+- 版本日志正文或已上传日志文件至少存在一种。
+- 没有 package 时，GitHub、Gitee 或备用下载地址至少存在一个。
+- 下载地址必须是具有 host 的 HTTP(S) URL。
+- package requirement 当前全部为非必填，历史缺包版本不需要伪造 Windows 安装器或 macOS DMG。
+
+保留 package 路线的校验仍然有效：
+
+| 平台 | 架构 | 当前是否必填 | 客户端可见 | 文件 | 签名 |
 | --- | --- | --- | --- | --- | --- |
-| `windows-installer` | `x64` | 是 | 是 | `.exe` Inno Setup 当前用户安装器 | 必须为 `keyId:base64` Ed25519 签名 |
-| `macos-universal2` | `universal2` | 是 | 是 | `.dmg` Universal 2 | 手动 DMG 路线不强制；Sparkle appcast 需要 64 字节 EdDSA 签名 |
+| `windows-installer` | `x64` | 否 | 是 | `.exe` Inno Setup 安装器 | 登记后必须为 `keyId:base64` Ed25519 签名 |
+| `macos-universal2` | `universal2` | 否 | 是 | `.dmg` Universal 2 | Sparkle 签名可选；填写后必须合法 |
 | `windows-x64` | `x64` | 否 | 否 | `.zip` 便携包 | 不强制 |
 
-历史版本不能为了通过校验伪造缺失包。像 `v1.0.0`、`v1.1.0`、`v1.1.5` 等只有 DMG、缺失 Windows `.exe` 安装器的版本，应按归档版本处理：可以把 DMG 和版本日志上传到 COS 并在 Admin 草稿中登记，保留为内部可查询的历史制品清单，但不要切换为 `published`，否则当前发布校验会阻止发布。`published` 状态只保留给同时满足 `windows-installer` 和 `macos-universal2` 自动更新要求的版本。
-
-如果后续需要让旧版本出现在公开版本日志页但不参与 `/latest` 自动更新，应先扩展数据模型和服务端状态，例如新增 `archived` / `notes_only` 状态或单独的公开归档接口；不要把缺包历史版本塞进当前 `published` 通道。
+release 同时存在外部地址和 package 时，客户端仍优先外部地址。要重新启用直接 package 更新，应先打开 Admin 制品 UI，再执行 COS、ticket、签名和真实客户端端到端验收。
 
 ## 审计和风控边界
 
-- 下载统计页展示总下载、检查更新、下载 IP、检查 IP 和当前封禁 IP。
-- 检查更新和下载 ticket 创建都读取反代后的真实 IP，并写入审计记录。
-- IP 屏蔽规则用于阻断检查更新和下载 ticket 创建；已签发但尚未过期的 COS 预签名 URL 仍受其自身过期时间约束。
-- `/api/v1/admin/*` 同时支持脚本用 `X-Api-Key` 和 RuoYi 登录态；鉴权失败返回兼容 JSON 错误，便于脚本判断。
+- 更新审计页展示检查更新、下载事件和 IP 屏蔽信息。
+- 检查更新和 package ticket 创建读取反代后的真实 IP，并写入审计记录。
+- IP 屏蔽可阻断检查更新和 ticket 创建；已签发 COS URL 仍只受自身过期时间约束。
+- 运行诊断只展示 COS、Redis、公网 base URL、ticket TTL 和 API key 是否配置，不暴露密钥原文。
 
-## 部署方案
+## 部署与发布步骤
 
-推荐按“当前可自动更新版本”和“历史归档版本”分两条线部署。
-
-1. 准备服务端运行环境：PostgreSQL、Redis、COS 私有桶、`SA_TOKEN_JWT_SECRET`、`FRAMELEAN_PUBLIC_BASE_URL`、`FRAMELEAN_API_KEY` 和 COS 凭据。生产环境 `FRAMELEAN_PUBLIC_BASE_URL` 必须是公网 HTTPS 根地址；旧 `FRAMELEAN_UPDATE_BASE_URL` 只作为兼容 fallback。
-2. 部署 RuoYi 后台：构建 `ruoyi-admin` 和 `server/admin-web`，让 API 容器加入 PostgreSQL / Redis 所在网络，由宝塔或 Nginx 反代公网域名到 API。部署后先看运行中容器实际 env，不能只看 `/api/v1/health`。
-3. 发布当前自动更新版本：用 Windows / macOS release 脚本生成安装器、DMG 和 `.update.json`；在 Admin 中创建草稿，上传 `windows-installer` 和 `macos-universal2` 到 COS，登记 `size`、`sha256`、Windows Ed25519 签名和可选 macOS Sparkle 签名，确认校验通过后发布。
-4. 导入历史版本：为 `v1.0.0`、`v1.1.0`、`v1.1.5` 等缺 Windows `.exe` 的版本单独建立草稿或外部清单，只登记已有 DMG 和日志，保持 `draft`，不发布到客户端自动更新通道。若只有 Windows ZIP，也同样作为后台留存包，不替代 `windows-installer`。
-5. 验证公开链路：检查 `/api/v1/releases/latest?platform=windows-installer`、`/api/v1/releases/latest?platform=macos-universal2`、`/api/v1/releases/notes`、下载 ticket 创建和 resolve、COS 预签名下载、更新审计、下载审计和 IP 屏蔽。
+1. 配置 PostgreSQL、Redis、COS、`SA_TOKEN_JWT_SECRET`、`FRAMELEAN_PUBLIC_BASE_URL`、`FRAMELEAN_API_KEY` 和允许的 CORS 域名。当前 Admin 通过 COS 保存版本日志文件，即使不登记 package 也需要可用的日志上传配置。
+2. 构建 `ruoyi-admin` 和 `server/admin-web`，由宝塔或 Nginx 把公网 HTTPS 根域名反代到 API。
+3. 用 canonical release 脚本生成 DMG、Windows 安装器和可选 ZIP，把用户下载产物发布到 GitHub、Gitee 或备用站点。
+4. 在 Admin 创建 `v1.2.1` draft，保存构建号和版本日志，登记至少一个外部下载页并发布。
+5. 验证 `/api/v1/releases/latest`、版本日志列表、外部下载按钮、更新审计和反代真实 IP。
+6. 只有明确启用 package 兼容链时，才追加 COS package 登记、`*.update.json` 导入、ticket 和安装 helper 验收。
 
 ## 验证范围
 
 - RuoYi 登录态和 `X-Api-Key` 兼容鉴权。
-- 创建草稿、生成 COS 上传 URL、注册 package、保存构建号和日志、发布和删除登记版本。
-- 缺失 `windows-installer` 的历史版本保持 draft / 归档，不进入 `/latest` 自动更新结果。
-- 版本删除时的 COS object key 安全校验、对象去重删除和数据库依赖行删除顺序。
-- 下载统计、检查更新审计、下载审计和 IP 屏蔽分页查询。
+- 创建 draft、上传版本日志、保存构建号与三个外部下载地址、发布和删除版本。
+- 日志或下载地址缺失时发布失败，合法外部地址 release 可进入 `/latest`。
+- 客户端只展示实际存在的外部按钮，不发起 package ticket。
+- 隐藏 package UI 不影响后端兼容 API；重新启用前必须单独验证制品、签名、COS 和删除顺序。
+- 更新检查审计、下载审计、运行诊断和 IP 屏蔽分页查询。
