@@ -8,6 +8,7 @@ import 'package:framelean/application/services/execution/ffmpeg_process_controll
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/execution/execution_resource_guard.dart';
+import 'package:framelean/application/services/execution/output_failure.dart';
 import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
@@ -1504,18 +1505,115 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    // 权限问题。
-    if (lower.contains('permission denied')) {
-      return (reason: '没有输出位置的写入权限', suggestion: '请检查输出目录权限，或选择其他保存位置后重试。');
+    // 权限问题 — 区分 FFmpeg 写入失败和目录本身不可写。
+    // FFmpeg 进程被安全软件拦截时也会报 Permission denied，
+    // 但实际原因可能是 Windows Defender 受控文件夹访问阻止了 ffmpeg.exe。
+    if (isPermissionDeniedText(rawError)) {
+      if (isSecuritySoftwareBlockText(rawError)) {
+        return (
+          reason: 'FFmpeg 无法写入所选目录',
+          suggestion: '该目录可能被 Windows 安全中心的“受控文件夹访问”或其他安全软件保护，'
+              '也可能被其他程序占用。请检查 Windows 安全中心的保护历史，'
+              '并确认 FrameLean.exe 和 ffmpeg.exe 未被阻止。',
+        );
+      }
+      return (
+        reason: '没有输出位置的写入权限',
+        suggestion: '请检查输出目录权限，或选择其他保存位置后重试。',
+      );
+    }
+
+    // Windows 拒绝访问（Access is denied）。
+    if (lower.contains('access is denied') ||
+        lower.contains('operation not permitted')) {
+      return (
+        reason: '访问被拒绝',
+        suggestion: '请检查输出目录权限，或选择其他保存位置后重试。',
+      );
+    }
+
+    // 文件被占用。
+    if (lower.contains('being used by another process') ||
+        lower.contains('sharing violation') ||
+        lower.contains('file in use') ||
+        lower.contains('access to the path is denied') ||
+        rawError.contains('文件正在被其他进程使用') ||
+        rawError.contains('被占用')) {
+      return (
+        reason: '输出文件正在被其他程序使用',
+        suggestion: '请关闭播放器、资源管理器预览或其他占用该文件的程序后重试。',
+      );
+    }
+
+    // 文件名或路径无效。
+    if (lower.contains('no such file or directory') &&
+        (rawError.contains('输出') ||
+         lower.contains('output') ||
+         lower.contains('destination'))) {
+      return (
+        reason: '输出路径无效',
+        suggestion: '路径中可能包含 Windows 不支持的字符或名称，请更换输出位置后重试。',
+      );
+    }
+
+    // FFmpeg 无法打开输出文件。
+    if (lower.contains('could not open file') ||
+        lower.contains('failed to open') ||
+        lower.contains('could not write')) {
+      return (
+        reason: 'FFmpeg 无法写入输出文件',
+        suggestion: '请检查目录权限、磁盘空间、Windows 安全中心保护历史以及安全软件拦截记录。',
+      );
+    }
+
+    // FFmpeg 可执行文件找不到。
+    if (lower.contains('no such file or directory') &&
+        (lower.contains('ffmpeg') || lower.contains('executable'))) {
+      return (
+        reason: 'FFmpeg 可执行文件未找到',
+        suggestion: '请在设置中检查 FFmpeg 路径配置，或使用内置 FFmpeg。',
+      );
     }
 
     // 磁盘空间不足。
     if (lower.contains('no space left on device') ||
         lower.contains('disk full') ||
-        lower.contains('磁盘空间不足')) {
+        lower.contains('磁盘空间不足') ||
+        lower.contains('not enough space')) {
       return (
         reason: '磁盘空间不足，无法写入输出文件',
         suggestion: '请清理磁盘空间（至少保留与源文件大小相当的可用空间）后重试。',
+      );
+    }
+
+    // 输出文件发布失败（重命名失败）。
+    if (rawError.contains('输出文件发布失败') ||
+        lower.contains('output file publish failed') ||
+        lower.contains('failed to publish output') ||
+        lower.contains('failed to rename')) {
+      return (
+        reason: '媒体处理已完成，但临时文件无法重命名为最终文件',
+        suggestion: '请检查目标文件是否被其他程序占用，或尝试更换输出目录后重试。',
+      );
+    }
+
+    // 输出目录不可写（预检阶段失败）。
+    if (rawError.contains('输出目录不可写') ||
+        lower.contains('output directory not writable') ||
+        lower.contains('directory not writable')) {
+      return (
+        reason: '输出目录不可写',
+        suggestion: '请确认输出目录存在且当前用户具有写入权限，或更换输出位置后重试。',
+      );
+    }
+
+    // 无法创建输出目录。
+    if ((rawError.contains('无法创建') && rawError.contains('目录')) ||
+        (lower.contains('failed to create') &&
+            (lower.contains('directory') || lower.contains('folder')))) {
+      return (
+        reason: '无法创建输出目录',
+        suggestion: '请确认路径存在且当前用户具有写入权限。',
       );
     }
 

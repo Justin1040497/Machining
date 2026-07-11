@@ -117,6 +117,10 @@ void main() {
       await harness.runner.startSingleTask(task.id);
       final workingPath = harness.processStarter.starts.single.args.last;
       expect(workingPath, isNot(finalPath));
+      // 工作文件不再由预检预创建，由 FFmpeg 自行创建。
+      // 测试需要先创建工作文件，模拟 FFmpeg 写入后文件被删除的场景。
+      await File(workingPath).create(recursive: true);
+      await File(workingPath).writeAsString('ffmpeg output content');
       await File(workingPath).delete();
       await Future<void>.delayed(const Duration(milliseconds: 650));
 

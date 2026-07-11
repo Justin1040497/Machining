@@ -230,6 +230,47 @@
 
 - 版本事实：`docs/releases/v1.1.0/ffmpeg-command-and-process-control.md`
 
+## Windows attrib.exe 隐藏属性设置应是非致命操作
+
+经验：
+
+- `attrib.exe` 在受限环境中可能因权限、组策略或安全软件拦截而失败，但隐藏 partial 输出只是隐私保护手段，不应阻断整个任务。
+- 把 `attrib.exe` 的失败当成致命错误会导致所有 Windows 输出任务被统一误判为"权限不足"。
+- 正确做法：隐藏属性设置改为 best-effort，失败时只输出 stderr 警告，让任务正常继续。
+- 同理，任何非关键辅助步骤都不应成为任务的单一失败点。
+
+关联：
+
+- `lib/infrastructure/services/execution/local_output_preflight_service.dart`
+- `lib/application/services/execution/output_failure.dart`
+
+## 不要预创建 FFmpeg 输出工作文件
+
+经验：
+
+- 在 FFmpeg 启动前预先 `File.create(recursive: true)` 创建输出工作文件看似无害，但会提前占用文件路径。
+- 如果 FFmpeg 进程启动延迟或目录权限在创建和启动之间变化，预创建的文件会成为干扰因素。
+- `ffmpeg -y` 本身会覆盖已存在文件，应用层不需要替 FFmpeg 创建输出。
+- 正确做法：预检阶段只验证目录可写（探针文件创建/重命名/删除后立即清理），把实际工作文件创建交给 FFmpeg。
+
+关联：
+
+- `lib/infrastructure/services/execution/local_output_preflight_service.dart`
+
+## 错误文本匹配要覆盖中英文双语
+
+经验：
+
+- FFmpeg 的 stderr 输出绝大多数是英文，不能只按中文关键词判断错误类型。
+- 在 Windows 中文系统上，部分系统级错误信息可能以本地化语言出现，但 FFmpeg 子进程本身的错误仍是英文。
+- 涉及操作系统错误码（如 Windows error 5/32/112）时，应优先用错误码映射，文本匹配只作为补充。
+- 所有面向用户的错误分类都应同时检查中英文等价表达，例如 `permission denied` + `拒绝访问`、`sharing violation` + `文件被占用`。
+
+关联：
+
+- `lib/application/services/execution/ffmpeg_task_queue_runner.dart`
+- `lib/application/services/execution/output_failure.dart`
+
 ## Reorderable 外部状态回调不要放在内部 setState 中
 
 经验：

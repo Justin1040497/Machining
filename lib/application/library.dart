@@ -37,6 +37,7 @@ export 'services/execution/ffmpeg_process_controller.dart';
 export 'services/execution/ffmpeg_process_observer.dart';
 export 'services/execution/ffmpeg_process_starter.dart';
 export 'services/execution/ffmpeg_task_queue_runner.dart';
+export 'services/execution/output_failure.dart';
 export 'services/execution/output_preflight_service.dart';
 export 'services/execution/preview_frame_generator.dart';
 export 'services/execution/video_thumbnail_generator.dart';

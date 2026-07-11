@@ -29,6 +29,39 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-11｜v1.2.1｜No Release
+
+修复 Windows 输出权限误判与错误分类：输出预检不再因 attrib.exe 失败阻断任务，错误提示从统一"无权限"改为按阶段和原因分类，并建立输出失败诊断模型和重试机制。
+
+### Added
+
+- 新增 `OutputFailure` 错误诊断模型，包含 `OutputFailureStage`（12 个阶段）和 `OutputErrorCode`（15 个错误码），区分目录创建、探针测试、FFmpeg 启动、文件发布等不同失败环节。
+- 新增 `mapWindowsOsErrorCode()`、`isPermissionDeniedText()` 和 `isSecuritySoftwareBlockText()` 辅助函数，支持中英文双语错误关键词识别。
+- 新增 output_failure_test.dart（22 项）和 output_preflight_service_test.dart 探针残留、只读目录与隐藏属性边界测试（共 8 项）。
+
+### Changed
+
+- `attrib.exe` 隐藏属性设置从致命操作改为 best-effort：失败时只输出 stderr 警告，不再阻断任务。
+- 输出目录预检改用“创建 + 重命名 + 删除”唯一探针文件替代仅创建检测，并确保预检后无残留文件。
+- 不再预创建工作文件，交由 FFmpeg 自行创建，避免提前占用文件句柄。
+- 文件发布阶段（`rename`）在 Windows 上对 sharing violation / access denied 增加有限重试（100ms、250ms）。
+- Windows manifest 显式声明 `requestedExecutionLevel asInvoker`，明确不使用管理员权限启动。
+- FFmpeg 进程启动路径确保为绝对路径。
+- `defaultExportPath` 不再回退到 `Directory.current`。
+
+### Fixed
+
+- 修复 Windows 上 `attrib.exe` 失败导致所有输出任务被误判为"没有权限"的 P0 问题。
+- 修复输出目录不可写时笼统报告"输出目录不可写"的问题，现按实际原因（权限拒绝 / 安全软件拦截 / 路径无效 / 文件占用 / 磁盘不足）给出针对性提示。
+- 修复错误分类仅匹配中文关键词、无法识别 FFmpeg 英文 stderr 的问题，现所有检查均为中英文双语。
+- 修复管理员模式下仍显示错误权限提示的问题，改为非阻断通知。
+- 修复 manifest 中 `trustInfo` 与新内容重复的无效 XML 问题。
+
+### Verified
+
+- 通过 `dart analyze lib/`，静态分析零新增 issue。
+- 通过 `flutter test test/output_preflight_service_test.dart`、`test/output_failure_test.dart` 和 `test/ffmpeg_task_queue_runner_test.dart`，共 61 项定向回归。
+
 ## 2026-07-10｜v1.2.1｜No Release
 
 收口 v1.2.1 当前更新发布策略：公开 release 默认展示外部下载入口，原 package 自更新链保留但不再作为 Admin 默认发布路径。

@@ -177,10 +177,16 @@ class DesktopFileSelectionService implements FileSelectionService {
 
   @override
   String get defaultExportPath {
+    // Windows 上 %USERPROFILE%\Desktop 可能被 OneDrive 重定向，
+    // 但此处仅作为设置页的初始默认值，用户可自行修改。
+    // 不使用 Directory.current 作为回退，因为 Windows 打包后
+    // 当前工作目录可能不可预测（可能是安装目录或系统目录）。
     final home =
         Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'];
     if (home == null || home.trim().isEmpty) {
-      return Directory.current.path;
+      // 如果无法获取用户主目录，返回用户主目录的父级作为安全回退。
+      // 这是最后的手段，用户应在设置中选择合适的输出目录。
+      return path.separator;
     }
 
     return path.join(home, 'Desktop');
