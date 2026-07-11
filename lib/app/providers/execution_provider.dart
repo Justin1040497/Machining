@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,55 @@ final executionResourceGuardProvider = Provider<ExecutionResourceGuard>((ref) {
   return const LocalExecutionResourceGuard();
 });
 
+/// 全局媒体工作资源调度器，管理所有媒体工作的资源分配。
+final mediaWorkSchedulerProvider = Provider<MediaWorkScheduler>((ref) {
+  final monitor = ref.read(mediaResourceMonitorProvider);
+  monitor.start();
+
+  final scheduler = MediaWorkScheduler(resourceMonitor: monitor);
+  ref.onDispose(() {
+    unawaited(scheduler.stop());
+    unawaited(monitor.stop());
+  });
+  return scheduler;
+});
+
+/// 全局系统资源监控器，每 1 秒采样内存，计算压力级别。
+final mediaResourceMonitorProvider = Provider<MediaResourceMonitor>((ref) {
+  return MediaResourceMonitor();
+});
+
+/// 全局媒体分析队列。所有媒体分析入口都必须通过此队列调度，
+/// 确保任意时刻活跃 FFprobe 进程数 <= 1。
+final mediaAnalysisQueueProvider = Provider<MediaAnalysisQueue>((ref) {
+  final queue = MediaAnalysisQueue(
+    analyzeTask: (taskId) async {
+      final repository = ref.read(mediaTaskRepositoryProvider);
+      final analyzer = ref.read(mediaAnalyzerProvider);
+      final sourceFileChecker = ref.read(sourceFileCheckerProvider);
+      final mediaInputPreparer = ref.read(mediaInputPreparerProvider);
+
+      final useCase = AnalyzeMediaTaskUseCase(
+        repository: repository,
+        analyzer: analyzer,
+        sourceFileChecker: sourceFileChecker,
+        readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
+        refreshRuntime: () => ref.refresh(ffmpegRuntimeProvider.future),
+        mediaInputPreparer: mediaInputPreparer,
+      );
+
+      return useCase.call(taskId);
+    },
+  );
+
+  ref.onDispose(() {
+    // 容器销毁时停止队列，防止子进程泄漏
+    unawaited(queue.stop());
+  });
+
+  return queue;
+});
+
 /// FFmpeg 任务队列执行器。Provider 会在容器生命周期内维持同一个执行器实例。
 final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
   return DefaultFfmpegTaskQueueRunner(
@@ -71,6 +121,7 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
     readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
     commandBuilder: ref.read(ffmpegCommandBuilderProvider),
     resourceGuard: ref.read(executionResourceGuardProvider),
+    workScheduler: ref.read(mediaWorkSchedulerProvider),
     mediaInputPreparer: ref.read(mediaInputPreparerProvider),
     outputPreflightService: ref.read(outputPreflightServiceProvider),
     processStarter: ref.read(ffmpegProcessStarterProvider),

@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:async';
 
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
@@ -21,8 +20,8 @@ abstract final class WorkbenchImportHandler {
     required MediaTaskListNotifier notifier,
   }) async {
     final createdTasks = <MediaTask>[];
-    final createdFileTasks = <MediaTask>[];
     final failures = <DroppedImportFailure>[];
+    final pendingFilePaths = <String>[];
 
     for (final rawPath in paths) {
       final inputPath = rawPath.trim();
@@ -35,6 +34,7 @@ abstract final class WorkbenchImportHandler {
 
       final entityType = FileSystemEntity.typeSync(inputPath);
       if (entityType == FileSystemEntityType.directory) {
+        // 文件夹导入立即处理
         final result = await notifier.importFolderFromPath(inputPath);
         createdTasks.addAll(result.createdTasks);
         if (result.foundNoMedia) {
@@ -60,30 +60,24 @@ abstract final class WorkbenchImportHandler {
         continue;
       }
 
+      pendingFilePaths.add(inputPath);
+    }
+
+    // 批量导入纯文件，使用批量写入优化
+    if (pendingFilePaths.isNotEmpty) {
       try {
-        final task = await notifier.createDraftFromPath(
-          inputPath,
-          analyzeInBackground: false,
-        );
-        createdTasks.add(task);
-        createdFileTasks.add(task);
+        final batchTasks = await notifier.createDraftsFromPaths(pendingFilePaths);
+        createdTasks.addAll(batchTasks);
       } on Object catch (error) {
+        // createDraftsFromPaths 内部已跳过不支持的文件，
+        // 这里捕获的通常是整体失败
         failures.add(
           DroppedImportFailure(
-            path: inputPath,
+            path: '批量导入',
             reason: formatImportFailureReason(error),
           ),
         );
       }
-    }
-
-    await notifier.createTaskFoldersForImportedBatch(createdFileTasks);
-    if (createdFileTasks.isNotEmpty) {
-      unawaited(
-        notifier.analyzeTasksInBackground(
-          createdFileTasks.map((task) => task.id).toList(),
-        ),
-      );
     }
 
     return WorkbenchImportResult(

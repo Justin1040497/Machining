@@ -62,6 +62,32 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 通过 `dart analyze lib/`，静态分析零新增 issue。
 - 通过 `flutter test test/output_preflight_service_test.dart`、`test/output_failure_test.dart` 和 `test/ffmpeg_task_queue_runner_test.dart`，共 61 项定向回归。
 
+### Batch Import Stability & Global Resource Scheduling
+
+批量导入稳定性与全局资源调度改造：引入全局媒体分析队列、资源调度器和动态资源监控，解决批量导入 50 个视频时闪退/黑屏/卡顿问题，以及两个大型任务并行时的稳定性问题。
+
+### Added
+
+- 新增 `MediaAnalysisQueue` 全局媒体分析队列，确保任意时刻活跃 FFprobe 进程数 <= 1，支持 FIFO、taskId 去重、取消等待和状态回调。
+- 新增 `MediaWorkScheduler` 全局资源调度器，使用租约模式管理 encode/analyze/thumbnail/preview 等不同工作类别的资源分配，支持优先级和并发限制。
+- 新增 `MediaResourceMonitor` 轻量系统资源监控器，每 1 秒采样可用内存，计算正常/压力/严重压力三级压力级别，支持迟滞恢复机制（12 秒稳定窗口），覆盖 macOS/Windows/Linux。
+- 新增 `MediaTaskRepository.loadTaskById()`、`loadTasksByIds()` 和 `insertTasks()` 接口与实现，支持按 ID 精确查询和批量写入。
+
+### Changed
+
+- `MediaTaskNotifier.createDraftsFromPaths` 重写为批量模式：一次性读设置和任务，内存创建，单事务批量写入，避免每文件一次 DB IO。
+- `MediaTaskNotifier.analyzeTasksInBackground` 和 `analyzeTaskById` 统一路由到 `MediaAnalysisQueue`，消除多个后台分析循环重叠问题。
+- `FfmpegTaskQueueRunner.startTask` 通过 `MediaWorkScheduler.acquire()` 申请 `MediaWorkKind.encode` 租约，任务结束/失败/取消时在所有退出路径统一释放租约。
+- FFmpeg 进度回调改用 `loadTaskById()` 替代 `loadAllTasks()`，数据库进度写入节流为每 1 秒最多一次。
+- `LocalExecutionResourceGuard` 扩展 Windows（wmic）和 Linux（/proc/meminfo）内存检测。
+- FFprobe stdout/stderr 增加缓冲区上限（4MB / 512KB），防止异常文件导致内存无限增长。
+- `MediaWorkScheduler` 集成 `MediaResourceMonitor`：压力状态下自动停止启动新后台工作（分析/缩略图/预览），不启动第二编码任务；严重压力下仅允许前台编码。
+
+### Verified
+
+- 通过 `flutter analyze`，零新增 error/warning（仅 5 项已存在的 info 级弃用提示）。
+- 通过 `flutter test`，401 项测试全部通过。
+
 ## 2026-07-10｜v1.2.1｜No Release
 
 收口 v1.2.1 当前更新发布策略：公开 release 默认展示外部下载入口，原 package 自更新链保留但不再作为 Admin 默认发布路径。

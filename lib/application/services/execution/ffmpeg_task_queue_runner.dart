@@ -8,6 +8,7 @@ import 'package:framelean/application/services/execution/ffmpeg_process_controll
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/execution/execution_resource_guard.dart';
+import 'package:framelean/application/services/execution/media_work_scheduler.dart';
 import 'package:framelean/application/services/execution/output_failure.dart';
 import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
@@ -74,6 +75,9 @@ class TaskExecution {
   TaskExecutionState state;
   int runSequence;
   Timer? outputMonitor;
+
+  /// 全局资源调度器的租约，任务结束时必须释放。
+  MediaWorkLease? schedulerLease;
 
   /// 当前 step 因可恢复故障（如系统睡眠导致 VideoToolbox 会话失效）
   /// 已自动重试的次数。超过上限后不再重试，按普通失败处理。
@@ -154,6 +158,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
   final ExecutionResourceGuard resourceGuard;
+  final MediaWorkScheduler? workScheduler;
   final MediaInputPreparer mediaInputPreparer;
   final OutputPreflightService outputPreflightService;
   final FfmpegProcessStarter processStarter;
@@ -183,6 +188,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   int _nextRunSequenceValue = 0;
   int _effectiveMaxConcurrentExecutions = defaultMaxConcurrentExecutions;
 
+  /// 每个任务上次进度持久化的时间戳（毫秒），用于数据库写入节流。
+  final Map<String, int> _lastProgressPersistMs = {};
+
   DefaultFfmpegTaskQueueRunner({
     required this.repository,
     required this.taskFolderRepository,
@@ -191,6 +199,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required this.readRuntime,
     required this.commandBuilder,
     required this.resourceGuard,
+    this.workScheduler,
     this.mediaInputPreparer = const NoopMediaInputPreparer(),
     this.outputPreflightService = const NoopOutputPreflightService(),
     required this.processStarter,
@@ -550,10 +559,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     final execution = _executions.remove(taskId);
-    _preemptedTaskIds.remove(taskId);
-    _suppressedTaskIds.remove(taskId);
+    _cleanupTaskTracking(taskId);
     execution?.state = TaskExecutionState.finishing;
     if (execution != null) {
+      await _releaseSchedulerLease(execution);
       await processController.terminate(execution.startedProcess);
       execution.outputMonitor?.cancel();
       await outputPreflightService.discardPlan(execution.plan);
@@ -588,6 +597,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     _suppressedTaskIds.clear();
     for (final execution in [..._executions.values]) {
       execution.state = TaskExecutionState.finishing;
+      await _releaseSchedulerLease(execution);
       await processController.terminate(execution.startedProcess);
       execution.outputMonitor?.cancel();
       await outputPreflightService.discardPlan(execution.plan);
@@ -896,7 +906,19 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     await repository.saveTask(runningTask);
 
     late final TaskExecution execution;
+    MediaWorkLease? lease;
     try {
+      // 向全局资源调度器申请正式编码任务的资源租约
+      final scheduler = workScheduler;
+      if (scheduler != null) {
+        lease = await scheduler.acquire(
+          MediaWorkRequest(
+            id: 'encode:${runningTask.id}',
+            kind: MediaWorkKind.encode,
+            priority: MediaWorkPriority.foreground,
+          ),
+        );
+      }
       execution = await startExecutionStep(
         task: executionInput.task.copyWith(
           status: runningTask.status,
@@ -921,6 +943,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await publishTaskFailed(failedTask, failureSummary(failedTask));
       await outputPreflightService.discardPlan(plan);
       await mediaInputPreparer.cleanup(executionInput);
+      // 启动失败时释放调度器租约
+      try {
+        await lease?.release();
+      } on Object {
+        // Best-effort.
+      }
       await _continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.processStartFailed,
@@ -930,6 +958,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     _executions[runningTask.id] = execution;
+    execution.schedulerLease = lease;
     _queueStatus = FfmpegQueueStatus.running;
     _startOutputMonitor(execution);
     observeExecution(execution);
@@ -971,11 +1000,19 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       outputPath: step.workingOutputPath ?? step.outputPath,
       progressMode: step.progressMode,
       onProgress: (progress) async {
-        final currentTasks = await repository.loadAllTasks();
-        final currentTask = findTaskById(currentTasks, task.id);
+        // 使用 loadTaskById 替代 loadAllTasks，减少数据库 IO。
+        final currentTask = await repository.loadTaskById(task.id);
         if (currentTask == null || currentTask.status != TaskStatus.running) {
           return;
         }
+
+        // 数据库进度写入节流：每 1 秒最多持久化一次。
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final lastPersist = _lastProgressPersistMs[task.id];
+        if (lastPersist != null && (nowMs - lastPersist) < 1000) {
+          return;
+        }
+        _lastProgressPersistMs[task.id] = nowMs;
 
         final stepCount = plan.steps.length;
         final scaledProgress = ((stepIndex + progress) / stepCount)
@@ -1114,7 +1151,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final task = findTaskById(await repository.loadAllTasks(), taskId);
     if (task == null || task.status == TaskStatus.cancelled) {
       _executions.remove(taskId);
+      _cleanupTaskTracking(taskId);
       execution.outputMonitor?.cancel();
+      await _releaseSchedulerLease(execution);
       await outputPreflightService.discardPlan(execution.plan);
       await mediaInputPreparer.cleanup(execution.preparedInput);
       await _continueAfterTask();
@@ -1156,6 +1195,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           execution.state = TaskExecutionState.finishing;
           execution.outputMonitor?.cancel();
           _executions.remove(taskId);
+          await _releaseSchedulerLease(execution);
 
           await appendExecutionLogFooter(
             execution.logFile,
@@ -1209,6 +1249,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         execution.state = TaskExecutionState.finishing;
         execution.outputMonitor?.cancel();
         _executions.remove(taskId);
+        await _releaseSchedulerLease(execution);
         await outputPreflightService.discardPlan(execution.plan);
         await cleanupPlanFiles(execution.plan);
         await mediaInputPreparer.cleanup(execution.preparedInput);
@@ -1245,6 +1286,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     execution.state = TaskExecutionState.finishing;
     execution.outputMonitor?.cancel();
     _executions.remove(taskId);
+    await _releaseSchedulerLease(execution);
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
       late final String? publishedPath;
@@ -1807,6 +1849,21 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     return task.copyWith(
       config: task.config.copyWith(outputDirectory: outputDirectory),
     );
+  }
+
+  void _cleanupTaskTracking(String taskId) {
+    _lastProgressPersistMs.remove(taskId);
+    _preemptedTaskIds.remove(taskId);
+    _suppressedTaskIds.remove(taskId);
+  }
+
+  Future<void> _releaseSchedulerLease(TaskExecution execution) async {
+    _lastProgressPersistMs.remove(execution.taskId);
+    try {
+      await execution.schedulerLease?.release();
+    } on Object {
+      // Best-effort.
+    }
   }
 
   Future<void> _continueAfterTask({String? excludedTaskId}) async {

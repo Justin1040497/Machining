@@ -232,7 +232,7 @@ Use Cases：
 - `repositories/`：Drift 仓储实现，以及持久化字符串到领域枚举的 mapper。
 - `services/input_runtime/`：本地文件检查、扩展名媒体类型识别、源文件指纹读取、FFmpeg / FFprobe 定位、FFprobe JSON 分析；FFprobe 超时后会主动终止子进程并回收 stdout / stderr，避免后台进程泄漏。
 - `services/ffmpeg_planning/`：默认 FFmpeg 命令构造器，以及输出路径、编码器解析、视频参数、步骤和日志提示构造 helper。
-- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、受控并行资源守卫、进度观测、预览帧生成和视频缩略图生成；进程观测器会在长时间无 stdout / stderr 活动时熔断挂死进程，队列 runner 会对典型硬件编码器会话失效做一次自动重试。
+- `services/execution/`：输出 preflight、本地 FFmpeg 进程启动、跨平台进程控制、全局资源调度器（`MediaWorkScheduler`，租约模式，按工作类别限制并发）、动态资源监控器（`MediaResourceMonitor`，1 秒采样，三级压力迟滞）、受控并行资源守卫、进度观测（含数据库写入节流）、预览帧生成和视频缩略图生成；进程观测器会在长时间无 stdout / stderr 活动时熔断挂死进程，队列 runner 会对典型硬件编码器会话失效做一次自动重试。
 - `services/app_notifications/`：本地任务完成提示音播放实现，使用 `audioplayers` 播放内置 Flutter asset。
 - `services/platform/`：桌面文件选择、Finder / Explorer 定位、系统外链打开和主题缓存实现。
 
@@ -464,10 +464,12 @@ start / startOrResumeTask
 
 - 用户可在设置中选择 1、2 或 3 个最大并行任务数，默认 2；该值只是上限，不直接等同于一定会启动同样数量的 FFmpeg 进程。
 - `ExecutionResourceGuard` 会按 CPU、内存和当前运行任务类型计算有效执行位；低核心数或低内存设备会自动降级到 1，高负载场景可低于用户设置。
+- `MediaWorkScheduler` 提供全局资源租约：所有媒体工作（编码、分析、缩略图、预览、预处理）必须申请租约，调度器按工作类别、优先级和全局并发上限决定是否允许启动。
+- `MediaResourceMonitor` 每 1 秒采样系统可用内存并计算三级压力级别；压力状态下 `MediaWorkScheduler` 自动停止启动新后台工作（FFprobe/缩略图/预览）并阻止第二编码任务；严重压力下仅允许前台编码。恢复需连续 12 秒稳定采样，形成迟滞保护。
 - 用户手动选择的任务线程上限优先进入 FFmpeg 参数，同时计入资源预算；高线程任务可能独占当前预算，完成后队列再恢复填充其他执行位。
 - 视频任务被视为重任务，同一时刻默认只允许一个视频 FFmpeg 进程运行；空余执行位优先留给图片或音频等较轻任务，避免多路视频压缩把设备拖卡。
 - `fillAvailableSlots()` 先按 FIFO 恢复被抢占任务，再从当前工作台或任务夹作用域补槽；没有连续作用域和被抢占任务时，单任务完成后不会启动其他待执行任务。
-- 如果 FFmpeg 进程 60 秒没有 stdout / stderr 活动，`LocalFfmpegProcessObserver` 会强制终止进程并返回“无响应超时”失败，避免任务永久卡在 `running` 占用执行位。
+- 如果 FFmpeg 进程 60 秒没有 stdout / stderr 活动，`LocalFfmpegProcessObserver` 会强制终止进程并返回"无响应超时"失败，避免任务永久卡在 `running` 占用执行位。
 - 如果硬件编码器（VideoToolbox / NVENC / QSV / AMF）在暂停、系统睡眠或驱动抖动后返回 `Generic error in an external library`，队列 runner 会清理当前 step 残留输出并自动重试一次；再次失败时保留技术日志，但通知中心展示友好原因和改用软件编码建议。
 
 暂停和恢复：

@@ -234,6 +234,33 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
   MediaTask taskById(String id) {
     return tasks.singleWhere((task) => task.id == id);
   }
+
+  @override
+  Future<MediaTask?> loadTaskById(String taskId) async {
+    final index = tasks.indexWhere((task) => task.id == taskId);
+    if (index == -1) {
+      return null;
+    }
+    return tasks[index];
+  }
+
+  @override
+  Future<List<MediaTask>> loadTasksByIds(Iterable<String> taskIds) async {
+    final idSet = taskIds.toSet();
+    return tasks.where((task) => idSet.contains(task.id)).toList();
+  }
+
+  @override
+  Future<void> insertTasks(List<MediaTask> newTasks) async {
+    for (final task in newTasks) {
+      final index = tasks.indexWhere((t) => t.id == task.id);
+      if (index == -1) {
+        tasks.add(task);
+      } else {
+        tasks[index] = task;
+      }
+    }
+  }
 }
 
 class FakeTaskFolderRepository implements TaskFolderRepository {

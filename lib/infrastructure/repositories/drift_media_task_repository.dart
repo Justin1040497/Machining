@@ -30,10 +30,45 @@ class DriftMediaTaskRepository implements MediaTaskRepository {
   }
 
   @override
+  Future<MediaTask?> loadTaskById(String taskId) async {
+    final row = await (database.select(database.taskRows)
+          ..where((table) => table.id.equals(taskId)))
+        .getSingleOrNull();
+    return row?.toDomain();
+  }
+
+  @override
+  Future<List<MediaTask>> loadTasksByIds(Iterable<String> taskIds) async {
+    final idSet = taskIds.toSet();
+    if (idSet.isEmpty) {
+      return const [];
+    }
+    final rows = await (database.select(database.taskRows)
+          ..where((table) => table.id.isIn(idSet)))
+        .get();
+    return rows.map((row) => row.toDomain()).toList();
+  }
+
+  @override
   Future<void> saveTask(MediaTask task) async {
     await database
         .into(database.taskRows)
         .insertOnConflictUpdate(task.toCompanion());
+  }
+
+  @override
+  Future<void> insertTasks(List<MediaTask> tasks) async {
+    if (tasks.isEmpty) {
+      return;
+    }
+    await database.transaction(() async {
+      await database.batch((batch) {
+        batch.insertAllOnConflictUpdate(
+          database.taskRows,
+          tasks.map((task) => task.toCompanion()).toList(),
+        );
+      });
+    });
   }
 
   @override
