@@ -563,7 +563,7 @@ void main() {
     await tester.tap(find.text('关于'));
     await tester.pumpAndSettle();
 
-    expect(find.text('项目简介'), findsOneWidget);
+    expect(find.text('简介'), findsOneWidget);
     expect(find.textContaining('当前版本：'), findsOneWidget);
     expect(find.text('清空应用缓存'), findsOneWidget);
 

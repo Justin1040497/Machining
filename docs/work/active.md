@@ -8,7 +8,6 @@
 
 ## 进行中
 
-### v1.2.1 Release 与交付收口
+当前无。
 
-- 当前状态：根仓库与独立 `server` 仓库正在统一为外部下载地址优先策略；package 自更新链继续保留但不再作为默认发布门禁。
-- 下一步：确认 `v1.2.1` Release 草稿，写回正式 release 文档，完成文档 diff、发布脚本、Flutter 和 server 定向验证并输出 Commit / PR 文案。
+v1.2.1 Release 文档与外部下载优先策略校准已收口；真实发布产物、`flutter analyze` 弃用信息和生产环境端到端验收继续按 `docs/releases/v1.2.1/release.md` 的“已知风险”处理。
