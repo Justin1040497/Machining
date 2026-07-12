@@ -131,12 +131,10 @@ class MediaWorkScheduler {
   final Set<String> _allWorkIds = {};
 
   /// 当前运行的编码任务数。
-  int get activeEncodes =>
-      _countByKind(MediaWorkKind.encode);
+  int get activeEncodes => _countByKind(MediaWorkKind.encode);
 
   /// 当前运行的分析任务数。
-  int get activeAnalyses =>
-      _countByKind(MediaWorkKind.analyze);
+  int get activeAnalyses => _countByKind(MediaWorkKind.analyze);
 
   /// 当前运行的所有工作数。
   int get totalActiveWorks => _activeLeases.length;
@@ -205,13 +203,18 @@ class MediaWorkScheduler {
   ///
   /// 如果可以立即启动，则立即返回租约。
   /// 否则加入等待队列，待资源可用时再返回。
+  ///
+  /// 注意：此方法可能返回一个永不完成的 Future（当资源不足时）。
+  /// 调用方不得在持有互斥锁（如串行命令队列）时调用此方法。
+  /// 优先使用 [tryAcquire]。
   Future<MediaWorkLease> acquire(MediaWorkRequest request) async {
     if (_stopped) {
       throw StateError('调度器已停止');
     }
 
-    // 去重：同一 workId 不重复申请
-    if (_allWorkIds.contains(request.id)) {
+    // 去重：同一 workId 不重复申请（包括已等待的）
+    if (_allWorkIds.contains(request.id) ||
+        _waitingCompleters.containsKey(request.id)) {
       throw StateError('工作 ID 重复: ${request.id}');
     }
 
@@ -224,6 +227,31 @@ class MediaWorkScheduler {
     _waitingQueue.add(request);
     _waitingCompleters[request.id] = completer;
     return completer.future;
+  }
+
+  /// 非阻塞申请资源租约。
+  ///
+  /// 如果可以立即启动，返回租约；否则返回 `null`。
+  /// 不会创建长期等待的 Future，不会阻塞调用方。
+  ///
+  /// 如果返回 `null`，调用方应保存请求信息，待资源释放后通过
+  /// [onResourceFreed] 回调或轮询 [canStartImmediately] 重新尝试。
+  MediaWorkLease? tryAcquire(MediaWorkRequest request) {
+    if (_stopped) {
+      return null;
+    }
+
+    // 去重：同一 workId 不重复申请（包括已等待的）
+    if (_allWorkIds.contains(request.id) ||
+        _waitingCompleters.containsKey(request.id)) {
+      return null;
+    }
+
+    if (!canStartImmediately(request)) {
+      return null;
+    }
+
+    return _grantLease(request);
   }
 
   /// 取消等待中的工作。

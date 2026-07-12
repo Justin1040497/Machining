@@ -51,7 +51,7 @@ class ImportMediaTaskUseCase {
               config: initialConfig,
             )
             .withSourceFileFingerprint(fingerprint)
-            .copyWith(status: TaskStatus.analyzing);
+            .copyWith(status: TaskStatus.pending);
 
     await repository.saveTask(task);
     return task;

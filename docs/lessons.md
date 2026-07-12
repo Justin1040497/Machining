@@ -2,6 +2,35 @@
 
 这个文件只记录可复用经验，不写每日日志。条目应能帮助后续避免同类错误。
 
+## 串行命令区内不要调用可能无限等待的异步方法
+
+经验：
+
+- 串行命令锁（如 `_serializeCommand` 的 FIFO `Completer` 链）内的代码如果调用另一个也依赖同一串行区才能完成的等待（如 `scheduler.acquire()` 创建的 `Completer`），会形成死锁。
+- 当资源不足时，`acquire()` 创建永不完成的 `Completer` 并等待；而释放资源的代码（`release()`）也需要先进入同一串行区。结果：`startTask` 占着串行区等资源，释放资源的代码等串行区，形成循环等待。
+- 修复方案：(1) 提供非阻塞 `tryAcquire()`，资源不足时立即返回 `null` 而不是创建 `Completer`；(2) 资源释放移到串行区外执行；(3) 释放操作幂等化，立即清空引用后再 best-effort 释放。
+- 通用原则：串行命令区内的代码必须是"快进快出"的，不应包含任何可能需要等待外部事件才能完成的异步操作。
+
+关联：
+
+- 决策：`docs/decisions/260712-scheduler-tryacquire-deadlock.md`
+- `lib/application/services/execution/ffmpeg_task_queue_runner.dart`
+- `lib/application/services/execution/media_work_scheduler.dart`
+
+## 基于 Completer 的资源等待要提供非阻塞变体
+
+经验：
+
+- 基于 `Completer` 的资源等待模式（如 `MediaWorkScheduler.acquire()`）在资源紧张时会创建一个可能永不完成的 Future。
+- 这种模式下，调用方如果处于任何互斥区域（串行锁、事务、状态机关键段），就会形成死锁。
+- 任何基于 `Completer` 等待的资源分配器都应同时提供非阻塞 `tryXxx()` 变体，让调用方在互斥区内安全使用。
+- `tryAcquire()` 在资源不足时返回 `null`，调用方可以立即释放已准备的 IO 资源并返回排队状态，由外部轮询或事件驱动重新尝试。
+
+关联：
+
+- 决策：`docs/decisions/260712-scheduler-tryacquire-deadlock.md`
+- `lib/application/services/execution/media_work_scheduler.dart`
+
 ## Windows 静默覆盖安装不应只相信退出码
 
 经验：

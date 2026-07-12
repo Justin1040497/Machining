@@ -39,12 +39,21 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     final stderrTail = <String>[];
     Object? streamError;
     var stalled = false;
-    // 最后一次在 stdout/stderr 观察到数据的时间。ffmpeg 正常运行时会持续
-    // 输出 progress，若长时间无任何输出则判定为挂死。
-    var lastActivity = DateTime.now();
+    // 最后一次在 stdout/stderr 观察到任意输出的时间。
+    var lastAnyOutputAt = DateTime.now();
+    // 最后一次观察到有效进度（out_time_ms 变化）的时间。
+    // 与 lastAnyOutputAt 区分：stderr 持续输出警告不会更新此时间戳，
+    // 防止"有日志输出但编码已卡死"的假活状态。
+    var lastProgressAt = DateTime.now();
 
     void touchActivity() {
-      lastActivity = DateTime.now();
+      lastAnyOutputAt = DateTime.now();
+    }
+
+    void touchProgress() {
+      final now = DateTime.now();
+      lastAnyOutputAt = now;
+      lastProgressAt = now;
     }
 
     if (progressMode == ProgressMode.step) {
@@ -56,6 +65,7 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
             startedProcess.process.stdout,
             task,
             onProgress,
+            onProgressTouch: touchProgress,
             onActivity: touchActivity,
             onError: (error) => streamError ??= error,
           )
@@ -74,15 +84,16 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
       onError: (error) => streamError ??= error,
     );
 
-    // stall 检测定时器：周期性检查最后活动时间，超过阈值则强制 kill 进程，
-    // 让 exitCode Future 完成，主流程得以继续并标记任务失败。
-    // 原实现只监听 exitCode，进程挂死时任务会永久卡 running，占用执行位
-    // 阻塞整个队列。
+    // stall 检测定时器：同时检查两种挂死情况。
+    // 1. 完全静默：任何输出都没有 → lastAnyOutputAt 超时。
+    // 2. 假活：stderr 持续输出但无进度 → lastProgressAt 超时。
     final stallTimer = Timer.periodic(stallCheckInterval, (_) {
       if (stalled) {
         return;
       }
-      if (DateTime.now().difference(lastActivity) >= stallTimeout) {
+      final now = DateTime.now();
+      if (now.difference(lastAnyOutputAt) >= stallTimeout ||
+          now.difference(lastProgressAt) >= stallTimeout) {
         stalled = true;
         try {
           startedProcess.process.kill(ProcessSignal.sigkill);
@@ -98,8 +109,12 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
       await stderrSink.close();
 
       if (stalled) {
+        final anyOutputStalled =
+            DateTime.now().difference(lastAnyOutputAt) >= stallTimeout;
         return FfmpegProcessObservation.failed(
-          'FFmpeg 进程无响应超时（${stallTimeout.inSeconds} 秒无输出），已强制终止',
+          anyOutputStalled
+              ? 'FFmpeg 进程无响应超时（${stallTimeout.inSeconds} 秒无任何输出），已强制终止'
+              : 'FFmpeg 进程进度停滞超时（${stallTimeout.inSeconds} 秒无有效进度），已强制终止',
         );
       }
 
@@ -142,6 +157,7 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
     Stream<List<int>> stdout,
     MediaTask task,
     Future<void> Function(double progress) onProgress, {
+    required void Function() onProgressTouch,
     required void Function() onActivity,
     required void Function(Object error) onError,
   }) async {
@@ -153,6 +169,8 @@ class LocalFfmpegProcessObserver implements FfmpegProcessObserver {
         if (outTimeUs == null) {
           continue;
         }
+
+        onProgressTouch();
 
         final progress = calculateProgress(outTimeUs, task);
         if (progress == null) {

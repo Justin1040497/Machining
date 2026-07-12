@@ -159,8 +159,12 @@ class MediaAnalysisQueue {
       return;
     }
 
-    // 去重：已存在的任务不重复加入
-    if (_allTaskIds.contains(taskId)) {
+    // 去重：只阻止已处于 pending 或 analyzing 状态的任务重复加入。
+    // completed、failed、cancelled 状态的任务允许重新加入（用于重试）。
+    final existing = _entries[taskId];
+    if (existing != null &&
+        (existing.state == MediaAnalysisEntryState.pending ||
+            existing.state == MediaAnalysisEntryState.analyzing)) {
       return;
     }
 
@@ -180,7 +184,11 @@ class MediaAnalysisQueue {
       if (_stopped) {
         break;
       }
-      if (_allTaskIds.contains(taskId)) {
+      // 去重：只阻止已处于 pending 或 analyzing 状态的任务重复加入。
+      final existing = _entries[taskId];
+      if (existing != null &&
+          (existing.state == MediaAnalysisEntryState.pending ||
+              existing.state == MediaAnalysisEntryState.analyzing)) {
         continue;
       }
       _allTaskIds.add(taskId);
