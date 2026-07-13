@@ -241,8 +241,7 @@ class TaskFolderListTile extends StatelessWidget {
   }
 
   bool _isStartableTask(MediaTask task) {
-    return task.status == TaskStatus.paused ||
-        (task.status == TaskStatus.pending && task.analysisResult != null);
+    return task.status == TaskStatus.paused || task.canStartExecution;
   }
 
   bool _isRetryableTask(MediaTask task) {

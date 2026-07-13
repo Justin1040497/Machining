@@ -40,12 +40,11 @@ class MediaTaskActionButton extends StatelessWidget {
 
   MediaTaskListAction? resolveTaskAction() {
     return switch (task.status) {
-      TaskStatus.pending when task.analysisResult != null =>
-        MediaTaskListAction(
-          tooltip: task.status.actionTooltip,
-          icon: task.status.actionIcon,
-          onPressed: onStart,
-        ),
+      TaskStatus.pending when task.canStartExecution => MediaTaskListAction(
+        tooltip: task.status.actionTooltip,
+        icon: task.status.actionIcon,
+        onPressed: onStart,
+      ),
       TaskStatus.running => MediaTaskListAction(
         tooltip: task.status.actionTooltip,
         icon: task.status.actionIcon,

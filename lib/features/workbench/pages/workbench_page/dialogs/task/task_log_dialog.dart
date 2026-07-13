@@ -124,7 +124,8 @@ class TaskFolderLogDialog extends StatelessWidget {
 
   String _statusLabel(TaskStatus status) {
     return switch (status) {
-      TaskStatus.pending => '等待中',
+      TaskStatus.awaitingAnalysis => '等待分析',
+      TaskStatus.pending => '等待开始',
       TaskStatus.analyzing => '分析中',
       TaskStatus.running => '处理中',
       TaskStatus.paused => '已暂停',
@@ -349,7 +350,9 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
     final colors = context.frameLeanColors;
     final currentTask = _resolveCurrentTask();
     String message;
-    if (currentTask.status == TaskStatus.pending) {
+    if (currentTask.isAwaitingAnalysis) {
+      message = '任务正在等待分析，暂无日志';
+    } else if (currentTask.status == TaskStatus.pending) {
       message = '任务尚未开始，暂无日志';
     } else if (currentTask.status == TaskStatus.analyzing) {
       message = '正在分析媒体文件...';
@@ -370,11 +373,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              WorkbenchIcons.log,
-              size: 48,
-              color: colors.textTertiary,
-            ),
+            Icon(WorkbenchIcons.log, size: 48, color: colors.textTertiary),
             const SizedBox(height: 16),
             Text(
               message,

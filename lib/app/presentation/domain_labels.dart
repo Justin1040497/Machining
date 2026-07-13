@@ -205,8 +205,10 @@ extension FrameLeanTaskPurposeLabel on TaskPurpose {
 extension FrameLeanTaskStatusLabel on TaskStatus {
   String get label {
     switch (this) {
+      case TaskStatus.awaitingAnalysis:
+        return '等待分析';
       case TaskStatus.pending:
-        return '等待中';
+        return '等待开始';
       case TaskStatus.analyzing:
         return '分析中';
       case TaskStatus.running:

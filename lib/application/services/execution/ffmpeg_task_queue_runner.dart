@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
+import 'package:framelean/application/services/execution/execution_slot_coordinator.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_controller.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
@@ -12,6 +13,8 @@ import 'package:framelean/application/services/execution/media_work_scheduler.da
 import 'package:framelean/application/services/execution/output_failure.dart';
 import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
+import 'package:framelean/application/services/execution/task_process_lifecycle.dart';
+import 'package:framelean/application/services/execution/task_result_finalizer.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
@@ -19,6 +22,9 @@ import 'package:framelean/application/services/input_runtime/source_file_checker
 import 'package:framelean/application/constants.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
+
+export 'package:framelean/application/services/execution/task_process_lifecycle.dart'
+    show TaskExecution, TaskExecutionState;
 
 enum FfmpegQueueStatus { idle, ready, running }
 
@@ -43,8 +49,6 @@ enum FfmpegQueueStartOutcome {
   executionFailed,
 }
 
-enum TaskExecutionState { running, paused, finishing }
-
 enum ExecutionScopeType { none, workbench, folder }
 
 class ExecutionScope {
@@ -61,41 +65,6 @@ class ExecutionScope {
   final String? folderId;
 
   bool get isContinuous => type != ExecutionScopeType.none;
-}
-
-class TaskExecution {
-  final String taskId;
-  final String ffmpegPath;
-  final FfmpegCommandPlan plan;
-  final File logFile;
-  StartedFfmpegProcess startedProcess;
-  Future<FfmpegProcessObservation> observationFuture;
-  PreparedMediaInput preparedInput;
-  int stepIndex;
-  TaskExecutionState state;
-  int runSequence;
-  Timer? outputMonitor;
-
-  /// 全局资源调度器的租约，任务结束时必须释放。
-  MediaWorkLease? schedulerLease;
-
-  /// 当前 step 因可恢复故障（如系统睡眠导致 VideoToolbox 会话失效）
-  /// 已自动重试的次数。超过上限后不再重试，按普通失败处理。
-  int hardwareRetryCount;
-
-  TaskExecution({
-    required this.taskId,
-    required this.ffmpegPath,
-    required this.plan,
-    required this.logFile,
-    required this.startedProcess,
-    required this.observationFuture,
-    required this.preparedInput,
-    required this.stepIndex,
-    required this.state,
-    required this.runSequence,
-    this.hardwareRetryCount = 0,
-  });
 }
 
 class FfmpegQueueStartResult {
@@ -148,6 +117,10 @@ abstract class FfmpegTaskQueueRunner {
   Future<FfmpegQueueStartResult> cancelTask(String taskId);
 
   Future<void> cancelAllExecutions();
+
+  void requestQueueRefill();
+
+  Future<void> dispose();
 }
 
 class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
@@ -185,6 +158,11 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Queue<String> _preemptedTaskIds = Queue<String>();
   final Set<String> _suppressedTaskIds = {};
   Future<void> _commandTail = Future<void>.value();
+  late final ExecutionSlotCoordinator _slotCoordinator;
+  late final TaskProcessLifecycle _processLifecycle;
+  late final TaskResultFinalizer _resultFinalizer;
+  bool _disposed = false;
+  bool _allowExtremeCompressionForScope = false;
   int _nextRunSequenceValue = 0;
   int _effectiveMaxConcurrentExecutions = defaultMaxConcurrentExecutions;
 
@@ -210,7 +188,22 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     this.onTaskFailed,
     this.continuousExecutionEnabled = true,
     Future<DateTime> Function()? now,
-  }) : now = now ?? (() async => DateTime.now());
+  }) : now = now ?? (() async => DateTime.now()) {
+    _processLifecycle = TaskProcessLifecycle(processController);
+    _resultFinalizer = TaskResultFinalizer(
+      repository: repository,
+      outputPreflightService: outputPreflightService,
+      now: this.now,
+    );
+    _slotCoordinator = ExecutionSlotCoordinator(
+      scheduler: workScheduler,
+      canRefill: () =>
+          !_disposed &&
+          continuousExecutionEnabled &&
+          (_executionScope.isContinuous || _preemptedTaskIds.isNotEmpty),
+      refill: () => _serializeCommand(_continueAfterTask),
+    );
+  }
 
   @override
   FfmpegQueueStatus get queueStatus => _queueStatus;
@@ -242,11 +235,17 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   @override
+  void requestQueueRefill() {
+    _slotCoordinator.requestRefill();
+  }
+
+  @override
   Future<FfmpegQueueStartResult> startWorkbenchQueue({
     bool allowExtremeCompression = false,
   }) {
     return _serializeCommand(() async {
       _executionScope = const ExecutionScope.workbench();
+      _allowExtremeCompressionForScope = allowExtremeCompression;
       _preemptedTaskIds.clear();
       _suppressedTaskIds.clear();
       return _startContinuousQueue(
@@ -268,6 +267,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }) {
     return _serializeCommand(() async {
       _executionScope = ExecutionScope.folder(folderId);
+      _allowExtremeCompressionForScope = allowExtremeCompression;
       _preemptedTaskIds.clear();
       _suppressedTaskIds.clear();
       return _startContinuousQueue(
@@ -309,6 +309,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return const FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.notFound,
         message: '找不到任务',
+      );
+    }
+    if (task.isAwaitingAnalysis || task.status == TaskStatus.analyzing) {
+      return FfmpegQueueStartResult(
+        outcome: FfmpegQueueStartOutcome.notReady,
+        task: task,
+        message: '媒体信息尚未分析完成，请稍候',
       );
     }
     if (!isStartableTask(task)) {
@@ -449,8 +456,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (execution == null || execution.state != TaskExecutionState.running) {
       return null;
     }
-    await processController.pause(execution.startedProcess);
-    execution.state = TaskExecutionState.paused;
+    await _processLifecycle.pause(execution);
 
     // 暂停时释放活跃编码租约，让其他任务可以使用编码槽位。
     // 暂停进程记录保留，恢复时需要重新申请租约。
@@ -478,6 +484,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (_executionScope.type == ExecutionScopeType.folder &&
         _executionScope.folderId == folderId) {
       _executionScope = const ExecutionScope.none();
+      _allowExtremeCompressionForScope = false;
     }
 
     MediaTask? lastPausedTask;
@@ -510,6 +517,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   Future<FfmpegQueueStartResult> _pauseAllRunningTasks() async {
     _executionScope = const ExecutionScope.none();
+    _allowExtremeCompressionForScope = false;
     _preemptedTaskIds.clear();
     _suppressedTaskIds.clear();
 
@@ -568,7 +576,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     execution?.state = TaskExecutionState.finishing;
     if (execution != null) {
       await _releaseSchedulerLease(execution);
-      await processController.terminate(execution.startedProcess);
+      await _processLifecycle.terminate(execution);
       execution.outputMonitor?.cancel();
       await outputPreflightService.discardPlan(execution.plan);
       await cleanupPlanFiles(execution.plan);
@@ -598,12 +606,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   Future<void> _cancelAllExecutions() async {
     _executionScope = const ExecutionScope.none();
+    _allowExtremeCompressionForScope = false;
     _preemptedTaskIds.clear();
     _suppressedTaskIds.clear();
     for (final execution in [..._executions.values]) {
       execution.state = TaskExecutionState.finishing;
       await _releaseSchedulerLease(execution);
-      await processController.terminate(execution.startedProcess);
+      await _processLifecycle.terminate(execution);
       execution.outputMonitor?.cancel();
       await outputPreflightService.discardPlan(execution.plan);
       await cleanupPlanFiles(execution.plan);
@@ -614,17 +623,20 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     _queueStatus = FfmpegQueueStatus.idle;
   }
 
+  @override
+  Future<void> dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
+    await _slotCoordinator.dispose();
+    await cancelAllExecutions();
+  }
+
   Future<FfmpegQueueStartResult> _startContinuousQueue({
     required bool allowExtremeCompression,
   }) async {
     await refreshStatus();
-    if (_queueStatus == FfmpegQueueStatus.idle) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.notReady,
-        message: '没有可执行的任务',
-      );
-    }
-
     return fillAvailableSlots(allowExtremeCompression: allowExtremeCompression);
   }
 
@@ -694,11 +706,23 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
                 message: '后续任务正在等待设备资源空闲',
               );
         }
+        if (_hasScopedAwaitingAnalysisCandidate(
+          tasks,
+          folders: folders,
+          excludedTaskId: excludedTaskId,
+        )) {
+          return firstResult ??
+              const FfmpegQueueStartResult(
+                outcome: FfmpegQueueStartOutcome.queued,
+                message: '队列正在等待媒体分析完成',
+              );
+        }
         if (firstResult != null) {
           return firstResult;
         }
         if (_preemptedTaskIds.isEmpty) {
           _executionScope = const ExecutionScope.none();
+          _allowExtremeCompressionForScope = false;
         }
         return const FfmpegQueueStartResult(
           outcome: FfmpegQueueStartOutcome.noPendingTask,
@@ -719,7 +743,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
               FfmpegQueueStartOutcome.compressionConfirmationRequired ||
           result.outcome == FfmpegQueueStartOutcome.commandBuildFailed ||
           result.outcome == FfmpegQueueStartOutcome.ffmpegUnavailable ||
-          result.outcome == FfmpegQueueStartOutcome.processStartFailed) {
+          result.outcome == FfmpegQueueStartOutcome.processStartFailed ||
+          result.outcome == FfmpegQueueStartOutcome.queued ||
+          result.outcome == FfmpegQueueStartOutcome.throttled) {
         return firstResult;
       }
     }
@@ -795,6 +821,19 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     );
   }
 
+  bool _hasScopedAwaitingAnalysisCandidate(
+    List<MediaTask> tasks, {
+    required List<TaskFolder> folders,
+    String? excludedTaskId,
+  }) {
+    return _tasksForCurrentScope(tasks, folders).any(
+      (task) =>
+          task.id != excludedTaskId &&
+          !_suppressedTaskIds.contains(task.id) &&
+          (task.isAwaitingAnalysis || task.status == TaskStatus.analyzing),
+    );
+  }
+
   List<MediaTask> _tasksForCurrentScope(
     List<MediaTask> tasks,
     List<TaskFolder> folders,
@@ -824,6 +863,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     MediaTask task, {
     bool allowExtremeCompression = false,
   }) async {
+    if (!task.isAnalysisReady) {
+      return FfmpegQueueStartResult(
+        outcome: FfmpegQueueStartOutcome.notReady,
+        task: task,
+        message: '媒体信息尚未分析完成，请稍候',
+      );
+    }
     if (!await sourceFileChecker.exists(task.inputPath)) {
       final updatedTask = task.markMissingSource();
       await repository.saveTask(updatedTask);
@@ -837,7 +883,14 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     final runtime = await readRuntime();
     if (!runtime.canEncode || runtime.ffmpeg == null) {
-      final failedTask = task.markFailed('FFmpeg 不可用');
+      final failedTask = task.markFailed(
+        await _taskFailure(
+          stage: TaskFailureStage.processStart,
+          technicalSummary: 'FFmpeg 不可用',
+          fallbackCode: TaskFailureCode.processStartFailed,
+          fallbackUserMessage: 'FFmpeg 不可用，请检查运行时设置。',
+        ),
+      );
       await repository.saveTask(failedTask);
       await publishTaskFailed(failedTask, failureSummary(failedTask));
       await _continueAfterTask();
@@ -848,9 +901,29 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
+    final scheduler = workScheduler;
+    MediaWorkLease? lease;
+    if (scheduler != null) {
+      lease = scheduler.tryAcquire(
+        MediaWorkRequest(
+          id: 'encode:${task.id}',
+          kind: MediaWorkKind.encode,
+          priority: MediaWorkPriority.foreground,
+        ),
+      );
+      if (lease == null) {
+        return FfmpegQueueStartResult(
+          outcome: FfmpegQueueStartOutcome.queued,
+          task: task,
+          message: '正在等待设备资源空闲',
+        );
+      }
+    }
+
     PreparedMediaInput? preparedInput;
     late FfmpegCommandPlan plan;
     var preflightTags = const <MediaTaskPolicyTag>{};
+    var preparationStage = TaskFailureStage.inputPreparation;
     try {
       preparedInput = await mediaInputPreparer.prepare(
         task,
@@ -862,11 +935,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         proprietaryAudioDecodeResult:
             preparedInput.proprietaryAudioDecodeResult,
       );
+      preparationStage = TaskFailureStage.commandPlanning;
       plan = commandBuilder.build(
         preparedInput.task,
         allowExtremeCompression: allowExtremeCompression,
         encoderCapabilities: runtime.encoderCapabilities,
       );
+      preparationStage = TaskFailureStage.outputPreflight;
       final preflight = await outputPreflightService.prepare(
         task: preparedInput.task,
         plan: plan,
@@ -874,6 +949,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       plan = preflight.plan;
       preflightTags = preflight.policyTags;
     } on CompressionConfirmationRequiredException catch (error) {
+      await _releaseLeaseBestEffort(lease);
       final input = preparedInput;
       if (input != null) {
         await mediaInputPreparer.cleanup(input);
@@ -885,11 +961,33 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         message: error.toString(),
       );
     } on Object catch (error) {
+      await _releaseLeaseBestEffort(lease);
       final input = preparedInput;
       if (input != null) {
         await mediaInputPreparer.cleanup(input);
       }
-      final failedTask = task.markFailed(error.toString());
+      final failedTask = task.markFailed(
+        await _taskFailure(
+          stage: preparationStage,
+          technicalSummary: error.toString(),
+          fallbackCode: switch (preparationStage) {
+            TaskFailureStage.inputPreparation =>
+              TaskFailureCode.inputPreparationFailed,
+            TaskFailureStage.commandPlanning =>
+              TaskFailureCode.commandBuildFailed,
+            TaskFailureStage.outputPreflight =>
+              TaskFailureCode.outputDirectoryNotWritable,
+            _ => TaskFailureCode.unknown,
+          },
+          fallbackUserMessage: switch (preparationStage) {
+            TaskFailureStage.inputPreparation => '媒体输入准备失败。',
+            TaskFailureStage.commandPlanning => '当前任务配置无法生成有效的处理命令。',
+            TaskFailureStage.outputPreflight => '输出位置无法用于保存处理结果。',
+            _ => '任务启动准备失败。',
+          },
+          retryable: preparationStage != TaskFailureStage.commandPlanning,
+        ),
+      );
       await repository.saveTask(failedTask);
       await publishTaskFailed(failedTask, failureSummary(failedTask));
       await _continueAfterTask();
@@ -906,36 +1004,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     ).create(recursive: true);
 
     late final TaskExecution execution;
-    MediaWorkLease? lease;
     MediaTask? runningTask;
+    MediaTask? processStartFailedTask;
     try {
-      // 向全局资源调度器非阻塞申请正式编码任务的资源租约。
-      // 使用 tryAcquire 而非 acquire：当资源不足时立即返回 null，
-      // 不创建长期等待的 Future，避免在 _serializeCommand 内形成死锁。
-      final scheduler = workScheduler;
-      if (scheduler != null) {
-        lease = scheduler.tryAcquire(
-          MediaWorkRequest(
-            id: 'encode:${task.id}',
-            kind: MediaWorkKind.encode,
-            priority: MediaWorkPriority.foreground,
-          ),
-        );
-      }
-
-      // 无可用资源：不阻塞串行命令，返回 queued，由 _continueAfterTask 重试。
-      // 注意：任务状态仍为 pending（未保存 running），下次调度时再次尝试。
-      if (scheduler != null && lease == null) {
-        await mediaInputPreparer.cleanup(executionInput);
-        await outputPreflightService.discardPlan(plan);
-        await _continueAfterTask();
-        return FfmpegQueueStartResult(
-          outcome: FfmpegQueueStartOutcome.queued,
-          task: task,
-          message: '正在等待设备资源空闲',
-        );
-      }
-
       final startedAt = (await now()).millisecondsSinceEpoch;
       runningTask = task
           .withPolicyTags(preflightTags)
@@ -965,7 +1036,15 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       try {
         final latestTask = await repository.loadTaskById(task.id);
         if (latestTask != null && latestTask.status == TaskStatus.running) {
-          final failedTask = latestTask.markFailed('FFmpeg 启动失败: $error');
+          final failedTask = latestTask.markFailed(
+            await _taskFailure(
+              stage: TaskFailureStage.processStart,
+              technicalSummary: 'FFmpeg 启动失败: $error',
+              fallbackCode: TaskFailureCode.processStartFailed,
+              fallbackUserMessage: 'FFmpeg 进程启动失败。',
+            ),
+          );
+          processStartFailedTask = failedTask;
           await repository.saveTask(failedTask);
           await publishTaskFailed(failedTask, failureSummary(failedTask));
         }
@@ -975,15 +1054,11 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       await outputPreflightService.discardPlan(plan);
       await mediaInputPreparer.cleanup(executionInput);
       // 启动失败时释放调度器租约（幂等）
-      try {
-        await lease?.release();
-      } on Object {
-        // Best-effort.
-      }
+      await _releaseLeaseBestEffort(lease);
       await _continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.processStartFailed,
-        task: task,
+        task: processStartFailedTask ?? task,
         message: error.toString(),
       );
     }
@@ -1132,7 +1207,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
       timer.cancel();
       unawaited(
-        processController.terminate(execution.startedProcess).then((_) async {
+        _processLifecycle.terminate(execution).then((_) async {
           // 输出文件缺失：先释放租约（在串行命令外），再进入串行命令收尾。
           await _releaseSchedulerLease(execution);
           await _serializeCommand(() async {
@@ -1191,8 +1266,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       }
     }
 
-    await processController.resume(execution.startedProcess);
-    execution.state = TaskExecutionState.running;
+    await _processLifecycle.resume(execution);
     execution.runSequence = _nextRunSequence();
     final resumedTask = task.markResumed();
     await repository.saveTask(resumedTask);
@@ -1271,8 +1345,14 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           final failedTask = task
               .withPolicyTags(const {MediaTaskPolicyTag.ineffectiveCompression})
               .markFailed(
-                message,
-                failedAt: (await now()).millisecondsSinceEpoch,
+                await _taskFailure(
+                  stage: TaskFailureStage.outputValidation,
+                  technicalSummary: message,
+                  fallbackCode: TaskFailureCode.ineffectiveCompression,
+                  fallbackUserMessage: message,
+                  retryable: false,
+                  mediaKind: task.mediaKind,
+                ),
               )
               .copyWith(clearOutputPath: true);
           await repository.saveTask(failedTask);
@@ -1325,8 +1405,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         );
 
         final failedTask = task.markFailed(
-          'FFmpeg 启动失败: $error',
-          failedAt: (await now()).millisecondsSinceEpoch,
+          await _taskFailure(
+            stage: TaskFailureStage.processStart,
+            technicalSummary: 'FFmpeg 启动失败: $error',
+            fallbackCode: TaskFailureCode.processStartFailed,
+            fallbackUserMessage: 'FFmpeg 进程启动失败。',
+          ),
         );
         await repository.saveTask(failedTask);
         await publishTaskFailed(failedTask, failureSummary(failedTask));
@@ -1352,52 +1436,50 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     await _releaseSchedulerLease(execution);
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
-      late final String? publishedPath;
+      late final CompletedTaskResult completedResult;
       try {
-        publishedPath = await outputPreflightService.publish(currentStep);
-      } on Object catch (error) {
-        await outputPreflightService.discardPlan(execution.plan);
-        final failedTask = task.markFailed(
-          '输出文件发布失败: $error',
-          failedAt: (await now()).millisecondsSinceEpoch,
+        completedResult = await _resultFinalizer.publishCompleted(
+          task: task,
+          step: currentStep,
         );
-        await repository.saveTask(failedTask);
+      } on TaskResultFinalizationException catch (error) {
+        await outputPreflightService.discardPlan(execution.plan);
+        final failedTask = await _resultFinalizer.markFailed(
+          task,
+          TaskFailure(
+            stage: error.stage,
+            code: error.code,
+            userMessage: error.userMessage,
+            technicalSummary: error.technicalSummary,
+            occurredAt: (await now()).millisecondsSinceEpoch,
+            retryable: true,
+          ),
+        );
         await publishTaskFailed(failedTask, failureSummary(failedTask));
         await cleanupPlanFiles(execution.plan);
         await mediaInputPreparer.cleanup(execution.preparedInput);
         return;
       }
-      final completedAt = (await now()).millisecondsSinceEpoch;
-      final taskWithPublishedPath = publishedPath == null
-          ? task
-          : task.copyWith(outputPath: publishedPath);
-      final outputSize = publishedPath == null
-          ? null
-          : await _getFileSize(publishedPath);
-      final completedTask = taskWithPublishedPath.markCompleted(
-        completedAt: completedAt,
-        outputFileSize: outputSize,
-      );
       final durationMs = task.startedAt != null
-          ? completedAt - task.startedAt!
+          ? completedResult.completedAt - task.startedAt!
           : null;
 
       await appendExecutionLogFooter(
         execution.logFile,
         success: true,
-        outputPath: publishedPath,
-        outputSize: outputSize,
+        outputPath: completedResult.outputPath,
+        outputSize: completedResult.outputSize,
         durationMs: durationMs,
       );
 
-      await repository.saveTask(completedTask);
+      await _resultFinalizer.persistCompleted(completedResult);
       await publishTaskCompleted(
-        completedTask,
+        completedResult.task,
         TaskExecutionNotificationSummary(
-          sourceFileSize: taskWithPublishedPath.sourceFileFingerprint?.fileSize,
-          outputFileSize: outputSize,
+          sourceFileSize: task.sourceFileFingerprint?.fileSize,
+          outputFileSize: completedResult.outputSize,
           durationMs: durationMs,
-          outputPath: publishedPath,
+          outputPath: completedResult.outputPath,
         ),
       );
     } else {
@@ -1407,11 +1489,16 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         message: observation.message ?? 'FFmpeg 执行失败',
       );
 
-      final failedTask = task.markFailed(
-        observation.message ?? 'FFmpeg 执行失败',
-        failedAt: (await now()).millisecondsSinceEpoch,
+      final failedTask = await _resultFinalizer.markFailed(
+        task,
+        await _taskFailure(
+          stage: TaskFailureStage.processing,
+          technicalSummary: observation.message ?? 'FFmpeg 执行失败',
+          fallbackCode: TaskFailureCode.processExitedAbnormally,
+          fallbackUserMessage: 'FFmpeg 执行失败。',
+          mediaKind: task.mediaKind,
+        ),
       );
-      await repository.saveTask(failedTask);
       await publishTaskFailed(failedTask, failureSummary(failedTask));
     }
 
@@ -1485,8 +1572,12 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         message: '硬件编码器会话失效后重试启动失败: $error',
       );
       final failedTask = task.markFailed(
-        '硬件编码器会话失效后重试启动失败: $error',
-        failedAt: (await now()).millisecondsSinceEpoch,
+        await _taskFailure(
+          stage: TaskFailureStage.processing,
+          technicalSummary: '硬件编码器会话失效后重试启动失败: $error',
+          fallbackCode: TaskFailureCode.hardwareSessionLost,
+          fallbackUserMessage: '硬件编码会话中断，自动恢复未能成功。',
+        ),
       );
       await repository.saveTask(failedTask);
       await publishTaskFailed(failedTask, failureSummary(failedTask));
@@ -1527,220 +1618,63 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
   }
 
+  Future<TaskFailure> _taskFailure({
+    required TaskFailureStage stage,
+    required String technicalSummary,
+    TaskFailureCode? fallbackCode,
+    String? fallbackUserMessage,
+    bool retryable = true,
+    MediaKind? mediaKind,
+  }) async {
+    return taskFailureFromError(
+      stage: stage,
+      technicalSummary: technicalSummary,
+      occurredAt: (await now()).millisecondsSinceEpoch,
+      mediaKind: mediaKind,
+      fallbackCode: fallbackCode,
+      fallbackUserMessage: fallbackUserMessage,
+      retryable: retryable,
+    );
+  }
+
   TaskExecutionNotificationSummary failureSummary(
     MediaTask task, {
     int? outputFileSize,
     int? durationMs,
   }) {
-    // 通知层展示友好化的失败原因；task.errorMessage 保留原始技术信息
-    // 供任务日志对话框等"主动查看详情"的场景使用。
-    final rawError = task.errorMessage?.trim() ?? '';
-    final friendly = _friendlyFailureInfo(rawError, task.mediaKind);
+    final failure = task.failure;
+    final reason = failure?.userMessage ?? '媒体处理未能完成';
+    final suggestion = failure == null
+        ? '建议查看任务日志获取详细信息，或重试该任务。'
+        : _suggestionForRecovery(failure.recoveryAction);
     return TaskExecutionNotificationSummary(
       sourceFileSize: task.sourceFileFingerprint?.fileSize,
       outputFileSize: outputFileSize,
       durationMs: durationMs,
       outputPath: task.outputPath,
-      failureReason: friendly.reason,
-      failureSuggestion: friendly.suggestion,
+      failureReason: reason,
+      failureSuggestion: suggestion,
     );
   }
 
-  /// 将原始 FFmpeg/系统错误信息翻译成用户友好的通知文案。
-  /// 返回 (友好原因, 友好建议)。未识别的错误走兜底文案，
-  /// 不再把 stderr 技术细节直接暴露给通知和通知中心。
-  ({String reason, String suggestion}) _friendlyFailureInfo(
-    String rawError,
-    MediaKind mediaKind,
-  ) {
-    if (rawError.isEmpty) {
-      return (reason: '媒体处理未能完成', suggestion: '建议查看任务日志获取详细信息，或重试该任务。');
+  String failureSuggestionFor(MediaTask task) {
+    final failure = task.failure;
+    if (failure != null) {
+      return _suggestionForRecovery(failure.recoveryAction);
     }
-
-    final lower = rawError.toLowerCase();
-
-    // 已有的友好化消息（无效压缩、输出文件缺失等）直接透传。
-    if (rawError.contains('不小于源文件') ||
-        rawError.contains('未有效压缩') ||
-        rawError.contains('无法验证')) {
-      final suggestion = mediaKind == MediaKind.image
-          ? '建议切换 WebP/JPG 格式、降低质量，或更换输出格式后重新压缩。'
-          : mediaKind == MediaKind.audio
-          ? '建议降低音频码率、改用更高压缩率的音频格式后重试。'
-          : '建议查看任务日志，确认源文件、输出目录和 FFmpeg 运行时后重试。';
-      return (reason: rawError, suggestion: suggestion);
-    }
-    if (rawError.contains('临时输出文件被删除或移动')) {
-      return (reason: rawError, suggestion: '请确认输出目录未被其他程序占用后重试。');
-    }
-    if (rawError.contains('无响应超时')) {
-      return (
-        reason: '处理进程长时间无响应，已自动终止',
-        suggestion: '可能由网络盘 IO 卡顿或硬件编码器死锁引起，建议重试该任务。',
-      );
-    }
-    if (rawError.contains('硬件编码器会话失效后重试启动失败')) {
-      return (
-        reason: '系统挂起或睡眠导致硬件编码中断，自动恢复未能成功',
-        suggestion: '建议改用软件编码（H.264/H.265 软件模式）后重试该任务。',
-      );
-    }
-
-    // 硬件编码器会话失效（VideoToolbox / NVENC / QSV / AMF）。
-    if ((lower.contains('videotoolbox') ||
-            lower.contains('nvenc') ||
-            lower.contains('_qsv') ||
-            lower.contains('_amf')) &&
-        lower.contains('generic error in an external library')) {
-      return (
-        reason: '系统挂起或睡眠导致硬件编码会话中断',
-        suggestion: '任务已自动尝试恢复。如仍失败，建议改用软件编码后重试。',
-      );
-    }
-
-    // 源文件不可访问。
-    if (lower.contains('no such file or directory') ||
-        lower.contains('could not find file') ||
-        rawError.contains('源文件不存在')) {
-      return (
-        reason: '源文件不可访问，可能已被移动或移除',
-        suggestion: '请确认源文件仍在原位置，且 U 盘/移动硬盘已正确连接后重试。',
-      );
-    }
-
-    // 权限问题 — 区分 FFmpeg 写入失败和目录本身不可写。
-    // FFmpeg 进程被安全软件拦截时也会报 Permission denied，
-    // 但实际原因可能是 Windows Defender 受控文件夹访问阻止了 ffmpeg.exe。
-    if (isPermissionDeniedText(rawError)) {
-      if (isSecuritySoftwareBlockText(rawError)) {
-        return (
-          reason: 'FFmpeg 无法写入所选目录',
-          suggestion:
-              '该目录可能被 Windows 安全中心的“受控文件夹访问”或其他安全软件保护，'
-              '也可能被其他程序占用。请检查 Windows 安全中心的保护历史，'
-              '并确认 FrameLean.exe 和 ffmpeg.exe 未被阻止。',
-        );
-      }
-      return (reason: '没有输出位置的写入权限', suggestion: '请检查输出目录权限，或选择其他保存位置后重试。');
-    }
-
-    // Windows 拒绝访问（Access is denied）。
-    if (lower.contains('access is denied') ||
-        lower.contains('operation not permitted')) {
-      return (reason: '访问被拒绝', suggestion: '请检查输出目录权限，或选择其他保存位置后重试。');
-    }
-
-    // 文件被占用。
-    if (lower.contains('being used by another process') ||
-        lower.contains('sharing violation') ||
-        lower.contains('file in use') ||
-        lower.contains('access to the path is denied') ||
-        rawError.contains('文件正在被其他进程使用') ||
-        rawError.contains('被占用')) {
-      return (
-        reason: '输出文件正在被其他程序使用',
-        suggestion: '请关闭播放器、资源管理器预览或其他占用该文件的程序后重试。',
-      );
-    }
-
-    // 文件名或路径无效。
-    if (lower.contains('no such file or directory') &&
-        (rawError.contains('输出') ||
-            lower.contains('output') ||
-            lower.contains('destination'))) {
-      return (
-        reason: '输出路径无效',
-        suggestion: '路径中可能包含 Windows 不支持的字符或名称，请更换输出位置后重试。',
-      );
-    }
-
-    // FFmpeg 无法打开输出文件。
-    if (lower.contains('could not open file') ||
-        lower.contains('failed to open') ||
-        lower.contains('could not write')) {
-      return (
-        reason: 'FFmpeg 无法写入输出文件',
-        suggestion: '请检查目录权限、磁盘空间、Windows 安全中心保护历史以及安全软件拦截记录。',
-      );
-    }
-
-    // FFmpeg 可执行文件找不到。
-    if (lower.contains('no such file or directory') &&
-        (lower.contains('ffmpeg') || lower.contains('executable'))) {
-      return (
-        reason: 'FFmpeg 可执行文件未找到',
-        suggestion: '请在设置中检查 FFmpeg 路径配置，或使用内置 FFmpeg。',
-      );
-    }
-
-    // 磁盘空间不足。
-    if (lower.contains('no space left on device') ||
-        lower.contains('disk full') ||
-        lower.contains('磁盘空间不足') ||
-        lower.contains('not enough space')) {
-      return (
-        reason: '磁盘空间不足，无法写入输出文件',
-        suggestion: '请清理磁盘空间（至少保留与源文件大小相当的可用空间）后重试。',
-      );
-    }
-
-    // 输出文件发布失败（重命名失败）。
-    if (rawError.contains('输出文件发布失败') ||
-        lower.contains('output file publish failed') ||
-        lower.contains('failed to publish output') ||
-        lower.contains('failed to rename')) {
-      return (
-        reason: '媒体处理已完成，但临时文件无法重命名为最终文件',
-        suggestion: '请检查目标文件是否被其他程序占用，或尝试更换输出目录后重试。',
-      );
-    }
-
-    // 输出目录不可写（预检阶段失败）。
-    if (rawError.contains('输出目录不可写') ||
-        lower.contains('output directory not writable') ||
-        lower.contains('directory not writable')) {
-      return (
-        reason: '输出目录不可写',
-        suggestion: '请确认输出目录存在且当前用户具有写入权限，或更换输出位置后重试。',
-      );
-    }
-
-    // 无法创建输出目录。
-    if ((rawError.contains('无法创建') && rawError.contains('目录')) ||
-        (lower.contains('failed to create') &&
-            (lower.contains('directory') || lower.contains('folder')))) {
-      return (reason: '无法创建输出目录', suggestion: '请确认路径存在且当前用户具有写入权限。');
-    }
-
-    // 编码器不可用。
-    if (lower.contains('unknown encoder') ||
-        lower.contains('encoder not found') ||
-        lower.contains('not currently supported in build')) {
-      return (
-        reason: '当前 FFmpeg 版本不支持所需的编码器',
-        suggestion: '建议在设置中检查 FFmpeg 版本，或改用其他编码器后重试。',
-      );
-    }
-
-    // 源文件损坏 / 格式问题。
-    if (lower.contains('invalid data found') ||
-        lower.contains('moov atom not found') ||
-        lower.contains('error while decoding') ||
-        lower.contains('malformed') ||
-        lower.contains('truncated')) {
-      return (
-        reason: '源文件可能已损坏或格式不受支持',
-        suggestion: '请尝试用其他播放器确认源文件能否正常播放；如文件损坏需重新获取源文件。',
-      );
-    }
-
-    // 兜底：不再暴露 stderr 细节。
-    return (reason: '媒体处理未能完成', suggestion: '建议查看任务日志获取详细信息，或重试该任务。');
+    return '建议查看任务日志获取详细信息，或重试该任务。';
   }
 
-  String failureSuggestionFor(MediaTask task) {
-    final rawError = task.errorMessage?.trim() ?? '';
-    return _friendlyFailureInfo(rawError, task.mediaKind).suggestion;
+  String _suggestionForRecovery(TaskRecoveryAction action) {
+    return switch (action) {
+      TaskRecoveryAction.retryAnalysis => '请确认源文件可正常读取后重新分析。',
+      TaskRecoveryAction.retryExecution => '请重试该任务；如再次失败，请查看任务日志。',
+      TaskRecoveryAction.editConfiguration => '请修改任务格式、编码器或压缩参数后重试。',
+      TaskRecoveryAction.chooseOutputDirectory => '请检查磁盘空间和目录权限，或更换输出位置后重试。',
+      TaskRecoveryAction.relinkSource => '请重新指定仍可访问的源文件。',
+      TaskRecoveryAction.inspectLog => '请查看任务日志获取技术详情。',
+      TaskRecoveryAction.none => '当前错误不适合直接重试，请调整文件或配置后再试。',
+    };
   }
 
   Future<bool?> isStepOutputSmallerThanSource(
@@ -1914,14 +1848,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   /// 调用后 [execution.schedulerLease] 被清空，重复调用安全无副作用。
   Future<void> _releaseSchedulerLease(TaskExecution execution) async {
     _lastProgressPersistMs.remove(execution.taskId);
-    final lease = execution.schedulerLease;
-    // 立即清空以实现幂等：重复调用不会再次释放同一租约。
-    execution.schedulerLease = null;
-    try {
-      await lease?.release();
-    } on Object {
-      // Best-effort.
-    }
+    await _processLifecycle.releaseLease(execution);
   }
 
   Future<void> _continueAfterTask({String? excludedTaskId}) async {
@@ -1931,7 +1858,18 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       return;
     }
 
-    await fillAvailableSlots(excludedTaskId: excludedTaskId);
+    await fillAvailableSlots(
+      allowExtremeCompression: _allowExtremeCompressionForScope,
+      excludedTaskId: excludedTaskId,
+    );
+  }
+
+  Future<void> _releaseLeaseBestEffort(MediaWorkLease? lease) async {
+    try {
+      await lease?.release();
+    } on Object {
+      // Best-effort.
+    }
   }
 
   FfmpegQueueStatus resolveQueueStatus(List<MediaTask> tasks) {
@@ -1943,11 +1881,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     if (_executions.values.any(
           (execution) => execution.state == TaskExecutionState.paused,
         ) ||
-        tasks.any(
-          (task) =>
-              task.status == TaskStatus.pending ||
-              task.status == TaskStatus.paused,
-        )) {
+        tasks.any(isStartableTask)) {
       return FfmpegQueueStatus.ready;
     }
 
@@ -2004,8 +1938,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   }
 
   bool isStartableTask(MediaTask task) {
-    return task.status == TaskStatus.pending ||
-        task.status == TaskStatus.paused;
+    if (task.isAnalysisReady) {
+      return true;
+    }
+    return task.status == TaskStatus.paused && _executions.containsKey(task.id);
   }
 
   int _compareFolderTasksForExecution(MediaTask a, MediaTask b) {

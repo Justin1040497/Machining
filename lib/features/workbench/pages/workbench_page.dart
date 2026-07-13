@@ -20,6 +20,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/t
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_rename_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_import_handler.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/workbench_result_handler.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_windows_privilege.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
@@ -1064,7 +1065,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       fileName: folder.name,
       mediaKind: folder.mediaKind,
       purpose: folder.defaultPurpose,
-      status: TaskStatus.pending,
+      status: TaskStatus.awaitingAnalysis,
       config: folder.defaultConfig,
       progress: 0,
       sortOrder: folder.sortOrder,
@@ -1179,7 +1180,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   void openTask(MediaTask task) {
-    if (task.status == TaskStatus.analyzing) {
+    if (task.isAwaitingAnalysis || task.status == TaskStatus.analyzing) {
       unawaited(
         ref
             .read(appNotificationManagerProvider)
@@ -1645,31 +1646,21 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<void> revealTaskInFileManager(MediaTask task) async {
-    final targetPath = task.outputPath?.trim().isNotEmpty == true
-        ? task.outputPath!.trim()
-        : task.inputPath;
-    final result = await ref.read(fileRevealerProvider).revealPath(targetPath);
-    if (!result.succeeded) {
-      showWorkbenchSnackBar(result.message!);
-    }
+    await _resultHandler.revealTask(task);
   }
 
   Future<void> revealTaskOutput(MediaTask task) async {
-    final outputPath = task.outputPath?.trim();
-    if (outputPath == null || outputPath.isEmpty) {
-      showWorkbenchSnackBar('任务还没有完成文件');
-      return;
-    }
-
-    await revealPathInFileManager(outputPath);
+    await _resultHandler.revealOutput(task);
   }
 
   Future<void> revealPathInFileManager(String targetPath) async {
-    final result = await ref.read(fileRevealerProvider).revealPath(targetPath);
-    if (!result.succeeded) {
-      showWorkbenchSnackBar(result.message!);
-    }
+    await _resultHandler.revealPath(targetPath);
   }
+
+  WorkbenchResultHandler get _resultHandler => WorkbenchResultHandler(
+    fileRevealer: ref.read(fileRevealerProvider),
+    showMessage: showWorkbenchSnackBar,
+  );
 
   Future<void> renameTask(MediaTask task) async {
     await runWorkbenchActionOnce('rename-task:${task.id}', () async {
@@ -2106,7 +2097,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           ),
     );
 
-    await ref.read(mediaTaskListProvider.notifier).saveTask(updatedTask);
+    await ref
+        .read(mediaTaskListProvider.notifier)
+        .saveTask(updatedTask, recoverFromConfigurationFailure: true);
   }
 
   void showWorkbenchSnackBar(String message, {SnackBarAction? action}) {
@@ -2148,6 +2141,7 @@ AppNotificationLevel notificationLevelForWorkbenchMessage(String message) {
 bool _taskNeedsUpdateRestartWarning(MediaTask task) {
   return task.status == TaskStatus.running ||
       task.status == TaskStatus.paused ||
+      task.status == TaskStatus.awaitingAnalysis ||
       task.status == TaskStatus.pending ||
       task.status == TaskStatus.analyzing;
 }

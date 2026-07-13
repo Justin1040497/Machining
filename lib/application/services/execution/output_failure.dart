@@ -1,111 +1,15 @@
-/// 输出处理失败阶段标识。
-///
-/// 用于精确定位媒体任务在输出管线的哪个步骤失败，
-/// 避免所有失败都被统一报告为"输出目录不可写"。
-enum OutputFailureStage {
-  createOutputDirectory,
-  createProbeFile,
-  writeProbeFile,
-  renameProbeFile,
-  deleteProbeFile,
-  createWorkingFile,
-  setWorkingFileHidden,
-  startFfmpeg,
-  ffmpegProcessing,
-  publishOutputFile,
-  removeHiddenAttribute,
-  cleanupWorkingFile,
+import 'package:framelean/domain/library.dart';
+
+TaskFailureCode mapWindowsOsErrorCode(int errorCode) {
+  return switch (errorCode) {
+    2 || 3 || 123 || 206 => TaskFailureCode.invalidOutputPath,
+    5 => TaskFailureCode.outputDirectoryNotWritable,
+    32 || 80 || 183 => TaskFailureCode.outputFileInUse,
+    112 => TaskFailureCode.insufficientDiskSpace,
+    _ => TaskFailureCode.unknown,
+  };
 }
 
-/// 输出错误分类码。
-///
-/// 每个码对应一种具体的失败原因，用户界面应根据此码
-/// 展示针对性的错误提示和建议。
-enum OutputErrorCode {
-  outputDirectoryCreationFailed,
-  outputDirectoryNotWritable,
-  invalidOutputPath,
-  workingFileCreationFailed,
-  ffmpegExecutableNotFound,
-  ffmpegStartFailed,
-  ffmpegOutputOpenFailed,
-  outputFileInUse,
-  outputFileAlreadyExists,
-  outputPublishFailed,
-  insufficientDiskSpace,
-  securitySoftwareBlocked,
-  cleanupFailed,
-  unknownFileSystemError,
-}
-
-/// 输出失败对象，包含完整的诊断信息。
-///
-/// [userMessage] 是面向用户的简洁提示；
-/// [technicalMessage] 保留原始技术信息供日志和调试使用。
-class OutputFailure {
-  final OutputErrorCode code;
-  final OutputFailureStage stage;
-  final String userMessage;
-  final String technicalMessage;
-  final String? path;
-  final int? osErrorCode;
-  final int? processExitCode;
-  final String? processStderr;
-  final Object? originalError;
-  final StackTrace? stackTrace;
-
-  const OutputFailure({
-    required this.code,
-    required this.stage,
-    required this.userMessage,
-    required this.technicalMessage,
-    this.path,
-    this.osErrorCode,
-    this.processExitCode,
-    this.processStderr,
-    this.originalError,
-    this.stackTrace,
-  });
-
-  @override
-  String toString() => technicalMessage;
-}
-
-/// 将 Windows OS 错误码映射为对应的 [OutputErrorCode]。
-///
-/// 参考 Windows System Error Codes:
-/// - 2: 文件或路径不存在
-/// - 3: 找不到路径
-/// - 5: 拒绝访问
-/// - 32: 文件正在被其他进程使用
-/// - 80: 文件已存在
-/// - 112: 磁盘空间不足
-/// - 123: 文件名、目录名或卷标语法错误
-/// - 183: 文件已存在
-/// - 206: 路径或文件名过长
-OutputErrorCode mapWindowsOsErrorCode(int errorCode) {
-  switch (errorCode) {
-    case 2:
-    case 3:
-      return OutputErrorCode.invalidOutputPath;
-    case 5:
-      return OutputErrorCode.outputDirectoryNotWritable;
-    case 32:
-      return OutputErrorCode.outputFileInUse;
-    case 80:
-    case 183:
-      return OutputErrorCode.outputFileAlreadyExists;
-    case 112:
-      return OutputErrorCode.insufficientDiskSpace;
-    case 123:
-    case 206:
-      return OutputErrorCode.invalidOutputPath;
-    default:
-      return OutputErrorCode.unknownFileSystemError;
-  }
-}
-
-/// 判断错误文本是否包含权限拒绝相关关键词。
 bool isPermissionDeniedText(String text) {
   final lower = text.toLowerCase();
   return lower.contains('permission denied') ||
@@ -115,9 +19,107 @@ bool isPermissionDeniedText(String text) {
       lower.contains('拒绝访问');
 }
 
-/// 判断错误文本是否可能是安全软件拦截。
 bool isSecuritySoftwareBlockText(String text) {
   final lower = text.toLowerCase();
   return isPermissionDeniedText(text) &&
       (lower.contains('ffmpeg') || lower.contains('ffmpeg.exe'));
+}
+
+TaskFailure taskFailureFromError({
+  required TaskFailureStage stage,
+  required String technicalSummary,
+  required int occurredAt,
+  MediaKind? mediaKind,
+  TaskFailureCode? fallbackCode,
+  String? fallbackUserMessage,
+  bool retryable = true,
+}) {
+  final raw = technicalSummary.trim();
+  final lower = raw.toLowerCase();
+  var code = fallbackCode ?? TaskFailureCode.unknown;
+  var userMessage = fallbackUserMessage ?? '媒体处理未能完成';
+
+  if (raw.contains('不小于源文件') || raw.contains('未有效压缩') || raw.contains('无法验证')) {
+    code = TaskFailureCode.ineffectiveCompression;
+    userMessage = raw;
+    retryable = false;
+  } else if (raw.contains('临时输出文件被删除或移动')) {
+    code = TaskFailureCode.processInterrupted;
+    userMessage = '运行中的临时输出文件被删除或移动，任务已停止。';
+  } else if (raw.contains('无响应超时') || raw.contains('进度停滞超时')) {
+    code = TaskFailureCode.processStalled;
+    userMessage = '处理进程长时间没有有效进度，已自动终止。';
+  } else if ((lower.contains('videotoolbox') ||
+          lower.contains('nvenc') ||
+          lower.contains('_qsv') ||
+          lower.contains('_amf')) &&
+      (lower.contains('generic error in an external library') ||
+          raw.contains('硬件编码器会话失效'))) {
+    code = TaskFailureCode.hardwareSessionLost;
+    userMessage = '系统挂起或睡眠导致硬件编码会话中断。';
+  } else if (lower.contains('no space left on device') ||
+      lower.contains('disk full') ||
+      raw.contains('磁盘空间不足') ||
+      lower.contains('not enough space')) {
+    code = TaskFailureCode.insufficientDiskSpace;
+    userMessage = '磁盘空间不足，无法写入输出文件。';
+  } else if (isSecuritySoftwareBlockText(raw)) {
+    code = TaskFailureCode.securitySoftwareBlocked;
+    userMessage = 'FFmpeg 无法写入所选目录，可能被系统安全策略拦截。';
+  } else if (isPermissionDeniedText(raw) ||
+      lower.contains('directory not writable') ||
+      raw.contains('输出目录不可写')) {
+    code = TaskFailureCode.outputDirectoryNotWritable;
+    userMessage = '没有输出位置的写入权限。';
+  } else if (lower.contains('being used by another process') ||
+      lower.contains('sharing violation') ||
+      lower.contains('file in use') ||
+      raw.contains('被占用')) {
+    code = TaskFailureCode.outputFileInUse;
+    userMessage = '输出文件正在被其他程序使用。';
+  } else if (raw.contains('输出文件发布失败') ||
+      lower.contains('failed to publish output') ||
+      lower.contains('failed to rename')) {
+    code = TaskFailureCode.outputPublishFailed;
+    userMessage = '媒体处理已完成，但临时文件无法发布为最终文件。';
+  } else if (raw.contains('最终输出文件不存在、为空或不可读') || raw.contains('输出文件缺失')) {
+    code = raw.contains('不可读')
+        ? TaskFailureCode.outputUnreadable
+        : TaskFailureCode.outputMissing;
+    userMessage = '处理结果不存在、为空或无法读取。';
+  } else if (lower.contains('unknown encoder') ||
+      lower.contains('encoder not found') ||
+      lower.contains('not currently supported in build') ||
+      raw.contains('不支持所需的编码器')) {
+    code = TaskFailureCode.encoderUnavailable;
+    userMessage = '当前 FFmpeg 不支持任务所需的编码器。';
+    retryable = false;
+  } else if (lower.contains('invalid data found') ||
+      lower.contains('moov atom not found') ||
+      lower.contains('malformed') ||
+      lower.contains('truncated')) {
+    code = TaskFailureCode.corruptMedia;
+    userMessage = '源文件可能已损坏或格式不受支持。';
+    retryable = false;
+  } else if (lower.contains('no such file or directory') ||
+      lower.contains('could not find file') ||
+      raw.contains('源文件不存在')) {
+    code = TaskFailureCode.sourceUnavailable;
+    userMessage = '源文件不可访问，可能已被移动或移除。';
+  } else if (stage == TaskFailureStage.processStart) {
+    code = TaskFailureCode.processStartFailed;
+    userMessage = fallbackUserMessage ?? 'FFmpeg 进程启动失败。';
+  } else if (stage == TaskFailureStage.processing &&
+      code == TaskFailureCode.unknown) {
+    code = TaskFailureCode.processExitedAbnormally;
+  }
+
+  return TaskFailure(
+    stage: stage,
+    code: code,
+    userMessage: userMessage,
+    technicalSummary: raw.isEmpty ? userMessage : raw,
+    occurredAt: occurredAt,
+    retryable: retryable,
+  );
 }
