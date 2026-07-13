@@ -17,6 +17,8 @@ class WorkbenchBottomBar extends StatelessWidget {
     required this.onOpenSettings,
     required this.onClearTasks,
     required this.onPrimaryQueuePressed,
+    this.addButtonKey,
+    this.primaryQueueButtonKey,
   });
 
   final AsyncValue<List<MediaTask>> taskList;
@@ -29,6 +31,8 @@ class WorkbenchBottomBar extends StatelessWidget {
   final VoidCallback onOpenSettings;
   final VoidCallback onClearTasks;
   final VoidCallback onPrimaryQueuePressed;
+  final Key? addButtonKey;
+  final Key? primaryQueueButtonKey;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +51,7 @@ class WorkbenchBottomBar extends StatelessWidget {
               child: Row(
                 children: [
                   _DockIconButton(
+                    key: addButtonKey,
                     tooltip: '添加文件或文件夹',
                     icon: WorkbenchIcons.add,
                     onPressed: onAddTasks,
@@ -87,6 +92,7 @@ class WorkbenchBottomBar extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _PrimaryQueueButton(
+                  key: primaryQueueButtonKey,
                   hasTasks: hasTasks,
                   hasRunningTask: hasRunningTask,
                   queueActionInFlight: queueActionInFlight,
@@ -103,6 +109,7 @@ class WorkbenchBottomBar extends StatelessWidget {
 
 class _DockIconButton extends StatelessWidget {
   const _DockIconButton({
+    super.key,
     required this.tooltip,
     required this.icon,
     required this.onPressed,
@@ -184,6 +191,7 @@ class _DockIconButtonContent extends StatelessWidget {
 
 class _PrimaryQueueButton extends StatelessWidget {
   const _PrimaryQueueButton({
+    super.key,
     required this.hasTasks,
     required this.hasRunningTask,
     required this.queueActionInFlight,

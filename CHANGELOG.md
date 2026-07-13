@@ -29,6 +29,29 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-14｜v1.2.1｜No Release
+
+新增工作台背景动态引导系统：使用 Canvas 手绘箭头、可组合内容组和场景调度器，根据空队列、有任务、列表空间和窗口尺寸动态调整背景提示，不改变任务列表和底栏的前景交互。
+
+### Added
+
+- 新增 `features/workbench/guide/`，按 `arrow / content / models / scheduler` 拆分动态涂鸦箭头、引导内容组、统一坐标模型和场景调度。
+- 空队列显示导入图标、提示文案和指向添加按钮的动态箭头；有任务且列表空间充足时显示任务操作与全部开始两组提示。
+- 空队列背景板支持双击打开现有任务导入入口。
+- 新增箭头几何与目标移动、Guide Scheduler、场景切换、空间隐藏和空背景双击回归测试。
+
+### Changed
+
+- 工作台锚点通过 `GlobalKey + RenderBox.localToGlobal` 统一转换到背景 Guide Stack 坐标系；任务数量、窗口尺寸和按钮布局变化会重新测量。
+- 首次显示使用手绘 PathMetric 动画；同场景任务增删只执行 700ms `easeOutCubic` 位置 Tween；空队列和任务场景切换使用 350ms Fade Out、100ms 间隔和 600ms Fade In。
+- 列表可滚动或最后一行下方不足 132px 时隐藏任务场景提示，整个引导层使用 `IgnorePointer` 保持前景拖拽、框选、点击和底栏操作不变。
+
+### Verified
+
+- `flutter test` 431 项全部通过，包含新增 13 项工作台 Guide 箭头、调度、加载切换、场景和双击集成测试。
+- `flutter analyze` 无新增 warning / error；仍有 5 项来自当前主线的 info 级提示。
+- 通过浅色工作台 1100×760 视觉预览，检查空队列和任务场景的箭头曲率、层级、目标边缘与文本布局。
+
 ## 2026-07-13｜v1.2.1｜No Release
 
 稳定导入到视频导出的核心链路：统一导入状态语义，修复资源等待时的递归补位和并发分析状态，强化最终输出发布校验，并在兼容现有门面接口的前提下拆分 FFmpeg 执行内核职责。

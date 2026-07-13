@@ -77,6 +77,7 @@ test/
   theme_prefs_reconciler_test.dart
   video_thumbnail_generator_test.dart
   widget_test.dart
+  workbench_background_guide_system_test.dart
   workbench_bottom_bar_test.dart
   workbench_constants_test.dart
   workbench_dialog_style_test.dart
@@ -84,6 +85,9 @@ test/
   workbench_file_revealer_test.dart
   workbench_notice_test.dart
   workbench_preview_notifier_test.dart
+  workbench_guide_arrow_test.dart
+  workbench_guide_scheduler_test.dart
+  workbench_task_list_guide_integration_test.dart
 
 integration_test/
   app_smoke_test.dart
@@ -257,6 +261,10 @@ integration_test/
 
 ### 工作台交互和风格
 
+- 空队列显示导入图标、导入文案和添加按钮手绘箭头；双击空背景调用现有导入入口。
+- 有任务且列表未产生滚动、最后一行下方至少保留 132px 时，同时显示任务操作和全部开始引导；空间不足或可滚动时隐藏。
+- 箭头几何的控制点沿目标方向单调前进，不回头或自相交；首次显示使用 PathMetric 绘制动画，目标变化只执行位置 Tween，不重播绘制动画。
+- 空队列与任务场景互换时先 Fade Out，等待 100ms 后再 Fade In；Guide 层使用 `IgnorePointer`，不影响任务行、任务夹、拖拽、框选和底栏按钮。
 - 任务配置弹窗中“已修改”和“已压缩”只在底部按钮同排左侧显示。
 - 未实际改变配置时不显示“已修改”。
 - 任务列表通过拖拽手柄触发重排时不抛布局异常，且 reorder 回调被触发。

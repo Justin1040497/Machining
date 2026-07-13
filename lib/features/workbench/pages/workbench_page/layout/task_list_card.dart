@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/workbench/guide/models/guide_geometry.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
 import 'package:framelean/features/workbench/workbench_icons.dart';
@@ -50,6 +51,10 @@ class WorkbenchTaskListCard extends StatefulWidget {
     required this.onRelinkFolder,
     required this.onShowFolderLog,
     required this.onDeleteFolder,
+    this.guideViewportKey,
+    this.guideLastTaskKey,
+    this.onGuideMetricsChanged,
+    this.onDoubleTapBackground,
   });
 
   final AsyncValue<List<MediaTask>> taskList;
@@ -79,6 +84,10 @@ class WorkbenchTaskListCard extends StatefulWidget {
   final ValueChanged<TaskFolder> onRelinkFolder;
   final ValueChanged<TaskFolder> onShowFolderLog;
   final ValueChanged<TaskFolder> onDeleteFolder;
+  final GlobalKey? guideViewportKey;
+  final GlobalKey? guideLastTaskKey;
+  final ValueChanged<GuideListMetrics>? onGuideMetricsChanged;
+  final VoidCallback? onDoubleTapBackground;
 
   @override
   State<WorkbenchTaskListCard> createState() => _WorkbenchTaskListCardState();
@@ -102,10 +111,12 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   var _reorderCommitInFlight = false;
   ({List<WorkbenchListItem> items, int oldIndex, int newIndex})?
   _pendingFallbackReorder;
+  GuideListMetrics? _lastReportedGuideMetrics;
+  var _guideMetricsReportScheduled = false;
 
   @override
   Widget build(BuildContext context) {
-    return widget.taskList.when(
+    final content = widget.taskList.when(
       loading: _buildLoading,
       error: (error, stackTrace) => _buildError(error),
       data: (tasks) {
@@ -115,6 +126,17 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
           data: (folders) => _buildList(context, tasks, folders),
         );
       },
+    );
+    _scheduleGuideMetricsReport();
+    return KeyedSubtree(
+      key: widget.guideViewportKey,
+      child: NotificationListener<ScrollMetricsNotification>(
+        onNotification: (notification) {
+          _reportGuideMetrics(notification.metrics.maxScrollExtent > 0);
+          return false;
+        },
+        child: content,
+      ),
     );
   }
 
@@ -271,28 +293,31 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         index != itemCount - 1 ? 0 : 48,
       ),
       child: KeyedSubtree(
-        key: _folderDropKeyFor(folder.id),
-        child: TaskFolderListTile(
-          folder: folder,
-          tasks: folderTasks,
-          onOpenSettings: () => widget.onOpenFolderSettings(folder),
-          onOpenContents: () => widget.onOpenFolderContents(folder),
-          onDelete: () => widget.onDeleteFolder(folder),
-          onStart: () => widget.onStartFolder(folder),
-          onPause: () => widget.onPauseFolder(folder),
-          onRetry: () => widget.onRetryFolder(folder),
-          onRelink: () => widget.onRelinkFolder(folder),
-          onShowLog: () => widget.onShowFolderLog(folder),
-          onSecondaryTapDown: (details) {
-            widget.onFolderContextMenu(folder, details.globalPosition);
-          },
-          dragHandle: _FolderDragHandleSlot(
-            index: index,
-            enabled: dragEnabled,
-            selectionMode: widget.selectionMode,
+        key: index == itemCount - 1 ? widget.guideLastTaskKey : null,
+        child: KeyedSubtree(
+          key: _folderDropKeyFor(folder.id),
+          child: TaskFolderListTile(
+            folder: folder,
+            tasks: folderTasks,
+            onOpenSettings: () => widget.onOpenFolderSettings(folder),
+            onOpenContents: () => widget.onOpenFolderContents(folder),
+            onDelete: () => widget.onDeleteFolder(folder),
+            onStart: () => widget.onStartFolder(folder),
+            onPause: () => widget.onPauseFolder(folder),
+            onRetry: () => widget.onRetryFolder(folder),
+            onRelink: () => widget.onRelinkFolder(folder),
+            onShowLog: () => widget.onShowFolderLog(folder),
+            onSecondaryTapDown: (details) {
+              widget.onFolderContextMenu(folder, details.globalPosition);
+            },
+            dragHandle: _FolderDragHandleSlot(
+              index: index,
+              enabled: dragEnabled,
+              selectionMode: widget.selectionMode,
+            ),
+            dropHighlighted: _hoveredFolderId == folder.id,
+            dropDisabled: dropDisabled,
           ),
-          dropHighlighted: _hoveredFolderId == folder.id,
-          dropDisabled: dropDisabled,
         ),
       ),
     );
@@ -343,8 +368,40 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         27,
         index != itemCount - 1 ? 0 : 48,
       ),
-      child: tile,
+      child: KeyedSubtree(
+        key: index == itemCount - 1 ? widget.guideLastTaskKey : null,
+        child: tile,
+      ),
     );
+  }
+
+  void _scheduleGuideMetricsReport() {
+    if (_guideMetricsReportScheduled || widget.onGuideMetricsChanged == null) {
+      return;
+    }
+    _guideMetricsReportScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _guideMetricsReportScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      final itemContext = widget.guideLastTaskKey?.currentContext;
+      final position = itemContext == null
+          ? null
+          : Scrollable.maybeOf(itemContext, axis: Axis.vertical)?.position;
+      _reportGuideMetrics((position?.maxScrollExtent ?? 0) > 0);
+    });
+  }
+
+  void _reportGuideMetrics(bool hasScrollableContent) {
+    final metrics = GuideListMetrics(
+      hasScrollableContent: hasScrollableContent,
+    );
+    if (_lastReportedGuideMetrics == metrics) {
+      return;
+    }
+    _lastReportedGuideMetrics = metrics;
+    widget.onGuideMetricsChanged?.call(metrics);
   }
 
   bool _canDropTaskIntoFolder(MediaTask task, TaskFolder folder) {
@@ -829,22 +886,10 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   }
 
   Widget _buildEmpty() {
-    return Builder(
-      builder: (context) {
-        final colors = context.frameLeanColors;
-
-        return Center(
-          child: Text(
-            '暂无任务\n点击左下角 + 添加媒体',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colors.textTertiary,
-              fontSize: 12.flSp,
-              height: 1.5,
-            ),
-          ),
-        );
-      },
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: widget.onDoubleTapBackground,
+      child: const SizedBox.expand(),
     );
   }
 }
