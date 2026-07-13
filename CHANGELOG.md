@@ -29,6 +29,42 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-13｜v1.2.1｜No Release
+
+稳定导入到视频导出的核心链路：统一导入状态语义，修复资源等待时的递归补位和并发分析状态，强化最终输出发布校验，并在兼容现有门面接口的前提下拆分 FFmpeg 执行内核职责。
+
+### Added
+
+- 新增批量媒体导入 use case，单文件、批量、拖拽和文件夹导入共享任务创建规则与单次批量持久化。
+- `MediaWorkScheduler` 新增只读容量变化流；新增非重入、可合并的 `ExecutionSlotCoordinator` queue pump。
+- 新增 `TaskProcessLifecycle` 和 `TaskResultFinalizer`，分别承接进程生命周期与结果发布职责。
+- 新增 `awaitingAnalysis` 任务状态、统一执行准入语义和结构化 `TaskFailure`；Drift 升级到 schema 30，以 `failure_json` 跨重启保存失败阶段、错误码、用户提示、技术摘要和可重试性。
+- 新增并发分析、租约恢复补位、输出可用性、旧数据库升级、快速分析 UI 刷新和桌面导出闭环回归测试。
+
+### Changed
+
+- 应用构建号升级到 `7`，版本保持 `1.2.1`。
+- 新导入任务统一先持久化为 `awaitingAnalysis`，分析队列取得执行位后转为 `analyzing`，有效分析结果保存后才进入表示“等待开始”的 `pending`。
+- 单任务、任务夹、连续队列、插队和 Runner 最终防御统一执行准入；未分析任务返回 `notReady`，不会申请编码租约、准备输入、预检输出、构造命令或启动进程。
+- `failed` 保持唯一失败状态；分析失败重试回到 `awaitingAnalysis`，执行 / 发布失败且分析仍有效时回到 `pending`，通知使用用户提示与推导出的恢复动作，技术摘要和完整 stderr 留在日志路径。
+- 分析队列使用活跃任务 ID 集合跟踪并发任务，停止时等待活跃清理完成后再关闭状态流。
+- FFmpeg 队列在租约不足时立即返回 `queued` 并结束当前补位轮次；租约释放或资源压力恢复后由异步 queue pump 自动补位。
+- 工作台的最终文件定位编排迁入 `WorkbenchResultHandler`，页面保留交互与展示职责。
+
+### Fixed
+
+- 修复资源被分析任务占用时重复选择、重复准备输入、递归补位或忙循环的问题。
+- 修复并发分析时只能查询和取消单个当前任务，以及队列关闭后异步回调的问题。
+- 修复快速分析完成后仓储已更新但工作台仍停留在旧状态的问题。
+- 修复发布失败或最终文件不可读时仍可能保存 `completed` 和无效 `outputPath` 的问题。
+
+### Verified
+
+- `flutter test` 418 项全部通过；覆盖导入、分析、执行硬准入、容量补位、队列顺序、暂停 / 取消、结构化失败、输出发布和 schema 21 / 24 / 28 / 29 升级到 schema 30。
+- macOS Debug 桌面集成烟测 5 项全部通过并正常退出；新增场景完成选择视频、分析、启动、模拟进程写出、发布、完成卡片和打开最终输出位置。
+- `flutter analyze` 零新增问题；仍有 5 项来自当前主线的 info 级提示。
+- 正式安装包的 Apple Silicon、Intel Mac 和 Windows x64 三轮真实视频矩阵仍是发布前硬门槛，尚未在本工作区执行。
+
 ## 2026-07-12｜v1.2.1｜No Release
 
 修复媒体分析卡死和任务执行死锁：调度器新增非阻塞 `tryAcquire` 方法，中断 `_serializeCommand` 串行命令锁与 `scheduler.acquire()` 无限等待形成的死锁链；同时修复分析队列永久去重、暂停不释放编码槽位、导入过早写入 `analyzing` 状态和进度假活检测问题。

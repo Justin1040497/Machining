@@ -2,6 +2,33 @@
 
 这个文件只记录可复用经验，不写每日日志。条目应能帮助后续避免同类错误。
 
+## 资源恢复补位应事件驱动且不可重入
+
+经验：
+
+- 调度器暂时无租约时，启动入口必须立即返回排队状态；如果在 `startTask()` 内同步调用后续补位，会反复选中同一个任务并形成递归或忙循环。
+- 租约释放和资源压力恢复应提供只读容量事件，由单独的 queue pump 异步补位；同一时段的多个事件需要合并，保证一次容量恢复只触发一轮补位。
+- 当前补位轮次一旦遇到资源等待就应结束，避免重复执行输入准备、输出预检和命令构造等有副作用或高成本操作。
+
+关联：
+
+- `lib/application/services/execution/execution_slot_coordinator.dart`
+- `lib/application/services/execution/media_work_scheduler.dart`
+- `lib/application/services/execution/ffmpeg_task_queue_runner.dart`
+
+## 短异步任务完成后不要依赖轮询刷新 UI
+
+经验：
+
+- 分析任务可能在第一次轮询前就完成；只观察某个中间快照或固定延时轮询，会错过状态变化并让仓储已完成、界面仍显示等待中的状态长期不一致。
+- 批量入队后应等待队列达到空闲，再从仓储刷新一次列表；队列内部负责 `awaitingAnalysis -> analyzing -> pending/failed` 的语义状态转换。
+- 停止并发队列时要先阻止新任务、等待活跃清理完成，再关闭状态流，避免异步回调写入已关闭的 stream。
+
+关联：
+
+- `lib/application/services/analysis/media_analysis_queue.dart`
+- `lib/features/workbench/providers/media_task_notifier.dart`
+
 ## 串行命令区内不要调用可能无限等待的异步方法
 
 经验：

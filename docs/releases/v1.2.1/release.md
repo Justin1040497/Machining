@@ -79,7 +79,7 @@ FrameLean-v1.2.1-windows-x64-setup.exe.update.json
 
 ## 升级与回滚说明
 
-- 可从 v1.2.0 直接升级到 v1.2.1；启动时由 Drift 把本地数据库迁移到 schema 29。
+- 可从 v1.2.0 直接升级到 v1.2.1；启动时由 Drift 把本地数据库迁移到 schema 30。schema 30 只新增 nullable `tasks.failure_json`，旧错误列继续保留用于降级兼容。
 - 升级前建议备份应用支持目录中的 `framelean.sqlite`。v1.2.0 无法完整理解任务夹、通知策略、快捷键、关闭行为、输出位置模式和 partial 运行时状态；回滚前应恢复升级前数据库备份。
 - 当前默认由用户从外部下载页手动安装新版；回滚时重新安装 v1.2.0，并恢复对应数据库备份。
 - 已发布的媒体输出不会随数据库回滚自动删除；回滚前应检查输出目录附近是否残留 `.framelean-*.partial*`。
