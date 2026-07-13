@@ -384,14 +384,20 @@ class RetryTaskFolderTerminalTasksUseCase {
       }
 
       final fingerprint = await fingerprintReader.read(task.inputPath);
-      final analyzingTask = task
+      final shouldAnalyze =
+          task.analysisResult == null ||
+          task.failure?.recoveryAction == TaskRecoveryAction.retryAnalysis;
+      var pendingTask = task
           .markPendingForRetry()
           .clearError()
-          .withSourceFileFingerprint(fingerprint)
-          .clearAnalysis()
-          .copyWith(status: TaskStatus.analyzing);
-      await repository.saveTask(analyzingTask);
-      taskIdsNeedingAnalysis.add(task.id);
+          .withSourceFileFingerprint(fingerprint);
+      if (shouldAnalyze) {
+        pendingTask = pendingTask.clearAnalysis().markAwaitingAnalysis();
+      }
+      await repository.saveTask(pendingTask);
+      if (shouldAnalyze) {
+        taskIdsNeedingAnalysis.add(task.id);
+      }
     }
 
     return TaskFolderBatchTasksResult(

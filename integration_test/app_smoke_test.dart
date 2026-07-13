@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/app/library.dart';
+import 'package:framelean/app/providers/ffmpeg_planning_provider.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/library.dart';
@@ -22,13 +23,13 @@ void main() {
     expect(find.textContaining('暂无任务'), findsOneWidget);
 
     await tester.tap(find.byTooltip('设置'));
-    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.text('返回工作台'));
 
     expect(find.text('返回工作台'), findsOneWidget);
     expect(find.text('应用设置'), findsWidgets);
 
     await tester.tap(find.text('返回工作台'));
-    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.textContaining('暂无任务'));
     expect(find.textContaining('暂无任务'), findsOneWidget);
   });
 
@@ -68,6 +69,61 @@ void main() {
       expect(find.text('podcast-b.mp3'), findsOneWidget);
     },
   );
+
+  testWidgets('imports analyzes exports and reveals a video result', (
+    tester,
+  ) async {
+    final tempDir = await createTempDirectory();
+    final source = await createFixtureFile(tempDir, '稳定链路 source.mp4');
+    final selection = FakeFileSelectionService(
+      importPaths: [source.path],
+      defaultExportPath: tempDir.path,
+    );
+    final revealer = FakeFileRevealer();
+
+    final fixture = await pumpFrameLeanApp(
+      tester,
+      overrides: [
+        fileSelectionServiceProvider.overrideWithValue(selection),
+        fileRevealerProvider.overrideWithValue(revealer),
+        ffmpegRuntimeProvider.overrideWithBuild(
+          (ref, notifier) => fakeExecutableFfmpegRuntime,
+        ),
+        mediaAnalyzerProvider.overrideWithValue(FakeMediaAnalyzer()),
+        ffmpegCommandBuilderProvider.overrideWithValue(
+          const FakeIntegrationCommandBuilder(),
+        ),
+        ffmpegProcessStarterProvider.overrideWithValue(
+          const FakeIntegrationProcessStarter(),
+        ),
+        ffmpegProcessControllerProvider.overrideWithValue(
+          const FakeIntegrationProcessController(),
+        ),
+        ffmpegProcessObserverProvider.overrideWithValue(
+          const FakeIntegrationProcessObserver(),
+        ),
+      ],
+    );
+
+    await tester.tap(find.byTooltip('添加文件或文件夹'));
+    await pumpUntilFound(tester, find.text('稳定链路 source.mp4'));
+    final analyzedTask = await pumpUntilAnalyzedTask(tester, fixture);
+    expect(analyzedTask.status, TaskStatus.pending);
+    expect(analyzedTask.analysisResult, isNotNull);
+    final startAction = find.byIcon(Icons.play_circle_fill_rounded);
+    await pumpUntilFound(tester, startAction);
+
+    await pressIconAction(tester, startAction);
+    final revealAction = find.byIcon(Icons.file_open_outlined);
+    await pumpUntilFound(tester, revealAction);
+
+    await pressIconAction(tester, revealAction);
+    await tester.pump();
+
+    expect(revealer.paths, hasLength(1));
+    expect(await File(revealer.paths.single).exists(), isTrue);
+    expect(await File(revealer.paths.single).length(), greaterThan(0));
+  });
 
   testWidgets('opens persisted notifications and clears them from the center', (
     tester,
@@ -139,6 +195,17 @@ const fakeFfmpegRuntime = ResolvedFfmpegRuntime(
   ),
 );
 
+const fakeExecutableFfmpegRuntime = ResolvedFfmpegRuntime(
+  ffmpeg: ResolvedFfmpegTool(
+    path: '/framelean-test/ffmpeg',
+    source: FfmpegBinarySource.systemPath,
+  ),
+  ffprobe: ResolvedFfmpegTool(
+    path: '/framelean-test/ffprobe',
+    source: FfmpegBinarySource.systemPath,
+  ),
+);
+
 const testRelease = AppReleaseInfo(
   version: '1.2.2',
   buildNumber: 6,
@@ -175,6 +242,9 @@ Future<AppIntegrationFixture> pumpFrameLeanApp(
       overrides: [
         appDatabaseProvider.overrideWithValue(appDatabase),
         appRuntimeEffectsEnabledProvider.overrideWithValue(false),
+        taskCompletionSoundPlayerProvider.overrideWithValue(
+          const FakeTaskCompletionSoundPlayer(),
+        ),
         ...overrides,
       ],
       child: const FrameLeanApp(),
@@ -185,6 +255,14 @@ Future<AppIntegrationFixture> pumpFrameLeanApp(
   final container = ProviderScope.containerOf(
     tester.element(find.byType(FrameLeanApp)),
   );
+  final analysisQueue = container.read(mediaAnalysisQueueProvider);
+  final taskQueueRunner = container.read(ffmpegTaskQueueRunnerProvider);
+  final workScheduler = container.read(mediaWorkSchedulerProvider);
+  addTearDown(() async {
+    await analysisQueue.stop();
+    await taskQueueRunner.dispose();
+    await workScheduler.stop();
+  });
   return AppIntegrationFixture(database: appDatabase, container: container);
 }
 
@@ -197,11 +275,51 @@ Future<void> pumpUntilFound(
   while (DateTime.now().isBefore(end)) {
     await tester.pump(const Duration(milliseconds: 100));
     if (tester.any(finder)) {
-      await tester.pumpAndSettle();
+      // The real app owns periodic resource-monitor timers after media work is
+      // initialized, so pumpAndSettle would wait forever even though the UI
+      // condition is already satisfied.
+      await tester.pump(const Duration(milliseconds: 500));
       return;
     }
   }
   expect(finder, findsOneWidget);
+}
+
+Future<void> pressIconAction(WidgetTester tester, Finder iconFinder) async {
+  final buttonFinder = find.ancestor(
+    of: iconFinder,
+    matching: find.byType(IconButton),
+  );
+  expect(buttonFinder, findsOneWidget);
+  final onPressed = tester.widget<IconButton>(buttonFinder).onPressed;
+  expect(onPressed, isNotNull);
+  onPressed!();
+  await tester.pump();
+}
+
+Future<MediaTask> pumpUntilAnalyzedTask(
+  WidgetTester tester,
+  AppIntegrationFixture fixture, {
+  Duration timeout = const Duration(seconds: 5),
+}) async {
+  final end = DateTime.now().add(timeout);
+  MediaTask? latest;
+  while (DateTime.now().isBefore(end)) {
+    await tester.pump(const Duration(milliseconds: 100));
+    final tasks = await fixture.container
+        .read(mediaTaskRepositoryProvider)
+        .loadAllTasks();
+    if (tasks.isNotEmpty) {
+      latest = tasks.single;
+      if (latest.analysisResult != null) {
+        return latest;
+      }
+    }
+  }
+  fail(
+    '等待媒体分析超时，最后状态: '
+    '${latest?.status}, 错误: ${latest?.errorMessage ?? latest?.analysisErrorMessage}',
+  );
 }
 
 Future<Directory> createTempDirectory() async {
@@ -228,6 +346,13 @@ class AppIntegrationFixture {
 
   final AppDatabase database;
   final ProviderContainer container;
+}
+
+class FakeTaskCompletionSoundPlayer implements TaskCompletionSoundPlayer {
+  const FakeTaskCompletionSoundPlayer();
+
+  @override
+  Future<void> play(TaskCompletionSound sound) async {}
 }
 
 class FakeFileSelectionService implements FileSelectionService {
@@ -299,6 +424,87 @@ class FakeMediaAnalyzer implements MediaAnalyzer {
       audioCodec: 'aac',
       containerFormat: 'mp4',
     );
+  }
+}
+
+class FakeIntegrationCommandBuilder implements FfmpegCommandBuilder {
+  const FakeIntegrationCommandBuilder();
+
+  @override
+  FfmpegCommandPlan build(
+    MediaTask task, {
+    bool allowExtremeCompression = false,
+    FfmpegEncoderCapabilities encoderCapabilities =
+        FfmpegEncoderCapabilities.softwareOnly,
+  }) {
+    final outputPath = p.join(
+      p.dirname(task.inputPath),
+      '${p.basenameWithoutExtension(task.inputPath)}-压缩.mp4',
+    );
+    return FfmpegCommandPlan(
+      args: ['-i', task.inputPath, outputPath],
+      outputPath: outputPath,
+      logHint: '集成烟测模拟输出',
+    );
+  }
+}
+
+class FakeIntegrationProcessStarter implements FfmpegProcessStarter {
+  const FakeIntegrationProcessStarter();
+
+  @override
+  Future<StartedFfmpegProcess> start({
+    required String ffmpegPath,
+    required List<String> args,
+    required File logFile,
+  }) async {
+    await File(args.last).writeAsBytes([1, 2, 3, 4], flush: true);
+    final process = Platform.isWindows
+        ? await Process.start('cmd.exe', ['/c', 'exit', '0'])
+        : await Process.start('/usr/bin/true', const []);
+    return StartedFfmpegProcess(process: process, logFile: logFile);
+  }
+}
+
+class FakeIntegrationProcessController implements FfmpegProcessController {
+  const FakeIntegrationProcessController();
+
+  @override
+  Future<void> pause(StartedFfmpegProcess startedProcess) async {}
+
+  @override
+  Future<void> resume(StartedFfmpegProcess startedProcess) async {}
+
+  @override
+  Future<void> terminate(StartedFfmpegProcess startedProcess) async {
+    startedProcess.process.kill();
+  }
+}
+
+class FakeIntegrationProcessObserver implements FfmpegProcessObserver {
+  const FakeIntegrationProcessObserver();
+
+  @override
+  Future<FfmpegProcessObservation> observe({
+    required StartedFfmpegProcess startedProcess,
+    required MediaTask task,
+    required String? outputPath,
+    ProgressMode progressMode = ProgressMode.timed,
+    required Future<void> Function(double progress) onProgress,
+  }) async {
+    await onProgress(1);
+    await startedProcess.process.exitCode;
+    return const FfmpegProcessObservation.completed();
+  }
+}
+
+class FakeFileRevealer implements FileRevealer {
+  final List<String> paths = [];
+
+  @override
+  Future<FileRevealResult> revealPath(String targetPath) async {
+    paths.add(targetPath);
+    return const FileRevealResult.success();
   }
 }
 

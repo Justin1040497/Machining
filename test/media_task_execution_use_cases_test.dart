@@ -249,6 +249,12 @@ class FakeTaskFolderRepository implements TaskFolderRepository {
 
 class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   @override
+  Future<void> dispose() async {}
+
+  @override
+  void requestQueueRefill() {}
+
+  @override
   String? foregroundTaskId;
 
   @override

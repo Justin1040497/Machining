@@ -60,6 +60,7 @@ export 'value_objects/media_audio_stream_info.dart';
 export 'value_objects/media_task_config.dart';
 export 'value_objects/proprietary_audio_decode_result.dart';
 export 'value_objects/source_file_fingerprint.dart';
+export 'value_objects/task_failure.dart';
 export 'value_objects/task_notification_payload.dart';
 export 'value_objects/update_notification_payload.dart';
 export 'value_objects/video_output_compatibility.dart';

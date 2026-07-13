@@ -6,6 +6,7 @@ import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 import 'package:framelean/infrastructure/repositories/mappers/compression_mode_mapper.dart';
 import 'package:framelean/infrastructure/repositories/mappers/media_task_config_json_mapper.dart';
+import 'package:framelean/infrastructure/repositories/mappers/task_failure_json_mapper.dart';
 
 /// 用 Drift + SQLite 实现任务列表的读取、保存和删除
 class DriftMediaTaskRepository implements MediaTaskRepository {
@@ -31,9 +32,9 @@ class DriftMediaTaskRepository implements MediaTaskRepository {
 
   @override
   Future<MediaTask?> loadTaskById(String taskId) async {
-    final row = await (database.select(database.taskRows)
-          ..where((table) => table.id.equals(taskId)))
-        .getSingleOrNull();
+    final row = await (database.select(
+      database.taskRows,
+    )..where((table) => table.id.equals(taskId))).getSingleOrNull();
     return row?.toDomain();
   }
 
@@ -43,9 +44,9 @@ class DriftMediaTaskRepository implements MediaTaskRepository {
     if (idSet.isEmpty) {
       return const [];
     }
-    final rows = await (database.select(database.taskRows)
-          ..where((table) => table.id.isIn(idSet)))
-        .get();
+    final rows = await (database.select(
+      database.taskRows,
+    )..where((table) => table.id.isIn(idSet))).get();
     return rows.map((row) => row.toDomain()).toList();
   }
 
@@ -151,6 +152,7 @@ extension MediaTaskMapper on MediaTask {
       outputPath: Value(outputPath),
       outputFileSize: Value(outputFileSize),
       errorMessage: Value(errorMessage),
+      failureJson: Value(encodeTaskFailure(failure)),
       policyTagsJson: Value(encodePolicyTags(policyTags)),
       sourceFileSize: Value(sourceFileFingerprint?.fileSize),
       sourceLastModifiedAt: Value(sourceFileFingerprint?.lastModifiedAt),
@@ -205,7 +207,11 @@ extension MediaTaskMapper on MediaTask {
       analysisImagePixelFormat: Value(analysisResult?.imagePixelFormat),
       analysisImageBitDepth: Value(analysisResult?.imageBitDepth),
       analysisUpdatedAt: Value(analysisUpdatedAt),
-      analysisErrorMessage: Value(analysisErrorMessage),
+      analysisErrorMessage: Value(
+        failure?.stage == TaskFailureStage.analysis
+            ? failure?.userMessage
+            : null,
+      ),
       outputFormat: Value(
         legacyVideoConfig.outputFormat.toVideoOutputFormat().name,
       ),
@@ -233,13 +239,14 @@ extension MediaTaskMapper on MediaTask {
 extension TaskRowMapper on TaskRow {
   MediaTask toDomain() {
     final resolvedMediaKind = enumValueByName(MediaKind.values, mediaKind);
+    final resolvedStatus = enumValueByName(TaskStatus.values, status);
     return MediaTask(
       id: id,
       inputPath: inputPath,
       fileName: fileName,
       mediaKind: resolvedMediaKind,
       purpose: enumValueByName(TaskPurpose.values, purpose),
-      status: enumValueByName(TaskStatus.values, status),
+      status: resolvedStatus,
       config: toMediaTaskConfig(resolvedMediaKind),
       progress: progress,
       sortOrder: sortOrder,
@@ -247,12 +254,17 @@ extension TaskRowMapper on TaskRow {
       folderSortOrder: folderSortOrder,
       outputPath: outputPath,
       outputFileSize: outputFileSize,
-      errorMessage: errorMessage,
+      failure: decodeTaskFailure(
+        failureJson,
+        status: resolvedStatus,
+        legacyErrorMessage: errorMessage,
+        legacyAnalysisErrorMessage: analysisErrorMessage,
+        failedAt: failedAt,
+      ),
       policyTags: decodePolicyTags(policyTagsJson),
       sourceFileFingerprint: toSourceFileFingerprint(),
       analysisResult: toMediaAnalysisResult(),
       analysisUpdatedAt: analysisUpdatedAt,
-      analysisErrorMessage: analysisErrorMessage,
       createdAt: createdAt,
       startedAt: startedAt,
       completedAt: completedAt,

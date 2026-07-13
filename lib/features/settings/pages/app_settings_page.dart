@@ -235,9 +235,12 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                   onOpenExternalLink: openExternalLink,
                   onCheckUpdate: checkUpdateAndShowNotice,
                   onStartOrResumeUpdateDownload: () {
-                    final updateState =
-                        ref.read(appUpdateProvider).asData?.value;
-                    if (updateState?.release?.hasExternalDownloadLinks ?? false) {
+                    final updateState = ref
+                        .read(appUpdateProvider)
+                        .asData
+                        ?.value;
+                    if (updateState?.release?.hasExternalDownloadLinks ??
+                        false) {
                       return checkUpdateAndShowNotice();
                     }
                     return ref
@@ -273,6 +276,7 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
 bool _taskNeedsUpdateRestartWarning(MediaTask task) {
   return task.status == TaskStatus.running ||
       task.status == TaskStatus.paused ||
+      task.status == TaskStatus.awaitingAnalysis ||
       task.status == TaskStatus.pending ||
       task.status == TaskStatus.analyzing;
 }

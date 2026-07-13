@@ -26,7 +26,8 @@ extension WorkbenchTaskStatusIcon on TaskStatus {
   IconData get actionIcon {
     return switch (this) {
       TaskStatus.pending => Icons.play_circle_fill_rounded,
-      TaskStatus.analyzing => Icons.play_circle_fill_rounded,
+      TaskStatus.awaitingAnalysis ||
+      TaskStatus.analyzing => Icons.hourglass_top_rounded,
       TaskStatus.running => Icons.pause_rounded,
       TaskStatus.paused => Icons.play_arrow_rounded,
       TaskStatus.completed => Icons.replay_rounded,
@@ -38,13 +39,14 @@ extension WorkbenchTaskStatusIcon on TaskStatus {
   /// 返回该状态下主操作按钮的 tooltip 文案。
   String get actionTooltip {
     return switch (this) {
+      TaskStatus.awaitingAnalysis => '等待分析',
+      TaskStatus.analyzing => '正在分析',
       TaskStatus.pending => '开始压缩',
       TaskStatus.running => '暂停任务',
       TaskStatus.paused => '继续任务',
       TaskStatus.completed => '重来',
       TaskStatus.failed || TaskStatus.cancelled => '重试任务',
       TaskStatus.missingSource => '重新链接源文件',
-      _ => '开始压缩',
     };
   }
 }
@@ -82,10 +84,12 @@ extension WorkbenchTaskContextMenuActionIcon on TaskContextMenuAction {
 // TaskFolderContextMenuAction → 图标
 // ---------------------------------------------------------------------------
 
-extension WorkbenchTaskFolderContextMenuActionIcon on TaskFolderContextMenuAction {
+extension WorkbenchTaskFolderContextMenuActionIcon
+    on TaskFolderContextMenuAction {
   IconData get icon {
     return switch (this) {
-      TaskFolderContextMenuAction.rename => Icons.drive_file_rename_outline_rounded,
+      TaskFolderContextMenuAction.rename =>
+        Icons.drive_file_rename_outline_rounded,
       TaskFolderContextMenuAction.openContents => Icons.folder_open_rounded,
       TaskFolderContextMenuAction.showLog => Icons.description_outlined,
       TaskFolderContextMenuAction.delete => Icons.delete_outline_rounded,

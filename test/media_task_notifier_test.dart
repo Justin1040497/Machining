@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
+import 'package:framelean/application/services/analysis/media_analysis_queue.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
@@ -100,6 +101,75 @@ void main() {
       expect(task.config.videoCodec, VideoCodec.hevc);
       expect(task.config.smartPreset, SmartCompressionPreset.chat);
       expect(task.config.outputFileName, 'source-压缩');
+    });
+
+    test(
+      'batch imports persist awaiting-analysis tasks before analysis takes over',
+      () async {
+        final repository = FakeMediaTaskRepository([]);
+        final container = testContainer(
+          repository: repository,
+          sourceFileChecker: const FakeSourceFileChecker(
+            existingPaths: {'/videos/first.mp4', '/videos/second.mov'},
+          ),
+          fingerprintReader: FakeSourceFileFingerprintReader(
+            fingerprint: testFingerprint,
+          ),
+        );
+
+        await container.read(mediaTaskListProvider.future);
+        final tasks = await container
+            .read(mediaTaskListProvider.notifier)
+            .createDraftsFromPaths([
+              '/videos/first.mp4',
+              '/videos/unsupported.txt',
+              '/videos/second.mov',
+            ]);
+
+        expect(tasks, hasLength(2));
+        expect(
+          tasks.every((task) => task.status == TaskStatus.awaitingAnalysis),
+          isTrue,
+        );
+      },
+    );
+
+    test('refreshes UI state after a fast analysis finishes', () async {
+      final repository = FakeMediaTaskRepository([]);
+      final queue = MediaAnalysisQueue(
+        analyzeTask: (taskId) async {
+          final task = (await repository.loadTaskById(taskId))!;
+          final analyzedTask = task
+              .markAnalyzing()
+              .withAnalysisResult(MediaAnalysisResult(durationMs: 1000))
+              .markAnalysisReady();
+          await repository.saveTask(analyzedTask);
+          return analyzedTask;
+        },
+      );
+      addTearDown(queue.stop);
+      final container = testContainer(
+        repository: repository,
+        sourceFileChecker: const FakeSourceFileChecker(
+          existingPaths: {'/videos/fast.mp4'},
+        ),
+        fingerprintReader: FakeSourceFileFingerprintReader(
+          fingerprint: testFingerprint,
+        ),
+        analysisQueue: queue,
+      );
+      addTearDown(container.dispose);
+
+      await container.read(mediaTaskListProvider.future);
+      await container
+          .read(mediaTaskListProvider.notifier)
+          .createDraftsFromPaths(['/videos/fast.mp4']);
+      await queue.waitForCompletion();
+      await Future<void>.delayed(Duration.zero);
+
+      final task = container.read(mediaTaskListProvider).requireValue.single;
+      expect(task.status, TaskStatus.pending);
+      expect(task.analysisResult, isNotNull);
     });
 
     test(
@@ -244,7 +314,7 @@ void main() {
           .retryTaskById(failedTask.id);
 
       final updatedTask = repository.taskById(failedTask.id);
-      expect(updatedTask.status, TaskStatus.analyzing);
+      expect(updatedTask.status, TaskStatus.pending);
       expect(updatedTask.config.outputLocationMode, OutputLocationMode.system);
       expect(updatedTask.config.outputDirectory, isEmpty);
       expect(updatedTask.config.outputFileName, 'source-h264');
@@ -328,6 +398,7 @@ ProviderContainer testContainer({
   required FakeSourceFileChecker sourceFileChecker,
   required FakeSourceFileFingerprintReader fingerprintReader,
   FakeAppSettingsRepository? appSettingsRepository,
+  MediaAnalysisQueue? analysisQueue,
 }) {
   return ProviderContainer.test(
     overrides: [
@@ -344,6 +415,8 @@ ProviderContainer testContainer({
       ffmpegTaskQueueRunnerProvider.overrideWithValue(
         FakeFfmpegTaskQueueRunner(),
       ),
+      if (analysisQueue != null)
+        mediaAnalysisQueueProvider.overrideWithValue(analysisQueue),
     ],
   );
 }
@@ -604,6 +677,9 @@ class FakeAppSettingsRepository implements AppSettingsRepository {
 
 class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   @override
+  void requestQueueRefill() {}
+
+  @override
   String? foregroundTaskId;
 
   @override
@@ -624,6 +700,9 @@ class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
   @override
   Future<void> cancelAllExecutions() async {}
+
+  @override
+  Future<void> dispose() async {}
 
   @override
   Future<FfmpegQueueStartResult> cancelTask(String taskId) async {

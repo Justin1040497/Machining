@@ -55,14 +55,24 @@ class LocalInterruptedOutputCleaner {
       // analyzing：FFprobe 进程已消亡，恢复为 pending 等待重新分析。
       if (task.status == TaskStatus.running ||
           task.status == TaskStatus.paused) {
+        final occurredAt = DateTime.now().millisecondsSinceEpoch;
         final failedTask = task
-            .markFailed('应用上次异常退出，未完成的临时输出已清理，请重新开始任务。')
+            .markFailed(
+              TaskFailure(
+                stage: TaskFailureStage.recovery,
+                code: TaskFailureCode.applicationInterrupted,
+                userMessage: '应用上次异常退出，未完成的任务需要重新开始。',
+                technicalSummary: '应用上次异常退出，未完成的临时输出已清理。',
+                occurredAt: occurredAt,
+                retryable: true,
+              ),
+            )
             .copyWith(clearOutputPath: true);
         await repository.saveTask(failedTask);
         failedTaskCount += 1;
       } else if (task.status == TaskStatus.analyzing) {
-        // FFprobe 进程在重启后已不存在，恢复为 pending 以便重新分析。
-        final recoveredTask = task.copyWith(status: TaskStatus.pending);
+        // FFprobe 进程在重启后已不存在，恢复为等待分析。
+        final recoveredTask = task.markAwaitingAnalysis();
         await repository.saveTask(recoveredTask);
         failedTaskCount += 1;
       }

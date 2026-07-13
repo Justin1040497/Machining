@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 29;
+  int get schemaVersion => 30;
 
   @override
   MigrationStrategy get migration {
@@ -409,6 +409,9 @@ class AppDatabase extends _$AppDatabase {
             settingsRows,
             settingsRows.closeBehavior,
           );
+        }
+        if (from < 30) {
+          await _safeAddColumn(migrator, taskRows, taskRows.failureJson);
         }
       },
     );

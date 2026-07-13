@@ -5,6 +5,7 @@ import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/task_failure.dart';
 import 'package:uuid/uuid.dart';
 
 class MediaTask {
@@ -21,12 +22,11 @@ class MediaTask {
   final int? folderSortOrder;
   final String? outputPath;
   final int? outputFileSize;
-  final String? errorMessage;
+  final TaskFailure? failure;
   final Set<MediaTaskPolicyTag> policyTags;
   final SourceFileFingerprint? sourceFileFingerprint;
   final MediaAnalysisResult? analysisResult;
   final int? analysisUpdatedAt;
-  final String? analysisErrorMessage;
   final int createdAt;
   final int? startedAt;
   final int? completedAt;
@@ -57,7 +57,7 @@ class MediaTask {
       fileName: fileName,
       mediaKind: mediaKind,
       purpose: purpose,
-      status: TaskStatus.pending,
+      status: TaskStatus.awaitingAnalysis,
       config: MediaTaskConfig.normalize(config, mediaKind),
       progress: 0,
       sortOrder: sortOrder,
@@ -79,12 +79,11 @@ class MediaTask {
     int? createdAt,
     this.outputPath,
     this.outputFileSize,
-    this.errorMessage,
+    this.failure,
     Set<MediaTaskPolicyTag> policyTags = const {},
     this.sourceFileFingerprint,
     this.analysisResult,
     this.analysisUpdatedAt,
-    this.analysisErrorMessage,
     this.startedAt,
     this.completedAt,
     this.failedAt,
@@ -114,8 +113,8 @@ class MediaTask {
     bool clearOutputPath = false,
     int? outputFileSize,
     bool clearOutputFileSize = false,
-    String? errorMessage,
-    bool clearErrorMessage = false,
+    TaskFailure? failure,
+    bool clearFailure = false,
     Set<MediaTaskPolicyTag>? policyTags,
     SourceFileFingerprint? sourceFileFingerprint,
     bool clearSourceFileFingerprint = false,
@@ -123,8 +122,6 @@ class MediaTask {
     bool clearAnalysisResult = false,
     int? analysisUpdatedAt,
     bool clearAnalysisUpdatedAt = false,
-    String? analysisErrorMessage,
-    bool clearAnalysisErrorMessage = false,
     int? createdAt,
     int? startedAt,
     bool clearStartedAt = false,
@@ -151,9 +148,7 @@ class MediaTask {
       outputFileSize: clearOutputFileSize
           ? null
           : outputFileSize ?? this.outputFileSize,
-      errorMessage: clearErrorMessage
-          ? null
-          : errorMessage ?? this.errorMessage,
+      failure: clearFailure ? null : failure ?? this.failure,
       policyTags: policyTags ?? this.policyTags,
       sourceFileFingerprint: clearSourceFileFingerprint
           ? null
@@ -164,9 +159,6 @@ class MediaTask {
       analysisUpdatedAt: clearAnalysisUpdatedAt
           ? null
           : analysisUpdatedAt ?? this.analysisUpdatedAt,
-      analysisErrorMessage: clearAnalysisErrorMessage
-          ? null
-          : analysisErrorMessage ?? this.analysisErrorMessage,
       createdAt: createdAt ?? this.createdAt,
       startedAt: clearStartedAt ? null : startedAt ?? this.startedAt,
       completedAt: clearCompletedAt ? null : completedAt ?? this.completedAt,
@@ -174,21 +166,35 @@ class MediaTask {
     );
   }
 
+  String? get errorMessage => failure?.technicalSummary;
+
+  String? get analysisErrorMessage =>
+      failure?.stage == TaskFailureStage.analysis ? failure?.userMessage : null;
+
+  bool get isAwaitingAnalysis => status == TaskStatus.awaitingAnalysis;
+
+  bool get isAnalysisReady =>
+      status == TaskStatus.pending && analysisResult != null;
+
+  /// 是否满足一次全新执行的领域准入条件。
+  ///
+  /// `paused` 只能由 Runner 在仍持有对应 TaskExecution 时恢复，不能作为
+  /// 数据库任务重新启动。
+  bool get canStartExecution => isAnalysisReady;
+
   /// 清空错误信息和失败时间
   MediaTask clearError() {
-    return copyWith(
-      clearErrorMessage: true,
-      clearAnalysisErrorMessage: true,
-      clearFailedAt: true,
-    );
+    return copyWith(clearFailure: true, clearFailedAt: true);
   }
 
   /// 把任务重置成待重试状态
   MediaTask markPendingForRetry() {
     return copyWith(
-      status: TaskStatus.pending,
+      status: analysisResult == null
+          ? TaskStatus.awaitingAnalysis
+          : TaskStatus.pending,
       progress: 0,
-      clearErrorMessage: true,
+      clearFailure: true,
       clearStartedAt: true,
       clearCompletedAt: true,
       clearFailedAt: true,
@@ -197,9 +203,40 @@ class MediaTask {
     );
   }
 
+  MediaTask markAwaitingAnalysis() {
+    return copyWith(
+      status: TaskStatus.awaitingAnalysis,
+      progress: 0,
+      clearFailure: true,
+      clearStartedAt: true,
+      clearCompletedAt: true,
+      clearFailedAt: true,
+      clearOutputFileSize: true,
+    );
+  }
+
+  /// 标记分析队列已经取得该任务的执行位。
+  MediaTask markAnalyzing() {
+    if (status != TaskStatus.awaitingAnalysis) {
+      return this;
+    }
+    return copyWith(status: TaskStatus.analyzing);
+  }
+
+  /// 分析完成后恢复为可执行的等待状态。
+  MediaTask markAnalysisReady() {
+    if (status != TaskStatus.analyzing) {
+      return this;
+    }
+    if (analysisResult == null) {
+      return this;
+    }
+    return copyWith(status: TaskStatus.pending, clearFailure: true);
+  }
+
   /// 标记源文件丢失，任务会在列表里显示为需要用户重新指定文件
   MediaTask markMissingSource() {
-    return copyWith(status: TaskStatus.missingSource);
+    return copyWith(status: TaskStatus.missingSource, clearFailure: true);
   }
 
   /// 标记任务已经交给 FFmpeg 进程执行
@@ -208,7 +245,7 @@ class MediaTask {
       status: TaskStatus.running,
       progress: 0,
       outputPath: outputPath,
-      clearErrorMessage: true,
+      clearFailure: true,
       startedAt: startedAt ?? DateTime.now().millisecondsSinceEpoch,
       clearCompletedAt: true,
       clearFailedAt: true,
@@ -217,11 +254,11 @@ class MediaTask {
   }
 
   /// 标记任务启动或执行失败
-  MediaTask markFailed(String message, {int? failedAt}) {
+  MediaTask markFailed(TaskFailure failure, {int? failedAt}) {
     return copyWith(
       status: TaskStatus.failed,
-      errorMessage: message,
-      failedAt: failedAt ?? DateTime.now().millisecondsSinceEpoch,
+      failure: failure,
+      failedAt: failedAt ?? failure.occurredAt,
     );
   }
 
@@ -229,7 +266,7 @@ class MediaTask {
   MediaTask markPaused() {
     return copyWith(
       status: TaskStatus.paused,
-      clearErrorMessage: true,
+      clearFailure: true,
       clearFailedAt: true,
     );
   }
@@ -238,7 +275,7 @@ class MediaTask {
   MediaTask markResumed() {
     return copyWith(
       status: TaskStatus.running,
-      clearErrorMessage: true,
+      clearFailure: true,
       startedAt: startedAt ?? DateTime.now().millisecondsSinceEpoch,
       clearCompletedAt: true,
       clearFailedAt: true,
@@ -247,7 +284,7 @@ class MediaTask {
 
   /// 标记任务被用户取消
   MediaTask markCancelled() {
-    return copyWith(status: TaskStatus.cancelled, clearErrorMessage: true);
+    return copyWith(status: TaskStatus.cancelled, clearFailure: true);
   }
 
   /// 更新运行中任务的处理进度
@@ -264,7 +301,7 @@ class MediaTask {
       progress: 1,
       outputFileSize: outputFileSize,
       clearOutputFileSize: outputFileSize == null,
-      clearErrorMessage: true,
+      clearFailure: true,
       completedAt: completedAt ?? DateTime.now().millisecondsSinceEpoch,
       clearFailedAt: true,
     );
@@ -283,15 +320,14 @@ class MediaTask {
     return copyWith(
       inputPath: newInputPath,
       fileName: newFileName,
-      status: TaskStatus.pending,
+      status: TaskStatus.awaitingAnalysis,
       progress: 0,
       clearOutputPath: true,
       clearOutputFileSize: true,
-      clearErrorMessage: true,
+      clearFailure: true,
       clearSourceFileFingerprint: true,
       clearAnalysisResult: true,
       clearAnalysisUpdatedAt: true,
-      clearAnalysisErrorMessage: true,
       clearStartedAt: true,
       clearCompletedAt: true,
       clearFailedAt: true,
@@ -316,14 +352,9 @@ class MediaTask {
     return copyWith(
       analysisResult: result,
       analysisUpdatedAt: DateTime.now().millisecondsSinceEpoch,
-      clearAnalysisErrorMessage: true,
+      clearFailure: true,
       policyTags: tags,
     );
-  }
-
-  /// 保存媒体分析错误
-  MediaTask withAnalysisError(String message) {
-    return copyWith(analysisErrorMessage: message);
   }
 
   /// 清空旧媒体分析结果
@@ -333,7 +364,7 @@ class MediaTask {
     return copyWith(
       clearAnalysisResult: true,
       clearAnalysisUpdatedAt: true,
-      clearAnalysisErrorMessage: true,
+      clearFailure: true,
       policyTags: tags,
     );
   }

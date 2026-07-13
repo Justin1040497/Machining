@@ -16,6 +16,8 @@ abstract class OutputPreflightService {
 
   Future<String?> publish(FfmpegCommandStep step);
 
+  Future<bool> isPublishedOutputUsable(String outputPath);
+
   Future<void> discardStep(FfmpegCommandStep step);
 
   Future<void> discardPlan(FfmpegCommandPlan plan);
@@ -34,6 +36,9 @@ class NoopOutputPreflightService implements OutputPreflightService {
 
   @override
   Future<String?> publish(FfmpegCommandStep step) async => step.outputPath;
+
+  @override
+  Future<bool> isPublishedOutputUsable(String outputPath) async => true;
 
   @override
   Future<void> discardStep(FfmpegCommandStep step) async {}

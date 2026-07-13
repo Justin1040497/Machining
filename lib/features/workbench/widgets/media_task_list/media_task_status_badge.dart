@@ -44,6 +44,12 @@ class MediaTaskStatusBadge extends StatelessWidget {
     final colors = context.frameLeanColors;
 
     switch (task.status) {
+      case TaskStatus.awaitingAnalysis:
+        return MediaTaskStatusStyle(
+          label: '等待分析',
+          backgroundColor: colors.statusPending,
+          foregroundColor: colors.onWarning,
+        );
       case TaskStatus.running:
         return MediaTaskStatusStyle(
           label: '运行中 ${(task.progress * 100).round()}%',
@@ -52,7 +58,7 @@ class MediaTaskStatusBadge extends StatelessWidget {
         );
       case TaskStatus.pending:
         return MediaTaskStatusStyle(
-          label: '等待中',
+          label: '等待开始',
           backgroundColor: colors.statusPending,
           foregroundColor: colors.onWarning,
         );

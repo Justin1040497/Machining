@@ -96,14 +96,20 @@ abstract class MediaWorkLease {
 /// ```
 class MediaWorkScheduler {
   MediaWorkScheduler({
-    this.maxConcurrentEncodes = 1,
+    this.maxConcurrentEncodes = 2,
     this.maxConcurrentAnalyses = 1,
     this.maxConcurrentThumbnails = 1,
     this.maxConcurrentPreviews = 1,
     this.maxConcurrentPreparations = 1,
     this.maxTotalConcurrentWorks = 3,
     this.resourceMonitor,
-  });
+  }) {
+    final monitor = resourceMonitor;
+    _lastPressure = monitor?.currentPressure;
+    _pressureSubscription = monitor?.pressureChanges.listen(
+      _handlePressureChange,
+    );
+  }
 
   /// 最大并发编码任务数。
   final int maxConcurrentEncodes;
@@ -129,6 +135,16 @@ class MediaWorkScheduler {
   final Map<String, _ActiveLease> _activeLeases = {};
   final Queue<MediaWorkRequest> _waitingQueue = Queue<MediaWorkRequest>();
   final Set<String> _allWorkIds = {};
+  final StreamController<void> _capacityController =
+      StreamController<void>.broadcast();
+  StreamSubscription<MediaResourcePressure>? _pressureSubscription;
+  MediaResourcePressure? _lastPressure;
+  Future<void>? _stopFuture;
+
+  /// 租约释放或资源压力恢复时发出信号。
+  ///
+  /// 调用方仍需通过 [tryAcquire] 重新确认实际可用性。
+  Stream<void> get capacityChanges => _capacityController.stream;
 
   /// 当前运行的编码任务数。
   int get activeEncodes => _countByKind(MediaWorkKind.encode);
@@ -273,7 +289,11 @@ class MediaWorkScheduler {
   }
 
   /// 停止调度器，取消所有等待中的工作。
-  Future<void> stop() async {
+  Future<void> stop() {
+    return _stopFuture ??= _stop();
+  }
+
+  Future<void> _stop() async {
     _stopped = true;
 
     // 取消所有等待中工作
@@ -283,6 +303,8 @@ class MediaWorkScheduler {
       completer?.completeError(StateError('调度器已停止'));
       _allWorkIds.remove(request.id);
     }
+    await _pressureSubscription?.cancel();
+    await _capacityController.close();
   }
 
   // ------------------------------------------------------------------
@@ -328,6 +350,21 @@ class MediaWorkScheduler {
 
     // 释放资源后，尝试从等待队列中挑选下一个可执行任务
     _tryWakeNext();
+    _emitCapacityChange();
+  }
+
+  void _handlePressureChange(MediaResourcePressure pressure) {
+    final previous = _lastPressure;
+    _lastPressure = pressure;
+    if (previous != null && pressure.index < previous.index) {
+      _emitCapacityChange();
+    }
+  }
+
+  void _emitCapacityChange() {
+    if (!_stopped && !_capacityController.isClosed) {
+      _capacityController.add(null);
+    }
   }
 
   void _tryWakeNext() {

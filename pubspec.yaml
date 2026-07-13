@@ -2,7 +2,7 @@ name: framelean
 description: FrameLean is a local desktop media compression app.
 publish_to: 'none'
 
-version: 1.2.1+6
+version: 1.2.1+7
 
 environment:
   sdk: ^3.11.0
@@ -41,6 +41,7 @@ dev_dependencies:
 
   flutter_lints: ^6.0.0
   drift_dev: ^2.34.0
+  sqlite3: ^3.3.4
   build_runner: ^2.15.1
   flutter_launcher_icons: ^0.14.4
   dmg: ^0.1.8
