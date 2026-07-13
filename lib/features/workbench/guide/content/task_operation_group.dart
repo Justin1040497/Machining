@@ -19,10 +19,17 @@ class TaskOperationGuideGroup extends GuideContentGroup {
         .clamp(32.0, geometry.workbenchSize.width - textWidth - 32)
         .toDouble();
     final textTop = lastTaskRect.bottom + 24;
-    final arrowStart = Offset(textLeft + textWidth + 8, textTop + 17);
     final arrowTarget = Offset(
-      lastTaskRect.right - 24,
-      lastTaskRect.bottom + 10,
+      lastTaskRect.right - 42,
+      lastTaskRect.bottom + 30,
+    );
+    final arrowStart = Offset(arrowTarget.dx - 250, lastTaskRect.bottom + 48);
+    // 只允许绘制在最后一个任务底部以下，作为最后一层安全保护。
+    final arrowClipRect = Rect.fromLTRB(
+      geometry.listViewportRect.left,
+      lastTaskRect.bottom + 16,
+      geometry.listViewportRect.right,
+      geometry.listViewportRect.bottom,
     );
     final color = Theme.of(
       context,
@@ -38,6 +45,9 @@ class TaskOperationGuideGroup extends GuideContentGroup {
             targetPoint: arrowTarget,
             color: color,
             seed: 1401,
+            maxLength: 270,
+            curveBias: const Offset(0, 24),
+            clipRect: arrowClipRect,
           ),
         ),
         Positioned(

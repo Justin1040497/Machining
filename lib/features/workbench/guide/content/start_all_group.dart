@@ -24,8 +24,15 @@ class StartAllGuideGroup extends GuideContentGroup {
           geometry.workbenchSize.height,
         )
         .toDouble();
-    final arrowStart = Offset(textLeft - 10, textTop + 10);
-    final arrowTarget = buttonRect.topCenter + const Offset(0, 6);
+    final arrowStart = Offset(textLeft - 18, textTop + 12);
+    final arrowTarget = Offset(buttonRect.center.dx, buttonRect.top - 22);
+    // 裁剪底部比按钮顶部高 10 px，整条线不会进入开始按钮。
+    final arrowClipRect = Rect.fromLTRB(
+      geometry.listViewportRect.left,
+      geometry.listViewportRect.top,
+      geometry.listViewportRect.right,
+      buttonRect.top - 10,
+    );
     final color = Theme.of(
       context,
     ).colorScheme.onSurfaceVariant.withValues(alpha: 0.38);
@@ -40,6 +47,9 @@ class StartAllGuideGroup extends GuideContentGroup {
             targetPoint: arrowTarget,
             color: color,
             seed: 2803,
+            maxLength: 180,
+            curveBias: const Offset(-10, -18),
+            clipRect: arrowClipRect,
           ),
         ),
         Positioned(

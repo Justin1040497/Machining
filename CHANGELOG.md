@@ -46,11 +46,17 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 - 首次显示使用手绘 PathMetric 动画；同场景任务增删只执行 700ms `easeOutCubic` 位置 Tween；空队列和任务场景切换使用 350ms Fade Out、100ms 间隔和 600ms Fade In。
 - 列表可滚动或最后一行下方不足 132px 时隐藏任务场景提示，整个引导层使用 `IgnorePointer` 保持前景拖拽、框选、点击和底栏操作不变。
 
+### Fixed
+
+- 修复引导箭头过长、终点落入任务卡片 / 底栏 / 按钮内部被上层组件遮挡的问题：三条箭头改用安全视觉终点（任务下方约 30 px、开始按钮上方约 22 px、列表视口底部上方 20 px），叠加 `maxLength` 限长（任务 270 / 全部开始 180 / 添加按钮 270 / 默认 280）、`curveBias` 单段三次贝塞尔曲线偏移与 `clipRect` 安全裁剪区。
+- 箭头头改为开放式涂鸦样式（两条不对称外轮廓 + 两条内部排线，不填充、不闭合），长度约 12～17 px，避免被任务卡片或底栏盖住。
+
 ### Verified
 
 - `flutter test` 431 项全部通过，包含新增 13 项工作台 Guide 箭头、调度、加载切换、场景和双击集成测试。
 - `flutter analyze` 无新增 warning / error；仍有 5 项来自当前主线的 info 级提示。
 - 通过浅色工作台 1100×760 视觉预览，检查空队列和任务场景的箭头曲率、层级、目标边缘与文本布局。
+- 引导箭头修复后重跑 `flutter analyze`（guide 作用域与对应测试）无 issue，`test/workbench_guide_arrow_test.dart` 2 项通过。
 
 ## 2026-07-13｜v1.2.1｜No Release
 

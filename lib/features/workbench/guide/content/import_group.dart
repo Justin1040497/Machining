@@ -65,11 +65,26 @@ class AddButtonArrowGroup extends GuideContentGroup {
   @override
   Widget build(BuildContext context) {
     final viewport = geometry.listViewportRect;
-    final start = Offset(
-      viewport.center.dx - 118,
-      viewport.top + viewport.height * 0.38 + 64,
+    // 终点停在列表视口底部上方 20 px（即 BottomBar 顶部上方），避免被底部栏盖住。
+    final target = Offset(
+      geometry.addButtonRect.center.dx,
+      viewport.bottom - 20,
     );
-    final target = geometry.addButtonRect.topCenter + const Offset(0, 3);
+    // 起点位于目标右上方，形成左下区域内的短涂鸦箭头，不再贯穿大半个页面。
+    final start = Offset(
+      (target.dx + 220)
+          .clamp(viewport.left + 96, viewport.right - 72)
+          .toDouble(),
+      (target.dy - 170)
+          .clamp(viewport.top + 96, viewport.bottom - 72)
+          .toDouble(),
+    );
+    final arrowClipRect = Rect.fromLTRB(
+      viewport.left,
+      viewport.top,
+      viewport.right,
+      viewport.bottom - 8,
+    );
     final color = Theme.of(
       context,
     ).colorScheme.onSurfaceVariant.withValues(alpha: 0.38);
@@ -80,6 +95,9 @@ class AddButtonArrowGroup extends GuideContentGroup {
         targetPoint: target,
         color: color,
         seed: 4207,
+        maxLength: 270,
+        curveBias: const Offset(20, -14),
+        clipRect: arrowClipRect,
       ),
     );
   }

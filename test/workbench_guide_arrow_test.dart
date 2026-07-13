@@ -10,6 +10,8 @@ void main() {
       startPoint: Offset.zero,
       targetPoint: const Offset(240, 0),
       curveSeed: 42,
+      maxLength: 280,
+      curveBias: Offset.zero,
     );
 
     expect(geometry.controlPoint1.dx, greaterThan(0));

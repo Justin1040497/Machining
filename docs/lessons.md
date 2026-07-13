@@ -338,3 +338,18 @@
 关联：
 
 - 决策：`docs/decisions/260619-shared-reorderable-list.md`
+
+## 少量固定批注箭头优先用显式约束而非寻路
+
+经验：
+
+- 工作台引导箭头只有三个固定用途（任务操作、全部开始、添加按钮），每个目标位置和允许绘制区域都是已知的。这种场景下用“安全视觉终点 + `maxLength` 限长 + `curveBias` 单段曲线偏移 + `clipRect` 裁剪区”四层显式约束即可，不要引入障碍物碰撞检测或多种子随机重试。
+- 自动避障的代价在固定场景下不划算：路径采样碰撞检测和随机重试会在窗口尺寸变化时让箭头形态不稳定，还带来额外测试与维护成本；半成品寻路代码若未接入目标文件，会留下无法编译的死代码并污染 `flutter analyze`。
+- 关键约束：终点是“视觉终点”而非目标中心点，必须停在目标外侧的背景空白区（任务卡片下方、按钮上方、底栏上方）；曲线随机扰动应限制在 8 px 以内的法向方向，禁止回头或自相交；裁剪只是最后一层保护，不能依赖裁剪制造半截箭头。
+- 通用原则：当问题本质是“少量已知锚点的短批注”时，先用显式坐标和硬上限解决；只有当箭头数量、目标和障碍都动态未知时，才考虑寻路。
+
+关联：
+
+- 决策：`docs/decisions/260714-guide-arrow-safe-annotation.md`
+- `lib/features/workbench/guide/arrow/doodle_arrow_geometry.dart`
+- `lib/features/workbench/guide/arrow/doodle_arrow_painter.dart`

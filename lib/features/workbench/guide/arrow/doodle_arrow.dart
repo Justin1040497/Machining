@@ -11,6 +11,9 @@ class DoodleArrow extends StatefulWidget {
     this.seed,
     this.drawDuration = const Duration(milliseconds: 700),
     this.moveDuration = const Duration(milliseconds: 700),
+    this.maxLength = 280,
+    this.curveBias = Offset.zero,
+    this.clipRect,
   });
 
   final Offset startPoint;
@@ -19,6 +22,17 @@ class DoodleArrow extends StatefulWidget {
   final int? seed;
   final Duration drawDuration;
   final Duration moveDuration;
+  final double maxLength;
+
+  /// 屏幕坐标方向上的曲线偏移。
+  ///
+  /// 例如：
+  /// Offset(0, 24) 表示曲线向下鼓起；
+  /// Offset(0, -20) 表示曲线向上鼓起。
+  final Offset curveBias;
+
+  /// 和 Workbench Stack 使用同一坐标系的安全绘制区域。
+  final Rect? clipRect;
 
   @override
   State<DoodleArrow> createState() => _DoodleArrowState();
@@ -71,6 +85,9 @@ class _DoodleArrowState extends State<DoodleArrow>
             arrowHeadScale: _controller.arrowHeadScale,
             strokeOffset: _controller.strokeOffset,
             color: widget.color,
+            maxLength: widget.maxLength,
+            curveBias: widget.curveBias,
+            clipRect: widget.clipRect,
           ),
           size: Size.infinite,
         );
