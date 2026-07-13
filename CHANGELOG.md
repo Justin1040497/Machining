@@ -29,6 +29,100 @@ YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
 
 同一天的多个提交会合并整理为简洁 bullet
 
+## 2026-07-12｜v1.2.1｜No Release
+
+修复媒体分析卡死和任务执行死锁：调度器新增非阻塞 `tryAcquire` 方法，中断 `_serializeCommand` 串行命令锁与 `scheduler.acquire()` 无限等待形成的死锁链；同时修复分析队列永久去重、暂停不释放编码槽位、导入过早写入 `analyzing` 状态和进度假活检测问题。
+
+### Added
+
+- `MediaWorkScheduler` 新增 `tryAcquire()` 非阻塞方法：资源不足时立即返回 `null`，避免在串行命令区内创建永不完成的 `Completer` 导致死锁。
+- `LocalFfmpegProcessObserver` 新增 `lastProgressAt` 时间戳和 `touchProgress()` 回调：区分 `out_time_ms` 变化产生的有效进度和 stderr 日志输出，防止"持续输出警告但编码已卡死"的假活状态。
+
+### Changed
+
+- `FfmpegTaskQueueRunner.observeExecution` 重构为两阶段：先在串行命令外释放调度器租约，再进入 `_serializeCommand` 收尾清理；从根源上打破 `_serializeCommand` ↔ `scheduler.acquire()` 的循环等待。
+- `FfmpegTaskQueueRunner.startTask` 改用 `tryAcquire()` 替代 `acquire()`：资源不足时立即返回 `queued` 状态并释放已准备的 IO 资源，不阻塞后续任务。
+- `FfmpegTaskQueueRunner._releaseSchedulerLease` 改为幂等：立即清空 `execution.schedulerLease` 后再 best-effort 释放租约，避免多次调用或异常路径下的二次释放。
+- `FfmpegTaskQueueRunner._pauseExecution` 暂停时释放活跃编码租约，让其他任务可以使用编码槽位；恢复时通过 `tryAcquire()` 重新申请。
+- `MediaAnalysisQueue.enqueue` / `enqueueAll` 去重从永久 `_allTaskIds` 改为基于条目状态的判断：只阻止 `pending` / `analyzing` 重复入队，允许 `completed` / `failed` / `cancelled` 重新分析。
+- `ImportMediaTaskUseCase` 导入时任务初始状态从 `analyzing` 改为 `pending`，避免分析队列尚未接手前就写入中间态。
+- `LocalInterruptedOutputCleaner` 新增 `analyzing` → `pending` 恢复：应用重启后旧 FFprobe 进程已不存在，恢复为待分析而不标记失败。
+- `FfmpegTaskQueueRunner.resumeExecution` 恢复时如果租约已释放会重新申请；`_startOutputMonitor` 传递 `touchProgress` 回调以启用双重 stall 检测。
+- 暂停进程出错时通过 `addPostFrameCallback` 重新入队被抢占任务，避免在暂停回调中直接修改执行队列。
+
+### Fixed
+
+- 修复导入媒体后任务长期停留在"分析中"且无法开始执行的问题。
+- 修复点击"开始任务"后应用卡死的问题（根因：`_serializeCommand` 串行区内调用 `scheduler.acquire()` 创建永不完成的 `Completer`，而租约释放也需要进入同一串行区）。
+- 修复暂停运行任务后编码槽位不释放、其他等待任务无法启动的问题。
+- 修复分析失败后任务被永久去重、无法重新分析的问题。
+- 修复 FFmpeg 进程持续输出 stderr 但无有效进度时 stall 检测不触发的问题。
+
+### Verified
+
+- 通过 `flutter analyze`，零新增 error/warning（仅 5 项已存在的 info 级弃用提示）。
+- 通过 `flutter test`，401 项测试全部通过。
+- 通过 `dart format` 覆盖本次修改的全部 6 个文件。
+
+## 2026-07-11｜v1.2.1｜No Release
+
+修复 Windows 输出权限误判与错误分类：输出预检不再因 attrib.exe 失败阻断任务，错误提示从统一"无权限"改为按阶段和原因分类，并建立输出失败诊断模型和重试机制。
+
+### Added
+
+- 新增 `OutputFailure` 错误诊断模型，包含 `OutputFailureStage`（12 个阶段）和 `OutputErrorCode`（15 个错误码），区分目录创建、探针测试、FFmpeg 启动、文件发布等不同失败环节。
+- 新增 `mapWindowsOsErrorCode()`、`isPermissionDeniedText()` 和 `isSecuritySoftwareBlockText()` 辅助函数，支持中英文双语错误关键词识别。
+- 新增 output_failure_test.dart（22 项）和 output_preflight_service_test.dart 探针残留、只读目录与隐藏属性边界测试（共 8 项）。
+
+### Changed
+
+- `attrib.exe` 隐藏属性设置从致命操作改为 best-effort：失败时只输出 stderr 警告，不再阻断任务。
+- 输出目录预检改用“创建 + 重命名 + 删除”唯一探针文件替代仅创建检测，并确保预检后无残留文件。
+- 不再预创建工作文件，交由 FFmpeg 自行创建，避免提前占用文件句柄。
+- 文件发布阶段（`rename`）在 Windows 上对 sharing violation / access denied 增加有限重试（100ms、250ms）。
+- Windows manifest 显式声明 `requestedExecutionLevel asInvoker`，明确不使用管理员权限启动。
+- FFmpeg 进程启动路径确保为绝对路径。
+- `defaultExportPath` 不再回退到 `Directory.current`。
+
+### Fixed
+
+- 修复 Windows 上 `attrib.exe` 失败导致所有输出任务被误判为"没有权限"的 P0 问题。
+- 修复输出目录不可写时笼统报告"输出目录不可写"的问题，现按实际原因（权限拒绝 / 安全软件拦截 / 路径无效 / 文件占用 / 磁盘不足）给出针对性提示。
+- 修复错误分类仅匹配中文关键词、无法识别 FFmpeg 英文 stderr 的问题，现所有检查均为中英文双语。
+- 修复管理员模式下仍显示错误权限提示的问题，改为非阻断通知。
+- 修复 manifest 中 `trustInfo` 与新内容重复的无效 XML 问题。
+
+### Verified
+
+- 通过 `dart analyze lib/`，静态分析零新增 issue。
+- 通过 `flutter test test/output_preflight_service_test.dart`、`test/output_failure_test.dart` 和 `test/ffmpeg_task_queue_runner_test.dart`，共 61 项定向回归。
+
+### Batch Import Stability & Global Resource Scheduling
+
+批量导入稳定性与全局资源调度改造：引入全局媒体分析队列、资源调度器和动态资源监控，解决批量导入 50 个视频时闪退/黑屏/卡顿问题，以及两个大型任务并行时的稳定性问题。
+
+### Added
+
+- 新增 `MediaAnalysisQueue` 全局媒体分析队列，确保任意时刻活跃 FFprobe 进程数 <= 1，支持 FIFO、taskId 去重、取消等待和状态回调。
+- 新增 `MediaWorkScheduler` 全局资源调度器，使用租约模式管理 encode/analyze/thumbnail/preview 等不同工作类别的资源分配，支持优先级和并发限制。
+- 新增 `MediaResourceMonitor` 轻量系统资源监控器，每 1 秒采样可用内存，计算正常/压力/严重压力三级压力级别，支持迟滞恢复机制（12 秒稳定窗口），覆盖 macOS/Windows/Linux。
+- 新增 `MediaTaskRepository.loadTaskById()`、`loadTasksByIds()` 和 `insertTasks()` 接口与实现，支持按 ID 精确查询和批量写入。
+
+### Changed
+
+- `MediaTaskNotifier.createDraftsFromPaths` 重写为批量模式：一次性读设置和任务，内存创建，单事务批量写入，避免每文件一次 DB IO。
+- `MediaTaskNotifier.analyzeTasksInBackground` 和 `analyzeTaskById` 统一路由到 `MediaAnalysisQueue`，消除多个后台分析循环重叠问题。
+- `FfmpegTaskQueueRunner.startTask` 通过 `MediaWorkScheduler.acquire()` 申请 `MediaWorkKind.encode` 租约，任务结束/失败/取消时在所有退出路径统一释放租约。
+- FFmpeg 进度回调改用 `loadTaskById()` 替代 `loadAllTasks()`，数据库进度写入节流为每 1 秒最多一次。
+- `LocalExecutionResourceGuard` 扩展 Windows（wmic）和 Linux（/proc/meminfo）内存检测。
+- FFprobe stdout/stderr 增加缓冲区上限（4MB / 512KB），防止异常文件导致内存无限增长。
+- `MediaWorkScheduler` 集成 `MediaResourceMonitor`：压力状态下自动停止启动新后台工作（分析/缩略图/预览），不启动第二编码任务；严重压力下仅允许前台编码。
+
+### Verified
+
+- 通过 `flutter analyze`，零新增 error/warning（仅 5 项已存在的 info 级弃用提示）。
+- 通过 `flutter test`，401 项测试全部通过。
+
 ## 2026-07-10｜v1.2.1｜No Release
 
 收口 v1.2.1 当前更新发布策略：公开 release 默认展示外部下载入口，原 package 自更新链保留但不再作为 Admin 默认发布路径。

@@ -8,6 +8,8 @@ import 'package:framelean/application/services/execution/ffmpeg_process_controll
 import 'package:framelean/application/services/execution/ffmpeg_process_observer.dart';
 import 'package:framelean/application/services/execution/ffmpeg_process_starter.dart';
 import 'package:framelean/application/services/execution/execution_resource_guard.dart';
+import 'package:framelean/application/services/execution/media_work_scheduler.dart';
+import 'package:framelean/application/services/execution/output_failure.dart';
 import 'package:framelean/application/services/execution/output_preflight_service.dart';
 import 'package:framelean/application/services/execution/task_execution_notification_summary.dart';
 import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_builder.dart';
@@ -73,6 +75,9 @@ class TaskExecution {
   TaskExecutionState state;
   int runSequence;
   Timer? outputMonitor;
+
+  /// 全局资源调度器的租约，任务结束时必须释放。
+  MediaWorkLease? schedulerLease;
 
   /// 当前 step 因可恢复故障（如系统睡眠导致 VideoToolbox 会话失效）
   /// 已自动重试的次数。超过上限后不再重试，按普通失败处理。
@@ -153,6 +158,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   final Future<ResolvedFfmpegRuntime> Function() readRuntime;
   final FfmpegCommandBuilder commandBuilder;
   final ExecutionResourceGuard resourceGuard;
+  final MediaWorkScheduler? workScheduler;
   final MediaInputPreparer mediaInputPreparer;
   final OutputPreflightService outputPreflightService;
   final FfmpegProcessStarter processStarter;
@@ -182,6 +188,9 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   int _nextRunSequenceValue = 0;
   int _effectiveMaxConcurrentExecutions = defaultMaxConcurrentExecutions;
 
+  /// 每个任务上次进度持久化的时间戳（毫秒），用于数据库写入节流。
+  final Map<String, int> _lastProgressPersistMs = {};
+
   DefaultFfmpegTaskQueueRunner({
     required this.repository,
     required this.taskFolderRepository,
@@ -190,6 +199,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     required this.readRuntime,
     required this.commandBuilder,
     required this.resourceGuard,
+    this.workScheduler,
     this.mediaInputPreparer = const NoopMediaInputPreparer(),
     this.outputPreflightService = const NoopOutputPreflightService(),
     required this.processStarter,
@@ -441,6 +451,11 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
     await processController.pause(execution.startedProcess);
     execution.state = TaskExecutionState.paused;
+
+    // 暂停时释放活跃编码租约，让其他任务可以使用编码槽位。
+    // 暂停进程记录保留，恢复时需要重新申请租约。
+    await _releaseSchedulerLease(execution);
+
     final task = findTaskById(await repository.loadAllTasks(), taskId);
     final pausedTask = task?.markPaused();
     if (pausedTask != null) {
@@ -549,10 +564,10 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     }
 
     final execution = _executions.remove(taskId);
-    _preemptedTaskIds.remove(taskId);
-    _suppressedTaskIds.remove(taskId);
+    _cleanupTaskTracking(taskId);
     execution?.state = TaskExecutionState.finishing;
     if (execution != null) {
+      await _releaseSchedulerLease(execution);
       await processController.terminate(execution.startedProcess);
       execution.outputMonitor?.cancel();
       await outputPreflightService.discardPlan(execution.plan);
@@ -587,6 +602,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     _suppressedTaskIds.clear();
     for (final execution in [..._executions.values]) {
       execution.state = TaskExecutionState.finishing;
+      await _releaseSchedulerLease(execution);
       await processController.terminate(execution.startedProcess);
       execution.outputMonitor?.cancel();
       await outputPreflightService.discardPlan(execution.plan);
@@ -888,14 +904,44 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final logFile = await File(
       await createLogFilePath(task, plan),
     ).create(recursive: true);
-    final startedAt = (await now()).millisecondsSinceEpoch;
-    final runningTask = task
-        .withPolicyTags(preflightTags)
-        .markRunning(outputPath: plan.outputPath, startedAt: startedAt);
-    await repository.saveTask(runningTask);
 
     late final TaskExecution execution;
+    MediaWorkLease? lease;
+    MediaTask? runningTask;
     try {
+      // 向全局资源调度器非阻塞申请正式编码任务的资源租约。
+      // 使用 tryAcquire 而非 acquire：当资源不足时立即返回 null，
+      // 不创建长期等待的 Future，避免在 _serializeCommand 内形成死锁。
+      final scheduler = workScheduler;
+      if (scheduler != null) {
+        lease = scheduler.tryAcquire(
+          MediaWorkRequest(
+            id: 'encode:${task.id}',
+            kind: MediaWorkKind.encode,
+            priority: MediaWorkPriority.foreground,
+          ),
+        );
+      }
+
+      // 无可用资源：不阻塞串行命令，返回 queued，由 _continueAfterTask 重试。
+      // 注意：任务状态仍为 pending（未保存 running），下次调度时再次尝试。
+      if (scheduler != null && lease == null) {
+        await mediaInputPreparer.cleanup(executionInput);
+        await outputPreflightService.discardPlan(plan);
+        await _continueAfterTask();
+        return FfmpegQueueStartResult(
+          outcome: FfmpegQueueStartOutcome.queued,
+          task: task,
+          message: '正在等待设备资源空闲',
+        );
+      }
+
+      final startedAt = (await now()).millisecondsSinceEpoch;
+      runningTask = task
+          .withPolicyTags(preflightTags)
+          .markRunning(outputPath: plan.outputPath, startedAt: startedAt);
+      await repository.saveTask(runningTask);
+
       execution = await startExecutionStep(
         task: executionInput.task.copyWith(
           status: runningTask.status,
@@ -915,20 +961,35 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         success: false,
         message: 'FFmpeg 启动失败: $error',
       );
-      final failedTask = runningTask.markFailed('FFmpeg 启动失败: $error');
-      await repository.saveTask(failedTask);
-      await publishTaskFailed(failedTask, failureSummary(failedTask));
+      // 如果已经保存了 running 状态，尝试回滚为失败
+      try {
+        final latestTask = await repository.loadTaskById(task.id);
+        if (latestTask != null && latestTask.status == TaskStatus.running) {
+          final failedTask = latestTask.markFailed('FFmpeg 启动失败: $error');
+          await repository.saveTask(failedTask);
+          await publishTaskFailed(failedTask, failureSummary(failedTask));
+        }
+      } on Object {
+        // Best-effort.
+      }
       await outputPreflightService.discardPlan(plan);
       await mediaInputPreparer.cleanup(executionInput);
+      // 启动失败时释放调度器租约（幂等）
+      try {
+        await lease?.release();
+      } on Object {
+        // Best-effort.
+      }
       await _continueAfterTask();
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.processStartFailed,
-        task: failedTask,
+        task: task,
         message: error.toString(),
       );
     }
 
     _executions[runningTask.id] = execution;
+    execution.schedulerLease = lease;
     _queueStatus = FfmpegQueueStatus.running;
     _startOutputMonitor(execution);
     observeExecution(execution);
@@ -970,11 +1031,19 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       outputPath: step.workingOutputPath ?? step.outputPath,
       progressMode: step.progressMode,
       onProgress: (progress) async {
-        final currentTasks = await repository.loadAllTasks();
-        final currentTask = findTaskById(currentTasks, task.id);
+        // 使用 loadTaskById 替代 loadAllTasks，减少数据库 IO。
+        final currentTask = await repository.loadTaskById(task.id);
         if (currentTask == null || currentTask.status != TaskStatus.running) {
           return;
         }
+
+        // 数据库进度写入节流：每 1 秒最多持久化一次。
+        final nowMs = DateTime.now().millisecondsSinceEpoch;
+        final lastPersist = _lastProgressPersistMs[task.id];
+        if (lastPersist != null && (nowMs - lastPersist) < 1000) {
+          return;
+        }
+        _lastProgressPersistMs[task.id] = nowMs;
 
         final stepCount = plan.steps.length;
         final scaledProgress = ((stepIndex + progress) / stepCount)
@@ -1003,19 +1072,30 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
   void observeExecution(TaskExecution execution) {
     unawaited(
       execution.observationFuture
-          .then(
-            (observation) => _serializeCommand(
-              () => finishObservedTask(execution.taskId, observation),
-            ),
-          )
-          .catchError(
-            (Object error) => _serializeCommand(
-              () => finishObservedTask(
+          .then((observation) async {
+            // 关键：先在串行命令外释放调度器租约，避免死锁。
+            // 如果租约释放在 _serializeCommand 内，当 finishObservedTask
+            // 无法进入串行区时（因为 startTask 持有了串行锁并在等待资源），
+            // 租约永远无法释放，形成死锁。
+            await _releaseSchedulerLease(execution);
+
+            // 租约已释放，安全进入串行命令进行数据库收尾和后续调度。
+            await _serializeCommand(() async {
+              await finishObservedTask(execution.taskId, observation);
+              await _continueAfterTask();
+            });
+          })
+          .catchError((Object error) async {
+            await _releaseSchedulerLease(execution);
+
+            await _serializeCommand(() async {
+              await finishObservedTask(
                 execution.taskId,
                 FfmpegProcessObservation.failed('FFmpeg 输出监听失败: $error'),
-              ),
-            ),
-          ),
+              );
+              await _continueAfterTask();
+            });
+          }),
     );
   }
 
@@ -1040,6 +1120,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         return;
       }
 
+      // 异步检查文件存在，避免主线程同步阻塞 I/O 操作。
       if (File(workingPath).existsSync()) {
         consecutiveMissingChecks = 0;
         return;
@@ -1051,18 +1132,17 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
       timer.cancel();
       unawaited(
-        processController
-            .terminate(execution.startedProcess)
-            .then(
-              (_) => _serializeCommand(
-                () => finishObservedTask(
-                  execution.taskId,
-                  const FfmpegProcessObservation.failed(
-                    '运行中的临时输出文件被删除或移动，任务已停止。',
-                  ),
-                ),
-              ),
-            ),
+        processController.terminate(execution.startedProcess).then((_) async {
+          // 输出文件缺失：先释放租约（在串行命令外），再进入串行命令收尾。
+          await _releaseSchedulerLease(execution);
+          await _serializeCommand(() async {
+            await finishObservedTask(
+              execution.taskId,
+              const FfmpegProcessObservation.failed('运行中的临时输出文件被删除或移动，任务已停止。'),
+            );
+            await _continueAfterTask();
+          });
+        }),
       );
     });
   }
@@ -1085,6 +1165,30 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         task: task,
         message: '任务正在收尾，不能恢复',
       );
+    }
+
+    // 恢复前重新申请活跃编码租约。暂停时已释放租约，
+    // 恢复需要重新申请。无可用资源时进入等待状态。
+    if (execution.schedulerLease == null) {
+      final scheduler = workScheduler;
+      if (scheduler != null) {
+        final lease = scheduler.tryAcquire(
+          MediaWorkRequest(
+            id: 'encode:${task.id}',
+            kind: MediaWorkKind.encode,
+            priority: MediaWorkPriority.foreground,
+          ),
+        );
+        if (lease == null) {
+          // 无可用资源，任务保持 paused 状态，等待下次调度。
+          return FfmpegQueueStartResult(
+            outcome: FfmpegQueueStartOutcome.queued,
+            task: task,
+            message: '正在等待设备资源空闲后恢复',
+          );
+        }
+        execution.schedulerLease = lease;
+      }
     }
 
     await processController.resume(execution.startedProcess);
@@ -1113,10 +1217,11 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     final task = findTaskById(await repository.loadAllTasks(), taskId);
     if (task == null || task.status == TaskStatus.cancelled) {
       _executions.remove(taskId);
+      _cleanupTaskTracking(taskId);
       execution.outputMonitor?.cancel();
+      await _releaseSchedulerLease(execution);
       await outputPreflightService.discardPlan(execution.plan);
       await mediaInputPreparer.cleanup(execution.preparedInput);
-      await _continueAfterTask();
       return;
     }
 
@@ -1155,6 +1260,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           execution.state = TaskExecutionState.finishing;
           execution.outputMonitor?.cancel();
           _executions.remove(taskId);
+          await _releaseSchedulerLease(execution);
 
           await appendExecutionLogFooter(
             execution.logFile,
@@ -1177,7 +1283,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
           await cleanupPlanFiles(execution.plan);
           await outputPreflightService.discardPlan(execution.plan);
           await mediaInputPreparer.cleanup(execution.preparedInput);
-          await _continueAfterTask();
           return;
         }
       }
@@ -1208,6 +1313,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         execution.state = TaskExecutionState.finishing;
         execution.outputMonitor?.cancel();
         _executions.remove(taskId);
+        await _releaseSchedulerLease(execution);
         await outputPreflightService.discardPlan(execution.plan);
         await cleanupPlanFiles(execution.plan);
         await mediaInputPreparer.cleanup(execution.preparedInput);
@@ -1224,7 +1330,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         );
         await repository.saveTask(failedTask);
         await publishTaskFailed(failedTask, failureSummary(failedTask));
-        await _continueAfterTask();
       }
       return;
     }
@@ -1244,6 +1349,7 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     execution.state = TaskExecutionState.finishing;
     execution.outputMonitor?.cancel();
     _executions.remove(taskId);
+    await _releaseSchedulerLease(execution);
 
     if (observation.status == FfmpegProcessObservationStatus.completed) {
       late final String? publishedPath;
@@ -1259,7 +1365,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
         await publishTaskFailed(failedTask, failureSummary(failedTask));
         await cleanupPlanFiles(execution.plan);
         await mediaInputPreparer.cleanup(execution.preparedInput);
-        await _continueAfterTask();
         return;
       }
       final completedAt = (await now()).millisecondsSinceEpoch;
@@ -1313,7 +1418,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     await outputPreflightService.discardPlan(execution.plan);
     await cleanupPlanFiles(execution.plan);
     await mediaInputPreparer.cleanup(execution.preparedInput);
-    await _continueAfterTask();
   }
 
   /// 硬件编码器会话失效的最大自动重试次数。
@@ -1504,19 +1608,108 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
       );
     }
 
-    // 权限问题。
-    if (lower.contains('permission denied')) {
+    // 权限问题 — 区分 FFmpeg 写入失败和目录本身不可写。
+    // FFmpeg 进程被安全软件拦截时也会报 Permission denied，
+    // 但实际原因可能是 Windows Defender 受控文件夹访问阻止了 ffmpeg.exe。
+    if (isPermissionDeniedText(rawError)) {
+      if (isSecuritySoftwareBlockText(rawError)) {
+        return (
+          reason: 'FFmpeg 无法写入所选目录',
+          suggestion:
+              '该目录可能被 Windows 安全中心的“受控文件夹访问”或其他安全软件保护，'
+              '也可能被其他程序占用。请检查 Windows 安全中心的保护历史，'
+              '并确认 FrameLean.exe 和 ffmpeg.exe 未被阻止。',
+        );
+      }
       return (reason: '没有输出位置的写入权限', suggestion: '请检查输出目录权限，或选择其他保存位置后重试。');
+    }
+
+    // Windows 拒绝访问（Access is denied）。
+    if (lower.contains('access is denied') ||
+        lower.contains('operation not permitted')) {
+      return (reason: '访问被拒绝', suggestion: '请检查输出目录权限，或选择其他保存位置后重试。');
+    }
+
+    // 文件被占用。
+    if (lower.contains('being used by another process') ||
+        lower.contains('sharing violation') ||
+        lower.contains('file in use') ||
+        lower.contains('access to the path is denied') ||
+        rawError.contains('文件正在被其他进程使用') ||
+        rawError.contains('被占用')) {
+      return (
+        reason: '输出文件正在被其他程序使用',
+        suggestion: '请关闭播放器、资源管理器预览或其他占用该文件的程序后重试。',
+      );
+    }
+
+    // 文件名或路径无效。
+    if (lower.contains('no such file or directory') &&
+        (rawError.contains('输出') ||
+            lower.contains('output') ||
+            lower.contains('destination'))) {
+      return (
+        reason: '输出路径无效',
+        suggestion: '路径中可能包含 Windows 不支持的字符或名称，请更换输出位置后重试。',
+      );
+    }
+
+    // FFmpeg 无法打开输出文件。
+    if (lower.contains('could not open file') ||
+        lower.contains('failed to open') ||
+        lower.contains('could not write')) {
+      return (
+        reason: 'FFmpeg 无法写入输出文件',
+        suggestion: '请检查目录权限、磁盘空间、Windows 安全中心保护历史以及安全软件拦截记录。',
+      );
+    }
+
+    // FFmpeg 可执行文件找不到。
+    if (lower.contains('no such file or directory') &&
+        (lower.contains('ffmpeg') || lower.contains('executable'))) {
+      return (
+        reason: 'FFmpeg 可执行文件未找到',
+        suggestion: '请在设置中检查 FFmpeg 路径配置，或使用内置 FFmpeg。',
+      );
     }
 
     // 磁盘空间不足。
     if (lower.contains('no space left on device') ||
         lower.contains('disk full') ||
-        lower.contains('磁盘空间不足')) {
+        lower.contains('磁盘空间不足') ||
+        lower.contains('not enough space')) {
       return (
         reason: '磁盘空间不足，无法写入输出文件',
         suggestion: '请清理磁盘空间（至少保留与源文件大小相当的可用空间）后重试。',
       );
+    }
+
+    // 输出文件发布失败（重命名失败）。
+    if (rawError.contains('输出文件发布失败') ||
+        lower.contains('output file publish failed') ||
+        lower.contains('failed to publish output') ||
+        lower.contains('failed to rename')) {
+      return (
+        reason: '媒体处理已完成，但临时文件无法重命名为最终文件',
+        suggestion: '请检查目标文件是否被其他程序占用，或尝试更换输出目录后重试。',
+      );
+    }
+
+    // 输出目录不可写（预检阶段失败）。
+    if (rawError.contains('输出目录不可写') ||
+        lower.contains('output directory not writable') ||
+        lower.contains('directory not writable')) {
+      return (
+        reason: '输出目录不可写',
+        suggestion: '请确认输出目录存在且当前用户具有写入权限，或更换输出位置后重试。',
+      );
+    }
+
+    // 无法创建输出目录。
+    if ((rawError.contains('无法创建') && rawError.contains('目录')) ||
+        (lower.contains('failed to create') &&
+            (lower.contains('directory') || lower.contains('folder')))) {
+      return (reason: '无法创建输出目录', suggestion: '请确认路径存在且当前用户具有写入权限。');
     }
 
     // 编码器不可用。
@@ -1709,6 +1902,26 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     return task.copyWith(
       config: task.config.copyWith(outputDirectory: outputDirectory),
     );
+  }
+
+  void _cleanupTaskTracking(String taskId) {
+    _lastProgressPersistMs.remove(taskId);
+    _preemptedTaskIds.remove(taskId);
+    _suppressedTaskIds.remove(taskId);
+  }
+
+  /// 释放调度器租约，幂等操作。
+  /// 调用后 [execution.schedulerLease] 被清空，重复调用安全无副作用。
+  Future<void> _releaseSchedulerLease(TaskExecution execution) async {
+    _lastProgressPersistMs.remove(execution.taskId);
+    final lease = execution.schedulerLease;
+    // 立即清空以实现幂等：重复调用不会再次释放同一租约。
+    execution.schedulerLease = null;
+    try {
+      await lease?.release();
+    } on Object {
+      // Best-effort.
+    }
   }
 
   Future<void> _continueAfterTask({String? excludedTaskId}) async {

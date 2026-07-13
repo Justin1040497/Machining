@@ -17,6 +17,7 @@ export 'repositories/media_task_repository.dart';
 export 'repositories/task_folder_repository.dart';
 
 // services
+export 'services/analysis/media_analysis_queue.dart';
 export 'services/app_maintenance/app_cache_cleaner.dart';
 export 'services/app_notifications/app_notification_manager.dart';
 export 'services/app_notifications/task_completion_sound_player.dart';
@@ -33,10 +34,13 @@ export 'services/app_update/sparkle_update_controller.dart';
 export 'services/app_update/updater_helper_launcher.dart';
 export 'services/execution/execution_log_store.dart';
 export 'services/execution/execution_resource_guard.dart';
+export 'services/execution/media_resource_monitor.dart';
+export 'services/execution/media_work_scheduler.dart';
 export 'services/execution/ffmpeg_process_controller.dart';
 export 'services/execution/ffmpeg_process_observer.dart';
 export 'services/execution/ffmpeg_process_starter.dart';
 export 'services/execution/ffmpeg_task_queue_runner.dart';
+export 'services/execution/output_failure.dart';
 export 'services/execution/output_preflight_service.dart';
 export 'services/execution/preview_frame_generator.dart';
 export 'services/execution/video_thumbnail_generator.dart';

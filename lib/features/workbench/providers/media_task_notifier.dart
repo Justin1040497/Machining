@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/app/library.dart';
+import 'package:path/path.dart' as path;
 
 /// 工作台任务列表状态
 final mediaTaskListProvider =
@@ -17,11 +18,22 @@ final taskFolderListProvider = FutureProvider<List<TaskFolder>>((ref) {
 
 class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Timer? executionRefreshTimer;
+  MediaAnalysisQueue? _analysisQueue;
+  Timer? _analysisRefreshTimer;
+
+  MediaAnalysisQueue get _queue {
+    if (_analysisQueue != null) {
+      return _analysisQueue!;
+    }
+    _analysisQueue = ref.read(mediaAnalysisQueueProvider);
+    return _analysisQueue!;
+  }
 
   @override
   Future<List<MediaTask>> build() async {
     ref.onDispose(() {
       executionRefreshTimer?.cancel();
+      _analysisRefreshTimer?.cancel();
     });
 
     final repository = ref.watch(mediaTaskRepositoryProvider);
@@ -34,8 +46,28 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       fingerprintReader: fingerprintReader,
     ).call();
 
+    // 订阅全局分析队列的状态变化，用于刷新 UI
+    _analysisRefreshTimer?.cancel();
+    var lastPending = 0;
+    var lastAnalyzing = 0;
+    _analysisRefreshTimer = Timer.periodic(
+      const Duration(milliseconds: 500),
+      (_) {
+        final snapshot = _queue.snapshot;
+        final changed = snapshot.pending != lastPending ||
+            snapshot.analyzing != lastAnalyzing;
+        lastPending = snapshot.pending;
+        lastAnalyzing = snapshot.analyzing;
+        // 当分析状态稳定（无正在分析的任务但之前有）时，
+        // 批量刷新任务列表
+        if (changed && snapshot.analyzing == 0) {
+          unawaited(refreshTasksFromRepository());
+        }
+      },
+    );
+
     if (result.taskIdsNeedingAnalysis.isNotEmpty) {
-      unawaited(analyzeTasksInBackground(result.taskIdsNeedingAnalysis));
+      _queue.enqueueAll(result.taskIdsNeedingAnalysis);
     }
 
     await pruneEmptyTaskFolders();
@@ -58,28 +90,76 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     state = AsyncData(await repository.loadAllTasks());
     unawaited(syncFfmpegQueueStatus());
     if (analyzeInBackground) {
-      unawaited(analyzeTaskById(task.id));
+      _queue.enqueue(task.id);
     }
     return task;
   }
 
   Future<List<MediaTask>> createDraftsFromPaths(List<String> inputPaths) async {
+    final repository = ref.read(mediaTaskRepositoryProvider);
+    final mediaKindResolver = ref.read(mediaKindResolverProvider);
+    final fingerprintReader = ref.read(sourceFileFingerprintReaderProvider);
+    final settingsRepository = ref.read(appSettingsRepositoryProvider);
+
+    // 批量导入：一次性读取设置和现有任务，避免每个文件都重复读取
+    final settings = await settingsRepository.loadSettings();
+    final existingTasks = await repository.loadAllTasks();
+    var currentSortOrder = nextMediaTaskSortOrder(existingTasks);
     final createdTasks = <MediaTask>[];
+    final now = DateTime.now();
 
     for (final inputPath in inputPaths) {
       if (inputPath.trim().isEmpty) {
         continue;
       }
 
-      final task = await _createImportedDraft(inputPath);
+      final mediaKind = mediaKindResolver.resolve(inputPath);
+      try {
+        ensureSupportedImportedMediaKind(mediaKind);
+      } on Object {
+        continue; // 跳过不支持的媒体类型
+      }
+
+      final fingerprint = await fingerprintReader.read(inputPath);
+      final fileName = path.basename(inputPath);
+      final version = processingVersionForTask(
+        tasks: existingTasks,
+        inputPath: inputPath,
+        mediaKind: mediaKind,
+        purpose: TaskPurpose.compression,
+      );
+      final initialConfig = buildInitialTaskConfigFromSettings(
+        sourceFileName: fileName,
+        mediaKind: mediaKind,
+        settings: settings,
+        now: now,
+        version: version,
+      );
+
+      final task =
+          MediaTask.draft(
+                inputPath: inputPath,
+                fileName: fileName,
+                mediaKind: mediaKind,
+                sortOrder: currentSortOrder,
+                config: initialConfig,
+              )
+              .withSourceFileFingerprint(fingerprint)
+              .copyWith(status: TaskStatus.analyzing);
+
       createdTasks.add(task);
+      existingTasks.add(task);
+      currentSortOrder++;
+    }
+
+    // 单事务批量写入所有任务
+    if (createdTasks.isNotEmpty) {
+      await repository.insertTasks(createdTasks);
     }
 
     await createTaskFoldersForImportedBatch(createdTasks);
     if (createdTasks.isNotEmpty) {
-      unawaited(
-        analyzeTasksInBackground(createdTasks.map((task) => task.id).toList()),
-      );
+      _queue.enqueueAll(createdTasks.map((task) => task.id).toList());
     }
 
     return createdTasks;
@@ -117,10 +197,8 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ref.invalidate(taskFolderListProvider);
     unawaited(syncFfmpegQueueStatus());
     if (result.createdTasks.isNotEmpty) {
-      unawaited(
-        analyzeTasksInBackground(
-          result.createdTasks.map((task) => task.id).toList(),
-        ),
+      _queue.enqueueAll(
+        result.createdTasks.map((task) => task.id).toList(),
       );
     }
     return result;
@@ -231,7 +309,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     state = AsyncData(result.tasks);
     unawaited(syncFfmpegQueueStatus());
     if (result.taskIdsNeedingAnalysis.isNotEmpty) {
-      unawaited(analyzeTasksInBackground(result.taskIdsNeedingAnalysis));
+      _queue.enqueueAll(result.taskIdsNeedingAnalysis);
     }
   }
 
@@ -262,7 +340,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
     state = AsyncData(replaceMediaTask(tasks, updatedTask));
     unawaited(syncFfmpegQueueStatus());
-    unawaited(analyzeTaskById(updatedTask.id));
+    _queue.enqueue(updatedTask.id);
   }
 
   Future<void> deleteTaskById(String taskId) async {
@@ -294,7 +372,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     state = AsyncData(replaceMediaTask(tasks, result.task));
     unawaited(syncFfmpegQueueStatus());
     if (result.shouldAnalyze) {
-      unawaited(analyzeTaskById(taskId));
+      _queue.enqueue(taskId);
     }
   }
 
@@ -507,27 +585,26 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   }
 
   Future<void> analyzeTasksInBackground(List<String> taskIds) async {
-    for (final taskId in taskIds) {
-      await analyzeTaskById(taskId);
-    }
+    // 所有分析现已统一路由到全局 MediaAnalysisQueue，
+    // 此处保留方法签名以兼容外部调用者（如 WorkbenchImportHandler）。
+    _queue.enqueueAll(taskIds);
   }
 
   Future<void> analyzeTaskById(String taskId) async {
+    // 所有分析现已统一路由到全局 MediaAnalysisQueue。
+    _queue.enqueue(taskId);
+  }
+
+  /// 分析完成后刷新任务列表中的单个任务状态。
+  /// 由 MediaAnalysisQueue.onEntryStateChanged 回调触发，
+  /// 使用 loadTaskById 精确更新，避免全量 loadAllTasks。
+  Future<void> refreshAnalysisTaskState(String taskId) async {
+    if (!state.hasValue) {
+      return;
+    }
     final repository = ref.read(mediaTaskRepositoryProvider);
-    final analyzer = ref.read(mediaAnalyzerProvider);
-    final sourceFileChecker = ref.read(sourceFileCheckerProvider);
-    final mediaInputPreparer = ref.read(mediaInputPreparerProvider);
-
-    final updatedTask = await AnalyzeMediaTaskUseCase(
-      repository: repository,
-      analyzer: analyzer,
-      sourceFileChecker: sourceFileChecker,
-      readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
-      refreshRuntime: () => ref.refresh(ffmpegRuntimeProvider.future),
-      mediaInputPreparer: mediaInputPreparer,
-    ).call(taskId);
-
-    if (updatedTask != null && state.hasValue) {
+    final updatedTask = await repository.loadTaskById(taskId);
+    if (updatedTask != null) {
       state = AsyncData(replaceMediaTask(state.requireValue, updatedTask));
     }
     unawaited(syncFfmpegQueueStatus());

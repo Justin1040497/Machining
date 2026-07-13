@@ -3,7 +3,6 @@ import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/media_analyzer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
-import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
 import 'package:framelean/domain/library.dart';
 
 class AnalyzeMediaTaskUseCase {
@@ -33,7 +32,10 @@ class AnalyzeMediaTaskUseCase {
       return markAnalysisUnavailable(taskId, 'FFprobe 不可用，无法分析媒体信息');
     }
 
-    var task = findMediaTaskById(await repository.loadAllTasks(), taskId);
+    var task = await repository.loadTaskById(taskId);
+    if (task == null) {
+      return null;
+    }
     if (task.analysisResult == null && task.status == TaskStatus.pending) {
       task = task.copyWith(status: TaskStatus.analyzing);
       await repository.saveTask(task);
@@ -55,10 +57,10 @@ class AnalyzeMediaTaskUseCase {
         ffprobePath: runtime.ffprobe!.path,
         inputPath: preparedInput.task.inputPath,
       );
-      final latestTask = findMediaTaskById(
-        await repository.loadAllTasks(),
-        taskId,
-      );
+      final latestTask = await repository.loadTaskById(taskId);
+      if (latestTask == null) {
+        return null;
+      }
       final updatedTask = latestTask
           .withAnalysisResult(result)
           .copyWith(
@@ -69,10 +71,10 @@ class AnalyzeMediaTaskUseCase {
       await repository.saveTask(updatedTask);
       return updatedTask;
     } on Object catch (error) {
-      final latestTask = findMediaTaskById(
-        await repository.loadAllTasks(),
-        taskId,
-      );
+      final latestTask = await repository.loadTaskById(taskId);
+      if (latestTask == null) {
+        return null;
+      }
       final updatedTask = latestTask
           .withAnalysisError(error.toString())
           .markFailed('媒体分析失败: $error');
@@ -90,10 +92,7 @@ class AnalyzeMediaTaskUseCase {
     String taskId,
     String message,
   ) async {
-    final task = maybeFindMediaTaskById(
-      await repository.loadAllTasks(),
-      taskId,
-    );
+    final task = await repository.loadTaskById(taskId);
     if (task == null) {
       return null;
     }

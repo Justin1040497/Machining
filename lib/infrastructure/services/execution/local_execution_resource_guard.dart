@@ -119,9 +119,19 @@ class LocalExecutionResourceGuard implements ExecutionResourceGuard {
   }
 
   int? _bestEffortTotalMemory() {
-    if (!Platform.isMacOS && !Platform.isLinux) {
-      return null;
+    if (Platform.isWindows) {
+      return _readWindowsTotalMemory();
     }
+    if (Platform.isMacOS) {
+      return _readMacOSTotalMemory();
+    }
+    if (Platform.isLinux) {
+      return _readLinuxTotalMemory();
+    }
+    return null;
+  }
+
+  int? _readMacOSTotalMemory() {
     try {
       final result = Process.runSync('sysctl', const ['-n', 'hw.memsize']);
       if (result.exitCode == 0) {
@@ -129,6 +139,46 @@ class LocalExecutionResourceGuard implements ExecutionResourceGuard {
       }
     } on Object {
       // Fall through to the conservative unknown-memory path.
+    }
+    return null;
+  }
+
+  int? _readWindowsTotalMemory() {
+    try {
+      // 使用 wmic 获取系统总物理内存（单位：字节）
+      final result = Process.runSync(
+        'wmic',
+        const ['computersystem', 'get', 'TotalPhysicalMemory'],
+      );
+      if (result.exitCode == 0) {
+        final output = result.stdout.toString();
+        final match = RegExp(r'(\d+)').firstMatch(output);
+        if (match != null) {
+          return int.tryParse(match.group(1)!);
+        }
+      }
+    } on Object {
+      // Fall through to the conservative unknown-memory path.
+    }
+    return null;
+  }
+
+  int? _readLinuxTotalMemory() {
+    try {
+      final file = File('/proc/meminfo');
+      if (!file.existsSync()) {
+        return null;
+      }
+      final contents = file.readAsStringSync();
+      final match = RegExp(r'MemTotal:\s+(\d+)\s+kB').firstMatch(contents);
+      if (match != null) {
+        final kb = int.tryParse(match.group(1)!);
+        if (kb != null) {
+          return kb * 1024; // 转换为字节
+        }
+      }
+    } on Object {
+      // Fall through.
     }
     return null;
   }

@@ -2,7 +2,7 @@
 
 ## 版本摘要
 
-v1.2.1 汇总根仓库 `v1.2.0..HEAD` 的桌面客户端变更，并关联独立 `server` 仓库当前 `main` 的更新服务与 Admin Web 事实。应用版本为 `1.2.1+5`，主要发布平台仍是 macOS Universal 2 和 Windows x64。
+v1.2.1 汇总根仓库 `v1.2.0..HEAD` 的桌面客户端变更，并关联独立 `server` 仓库当前 `main@d631ad7` 的更新服务与 Admin Web 事实。应用版本为 `1.2.1+5`，主要发布平台仍是 macOS Universal 2 和 Windows x64。
 
 本版本集中完成更新体验、任务夹批量工作流、受控并行、隐藏 partial 输出保护、媒体容器 / 编码矩阵、通知策略、快捷键和桌面关闭行为。更新服务迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X；当前公开发布默认展示 GitHub、Gitee 或备用下载地址，客户端不直接下载安装包。原 package、COS ticket、Windows updater helper、macOS 私有 DMG 缓存和 Sparkle appcast 链继续保留，但不再是 Admin 默认发布门禁。
 
@@ -36,14 +36,14 @@ v1.2.1 汇总根仓库 `v1.2.0..HEAD` 的桌面客户端变更，并关联独立
 
 ## 验证与兼容
 
-- 通过 `flutter test` 全量测试，共 376 项。
+- 通过 `rtk flutter test` 全量测试，共 376 项。
 - 通过更新、通知、设置、签名和下载器定向回归，共 49 项。
-- 通过 `flutter test integration_test/app_smoke_test.dart`，4 项桌面烟测覆盖应用外壳、设置、批次建夹、通知中心和更新入口。
-- 通过 `mvn -pl ruoyi-admin -am -DskipTests package`，RuoYi 27 个 reactor 模块构建成功。
-- 通过 `npm run build:prod`，plus-ui Admin Web 生产构建成功。
-- 通过 `docker compose config`，确认 PostgreSQL、Redis、API 和公网地址变量可解析。
+- 通过 `rtk flutter test integration_test/app_smoke_test.dart`，4 项桌面烟测覆盖应用外壳、设置、批次建夹、通知中心和更新入口。
+- 通过 `rtk mvn -pl ruoyi-admin -am -DskipTests package`，RuoYi 27 个 reactor 模块构建成功。
+- 通过 `rtk npm run build:prod`，plus-ui Admin Web 生产构建成功；存在大 chunk 提示，不影响构建完成。
+- 在提供仅用于配置解析的 `SA_TOKEN_JWT_SECRET` 与 `FRAMELEAN_PUBLIC_BASE_URL` 后，通过 `rtk docker compose config`，确认 PostgreSQL、Redis、API 和公网地址变量可解析；缺少必填值时会按设计拒绝展开。
 - 通过 macOS release / FFmpeg 脚本 `bash -n`，并通过两份 GitHub Actions YAML 解析。
-- 通过候选工作树 `git diff --check v1.2.0` 和独立 server 文档 diff 检查。
+- 通过候选工作树 `rtk git diff --check v1.2.0` 和独立 server 文档 diff 检查。
 - 打包新鲜度门禁确认：macOS / Windows Actions 调用 canonical release 脚本；macOS 注入 HTTPS `FRAMELEAN_UPDATE_BASE_URL`；Windows 注入更新地址、key id、公钥和临时私钥文件；脚本继续生成 `*.update.json`，缺少配置时 fail closed。
 - `flutter analyze` 当前未通过：Flutter SDK 对两个 `cacheExtent` 和一个 `axisAlignment` 用法报告 3 条弃用级 `info`。它们不是本轮文档改动引入，但在替换为新 API 前静态分析命令仍返回非零。
 - Drift schema version 从 v1.2.0 的 23 升级到 29；旧媒体兼容列继续写入，`media_config_json` 仍是新配置主字段。
@@ -88,7 +88,7 @@ FrameLean-v1.2.1-windows-x64-setup.exe.update.json
 ## 关联记录
 
 - 根仓库 Git 比较范围：`v1.2.0..HEAD`
-- 独立 server 事实快照：`main`
+- 独立 server 事实快照：`main@d631ad7`
 - `CHANGELOG.md`
 - `CONTEXT.md`
 - `docs/releases/v1.2.1/overview.md`

@@ -521,7 +521,9 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       }
 
       showWorkbenchSnackBar(
-        '管理员模式下 Windows 可能阻止拖入文件',
+        'FrameLean 当前以管理员权限运行。媒体处理通常不需要管理员权限，'
+        '管理员模式可能导致拖放文件、映射网络盘和用户目录识别出现差异。'
+        '建议下次以普通方式启动。',
         action: SnackBarAction(
           label: '普通模式重启',
           onPressed: () => unawaited(restartInNormalMode()),

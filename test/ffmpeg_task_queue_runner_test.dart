@@ -117,6 +117,10 @@ void main() {
       await harness.runner.startSingleTask(task.id);
       final workingPath = harness.processStarter.starts.single.args.last;
       expect(workingPath, isNot(finalPath));
+      // 工作文件不再由预检预创建，由 FFmpeg 自行创建。
+      // 测试需要先创建工作文件，模拟 FFmpeg 写入后文件被删除的场景。
+      await File(workingPath).create(recursive: true);
+      await File(workingPath).writeAsString('ffmpeg output content');
       await File(workingPath).delete();
       await Future<void>.delayed(const Duration(milliseconds: 650));
 
@@ -1268,6 +1272,33 @@ class FakeMediaTaskRepository implements MediaTaskRepository {
 
   MediaTask taskById(String id) {
     return tasks.singleWhere((task) => task.id == id);
+  }
+
+  @override
+  Future<MediaTask?> loadTaskById(String taskId) async {
+    final index = tasks.indexWhere((task) => task.id == taskId);
+    if (index == -1) {
+      return null;
+    }
+    return tasks[index];
+  }
+
+  @override
+  Future<List<MediaTask>> loadTasksByIds(Iterable<String> taskIds) async {
+    final idSet = taskIds.toSet();
+    return tasks.where((task) => idSet.contains(task.id)).toList();
+  }
+
+  @override
+  Future<void> insertTasks(List<MediaTask> newTasks) async {
+    for (final task in newTasks) {
+      final index = tasks.indexWhere((t) => t.id == task.id);
+      if (index == -1) {
+        tasks.add(task);
+      } else {
+        tasks[index] = task;
+      }
+    }
   }
 }
 

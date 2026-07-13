@@ -9,6 +9,12 @@ import 'package:framelean/domain/library.dart';
 class FfprobeMediaAnalyzer implements MediaAnalyzer {
   final Duration timeout;
 
+  /// stdout 最大缓冲区大小（4 MB），超出后终止 ffprobe 并标记分析失败。
+  static const int _maxStdoutBytes = 4 * 1024 * 1024;
+
+  /// stderr 最大缓冲区大小（512 KB），超出后终止 ffprobe 并标记分析失败。
+  static const int _maxStderrBytes = 512 * 1024;
+
   FfprobeMediaAnalyzer({this.timeout = ffprobeAnalysisTimeout});
 
   @override
@@ -29,11 +35,40 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
 
     final stdoutBuffer = <int>[];
     final stderrBuffer = <int>[];
+    var stdoutExceeded = false;
+    var stderrExceeded = false;
+
+    // 为 stdout / stderr 添加大小上限，防止损坏文件导致 ffprobe 输出无限增长。
+    void addToBuffer(List<int> buffer, List<int> data, int maxBytes, String label) {
+      final newSize = buffer.length + data.length;
+      if (newSize <= maxBytes) {
+        buffer.addAll(data);
+      } else {
+        // 仅保留前 maxBytes 字节
+        final remaining = maxBytes - buffer.length;
+        if (remaining > 0) {
+          buffer.addAll(data.take(remaining));
+        }
+      }
+    }
+
     final stdoutDone = process.stdout
-        .listen(stdoutBuffer.addAll)
+        .listen((data) {
+          if (!stdoutExceeded && stdoutBuffer.length >= _maxStdoutBytes) {
+            stdoutExceeded = true;
+            process.kill(ProcessSignal.sigkill);
+          }
+          addToBuffer(stdoutBuffer, data, _maxStdoutBytes, 'stdout');
+        })
         .asFuture<void>();
     final stderrDone = process.stderr
-        .listen(stderrBuffer.addAll)
+        .listen((data) {
+          if (!stderrExceeded && stderrBuffer.length >= _maxStderrBytes) {
+            stderrExceeded = true;
+            process.kill(ProcessSignal.sigkill);
+          }
+          addToBuffer(stderrBuffer, data, _maxStderrBytes, 'stderr');
+        })
         .asFuture<void>();
 
     try {
@@ -42,7 +77,11 @@ class FfprobeMediaAnalyzer implements MediaAnalyzer {
 
       final stderrText = utf8.decode(stderrBuffer);
       if (exitCode != 0) {
-        throw StateError('FFprobe 分析失败: $stderrText');
+        final reason = stdoutExceeded || stderrExceeded
+            ? 'FFprobe 输出超出限制（stdout ${stdoutBuffer.length} / ${_maxStdoutBytes} bytes, '
+                'stderr ${stderrBuffer.length} / ${_maxStderrBytes} bytes），分析已终止'
+            : 'FFprobe 分析失败: $stderrText';
+        throw StateError(reason);
       }
 
       final json = jsonDecode(utf8.decode(stdoutBuffer));
