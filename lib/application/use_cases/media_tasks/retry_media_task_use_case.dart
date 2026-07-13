@@ -37,29 +37,35 @@ class RetryMediaTaskUseCase {
 
     final fingerprint = await fingerprintReader.read(task.inputPath);
     final settings = await settingsRepository.loadSettings();
+    final shouldAnalyze =
+        task.analysisResult == null ||
+        task.failure?.recoveryAction == TaskRecoveryAction.retryAnalysis;
     final retryTask = task
         .markPendingForRetry()
         .clearError()
-        .withSourceFileFingerprint(fingerprint)
-        .clearAnalysis();
-    final analyzingTask = retryTask
-        .copyWith(
-          config: buildOutputTaskConfigFromSettings(
-            task: retryTask,
-            settings: settings,
-            now: DateTime.now(),
-            version: processingVersionForTask(
-              tasks: tasks,
-              inputPath: retryTask.inputPath,
-              mediaKind: retryTask.mediaKind,
-              purpose: retryTask.purpose,
-              taskId: retryTask.id,
-            ),
-          ),
-        )
-        .copyWith(status: TaskStatus.analyzing);
+        .withSourceFileFingerprint(fingerprint);
+    final resetTask = shouldAnalyze
+        ? retryTask.clearAnalysis().markAwaitingAnalysis()
+        : retryTask;
+    final pendingTask = resetTask.copyWith(
+      config: buildOutputTaskConfigFromSettings(
+        task: retryTask,
+        settings: settings,
+        now: DateTime.now(),
+        version: processingVersionForTask(
+          tasks: tasks,
+          inputPath: retryTask.inputPath,
+          mediaKind: retryTask.mediaKind,
+          purpose: retryTask.purpose,
+          taskId: retryTask.id,
+        ),
+      ),
+    );
 
-    await repository.saveTask(analyzingTask);
-    return RetryMediaTaskResult(task: analyzingTask, shouldAnalyze: true);
+    await repository.saveTask(pendingTask);
+    return RetryMediaTaskResult(
+      task: pendingTask,
+      shouldAnalyze: shouldAnalyze,
+    );
   }
 }

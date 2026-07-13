@@ -18,6 +18,7 @@ class TaskRows extends Table {
   IntColumn get outputFileSize =>
       integer().named('output_file_size').nullable()();
   TextColumn get errorMessage => text().named('error_message').nullable()();
+  TextColumn get failureJson => text().named('failure_json').nullable()();
   TextColumn get policyTagsJson =>
       text().named('policy_tags_json').nullable()();
   IntColumn get sourceFileSize =>

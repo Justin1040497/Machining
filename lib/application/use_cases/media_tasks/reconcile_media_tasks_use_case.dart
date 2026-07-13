@@ -46,9 +46,9 @@ class ReconcileMediaTasksUseCase {
       if (task.status == TaskStatus.missingSource) {
         final fingerprint = await fingerprintReader.read(task.inputPath);
         final updatedTask = task
-            .markPendingForRetry()
-            .withSourceFileFingerprint(fingerprint)
-            .copyWith(status: TaskStatus.analyzing);
+            .clearAnalysis()
+            .markAwaitingAnalysis()
+            .withSourceFileFingerprint(fingerprint);
         checkedTasks.add(updatedTask);
         taskIdsNeedingAnalysis.add(updatedTask.id);
         hasChanged = true;
@@ -60,7 +60,7 @@ class ReconcileMediaTasksUseCase {
         final updatedTask = task
             .withSourceFileFingerprint(fingerprint)
             .clearAnalysis()
-            .copyWith(status: TaskStatus.analyzing);
+            .markAwaitingAnalysis();
         checkedTasks.add(updatedTask);
         taskIdsNeedingAnalysis.add(updatedTask.id);
         hasChanged = true;
@@ -68,12 +68,18 @@ class ReconcileMediaTasksUseCase {
       }
 
       if (task.analysisResult == null) {
-        final updatedTask = task.status == TaskStatus.pending
-            ? task.copyWith(status: TaskStatus.analyzing)
-            : task;
+        final updatedTask = task.isAwaitingAnalysis
+            ? task
+            : task.markAwaitingAnalysis();
         checkedTasks.add(updatedTask);
         taskIdsNeedingAnalysis.add(updatedTask.id);
-        hasChanged = hasChanged || updatedTask.status != task.status;
+        hasChanged = hasChanged || updatedTask != task;
+        continue;
+      }
+
+      if (task.status == TaskStatus.awaitingAnalysis) {
+        checkedTasks.add(task.markAnalyzing().markAnalysisReady());
+        hasChanged = true;
         continue;
       }
 

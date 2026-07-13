@@ -12,11 +12,50 @@ import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
+import 'package:framelean/domain/value_objects/task_failure.dart';
 import 'package:framelean/infrastructure/database/app_database.dart';
 import 'package:framelean/infrastructure/repositories/drift_media_task_repository.dart';
 
 void main() {
   group('DriftMediaTaskRepository mappers', () {
+    test('persists structured failure and mirrors legacy columns', () {
+      final failedTask = mediaTask(status: TaskStatus.failed).copyWith(
+        failure: const TaskFailure(
+          stage: TaskFailureStage.outputPublication,
+          code: TaskFailureCode.outputPublishFailed,
+          userMessage: '无法发布最终文件',
+          technicalSummary: 'rename access denied',
+          occurredAt: 12,
+          retryable: true,
+        ),
+      );
+
+      final companion = failedTask.toCompanion();
+      expect(companion.failureJson.value, contains('outputPublication'));
+      expect(companion.errorMessage.value, 'rename access denied');
+      expect(companion.analysisErrorMessage.value, isNull);
+
+      final restored = taskRow(
+        status: 'failed',
+        failureJson: companion.failureJson.value,
+      ).toDomain();
+      expect(restored.failure?.stage, TaskFailureStage.outputPublication);
+      expect(restored.failure?.code, TaskFailureCode.outputPublishFailed);
+      expect(restored.failure?.userMessage, '无法发布最终文件');
+    });
+
+    test('restores legacy failure when failure_json is absent', () {
+      final restored = taskRow(
+        status: 'failed',
+        errorMessage: 'ffprobe stderr',
+        analysisErrorMessage: '媒体分析失败',
+      ).toDomain();
+
+      expect(restored.failure?.stage, TaskFailureStage.analysis);
+      expect(restored.failure?.code, TaskFailureCode.unknown);
+      expect(restored.failure?.technicalSummary, 'ffprobe stderr');
+    });
+
     test('persists extended media analysis fields from domain', () {
       final task = mediaTask(
         analysisResult: MediaAnalysisResult(
@@ -308,6 +347,10 @@ TaskRow taskRow({
   String? analysisImageCodec,
   String? analysisImagePixelFormat,
   int? analysisImageBitDepth,
+  String status = 'pending',
+  String? failureJson,
+  String? errorMessage,
+  String? analysisErrorMessage,
 }) {
   return TaskRow(
     id: id,
@@ -315,10 +358,13 @@ TaskRow taskRow({
     fileName: fileName,
     mediaKind: mediaKind,
     purpose: 'compression',
-    status: 'pending',
+    status: status,
     progress: 0,
     sortOrder: 0,
     outputFileSize: outputFileSize,
+    failureJson: failureJson,
+    errorMessage: errorMessage,
+    analysisErrorMessage: analysisErrorMessage,
     analysisDurationMs: 1000,
     analysisVideoWidth: 3840,
     analysisVideoHeight: 2160,
