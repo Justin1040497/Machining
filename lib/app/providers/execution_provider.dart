@@ -113,7 +113,7 @@ final mediaAnalysisQueueProvider = Provider<MediaAnalysisQueue>((ref) {
 
 /// FFmpeg 任务队列执行器。Provider 会在容器生命周期内维持同一个执行器实例。
 final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
-  return DefaultFfmpegTaskQueueRunner(
+  final runner = DefaultFfmpegTaskQueueRunner(
     repository: ref.read(mediaTaskRepositoryProvider),
     taskFolderRepository: ref.read(taskFolderRepositoryProvider),
     sourceFileChecker: ref.read(sourceFileCheckerProvider),
@@ -133,6 +133,10 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
         .notifyTaskCompleted,
     onTaskFailed: ref.read(appNotificationManagerProvider).notifyTaskFailed,
   );
+  ref.onDispose(() {
+    unawaited(runner.dispose());
+  });
+  return runner;
 });
 
 Directory ffmpegExecutionLogsDirectory() {

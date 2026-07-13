@@ -121,6 +121,21 @@ class LocalOutputPreflightService implements OutputPreflightService {
   }
 
   @override
+  Future<bool> isPublishedOutputUsable(String outputPath) async {
+    final file = File(outputPath);
+    try {
+      final stat = await file.stat();
+      if (stat.type != FileSystemEntityType.file || stat.size <= 0) {
+        return false;
+      }
+      await file.openRead(0, 1).first;
+      return true;
+    } on Object {
+      return false;
+    }
+  }
+
+  @override
   Future<void> discardStep(FfmpegCommandStep step) async {
     final workingPath = step.workingOutputPath;
     try {
@@ -253,14 +268,10 @@ class LocalOutputPreflightService implements OutputPreflightService {
     }
 
     try {
-      final result = await Process.run(
-        'attrib.exe',
-        <String>[
-          hidden ? '+H' : '-H',
-          filePath,
-        ],
-        runInShell: false,
-      );
+      final result = await Process.run('attrib.exe', <String>[
+        hidden ? '+H' : '-H',
+        filePath,
+      ], runInShell: false);
 
       if (result.exitCode != 0) {
         // 记录警告但不抛出异常。隐藏属性不是任务成功的必要条件。
@@ -286,10 +297,7 @@ class LocalOutputPreflightService implements OutputPreflightService {
   /// 使用递增等待重试策略处理此类短暂冲突。
   ///
   /// 非 Windows 平台直接重命名，不重试。
-  Future<void> _renameWithRetry(
-    String sourcePath,
-    String targetPath,
-  ) async {
+  Future<void> _renameWithRetry(String sourcePath, String targetPath) async {
     if (!Platform.isWindows) {
       await File(sourcePath).rename(targetPath);
       return;

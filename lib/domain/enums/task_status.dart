@@ -1,5 +1,6 @@
 /// 任务状态
 enum TaskStatus {
+  awaitingAnalysis,
   pending,
   analyzing,
   running,

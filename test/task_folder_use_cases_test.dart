@@ -292,14 +292,10 @@ void main() {
         fingerprintReader: fingerprintReader,
       ).call(folder.id);
 
-      expect(result.taskIdsNeedingAnalysis, [
-        'completed',
-        'failed',
-        'cancelled',
-      ]);
-      expect(repository.taskById('completed').status, TaskStatus.analyzing);
-      expect(repository.taskById('failed').status, TaskStatus.analyzing);
-      expect(repository.taskById('cancelled').status, TaskStatus.analyzing);
+      expect(result.taskIdsNeedingAnalysis, isEmpty);
+      expect(repository.taskById('completed').status, TaskStatus.pending);
+      expect(repository.taskById('failed').status, TaskStatus.pending);
+      expect(repository.taskById('cancelled').status, TaskStatus.pending);
       expect(repository.taskById('pending').status, TaskStatus.pending);
       expect(
         repository.taskById('completed').config.videoCodec,
@@ -603,6 +599,12 @@ class FakeSourceFileFingerprintReader implements SourceFileFingerprintReader {
 }
 
 class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  void requestQueueRefill() {}
+
   final List<String> startedFolderIds = [];
 
   @override

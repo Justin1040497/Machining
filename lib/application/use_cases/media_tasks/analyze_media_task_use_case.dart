@@ -23,6 +23,13 @@ class AnalyzeMediaTaskUseCase {
   });
 
   Future<MediaTask?> call(String taskId) async {
+    var task = await repository.loadTaskById(taskId);
+    if (task == null || !task.isAwaitingAnalysis) {
+      return task;
+    }
+    task = task.markAnalyzing();
+    await repository.saveTask(task);
+
     var runtime = await readRuntime();
     if (!runtime.canAnalyze || runtime.ffprobe == null) {
       runtime = await refreshRuntime();
@@ -30,15 +37,6 @@ class AnalyzeMediaTaskUseCase {
 
     if (!runtime.canAnalyze || runtime.ffprobe == null) {
       return markAnalysisUnavailable(taskId, 'FFprobe 不可用，无法分析媒体信息');
-    }
-
-    var task = await repository.loadTaskById(taskId);
-    if (task == null) {
-      return null;
-    }
-    if (task.analysisResult == null && task.status == TaskStatus.pending) {
-      task = task.copyWith(status: TaskStatus.analyzing);
-      await repository.saveTask(task);
     }
 
     if (!await sourceFileChecker.exists(task.inputPath)) {
@@ -63,11 +61,7 @@ class AnalyzeMediaTaskUseCase {
       }
       final updatedTask = latestTask
           .withAnalysisResult(result)
-          .copyWith(
-            status: latestTask.status == TaskStatus.analyzing
-                ? TaskStatus.pending
-                : latestTask.status,
-          );
+          .markAnalysisReady();
       await repository.saveTask(updatedTask);
       return updatedTask;
     } on Object catch (error) {
@@ -75,9 +69,17 @@ class AnalyzeMediaTaskUseCase {
       if (latestTask == null) {
         return null;
       }
-      final updatedTask = latestTask
-          .withAnalysisError(error.toString())
-          .markFailed('媒体分析失败: $error');
+      final occurredAt = DateTime.now().millisecondsSinceEpoch;
+      final updatedTask = latestTask.markFailed(
+        TaskFailure(
+          stage: TaskFailureStage.analysis,
+          code: TaskFailureCode.analysisFailed,
+          userMessage: '媒体分析失败，请确认文件可以正常读取后重试。',
+          technicalSummary: error.toString(),
+          occurredAt: occurredAt,
+          retryable: true,
+        ),
+      );
       await repository.saveTask(updatedTask);
       return updatedTask;
     } finally {
@@ -97,7 +99,17 @@ class AnalyzeMediaTaskUseCase {
       return null;
     }
 
-    final updatedTask = task.withAnalysisError(message).markFailed(message);
+    final occurredAt = DateTime.now().millisecondsSinceEpoch;
+    final updatedTask = task.markFailed(
+      TaskFailure(
+        stage: TaskFailureStage.analysis,
+        code: TaskFailureCode.analysisRuntimeUnavailable,
+        userMessage: message,
+        technicalSummary: message,
+        occurredAt: occurredAt,
+        retryable: true,
+      ),
+    );
     await repository.saveTask(updatedTask);
     return updatedTask;
   }

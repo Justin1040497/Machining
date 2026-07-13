@@ -105,15 +105,16 @@ class MediaAnalysisQueue {
   final int maxConcurrentAnalyses;
 
   /// 条目状态变化回调，用于 UI 层刷新任务列表。
-  final void Function(MediaAnalysisEntry entry)? onEntryStateChanged;
+  void Function(MediaAnalysisEntry entry)? onEntryStateChanged;
 
   final Queue<String> _pendingQueue = Queue<String>();
-  final Set<String> _allTaskIds = {};
   final Map<String, MediaAnalysisEntry> _entries = {};
-  String? _currentTaskId;
+  final Set<String> _activeTaskIds = {};
+  final Set<Future<void>> _activeOperations = {};
   int _activeCount = 0;
   bool _stopped = false;
   Completer<void>? _idleCompleter;
+  Future<void>? _stopFuture;
 
   final StreamController<MediaAnalysisQueueSnapshot> _snapshotController =
       StreamController<MediaAnalysisQueueSnapshot>.broadcast();
@@ -168,7 +169,6 @@ class MediaAnalysisQueue {
       return;
     }
 
-    _allTaskIds.add(taskId);
     _entries[taskId] = MediaAnalysisEntry(
       taskId: taskId,
       state: MediaAnalysisEntryState.pending,
@@ -191,7 +191,6 @@ class MediaAnalysisQueue {
               existing.state == MediaAnalysisEntryState.analyzing)) {
         continue;
       }
-      _allTaskIds.add(taskId);
       _entries[taskId] = MediaAnalysisEntry(
         taskId: taskId,
         state: MediaAnalysisEntryState.pending,
@@ -222,7 +221,7 @@ class MediaAnalysisQueue {
 
   /// 检查 taskId 是否正在分析中。
   bool isAnalyzing(String taskId) {
-    return _currentTaskId == taskId;
+    return _activeTaskIds.contains(taskId);
   }
 
   /// 等待队列空闲。
@@ -235,13 +234,18 @@ class MediaAnalysisQueue {
   }
 
   /// 停止队列，取消所有等待和正在进行的分析。
-  Future<void> stop() async {
+  Future<void> stop() {
+    return _stopFuture ??= _stop();
+  }
+
+  Future<void> _stop() async {
     _stopped = true;
     _pendingQueue.clear();
 
-    // 将等待中的任务标记为取消
+    // 队列不能中断调用方的 Future，但停止后不再接受其结果。
     for (final entry in _entries.values) {
-      if (entry.state == MediaAnalysisEntryState.pending) {
+      if (entry.state == MediaAnalysisEntryState.pending ||
+          entry.state == MediaAnalysisEntryState.analyzing) {
         _entries[entry.taskId] = entry.copyWith(
           state: MediaAnalysisEntryState.cancelled,
         );
@@ -249,7 +253,11 @@ class MediaAnalysisQueue {
     }
 
     _emitSnapshot();
-    _idleCompleter?.complete();
+    await Future.wait([..._activeOperations]);
+    if (!(_idleCompleter?.isCompleted ?? true)) {
+      _idleCompleter?.complete();
+    }
+    _idleCompleter = null;
     await _snapshotController.close();
   }
 
@@ -261,13 +269,18 @@ class MediaAnalysisQueue {
     while (_activeCount < maxConcurrentAnalyses && _pendingQueue.isNotEmpty) {
       final taskId = _pendingQueue.removeFirst();
       _activeCount++;
-      _currentTaskId = taskId;
+      _activeTaskIds.add(taskId);
       _entries[taskId] = _entries[taskId]!.copyWith(
         state: MediaAnalysisEntryState.analyzing,
       );
       _emitSnapshot();
 
-      unawaited(_executeAnalysis(taskId));
+      late final Future<void> operation;
+      operation = _executeAnalysis(taskId).whenComplete(() {
+        _activeOperations.remove(operation);
+      });
+      _activeOperations.add(operation);
+      unawaited(operation);
     }
   }
 
@@ -294,9 +307,7 @@ class MediaAnalysisQueue {
       );
     } finally {
       _activeCount--;
-      if (_currentTaskId == taskId) {
-        _currentTaskId = null;
-      }
+      _activeTaskIds.remove(taskId);
       _emitSnapshot();
 
       // 通知 UI 层分析状态变化
@@ -306,9 +317,11 @@ class MediaAnalysisQueue {
       }
 
       if (isIdle) {
-        _idleCompleter?.complete();
+        if (!(_idleCompleter?.isCompleted ?? true)) {
+          _idleCompleter?.complete();
+        }
         _idleCompleter = null;
-      } else {
+      } else if (!_stopped) {
         _tryProcessNext();
       }
     }

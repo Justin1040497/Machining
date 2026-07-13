@@ -430,23 +430,26 @@ main()
 
 ### 队列执行
 
-`DefaultFfmpegTaskQueueRunner` 是 FFmpeg 执行的核心协调器。工作台连续队列、任务夹连续队列和一次性单任务分别进入 `startWorkbenchQueue()`、`startFolderQueue()` 和 `startSingleTask()`。执行器保存运行中的 `_executions`、当前 `ExecutionScope`、被抢占任务 FIFO 和当前有效执行位，同时把任务状态写回仓储。
+`DefaultFfmpegTaskQueueRunner` 保持 FFmpeg 执行的稳定门面。工作台连续队列、任务夹连续队列和一次性单任务分别进入 `startWorkbenchQueue()`、`startFolderQueue()` 和 `startSingleTask()`；内部由三个受测试保护的组件协作：`ExecutionSlotCoordinator` 监听容量变化并合并异步补位，`TaskProcessLifecycle` 管理暂停、恢复、终止和租约释放，`TaskResultFinalizer` 校验、发布、清理并持久化最终结果。Runner 仍保存运行中的 `_executions`、当前 `ExecutionScope` 和被抢占任务 FIFO，现有 UI / use case 接口保持不变。
 
 状态模型：
+
+任务领域生命周期为 `awaitingAnalysis → analyzing → pending → running → completed`。`failed` 仍是唯一失败状态，当前失败由可持久化 `TaskFailure` 表达；`pending` 只代表分析已完成且等待执行。连续队列跳过尚未分析的任务但保留工作台 / 任务夹作用域，分析完成后由 `requestQueueRefill()` 请求一次可合并补位；单任务 `notReady` 不建立自动启动意图。
 
 | 队列状态 | 含义 |
 | --- | --- |
 | `idle` | 没有可执行或正在执行的任务 |
-| `ready` | 存在 `pending` 任务或暂停中的进程 |
+| `ready` | 存在满足 `canStartExecution` 的任务，或 Runner 内有可恢复的暂停执行 |
 | `running` | 存在一个或多个运行中的执行任务，或数据库中有 `running` 任务 |
 
 执行流程：
 
 ```text
 start / startOrResumeTask
-  -> 检查队列和任务状态
+  -> canStartExecution 最终准入；未分析任务立即返回 notReady
   -> 检查源文件
   -> 解析 FFmpeg 运行时
+  -> 尝试取得 MediaWorkScheduler 租约；不足则立即返回 queued
   -> 构造命令计划
   -> 输出 preflight：创建目录、检查同源 / 重名 / 可写性并改写最终 args
   -> 创建执行日志文件
@@ -454,17 +457,21 @@ start / startOrResumeTask
   -> LocalFfmpegProcessStarter.start()
   -> FfmpegProcessController 负责暂停、继续和终止
   -> LocalFfmpegProcessObserver.observe()
-  -> 根据退出结果和步骤完成策略 markCompleted() 或 markFailed()
+  -> 校验隐藏工作文件、发布最终文件并确认最终文件存在且可读
+  -> 根据发布结果 markCompleted() 或 markFailed()；失败时清空无效 outputPath
   -> AppNotificationManager 持久化任务完成 / 失败通知
   -> 清理两遍压缩临时文件或无效图片候选输出
   -> continueAfterTask()
 ```
+
+失败路径统一调用 `markFailed(TaskFailure)`。阶段覆盖分析、输入准备、命令规划、输出预检、进程启动、处理中、输出校验、成果发布、清理和异常恢复；错误码负责跨阶段复用的具体原因。`TaskRecoveryAction` 由阶段与错误码集中推导，重试据此决定重新分析、保留分析结果重跑、修改配置、更换输出位置、重新指定源文件或只查看日志。
 
 并行和资源保护：
 
 - 用户可在设置中选择 1、2 或 3 个最大并行任务数，默认 2；该值只是上限，不直接等同于一定会启动同样数量的 FFmpeg 进程。
 - `ExecutionResourceGuard` 会按 CPU、内存和当前运行任务类型计算有效执行位；低核心数或低内存设备会自动降级到 1，高负载场景可低于用户设置。
 - `MediaWorkScheduler` 提供全局资源租约：所有媒体工作（编码、分析、缩略图、预览、预处理）必须申请租约，调度器按工作类别、优先级和全局并发上限决定是否允许启动。
+- `MediaWorkScheduler.capacityChanges` 在租约释放或资源压力恢复时发出容量事件；`ExecutionSlotCoordinator` 将同一时段的多个事件合并为一次异步 queue pump。租约不足时当前补位轮次立即结束，不在 `startTask()` 内同步递归补位，也不重复准备同一输入。
 - `MediaResourceMonitor` 每 1 秒采样系统可用内存并计算三级压力级别；压力状态下 `MediaWorkScheduler` 自动停止启动新后台工作（FFprobe/缩略图/预览）并阻止第二编码任务；严重压力下仅允许前台编码。恢复需连续 12 秒稳定采样，形成迟滞保护。
 - 用户手动选择的任务线程上限优先进入 FFmpeg 参数，同时计入资源预算；高线程任务可能独占当前预算，完成后队列再恢复填充其他执行位。
 - 视频任务被视为重任务，同一时刻默认只允许一个视频 FFmpeg 进程运行；空余执行位优先留给图片或音频等较轻任务，避免多路视频压缩把设备拖卡。

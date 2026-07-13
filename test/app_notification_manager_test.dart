@@ -12,6 +12,7 @@ import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/notification_delivery_mode.dart';
 import 'package:framelean/domain/enums/notification_event_type.dart';
 import 'package:framelean/domain/value_objects/task_notification_payload.dart';
+import 'package:framelean/domain/value_objects/task_failure.dart';
 
 void main() {
   test('settings save targets expose event-specific notification titles', () {
@@ -189,7 +190,7 @@ void main() {
       fileName: 'demo.mp4',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-    ).markFailed('编码器不可用');
+    ).markFailed(_failure('编码器不可用'));
 
     final notification = await manager.notifyTaskFailed(
       failedTask,
@@ -213,12 +214,18 @@ void main() {
       final repository = FakeAppNotificationRepository();
       final manager = AppNotificationManager(repository: repository);
       addTearDown(manager.dispose);
-      final failedTask = MediaTask.draft(
-        inputPath: '/input/demo.png',
-        fileName: 'demo.png',
-        mediaKind: MediaKind.image,
-        sortOrder: 0,
-      ).markFailed('输出文件大小不小于源文件');
+      final failedTask =
+          MediaTask.draft(
+            inputPath: '/input/demo.png',
+            fileName: 'demo.png',
+            mediaKind: MediaKind.image,
+            sortOrder: 0,
+          ).markFailed(
+            _failure(
+              '输出文件大小不小于源文件',
+              code: TaskFailureCode.ineffectiveCompression,
+            ),
+          );
 
       final notification = await manager.notifyTaskFailed(failedTask);
 
@@ -242,10 +249,12 @@ void main() {
             mediaKind: MediaKind.video,
             sortOrder: 0,
           ).markFailed(
-            'FFmpeg 退出码: 187\n'
-            '[vost#0:0/h264_videotoolbox @ 0xcb6ca8000] Error encoding a frame: Generic error in an external library\n'
-            '[vost#0:0/h264_videotoolbox @ 0xcb6ca8000] Task finished with error code: -542398533 (Generic error in an external library)\n'
-            'Conversion failed!',
+            _failure(
+              'FFmpeg 退出码: 187\n'
+              '[vost#0:0/h264_videotoolbox] Generic error\n'
+              'Conversion failed!',
+              code: TaskFailureCode.hardwareSessionLost,
+            ),
           );
 
       final notification = await manager.notifyTaskFailed(
@@ -280,7 +289,9 @@ void main() {
             mediaKind: MediaKind.video,
             sortOrder: 0,
           ).markFailed(
-            'FFmpeg 退出码: 1\nSome internal stderr garbage\nConversion failed!',
+            _failure(
+              'FFmpeg 退出码: 1\nSome internal stderr garbage\nConversion failed!',
+            ),
           );
 
       final notification = await manager.notifyTaskFailed(failedTask);
@@ -289,6 +300,22 @@ void main() {
       expect(notification.message, isNot(contains('FFmpeg 退出码')));
       expect(notification.message, isNot(contains('stderr garbage')));
     },
+  );
+}
+
+TaskFailure _failure(
+  String technicalSummary, {
+  TaskFailureCode code = TaskFailureCode.unknown,
+}) {
+  return TaskFailure(
+    stage: TaskFailureStage.processing,
+    code: code,
+    userMessage: code == TaskFailureCode.ineffectiveCompression
+        ? '输出文件大小不小于源文件'
+        : '媒体处理未能完成',
+    technicalSummary: technicalSummary,
+    occurredAt: 1,
+    retryable: code != TaskFailureCode.ineffectiveCompression,
   );
 }
 

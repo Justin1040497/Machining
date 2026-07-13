@@ -79,6 +79,7 @@ export 'use_cases/media_tasks/delete_media_task_use_case.dart';
 export 'use_cases/media_tasks/generate_preview_frames_use_case.dart';
 export 'use_cases/media_tasks/import_media_folder_use_case.dart';
 export 'use_cases/media_tasks/import_media_task_use_case.dart';
+export 'use_cases/media_tasks/import_media_tasks_use_case.dart';
 export 'use_cases/media_tasks/media_task_use_case_helpers.dart';
 export 'use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 export 'use_cases/media_tasks/pause_media_task_execution_use_case.dart';

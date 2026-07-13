@@ -15,7 +15,7 @@
 | `admin-web-release-management.md` | Admin 登录、版本草稿、日志、下载地址、审计和隐藏 package 能力 |
 | `docs/decisions/260710-external-download-default.md` | 外部下载地址优先的当前发布决策 |
 | `docs/develop/architecture.md` | 图片输出验收、透明保留、输出 preflight 和任务夹工作台结构 |
-| `docs/develop/data-model.md` | Drift schema 29、任务夹表、策略标签、通知策略、快捷键和关闭行为字段 |
+| `docs/develop/data-model.md` | Drift schema 30、结构化任务失败、任务夹表、策略标签、通知策略、快捷键和关闭行为字段 |
 
 ## 当前发布边界
 

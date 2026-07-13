@@ -14,7 +14,7 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `29`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `30`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
@@ -40,6 +40,7 @@ lib/infrastructure/database/app_database.dart
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
 | `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频、封装、色彩和 HDR / Dolby Vision 元数据 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
+| `TaskFailure` | `lib/domain/value_objects/task_failure.dart` | 当前失败的唯一权威信息，保存阶段、错误码、用户提示、技术摘要、发生时间和可重试性；恢复动作由阶段与错误码推导 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
 | `AppCompressionSettings` | `lib/domain/value_objects/app_compression_settings.dart` | 应用级压缩默认值，包含默认视频编码和默认推荐方案 |
 | `AppNotificationEntry` | `lib/domain/entities/app_notification_entry.dart` | 应用通知记录，包含类型、级别、标题、正文、来源、创建时间和已读 / 关闭状态 |
@@ -82,7 +83,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `progress` | real | 否 | `0` | `progress` | 0 到 1 的进度值；实体构造时断言范围合法 |
 | `output_path` | text | 是 | `null` | `outputPath` | FFmpeg 计划生成的输出文件路径 |
 | `output_file_size` | integer | 是 | `null` | `outputFileSize` | 成功完成后记录的最终输出体积；重试或重新执行时清空 |
-| `error_message` | text | 是 | `null` | `errorMessage` | 执行、分析或命令构造失败时保存的用户可见错误 |
+| `failure_json` | text | 是 | `null` | `failure` | schema 30 的结构化失败 JSON，固定 `version: 1`；读取优先于旧错误列 |
+| `error_message` | text | 是 | `null` | 兼容镜像 | 暂保留的旧技术错误列；新写入同步 `TaskFailure.technicalSummary`，不再作为领域权威信息 |
+| `analysis_error_message` | text | 是 | `null` | 兼容镜像 | 暂保留的旧分析错误列；分析失败时同步用户提示，用于旧数据库 / 旧客户端降级兼容 |
 | `policy_tags_json` | text | 是 | `null` | `policyTags` | 任务自动策略标签 JSON 数组；为空表示没有标签 |
 | `created_at` | integer | 否 | 无 | `createdAt` | 毫秒时间戳，默认由实体构造时写入 |
 | `started_at` | integer | 是 | `null` | `startedAt` | 任务交给 FFmpeg 进程时写入 |
@@ -281,8 +284,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | 存储值 | UI 含义 | 产生位置 |
 | --- | --- | --- |
-| `pending` | 等待中 | 新任务分析成功后、重试后、重新指定源文件后 |
-| `analyzing` | 分析中 | 新导入任务、源文件指纹变化、缺少分析结果时后台分析 |
+| `awaitingAnalysis` | 等待分析 | 新导入、重新分析、源文件变化或分析中断恢复后 |
+| `analyzing` | 分析中 | 分析队列真正取得 FFprobe 执行位后 |
+| `pending` | 等待开始 | 已持久化有效分析结果，等待首次执行或执行失败后重试 |
 | `running` | 处理中 | 队列启动 FFmpeg 进程后 |
 | `paused` | 已暂停 | 当前前台 FFmpeg 进程被队列执行器挂起后 |
 | `completed` | 已完成 | FFmpeg 进程成功退出且输出文件存在 |
@@ -327,24 +331,24 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 2. `MediaTaskListNotifier.createDraftFromPath()` 调用 `ImportMediaTaskUseCase`。
 3. `ImportMediaTaskUseCase` 识别 `MediaKind`，允许 `video`、`image`、`audio`，并读取 `SourceFileFingerprint`。
 4. 用应用设置和媒体类型生成新任务默认 `MediaTaskConfig`，创建 `MediaTask.draft()`。
-5. 写入 `analyzing` 状态并保存到 `tasks`。
-6. 后台调用 `AnalyzeMediaTaskUseCase` 和 FFprobe 分析。
-7. 成功后写入 `MediaAnalysisResult`，状态从 `analyzing` 回到 `pending`。
-8. 失败后写入 `analysis_error_message`，任务状态变为 `failed`。
+5. 批量写入 `awaitingAnalysis` 状态后，再把任务 ID 交给全局分析队列。
+6. 分析队列取得资源租约后调用 `AnalyzeMediaTaskUseCase`，状态转为 `analyzing`。
+7. 成功后先写入 `MediaAnalysisResult`，再调用 `markAnalysisReady()` 转为 `pending`。
+8. 失败后写入 `TaskFailure(stage: analysis, ...)`，任务状态变为统一的 `failed`。
 
 ### 应用启动恢复
 
 1. `MediaTaskListNotifier.build()` 调用 `ReconcileMediaTasksUseCase`。
 2. `ReconcileMediaTasksUseCase` 读取全部任务并检查源文件是否存在。
 3. 源文件不存在时标记 `missingSource`。
-4. 源文件存在但指纹变化时，更新指纹、清空分析结果、重新分析。
-5. 缺少分析结果的任务会排入后台分析。
+4. 源文件存在但指纹变化时，更新指纹、清空分析结果并转为 `awaitingAnalysis`。
+5. 旧 `pending` 或其他状态缺少分析结果时对账为 `awaitingAnalysis` 并排入后台分析；带有效分析结果的旧 `pending` 保持不变。
 6. 队列执行器刷新状态，判断是否有可执行或暂停任务。
 
 ### 执行和进度
 
-1. 队列只从 `pending` 或已有暂停执行中启动任务；候选顺序来自总列表顶层项排序，遇到任务夹时按夹内 `folder_sort_order` 展开。
-2. 启动前再次检查源文件和 FFmpeg 运行时。
+1. 全新执行只接受 `canStartExecution`（`pending` 且有分析结果）的任务；`paused` 仅能恢复 Runner 内仍存在的 `TaskExecution`。
+2. Runner 在申请租约、准备输入、构造命令和输出预检之前再次执行准入检查；未就绪立即返回 `notReady`。
 3. 队列按 `settings.max_concurrent_executions` 读取用户上限，再由资源守卫按设备能力和运行任务类型决定当前可用执行位；多个任务可同时写入 `running`。
 4. 手动任务在执行位满时暂停最早运行者；被抢占任务只保存在运行期 FIFO 中，不新增数据库字段，应用重启后仍按普通 `paused` 任务处理。
 5. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
@@ -352,7 +356,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 7. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
 8. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
 9. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`；图片和音频压缩还会验证输出小于源文件。
-10. 进程失败、输出文件缺失、无效压缩或监听错误时写入 `failed` 和 `failed_at`。
+10. 进程失败、输出文件缺失、无效压缩或监听错误时写入 `failed`、`failed_at` 和 `failure_json`；通知只展示 `userMessage`，完整 stderr 保留在执行日志。
 
 ## 迁移历史
 
@@ -388,6 +392,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 27 | 给 `settings` 增加 `folder_import_scan_depth`；给 `tasks` 增加 `analysis_audio_streams_json`；给 `task_folders` 增加 `default_purpose` |
 | 28 | 给 `tasks` 增加 `output_file_size`，记录成功完成后的最终输出体积 |
 | 29 | 给 `settings` 增加 `notification_policies_json`、`shortcut_bindings_json` 和 `close_behavior`，持久化通知策略、快捷键和关闭行为 |
+| 30 | 给 `tasks` 增加 nullable `failure_json`；保留旧错误列并提供旧分析失败、普通失败、损坏 JSON 和未来枚举值的安全兼容读取 |
 
 ## 修改数据模型的约束
 

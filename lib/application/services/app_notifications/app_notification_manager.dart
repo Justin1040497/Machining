@@ -348,31 +348,33 @@ String _failureReason(
   MediaTask task,
   TaskExecutionNotificationSummary? summary,
 ) {
-  // 优先使用 queue runner 已友好化的 failureReason。
-  // 若 summary 缺失（防御场景），不直接暴露 task.errorMessage 里的技术细节，
-  // 统一走兜底友好文案。
   final reason = summary?.failureReason;
   if (reason != null && reason.trim().isNotEmpty) {
     return reason.trim();
   }
-  return '媒体处理未能完成';
+  return task.failure?.userMessage ?? '媒体处理未能完成';
 }
 
 String _failureSuggestion(MediaTask task) {
-  // queue runner 已通过 summary 提供友好建议，此函数仅作 summary 缺失时的兜底。
-  // 保留对已有友好化 errorMessage 的场景判断，避免破坏无 summary 的调用路径。
-  final reason = task.errorMessage?.trim() ?? '';
-  final ineffectiveOutput =
-      reason.contains('不小于源文件') ||
-      reason.contains('未有效压缩') ||
-      reason.contains('无法验证');
-  if (task.mediaKind == MediaKind.image && ineffectiveOutput) {
+  final failure = task.failure;
+  if (failure?.code == TaskFailureCode.ineffectiveCompression &&
+      task.mediaKind == MediaKind.image) {
     return '建议切换 WebP/JPG 格式、降低质量，或更换输出格式后重新压缩。';
   }
-  if (task.mediaKind == MediaKind.audio && ineffectiveOutput) {
+  if (failure?.code == TaskFailureCode.ineffectiveCompression &&
+      task.mediaKind == MediaKind.audio) {
     return '建议降低音频码率、改用更高压缩率的音频格式后重试。';
   }
-  return '建议查看任务日志获取详细信息，或重试该任务。';
+  return switch (failure?.recoveryAction) {
+    TaskRecoveryAction.retryAnalysis => '请确认源文件可正常读取后重新分析。',
+    TaskRecoveryAction.retryExecution => '请重试该任务；如再次失败，请查看任务日志。',
+    TaskRecoveryAction.editConfiguration => '请修改任务格式、编码器或压缩参数后重试。',
+    TaskRecoveryAction.chooseOutputDirectory => '请检查磁盘空间和目录权限，或更换输出位置后重试。',
+    TaskRecoveryAction.relinkSource => '请重新指定仍可访问的源文件。',
+    TaskRecoveryAction.inspectLog => '请查看任务日志获取技术详情。',
+    TaskRecoveryAction.none => '当前错误不适合直接重试，请调整文件或配置后再试。',
+    null => '建议查看任务日志获取详细信息，或重试该任务。',
+  };
 }
 
 String _formatBytes(int? bytes) {

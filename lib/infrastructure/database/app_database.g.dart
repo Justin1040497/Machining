@@ -1606,6 +1606,17 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _failureJsonMeta = const VerificationMeta(
+    'failureJson',
+  );
+  @override
+  late final GeneratedColumn<String> failureJson = GeneratedColumn<String>(
+    'failure_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _policyTagsJsonMeta = const VerificationMeta(
     'policyTagsJson',
   );
@@ -2273,6 +2284,7 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
     outputPath,
     outputFileSize,
     errorMessage,
+    failureJson,
     policyTagsJson,
     sourceFileSize,
     sourceLastModifiedAt,
@@ -2439,6 +2451,15 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         errorMessage.isAcceptableOrUnknown(
           data['error_message']!,
           _errorMessageMeta,
+        ),
+      );
+    }
+    if (data.containsKey('failure_json')) {
+      context.handle(
+        _failureJsonMeta,
+        failureJson.isAcceptableOrUnknown(
+          data['failure_json']!,
+          _failureJsonMeta,
         ),
       );
     }
@@ -3043,6 +3064,10 @@ class $TaskRowsTable extends TaskRows with TableInfo<$TaskRowsTable, TaskRow> {
         DriftSqlType.string,
         data['${effectivePrefix}error_message'],
       ),
+      failureJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}failure_json'],
+      ),
       policyTagsJson: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}policy_tags_json'],
@@ -3307,6 +3332,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
   final String? outputPath;
   final int? outputFileSize;
   final String? errorMessage;
+  final String? failureJson;
   final String? policyTagsJson;
   final int? sourceFileSize;
   final int? sourceLastModifiedAt;
@@ -3381,6 +3407,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     this.outputPath,
     this.outputFileSize,
     this.errorMessage,
+    this.failureJson,
     this.policyTagsJson,
     this.sourceFileSize,
     this.sourceLastModifiedAt,
@@ -3467,6 +3494,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     }
     if (!nullToAbsent || errorMessage != null) {
       map['error_message'] = Variable<String>(errorMessage);
+    }
+    if (!nullToAbsent || failureJson != null) {
+      map['failure_json'] = Variable<String>(failureJson);
     }
     if (!nullToAbsent || policyTagsJson != null) {
       map['policy_tags_json'] = Variable<String>(policyTagsJson);
@@ -3700,6 +3730,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       errorMessage: errorMessage == null && nullToAbsent
           ? const Value.absent()
           : Value(errorMessage),
+      failureJson: failureJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(failureJson),
       policyTagsJson: policyTagsJson == null && nullToAbsent
           ? const Value.absent()
           : Value(policyTagsJson),
@@ -3894,6 +3927,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       outputPath: serializer.fromJson<String?>(json['outputPath']),
       outputFileSize: serializer.fromJson<int?>(json['outputFileSize']),
       errorMessage: serializer.fromJson<String?>(json['errorMessage']),
+      failureJson: serializer.fromJson<String?>(json['failureJson']),
       policyTagsJson: serializer.fromJson<String?>(json['policyTagsJson']),
       sourceFileSize: serializer.fromJson<int?>(json['sourceFileSize']),
       sourceLastModifiedAt: serializer.fromJson<int?>(
@@ -4049,6 +4083,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       'outputPath': serializer.toJson<String?>(outputPath),
       'outputFileSize': serializer.toJson<int?>(outputFileSize),
       'errorMessage': serializer.toJson<String?>(errorMessage),
+      'failureJson': serializer.toJson<String?>(failureJson),
       'policyTagsJson': serializer.toJson<String?>(policyTagsJson),
       'sourceFileSize': serializer.toJson<int?>(sourceFileSize),
       'sourceLastModifiedAt': serializer.toJson<int?>(sourceLastModifiedAt),
@@ -4172,6 +4207,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     Value<String?> outputPath = const Value.absent(),
     Value<int?> outputFileSize = const Value.absent(),
     Value<String?> errorMessage = const Value.absent(),
+    Value<String?> failureJson = const Value.absent(),
     Value<String?> policyTagsJson = const Value.absent(),
     Value<int?> sourceFileSize = const Value.absent(),
     Value<int?> sourceLastModifiedAt = const Value.absent(),
@@ -4250,6 +4286,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
         ? outputFileSize.value
         : this.outputFileSize,
     errorMessage: errorMessage.present ? errorMessage.value : this.errorMessage,
+    failureJson: failureJson.present ? failureJson.value : this.failureJson,
     policyTagsJson: policyTagsJson.present
         ? policyTagsJson.value
         : this.policyTagsJson,
@@ -4430,6 +4467,9 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
       errorMessage: data.errorMessage.present
           ? data.errorMessage.value
           : this.errorMessage,
+      failureJson: data.failureJson.present
+          ? data.failureJson.value
+          : this.failureJson,
       policyTagsJson: data.policyTagsJson.present
           ? data.policyTagsJson.value
           : this.policyTagsJson,
@@ -4627,6 +4667,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           ..write('outputPath: $outputPath, ')
           ..write('outputFileSize: $outputFileSize, ')
           ..write('errorMessage: $errorMessage, ')
+          ..write('failureJson: $failureJson, ')
           ..write('policyTagsJson: $policyTagsJson, ')
           ..write('sourceFileSize: $sourceFileSize, ')
           ..write('sourceLastModifiedAt: $sourceLastModifiedAt, ')
@@ -4718,6 +4759,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
     outputPath,
     outputFileSize,
     errorMessage,
+    failureJson,
     policyTagsJson,
     sourceFileSize,
     sourceLastModifiedAt,
@@ -4796,6 +4838,7 @@ class TaskRow extends DataClass implements Insertable<TaskRow> {
           other.outputPath == this.outputPath &&
           other.outputFileSize == this.outputFileSize &&
           other.errorMessage == this.errorMessage &&
+          other.failureJson == this.failureJson &&
           other.policyTagsJson == this.policyTagsJson &&
           other.sourceFileSize == this.sourceFileSize &&
           other.sourceLastModifiedAt == this.sourceLastModifiedAt &&
@@ -4878,6 +4921,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
   final Value<String?> outputPath;
   final Value<int?> outputFileSize;
   final Value<String?> errorMessage;
+  final Value<String?> failureJson;
   final Value<String?> policyTagsJson;
   final Value<int?> sourceFileSize;
   final Value<int?> sourceLastModifiedAt;
@@ -4953,6 +4997,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.outputPath = const Value.absent(),
     this.outputFileSize = const Value.absent(),
     this.errorMessage = const Value.absent(),
+    this.failureJson = const Value.absent(),
     this.policyTagsJson = const Value.absent(),
     this.sourceFileSize = const Value.absent(),
     this.sourceLastModifiedAt = const Value.absent(),
@@ -5029,6 +5074,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     this.outputPath = const Value.absent(),
     this.outputFileSize = const Value.absent(),
     this.errorMessage = const Value.absent(),
+    this.failureJson = const Value.absent(),
     this.policyTagsJson = const Value.absent(),
     this.sourceFileSize = const Value.absent(),
     this.sourceLastModifiedAt = const Value.absent(),
@@ -5116,6 +5162,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Expression<String>? outputPath,
     Expression<int>? outputFileSize,
     Expression<String>? errorMessage,
+    Expression<String>? failureJson,
     Expression<String>? policyTagsJson,
     Expression<int>? sourceFileSize,
     Expression<int>? sourceLastModifiedAt,
@@ -5192,6 +5239,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       if (outputPath != null) 'output_path': outputPath,
       if (outputFileSize != null) 'output_file_size': outputFileSize,
       if (errorMessage != null) 'error_message': errorMessage,
+      if (failureJson != null) 'failure_json': failureJson,
       if (policyTagsJson != null) 'policy_tags_json': policyTagsJson,
       if (sourceFileSize != null) 'source_file_size': sourceFileSize,
       if (sourceLastModifiedAt != null)
@@ -5314,6 +5362,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     Value<String?>? outputPath,
     Value<int?>? outputFileSize,
     Value<String?>? errorMessage,
+    Value<String?>? failureJson,
     Value<String?>? policyTagsJson,
     Value<int?>? sourceFileSize,
     Value<int?>? sourceLastModifiedAt,
@@ -5390,6 +5439,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
       outputPath: outputPath ?? this.outputPath,
       outputFileSize: outputFileSize ?? this.outputFileSize,
       errorMessage: errorMessage ?? this.errorMessage,
+      failureJson: failureJson ?? this.failureJson,
       policyTagsJson: policyTagsJson ?? this.policyTagsJson,
       sourceFileSize: sourceFileSize ?? this.sourceFileSize,
       sourceLastModifiedAt: sourceLastModifiedAt ?? this.sourceLastModifiedAt,
@@ -5525,6 +5575,9 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
     }
     if (errorMessage.present) {
       map['error_message'] = Variable<String>(errorMessage.value);
+    }
+    if (failureJson.present) {
+      map['failure_json'] = Variable<String>(failureJson.value);
     }
     if (policyTagsJson.present) {
       map['policy_tags_json'] = Variable<String>(policyTagsJson.value);
@@ -5784,6 +5837,7 @@ class TaskRowsCompanion extends UpdateCompanion<TaskRow> {
           ..write('outputPath: $outputPath, ')
           ..write('outputFileSize: $outputFileSize, ')
           ..write('errorMessage: $errorMessage, ')
+          ..write('failureJson: $failureJson, ')
           ..write('policyTagsJson: $policyTagsJson, ')
           ..write('sourceFileSize: $sourceFileSize, ')
           ..write('sourceLastModifiedAt: $sourceLastModifiedAt, ')
@@ -7661,6 +7715,7 @@ typedef $$TaskRowsTableCreateCompanionBuilder =
       Value<String?> outputPath,
       Value<int?> outputFileSize,
       Value<String?> errorMessage,
+      Value<String?> failureJson,
       Value<String?> policyTagsJson,
       Value<int?> sourceFileSize,
       Value<int?> sourceLastModifiedAt,
@@ -7738,6 +7793,7 @@ typedef $$TaskRowsTableUpdateCompanionBuilder =
       Value<String?> outputPath,
       Value<int?> outputFileSize,
       Value<String?> errorMessage,
+      Value<String?> failureJson,
       Value<String?> policyTagsJson,
       Value<int?> sourceFileSize,
       Value<int?> sourceLastModifiedAt,
@@ -7872,6 +7928,11 @@ class $$TaskRowsTableFilterComposer
 
   ColumnFilters<String> get errorMessage => $composableBuilder(
     column: $table.errorMessage,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get failureJson => $composableBuilder(
+    column: $table.failureJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8254,6 +8315,11 @@ class $$TaskRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get failureJson => $composableBuilder(
+    column: $table.failureJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get policyTagsJson => $composableBuilder(
     column: $table.policyTagsJson,
     builder: (column) => ColumnOrderings(column),
@@ -8615,6 +8681,11 @@ class $$TaskRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
+  GeneratedColumn<String> get failureJson => $composableBuilder(
+    column: $table.failureJson,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get policyTagsJson => $composableBuilder(
     column: $table.policyTagsJson,
     builder: (column) => column,
@@ -8955,6 +9026,7 @@ class $$TaskRowsTableTableManager
                 Value<String?> outputPath = const Value.absent(),
                 Value<int?> outputFileSize = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
+                Value<String?> failureJson = const Value.absent(),
                 Value<String?> policyTagsJson = const Value.absent(),
                 Value<int?> sourceFileSize = const Value.absent(),
                 Value<int?> sourceLastModifiedAt = const Value.absent(),
@@ -9036,6 +9108,7 @@ class $$TaskRowsTableTableManager
                 outputPath: outputPath,
                 outputFileSize: outputFileSize,
                 errorMessage: errorMessage,
+                failureJson: failureJson,
                 policyTagsJson: policyTagsJson,
                 sourceFileSize: sourceFileSize,
                 sourceLastModifiedAt: sourceLastModifiedAt,
@@ -9117,6 +9190,7 @@ class $$TaskRowsTableTableManager
                 Value<String?> outputPath = const Value.absent(),
                 Value<int?> outputFileSize = const Value.absent(),
                 Value<String?> errorMessage = const Value.absent(),
+                Value<String?> failureJson = const Value.absent(),
                 Value<String?> policyTagsJson = const Value.absent(),
                 Value<int?> sourceFileSize = const Value.absent(),
                 Value<int?> sourceLastModifiedAt = const Value.absent(),
@@ -9198,6 +9272,7 @@ class $$TaskRowsTableTableManager
                 outputPath: outputPath,
                 outputFileSize: outputFileSize,
                 errorMessage: errorMessage,
+                failureJson: failureJson,
                 policyTagsJson: policyTagsJson,
                 sourceFileSize: sourceFileSize,
                 sourceLastModifiedAt: sourceLastModifiedAt,

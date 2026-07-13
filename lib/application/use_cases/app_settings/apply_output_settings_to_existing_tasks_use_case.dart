@@ -42,7 +42,8 @@ class ApplyOutputSettingsToExistingTasksUseCase {
   }
 
   bool _canRefreshOutputSettings(TaskStatus status) {
-    return status == TaskStatus.pending ||
+    return status == TaskStatus.awaitingAnalysis ||
+        status == TaskStatus.pending ||
         status == TaskStatus.failed ||
         status == TaskStatus.cancelled;
   }
