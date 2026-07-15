@@ -4,6 +4,7 @@
 
 | 日期 | 决策 | 状态 | 正文 | 关联事实 |
 | --- | --- | --- | --- | --- |
+| 260714 | 工作台引导箭头采用安全终点 + 最大长度 + 曲线偏移 + 裁剪区，不引入自动避障 | 有效 | `docs/decisions/260714-guide-arrow-safe-annotation.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/develop/test-plan.md`、`docs/lessons.md`、`CHANGELOG.md` |
 | 260712 | 调度器死锁修复：非阻塞 `tryAcquire` + 串行区外释放租约，打破 `_serializeCommand` ↔ `scheduler.acquire()` 循环等待 | 有效 | `docs/decisions/260712-scheduler-tryacquire-deadlock.md` | `CONTEXT.md`、`docs/develop/architecture.md`、`docs/lessons.md` |
 | 260710 | 公开更新默认展示 GitHub / Gitee / 备用下载地址，客户端不直接下载安装包；原 package 自更新链继续保留但不再作为发布必填 | 有效 | `docs/decisions/260710-external-download-default.md` | `CONTEXT.md`、`docs/releases/v1.2.1/self-hosted-update-client.md`、`docs/releases/v1.2.1/self-hosted-update-server.md`、`docs/develop/architecture.md`、`docs/develop/test-plan.md` |
 | 260623 | 更新提示收敛为 L1 工作台状态胶囊、L2 轻量通知弹窗和 L3 完整版本日志页，同版本 snooze 只抑制自动弹窗 | 有效 | `docs/decisions/260623-update-ux-redesign.md` | `CONTEXT.md`、`docs/releases/v1.2.1/self-hosted-update-client.md`、`docs/develop/architecture.md`、`docs/develop/test-plan.md` |

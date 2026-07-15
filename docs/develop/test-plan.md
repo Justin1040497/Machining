@@ -77,6 +77,7 @@ test/
   theme_prefs_reconciler_test.dart
   video_thumbnail_generator_test.dart
   widget_test.dart
+  workbench_background_guide_system_test.dart
   workbench_bottom_bar_test.dart
   workbench_constants_test.dart
   workbench_dialog_style_test.dart
@@ -84,6 +85,9 @@ test/
   workbench_file_revealer_test.dart
   workbench_notice_test.dart
   workbench_preview_notifier_test.dart
+  workbench_guide_arrow_test.dart
+  workbench_guide_scheduler_test.dart
+  workbench_task_list_guide_integration_test.dart
 
 integration_test/
   app_smoke_test.dart
@@ -257,6 +261,11 @@ integration_test/
 
 ### 工作台交互和风格
 
+- 空队列把导入图标和三行说明作为独立内容层居中显示，添加按钮手绘箭头使用独立子层并缩短到约 145～165px；空队列或已有任务时，双击任务和任务夹之外的空背景均调用现有导入入口，双击任务卡片不得触发导入。
+- 有任务且列表未产生滚动时，根据最后一行与开始按钮之间的实际安全空间显示引导：达到 360px 时在间隔至少 28px 的上下通道同时显示任务操作和全部开始，180～359px 时只保留全部开始，不足 180px 时隐藏；箭头和文本的最终视觉边界不得越出通道或相互重叠。
+- 箭头双段三次贝塞尔控制点沿目标方向单调前进，不回头或自相交；三条箭头统一使用曲率强度 72，只根据目标方向翻转弧面；任务操作和全部开始箭头最大长度为 245px、起终点距离约 190～215px，添加按钮箭头最大长度为 180px、起终点距离约 145～165px；内容组可固定进入目标点时的最终切线方向；封闭箭头头保持约 23～30px，并包含内部排线和短强调线；主体统一通过短三次贝塞尔自然进入真实凹口，不连接翼边、穿入内部或依赖独立直线段；任务操作和全部开始文案分别跟随对应箭尾并保留 14px 视觉间距；箭头起点不绘制会产生反向箭头错觉的附加装饰；首次显示使用 PathMetric 绘制动画，目标变化只执行位置 Tween，不重播绘制动画。
+- Guide 场景根层稳定可见时透明度为 50%，文字、图标和箭头同步降低视觉权重；引导文案不包含逗号，需要停顿时使用空格；淡入淡出和场景切换时长保持不变。
+- 空队列与任务场景互换时先 Fade Out，等待 100ms 后再 Fade In；Guide 层使用 `IgnorePointer`，不影响任务行、任务夹、拖拽、框选和底栏按钮。
 - 任务配置弹窗中“已修改”和“已压缩”只在底部按钮同排左侧显示。
 - 未实际改变配置时不显示“已修改”。
 - 任务列表通过拖拽手柄触发重排时不抛布局异常，且 reorder 回调被触发。

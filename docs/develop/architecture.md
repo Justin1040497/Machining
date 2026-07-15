@@ -250,6 +250,7 @@ Use Cases：
 - `pages/workbench_page/dialogs/`：任务配置、失败、清空、重命名、压缩确认、任务日志等工作台弹窗；任务完成不再使用完成弹窗。
 - `pages/workbench_page/overlays/`：工作台拖拽覆盖层。
 - `pages/workbench_page/configuration/`：工作台常量、格式化、轻量模型和 UI 判断策略。
+- `guide/`：工作台背景动态引导子系统；`arrow/` 使用 `CustomPainter + PathMetric` 绘制和移动手绘箭头，`content/` 保存可组合内容组，`models/` 保存统一坐标、场景模型和任务区安全通道布局，`scheduler/` 只负责空队列、有任务和隐藏场景的调度。
 - `widgets/media_task_list/`：任务列表项、状态徽标、操作按钮和缩略图组件。
 - `MediaTaskListNotifier`：任务管理和任务状态管理入口，通过 media task use cases 进入 application。
 - `WorkbenchPreviewNotifier`：预览状态入口，通过 `GeneratePreviewFramesUseCase` 进入 application。
@@ -271,6 +272,7 @@ Use Cases：
 工作台当前支持：
 
 - 文件选择和拖拽导入。
+- 空队列背景双击导入；背景引导层按队列状态显示导入、任务操作和全部开始提示，并通过 `GlobalKey + RenderBox.localToGlobal` 把列表尾部、添加按钮、开始按钮和列表 viewport 转换到 Workbench Stack 坐标系。列表可滚动或尾部空间不足时隐藏任务提示；引导层不接收指针事件。
 - 任务列表、任务 / 任务夹混排排序、右键菜单、重命名、删除和清空。
 - 批量导入按媒体类型独立计数，同类型达到 2 个才自动创建任务夹，单个媒体保持普通任务；总列表显示任务夹和未入夹任务，夹内任务默认在左侧内容浮层查看。
 - 任务夹主体打开夹级配置弹窗，顶部展示任务数、总源体积、格式分布和总时长 / 尺寸分布；保存后更新任务夹默认配置并批量应用到非 `running` / `paused` / `analyzing` 任务。
