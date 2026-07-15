@@ -1,10 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/workbench/guide/models/guide_geometry.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
 import 'package:framelean/features/workbench/workbench_icons.dart';
@@ -50,6 +52,10 @@ class WorkbenchTaskListCard extends StatefulWidget {
     required this.onRelinkFolder,
     required this.onShowFolderLog,
     required this.onDeleteFolder,
+    this.guideViewportKey,
+    this.guideLastTaskKey,
+    this.onGuideMetricsChanged,
+    this.onDoubleTapBackground,
   });
 
   final AsyncValue<List<MediaTask>> taskList;
@@ -79,6 +85,10 @@ class WorkbenchTaskListCard extends StatefulWidget {
   final ValueChanged<TaskFolder> onRelinkFolder;
   final ValueChanged<TaskFolder> onShowFolderLog;
   final ValueChanged<TaskFolder> onDeleteFolder;
+  final GlobalKey? guideViewportKey;
+  final GlobalKey? guideLastTaskKey;
+  final ValueChanged<GuideListMetrics>? onGuideMetricsChanged;
+  final VoidCallback? onDoubleTapBackground;
 
   @override
   State<WorkbenchTaskListCard> createState() => _WorkbenchTaskListCardState();
@@ -86,6 +96,10 @@ class WorkbenchTaskListCard extends StatefulWidget {
 
 class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   static const double _taskFolderDropEdgeInset = 16;
+  static const Duration _backgroundDoubleTapTimeout = Duration(
+    milliseconds: 300,
+  );
+  static const double _backgroundTapSlop = 18;
 
   final Map<String, GlobalKey> _taskItemKeys = {};
   final Map<String, GlobalKey> _folderDropKeys = {};
@@ -102,10 +116,16 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   var _reorderCommitInFlight = false;
   ({List<WorkbenchListItem> items, int oldIndex, int newIndex})?
   _pendingFallbackReorder;
+  GuideListMetrics? _lastReportedGuideMetrics;
+  var _guideMetricsReportScheduled = false;
+  int? _backgroundTapPointer;
+  Offset? _backgroundPointerDownPosition;
+  Duration? _lastBackgroundTapTime;
+  Offset? _lastBackgroundTapPosition;
 
   @override
   Widget build(BuildContext context) {
-    return widget.taskList.when(
+    final content = widget.taskList.when(
       loading: _buildLoading,
       error: (error, stackTrace) => _buildError(error),
       data: (tasks) {
@@ -115,6 +135,17 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
           data: (folders) => _buildList(context, tasks, folders),
         );
       },
+    );
+    _scheduleGuideMetricsReport();
+    return KeyedSubtree(
+      key: widget.guideViewportKey,
+      child: NotificationListener<ScrollMetricsNotification>(
+        onNotification: (notification) {
+          _reportGuideMetrics(notification.metrics.maxScrollExtent > 0);
+          return false;
+        },
+        child: content,
+      ),
     );
   }
 
@@ -197,34 +228,40 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       fit: StackFit.expand,
       children: [
         Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onPanStart: (details) {
-              if (_draggingTaskForReorder != null) {
-                return;
-              }
-              setState(() {
-                _selectionStart = details.localPosition;
-                _selectionCurrent = details.localPosition;
-              });
-            },
-            onPanUpdate: (details) {
-              if (_draggingTaskForReorder != null) {
-                return;
-              }
-              setState(() {
-                _selectionCurrent = details.localPosition;
-              });
-            },
-            onPanEnd: (_) {
-              if (_draggingTaskForReorder != null) {
-                _clearRectangleSelection();
-                return;
-              }
-              _finishRectangleSelection(context, tasks);
-            },
-            onPanCancel: _clearRectangleSelection,
-            child: listView,
+          child: Listener(
+            onPointerDown: (event) =>
+                _handleBackgroundPointerDown(event, items),
+            onPointerUp: (event) => _handleBackgroundPointerUp(event, items),
+            onPointerCancel: (_) => _clearBackgroundPointer(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanStart: (details) {
+                if (_draggingTaskForReorder != null) {
+                  return;
+                }
+                setState(() {
+                  _selectionStart = details.localPosition;
+                  _selectionCurrent = details.localPosition;
+                });
+              },
+              onPanUpdate: (details) {
+                if (_draggingTaskForReorder != null) {
+                  return;
+                }
+                setState(() {
+                  _selectionCurrent = details.localPosition;
+                });
+              },
+              onPanEnd: (_) {
+                if (_draggingTaskForReorder != null) {
+                  _clearRectangleSelection();
+                  return;
+                }
+                _finishRectangleSelection(context, tasks);
+              },
+              onPanCancel: _clearRectangleSelection,
+              child: listView,
+            ),
           ),
         ),
         if (_selectionRect != null)
@@ -271,28 +308,31 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         index != itemCount - 1 ? 0 : 48,
       ),
       child: KeyedSubtree(
-        key: _folderDropKeyFor(folder.id),
-        child: TaskFolderListTile(
-          folder: folder,
-          tasks: folderTasks,
-          onOpenSettings: () => widget.onOpenFolderSettings(folder),
-          onOpenContents: () => widget.onOpenFolderContents(folder),
-          onDelete: () => widget.onDeleteFolder(folder),
-          onStart: () => widget.onStartFolder(folder),
-          onPause: () => widget.onPauseFolder(folder),
-          onRetry: () => widget.onRetryFolder(folder),
-          onRelink: () => widget.onRelinkFolder(folder),
-          onShowLog: () => widget.onShowFolderLog(folder),
-          onSecondaryTapDown: (details) {
-            widget.onFolderContextMenu(folder, details.globalPosition);
-          },
-          dragHandle: _FolderDragHandleSlot(
-            index: index,
-            enabled: dragEnabled,
-            selectionMode: widget.selectionMode,
+        key: index == itemCount - 1 ? widget.guideLastTaskKey : null,
+        child: KeyedSubtree(
+          key: _folderDropKeyFor(folder.id),
+          child: TaskFolderListTile(
+            folder: folder,
+            tasks: folderTasks,
+            onOpenSettings: () => widget.onOpenFolderSettings(folder),
+            onOpenContents: () => widget.onOpenFolderContents(folder),
+            onDelete: () => widget.onDeleteFolder(folder),
+            onStart: () => widget.onStartFolder(folder),
+            onPause: () => widget.onPauseFolder(folder),
+            onRetry: () => widget.onRetryFolder(folder),
+            onRelink: () => widget.onRelinkFolder(folder),
+            onShowLog: () => widget.onShowFolderLog(folder),
+            onSecondaryTapDown: (details) {
+              widget.onFolderContextMenu(folder, details.globalPosition);
+            },
+            dragHandle: _FolderDragHandleSlot(
+              index: index,
+              enabled: dragEnabled,
+              selectionMode: widget.selectionMode,
+            ),
+            dropHighlighted: _hoveredFolderId == folder.id,
+            dropDisabled: dropDisabled,
           ),
-          dropHighlighted: _hoveredFolderId == folder.id,
-          dropDisabled: dropDisabled,
         ),
       ),
     );
@@ -343,8 +383,40 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
         27,
         index != itemCount - 1 ? 0 : 48,
       ),
-      child: tile,
+      child: KeyedSubtree(
+        key: index == itemCount - 1 ? widget.guideLastTaskKey : null,
+        child: tile,
+      ),
     );
+  }
+
+  void _scheduleGuideMetricsReport() {
+    if (_guideMetricsReportScheduled || widget.onGuideMetricsChanged == null) {
+      return;
+    }
+    _guideMetricsReportScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _guideMetricsReportScheduled = false;
+      if (!mounted) {
+        return;
+      }
+      final itemContext = widget.guideLastTaskKey?.currentContext;
+      final position = itemContext == null
+          ? null
+          : Scrollable.maybeOf(itemContext, axis: Axis.vertical)?.position;
+      _reportGuideMetrics((position?.maxScrollExtent ?? 0) > 0);
+    });
+  }
+
+  void _reportGuideMetrics(bool hasScrollableContent) {
+    final metrics = GuideListMetrics(
+      hasScrollableContent: hasScrollableContent,
+    );
+    if (_lastReportedGuideMetrics == metrics) {
+      return;
+    }
+    _lastReportedGuideMetrics = metrics;
+    widget.onGuideMetricsChanged?.call(metrics);
   }
 
   bool _canDropTaskIntoFolder(MediaTask task, TaskFolder folder) {
@@ -702,6 +774,63 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     return itemBox.localToGlobal(Offset.zero) & itemBox.size;
   }
 
+  void _handleBackgroundPointerDown(
+    PointerDownEvent event,
+    List<WorkbenchListItem> items,
+  ) {
+    final isBackground =
+        event.buttons == kPrimaryButton &&
+        _sortTargetAt(event.position, items) == null;
+    if (!isBackground || widget.onDoubleTapBackground == null) {
+      _clearBackgroundPointer(resetTapSequence: true);
+      return;
+    }
+    _backgroundTapPointer = event.pointer;
+    _backgroundPointerDownPosition = event.position;
+  }
+
+  void _handleBackgroundPointerUp(
+    PointerUpEvent event,
+    List<WorkbenchListItem> items,
+  ) {
+    if (_backgroundTapPointer != event.pointer) {
+      return;
+    }
+    final downPosition = _backgroundPointerDownPosition;
+    _clearBackgroundPointer();
+    if (downPosition == null ||
+        (event.position - downPosition).distance > _backgroundTapSlop ||
+        _sortTargetAt(event.position, items) != null) {
+      _clearBackgroundPointer(resetTapSequence: true);
+      return;
+    }
+
+    final previousTime = _lastBackgroundTapTime;
+    final previousPosition = _lastBackgroundTapPosition;
+    final isDoubleTap =
+        previousTime != null &&
+        previousPosition != null &&
+        event.timeStamp - previousTime <= _backgroundDoubleTapTimeout &&
+        (event.position - previousPosition).distance <= _backgroundTapSlop;
+    if (isDoubleTap) {
+      _lastBackgroundTapTime = null;
+      _lastBackgroundTapPosition = null;
+      widget.onDoubleTapBackground?.call();
+      return;
+    }
+    _lastBackgroundTapTime = event.timeStamp;
+    _lastBackgroundTapPosition = event.position;
+  }
+
+  void _clearBackgroundPointer({bool resetTapSequence = false}) {
+    _backgroundTapPointer = null;
+    _backgroundPointerDownPosition = null;
+    if (resetTapSequence) {
+      _lastBackgroundTapTime = null;
+      _lastBackgroundTapPosition = null;
+    }
+  }
+
   int _newReorderIndexForSortTarget({
     required int oldIndex,
     required int targetIndex,
@@ -829,22 +958,10 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   }
 
   Widget _buildEmpty() {
-    return Builder(
-      builder: (context) {
-        final colors = context.frameLeanColors;
-
-        return Center(
-          child: Text(
-            '暂无任务\n点击左下角 + 添加媒体',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: colors.textTertiary,
-              fontSize: 12.flSp,
-              height: 1.5,
-            ),
-          ),
-        );
-      },
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onDoubleTap: widget.onDoubleTapBackground,
+      child: const SizedBox.expand(),
     );
   }
 }

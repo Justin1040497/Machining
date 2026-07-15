@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/workbench/guide/workbench_background_guide_system.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/bottom_bar.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/task_list_card.dart';
@@ -115,9 +116,7 @@ class WorkbenchShell extends StatelessWidget {
     final reserveTopNoticeArea =
         defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows;
-    final topInset = reserveTopNoticeArea
-        ? topBarHeight
-        : 0.0;
+    final topInset = reserveTopNoticeArea ? topBarHeight : 0.0;
     final looseTaskCount =
         taskList.asData?.value.where((task) => task.folderId == null).length ??
         0;
@@ -156,101 +155,125 @@ class WorkbenchShell extends StatelessWidget {
                       ? WorkbenchConstants.minWorkbenchHeight
                       : constraints.maxHeight,
                 ),
-                child: DecoratedBox(
-                  decoration: BoxDecoration(color: colors.surfaceCanvas),
-                  child: Stack(
-                    children: [
-                      if (defaultTargetPlatform == TargetPlatform.macOS)
-                        Align(
-                          alignment: Alignment.topCenter,
-                          child: WorkbenchTopBar(
-                            themeMode: themeMode,
-                            onToggleThemeMode: onToggleThemeMode,
-                            onOpenNotifications: onOpenNotifications,
-                            updateState: updateState,
-                            onOpenUpdate: onOpenUpdate,
-                            unreadNotificationCount: unreadNotificationCount,
-                            showNotificationBadge: showNotificationBadge,
+                child: WorkbenchGuideAnchorHost(
+                  taskCount: taskList.hasValue && taskFolders.hasValue
+                      ? taskList.requireValue.length
+                      : null,
+                  builder:
+                      (context, anchors, onListMetricsChanged, guideLayer) {
+                        return DecoratedBox(
+                          decoration: BoxDecoration(
+                            color: colors.surfaceCanvas,
                           ),
-                        ),
-                      if (defaultTargetPlatform == TargetPlatform.windows)
-                        Positioned(
-                          key: Key('windows-notice-safe-area'),
-                          left: 0,
-                          top: 0,
-                          right: 0,
-                          height: topBarHeight,
-                          child: WorkbenchTopBar(
-                            themeMode: themeMode,
-                            onToggleThemeMode: onToggleThemeMode,
-                            onOpenNotifications: onOpenNotifications,
-                            updateState: updateState,
-                            onOpenUpdate: onOpenUpdate,
-                            unreadNotificationCount: unreadNotificationCount,
-                            showNotificationBadge: showNotificationBadge,
-                            showBottomBorder: true,
+                          child: Stack(
+                            children: [
+                              guideLayer,
+                              if (defaultTargetPlatform == TargetPlatform.macOS)
+                                Align(
+                                  alignment: Alignment.topCenter,
+                                  child: WorkbenchTopBar(
+                                    themeMode: themeMode,
+                                    onToggleThemeMode: onToggleThemeMode,
+                                    onOpenNotifications: onOpenNotifications,
+                                    updateState: updateState,
+                                    onOpenUpdate: onOpenUpdate,
+                                    unreadNotificationCount:
+                                        unreadNotificationCount,
+                                    showNotificationBadge:
+                                        showNotificationBadge,
+                                  ),
+                                ),
+                              if (defaultTargetPlatform ==
+                                  TargetPlatform.windows)
+                                Positioned(
+                                  key: Key('windows-notice-safe-area'),
+                                  left: 0,
+                                  top: 0,
+                                  right: 0,
+                                  height: topBarHeight,
+                                  child: WorkbenchTopBar(
+                                    themeMode: themeMode,
+                                    onToggleThemeMode: onToggleThemeMode,
+                                    onOpenNotifications: onOpenNotifications,
+                                    updateState: updateState,
+                                    onOpenUpdate: onOpenUpdate,
+                                    unreadNotificationCount:
+                                        unreadNotificationCount,
+                                    showNotificationBadge:
+                                        showNotificationBadge,
+                                    showBottomBorder: true,
+                                  ),
+                                ),
+                              Positioned.fill(
+                                top: topInset,
+                                bottom: 48,
+                                child: WorkbenchTaskListCard(
+                                  taskList: taskList,
+                                  taskFolders: taskFolders,
+                                  selectedTaskIds: selectedTaskIds,
+                                  selectionMode: selectionMode,
+                                  thumbnailForTask: thumbnailForTask,
+                                  onReorder: onReorder,
+                                  onOpenTask: onOpenTask,
+                                  onStart: onStart,
+                                  onPause: onPause,
+                                  onRemove: onRemove,
+                                  onRetry: onRetry,
+                                  onRelink: onRelink,
+                                  onShowLog: onShowLog,
+                                  onRevealOutput: onRevealOutput,
+                                  onContextMenu: onContextMenu,
+                                  onFolderContextMenu: onFolderContextMenu,
+                                  onToggleTaskSelection: onToggleTaskSelection,
+                                  onSelectTasksWithRectangle:
+                                      onSelectTasksWithRectangle,
+                                  onMoveTaskToFolder: onMoveTaskToFolder,
+                                  onOpenFolderSettings: onOpenFolderSettings,
+                                  onOpenFolderContents: onOpenFolderContents,
+                                  onStartFolder: onStartFolder,
+                                  onPauseFolder: onPauseFolder,
+                                  onRetryFolder: onRetryFolder,
+                                  onRelinkFolder: onRelinkFolder,
+                                  onShowFolderLog: onShowFolderLog,
+                                  onDeleteFolder: onDeleteFolder,
+                                  guideViewportKey: anchors.listViewportKey,
+                                  guideLastTaskKey: anchors.lastTaskKey,
+                                  onGuideMetricsChanged: onListMetricsChanged,
+                                  onDoubleTapBackground: importEnabled
+                                      ? onAddTasks
+                                      : null,
+                                ),
+                              ),
+                              Align(
+                                alignment: Alignment.bottomCenter,
+                                child: WorkbenchBottomBar(
+                                  taskList: taskList,
+                                  hasRunningTask: hasRunningTask,
+                                  queueActionInFlight: queueActionInFlight,
+                                  selectionMode: selectionMode,
+                                  selectionEnabled: looseTaskCount > 0,
+                                  onAddTasks: onAddTasks,
+                                  onToggleSelectionMode: onToggleSelectionMode,
+                                  onOpenSettings: onOpenSettings,
+                                  onClearTasks: onClearTasks,
+                                  onPrimaryQueuePressed: onPrimaryQueuePressed,
+                                  addButtonKey: anchors.addButtonKey,
+                                  primaryQueueButtonKey: anchors.startButtonKey,
+                                ),
+                              ),
+                              if (selectedCount > 0)
+                                Positioned(
+                                  left: 24,
+                                  bottom: 78,
+                                  child: _SelectionActionBar(
+                                    selectedCount: selectedCount,
+                                    onPressed: onCreateFolderFromSelection,
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                      Positioned.fill(
-                        top: topInset,
-                        bottom: 48,
-                        child: WorkbenchTaskListCard(
-                          taskList: taskList,
-                          taskFolders: taskFolders,
-                          selectedTaskIds: selectedTaskIds,
-                          selectionMode: selectionMode,
-                          thumbnailForTask: thumbnailForTask,
-                          onReorder: onReorder,
-                          onOpenTask: onOpenTask,
-                          onStart: onStart,
-                          onPause: onPause,
-                          onRemove: onRemove,
-                          onRetry: onRetry,
-                          onRelink: onRelink,
-                          onShowLog: onShowLog,
-                          onRevealOutput: onRevealOutput,
-                          onContextMenu: onContextMenu,
-                          onFolderContextMenu: onFolderContextMenu,
-                          onToggleTaskSelection: onToggleTaskSelection,
-                          onSelectTasksWithRectangle:
-                              onSelectTasksWithRectangle,
-                          onMoveTaskToFolder: onMoveTaskToFolder,
-                          onOpenFolderSettings: onOpenFolderSettings,
-                          onOpenFolderContents: onOpenFolderContents,
-                          onStartFolder: onStartFolder,
-                          onPauseFolder: onPauseFolder,
-                          onRetryFolder: onRetryFolder,
-                          onRelinkFolder: onRelinkFolder,
-                          onShowFolderLog: onShowFolderLog,
-                          onDeleteFolder: onDeleteFolder,
-                        ),
-                      ),
-                      Align(
-                        alignment: Alignment.bottomCenter,
-                        child: WorkbenchBottomBar(
-                          taskList: taskList,
-                          hasRunningTask: hasRunningTask,
-                          queueActionInFlight: queueActionInFlight,
-                          selectionMode: selectionMode,
-                          selectionEnabled: looseTaskCount > 0,
-                          onAddTasks: onAddTasks,
-                          onToggleSelectionMode: onToggleSelectionMode,
-                          onOpenSettings: onOpenSettings,
-                          onClearTasks: onClearTasks,
-                          onPrimaryQueuePressed: onPrimaryQueuePressed,
-                        ),
-                      ),
-                      if (selectedCount > 0)
-                        Positioned(
-                          left: 24,
-                          bottom: 78,
-                          child: _SelectionActionBar(
-                            selectedCount: selectedCount,
-                            onPressed: onCreateFolderFromSelection,
-                          ),
-                        ),
-                    ],
-                  ),
+                        );
+                      },
                 ),
               );
             },
