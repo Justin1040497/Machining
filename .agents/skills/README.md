@@ -39,9 +39,10 @@
 | 制定验证范围、审查 diff、运行检查和解释失败 | `framelean-validation` |
 | 校准受影响事实，准备 commit 信息和精简 PR 描述 | `framelean-delivery` |
 | 为指定版本产出面向用户的精简 release 文档 | `framelean-release` |
+| 为当前或指定版本生成友好版本日志并保存到下载目录 | `framelean-user-changelog` |
 | 创建、合并、删除或重构项目级 Skills | `framelean-skill-create` |
 
-常规完整流程为：分析 → 计划 → 实现 → 验证 → 交付。发布文档独立使用 `framelean-release`；Skill 维护使用 `framelean-skill-create` 后进入实现和验证。
+常规完整流程为：分析 → 计划 → 实现 → 验证 → 交付。正式发布文档独立使用 `framelean-release`，软件内版本日志使用 `framelean-user-changelog`；Skill 维护使用 `framelean-skill-create` 后进入实现和验证。
 
 ## 共同底线
 
