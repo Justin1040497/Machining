@@ -10,7 +10,7 @@ FrameLean 文档不再使用 `docs/archive/`、`docs/features/`、`docs/plans/` 
 
 - `CONTEXT.md`：项目背景、当前上下文、产品定位、架构和平台边界。
 - `CHANGELOG.md`：根目录版本变化摘要。
-- `docs/work/`：当前任务、候选任务和有效决策索引。
+- `docs/work/`：当前任务和有效决策索引。
 - `docs/releases/vX.Y.Z/`：按发行版本记录事实设计说明。
 - `docs/decisions/YYMMDD-summary.md`：重要决策正文。
 - `docs/develop/`：当前工程事实和工作流规则。
@@ -24,7 +24,7 @@ FrameLean 文档不再使用 `docs/archive/`、`docs/features/`、`docs/plans/` 
 新的结构把文档分成几类稳定入口：
 
 - 当前是什么：`CONTEXT.md` 和 `docs/develop/`
-- 当前要做什么：`docs/work/`
+- 当前正在推进什么：`docs/work/active.md`
 - 版本形成了什么：`docs/releases/`
 - 为什么这样做：`docs/decisions/`
 - 以后别再踩什么坑：`docs/lessons.md`

@@ -17,10 +17,11 @@ FrameLean 项目级 skills 不再按设计、任务、测试计划、审查这�
 - `framelean-validation` 合并测试计划、diff 审查和检查执行。
 - `framelean-delivery` 负责交付前事实校准，并输出 Markdown commit 信息和 PR description。
 - `framelean-release` 只负责根据用户指定版本号讨论并产出 release 文档。
-- `framelean-requirement-pool` 负责需求池讨论和 `docs/work/backlog.md` 更新。
 - `framelean-skill-create` 负责项目级 skills 的创建、合并、删除和重构。
 
 共享预读协议放在 `.agents/skills/README.md`。单个 `SKILL.md` 只保留独有职责和增量读取规则。
+
+交付文案采用按风险递增的精简结构：普通 PR 只写 `Summary` 和可选 `Notes`，不写 `Verification`，例行验证由 CI 和合并门禁承载；Release 只提炼用户可感知的主要变化、重要修复、兼容性与已知问题，并链接完整记录，不重复内部测试、打包检查和文件清单。
 
 ## 背景
 
@@ -33,10 +34,11 @@ FrameLean 项目级 skills 不再按设计、任务、测试计划、审查这�
 - 临时设计、任务和验证边界写入 ignored 的 `.workspace/plans/`。
 - Release 草稿可以写入 ignored 的 `.workspace/release-drafts/`。
 - `docs/` 继续只保存当前事实、版本事实、重要决策和可复用经验。
-- `framelean-delivery` 在交付前扫描重要根文档和 `docs/`，避免旧内容继续作为事实存在。
+- `framelean-delivery` 在交付前检查受变更影响的事实文档，避免旧内容继续作为事实存在。
+- PR 和 Release 不再使用必须填满的固定章节；内容长度由真实评审风险和用户影响决定，空章节直接省略。
 
 ## 关联
 
 - `.agents/skills/README.md`
 - `.agents/skills/framelean-workflow/SKILL.md`
-- `docs/releases/v1.1.5/project-skills-workflow.md`
+- `.agents/skills/README.md`

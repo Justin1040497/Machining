@@ -20,7 +20,7 @@
 | 260613 | 任务完成音效使用 Flutter 音频插件播放内置 WAV，不启动 PowerShell | 有效 | `docs/decisions/260613-task-completion-sound-playback.md` | `docs/releases/v1.2.0/task-completion-sounds.md` |
 | 260613 | 视频色彩修复默认采用 zimg HDR 转 SDR，保持 HDR 限定为 HDR10/HLG HEVC Main10 | 有效 | `docs/decisions/260613-video-color-hdr-sdr-boundary.md` | `docs/releases/v1.2.0/video-color-hdr-sdr.md` |
 | 260612 | macOS 使用单一 Universal 2 DMG 支持 x86_64 / arm64，Windows 继续只支持 x64 | 有效 | `docs/decisions/260612-macos-universal2-distribution.md` | `docs/releases/v1.2.0/macos-universal2.md` |
-| 260608 | 项目级 skills 从阶段拆分改为职责拆分，临时计划进入 `.workspace/` | 有效 | `docs/decisions/260608-project-skill-workflow.md` | `docs/releases/v1.1.5/project-skills-workflow.md` |
+| 260608 | 项目级 skills 从阶段拆分改为职责拆分，临时计划进入 `.workspace/` | 有效 | `docs/decisions/260608-project-skill-workflow.md` | `.agents/skills/README.md` |
 | 260608 | 文档信息架构改为上下文、工作区、版本事实、决策和经验总结 | 有效 | `docs/decisions/260608-docs-information-architecture.md` | `docs/releases/v1.1.5/repository-structure.md` |
 | 260607 | 任务拖拽排序先乐观更新 UI，再后台持久化排序 | 有效 | `docs/decisions/260607-task-reorder-optimistic-update.md` | `docs/releases/v1.1.5/workbench-theme-and-reorder.md` |
 | 260607 | Drift 新增列迁移统一使用幂等 `_safeAddColumn` | 有效 | `docs/decisions/260607-drift-migration-safe-add-column.md` | `docs/develop/data-model.md` |

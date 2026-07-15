@@ -1,6 +1,6 @@
 ---
 name: framelean-release
-description: "Use to summarize and discuss FrameLean changes for a user-specified version, then produce that version's release document. Scans Git history since the previous relevant tag and current project docs, drafts release notes, asks for confirmation, and writes docs/releases/version/release.md when approved. Use only inside the FrameLean repository."
+description: "Use to summarize and discuss FrameLean changes for a user-specified version, then produce a concise user-facing release document. Scans Git history and current packaging facts, drafts release notes, asks for confirmation, and writes docs/releases/version/release.md when approved. Use only inside the FrameLean repository."
 ---
 
 # FrameLean Release
@@ -57,12 +57,12 @@ Check at minimum:
 - Windows update base URL, trusted release key ids, public keys, private-key-file signing, installer target, and `*.update.json` generation are represented accurately.
 - Missing release configuration fails closed instead of producing artifacts that look releasable but lack update configuration.
 
-If the gate finds stale script, Action, YAML, or docs wiring, stop and ask whether to fix it first or record it as a known risk. Record the final gate result under `验证与兼容` and unresolved gaps under `已知风险`.
+If the gate finds stale script, Action, YAML, or docs wiring, stop and ask whether to fix it first or record it as a known risk. Keep routine gate results out of the public release narrative; record only unresolved, user-relevant compatibility or packaging risks.
 
 ## Workflow
 
 1. Identify the previous relevant tag and state the comparison range.
-2. Summarize completed features, fixes, workflow changes, docs changes, validation, and known risks.
+2. Summarize user-facing features, important fixes, compatibility changes, and known risks. Keep workflow, documentation, and routine validation details in their source records.
 3. Ask focused questions when version scope, included changes, platform support, release artifacts, or known risks are unclear.
 4. Draft release copy in the conversation or `.workspace/release-drafts/vX.Y.Z.md` during discussion.
 5. After user confirmation, write:
@@ -82,17 +82,11 @@ Use Chinese unless the user asks otherwise.
 
 ## 主要变更
 
-## 修复与稳定性
+## 重要修复
 
-## 验证与兼容
+## 兼容性与已知问题
 
-## 发布产物
-
-## 已知风险
-
-## 升级与回滚说明
-
-## 关联记录
+## 完整记录
 ```
 
-Use `无` or `不适用` when a section does not apply. Do not tag, push, publish, or create release artifacts unless the user explicitly asks.
+Keep the summary to one short paragraph, then use 3～6 user-facing bullets per relevant section. Omit empty sections instead of writing `无` or `不适用`. Do not paste test logs, internal workflow changes, file inventories, packaging checklists, artifact lists already visible on the release page, or generic rollback instructions. Link to the full changelog and detailed migration documentation when needed. Do not tag, push, publish, or create release artifacts unless the user explicitly asks.

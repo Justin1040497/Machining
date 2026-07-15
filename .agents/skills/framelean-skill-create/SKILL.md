@@ -1,48 +1,19 @@
 ---
 name: framelean-skill-create
-description: "Use to create, update, merge, delete, or refactor FrameLean project-level skills. Applies the system skill-creator guidance while enforcing FrameLean-specific rules: project skills live under .agents/skills, names use the framelean prefix, routing docs stay current, and no user-level skill is created unless explicitly requested."
+description: "Use to create, update, merge, delete, or refactor FrameLean project-level skills. Applies the available system skill-creator guidance while keeping project skills under .agents/skills, using the framelean prefix, updating routing docs, and avoiding user-level skill changes unless explicitly requested."
 ---
 
 # FrameLean Skill Create
 
-Create or update FrameLean project-level skills using the system `skill-creator` guidance plus project rules.
+Before substantial work, read the available system `skill-creator` completely and follow its concise instruction, progressive disclosure, resource, initialization, metadata, and validation rules.
 
-## Required System Skill
+## Project Rules
 
-Read the system skill creator before substantial work:
+- Keep project Skills in `.agents/skills/framelean-*` unless the user explicitly requests a user-level Skill.
+- Use lowercase hyphen-case names and YAML frontmatter containing only `name` and `description`.
+- Do not create skill-level README, CHANGELOG, installation, or process-note files.
+- Add bundled scripts, references, or assets only when repeated execution genuinely needs them.
+- After structural changes, update `.agents/skills/README.md`, `framelean-workflow/SKILL.md`, and any existing `agents/openai.yaml` metadata.
+- Remove stale names and paths with `rg` while preserving unrelated customization.
 
-```text
-/Users/leftzhou/.codex/skills/.system/skill-creator/SKILL.md
-```
-
-Use its principles: concise instructions, progressive disclosure, no unnecessary files, validation with `quick_validate.py`, and `init_skill.py` for new skills.
-
-## FrameLean Rules
-
-- Project-level skills live only in `.agents/skills/` unless the user explicitly asks for a user-level skill.
-- Skill names must be lowercase hyphen-case and start with `framelean-`.
-- Do not create skill-level `README.md`, `CHANGELOG.md`, install guides, or process notes.
-- Create bundled `scripts/`, `references/`, or `assets/` only when the skill truly needs them.
-- Update `.agents/skills/README.md` and `.agents/skills/framelean-workflow/SKILL.md` after adding, deleting, merging, or renaming skills.
-- Update `agents/openai.yaml` when present so UI metadata matches `SKILL.md`.
-- Remove stale old skill references with `rg`.
-
-## Creation Workflow
-
-For a new skill, run:
-
-```bash
-python3 /Users/leftzhou/.codex/skills/.system/skill-creator/scripts/init_skill.py framelean-skill-name --path .agents/skills
-```
-
-Then replace the generated placeholder content with concise project-specific instructions.
-
-## Validation
-
-Run:
-
-```bash
-python3 /Users/leftzhou/.codex/skills/.system/skill-creator/scripts/quick_validate.py .agents/skills/framelean-skill-name
-```
-
-If the script cannot import Python `yaml`, use Ruby standard-library `YAML` or another structured YAML parser to validate the same frontmatter constraints, and report that fallback. For broad skill restructures, validate every `framelean-*` skill and run stale-reference scans for deleted names.
+For new Skills, use the current system `skill-creator` initialization script rather than hand-building the directory. After changes, run its `quick_validate.py` against every affected Skill. Resolve tool locations from the current environment instead of storing personal absolute paths; if Python YAML support is unavailable, validate with another structured YAML parser and report the fallback.

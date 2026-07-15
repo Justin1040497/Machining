@@ -1,6 +1,6 @@
 ---
 name: framelean-delivery
-description: "Use for FrameLean delivery closeout after implementation or validation. Calibrates current project facts across important root documents and docs, updates or drafts necessary documentation, and returns Markdown commit information plus Markdown PR description. Use only inside the FrameLean repository."
+description: "Use for FrameLean delivery closeout after implementation or validation. Calibrates current project facts, updates necessary documentation, and returns Markdown commit information plus a concise reviewer-facing PR description. Use only inside the FrameLean repository."
 ---
 
 # FrameLean Delivery
@@ -13,31 +13,11 @@ Read `.agents/skills/README.md` first and follow the shared pre-read protocol. A
 
 ## Documentation Calibration
 
-Scan current-fact documents before writing delivery copy:
-
-```text
-CONTEXT.md
-README.md
-AGENTS.md
-CLAUDE.md
-CHANGELOG.md
-docs/README.md
-docs/work/active.md
-docs/work/backlog.md
-docs/work/decisions.md
-docs/releases/*
-docs/decisions/*
-docs/lessons.md
-docs/develop/*
-docs/reference/*
-.agents/skills/*
-```
-
-Do not rewrite everything. Use targeted reads and `rg` to find stale facts, old paths, deleted skill names, changed commands, changed architecture, changed release facts, or changed workflow rules.
+Identify which facts the changed files can affect, then inspect only those current-fact documents. Typical targets are `CONTEXT.md`, `CHANGELOG.md`, the relevant `docs/work/`, `docs/releases/`, `docs/decisions/`, `docs/develop/`, `docs/reference/`, or `.agents/skills/` entries. Use `rg` for stale names and paths instead of opening the entire documentation tree.
 
 ## Packaging Freshness Check
 
-Before writing delivery copy, run a lightweight packaging and update-config freshness check. This is required for release, CI, installer, update, signing, notarization, packaging, or workflow changes, and still should be briefly considered for other changes.
+Run a packaging and update-config freshness check only when the change affects release, CI, installer, update, signing, notarization, packaging, or related workflow facts.
 
 Inspect the current source of truth instead of trusting existing docs:
 
@@ -61,7 +41,7 @@ Check at minimum:
 - Windows update base URL, trusted key ids, public keys, private-key-file signing, and `*.update.json` generation are wired from local and CI packaging entry points.
 - Missing release configuration fails closed instead of producing artifacts that look releasable but lack update configuration.
 
-If the check finds drift, update the stale script, workflow, YAML, or docs before final delivery, or explicitly report the blocker. Mention the check result in `验证结果` or `风险与回滚`.
+If the check finds drift, update the stale script, workflow, YAML, or docs before final delivery, or explicitly report the blocker. Do not copy routine packaging checks into the PR description; include only a material unresolved risk under optional notes.
 
 ## Update Rules
 
@@ -69,7 +49,7 @@ If the check finds drift, update the stale script, workflow, YAML, or docs befor
 - Update `docs/releases/` when a stable shipped design or workflow fact changed.
 - Update `docs/decisions/` and `docs/work/decisions.md` when an important durable decision was made.
 - Update `docs/lessons.md` when the work produced a reusable lesson.
-- Update `docs/work/active.md` or `docs/work/backlog.md` when task status changed.
+- Update `docs/work/active.md` when current task status changed.
 - Update `AGENTS.md`, `CLAUDE.md`, `README.md`, or `.agents/skills/` when agent workflow or developer workflow changed.
 - Do not create `docs/archive/`, `docs/features/`, `docs/plans/`, daily logs, or one-bug-one-file notes.
 
@@ -96,34 +76,17 @@ type(scope): 中文摘要
 ## PR Description
 
 ```markdown
-## 变更概览
+## Summary
 
-- ...
+- 用一段短文或 2～5 个 bullet 说明改了什么，以及不明显时为什么要改。
+- 需要时直接附 `Closes #...` 或相关设计文档链接。
 
-## 背景与目标
+## Notes
 
-- ...
-
-## 实现详情
-
-- ...
-
-## 验证结果
-
-- ...
-
-## 风险与回滚
-
-- ...
-
-## 文档与变更记录
-
-- ...
-
-## 评审重点
-
-- ...
+- 仅保留评审者必须知道的迁移、兼容性、风险、截图或特殊决策；没有就删除整个章节。
 ```
 ````
+
+Keep ordinary PR bodies around 5～15 lines. Scale detail with review risk, not diff size or a fixed section count. Do not include a `Verification` section, routine test commands, file lists, commit summaries, documentation inventories, empty headings, or generic rollback boilerplate. Link to issues, decisions, changelogs, or CI instead of copying their content.
 
 Do not run `git add`, `git commit`, `git push`, create tags, or open PRs unless the user explicitly asks.

@@ -88,16 +88,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `flutter_launcher_icons` | `^0.14.4` | macOS / Windows 应用图标生成 |
 | `dmg` | `^0.1.8` | macOS DMG 打包辅助依赖 |
 
-服务端直接依赖：
-
-| 依赖 | 用途 |
-| --- | --- |
-| RuoYi-Vue-Plus 5.X | 服务端后台骨架，基于 Spring Boot 3.5、Sa-Token、MyBatis-Plus、Redisson 和 RuoYi 系统模块 |
-| PostgreSQL + Flyway | 生产唯一关系数据库和 schema 迁移；保留既有发布、制品、审计和 IP 屏蔽业务表，新增 RuoYi `sys_*` 系统表 |
-| Redis / Redisson | 更新票据、限流计数、latest cache 和 RuoYi 缓存 / 会话能力 |
-| Tencent COS Java SDK `cos_api` | 服务端生成上传 / 下载预签名 URL，并通过官方 Java SDK 管理分片上传生命周期 |
-| plus-ui 5.X + Vue 3 + TypeScript + Element Plus | 服务端 Admin Web，源码位于 `server/admin-web`，构建后由 `ruoyi-admin` 托管 |
-| Docker Compose | 本地和宝塔部署入口，组合单容器 API、PostgreSQL 和 Redis |
+更新服务端已拆分到独立 [FrameLean-Backend](https://github.com/zhouycheng/FrameLean-Backend) 仓库。服务端框架、数据库、缓存、对象存储和 Admin Web 的具体依赖以该仓库为准；本仓库只维护客户端 API、外部下载和保留 package 路线的契约。
 
 ## 项目目录结构
 
@@ -364,21 +355,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `（1）`、`（2）` 等后缀 |
 | 更新安装包缓存 | 应用支持目录 `updates/<version>/<platform>/` | 保留 package 路线的下载缓存，支持断点续传、SHA-256 校验和 Windows Ed25519 验签；外部下载地址模式不写入该目录 |
 
-服务端数据边界：
-
-| 数据 | 位置 / 机制 | 说明 |
-| --- | --- | --- |
-| release / package / notes / external download URL / Sparkle appcast metadata | PostgreSQL | 长期发布事实；默认 release 保存 GitHub / Gitee / 备用下载地址，package 元数据可选；登记 package 时 `client_visible` 和签名规则仍按平台规范化 |
-| release artifact files / notes md | 腾讯云 COS | 版本日志文件可以通过预签名上传；保留 package 路线可继续存放安装包并通过 download ticket 分发，外部下载地址模式不要求把安装包上传 COS |
-| release artifact requirement | PostgreSQL | 保留每个版本的平台成果物要求记录；当前三个平台 requirement 均为非必填，Admin 默认隐藏 requirement 和 package 界面 |
-| update check event | PostgreSQL | 检查更新审计、IP 筛选和封禁依据 |
-| download event | PostgreSQL | 下载统计和审计 |
-| RuoYi users / roles / menus / logs | PostgreSQL | RuoYi-Vue-Plus 后台登录、角色权限、菜单和操作日志是当前 Admin Web 权威后台能力 |
-| RuoYi / Sa-Token session | Redis | 后台登录态、在线用户、验证码和平台缓存；旧 challenge 登录不再使用 |
-| `admin_auth_config` | PostgreSQL | 旧 React Admin 主密码 / challenge 登录表，仅历史保留，不作为当前鉴权来源 |
-| ip block rule | PostgreSQL | 管理端维护的 IP 屏蔽规则 |
-| download ticket | Redis | 10 分钟 TTL，resolve 后签发 COS 短期 URL |
-| rate limit / latest cache | Redis | 限流窗口和短期最新版本缓存 |
+服务端长期保存 release、版本日志、外部下载地址、审计和可选 package 元数据。缓存、对象存储、下载票据与 Admin 鉴权属于独立后端实现，本客户端仓库只依赖公开更新响应和相关安全约束。
 
 ## 媒体类型边界
 
@@ -455,15 +432,3 @@ docs/develop/test-plan.md
 - 应用设置通过 `/settings` 全屏路由打开，按应用、关于、视频、图片、音频、输出和编码器分区独立保存或取消。
 - FFmpeg 二进制通常不应提交到 Git；本地和发布构建需要按 `third_party/ffmpeg/*/README.md` 准备运行时。
 - 内置 FFmpeg + x264 的发布路线需要遵守 GPL 相关分发要求，见 `docs/reference/ffmpeg-license-distribution.md`。
-
-## 给 AI 的使用说明
-
-AI 在处理代码任务时，应优先阅读：
-
-1. `CONTEXT.md`
-2. `docs/README.md`
-3. `docs/develop/architecture.md`
-4. `docs/develop/data-model.md`
-5. `docs/develop/test-plan.md`
-
-不要把旧计划、旧任务清单或历史提交记录直接当成当前实现事实。版本形成的稳定事实看 `docs/releases/`，重要决策看 `docs/decisions/`，可复用经验看 `docs/lessons.md`。

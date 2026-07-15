@@ -10,7 +10,6 @@
 | --- | --- |
 | `windows-runtime-packaging.md` | Windows 运行时、zip 布局和 Explorer 定位 |
 | `ffmpeg-command-and-process-control.md` | FFprobe 分析字段、FFmpeg 映射和跨平台进程控制 |
-| `workflow-foundation.md` | 项目 workflow 和 agent 协作规则的初始落地 |
 
 ## 关联
 
