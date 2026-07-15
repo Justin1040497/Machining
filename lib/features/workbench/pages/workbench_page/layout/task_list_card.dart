@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/gestures.dart' show kPrimaryButton;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -95,6 +96,10 @@ class WorkbenchTaskListCard extends StatefulWidget {
 
 class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   static const double _taskFolderDropEdgeInset = 16;
+  static const Duration _backgroundDoubleTapTimeout = Duration(
+    milliseconds: 300,
+  );
+  static const double _backgroundTapSlop = 18;
 
   final Map<String, GlobalKey> _taskItemKeys = {};
   final Map<String, GlobalKey> _folderDropKeys = {};
@@ -113,6 +118,10 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
   _pendingFallbackReorder;
   GuideListMetrics? _lastReportedGuideMetrics;
   var _guideMetricsReportScheduled = false;
+  int? _backgroundTapPointer;
+  Offset? _backgroundPointerDownPosition;
+  Duration? _lastBackgroundTapTime;
+  Offset? _lastBackgroundTapPosition;
 
   @override
   Widget build(BuildContext context) {
@@ -219,34 +228,40 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       fit: StackFit.expand,
       children: [
         Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onPanStart: (details) {
-              if (_draggingTaskForReorder != null) {
-                return;
-              }
-              setState(() {
-                _selectionStart = details.localPosition;
-                _selectionCurrent = details.localPosition;
-              });
-            },
-            onPanUpdate: (details) {
-              if (_draggingTaskForReorder != null) {
-                return;
-              }
-              setState(() {
-                _selectionCurrent = details.localPosition;
-              });
-            },
-            onPanEnd: (_) {
-              if (_draggingTaskForReorder != null) {
-                _clearRectangleSelection();
-                return;
-              }
-              _finishRectangleSelection(context, tasks);
-            },
-            onPanCancel: _clearRectangleSelection,
-            child: listView,
+          child: Listener(
+            onPointerDown: (event) =>
+                _handleBackgroundPointerDown(event, items),
+            onPointerUp: (event) => _handleBackgroundPointerUp(event, items),
+            onPointerCancel: (_) => _clearBackgroundPointer(),
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onPanStart: (details) {
+                if (_draggingTaskForReorder != null) {
+                  return;
+                }
+                setState(() {
+                  _selectionStart = details.localPosition;
+                  _selectionCurrent = details.localPosition;
+                });
+              },
+              onPanUpdate: (details) {
+                if (_draggingTaskForReorder != null) {
+                  return;
+                }
+                setState(() {
+                  _selectionCurrent = details.localPosition;
+                });
+              },
+              onPanEnd: (_) {
+                if (_draggingTaskForReorder != null) {
+                  _clearRectangleSelection();
+                  return;
+                }
+                _finishRectangleSelection(context, tasks);
+              },
+              onPanCancel: _clearRectangleSelection,
+              child: listView,
+            ),
           ),
         ),
         if (_selectionRect != null)
@@ -757,6 +772,63 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
       return null;
     }
     return itemBox.localToGlobal(Offset.zero) & itemBox.size;
+  }
+
+  void _handleBackgroundPointerDown(
+    PointerDownEvent event,
+    List<WorkbenchListItem> items,
+  ) {
+    final isBackground =
+        event.buttons == kPrimaryButton &&
+        _sortTargetAt(event.position, items) == null;
+    if (!isBackground || widget.onDoubleTapBackground == null) {
+      _clearBackgroundPointer(resetTapSequence: true);
+      return;
+    }
+    _backgroundTapPointer = event.pointer;
+    _backgroundPointerDownPosition = event.position;
+  }
+
+  void _handleBackgroundPointerUp(
+    PointerUpEvent event,
+    List<WorkbenchListItem> items,
+  ) {
+    if (_backgroundTapPointer != event.pointer) {
+      return;
+    }
+    final downPosition = _backgroundPointerDownPosition;
+    _clearBackgroundPointer();
+    if (downPosition == null ||
+        (event.position - downPosition).distance > _backgroundTapSlop ||
+        _sortTargetAt(event.position, items) != null) {
+      _clearBackgroundPointer(resetTapSequence: true);
+      return;
+    }
+
+    final previousTime = _lastBackgroundTapTime;
+    final previousPosition = _lastBackgroundTapPosition;
+    final isDoubleTap =
+        previousTime != null &&
+        previousPosition != null &&
+        event.timeStamp - previousTime <= _backgroundDoubleTapTimeout &&
+        (event.position - previousPosition).distance <= _backgroundTapSlop;
+    if (isDoubleTap) {
+      _lastBackgroundTapTime = null;
+      _lastBackgroundTapPosition = null;
+      widget.onDoubleTapBackground?.call();
+      return;
+    }
+    _lastBackgroundTapTime = event.timeStamp;
+    _lastBackgroundTapPosition = event.position;
+  }
+
+  void _clearBackgroundPointer({bool resetTapSequence = false}) {
+    _backgroundTapPointer = null;
+    _backgroundPointerDownPosition = null;
+    if (resetTapSequence) {
+      _lastBackgroundTapTime = null;
+      _lastBackgroundTapPosition = null;
+    }
   }
 
   int _newReorderIndexForSortTarget({

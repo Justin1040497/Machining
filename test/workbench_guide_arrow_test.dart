@@ -16,10 +16,80 @@ void main() {
 
     expect(geometry.controlPoint1.dx, greaterThan(0));
     expect(geometry.controlPoint2.dx, greaterThan(geometry.controlPoint1.dx));
-    expect(geometry.controlPoint2.dx, lessThan(240));
+    expect(geometry.middlePoint.dx, greaterThan(geometry.controlPoint2.dx));
+    expect(geometry.controlPoint3.dx, greaterThan(geometry.middlePoint.dx));
+    expect(geometry.controlPoint4.dx, greaterThan(geometry.controlPoint3.dx));
+    expect(geometry.controlPoint4.dx, lessThan(240));
     expect(geometry.controlPoint1.dy.abs(), lessThanOrEqualTo(32));
     expect(geometry.controlPoint2.dy.abs(), lessThanOrEqualTo(46));
+    expect(geometry.middlePoint.dy.abs(), greaterThan(10));
+    expect(geometry.controlPoint4.dy.sign, -geometry.middlePoint.dy.sign);
     expect(geometry.body.computeMetrics().single.length, greaterThan(240));
+  });
+
+  test('doodle arrowhead is closed, hatched, emphasized, and size bounded', () {
+    final head = DoodleArrowGeometry.createArrowHead(
+      tip: const Offset(240, 80),
+      direction: const Offset(1, -0.2),
+      bodyLength: 260,
+      scale: 1,
+      curveSeed: 42,
+    );
+
+    final outlineMetric = head.outline.computeMetrics().single;
+    expect(outlineMetric.isClosed, isTrue);
+    expect(head.length, inInclusiveRange(22, 30));
+    expect(head.hatching.computeMetrics().length, 3);
+    expect(head.emphasis.computeMetrics().length, 3);
+    expect(head.outline.getBounds().width, greaterThan(25));
+    expect(head.baseNotch.dx, lessThan(240));
+    expect(head.direction.distance, closeTo(1, 0.001));
+    expect(head.direction.dx, greaterThan(0));
+  });
+
+  test('doodle geometry honors the requested target direction', () {
+    final geometry = DoodleArrowGeometry.create(
+      startPoint: const Offset(40, 160),
+      targetPoint: const Offset(260, 80),
+      targetDirection: const Offset(0, -1),
+      curveSeed: 9,
+      maxLength: 280,
+      curveBias: const Offset(0, 20),
+    );
+
+    final finalTangent = geometry.target - geometry.controlPoint4;
+    expect(finalTangent.dx.abs(), lessThan(0.001));
+    expect(finalTangent.dy, lessThan(0));
+  });
+
+  test('task route forms a deep bowl before entering upward', () {
+    final geometry = DoodleArrowGeometry.create(
+      startPoint: const Offset(0, 40),
+      targetPoint: const Offset(200, 0),
+      targetDirection: const Offset(0, -1),
+      curveSeed: 1401,
+      maxLength: 245,
+      curveBias: const Offset(0, 72),
+    );
+
+    expect(geometry.middlePoint.dy, greaterThan(80));
+    expect(geometry.controlPoint4.dx, closeTo(200, 0.001));
+    expect(geometry.controlPoint4.dy, greaterThan(geometry.target.dy));
+  });
+
+  test('start-all route arches upward before entering downward', () {
+    final geometry = DoodleArrowGeometry.create(
+      startPoint: const Offset(200, 0),
+      targetPoint: const Offset(0, 80),
+      targetDirection: const Offset(0, 1),
+      curveSeed: 2803,
+      maxLength: 245,
+      curveBias: const Offset(0, -72),
+    );
+
+    expect(geometry.middlePoint.dy, lessThan(-10));
+    expect(geometry.controlPoint4.dx, closeTo(0, 0.001));
+    expect(geometry.controlPoint4.dy, lessThan(geometry.target.dy));
   });
 
   testWidgets('moving an arrow target does not restart its draw animation', (

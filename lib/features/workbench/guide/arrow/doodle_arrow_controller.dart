@@ -24,7 +24,9 @@ class DoodleArrowController extends ChangeNotifier {
          duration: moveDuration,
        ) {
     final random = math.Random(curveSeed);
-    arrowHeadScale = 0.8 + random.nextDouble() * 0.4;
+    // Keep the reference-sketch arrowhead visibly hand-drawn without allowing
+    // one seeded variant to become disproportionately large or small.
+    arrowHeadScale = 0.94 + random.nextDouble() * 0.12;
     strokeOffset = Offset(
       -1.2 + random.nextDouble() * 2.4,
       -1.2 + random.nextDouble() * 2.4,

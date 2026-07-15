@@ -250,7 +250,7 @@ Use Cases：
 - `pages/workbench_page/dialogs/`：任务配置、失败、清空、重命名、压缩确认、任务日志等工作台弹窗；任务完成不再使用完成弹窗。
 - `pages/workbench_page/overlays/`：工作台拖拽覆盖层。
 - `pages/workbench_page/configuration/`：工作台常量、格式化、轻量模型和 UI 判断策略。
-- `guide/`：工作台背景动态引导子系统；`arrow/` 使用 `CustomPainter + PathMetric` 绘制和移动手绘箭头，`content/` 保存可组合内容组，`models/` 保存统一坐标与场景模型，`scheduler/` 只负责空队列、有任务和隐藏场景的调度。
+- `guide/`：工作台背景动态引导子系统；`arrow/` 使用 `CustomPainter + PathMetric` 绘制和移动手绘箭头，`content/` 保存可组合内容组，`models/` 保存统一坐标、场景模型和任务区安全通道布局，`scheduler/` 只负责空队列、有任务和隐藏场景的调度。
 - `widgets/media_task_list/`：任务列表项、状态徽标、操作按钮和缩略图组件。
 - `MediaTaskListNotifier`：任务管理和任务状态管理入口，通过 media task use cases 进入 application。
 - `WorkbenchPreviewNotifier`：预览状态入口，通过 `GeneratePreviewFramesUseCase` 进入 application。

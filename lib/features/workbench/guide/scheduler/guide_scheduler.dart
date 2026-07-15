@@ -1,4 +1,6 @@
 import 'package:framelean/features/workbench/guide/models/guide_state.dart';
+import 'package:framelean/features/workbench/guide/models/guide_geometry.dart';
+import 'package:framelean/features/workbench/guide/models/task_workspace_guide_layout.dart';
 
 class GuideScheduler {
   GuideScene _scene = GuideScene.hidden;
@@ -48,7 +50,8 @@ class GuideScheduler {
           ? GuideScene.emptyQueue
           : GuideScene.hidden;
     }
-    return geometry.canShowTaskWorkspaceGuide
+    return TaskWorkspaceGuideLayout.resolve(geometry).capacity !=
+            TaskWorkspaceGuideCapacity.hidden
         ? GuideScene.taskWorkspace
         : GuideScene.hidden;
   }

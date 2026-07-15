@@ -66,6 +66,17 @@ void main() {
     expect(crowdedDecision.scene, GuideScene.hidden);
   });
 
+  test('limited space keeps the task workspace scene for start-all only', () {
+    final decision = GuideScheduler().update(
+      GuideSchedulerInput(
+        taskCount: 3,
+        geometry: geometry(lastTaskRect: const Rect.fromLTWH(24, 212, 700, 72)),
+      ),
+    );
+
+    expect(decision.scene, GuideScene.taskWorkspace);
+  });
+
   test('loading state stays hidden even when anchors exist', () {
     final decision = GuideScheduler().update(
       GuideSchedulerInput(taskCount: null, geometry: geometry()),

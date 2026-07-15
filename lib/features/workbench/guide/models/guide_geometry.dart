@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 
 class GuideGeometry {
@@ -10,7 +12,8 @@ class GuideGeometry {
     this.lastTaskRect,
   });
 
-  static const double minimumGuideHeight = 132;
+  static const double minimumTaskWorkspaceGuideHeight = 180;
+  static const double dualTaskWorkspaceGuideHeight = 360;
 
   final Size workbenchSize;
   final Rect listViewportRect;
@@ -27,12 +30,38 @@ class GuideGeometry {
     return listViewportRect.bottom - taskRect.bottom;
   }
 
+  Rect get taskWorkspaceGuideRect {
+    final taskRect = lastTaskRect;
+    if (taskRect == null || startButtonRect.isEmpty) {
+      return Rect.zero;
+    }
+    final top = taskRect.bottom + 16;
+    final bottom = math.min(listViewportRect.bottom, startButtonRect.top - 10);
+    if (bottom <= top) {
+      return Rect.zero;
+    }
+    return Rect.fromLTRB(
+      listViewportRect.left,
+      top,
+      listViewportRect.right,
+      bottom,
+    );
+  }
+
   bool get hasTaskAnchors => lastTaskRect != null && !startButtonRect.isEmpty;
 
-  bool get canShowTaskWorkspaceGuide {
-    return hasTaskAnchors &&
-        !hasScrollableContent &&
-        taskGuideHeight >= minimumGuideHeight;
+  TaskWorkspaceGuideCapacity get taskWorkspaceGuideCapacity {
+    if (!hasTaskAnchors || hasScrollableContent) {
+      return TaskWorkspaceGuideCapacity.hidden;
+    }
+    final height = taskWorkspaceGuideRect.height;
+    if (height >= dualTaskWorkspaceGuideHeight) {
+      return TaskWorkspaceGuideCapacity.both;
+    }
+    if (height >= minimumTaskWorkspaceGuideHeight) {
+      return TaskWorkspaceGuideCapacity.startAllOnly;
+    }
+    return TaskWorkspaceGuideCapacity.hidden;
   }
 
   bool get canShowEmptyQueueGuide => !addButtonRect.isEmpty;
@@ -58,6 +87,8 @@ class GuideGeometry {
     hasScrollableContent,
   );
 }
+
+enum TaskWorkspaceGuideCapacity { hidden, startAllOnly, both }
 
 class GuideListMetrics {
   const GuideListMetrics({required this.hasScrollableContent});

@@ -98,6 +98,8 @@ class WorkbenchBackgroundGuideSystem extends StatefulWidget {
 class _WorkbenchBackgroundGuideSystemState
     extends State<WorkbenchBackgroundGuideSystem>
     with WidgetsBindingObserver {
+  static const double _visibleOpacity = 0.50;
+
   final GlobalKey _rootKey = GlobalKey(debugLabel: 'guide-root');
   final GuideScheduler _scheduler = GuideScheduler();
   GuideGeometry? _geometry;
@@ -251,7 +253,7 @@ class _WorkbenchBackgroundGuideSystemState
       if (!mounted || generation != _transitionGeneration) {
         return;
       }
-      setState(() => _opacity = 1);
+      setState(() => _opacity = _visibleOpacity);
     });
   }
 
@@ -295,7 +297,7 @@ class _WorkbenchBackgroundGuideSystemState
       if (!mounted || generation != _transitionGeneration) {
         return;
       }
-      setState(() => _opacity = 1);
+      setState(() => _opacity = _visibleOpacity);
     });
   }
 

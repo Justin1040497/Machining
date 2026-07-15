@@ -13,6 +13,7 @@ class DoodleArrow extends StatefulWidget {
     this.moveDuration = const Duration(milliseconds: 700),
     this.maxLength = 280,
     this.curveBias = Offset.zero,
+    this.targetDirection,
     this.clipRect,
   });
 
@@ -30,6 +31,9 @@ class DoodleArrow extends StatefulWidget {
   /// Offset(0, 24) 表示曲线向下鼓起；
   /// Offset(0, -20) 表示曲线向上鼓起。
   final Offset curveBias;
+
+  /// 箭头进入目标点时的屏幕坐标方向；为空时沿起点到终点方向自然收束。
+  final Offset? targetDirection;
 
   /// 和 Workbench Stack 使用同一坐标系的安全绘制区域。
   final Rect? clipRect;
@@ -87,6 +91,7 @@ class _DoodleArrowState extends State<DoodleArrow>
             color: widget.color,
             maxLength: widget.maxLength,
             curveBias: widget.curveBias,
+            targetDirection: widget.targetDirection,
             clipRect: widget.clipRect,
           ),
           size: Size.infinite,

@@ -1,56 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:framelean/features/workbench/guide/arrow/doodle_arrow.dart';
 import 'package:framelean/features/workbench/guide/content/guide_content_group.dart';
+import 'package:framelean/features/workbench/guide/models/guide_geometry.dart';
 import 'package:framelean/features/workbench/workbench_icons.dart';
 
-class ImportIconGroup extends GuideContentGroup {
-  const ImportIconGroup({super.key, required super.geometry});
+class ImportGuideGroup extends GuideContentGroup {
+  const ImportGuideGroup({super.key, required super.geometry});
 
   @override
-  String get id => 'import-icon';
+  String get id => 'import';
 
   @override
   Widget build(BuildContext context) {
     final viewport = geometry.listViewportRect;
-    final center = Offset(
-      viewport.center.dx,
-      viewport.top + viewport.height * 0.38,
-    );
     final color = Theme.of(
       context,
     ).colorScheme.onSurfaceVariant.withValues(alpha: 0.36);
-    return Positioned(
-      key: const ValueKey('empty-queue-guide-icon'),
-      left: center.dx - 34,
-      top: center.dy - 46,
-      width: 68,
-      height: 68,
-      child: Icon(WorkbenchIcons.fileUpload, size: 54, color: color),
-    );
-  }
-}
-
-class ImportTextGroup extends GuideContentGroup {
-  const ImportTextGroup({super.key, required super.geometry});
-
-  @override
-  String get id => 'import-text';
-
-  @override
-  Widget build(BuildContext context) {
-    final viewport = geometry.listViewportRect;
-    final center = Offset(
-      viewport.center.dx,
-      viewport.top + viewport.height * 0.38,
-    );
-    return Positioned(
-      key: const ValueKey('empty-queue-guide-text'),
-      left: center.dx - 170,
-      top: center.dy + 31,
-      width: 340,
-      child: const GuideText(
-        text: '拖拽或双击背景板来添加任务',
-        textAlign: TextAlign.center,
+    return Positioned.fromRect(
+      rect: viewport,
+      child: Center(
+        child: Column(
+          key: const ValueKey('empty-queue-guide-content'),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              WorkbenchIcons.fileUpload,
+              key: const ValueKey('empty-queue-guide-icon'),
+              size: 54,
+              color: color,
+            ),
+            const SizedBox(height: 18),
+            const GuideText(
+              key: ValueKey('empty-queue-guide-text'),
+              text: '可以直接把文件拖进来\n或者双击背景板\n又或者点击左小角的"+"号来添加媒体任务',
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -71,14 +57,7 @@ class AddButtonArrowGroup extends GuideContentGroup {
       viewport.bottom - 20,
     );
     // 起点位于目标右上方，形成左下区域内的短涂鸦箭头，不再贯穿大半个页面。
-    final start = Offset(
-      (target.dx + 220)
-          .clamp(viewport.left + 96, viewport.right - 72)
-          .toDouble(),
-      (target.dy - 170)
-          .clamp(viewport.top + 96, viewport.bottom - 72)
-          .toDouble(),
-    );
+    final start = _addButtonArrowStart(geometry);
     final arrowClipRect = Rect.fromLTRB(
       viewport.left,
       viewport.top,
@@ -87,7 +66,7 @@ class AddButtonArrowGroup extends GuideContentGroup {
     );
     final color = Theme.of(
       context,
-    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.38);
+    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.42);
     return Positioned.fill(
       child: DoodleArrow(
         key: const ValueKey('add-button-guide-arrow'),
@@ -95,21 +74,20 @@ class AddButtonArrowGroup extends GuideContentGroup {
         targetPoint: target,
         color: color,
         seed: 4207,
-        maxLength: 270,
-        curveBias: const Offset(20, -14),
+        maxLength: 180,
+        curveBias: const Offset(0, -72),
+        targetDirection: const Offset(0, 1),
         clipRect: arrowClipRect,
       ),
     );
   }
 }
 
-class ImportGuideGroup extends CompositeGuideGroup {
-  ImportGuideGroup({super.key, required super.geometry})
-    : super(
-        groupId: 'import',
-        children: [
-          ImportIconGroup(geometry: geometry),
-          ImportTextGroup(geometry: geometry),
-        ],
-      );
+Offset _addButtonArrowStart(GuideGeometry geometry) {
+  final viewport = geometry.listViewportRect;
+  final target = Offset(geometry.addButtonRect.center.dx, viewport.bottom - 20);
+  return Offset(
+    (target.dx + 135).clamp(viewport.left + 96, viewport.right - 72).toDouble(),
+    (target.dy - 72).clamp(viewport.top + 96, viewport.bottom - 72).toDouble(),
+  );
 }
