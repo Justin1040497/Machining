@@ -53,7 +53,7 @@ hotfix/*
 
 - 不在 `main` 上直接提交日常开发改动。
 - 分支名使用小写英文、数字和短横线。
-- 当前工作区有其他未完成改动时，优先使用 `.workspace/worktrees/<task-slug>` 创建独立 worktree。
+- 当前工作区有其他未完成改动时，优先使用 `worktrees/<task-slug>` 创建独立 worktree。
 - 新分支应基于最新远程 `main`；创建或打开分支后检查远程是否有新提交。
 
 如果创建分支时报 `cannot lock ref`，先区分真实 ref 命名冲突和环境 / 沙盒写 `.git` 失败，不要反复更换有效分支名。
@@ -83,7 +83,7 @@ hotfix/*
 Dart / Flutter 改动默认执行：
 
 ```bash
-git ls-files '*.dart' | xargs dart format --set-exit-if-changed
+dart format --output=none --set-exit-if-changed <changed-dart-files>
 flutter analyze
 flutter test
 ```
@@ -106,7 +106,6 @@ flutter test
 - 项目上下文：`CONTEXT.md`
 - 变更摘要：`CHANGELOG.md`
 - 当前任务：`docs/work/active.md`
-- 候选任务：`docs/work/backlog.md`
 - 决策索引：`docs/work/decisions.md`
 - 决策正文：`docs/decisions/YYMMDD-summary.md`
 - 版本事实设计：`docs/releases/vX.Y.Z/*.md`
@@ -118,37 +117,35 @@ flutter test
 
 ## Changelog
 
-提交准备前应更新根目录 `CHANGELOG.md`，记录本次值得回溯的版本级变化。
+正式版本收口时更新根目录 `CHANGELOG.md`，记录用户可感知的版本级变化。日常提交不写逐日 `No Release` 流水。
 
 格式：
 
 ```text
-YYYY-MM-DD｜vX.Y.Z｜Release 或 No Release
-当天更新概要
+YYYY-MM-DD｜vX.Y.Z｜Release
 
 ### Added
 ### Changed
 ### Fixed
-### Verified
 ```
 
-`CHANGELOG.md` 只写摘要，不粘贴完整开发过程。
+只保留有内容的章节，不粘贴验证日志、提交清单或完整开发过程。
 
 ## Worktree
 
 FrameLean 本地 worktree 统一放在：
 
 ```text
-.workspace/worktrees/<task-name>
+worktrees/<task-name>
 ```
 
-`.workspace/` 不进入版本库。常用命令：
+`worktrees/` 不进入版本库。常用命令：
 
 ```bash
 git fetch origin
-git worktree add .workspace/worktrees/example-task -b feature/example-task origin/main
+git worktree add worktrees/example-task -b feature/example-task origin/main
 git worktree list
-git worktree remove .workspace/worktrees/example-task
+git worktree remove worktrees/example-task
 git worktree prune
 ```
 
@@ -173,26 +170,7 @@ git worktree prune
 <type>(scope): 中文摘要
 ```
 
-## 提交详情输出
-
-需求完成、文档同步、远端同步与验证完成后，交付包需要包含：
-
-```markdown
-## 提交详情
-
-推荐提交：
-`<type>(scope): 中文摘要`
-
-提交范围：
-- 文件或模块范围。
-
-提交正文：
-- 需要 / 不需要
-- 原因：为什么需要或不需要。
-
-建议正文：
-仅在需要提交正文时填写；不需要时写 不适用。
-```
+交付时给出推荐提交标题、提交范围，以及是否需要正文和原因；只有复杂变更才提供正文。
 
 ## PR / MR 描述
 
@@ -202,25 +180,20 @@ PR / MR 标题建议沿用：
 <type>(scope): 中文摘要
 ```
 
-description 固定使用：
+普通 PR 使用精简描述，正文长度随评审风险变化，不按固定章节数扩写：
 
 ```markdown
-## 变更概览
+## Summary
 
-## 背景与目标
+- 用一段短文或 2～5 个 bullet 说明改了什么，以及不明显时为什么要改。
+- 需要时附 `Closes #...` 或相关设计文档链接。
 
-## 实现详情
+## Notes
 
-## 验证结果
-
-## 风险与回滚
-
-## 文档与变更记录
-
-## 评审重点
+- 仅写评审者必须知道的迁移、兼容性、风险、截图或特殊决策；没有就删除整个章节。
 ```
 
-不适用的段落保留标题并写 `无` 或 `不适用`。
+PR description 不写 `Verification`，不复制例行测试命令、文件清单、提交摘要、文档清单或通用回滚套话。验证仍是合并门禁，由 CI、检查记录和评审状态承载。普通 PR 正文建议控制在 5～15 行；高风险迁移可以按需增加说明。
 
 ## 发布规则
 
@@ -238,23 +211,21 @@ FrameLean-v1.2.0-windows-x64.zip
 FrameLean-v1.2.0-windows-x64-setup.exe
 ```
 
-Release description 固定使用：
+Release description 只保留用户可感知信息：
 
 ```markdown
 ## 版本摘要
 
 ## 主要变更
 
-## 验证与兼容
+## 重要修复
 
-## 发布产物
+## 兼容性与已知问题
 
-## 已知风险
-
-## 升级与回滚说明
-
-## 关联记录
+## 完整记录
 ```
+
+版本摘要使用一段短文，其余每节通常保留 3～6 个 bullet；空章节直接删除。例行测试日志、内部工作流、文件清单、打包检查表、页面已展示的产物清单和通用回滚说明不进入公开 Release，必要时链接 `CHANGELOG.md`、迁移文档或内部发布记录。
 
 ## 合并要求
 

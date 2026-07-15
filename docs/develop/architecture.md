@@ -602,7 +602,3 @@ test/workbench_preview_notifier_test.dart
 
 - `technology-stack.md`：技术栈、开发环境和主要目录说明。
 - `data-model.md`：当前数据库、任务模型和设置模型。
-
-## 给 AI 的使用说明
-
-处理代码任务时，优先阅读 `CONTEXT.md`、本文档和 `data-model.md`。如果任务涉及当前或候选工作，读 `docs/work/active.md` 和 `docs/work/backlog.md`；如果任务涉及测试、构建或流程，再读 `docs/develop/test-plan.md` 和 `docs/develop/workflow.md`。

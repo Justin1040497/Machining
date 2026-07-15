@@ -2,7 +2,7 @@
 
 ## 版本事实
 
-FrameLean server 后台已迁移到 RuoYi-Vue-Plus 5.X + plus-ui 5.X。`ruoyi-admin` 是后端入口，`ruoyi-modules/ruoyi-framelean` 承载更新业务，`server/admin-web` 承载管理页面。RuoYi 负责账号密码登录、菜单、角色、权限和操作日志；`/api/v1/admin/**` 同时接受 RuoYi / Sa-Token 登录态和脚本用 `X-Api-Key`。
+独立 [FrameLean-Backend](https://github.com/zhouycheng/FrameLean-Backend) 后台使用 RuoYi-Vue-Plus 5.X + plus-ui 5.X。`ruoyi-admin` 是后端入口，`ruoyi-modules/ruoyi-framelean` 承载更新业务，`admin-web` 承载管理页面。RuoYi 负责账号密码登录、菜单、角色、权限和操作日志；`/api/v1/admin/**` 同时接受 RuoYi / Sa-Token 登录态和脚本用 `X-Api-Key`。
 
 旧 React Admin、唯一管理员主密码、challenge 签名登录和 `admin_auth_config` 认证流已经废弃；`admin_auth_config` 仅作为历史表保留。
 
@@ -44,7 +44,7 @@ release 同时存在外部地址和 package 时，客户端仍优先外部地址
 ## 部署与发布步骤
 
 1. 配置 PostgreSQL、Redis、COS、`SA_TOKEN_JWT_SECRET`、`FRAMELEAN_PUBLIC_BASE_URL`、`FRAMELEAN_API_KEY` 和允许的 CORS 域名。当前 Admin 通过 COS 保存版本日志文件，即使不登记 package 也需要可用的日志上传配置。
-2. 构建 `ruoyi-admin` 和 `server/admin-web`，由宝塔或 Nginx 把公网 HTTPS 根域名反代到 API。
+2. 在独立后端仓库构建 `ruoyi-admin` 和 `admin-web`，由宝塔或 Nginx 把公网 HTTPS 根域名反代到 API。
 3. 用 canonical release 脚本生成 DMG、Windows 安装器和可选 ZIP，把用户下载产物发布到 GitHub、Gitee 或备用站点。
 4. 在 Admin 创建 `v1.2.1` draft，保存构建号和版本日志，登记至少一个外部下载页并发布。
 5. 验证 `/api/v1/releases/latest`、版本日志列表、外部下载按钮、更新审计和反代真实 IP。

@@ -32,67 +32,6 @@ flutter test test/ffmpeg_command_builder_test.dart
 flutter test integration_test/app_smoke_test.dart
 ```
 
-## 当前测试文件
-
-```text
-test/
-  app_cache_cleaner_test.dart
-  app_notification_host_test.dart
-  app_notification_manager_test.dart
-  app_settings_page_test.dart
-  app_settings_save_coordinator_test.dart
-  app_settings_test.dart
-  app_settings_use_cases_test.dart
-  architecture_dependencies_test.dart
-  bundled_proprietary_audio_adapter_registry_test.dart
-  compression_advisor_test.dart
-  compression_estimator_test.dart
-  compression_mode_mapper_test.dart
-  drift_app_settings_repository_test.dart
-  drift_app_notification_repository_test.dart
-  drift_media_task_repository_test.dart
-  ffmpeg_command_builder_test.dart
-  ffmpeg_encoder_capabilities_test.dart
-  ffmpeg_process_observer_test.dart
-  ffmpeg_task_queue_runner_test.dart
-  ffprobe_media_analyzer_test.dart
-  file_extension_media_kind_resolver_test.dart
-  framelean_responsive_test.dart
-  generate_preview_frames_use_case_test.dart
-  media_input_preparer_test.dart
-  media_output_format_test.dart
-  media_task_execution_use_cases_test.dart
-  media_task_notifier_test.dart
-  media_task_use_case_helpers_test.dart
-  media_task_policy_tags_test.dart
-  native_ncm_audio_decoder_test.dart
-  notification_center_panel_test.dart
-  output_preflight_service_test.dart
-  preview_frame_generator_test.dart
-  proprietary_audio_decoder_dispatcher_test.dart
-  proprietary_audio_format_resolver_test.dart
-  reorder_media_tasks_use_case_test.dart
-  standard_cli_proprietary_audio_decoder_test.dart
-  task_completion_sound_player_test.dart
-  theme_prefs_reconciler_test.dart
-  video_thumbnail_generator_test.dart
-  widget_test.dart
-  workbench_background_guide_system_test.dart
-  workbench_bottom_bar_test.dart
-  workbench_constants_test.dart
-  workbench_dialog_style_test.dart
-  workbench_external_link_opener_test.dart
-  workbench_file_revealer_test.dart
-  workbench_notice_test.dart
-  workbench_preview_notifier_test.dart
-  workbench_guide_arrow_test.dart
-  workbench_guide_scheduler_test.dart
-  workbench_task_list_guide_integration_test.dart
-
-integration_test/
-  app_smoke_test.dart
-```
-
 ## 自动化测试覆盖范围
 
 ### 应用设置

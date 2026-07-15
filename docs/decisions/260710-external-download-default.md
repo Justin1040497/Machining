@@ -26,8 +26,6 @@
 - `lib/app/providers/app_update_provider.dart`
 - `lib/app/presentation/widgets/update_notice_dialog.dart`
 - `lib/domain/value_objects/app_release_info.dart`
-- `server/ruoyi-modules/ruoyi-framelean/src/main/java/org/dromara/framelean/service/ReleaseService.java`
-- `server/ruoyi-modules/ruoyi-framelean/src/main/java/org/dromara/framelean/service/UpdateService.java`
-- `server/admin-web/src/views/framelean/releases/index.vue`
+- 独立 [FrameLean-Backend](https://github.com/zhouycheng/FrameLean-Backend) 仓库中的更新服务与 Admin Web
 - `scripts/release/build_dmg_macos.sh`
 - `scripts/release/build_windows.ps1`

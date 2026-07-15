@@ -223,6 +223,5 @@ abstract class AppUpdateSnoozeStore {
 
 ## 关联
 
-- `docs/decisions/260623-update-system-review.md` — 更新系统全面审查报告
 - `docs/decisions/260616-self-hosted-update-client-server-flow.md` — 更新客户端入口决策
 - `docs/decisions/260620-managed-update-and-sparkle.md` — 托管更新配置决策

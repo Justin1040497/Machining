@@ -1,73 +1,21 @@
 ---
 name: framelean-feature-plan
-description: "Use for FrameLean feature planning after analysis or requirement discussion. Produces design notes, option comparisons, scope boundaries, implementation tasks, validation boundaries, and branch suggestions. Persist plans to .workspace/plans when useful instead of docs, and use only inside the FrameLean repository."
+description: "Use for FrameLean feature planning after requirement discussion or analysis. Compare meaningful options, define scope and architecture boundaries, break work into implementation tasks, and specify proportionate validation. Persist temporary plans under .workspace/plans when useful. Use only inside the FrameLean repository."
 ---
 
 # FrameLean Feature Plan
 
-Turn an accepted requirement or analysis into a practical implementation plan. This skill replaces the old separate design and task skills.
+Read `.agents/skills/README.md`, the accepted requirement or analysis, and only the related current facts and code patterns.
 
-## Shared Context
+Write a practical Chinese plan adapted to the task. Include:
 
-Read `.agents/skills/README.md` first and follow the shared pre-read protocol. Then read the accepted analysis, relevant docs, and only the source/tests needed to understand current patterns.
+- Recommended outcome and why.
+- In-scope and out-of-scope boundaries.
+- Meaningful alternatives only when a real decision exists.
+- Ordered implementation tasks with likely files or modules.
+- Validation coverage and commands or inspection methods.
+- Material compatibility, migration, platform, or rollback risks.
 
-## Location
+Respect `features -> application -> domain`, with `infrastructure` implementing application abstractions and `app` owning composition, shell, and shared presentation concerns. Do not force a layer into the task when it is not involved.
 
-Default to inline output for small plans. When a plan should be kept while work is in progress, write it to:
-
-```text
-.workspace/plans/YYMMDD-feature-slug.md
-```
-
-Do not write temporary design, task, or test-plan files into `docs/`. Stable facts, decisions, and lessons are handled later by `framelean-delivery`.
-
-## Output Shape
-
-Use Chinese.
-
-```markdown
-# 功能名 — 实施计划
-
-## 1. 结论
-
-## 2. 现状证据
-
-| 事实 | 证据 |
-| --- | --- |
-
-## 3. 方案比较
-
-| 方案 | 好处 | 代价 | 结论 |
-| --- | --- | --- | --- |
-
-## 4. 设计说明
-
-## 5. 执行任务
-
-| 顺序 | 任务 | 主要文件 | 依赖 | 状态 |
-| --- | --- | --- | --- | --- |
-
-## 6. 验证计划
-
-| 验证项 | 命令或方式 | 覆盖行为 |
-| --- | --- | --- |
-
-## 7. 分支建议
-
-| 分支名 | 适用理由 |
-| --- | --- |
-
-## 8. 暂不实现
-
-## 9. 可能需要更新的 docs
-```
-
-## Planning Rules
-
-- Compare meaningful options by product impact, maintainability, testability, platform risk, and migration cost.
-- Respect FrameLean architecture: `features -> application -> domain`, with `infrastructure` implementing application abstractions.
-- Keep `domain` independent from Flutter, Drift, FFmpeg, filesystem, and platform concerns.
-- Order tasks as domain, application, infrastructure, feature/UI, tests, docs when that order applies.
-- Include validation boundaries, but leave command execution to `framelean-validation`.
-- Include 2-4 branch suggestions using `feature/*`, `fix/*`, `chore/*`, `docs/*`, `release/*`, or `hotfix/*`.
-- Do not implement code in this skill.
+Default to inline output. Save a plan that must survive the current conversation to `.workspace/plans/YYMMDD-feature-slug.md`; do not place temporary plans in `docs/`. Suggest a branch only when the user requests one or the workflow needs it. Do not implement code in this Skill.

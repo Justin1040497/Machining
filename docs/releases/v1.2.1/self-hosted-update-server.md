@@ -2,7 +2,7 @@
 
 ## 版本事实
 
-FrameLean server 当前使用 RuoYi-Vue-Plus 5.X + plus-ui 5.X、Java Spring Boot、PostgreSQL、Flyway、MyBatis-Plus、Redis 和腾讯云 COS。`ruoyi-admin` 是入口模块，`ruoyi-modules/ruoyi-framelean` 保存更新业务，`server/admin-web` 提供后台页面。
+FrameLean 更新服务端位于独立 [FrameLean-Backend](https://github.com/zhouycheng/FrameLean-Backend) 仓库，使用 RuoYi-Vue-Plus 5.X + plus-ui 5.X、Java Spring Boot、PostgreSQL、Flyway、MyBatis-Plus、Redis 和腾讯云 COS。`ruoyi-admin` 是入口模块，`ruoyi-modules/ruoyi-framelean` 保存更新业务，`admin-web` 提供后台页面。
 
 当前公开发布以版本日志和外部下载地址为默认。release 可保存 GitHub、Gitee 和备用下载地址；客户端检查更新时优先消费这些地址。原 release package、COS、download ticket 和 Sparkle appcast 能力继续保留，但 package 不再是发布必填项。
 
