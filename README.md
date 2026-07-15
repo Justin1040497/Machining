@@ -10,12 +10,18 @@
   <td><img src="https://www.helloimg.com/i/2026/07/15/6a5777c7e3cfa.png" alt="FrameLean 应用设置" width="100%"></td>
 </tr>
 </table>
+<p>
+  <a href="#下载与安装"><img src="https://img.shields.io/badge/platform-macOS%20Universal%202%20%7C%20Windows%20x64-000000" alt="Platform"></a>
+  <a href="https://flutter.dev/"><img src="https://img.shields.io/badge/built%20with-Flutter-02569B" alt="Flutter"></a>
+  <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808" alt="FFmpeg"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3%2B-C62828" alt="License"></a>
+  <br>
+  <a href="https://github.com/zhouycheng/FrameLean/releases">下载最新版本</a> ·
+  <a href="CHANGELOG.md">查看变更记录</a> ·
+  <a href="https://github.com/zhouycheng/FrameLean/issues">问题反馈</a> ·
+  <a href="docs/README.md">项目文档</a>
+</p>
 
-[![Platform](https://img.shields.io/badge/platform-macOS%20Universal%202%20%7C%20Windows%20x64-000000)](#下载与安装)
-[![Flutter](https://img.shields.io/badge/built%20with-Flutter-02569B)](https://flutter.dev/)
-[![FFmpeg](https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808)](https://ffmpeg.org/)
-[![License](https://img.shields.io/badge/license-GPLv3%2B-C62828)](LICENSE)
-[下载最新版本](https://github.com/zhouycheng/FrameLean/releases) · [查看变更记录](CHANGELOG.md) · [问题反馈](https://github.com/zhouycheng/FrameLean/issues) · [项目文档](docs/README.md)
 
 ## 核心能力
 
