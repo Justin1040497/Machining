@@ -1,4 +1,4 @@
 interface:
   display_name: "FrameLean Release"
-  short_description: "Create concise user-facing release notes"
-  default_prompt: "Use $framelean-release to summarize user-facing changes and produce a concise release document for this version."
+  short_description: "Create component-aware FrameLean release notes"
+  default_prompt: "Use $framelean-release to prepare concise release notes for the specified FrameLean component and version."

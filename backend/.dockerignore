@@ -1,0 +1,12 @@
+.git
+.idea
+.vscode
+target
+**/target
+admin-web/node_modules
+admin-web/dist
+admin-web/.vite
+admin-web/.cache
+*.log
+docker-compose.yml
+.env

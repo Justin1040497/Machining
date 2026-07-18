@@ -4,26 +4,35 @@ The scripts are split by responsibility:
 
 ```text
 scripts/
+  backend/    Package the existing Maven modules.
   build/      Build third-party platform runtimes.
+  fengine/    Check and test the standalone CLI.
+  fll/        Check and test the Rust library workspace.
   release/    Build and package FrameLean release artifacts.
+  verify/     Validate Monorepo structure and path boundaries.
 ```
 
 ## Build Scripts
 
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
-| `build/build_ffmpeg_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned FFmpeg runtime and required codecs for one architecture | `third_party/ffmpeg/macos-{arch}/` |
-| `build/build_ffmpeg_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 runtime slices | `third_party/ffmpeg/macos-universal/` |
-| `build/build_ffmpeg_windows_x64.sh` | Windows x64 (MSYS2) | Build the pinned FFmpeg runtime and required codecs | `third_party/ffmpeg/windows-x64/` |
-| `build/build_qmc_decrypt_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned upstream QMC adapter and copy its license files for one architecture | `third_party/audio_adapters/qmc/macos-{arch}/` |
-| `build/build_qmc_decrypt_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 QMC adapter slices | `third_party/audio_adapters/qmc/macos-universal/` |
-| `build/build_qmc_decrypt_windows.ps1` | Windows x64 | Build the pinned upstream QMC adapter and copy its license files | `third_party/audio_adapters/qmc/windows-x64/` |
+| `build/build_ffmpeg_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned FFmpeg runtime and required codecs for one architecture | `build/dependencies/ffmpeg/macos-{arch}/` |
+| `build/build_ffmpeg_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 runtime slices | `build/dependencies/ffmpeg/macos-universal/` |
+| `build/build_ffmpeg_windows_x64.sh` | Windows x64 (MSYS2) | Build the pinned FFmpeg runtime and required codecs | `build/dependencies/ffmpeg/windows-x64/` |
+| `build/build_qmc_decrypt_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned upstream QMC adapter and copy its license files for one architecture | `build/dependencies/qmc/macos-{arch}/` |
+| `build/build_qmc_decrypt_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 QMC adapter slices | `build/dependencies/qmc/macos-universal/` |
+| `build/build_qmc_decrypt_windows.ps1` | Windows x64 | Build the pinned upstream QMC adapter and copy its license files | `build/dependencies/qmc/windows-x64/` |
 
 These scripts prepare dependencies. They do not package the FrameLean app.
 
+The component build entry points are `backend/build.sh`, `fll/build.sh`, and
+`fengine/build.sh`. `verify/structure.sh` performs read-only repository layout
+checks. Dependency build scripts may fetch their pinned upstream sources when
+explicitly run; they were not executed during the Monorepo migration.
+
 `macos-arm64` and `macos-x64` are architecture-specific build inputs. They are
 not separate user downloads. The release app consumes only
-`third_party/ffmpeg/macos-universal`, and the final public macOS artifact remains
+`build/dependencies/ffmpeg/macos-universal`, and the final public macOS artifact remains
 one Universal 2 DMG. An Apple Silicon Mac cannot create the native Intel FFmpeg
 slice with the local build script; use the `Build macOS Universal` GitHub
 Actions workflow when both native slices are not already available.
@@ -32,10 +41,10 @@ Actions workflow when both native slices are not already available.
 
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
-| `release/build_dmg_macos.sh` | macOS | Build and validate the release app and DMG | `build/macos/Build/Products/Release/FrameLean-v*.dmg` and `FrameLean-v*.dmg.update.json` |
-| `release/generate_dmg_background.py` | macOS | Generate a branded DMG background image (requires Pillow) | `build/macos/dmg_background.png` |
+| `release/build_dmg_macos.sh` | macOS | Build and validate the release app and DMG | `desktop-client/build/macos/Build/Products/Release/FrameLean-v*.dmg` and `FrameLean-v*.dmg.update.json` |
+| `release/generate_dmg_background.py` | macOS | Generate a branded DMG background image (requires Pillow) | `desktop-client/build/macos/dmg_background.png` |
 | `release/dmg_settings.py` | macOS | Custom dmgbuild settings with branded background and Applications symlink | consumed by `build_dmg_macos.sh` via `--settings` |
-| `release/build_windows.ps1` | Windows x64 | Canonical Windows publishing entry point. Builds the release directory once, compiles the updater helper, bundles and validates all runtimes, then creates both the portable zip and Inno Setup installer by default | `build/windows/x64/runner/FrameLean-v*-windows-x64.zip` and `build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe` |
+| `release/build_windows.ps1` | Windows x64 | Canonical Windows publishing entry point. Builds the release directory once, compiles the updater helper, bundles and validates all runtimes, then creates both the portable zip and Inno Setup installer by default | `desktop-client/build/windows/x64/runner/FrameLean-v*-windows-x64.zip` and `desktop-client/build/windows/x64/installer/FrameLean-v*-windows-x64-setup.exe` |
 
 Use `build_windows.ps1` for a normal Windows release:
 
@@ -78,11 +87,12 @@ macOS DMG 构建依赖 Python 3 和 `dmgbuild`（`pip install dmgbuild`）。自
 
 ## Signing Tool
 
-`tool/sign_windows_update.dart` generates the Windows `*.update.json`
+`tools/sign_windows_update.dart` generates the Windows `*.update.json`
 metadata for a built installer. It requires:
 
 ```bash
-dart run tool/sign_windows_update.dart \
+cd desktop-client
+dart run ../tools/sign_windows_update.dart \
   --input <setup.exe>          \
   --private-key <32-byte-seed> \
   --key-id <key-id>            \

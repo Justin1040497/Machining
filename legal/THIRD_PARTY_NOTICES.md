@@ -14,7 +14,16 @@ GNU General Public License v3.0 or later
 SPDX-License-Identifier: GPL-3.0-or-later
 ```
 
-See the root LICENSE file and legal/COPYING in this repository.
+See the root LICENSE file. `legal/COPYING` is a distribution pointer and does
+not replace or duplicate the canonical license text.
+
+## Upstream Component Licenses
+
+The migrated Backend retains upstream component licenses as third-party
+license records rather than FrameLean's main project license:
+
+- `backend/LICENSE`: RuoYi-Vue-Plus upstream component license.
+- `backend/admin-web/LICENSE`: upstream admin-web component license.
 
 ## Media Runtime
 
@@ -102,7 +111,7 @@ preserve the license notices shipped by the Flutter SDK and Dart packages.
 ## Direct Dart Package Dependencies
 
 The project currently declares these direct runtime dependencies in
-`pubspec.yaml`:
+`desktop-client/pubspec.yaml`:
 
 | Package | License observed in local package cache | Role |
 | --- | --- | --- |
@@ -128,7 +137,7 @@ The project currently declares these direct development dependencies:
 | `dmg` | MIT | macOS DMG packaging helper |
 
 Before each public binary release, regenerate or review the dependency license
-inventory from `pubspec.lock` and the package cache, because transitive
+inventory from `desktop-client/pubspec.lock` and the package cache, because transitive
 dependencies may change when packages are upgraded.
 
 ## Assets

@@ -31,7 +31,7 @@ Require-Command "cargo"
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
 $BuildDir = Join-Path $Root "build\qmc-decrypt-windows-x64"
 $SourceDir = Join-Path $BuildDir "qmc-decrypt"
-$OutDir = Join-Path $Root "third_party\audio_adapters\qmc\windows-x64"
+$OutDir = Join-Path $Root "build\dependencies\qmc\windows-x64"
 
 if (Test-Path -LiteralPath $BuildDir) {
   Remove-Item -LiteralPath $BuildDir -Recurse -Force
