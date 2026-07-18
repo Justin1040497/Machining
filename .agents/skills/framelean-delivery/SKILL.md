@@ -1,6 +1,6 @@
 ---
 name: framelean-delivery
-description: "Use for FrameLean delivery closeout after implementation or validation. Calibrates current project facts, updates necessary documentation, and returns Markdown commit information plus a concise reviewer-facing PR description. Use only inside the FrameLean repository."
+description: "Use for FrameLean delivery closeout after implementation or validation. Checks branch suitability, calibrates current project facts, updates necessary documentation, and returns Markdown commit information plus a concise reviewer-facing PR description. Use only inside the FrameLean repository."
 ---
 
 # FrameLean Delivery
@@ -11,13 +11,27 @@ Prepare a change for handoff by making project facts current and producing commi
 
 Read `.agents/skills/README.md` first and follow the shared pre-read protocol. Always inspect Git status, current branch, changed files, and relevant diffs.
 
+## Branch Suitability
+
+Compare the current branch with the actual change before preparing delivery copy. Treat a detached HEAD, `main`, and every `release/*` branch as unsuitable for normal change delivery. A branch is suitable only when its purpose matches the change and it follows the project workflow: `feature/*`, `fix/*`, `chore/*`, `docs/*`, or `hotfix/*`, using lowercase English letters, digits, and hyphens after the slash.
+
+Choose the prefix from the dominant change intent:
+
+- `feature/*` for new product behavior.
+- `fix/*` for non-emergency defect correction.
+- `chore/*` for repository governance, migrations, Skills, CI/build maintenance, dependency maintenance, tests, or refactoring without new product behavior.
+- `docs/*` for documentation-only work.
+- `hotfix/*` only for an urgent production repair.
+
+Never suggest `codex/*`, `main`, or `release/*`. If the current branch is unsuitable or its slug does not represent the change, return exactly one concise branch recommendation and explain why; do not create or switch branches. If it is suitable, do not suggest an alternative and state that the current branch matches the change and can be used directly for the commit.
+
 ## Documentation Calibration
 
-Identify which facts the changed files can affect, then inspect only those current-fact documents. Typical targets are `CONTEXT.md`, `CHANGELOG.md`, the relevant `docs/work/`, `docs/releases/`, `docs/decisions/`, `docs/develop/`, `docs/reference/`, or `.agents/skills/` entries. Use `rg` for stale names and paths instead of opening the entire documentation tree.
+Identify which facts the changed files can affect, then inspect only those current-fact documents. Typical targets are root `CONTEXT.md` / `context/` for cross-component facts, the target component README / CONTEXT, `changelog/<component>.md`, `docs/releases/<component>/`, or `.agents/skills/` entries. Desktop-specific decisions, current work, and lessons remain under `desktop-client/docs/`; cross-component decisions use root `docs/decisions/`. Use `rg` for stale names and paths instead of opening the entire documentation tree.
 
 ## Packaging Freshness Check
 
-Run a packaging and update-config freshness check only when the change affects release, CI, installer, update, signing, notarization, packaging, or related workflow facts.
+Run a Desktop Client packaging and update-config freshness check only when the change affects Desktop release, CI, installer, update, signing, notarization, packaging, or related workflow facts. Do not apply this gate to an unrelated Backend, FLL, or FEngine delivery.
 
 Inspect the current source of truth instead of trusting existing docs:
 
@@ -25,10 +39,10 @@ Inspect the current source of truth instead of trusting existing docs:
 .github/workflows/*.yml
 scripts/README.md
 scripts/release/*
-macos/Runner/Info.plist
-macos/Runner/Configs/*.xcconfig
+desktop-client/macos/Runner/Info.plist
+desktop-client/macos/Runner/Configs/*.xcconfig
 installer/windows/*
-tool/sign_windows_update.dart
+tools/sign_windows_update.dart
 ```
 
 Use targeted `rg` searches for update/signing variables such as `FRAMELEAN_UPDATE`, `FRAMELEAN_SPARKLE`, `SUPublicEDKey`, `SUFeedURL`, `FRAMELEAN_RELEASE`, `notarization`, `sign_update`, and artifact paths.
@@ -45,19 +59,28 @@ If the check finds drift, update the stale script, workflow, YAML, or docs befor
 
 ## Update Rules
 
-- Update `CHANGELOG.md` when the change is worth version-level recall.
-- Update `docs/releases/` when a stable shipped design or workflow fact changed.
-- Update `docs/decisions/` and `docs/work/decisions.md` when an important durable decision was made.
-- Update `docs/lessons.md` when the work produced a reusable lesson.
-- Update `docs/work/active.md` when current task status changed.
+- Update `changelog/<component>.md` only for development process, architecture adjustments, and technical changes.
+- Update `docs/releases/<component>/` only for versioned, dated, user-visible release facts or an existing next-version user-visible draft.
+- Update root `docs/decisions/` for cross-component decisions; update `desktop-client/docs/decisions/` and `desktop-client/docs/work/decisions.md` for Desktop-only decisions.
+- Update `desktop-client/docs/lessons.md` only for reusable Desktop Client lessons; do not invent equivalent files for other components.
+- Keep temporary task status under the ignored root `.workspace/`.
 - Update `AGENTS.md`, `CLAUDE.md`, `README.md`, or `.agents/skills/` when agent workflow or developer workflow changed.
 - Do not create `docs/archive/`, `docs/features/`, `docs/plans/`, daily logs, or one-bug-one-file notes.
+- Before handoff, scan uploadable changed files for prohibited external reference-project or competitor terms and keep any research only in ignored `.workspace/`.
 
 ## Delivery Copy
 
-Always return both sections in Markdown:
+Return the branch result first, then always return both delivery sections in Markdown:
 
 ````markdown
+## 分支建议
+
+当前分支 `release/v1.2.1` 不适合本次工程治理改动，建议使用：
+
+```text
+chore/monorepo-normalization
+```
+
 ## Commit 信息
 
 ```text
@@ -86,6 +109,8 @@ type(scope): 中文摘要
 - 仅保留评审者必须知道的迁移、兼容性、风险、截图或特殊决策；没有就删除整个章节。
 ```
 ````
+
+The branch block above demonstrates the unsuitable case. For a suitable branch, replace it with a short `## 分支` confirmation that names the current branch and says it can be used directly for the commit; omit any alternative branch name.
 
 Keep ordinary PR bodies around 5～15 lines. Scale detail with review risk, not diff size or a fixed section count. Do not include a `Verification` section, routine test commands, file lists, commit summaries, documentation inventories, empty headings, or generic rollback boilerplate. Link to issues, decisions, changelogs, or CI instead of copying their content.
 

@@ -1,9 +1,9 @@
 # Legal Materials
 
-This directory is the canonical home for FrameLean's release legal materials.
-The repository root keeps LICENSE as the standard project license discovery
-entry point. The short distribution notice lives in legal/NOTICE.md, and
-release packages include both files together with this directory.
+This directory contains third-party and release-compliance materials. The
+repository root `LICENSE` is the only canonical FrameLean main license file.
+The short distribution notice lives in `legal/NOTICE.md`, and release packages
+include the root license together with this directory.
 
 ## Package Layout
 

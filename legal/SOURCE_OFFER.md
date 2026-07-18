@@ -10,7 +10,8 @@ The corresponding source for FrameLean includes:
 - FrameLean application source code.
 - Build scripts and packaging metadata in this repository.
 - FFmpeg runtime build scripts and metadata in `scripts/build/` and
-  `third_party/ffmpeg/`.
+  `dependencies/ffmpeg/`; generated local runtimes are placed under the
+  ignored `build/dependencies/ffmpeg/` directory.
 - Documentation needed to rebuild or replace the bundled FFmpeg / FFprobe
   runtime.
 

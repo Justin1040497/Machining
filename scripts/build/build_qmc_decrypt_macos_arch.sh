@@ -20,7 +20,7 @@ esac
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 BUILD_DIR="${ROOT}/build/qmc-decrypt-macos-${ARCH_LABEL}"
-OUT_DIR="${ROOT}/third_party/audio_adapters/qmc/macos-${ARCH_LABEL}"
+OUT_DIR="${ROOT}/build/dependencies/qmc/macos-${ARCH_LABEL}"
 REPO_URL="https://github.com/bczhc/qmc-decrypt.git"
 REPO_COMMIT="12d758a6a08635b4ab85b6dca05025fdbcc26520"
 
