@@ -1,11 +1,11 @@
 ---
 name: framelean-user-changelog
-description: "Use to generate friendly, app-facing FrameLean Desktop Client version logs in Markdown and save them to the current user's Downloads directory. Trigger when the user asks for the app version log, update log, changelog, what's new copy, or content for the software's full release-notes page. Default to the Desktop Client version in desktop-client/pubspec.yaml when no version is specified. Use framelean-release for formal component release documents and readiness."
+description: "Use to generate friendly, app-facing FrameLean version logs in Markdown and save them to the current user's Downloads directory. Trigger when the user asks for a version log, update log, changelog, what's new copy, or content for the software's full release-notes page. Default to the current version in pubspec.yaml when no version is specified. Use framelean-release instead for formal release documents and packaging readiness."
 ---
 
 # FrameLean User Changelog
 
-Create concise Markdown that tells Desktop Client users what changed and why it matters. Keep formal release documentation and packaging checks in `framelean-release`; use that Skill instead for Backend, FLL, or FEngine release documents.
+Create concise Markdown that tells software users what changed and why it matters. Keep formal release documentation and packaging checks in `framelean-release`.
 
 ## Shared Context
 
@@ -14,14 +14,14 @@ Read `.agents/skills/README.md` first and follow its shared pre-read protocol.
 ## Choose the Version
 
 - Use an explicitly requested version and normalize it to `vX.Y.Z`.
-- Otherwise, read `version:` from `desktop-client/pubspec.yaml`, remove the `+build` suffix, and use that semantic version. Do not ask for a version merely because the user omitted it.
+- Otherwise, read `version:` from `pubspec.yaml`, remove the `+build` suffix, and use that semantic version. Do not ask for a version merely because the user omitted it.
 - Omit the build number from the public title unless distinguishing builds is necessary and supported by project facts.
 
 ## Gather Evidence
 
-1. Read the matching `docs/releases/desktop-client/vX.Y.Z/` files. Do not use development records from `changelog/desktop-client.md` as user-visible release notes.
-2. Inspect Desktop Client release tags matching `vX.Y.Z` and choose the highest semantic version lower than the target as the previous release. If the target tag exists, compare that previous tag through the target tag. If it does not exist, compare the previous tag through `HEAD` while excluding unrelated uncommitted Monorepo work.
-3. Use targeted Git history, `desktop-client/docs/decisions/`, `desktop-client/docs/lessons.md`, implementation, and tests only when the version documents do not establish the user-visible facts.
+1. Read `CHANGELOG.md` and the matching `docs/releases/vX.Y.Z/` files when they exist.
+2. Inspect product release tags matching `vX.Y.Z` and choose the highest semantic version lower than the target as the previous release. If the target tag exists, compare that previous tag through the target tag. If it does not exist, compare the previous tag through `HEAD`.
+3. Use targeted Git history, decisions, lessons, active work, implementation, and tests only when the version documents do not establish the user-visible facts.
 4. Include only changes shipped in the target version. Do not mix in later work, uncommitted changes, speculative plans, or claims inferred from a commit title alone.
 
 If evidence conflicts, prefer verified implementation and Git scope, then note the uncertainty outside the user-facing Markdown. Do not turn packaging readiness into a prerequisite for drafting this log.
@@ -36,7 +36,6 @@ If evidence conflicts, prefer verified implementation and Git scope, then note t
 - Exclude class names, database schema numbers, architecture refactors, test details, CI changes, commit ids, file paths, and internal process notes.
 - Include compatibility or upgrade information only when users need to act on it.
 - Avoid unsupported superlatives, vague claims such as “全面优化”, and repetitive “新增 / 修复” wording.
-- Do not mention external reference projects or competitors; express comparisons as FrameLean user outcomes.
 
 ## Output Shape
 

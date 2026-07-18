@@ -1,38 +1,73 @@
-# 1. Operating system files
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
 .DS_Store
-Thumbs.db
-Desktop.ini
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+/tmp/
+.reference/
+/.workspace/
+/design/
+/desgin/
+/outputs/
 
-# 2. IDE and editor files
-/.idea/
-/desktop-client/.idea/
-/backend/**/.idea/
-/fll/.idea/
-/fengine/.idea/
-/.vscode/settings.json
-/desktop-client/.vscode/settings.json
-/backend/**/.vscode/settings.json
-/fll/.vscode/settings.json
-/fengine/.vscode/settings.json
-/.history/
+# IntelliJ related
 *.iml
 *.ipr
 *.iws
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-*.swp
-*~
-**/xcuserdata/
-**/dgph
+.idea/
 
-# 3. Root local workspace and local configuration
-/.workspace/
-/worktrees/
-/.codegraph/
-/.reasonix/
-/.reference/
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+.vscode/settings.json
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# FFmpeg & FFprobe
+third_party/ffmpeg/macos-arm64/ffmpeg
+third_party/ffmpeg/macos-arm64/ffprobe
+third_party/ffmpeg/macos-x64/ffmpeg
+third_party/ffmpeg/macos-x64/ffprobe
+third_party/ffmpeg/macos-universal/ffmpeg
+third_party/ffmpeg/macos-universal/ffprobe
+third_party/ffmpeg/windows-x64/ffmpeg.exe
+third_party/ffmpeg/windows-x64/ffprobe.exe
+
+# QMC adapter build outputs
+third_party/audio_adapters/qmc/macos-arm64/qmc-decrypt
+third_party/audio_adapters/qmc/macos-x64/qmc-decrypt
+third_party/audio_adapters/qmc/macos-universal/qmc-decrypt
+
+# Local agent runtime data. Shared agent instructions under .agents/skills/
+# are committed, but local caches and logs are not.
 /.agents/cache/
 /.agents/logs/
 /.agents/tmp/
@@ -44,94 +79,13 @@ Desktop.ini
 /.claude/settings.local.json
 /.claude/tmp/
 
-# 4. Secrets, signing material, and environment variables
-.env
-.env.*
-!.env.example
-!.env.template
-*.key
-*.pem
-*.p12
-*.pfx
-*.keystore
-*.jks
-*.mobileprovision
+# Server (separate repo: FrameLean-Backend)
+/server/
 
-# 5. Flutter and Dart generated content
-/desktop-client/.dart_tool/
-/desktop-client/.flutter-plugins-dependencies
-/desktop-client/.pub-cache/
-/desktop-client/.pub/
-/desktop-client/build/
-/desktop-client/coverage/
-/desktop-client/doc/api/
-/desktop-client/**/Flutter/.last_build_id
-/desktop-client/app.*.symbols
-/desktop-client/app.*.map.json
+# AI agent runtime data
+/.codegraph/
+/.reasonix/
 
-# 6. macOS and Windows generated content
-/desktop-client/macos/Pods/
-/desktop-client/macos/.symlinks/
-/desktop-client/macos/Flutter/ephemeral/
-/desktop-client/windows/flutter/ephemeral/
-/desktop-client/windows/x64/
-/desktop-client/windows/x86/
-/desktop-client/windows/**/*.cache
-!/desktop-client/windows/**/*.cache/
-
-# 7. Rust and Cargo generated content
-/fll/target/
-/fengine/target/
-
-# 8. Java and Maven generated content
-/backend/.gradle/
-/backend/**/target/
-/backend/.flattened-pom.xml
-/backend/**/.flattened-pom.xml
-/backend/**/.apt_generated/
-/backend/**/.settings/
-/backend/**/.factorypath
-/backend/**/.classpath
-/backend/**/.project
-/backend/**/.springBeans
-/backend/**/rebel.xml
-/backend/**/nbproject/private/
-/backend/**/nbbuild/
-/backend/**/nbdist/
-/backend/**/.nb-gradle/
-/backend/**/*.xml.versionsBackup
-
-# 9. Node and Vue generated content
-/backend/admin-web/node_modules/
-/backend/admin-web/dist/
-/backend/admin-web/npm-debug.log*
-/backend/admin-web/yarn-debug.log*
-/backend/admin-web/yarn-error.log*
-/backend/admin-web/auto-imports.d.ts
-/backend/admin-web/components.d.ts
-
-# 10. Root build outputs and generated third-party binaries
-/build/
-
-# 11. Installer outputs
-/installer/**/*.exe
-/installer/**/*.msi
-/installer/**/*.dmg
-/installer/**/*.zip
-
-# 12. Test coverage, temporary files, and generated reports
-/backend/admin-web/tests/**/coverage/
-/backend/admin-web/tests/e2e/reports/
-/backend/admin-web/selenium-debug.log
-*.log
-*.log.gz
-*.pyc
-*.tmp
-*.temp
-*.bak
-*.orig
-/.buildlog/
-/tmp/
-/migrate_working_dir/
-/outputs/
-/.folderslice.assetmeta/
+# git
+/worktrees/
+.folderslice.assetmeta/

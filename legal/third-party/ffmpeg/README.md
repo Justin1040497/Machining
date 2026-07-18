@@ -17,8 +17,7 @@ scripts/build/build_ffmpeg_macos_universal.sh
 ```
 
 The macOS runtime build metadata is mirrored in ffmpeg-build-info.txt and kept
-beside the tracked source and build inputs in `dependencies/ffmpeg/`.
-Distributed macOS builds use the generated Universal 2 runtime in
-`build/dependencies/ffmpeg/macos-universal/`.
+beside the runtime placeholders in third_party/ffmpeg/. Distributed macOS
+builds use the Universal 2 runtime in third_party/ffmpeg/macos-universal/.
 
 Distributed builds must not enable FFmpeg's `--enable-nonfree` option.

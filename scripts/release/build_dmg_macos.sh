@@ -4,18 +4,17 @@ export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-CLIENT_ROOT="${ROOT}/desktop-client"
-RELEASE_DIR="${CLIENT_ROOT}/build/macos/Build/Products/Release"
+RELEASE_DIR="${ROOT}/build/macos/Build/Products/Release"
 APP_PATH="${RELEASE_DIR}/FrameLean.app"
 DMG_SOURCE_PATH="${RELEASE_DIR}/FrameLean.dmg"
-FFMPEG_DIR="${ROOT}/build/dependencies/ffmpeg/macos-universal"
-FFMPEG_ARM64_DIR="${ROOT}/build/dependencies/ffmpeg/macos-arm64"
-FFMPEG_X64_DIR="${ROOT}/build/dependencies/ffmpeg/macos-x64"
-QMC_ADAPTER_DIR="${ROOT}/build/dependencies/qmc/macos-universal"
-QMC_ARM64_DIR="${ROOT}/build/dependencies/qmc/macos-arm64"
-QMC_X64_DIR="${ROOT}/build/dependencies/qmc/macos-x64"
+FFMPEG_DIR="${ROOT}/third_party/ffmpeg/macos-universal"
+FFMPEG_ARM64_DIR="${ROOT}/third_party/ffmpeg/macos-arm64"
+FFMPEG_X64_DIR="${ROOT}/third_party/ffmpeg/macos-x64"
+QMC_ADAPTER_DIR="${ROOT}/third_party/audio_adapters/qmc/macos-universal"
+QMC_ARM64_DIR="${ROOT}/third_party/audio_adapters/qmc/macos-arm64"
+QMC_X64_DIR="${ROOT}/third_party/audio_adapters/qmc/macos-x64"
 LEGAL_DIR="${ROOT}/legal"
-PUBSPEC_PATH="${CLIENT_ROOT}/pubspec.yaml"
+PUBSPEC_PATH="${ROOT}/pubspec.yaml"
 VERIFY_SCRIPT="${ROOT}/scripts/release/verify_macos_universal.sh"
 MERGE_FFMPEG_SCRIPT="${ROOT}/scripts/build/build_ffmpeg_macos_universal.sh"
 MERGE_QMC_SCRIPT="${ROOT}/scripts/build/build_qmc_decrypt_macos_universal.sh"
@@ -105,8 +104,8 @@ resolve_sparkle_sign_update() {
   fi
 
   local candidates=(
-    "$CLIENT_ROOT/macos/Pods/Sparkle/bin/sign_update"
-    "$CLIENT_ROOT/macos/Pods/Sparkle/Sparkle/bin/sign_update"
+    "$ROOT/macos/Pods/Sparkle/bin/sign_update"
+    "$ROOT/macos/Pods/Sparkle/Sparkle/bin/sign_update"
   )
   for candidate in "${candidates[@]}"; do
     if [[ -x "$candidate" ]]; then
@@ -219,8 +218,8 @@ assert_macos_cocoapods_project() {
   local missing_ref_files=()
 
   for path in \
-    "$CLIENT_ROOT/macos/Podfile" \
-    "$CLIENT_ROOT/macos/Podfile.lock"; do
+    "$ROOT/macos/Podfile" \
+    "$ROOT/macos/Podfile.lock"; do
     if [[ ! -f "$path" ]]; then
       missing_files+=("${path#$ROOT/}")
     fi
@@ -234,10 +233,10 @@ assert_macos_cocoapods_project() {
   fi
 
   for path in \
-    "$CLIENT_ROOT/macos/Flutter/Flutter-Debug.xcconfig" \
-    "$CLIENT_ROOT/macos/Flutter/Flutter-Release.xcconfig" \
-    "$CLIENT_ROOT/macos/Runner.xcodeproj/project.pbxproj" \
-    "$CLIENT_ROOT/macos/Runner.xcworkspace/contents.xcworkspacedata"; do
+    "$ROOT/macos/Flutter/Flutter-Debug.xcconfig" \
+    "$ROOT/macos/Flutter/Flutter-Release.xcconfig" \
+    "$ROOT/macos/Runner.xcodeproj/project.pbxproj" \
+    "$ROOT/macos/Runner.xcworkspace/contents.xcworkspacedata"; do
     if [[ ! -f "$path" ]] || ! grep -E 'Pods-Runner|Pods_Runner|\[CP\]|Pods/Pods\.xcodeproj' "$path" >/dev/null; then
       missing_ref_files+=("${path#$ROOT/}")
     fi
@@ -385,10 +384,10 @@ if [[ "$qmc_adapter_available" == false ]]; then
 fi
 
 echo "Building Universal 2 macOS app..."
-cd "$CLIENT_ROOT"
-rm -rf "${CLIENT_ROOT}/build/macos"
+cd "$ROOT"
+rm -rf "${ROOT}/build/macos"
 assert_macos_cocoapods_project
-dart run "${ROOT}/tools/generate_build_info.dart"
+dart run "${ROOT}/tool/generate_build_info.dart"
 flutter build macos \
   --release \
   --obfuscate \
@@ -438,7 +437,7 @@ if [[ "$#" -eq 0 ]]; then
 fi
 
 # Generate custom DMG background image
-BG_PATH="${CLIENT_ROOT}/build/macos/dmg_background.png"
+BG_PATH="${ROOT}/build/macos/dmg_background.png"
 echo "Generating DMG background..."
 python3 "$ROOT/scripts/release/generate_dmg_background.py" "$BG_PATH" || {
   echo "warning: Failed to generate DMG background, falling back to builtin-arrow" >&2

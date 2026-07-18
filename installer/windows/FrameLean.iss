@@ -3,10 +3,10 @@
 #define AppVersion "0.0.0"
 #endif
 #ifndef SourceDir
-#define SourceDir "..\..\desktop-client\build\windows\x64\runner\Release"
+#define SourceDir "..\..\build\windows\x64\runner\Release"
 #endif
 #ifndef OutputDir
-#define OutputDir "..\..\desktop-client\build\windows\x64\installer"
+#define OutputDir "..\..\build\windows\x64\installer"
 #endif
 
 [Setup]

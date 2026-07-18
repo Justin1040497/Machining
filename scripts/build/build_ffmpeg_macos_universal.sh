@@ -3,9 +3,9 @@ set -euo pipefail
 export LC_ALL=C
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ARM64_DIR="${ARM64_DIR:-${ROOT}/build/dependencies/ffmpeg/macos-arm64}"
-X64_DIR="${X64_DIR:-${ROOT}/build/dependencies/ffmpeg/macos-x64}"
-OUT_DIR="${OUT_DIR:-${ROOT}/build/dependencies/ffmpeg/macos-universal}"
+ARM64_DIR="${ARM64_DIR:-${ROOT}/third_party/ffmpeg/macos-arm64}"
+X64_DIR="${X64_DIR:-${ROOT}/third_party/ffmpeg/macos-x64}"
+OUT_DIR="${OUT_DIR:-${ROOT}/third_party/ffmpeg/macos-universal}"
 VERIFY_SCRIPT="${ROOT}/scripts/release/verify_macos_universal.sh"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then

@@ -18,12 +18,4 @@ Write a practical Chinese plan adapted to the task. Include:
 
 Respect `features -> application -> domain`, with `infrastructure` implementing application abstractions and `app` owning composition, shell, and shared presentation concerns. Do not force a layer into the task when it is not involved.
 
-Apply component-specific boundaries instead of treating the Monorepo as one runtime:
-
-- Desktop Client follows its Flutter clean-architecture and local product-state boundaries.
-- Backend preserves the Maven modules declared by `backend/pom.xml`; target `admin-web` separately when the change is Vue-only.
-- FLL owns core in-process processing and Runtime Schema; FEngine owns the independent process-host boundary and currently provides only CLI Bootstrap.
-- `protocol/v1` remains responsibility documentation until a separate accepted design defines real fields or transport.
-- Third-party source inputs stay in `dependencies/`; generated binaries stay in ignored `build/dependencies/`.
-
-Default to inline output. Save a plan that must survive the current conversation to `.workspace/plans/YYMMDD-feature-slug.md`; do not place temporary plans in `docs/`. Keep external comparison research in `.workspace/` and use only FrameLean terminology in planned tracked files. Suggest a branch only when the user requests one or the workflow needs it. Do not implement code in this Skill.
+Default to inline output. Save a plan that must survive the current conversation to `.workspace/plans/YYMMDD-feature-slug.md`; do not place temporary plans in `docs/`. Suggest a branch only when the user requests one or the workflow needs it. Do not implement code in this Skill.

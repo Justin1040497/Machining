@@ -6,7 +6,7 @@ import os.path
 import plistlib
 
 # --- Resolved at build time ---
-# dmgbuild is invoked from desktop-client, so relative paths resolve there.
+# dmgbuild is invoked from the project root, so relative paths resolve there.
 application = defines.get("app", "")
 appname = os.path.basename(application)
 
