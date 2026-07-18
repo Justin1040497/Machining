@@ -389,16 +389,17 @@ if ($env:OS -ne "Windows_NT") {
 }
 
 $Root = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-$ReleaseDir = Join-Path $Root "build\windows\x64\runner\Release"
-$ZipDir = Join-Path $Root "build\windows\x64\runner"
-$InstallerDir = Join-Path $Root "build\windows\x64\installer"
-$FfmpegDir = Join-Path $Root "third_party\ffmpeg\windows-x64"
-$QmcAdapterDir = Join-Path $Root "third_party\audio_adapters\qmc\windows-x64"
+$ClientRoot = Join-Path $Root "desktop-client"
+$ReleaseDir = Join-Path $ClientRoot "build\windows\x64\runner\Release"
+$ZipDir = Join-Path $ClientRoot "build\windows\x64\runner"
+$InstallerDir = Join-Path $ClientRoot "build\windows\x64\installer"
+$FfmpegDir = Join-Path $Root "build\dependencies\ffmpeg\windows-x64"
+$QmcAdapterDir = Join-Path $Root "build\dependencies\qmc\windows-x64"
 $LegalDir = Join-Path $Root "legal"
-$PubspecPath = Join-Path $Root "pubspec.yaml"
+$PubspecPath = Join-Path $ClientRoot "pubspec.yaml"
 $IssPath = Join-Path $Root "installer\windows\FrameLean.iss"
-$UpdaterHelperSourcePath = Join-Path $Root "tool\windows_updater_helper.dart"
-$UpdateSignerPath = Join-Path $Root "tool\sign_windows_update.dart"
+$UpdaterHelperSourcePath = Join-Path $Root "tools\windows_updater_helper.dart"
+$UpdateSignerPath = Join-Path $Root "tools\sign_windows_update.dart"
 $ReleaseToolsDir = Join-Path $ReleaseDir "tools"
 $QmcAdapterNames = @(
   "framelean-qmc-adapter.exe",
@@ -453,7 +454,7 @@ $PackageName = "FrameLean-v$Version-windows-x64"
 $ZipPath = Join-Path $ZipDir "$PackageName.zip"
 $SetupPath = Join-Path $InstallerDir "$PackageName-setup.exe"
 
-Push-Location $Root
+Push-Location $ClientRoot
 try {
   if (-not $SkipPubGet) {
     Write-Host "Resolving Flutter dependencies..."
@@ -478,7 +479,7 @@ try {
   )
 
   Write-Host "Generating build info from pubspec.yaml..."
-  Invoke-Checked "dart" @("run", (Join-Path $Root "tool\generate_build_info.dart"))
+  Invoke-Checked "dart" @("run", (Join-Path $Root "tools\generate_build_info.dart"))
 
   Write-Host "Building Windows release with: flutter $($BuildArgs -join ' ')"
   Invoke-Checked "flutter" $BuildArgs

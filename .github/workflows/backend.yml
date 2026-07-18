@@ -1,0 +1,43 @@
+name: Backend
+
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: backend/admin-web/package-lock.json
+      - name: Package Maven modules
+        run: mvn -B -DskipTests package
+        working-directory: backend
+      - name: Install admin-web dependencies
+        run: npm ci
+        working-directory: backend/admin-web
+      - name: Build admin-web
+        run: npm run build:prod
+        working-directory: backend/admin-web
+      - name: Validate Docker Compose configuration
+        run: docker compose config --quiet
+        working-directory: backend

@@ -1,0 +1,33 @@
+name: FEngine
+
+on:
+  push:
+    paths:
+      - "fengine/**"
+      - "fll/**"
+      - ".github/workflows/fengine.yml"
+  pull_request:
+    paths:
+      - "fengine/**"
+      - "fll/**"
+      - ".github/workflows/fengine.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fengine
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: fengine
+      - run: cargo check --all-targets --locked
+      - run: cargo test --locked
+      - run: cargo run --locked -- --version

@@ -1,0 +1,211 @@
+# FrameLean backend on RuoYi-Vue-Plus
+server:
+  port: ${APP_PORT:4918}
+  servlet:
+    context-path: /
+  undertow:
+    max-http-post-size: 1GB
+    buffer-size: 512
+    direct-buffers: true
+    threads:
+      io: 8
+      worker: 256
+
+captcha:
+  enable: true
+  type: math
+  numberLength: 1
+  charLength: 4
+
+logging:
+  level:
+    org.dromara: @logging.level@
+    org.springframework: warn
+    org.mybatis.spring.mapper: error
+    org.apache.fury: warn
+  config: classpath:logback-plus.xml
+
+user:
+  password:
+    maxRetryCount: 5
+    lockTime: 10
+
+spring:
+  application:
+    name: FrameLean Backend
+  threads:
+    virtual:
+      enabled: false
+  task:
+    execution:
+      thread-name-prefix: async-
+      mode: force
+  messages:
+    basename: i18n/messages
+  profiles:
+    active: @profiles.active@
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+  mvc:
+    static-path-pattern: /**
+    format:
+      date-time: yyyy-MM-dd HH:mm:ss
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      indent_output: false
+      fail_on_empty_beans: false
+    deserialization:
+      fail_on_unknown_properties: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+sa-token:
+  token-name: Authorization
+  is-concurrent: true
+  is-share: false
+  jwt-secret-key: ${SA_TOKEN_JWT_SECRET:change-me-framelean}
+
+security:
+  excludes:
+    - /
+    - /web
+    - /login
+    - /401
+    - /redirect/**
+    - /index
+    - /user/**
+    - /framelean/**
+    - /index.html
+    - /*.html
+    - /**/*.html
+    - /**/*.css
+    - /**/*.js
+    - /**/*.svg
+    - /**/*.png
+    - /**/*.jpg
+    - /**/*.ico
+    - /assets/**
+    - /favicon.ico
+    - /error
+    - /auth/**
+    - /api/v1/health
+    - /api/v1/releases/**
+    - /api/v1/sparkle/**
+    # FrameLeanWebConfig applies RuoYi login or X-Api-Key auth to this path.
+    - /api/v1/admin/**
+    - /*/api-docs
+    - /*/api-docs/**
+
+tenant:
+  enable: false
+  excludes:
+    - sys_menu
+    - sys_tenant
+    - sys_tenant_package
+    - sys_role_dept
+    - sys_role_menu
+    - sys_user_post
+    - sys_user_role
+    - sys_client
+    - sys_oss_config
+    - releases
+    - release_packages
+    - release_artifact_requirements
+    - download_events
+    - update_check_events
+    - ip_block_rules
+    - admin_auth_config
+
+mybatis-plus:
+  enableLogicDelete: true
+  mapperPackage: org.dromara.**.mapper
+  mapperLocations: classpath*:mapper/**/*Mapper.xml
+  typeAliasesPackage: org.dromara.**.domain
+  global-config:
+    dbConfig:
+      idType: ASSIGN_ID
+
+mybatis-encryptor:
+  enable: false
+  algorithm: BASE64
+  encode: BASE64
+  password:
+  publicKey:
+  privateKey:
+
+api-decrypt:
+  enabled: false
+
+springdoc:
+  api-docs:
+    enabled: true
+  info:
+    title: 'FrameLean Backend API'
+    description: 'FrameLean self-hosted update and admin API'
+    version: '版本号: ${project.version}'
+    contact:
+      name: FrameLean
+  group-configs:
+    - group: 1.FrameLean
+      packages-to-scan: org.dromara.framelean
+    - group: 2.系统模块
+      packages-to-scan: org.dromara.system
+
+xss:
+  enabled: true
+  excludeUrls:
+    - /api/v1/releases
+    - /api/v1/admin
+
+lock4j:
+  acquire-timeout: 3000
+  expire: 30000
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: NEVER
+
+sse:
+  enabled: false
+  path: /resource/sse
+
+websocket:
+  enabled: false
+  path: /resource/websocket
+  allowedOrigins: '*'
+
+warm-flow:
+  enabled: false
+  ui: false
+  token-name: ${sa-token.token-name},clientid
+
+snail-job:
+  enabled: false
+
+spring.boot.admin.client:
+  enabled: false
+  url: http://localhost:9090/admin
+  username: ${MONITOR_USERNAME:framelean}
+  password: ${MONITOR_PASSWORD:framelean}
+
+framelean:
+  security:
+    allowed-origin-patterns: ${FRAMELEAN_ALLOWED_ORIGIN_PATTERNS:${FRAMELEAN_PUBLIC_BASE_URL:${FRAMELEAN_UPDATE_BASE_URL:http://localhost:4918}},http://localhost:*,http://127.0.0.1:*}
+  api-key: ${FRAMELEAN_API_KEY:}
+  update:
+    public-base-url: ${FRAMELEAN_PUBLIC_BASE_URL:${FRAMELEAN_UPDATE_BASE_URL:http://localhost:4918}}
+  cos:
+    secret-id: ${COS_SECRET_ID:}
+    secret-key: ${COS_SECRET_KEY:}
+    bucket: ${COS_BUCKET:}
+    region: ${COS_REGION:ap-guangzhou}

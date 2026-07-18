@@ -3,9 +3,9 @@ set -euo pipefail
 export LC_ALL=C
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ARM64_DIR="${ARM64_DIR:-${ROOT}/third_party/audio_adapters/qmc/macos-arm64}"
-X64_DIR="${X64_DIR:-${ROOT}/third_party/audio_adapters/qmc/macos-x64}"
-OUT_DIR="${OUT_DIR:-${ROOT}/third_party/audio_adapters/qmc/macos-universal}"
+ARM64_DIR="${ARM64_DIR:-${ROOT}/build/dependencies/qmc/macos-arm64}"
+X64_DIR="${X64_DIR:-${ROOT}/build/dependencies/qmc/macos-x64}"
+OUT_DIR="${OUT_DIR:-${ROOT}/build/dependencies/qmc/macos-universal}"
 VERIFY_SCRIPT="${ROOT}/scripts/release/verify_macos_universal.sh"
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
