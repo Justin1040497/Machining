@@ -12,6 +12,14 @@ scripts/
   verify/     Validate Monorepo structure and path boundaries.
 ```
 
+## GitHub Actions
+
+Repository verification, Backend, FLL, and FEngine workflows run only through
+`workflow_dispatch`; ordinary branch pushes and pull requests do not trigger
+them automatically. The Desktop Client workflow can also be started manually,
+while a `v*` tag push remains the explicit release trigger that builds and
+attaches the macOS and Windows artifacts.
+
 ## Build Scripts
 
 | Script | Platform | Responsibility | Output |
@@ -34,8 +42,8 @@ explicitly run; they were not executed during the Monorepo migration.
 not separate user downloads. The release app consumes only
 `build/dependencies/ffmpeg/macos-universal`, and the final public macOS artifact remains
 one Universal 2 DMG. An Apple Silicon Mac cannot create the native Intel FFmpeg
-slice with the local build script; use the `Build macOS Universal` GitHub
-Actions workflow when both native slices are not already available.
+slice with the local build script; use the `Desktop Client` GitHub Actions
+workflow when both native slices are not already available.
 
 ## Release Scripts
 

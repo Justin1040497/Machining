@@ -84,7 +84,7 @@ require_single_arch_binary() {
     echo "error: expected $expected_arch binary at $path, got $actual_arches" >&2
     if [[ "$expected_arch" == "x86_64" && "$actual_arches" == "arm64" ]]; then
       echo "Do not copy the Apple Silicon runtime into macos-x64." >&2
-      echo "Build the Intel slice on an x86_64 macOS runner or use the GitHub Actions workflow 'Build macOS Universal'." >&2
+      echo "Build the Intel slice on an x86_64 macOS runner or use the GitHub Actions workflow 'Desktop Client'." >&2
     fi
     exit 1
   fi

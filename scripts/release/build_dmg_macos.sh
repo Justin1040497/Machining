@@ -86,7 +86,7 @@ fail_for_unprepared_ffmpeg_runtime() {
   echo "The macos-arm64 and macos-x64 directories are build inputs, not release packages." >&2
   echo "Do not copy arm64 files into macos-x64; the Intel slice must report x86_64." >&2
   echo >&2
-  echo "Recommended: run the GitHub Actions workflow 'Build macOS Universal'." >&2
+  echo "Recommended: run the GitHub Actions workflow 'Desktop Client'." >&2
   echo "It builds both native slices and outputs one final FrameLean-v<version>.dmg." >&2
   echo >&2
   echo "For a local build, first provide valid native slices, then run:" >&2

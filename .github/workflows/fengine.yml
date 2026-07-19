@@ -1,16 +1,6 @@
 name: FEngine
 
 on:
-  push:
-    paths:
-      - "fengine/**"
-      - "fll/**"
-      - ".github/workflows/fengine.yml"
-  pull_request:
-    paths:
-      - "fengine/**"
-      - "fll/**"
-      - ".github/workflows/fengine.yml"
   workflow_dispatch:
 
 permissions:

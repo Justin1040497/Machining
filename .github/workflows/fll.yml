@@ -1,14 +1,6 @@
 name: FLL
 
 on:
-  push:
-    paths:
-      - "fll/**"
-      - ".github/workflows/fll.yml"
-  pull_request:
-    paths:
-      - "fll/**"
-      - ".github/workflows/fll.yml"
   workflow_dispatch:
 
 permissions:
