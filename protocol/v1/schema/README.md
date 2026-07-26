@@ -1,3 +1,5 @@
 # Schema Responsibility
 
-本目录仅声明未来公共协议 Schema 的版本、评审和兼容性职责，不保存 Runtime Schema 副本，也不提供代码生成接口。
+FEngine protocol v1 的 wire model 代码事实位于 `fengine/src/protocol.rs`。当前尚未建立独立 wire Schema 生成器，因此本目录不保存手写 JSON Schema。
+
+FLL Runtime Schema 由 `fll/crates/framelean-runtime` 导出到 `fll/schemas`，不得复制到本目录。

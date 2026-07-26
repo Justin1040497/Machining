@@ -2,7 +2,7 @@
 
 ## 项目定位
 
-FrameLean（帧轻）是面向 macOS 和 Windows 的本地桌面媒体压缩与格式处理工具。它以 Flutter Desktop 提供图形界面，通过 FFmpeg / FFprobe 完成视频、图片和音频分析与处理，并使用 Riverpod、Drift 和 SQLite 管理任务、设置与本地状态。
+FrameLean（帧轻）是面向 macOS 和 Windows 的本地桌面媒体压缩与格式处理工具。它以 Flutter Desktop 提供图形界面，通过 FEngine/FLL 执行新的媒体分析与执行生命周期，并使用 Riverpod、Drift 和 SQLite 管理任务、设置、请求身份、引擎投影与队列 revision。旧 FFmpeg/FFprobe 客户端服务仍保留给预览和未迁移兼容功能。
 
 项目不提供云端转码、账号体系、多设备同步、在线转换、音乐平台下载或远程解析服务。
 
@@ -14,9 +14,11 @@ FrameLean（帧轻）是面向 macOS 和 Windows 的本地桌面媒体压缩与�
 
 ## 当前能力
 
-- 视频、图片和音频共享本地任务模型，支持文件 / 文件夹导入、FFprobe 分析、类型化配置、任务队列和 FFmpeg 输出。
-- 工作台支持任务夹、拖拽排序、批量配置与执行、单任务控制、聚合日志、深浅主题和非阻塞背景引导。
-- 执行队列按用户上限与资源守卫受控并行；运行输出先写同目录隐藏 partial，成功后再原子发布。
+- 视频、图片和音频共享本地任务模型，任务状态覆盖 `await_analysis → analysis_queued → analyzing → ready → execution_queued → running → terminal`。
+- 一次导入先在 Drift 事务中组织任务夹，再按稳定顺序摊平成独立 FEngine 分析任务；任务夹不进入 FEngine/FLL 模型。
+- 工作台投影 FEngine 的真实分析队列位置、执行队列位置、抢占关系和恢复深度；拖拽以双 revision 原子重排等待项。
+- 执行为 FLL 单 lane，支持用户暂停/恢复/取消和安全点 LIFO 抢占恢复；输出先写同目录临时文件，成功后原子发布。
+- Client 持久化稳定 analysis/execution request ID、Engine identity、queue revision 和事件 sequence；本地 Gateway 使用随机 token 认证的 loopback 守护连接，使 Worker 在 Client 连接中断或进程重启时继续运行。重连后以同一 session 的 Engine Snapshot 对账；离线期间产生的分析/执行终态通过有界终态摘要恢复，不伪造进度。
 - 视频覆盖 MP4、MOV、MKV、WebM 和 AVI 的受约束容器 / 编码组合；透明视频自动使用 MOV + ProRes 4444 保留 alpha。
 - 图片与音频压缩执行结果验收，避免把无效或更大的输出静默标记为成功。
 - 设置保存媒体默认值、输出规则、通知策略、快捷键、并发上限、扫描深度、主题和关闭行为。
@@ -35,7 +37,7 @@ features -> application -> domain
 
 - `domain` 保存实体、枚举和值对象，不依赖 Flutter、Drift、FFmpeg、文件系统或平台 API。
 - `application` 保存用例、仓储接口、服务抽象和应用流程。
-- `infrastructure` 实现数据库、FFmpeg / FFprobe、文件系统、进程和平台能力。
+- `infrastructure` 实现数据库、FEngine transport/gateway、兼容 FFmpeg / FFprobe、文件系统、进程和平台能力。
 - `features` 负责功能 UI 与 Riverpod 状态协调。
 - `app` 负责入口、主题、路由、依赖装配和跨功能展示组件。
 

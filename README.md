@@ -61,12 +61,12 @@ FrameLean 使用统一的 Monorepo 项目结构管理桌面客户端产品、更
 - [`backend/`](backend/README.md)：基于 RuoYi-Vue-Plus 的更新服务与管理后台。
 - [`fll/`](fll/README.md)：FrameLean Lib，项目的核心处理库，也是 Runtime Schema 的代码源头。
 - [`fengine/`](fengine/README.md)：FrameLean Engine，依赖 FLL 的独立引擎进程、执行宿主和进程级管理边界。
-- [`protocol/`](protocol/README.md)：跨组件公共协议的职责与版本边界，当前不定义传输协议。
+- [`protocol/`](protocol/README.md)：Client 与 FEngine protocol v1 的 transport、命令、职责与版本边界。
 - `dependencies/`：第三方源码、许可证与构建输入；生成产物统一进入被忽略的 `build/dependencies/`。
 - [`scripts/`](scripts/README.md) 与 `tools/`：仓库级构建、验证、发布和辅助工具入口。
 - [`docs/`](docs/README.md)、`context/`、`changelog/` 与 `legal/`：正式文档、系统上下文、技术变更和合规资料。
 
-FLL 当前提供进程内核心处理能力，FEngine 当前实现为装配并调用 FLL 的独立 CLI Bootstrap。常驻服务、跨进程通信和完整执行宿主尚未实现，因此 Desktop Client 仍直接管理现有 FFmpeg / FFprobe 进程与本地执行队列。
+FLL 提供进程内媒体分析、决策、execution Task、单 lane LIFO 调度、输出事务和 Runtime Schema；FEngine 已实现独立 Worker、本机回环守护连接、单项/批量分析与执行、双队列 revision 和原子重排、会话幂等、事件 sequence、Snapshot 对账与执行控制。Desktop Client 的新任务路径已统一经 FEngine，并可在 Client 连接中断或进程重启后接回仍在运行的 Worker。当前真实媒体 Backend 支持可兼容媒体的 libav packet stream-copy/remux；需要解码、编码或 processor 的完整压缩/转码链仍会明确拒绝。
 
 ## 开发
 

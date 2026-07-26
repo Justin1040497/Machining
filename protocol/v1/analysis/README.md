@@ -1,3 +1,23 @@
-# Analysis Responsibility
+# Analysis Protocol
 
-本目录仅声明未来跨组件分析协议的所有权和版本边界。具体分析模型继续由 `fll` 实现，本阶段不定义公共字段或序列化格式。
+当前 protocol v1 已实现：
+
+- `AnalyzeMedia`
+- `SubmitAnalysisBatch`
+- `GetAnalysisSnapshot`
+- `ResolveConfiguration`（兼容入口）
+- 对应的 batch-accepted、accepted、queued、started、completed、snapshot-ready 和 failed 输出
+
+分析结束点固定为：
+
+```text
+FLL 生成 AnalysisSnapshot
+→ FEngine 持久化成功
+→ FEngine 返回 AnalysisCompleted
+```
+
+新 Client 直接保存 AnalysisSnapshot 中的 opaque selection，在 `SubmitExecution` 时由 FLL 以预期 revision 原子复核。`ResolveConfiguration` 仅为旧 Client 保留，不会修改 Snapshot 或增加 analysis revision。
+
+`SubmitAnalysisBatch` 以客户端已摊平的稳定顺序提交独立工作。批次不引入任务夹语义；任务夹始终属于 Client 产品模型。
+
+分析 payload 的字段与 Schema 由 `fll/crates/framelean-runtime` 和 `fll/schemas` 拥有；FEngine 只负责 transport、队列、会话、持久化和 Client identity 映射。

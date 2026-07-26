@@ -6,10 +6,10 @@
 
 - 提供媒体导入、任务配置、执行控制、结果展示和应用设置界面。
 - 管理本地任务状态、用户设置以及 Drift / SQLite 持久化数据。
-- 调用 FFmpeg / FFprobe 完成媒体分析和处理，并处理本地文件与进程生命周期。
+- 通过 FEngine Gateway 提交媒体分析与执行，投影引擎队列、进度、抢占关系和终态。
 - 集成 macOS 和 Windows 的窗口、通知、文件选择、更新与安装相关能力。
 
-当前客户端仍直接管理 FFmpeg / FFprobe 进程和本地执行队列；与 FEngine 的通信及执行职责迁移尚未完成。
+新媒体任务路径已统一经 FEngine：Client 任务夹先摊平为独立任务，分析与执行队列分开投影，拖拽使用双 revision 原子重排，单任务开始可转换为安全点 LIFO 抢占。本地 Gateway 通过随机 token 认证的 loopback 守护连接接入 Worker；普通 Client 关闭只断开连接，显式退出会先取消任务再关闭 Worker。旧 Dart FFmpeg/FFprobe 服务仍为预览和尚未迁移的兼容功能保留，不是新 execution lane 的权威源。
 
 ## 平台边界
 

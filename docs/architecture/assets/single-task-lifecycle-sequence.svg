@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="4000" viewBox="0 0 2000 4000" role="img" aria-labelledby="title desc">
+  <title id="title">FrameLean 单任务完整闭环时序图</title>
+  <desc id="desc">展示用户导入媒体后，Client、FEngine 和 FLL 之间从分析排队、分析完成、用户配置、执行排队、运行控制到完成、失败、取消及恢复的完整闭环。</desc>
+
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="1" opacity="0.48"/>
+    </pattern>
+    <marker id="arrow" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#94a3b8"/>
+    </marker>
+    <marker id="arrowCyan" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#22d3ee"/>
+    </marker>
+    <marker id="arrowGreen" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#34d399"/>
+    </marker>
+    <marker id="arrowRed" markerWidth="12" markerHeight="8" refX="11" refY="4" orient="auto">
+      <polygon points="0 0, 12 4, 0 8" fill="#fb7185"/>
+    </marker>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <style>
+      text {
+        font-family: "Hiragino Sans GB", "PingFang SC", "Heiti SC", sans-serif;
+      }
+      .title { fill: #f8fafc; font-size: 42px; font-weight: 700; }
+      .subtitle { fill: #94a3b8; font-size: 20px; }
+      .participant { fill: #f8fafc; font-size: 25px; font-weight: 700; text-anchor: middle; }
+      .participant-sub { fill: #94a3b8; font-size: 15px; text-anchor: middle; }
+      .phase-title { fill: #e2e8f0; font-size: 25px; font-weight: 700; }
+      .phase-sub { fill: #64748b; font-size: 15px; }
+      .message { fill: #cbd5e1; font-size: 17px; font-weight: 500; text-anchor: middle; }
+      .message-green { fill: #6ee7b7; font-size: 17px; font-weight: 600; text-anchor: middle; }
+      .message-red { fill: #fda4af; font-size: 17px; font-weight: 600; text-anchor: middle; }
+      .state { fill: #e0f2fe; font-size: 17px; font-weight: 700; text-anchor: middle; }
+      .state-green { fill: #d1fae5; font-size: 17px; font-weight: 700; text-anchor: middle; }
+      .state-red { fill: #ffe4e6; font-size: 17px; font-weight: 700; text-anchor: middle; }
+      .frame-title { fill: #fbbf24; font-size: 15px; font-weight: 700; }
+      .note { fill: #cbd5e1; font-size: 15px; }
+      .tiny { fill: #94a3b8; font-size: 14px; }
+      .footer { fill: #64748b; font-size: 14px; }
+      .lifeline { stroke: #475569; stroke-width: 2; stroke-dasharray: 9 10; }
+      .arrow { stroke: #94a3b8; stroke-width: 2.4; marker-end: url(#arrow); }
+      .arrow-cyan { stroke: #22d3ee; stroke-width: 2.5; marker-end: url(#arrowCyan); }
+      .arrow-green { stroke: #34d399; stroke-width: 2.5; marker-end: url(#arrowGreen); }
+      .arrow-red { stroke: #fb7185; stroke-width: 2.5; stroke-dasharray: 8 6; marker-end: url(#arrowRed); }
+      .separator { stroke: #475569; stroke-width: 1.5; stroke-dasharray: 8 8; }
+    </style>
+  </defs>
+
+  <rect width="2000" height="4000" fill="#020617"/>
+  <rect width="2000" height="4000" fill="url(#grid)"/>
+
+  <g aria-label="标题">
+    <circle cx="72" cy="68" r="10" fill="#22d3ee"/>
+    <text x="102" y="82" class="title">FrameLean 单任务完整闭环时序图</text>
+    <text x="102" y="120" class="subtitle">Client 负责用户意图与状态投影 · FEngine 负责进程边界 · FLL 负责媒体事实与 Runtime Task</text>
+  </g>
+
+  <g filter="url(#shadow)" aria-label="参与者">
+    <rect x="60" y="160" width="240" height="82" rx="10" fill="#0f172a"/>
+    <rect x="60" y="160" width="240" height="82" rx="10" fill="rgba(30,41,59,0.62)" stroke="#94a3b8" stroke-width="2"/>
+    <text x="180" y="195" class="participant">用户</text>
+    <text x="180" y="222" class="participant-sub">User</text>
+
+    <rect x="500" y="160" width="300" height="82" rx="10" fill="#0f172a"/>
+    <rect x="500" y="160" width="300" height="82" rx="10" fill="rgba(8,51,68,0.55)" stroke="#22d3ee" stroke-width="2"/>
+    <text x="650" y="195" class="participant">Client</text>
+    <text x="650" y="222" class="participant-sub">产品状态与界面投影</text>
+
+    <rect x="1050" y="160" width="300" height="82" rx="10" fill="#0f172a"/>
+    <rect x="1050" y="160" width="300" height="82" rx="10" fill="rgba(251,146,60,0.18)" stroke="#fb923c" stroke-width="2"/>
+    <text x="1200" y="195" class="participant">FEngine</text>
+    <text x="1200" y="222" class="participant-sub">协议、会话与外部队列</text>
+
+    <rect x="1570" y="160" width="300" height="82" rx="10" fill="#0f172a"/>
+    <rect x="1570" y="160" width="300" height="82" rx="10" fill="rgba(6,78,59,0.48)" stroke="#34d399" stroke-width="2"/>
+    <text x="1720" y="195" class="participant">FLL</text>
+    <text x="1720" y="222" class="participant-sub">分析、配置与 Runtime Task</text>
+  </g>
+
+  <!-- Phase backgrounds -->
+  <rect x="32" y="275" width="1936" height="1055" rx="18" fill="rgba(8,51,68,0.10)" stroke="#164e63" stroke-width="1.5"/>
+  <rect x="32" y="1350" width="1936" height="330" rx="18" fill="rgba(76,29,149,0.09)" stroke="#4c1d95" stroke-width="1.5"/>
+  <rect x="32" y="1700" width="1936" height="650" rx="18" fill="rgba(251,146,60,0.08)" stroke="#7c2d12" stroke-width="1.5"/>
+  <rect x="32" y="2370" width="1936" height="820" rx="18" fill="rgba(6,78,59,0.09)" stroke="#065f46" stroke-width="1.5"/>
+  <rect x="32" y="3210" width="1936" height="620" rx="18" fill="rgba(30,41,59,0.34)" stroke="#334155" stroke-width="1.5"/>
+
+  <!-- Lifelines -->
+  <line x1="180" y1="242" x2="180" y2="3820" class="lifeline"/>
+  <line x1="650" y1="242" x2="650" y2="3820" class="lifeline"/>
+  <line x1="1200" y1="242" x2="1200" y2="3820" class="lifeline"/>
+  <line x1="1720" y1="242" x2="1720" y2="3820" class="lifeline"/>
+
+  <!-- Phase 1: import and analysis -->
+  <text x="62" y="315" class="phase-title">01 · 导入与分析</text>
+  <text x="62" y="345" class="phase-sub">所有分析都经过 FEngine 队列；空闲时可立即开始，但不绕过队列</text>
+
+  <line x1="180" y1="390" x2="650" y2="390" class="arrow-cyan"/>
+  <text x="415" y="376" class="message">导入媒体</text>
+
+  <rect x="500" y="420" width="300" height="68" rx="8" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="650" y="447" class="state">创建并持久化 MediaTask</text>
+  <text x="650" y="474" class="tiny" text-anchor="middle">state = await_analysis</text>
+
+  <line x1="650" y1="535" x2="1200" y2="535" class="arrow-cyan"/>
+  <text x="925" y="518" class="message">SubmitAnalysis(taskId, source, requestId)</text>
+
+  <line x1="1200" y1="600" x2="650" y2="600" class="arrow"/>
+  <text x="925" y="583" class="message">AnalysisAccepted(workId, queuePosition)</text>
+
+  <rect x="520" y="625" width="260" height="54" rx="27" fill="#082f49" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="650" y="659" class="state">analysis_queued</text>
+
+  <line x1="1200" y1="725" x2="650" y2="725" class="arrow"/>
+  <text x="925" y="708" class="message">AnalysisStarted(workId)</text>
+
+  <rect x="520" y="750" width="260" height="54" rx="27" fill="#082f49" stroke="#22d3ee" stroke-width="1.5"/>
+  <text x="650" y="784" class="state">analyzing</text>
+
+  <line x1="1200" y1="850" x2="1720" y2="850" class="arrow-green"/>
+  <text x="1460" y="833" class="message-green">AnalyzeMedia(source)</text>
+
+  <rect x="475" y="895" width="1420" height="390" rx="12" fill="rgba(15,23,42,0.60)" stroke="#fbbf24" stroke-width="1.5"/>
+  <rect x="475" y="895" width="155" height="34" rx="6" fill="#78350f"/>
+  <text x="492" y="918" class="frame-title">alt 分析结果</text>
+
+  <line x1="1720" y1="965" x2="1200" y2="965" class="arrow-green"/>
+  <text x="1460" y="948" class="message-green">AnalysisSnapshot</text>
+
+  <line x1="1200" y1="1025" x2="650" y2="1025" class="arrow-green"/>
+  <text x="925" y="1008" class="message-green">AnalysisCompleted(analysisId, revision, snapshot)</text>
+
+  <rect x="500" y="1050" width="300" height="66" rx="8" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+  <text x="650" y="1077" class="state-green">保存 Snapshot 与配置投影</text>
+  <text x="650" y="1103" class="tiny" text-anchor="middle">state = ready</text>
+
+  <line x1="490" y1="1140" x2="1880" y2="1140" class="separator"/>
+  <text x="500" y="1168" class="message-red" text-anchor="start">else 分析失败</text>
+
+  <line x1="1720" y1="1200" x2="1200" y2="1200" class="arrow-red"/>
+  <text x="1460" y="1183" class="message-red">AnalysisError</text>
+  <line x1="1200" y1="1250" x2="650" y2="1250" class="arrow-red"/>
+  <text x="925" y="1233" class="message-red">AnalysisFailed(error)</text>
+  <rect x="500" y="1270" width="300" height="42" rx="8" fill="#4c0519" stroke="#fb7185" stroke-width="1.5"/>
+  <text x="650" y="1297" class="state-red">analysis_failed · 重试 → await_analysis</text>
+
+  <!-- Phase 2: configuration -->
+  <text x="62" y="1390" class="phase-title">02 · 用户配置</text>
+  <text x="62" y="1420" class="phase-sub">Snapshot 已包含格式、预设、候选和参数约束；不单独 ResolveConfiguration</text>
+
+  <line x1="180" y1="1470" x2="650" y2="1470" class="arrow-cyan"/>
+  <text x="415" y="1453" class="message">打开任务配置</text>
+
+  <rect x="500" y="1495" width="300" height="62" rx="8" fill="#0f172a" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="650" y="1521" class="state">按 Snapshot 构建配置菜单</text>
+  <text x="650" y="1547" class="tiny" text-anchor="middle">格式 · 预设 · 参数 · 推荐</text>
+
+  <line x1="180" y1="1600" x2="650" y2="1600" class="arrow-cyan"/>
+  <text x="415" y="1583" class="message">选择格式、预设和参数</text>
+  <rect x="500" y="1618" width="300" height="44" rx="8" fill="#2e1065" stroke="#a78bfa" stroke-width="1.5"/>
+  <text x="650" y="1646" class="state">保存 UserSelection · 保持 ready</text>
+
+  <!-- Phase 3: execution submission -->
+  <text x="62" y="1740" class="phase-title">03 · 提交与执行排队</text>
+  <text x="62" y="1770" class="phase-sub">用户点击开始时直接携带 Snapshot 引用、选择、参数和输出意图</text>
+
+  <line x1="180" y1="1820" x2="650" y2="1820" class="arrow-cyan"/>
+  <text x="415" y="1803" class="message">点击开始</text>
+
+  <line x1="650" y1="1885" x2="1200" y2="1885" class="arrow-cyan"/>
+  <text x="925" y="1868" class="message">SubmitExecution(taskId, analysisRef, selection, parameters, outputIntent)</text>
+
+  <line x1="1200" y1="1950" x2="1720" y2="1950" class="arrow-green"/>
+  <text x="1460" y="1933" class="message-green">CreateExecution(snapshotRef, selection)</text>
+
+  <rect x="475" y="1980" width="1420" height="335" rx="12" fill="rgba(15,23,42,0.60)" stroke="#fbbf24" stroke-width="1.5"/>
+  <rect x="475" y="1980" width="175" height="34" rx="6" fill="#78350f"/>
+  <text x="492" y="2003" class="frame-title">alt 提交结果</text>
+
+  <line x1="1720" y1="2050" x2="1200" y2="2050" class="arrow-green"/>
+  <text x="1460" y="2033" class="message-green">ExecutionCreated(executionId)</text>
+  <line x1="1200" y1="2110" x2="650" y2="2110" class="arrow-green"/>
+  <text x="925" y="2093" class="message-green">ExecutionAccepted(executionId, queuePosition)</text>
+  <rect x="520" y="2135" width="260" height="54" rx="27" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+  <text x="650" y="2169" class="state-green">execution_queued</text>
+
+  <line x1="490" y1="2208" x2="1880" y2="2208" class="separator"/>
+  <line x1="1720" y1="2250" x2="1200" y2="2250" class="arrow-red"/>
+  <text x="1460" y="2233" class="message-red">ExecutionRejected(error)</text>
+  <line x1="1200" y1="2290" x2="650" y2="2290" class="arrow-red"/>
+  <text x="925" y="2273" class="message-red">选择无效 → ready · Snapshot 失效 → await_analysis</text>
+
+  <!-- Phase 4: running and controls -->
+  <text x="62" y="2410" class="phase-title">04 · 执行与控制</text>
+  <text x="62" y="2440" class="phase-sub">FLL Runtime 是 Task 状态权威；Client 只消费 FEngine 的事件投影</text>
+
+  <line x1="1200" y1="2490" x2="1720" y2="2490" class="arrow-green"/>
+  <text x="1460" y="2473" class="message-green">StartExecution(executionId)</text>
+  <line x1="1720" y1="2550" x2="1200" y2="2550" class="arrow-green"/>
+  <text x="1460" y="2533" class="message-green">ExecutionStarted</text>
+  <line x1="1200" y1="2610" x2="650" y2="2610" class="arrow-green"/>
+  <text x="925" y="2593" class="message-green">ExecutionStarted(executionId)</text>
+  <rect x="520" y="2635" width="260" height="54" rx="27" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+  <text x="650" y="2669" class="state-green">running</text>
+
+  <rect x="475" y="2710" width="1420" height="205" rx="12" fill="rgba(15,23,42,0.58)" stroke="#34d399" stroke-width="1.5"/>
+  <rect x="475" y="2710" width="125" height="34" rx="6" fill="#064e3b"/>
+  <text x="492" y="2733" class="frame-title" fill="#6ee7b7">loop 执行中</text>
+  <line x1="1720" y1="2780" x2="1200" y2="2780" class="arrow-green"/>
+  <text x="1460" y="2763" class="message-green">Progress / Warning / State</text>
+  <line x1="1200" y1="2840" x2="650" y2="2840" class="arrow"/>
+  <text x="925" y="2823" class="message">ExecutionEvent(sequence, progress, state)</text>
+  <text x="650" y="2885" class="tiny" text-anchor="middle">保存执行投影并刷新界面</text>
+
+  <rect x="70" y="2940" width="1820" height="220" rx="12" fill="rgba(15,23,42,0.58)" stroke="#a78bfa" stroke-width="1.5"/>
+  <rect x="70" y="2940" width="165" height="34" rx="6" fill="#4c1d95"/>
+  <text x="87" y="2963" class="frame-title">opt 用户控制</text>
+  <line x1="180" y1="3010" x2="650" y2="3010" class="arrow-cyan"/>
+  <text x="415" y="2993" class="message">暂停 / 继续 / 取消</text>
+  <line x1="650" y1="3065" x2="1200" y2="3065" class="arrow-cyan"/>
+  <text x="925" y="3048" class="message">ControlExecution(executionId, action)</text>
+  <line x1="1200" y1="3120" x2="1720" y2="3120" class="arrow-green"/>
+  <text x="1460" y="3103" class="message-green">ControlTask(action)</text>
+  <text x="980" y="3148" class="tiny" text-anchor="middle">Runtime 状态变化后沿 FEngine 事件返回 Client</text>
+
+  <!-- Phase 5: terminal and recovery -->
+  <text x="62" y="3250" class="phase-title">05 · 终态与恢复</text>
+  <text x="62" y="3280" class="phase-sub">成功、失败和取消都有稳定出口；失败按原因回到 ready 或 await_analysis</text>
+
+  <rect x="475" y="3320" width="1420" height="455" rx="12" fill="rgba(15,23,42,0.64)" stroke="#fbbf24" stroke-width="1.5"/>
+  <rect x="475" y="3320" width="165" height="34" rx="6" fill="#78350f"/>
+  <text x="492" y="3343" class="frame-title">alt 执行终态</text>
+
+  <line x1="1720" y1="3400" x2="1200" y2="3400" class="arrow-green"/>
+  <text x="1460" y="3383" class="message-green">ExecutionCompleted(outputResult)</text>
+  <line x1="1200" y1="3455" x2="650" y2="3455" class="arrow-green"/>
+  <text x="925" y="3438" class="message-green">ExecutionCompleted(outputPath, size, duration)</text>
+  <rect x="520" y="3472" width="260" height="46" rx="23" fill="#052e2b" stroke="#34d399" stroke-width="1.5"/>
+  <text x="650" y="3502" class="state-green">completed · 保存结果并通知</text>
+
+  <line x1="490" y1="3540" x2="1880" y2="3540" class="separator"/>
+  <line x1="1720" y1="3585" x2="1200" y2="3585" class="arrow-red"/>
+  <text x="1460" y="3568" class="message-red">ExecutionFailed(error)</text>
+  <line x1="1200" y1="3635" x2="650" y2="3635" class="arrow-red"/>
+  <text x="925" y="3618" class="message-red">execution_failed · 可重试 → ready · 需重析 → await_analysis</text>
+
+  <line x1="490" y1="3670" x2="1880" y2="3670" class="separator"/>
+  <line x1="1720" y1="3715" x2="1200" y2="3715" class="arrow-red"/>
+  <text x="1460" y="3698" class="message-red">ExecutionCancelled</text>
+  <line x1="1200" y1="3755" x2="650" y2="3755" class="arrow-red"/>
+  <text x="925" y="3738" class="message-red">cancelled</text>
+
+  <!-- Reconnect projection -->
+  <rect x="390" y="3850" width="1220" height="92" rx="12" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+  <text x="1000" y="3884" class="note" text-anchor="middle">Client 重启或连接中断：加载本地投影 → QueryTaskState(taskId, executionId, lastSequence)</text>
+  <text x="1000" y="3916" class="tiny" text-anchor="middle">FEngine 返回当前状态后，Client 对账并恢复界面；不能仅凭本地状态判定执行失败</text>
+
+  <text x="62" y="3975" class="footer">FrameLean · 已确认目标设计 · SVG 可缩放文档资产 · 2026-07-26</text>
+</svg>
