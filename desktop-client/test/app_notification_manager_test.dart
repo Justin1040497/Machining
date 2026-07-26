@@ -26,7 +26,6 @@ void main() {
       AppSettingsSaveTarget.output.successMessage,
       '非运行状态的任务已更新；正在处理的任务将在下次处理时使用新配置',
     );
-    expect(AppSettingsSaveTarget.encoder.failureTitle, '编码器配置保存失败');
   });
 
   test('notify persists and presents a notification', () async {

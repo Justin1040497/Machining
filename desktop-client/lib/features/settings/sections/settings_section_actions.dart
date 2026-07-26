@@ -37,22 +37,6 @@ extension _AppSettingsViewSectionActions on _AppSettingsViewState {
     updateViewState(() => outputDirectoryController.text = selectedPath.trim());
   }
 
-  Future<void> pickFfmpegPath() async {
-    final selectedPath = await widget.onPickFfmpegPath();
-    if (!mounted || selectedPath == null || selectedPath.trim().isEmpty) {
-      return;
-    }
-    updateViewState(() => ffmpegPathController.text = selectedPath.trim());
-  }
-
-  Future<void> pickFfprobePath() async {
-    final selectedPath = await widget.onPickFfprobePath();
-    if (!mounted || selectedPath == null || selectedPath.trim().isEmpty) {
-      return;
-    }
-    updateViewState(() => ffprobePathController.text = selectedPath.trim());
-  }
-
   Future<void> handleOutputDirectoryDrop(List<DropItem> items) async {
     if (items.isEmpty) {
       return;
@@ -68,47 +52,6 @@ extension _AppSettingsViewSectionActions on _AppSettingsViewState {
       }
       outputDirectoryDragging = false;
     });
-  }
-
-  Future<void> handleFfmpegPathDrop(List<DropItem> items) async {
-    final droppedPath = await firstDroppedFilePath(items);
-    if (!mounted) {
-      return;
-    }
-    updateViewState(() {
-      if (droppedPath != null) {
-        ffmpegPathController.text = droppedPath;
-      }
-      ffmpegPathDragging = false;
-    });
-  }
-
-  Future<void> handleFfprobePathDrop(List<DropItem> items) async {
-    final droppedPath = await firstDroppedFilePath(items);
-    if (!mounted) {
-      return;
-    }
-    updateViewState(() {
-      if (droppedPath != null) {
-        ffprobePathController.text = droppedPath;
-      }
-      ffprobePathDragging = false;
-    });
-  }
-
-  Future<String?> firstDroppedFilePath(List<DropItem> items) async {
-    if (items.isEmpty) {
-      return null;
-    }
-    final droppedPath = items.first.path.trim();
-    if (droppedPath.isEmpty) {
-      return null;
-    }
-    final type = await FileSystemEntity.type(droppedPath);
-    if (type == FileSystemEntityType.file) {
-      return droppedPath;
-    }
-    return null;
   }
 
   Future<void> confirmClearAppCache() async {
@@ -175,5 +118,4 @@ extension _AppSettingsViewSectionActions on _AppSettingsViewState {
       }
     }
   }
-
 }

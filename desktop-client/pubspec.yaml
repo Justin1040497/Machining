@@ -46,6 +46,12 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.4
   dmg: ^0.1.8
 
+# drift_dev 2.34.x still calls DartPlaceholder.when, which was removed in
+# sqlparser 0.44.6. Newer drift_dev requires analyzer 13 and is incompatible
+# with the analyzer version pinned by this Flutter SDK.
+dependency_overrides:
+  sqlparser: 0.44.5
+
 flutter_launcher_icons:
   image_path: assets/app_icon/light.png
   windows:

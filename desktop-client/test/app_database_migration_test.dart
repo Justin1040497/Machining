@@ -7,6 +7,107 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {
   group('AppDatabase migrations', () {
+    test('upgrades schema 33 with persistent operation request ids', () async {
+      final fixture = await _seedCurrentDatabase();
+      addTearDown(fixture.dispose);
+      _downgrade(
+        fixture.file,
+        version: 33,
+        statements: const [
+          'ALTER TABLE engine_analysis_projections DROP COLUMN analysis_request_id',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN execution_request_id',
+        ],
+      );
+
+      final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+      addTearDown(database.close);
+
+      final columns = await database
+          .customSelect("PRAGMA table_info('engine_analysis_projections')")
+          .get();
+      expect(
+        columns.map((row) => row.read<String>('name')),
+        containsAll(['analysis_request_id', 'execution_request_id']),
+      );
+      expect(await _userVersion(database), 34);
+    });
+
+    test('upgrades schema 32 with persisted order revision state', () async {
+      final fixture = await _seedCurrentDatabase();
+      addTearDown(fixture.dispose);
+      _downgrade(
+        fixture.file,
+        version: 32,
+        statements: const ['DROP TABLE workbench_order_state'],
+      );
+
+      final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+      addTearDown(database.close);
+
+      expect(
+        await database.select(database.workbenchOrderStateRows).get(),
+        isEmpty,
+      );
+      expect(await _userVersion(database), 34);
+    });
+
+    test('upgrades schema 31 lifecycle projections and legacy statuses', () async {
+      final fixture = await _seedCurrentDatabase();
+      addTearDown(fixture.dispose);
+      _downgrade(
+        fixture.file,
+        version: 31,
+        statements: const [
+          'ALTER TABLE engine_analysis_projections DROP COLUMN analysis_work_id',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN analysis_queue_position',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN analysis_queue_revision',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN execution_id',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN execution_queue_position',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN execution_queue_revision',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN execution_state',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN pause_reason',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN preempted_by_execution_id',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN resume_depth',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN media_time_us',
+          'ALTER TABLE engine_analysis_projections DROP COLUMN processed_bytes',
+        ],
+      );
+
+      final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+      addTearDown(database.close);
+
+      final task = (await database.select(database.taskRows).get()).single;
+      expect(task.status, 'ready');
+      expect(
+        await database.select(database.engineAnalysisProjectionRows).get(),
+        isEmpty,
+      );
+      expect(await _userVersion(database), 34);
+    });
+
+    test(
+      'upgrades schema 30 by creating the engine analysis projection table',
+      () async {
+        final fixture = await _seedCurrentDatabase();
+        addTearDown(fixture.dispose);
+        _downgrade(
+          fixture.file,
+          version: 30,
+          statements: const ['DROP TABLE engine_analysis_projections'],
+        );
+
+        final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+        addTearDown(database.close);
+
+        expect(await database.select(database.taskRows).get(), hasLength(1));
+        expect(
+          await database.select(database.engineAnalysisProjectionRows).get(),
+          isEmpty,
+        );
+        expect(await _userVersion(database), 34);
+      },
+    );
+
     test('upgrades schema 29 by adding failure_json', () async {
       final fixture = await _seedCurrentDatabase();
       addTearDown(fixture.dispose);
@@ -22,7 +123,7 @@ void main() {
       final task = (await database.select(database.taskRows).get()).single;
       expect(task.id, 'legacy-task');
       expect(task.failureJson, isNull);
-      expect(await _userVersion(database), 30);
+      expect(await _userVersion(database), 34);
     });
 
     test(
@@ -59,7 +160,7 @@ void main() {
         expect(settings.notificationPoliciesJson, '{}');
         expect(settings.shortcutBindingsJson, '{}');
         expect(settings.closeBehavior, 'background');
-        expect(await _userVersion(database), 30);
+        expect(await _userVersion(database), 34);
       },
     );
 
@@ -99,7 +200,7 @@ void main() {
       final settings = await database.select(database.settingsRows).getSingle();
       expect(settings.maxConcurrentExecutions, 2);
       expect(settings.folderImportScanDepth, 2);
-      expect(await _userVersion(database), 30);
+      expect(await _userVersion(database), 34);
     });
 
     test('applies custom value migrations from schema 21', () async {
@@ -122,7 +223,7 @@ void main() {
       expect(settings.defaultCompressionSmartPreset, 'chat');
       expect(settings.defaultOutputFileNameTemplate, '{source}-{action}');
       expect(settings.taskCompletionSound, 'clean_success');
-      expect(await _userVersion(database), 30);
+      expect(await _userVersion(database), 34);
     });
   });
 }

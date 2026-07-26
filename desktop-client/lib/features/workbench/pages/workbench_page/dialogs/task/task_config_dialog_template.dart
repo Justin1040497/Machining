@@ -26,6 +26,7 @@ class TaskConfigDialogTemplate extends StatelessWidget {
     required this.selectedPurpose,
     required this.onPurposeChanged,
     required this.primaryContent,
+    this.showPurposeSelector = true,
     this.showSecondaryContent = false,
     this.secondaryContent,
     required this.threadLimit,
@@ -33,6 +34,8 @@ class TaskConfigDialogTemplate extends StatelessWidget {
     this.advancedContent,
     this.modified = false,
     this.compressed = false,
+    this.saveEnabled = true,
+    this.saveLabel = '保存',
     this.scrollController,
   });
 
@@ -50,6 +53,7 @@ class TaskConfigDialogTemplate extends StatelessWidget {
 
   /// 主内容区 —— 用途选择下方第一个区域，放压缩选项 + 媒体配置面板。
   final Widget primaryContent;
+  final bool showPurposeSelector;
 
   /// 是否在源文件摘要和用途选择之间插入次要内容区。
   final bool showSecondaryContent;
@@ -65,6 +69,8 @@ class TaskConfigDialogTemplate extends StatelessWidget {
 
   final bool modified;
   final bool compressed;
+  final bool saveEnabled;
+  final String saveLabel;
 
   final ScrollController? scrollController;
 
@@ -118,9 +124,9 @@ class TaskConfigDialogTemplate extends StatelessWidget {
                   top: 46,
                   bottom: 56,
                   child: ScrollConfiguration(
-                    behavior: ScrollConfiguration.of(context).copyWith(
-                      scrollbars: false,
-                    ),
+                    behavior: ScrollConfiguration.of(
+                      context,
+                    ).copyWith(scrollbars: false),
                     child: Scrollbar(
                       controller: effectiveController,
                       thumbVisibility: false,
@@ -159,14 +165,15 @@ class TaskConfigDialogTemplate extends StatelessWidget {
 
                               const SizedBox(height: 14),
 
-                              // 用途选择
-                              _PurposeSelector(
-                                selectedPurpose: selectedPurpose,
-                                onChanged: onPurposeChanged,
-                                colors: colors,
-                              ),
-
-                              const SizedBox(height: 14),
+                              if (showPurposeSelector) ...[
+                                // 用途选择
+                                _PurposeSelector(
+                                  selectedPurpose: selectedPurpose,
+                                  onChanged: onPurposeChanged,
+                                  colors: colors,
+                                ),
+                                const SizedBox(height: 14),
+                              ],
 
                               // 主内容区
                               primaryContent,
@@ -200,7 +207,8 @@ class TaskConfigDialogTemplate extends StatelessWidget {
                       compressed: compressed,
                     ),
                     onCancel: onClose,
-                    onSave: onSave,
+                    onSave: saveEnabled ? onSave : null,
+                    saveLabel: saveLabel,
                   ),
                 ),
               ],

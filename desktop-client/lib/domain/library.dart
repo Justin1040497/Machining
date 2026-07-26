@@ -54,6 +54,7 @@ export 'value_objects/app_update_package_info.dart';
 export 'value_objects/app_update_state.dart';
 export 'value_objects/audio_processing_config.dart';
 export 'value_objects/enterprise_update_config.dart';
+export 'value_objects/engine_configuration_reference.dart';
 export 'value_objects/image_processing_config.dart';
 export 'value_objects/media_analysis_result.dart';
 export 'value_objects/media_audio_stream_info.dart';

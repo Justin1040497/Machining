@@ -11,7 +11,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
       _SettingsSection.image => buildImageSection(),
       _SettingsSection.audio => buildAudioSection(),
       _SettingsSection.output => buildOutputSection(),
-      _SettingsSection.encoder => buildEncoderSection(),
     };
   }
 
@@ -616,50 +615,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
           saving: savingSection == _SettingsSection.output,
           onCancel: () => _revertSection(_SettingsSection.output),
           onSave: () => _saveSection(_SettingsSection.output),
-        ),
-      ],
-    );
-  }
-
-  Widget buildEncoderSection() {
-    return _SettingsForm(
-      title: '编码器配置',
-      children: [
-        _FormFieldLabel('FFmpeg路径'),
-        const SizedBox(height: 8),
-        _SettingsPathField(
-          controller: ffmpegPathController,
-          enabled: true,
-          highlighted: ffmpegPathDragging,
-          hintText: '使用内置 FFmpeg',
-          trailingTooltip: '选择 FFmpeg',
-          onTrailingTap: pickFfmpegPath,
-          onDraggingChanged: (value) {
-            updateViewState(() => ffmpegPathDragging = value);
-          },
-          onDropped: handleFfmpegPathDrop,
-        ),
-        const SizedBox(height: 18),
-        _FormFieldLabel('FFprobe路径'),
-        const SizedBox(height: 8),
-        _SettingsPathField(
-          controller: ffprobePathController,
-          enabled: true,
-          highlighted: ffprobePathDragging,
-          hintText: '使用内置 FFprobe',
-          trailingTooltip: '选择 FFprobe',
-          onTrailingTap: pickFfprobePath,
-          onDraggingChanged: (value) {
-            updateViewState(() => ffprobePathDragging = value);
-          },
-          onDropped: handleFfprobePathDrop,
-        ),
-        const SizedBox(height: 32),
-        _SectionActions(
-          dirty: isSectionDirty(_SettingsSection.encoder),
-          saving: savingSection == _SettingsSection.encoder,
-          onCancel: () => _revertSection(_SettingsSection.encoder),
-          onSave: () => _saveSection(_SettingsSection.encoder),
         ),
       ],
     );

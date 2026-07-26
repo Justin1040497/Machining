@@ -19,6 +19,22 @@ final mediaTaskRepositoryProvider = Provider<MediaTaskRepository>((ref) {
   return DriftMediaTaskRepository(database);
 });
 
+final importedMediaBatchPersistenceProvider =
+    Provider<ImportedMediaBatchPersistence>((ref) {
+      return DriftImportedMediaBatchPersistence(ref.watch(appDatabaseProvider));
+    });
+
+final workbenchOrderRevisionStoreProvider =
+    Provider<WorkbenchOrderRevisionStore>((ref) {
+      return DriftWorkbenchOrderRevisionStore(ref.watch(appDatabaseProvider));
+    });
+
+final engineAnalysisProjectionRepositoryProvider =
+    Provider<EngineAnalysisProjectionRepository>((ref) {
+      final database = ref.watch(appDatabaseProvider);
+      return DriftEngineAnalysisProjectionRepository(database);
+    });
+
 final taskFolderRepositoryProvider = Provider<TaskFolderRepository>((ref) {
   final database = ref.watch(appDatabaseProvider);
   return DriftTaskFolderRepository(database);

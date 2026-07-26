@@ -25,13 +25,20 @@ extension WorkbenchTaskStatusIcon on TaskStatus {
   /// 返回该状态下主操作按钮应使用的图标，不区分是否有 analysisResult。
   IconData get actionIcon {
     return switch (this) {
-      TaskStatus.pending => Icons.play_circle_fill_rounded,
-      TaskStatus.awaitingAnalysis ||
+      TaskStatus.ready => Icons.play_circle_fill_rounded,
+      TaskStatus.awaitAnalysis ||
+      TaskStatus.analysisQueued ||
       TaskStatus.analyzing => Icons.hourglass_top_rounded,
+      TaskStatus.executionQueued => Icons.schedule_rounded,
       TaskStatus.running => Icons.pause_rounded,
+      TaskStatus.preempting ||
+      TaskStatus.preempted ||
+      TaskStatus.resuming => Icons.swap_vertical_circle_outlined,
       TaskStatus.paused => Icons.play_arrow_rounded,
       TaskStatus.completed => Icons.replay_rounded,
-      TaskStatus.failed || TaskStatus.cancelled => Icons.refresh_rounded,
+      TaskStatus.analysisFailed ||
+      TaskStatus.executionFailed ||
+      TaskStatus.cancelled => Icons.refresh_rounded,
       TaskStatus.missingSource => Icons.link_rounded,
     };
   }
@@ -39,13 +46,19 @@ extension WorkbenchTaskStatusIcon on TaskStatus {
   /// 返回该状态下主操作按钮的 tooltip 文案。
   String get actionTooltip {
     return switch (this) {
-      TaskStatus.awaitingAnalysis => '等待分析',
+      TaskStatus.awaitAnalysis => '等待分析',
+      TaskStatus.analysisQueued => '分析排队中',
       TaskStatus.analyzing => '正在分析',
-      TaskStatus.pending => '开始压缩',
+      TaskStatus.ready => '开始压缩',
+      TaskStatus.analysisFailed => '重试分析',
+      TaskStatus.executionQueued => '执行排队中',
       TaskStatus.running => '暂停任务',
+      TaskStatus.preempting => '正在抢占',
+      TaskStatus.preempted => '等待自动恢复',
+      TaskStatus.resuming => '正在恢复',
       TaskStatus.paused => '继续任务',
       TaskStatus.completed => '重来',
-      TaskStatus.failed || TaskStatus.cancelled => '重试任务',
+      TaskStatus.executionFailed || TaskStatus.cancelled => '重试任务',
       TaskStatus.missingSource => '重新链接源文件',
     };
   }

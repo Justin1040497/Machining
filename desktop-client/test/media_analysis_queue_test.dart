@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/services/analysis/media_analysis_queue.dart';
+import 'package:framelean/domain/library.dart';
 
 void main() {
   group('MediaAnalysisQueue', () {
@@ -11,7 +12,6 @@ void main() {
         'second': Completer<void>(),
       };
       final queue = MediaAnalysisQueue(
-        maxConcurrentAnalyses: 2,
         analyzeTask: (taskId) async {
           await completions[taskId]!.future;
           return null;
@@ -33,6 +33,33 @@ void main() {
 
       expect(queue.isAnalyzing('first'), isFalse);
       expect(queue.isAnalyzing('second'), isFalse);
+    });
+
+    test('records a failed task as failed instead of succeeded', () async {
+      final failedTask =
+          MediaTask.draft(
+            inputPath: '/videos/failed.mp4',
+            fileName: 'failed.mp4',
+            mediaKind: MediaKind.video,
+            sortOrder: 0,
+          ).markFailed(
+            const TaskFailure(
+              stage: TaskFailureStage.analysis,
+              code: TaskFailureCode.analysisFailed,
+              userMessage: 'analysis failed',
+              technicalSummary: 'FLL returned a failed AnalysisResult',
+              occurredAt: 1,
+              retryable: true,
+            ),
+          );
+      final queue = MediaAnalysisQueue(analyzeTask: (_) async => failedTask);
+      addTearDown(queue.stop);
+
+      queue.enqueue('failed');
+      await queue.waitForCompletion();
+
+      expect(queue.snapshot.failed, 1);
+      expect(queue.snapshot.succeeded, 0);
     });
 
     test('stop waits for active analysis cleanup before closing', () async {

@@ -220,8 +220,6 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
                   manualMacosUpdate: manualMacosUpdate,
                   onPickOutputDirectory:
                       fileSelectionService.pickOutputDirectory,
-                  onPickFfmpegPath: fileSelectionService.pickExecutablePath,
-                  onPickFfprobePath: fileSelectionService.pickExecutablePath,
                   onPreviewAppCacheCleanup: () {
                     return PreviewAppCacheCleanupUseCase(
                       cacheCleaner: ref.read(appCacheCleanerProvider),
@@ -276,8 +274,8 @@ class _AppSettingsPageState extends ConsumerState<AppSettingsPage> {
 bool _taskNeedsUpdateRestartWarning(MediaTask task) {
   return task.status == TaskStatus.running ||
       task.status == TaskStatus.paused ||
-      task.status == TaskStatus.awaitingAnalysis ||
-      task.status == TaskStatus.pending ||
+      task.status == TaskStatus.awaitAnalysis ||
+      task.status == TaskStatus.ready ||
       task.status == TaskStatus.analyzing;
 }
 
@@ -289,8 +287,6 @@ class AppSettingsView extends StatefulWidget {
     required this.updateState,
     this.manualMacosUpdate = false,
     required this.onPickOutputDirectory,
-    required this.onPickFfmpegPath,
-    required this.onPickFfprobePath,
     required this.onSave,
     this.onClose,
     this.onPreviewAppCacheCleanup,
@@ -307,8 +303,6 @@ class AppSettingsView extends StatefulWidget {
   final AppUpdateState updateState;
   final bool manualMacosUpdate;
   final AppSettingsPathPicker onPickOutputDirectory;
-  final AppSettingsPathPicker onPickFfmpegPath;
-  final AppSettingsPathPicker onPickFfprobePath;
   final AppSettingsSaveCallback onSave;
   final VoidCallback? onClose;
   final AppCacheCleanupPreviewCallback? onPreviewAppCacheCleanup;
@@ -342,12 +336,8 @@ class _AppSettingsViewState extends State<AppSettingsView> {
 
   late final TextEditingController outputDirectoryController;
   late final TextEditingController outputFileNameTemplateController;
-  late final TextEditingController ffmpegPathController;
-  late final TextEditingController ffprobePathController;
 
   bool outputDirectoryDragging = false;
-  bool ffmpegPathDragging = false;
-  bool ffprobePathDragging = false;
   late AppSettings savedSettings;
   _SettingsSection? savingSection;
   bool clearingCache = false;
@@ -392,12 +382,6 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     outputFileNameTemplateController = TextEditingController(
       text: widget.initialSettings.defaultOutputFileNameTemplate,
     );
-    ffmpegPathController = TextEditingController(
-      text: widget.initialSettings.customFfmpegPath ?? '',
-    );
-    ffprobePathController = TextEditingController(
-      text: widget.initialSettings.customFfprobePath ?? '',
-    );
     savedSettings = widget.initialSettings;
   }
 
@@ -405,8 +389,6 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   void dispose() {
     outputDirectoryController.dispose();
     outputFileNameTemplateController.dispose();
-    ffmpegPathController.dispose();
-    ffprobePathController.dispose();
     super.dispose();
   }
 

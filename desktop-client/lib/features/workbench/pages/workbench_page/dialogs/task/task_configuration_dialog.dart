@@ -10,7 +10,8 @@ import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/image_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/video_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_state.dart';
-export 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_state.dart' show WorkbenchTaskConfigurationDraft;
+export 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_state.dart'
+    show WorkbenchTaskConfigurationDraft;
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_template.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
 
@@ -18,7 +19,11 @@ import 'package:framelean/features/workbench/workbench_icons.dart';
 
 const _taskConfigFieldHeight = 40.0;
 
-Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
+/// Legacy folder-default editor retained during the Engine migration.
+///
+/// Individual tasks must use `showEngineTaskConfigurationEditor`; this editor
+/// cannot consume an FLL AnalysisSnapshot and must not be used as a fallback.
+Future<WorkbenchTaskConfigurationDraft?> showTaskFolderConfigurationEditor({
   required BuildContext context,
   required MediaTask task,
   required ImageProvider? thumbnail,
@@ -178,8 +183,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                 final phdr = preserveHdr;
                 return WorkbenchVideoConfigPanel(
                   selectedOutputFormat: state.outputFormat,
-                  selectedVideoCodec:
-                      phdr ? VideoCodec.hevc : state.videoCodec,
+                  selectedVideoCodec: phdr ? VideoCodec.hevc : state.videoCodec,
                   selectedEncoderBackend: state.encoderBackend,
                   selectedResolutionPreset: state.resolutionPreset,
                   availableEncoderBackends:
@@ -196,8 +200,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                       value,
                       state.videoCodec,
                     )) {
-                      final newCodec =
-                          VideoOutputCompatibility.defaultCodecFor(value);
+                      final newCodec = VideoOutputCompatibility.defaultCodecFor(
+                        value,
+                      );
                       next = next.copyWith(
                         videoCodec: newCodec,
                         encoderBackend: EncoderBackend.auto,
@@ -236,9 +241,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     updateState(
                       state.copyWith(
                         encoderBackend: value,
-                        config: state.config.copyWith(
-                          encoderBackend: value,
-                        ),
+                        config: state.config.copyWith(encoderBackend: value),
                       ),
                     );
                   },
@@ -246,44 +249,32 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     updateState(
                       state.copyWith(
                         resolutionPreset: value,
-                        config: state.config.copyWith(
-                          resolutionPreset: value,
-                        ),
+                        config: state.config.copyWith(resolutionPreset: value),
                       ),
                     );
                   },
                   sourceOutputFormat: sourceFmt?.toVideoOutputFormat(),
                   keepOriginalOutputFormat:
                       videoConfig.keepOriginalOutputFormat,
-                  showPreserveHdrOption:
-                      task.analysisResult?.isHdr == true,
+                  showPreserveHdrOption: task.analysisResult?.isHdr == true,
                   preserveHdr: phdr,
                   onPreserveHdrChanged: (value) {
                     updateState(
-                      state.withPreserveHdrChanged(
-                        task: task,
-                        value: value,
-                      ),
+                      state.withPreserveHdrChanged(task: task, value: value),
                     );
                   },
                   preserveMetadata: videoConfig.preserveMetadata,
                   onPreserveMetadataChanged: (value) {
                     updateState(
-                      state.withPreserveMetadata(
-                        task: task,
-                        value: value,
-                      ),
+                      state.withPreserveMetadata(task: task, value: value),
                     );
                   },
                   videoCodecValues: phdr
                       ? const [VideoCodec.hevc]
-                      : VideoOutputCompatibility.codecsFor(
-                          state.outputFormat,
-                        ),
+                      : VideoOutputCompatibility.codecsFor(state.outputFormat),
                   videoCodecEnabled: !phdr,
                   showEncoderBackend: false,
-                  resolutionValues:
-                      state.availableResolutionPresets(task),
+                  resolutionValues: state.availableResolutionPresets(task),
                   padding: EdgeInsets.zero,
                   itemSpacing: 8,
                   dropdownHeight: _taskConfigFieldHeight,
@@ -308,9 +299,11 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                   showLosslessCompression:
                       state.purpose == TaskPurpose.compression,
                   sourceOutputFormat: sourceFmt,
-                  sourceWidth: task.analysisResult?.imageWidth ??
+                  sourceWidth:
+                      task.analysisResult?.imageWidth ??
                       task.analysisResult?.videoWidth,
-                  sourceHeight: task.analysisResult?.imageHeight ??
+                  sourceHeight:
+                      task.analysisResult?.imageHeight ??
                       task.analysisResult?.videoHeight,
                   padding: EdgeInsets.zero,
                   itemSpacing: 8,
@@ -357,20 +350,15 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                   selectedTargetSizeRatio: state.targetSizeRatio,
                   selectedVideoCodec: state.videoCodec,
                   preserveHdr: preserveHdr,
-                  estimatedSizeForPreset: (preset) =>
-                      state.estimatedOutputSizeForPreset(
-                        task: task,
-                        preset: preset,
-                      ),
+                  estimatedSizeForPreset: (preset) => state
+                      .estimatedOutputSizeForPreset(task: task, preset: preset),
                   onCompressionModeChanged: (value) {
-                    if (preserveHdr &&
-                        value == CompressionMode.targetSize) {
+                    if (preserveHdr && value == CompressionMode.targetSize) {
                       return;
                     }
-                    final newMode =
-                        value == CompressionMode.targetSize
-                            ? CompressionMode.targetSize
-                            : CompressionMode.preset;
+                    final newMode = value == CompressionMode.targetSize
+                        ? CompressionMode.targetSize
+                        : CompressionMode.preset;
                     final newRatio =
                         WorkbenchQualityPolicy.normalizeTargetSizeRatio(
                           state.targetSizeRatio,
@@ -379,9 +367,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                       state.copyWith(
                         compressionMode: newMode,
                         targetSizeRatio: newRatio,
-                        config: state.config.copyWith(
-                          compressionMode: newMode,
-                        ),
+                        config: state.config.copyWith(compressionMode: newMode),
                       ),
                     );
                   },
@@ -415,8 +401,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                           value,
                           state.videoCodec,
                         )) {
-                      final newCodec =
-                          VideoOutputCompatibility.defaultCodecFor(value);
+                      final newCodec = VideoOutputCompatibility.defaultCodecFor(
+                        value,
+                      );
                       next = next.copyWith(
                         videoCodec: newCodec,
                         encoderBackend: EncoderBackend.auto,
@@ -455,9 +442,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     updateState(
                       state.copyWith(
                         encoderBackend: value,
-                        config: state.config.copyWith(
-                          encoderBackend: value,
-                        ),
+                        config: state.config.copyWith(encoderBackend: value),
                       ),
                     );
                   },
@@ -513,8 +498,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
           {
             final videoConfig =
                 state.config.video ?? VideoProcessingConfig.initial();
-            final audioStreams =
-                task.analysisResult?.audioStreams ?? const [];
+            final audioStreams = task.analysisResult?.audioStreams ?? const [];
 
             advancedContent = Column(
               mainAxisSize: MainAxisSize.min,
@@ -547,10 +531,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                     fontSize: 12,
                     onChanged: (value) {
                       updateState(
-                        state.withPreserveMetadata(
-                          task: task,
-                          value: value,
-                        ),
+                        state.withPreserveMetadata(task: task, value: value),
                       );
                     },
                   ),
@@ -574,9 +555,7 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                       updateState(
                         state.copyWith(
                           config: state.config.copyWith(
-                            video: videoConfig.copyWith(
-                              twoPassMode: value,
-                            ),
+                            video: videoConfig.copyWith(twoPassMode: value),
                           ),
                         ),
                       );
@@ -617,8 +596,9 @@ Future<WorkbenchTaskConfigurationDraft?> showWorkbenchTaskConfigurationEditor({
                           state.copyWith(
                             config: state.config.copyWith(
                               video: videoConfig.copyWith(
-                                selectedAudioStreamIndex:
-                                    value == -1 ? null : value,
+                                selectedAudioStreamIndex: value == -1
+                                    ? null
+                                    : value,
                               ),
                             ),
                           ),

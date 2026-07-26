@@ -6,6 +6,7 @@ import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
+import 'package:framelean/app/providers/engine_provider.dart';
 import 'package:framelean/app/providers/ffmpeg_planning_provider.dart';
 import 'package:framelean/app/providers/input_runtime_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
@@ -80,23 +81,20 @@ final mediaResourceMonitorProvider = Provider<MediaResourceMonitor>((ref) {
   return MediaResourceMonitor();
 });
 
-/// 全局媒体分析队列。所有媒体分析入口都必须通过此队列调度，
-/// 确保任意时刻活跃 FFprobe 进程数 <= 1。
+/// Client-side analysis submission coordinator. FEngine owns the external
+/// work queue and FLL owns the actual analysis.
 final mediaAnalysisQueueProvider = Provider<MediaAnalysisQueue>((ref) {
   final queue = MediaAnalysisQueue(
     analyzeTask: (taskId) async {
       final repository = ref.read(mediaTaskRepositoryProvider);
-      final analyzer = ref.read(mediaAnalyzerProvider);
-      final sourceFileChecker = ref.read(sourceFileCheckerProvider);
-      final mediaInputPreparer = ref.read(mediaInputPreparerProvider);
+      final projectionRepository = ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      );
 
       final useCase = AnalyzeMediaTaskUseCase(
         repository: repository,
-        analyzer: analyzer,
-        sourceFileChecker: sourceFileChecker,
-        readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
-        refreshRuntime: () => ref.refresh(ffmpegRuntimeProvider.future),
-        mediaInputPreparer: mediaInputPreparer,
+        analysisProjectionRepository: projectionRepository,
+        readEngineGateway: () => ref.read(engineGatewayProvider.future),
       );
 
       return useCase.call(taskId);
@@ -138,6 +136,42 @@ final ffmpegTaskQueueRunnerProvider = Provider<FfmpegTaskQueueRunner>((ref) {
   });
   return runner;
 });
+
+/// Engine execution submission is a process-boundary operation. The provider
+/// keeps one use-case instance so duplicate submissions for the same task can
+/// be rejected while a request is in flight.
+final submitEngineExecutionUseCaseProvider =
+    Provider<SubmitEngineExecutionUseCase>((ref) {
+      return SubmitEngineExecutionUseCase(
+        repository: ref.read(mediaTaskRepositoryProvider),
+        analysisProjectionRepository: ref.read(
+          engineAnalysisProjectionRepositoryProvider,
+        ),
+        settingsRepository: ref.read(appSettingsRepositoryProvider),
+        readEngineGateway: () => ref.read(engineGatewayProvider.future),
+        onTaskFailed: (task) async {
+          await ref.read(appNotificationManagerProvider).notifyTaskFailed(task);
+        },
+      );
+    });
+
+/// Routes all Client execution requests to the FEngine process boundary.
+///
+/// The legacy runner provider remains available to migration-only controls
+/// (pause, cancellation and cleanup) until those surfaces move to Engine APIs.
+/// It is intentionally not injected into the execution coordinator.
+final mediaTaskExecutionCoordinatorProvider =
+    Provider<MediaTaskExecutionCoordinator>((ref) {
+      return MediaTaskExecutionCoordinator(
+        repository: ref.read(mediaTaskRepositoryProvider),
+        analysisProjectionRepository: ref.read(
+          engineAnalysisProjectionRepositoryProvider,
+        ),
+        taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+        submitEngineExecution: ref.read(submitEngineExecutionUseCaseProvider),
+        readEngineGateway: () => ref.read(engineGatewayProvider.future),
+      );
+    });
 
 Directory ffmpegExecutionLogsDirectory() {
   return Directory(path.join(Directory.systemTemp.path, ffmpegLogsSubDir));

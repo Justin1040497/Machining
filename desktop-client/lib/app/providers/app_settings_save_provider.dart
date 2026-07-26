@@ -12,7 +12,6 @@ final appSettingsSaveCoordinatorProvider = Provider<AppSettingsSaveCoordinator>(
     return AppSettingsSaveCoordinator(
       saveSettingsUseCase: SaveAppSettingsUseCase(
         repository: ref.watch(appSettingsRepositoryProvider),
-        ffmpegLocator: ref.watch(ffmpegLocatorProvider),
       ),
       notificationManager: ref.watch(appNotificationManagerProvider),
       setThemeMode: (mode) {

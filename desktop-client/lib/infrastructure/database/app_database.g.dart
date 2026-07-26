@@ -7096,6 +7096,1687 @@ class AppNotificationRowsCompanion extends UpdateCompanion<AppNotificationRow> {
   }
 }
 
+class $EngineAnalysisProjectionRowsTable extends EngineAnalysisProjectionRows
+    with
+        TableInfo<
+          $EngineAnalysisProjectionRowsTable,
+          EngineAnalysisProjectionRow
+        > {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EngineAnalysisProjectionRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<String> taskId = GeneratedColumn<String>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _clientFileIdMeta = const VerificationMeta(
+    'clientFileId',
+  );
+  @override
+  late final GeneratedColumn<String> clientFileId = GeneratedColumn<String>(
+    'client_file_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _engineSessionIdMeta = const VerificationMeta(
+    'engineSessionId',
+  );
+  @override
+  late final GeneratedColumn<String> engineSessionId = GeneratedColumn<String>(
+    'engine_session_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _analysisIdMeta = const VerificationMeta(
+    'analysisId',
+  );
+  @override
+  late final GeneratedColumn<String> analysisId = GeneratedColumn<String>(
+    'analysis_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _revisionMeta = const VerificationMeta(
+    'revision',
+  );
+  @override
+  late final GeneratedColumn<int> revision = GeneratedColumn<int>(
+    'revision',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _schemaVersionMeta = const VerificationMeta(
+    'schemaVersion',
+  );
+  @override
+  late final GeneratedColumn<String> schemaVersion = GeneratedColumn<String>(
+    'schema_version',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _snapshotJsonMeta = const VerificationMeta(
+    'snapshotJson',
+  );
+  @override
+  late final GeneratedColumn<String> snapshotJson = GeneratedColumn<String>(
+    'snapshot_json',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _validityStatusMeta = const VerificationMeta(
+    'validityStatus',
+  );
+  @override
+  late final GeneratedColumn<String> validityStatus = GeneratedColumn<String>(
+    'validity_status',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisWorkIdMeta = const VerificationMeta(
+    'analysisWorkId',
+  );
+  @override
+  late final GeneratedColumn<String> analysisWorkId = GeneratedColumn<String>(
+    'analysis_work_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisRequestIdMeta = const VerificationMeta(
+    'analysisRequestId',
+  );
+  @override
+  late final GeneratedColumn<String> analysisRequestId =
+      GeneratedColumn<String>(
+        'analysis_request_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _analysisQueuePositionMeta =
+      const VerificationMeta('analysisQueuePosition');
+  @override
+  late final GeneratedColumn<int> analysisQueuePosition = GeneratedColumn<int>(
+    'analysis_queue_position',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _analysisQueueRevisionMeta =
+      const VerificationMeta('analysisQueueRevision');
+  @override
+  late final GeneratedColumn<int> analysisQueueRevision = GeneratedColumn<int>(
+    'analysis_queue_revision',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _executionIdMeta = const VerificationMeta(
+    'executionId',
+  );
+  @override
+  late final GeneratedColumn<String> executionId = GeneratedColumn<String>(
+    'execution_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _executionRequestIdMeta =
+      const VerificationMeta('executionRequestId');
+  @override
+  late final GeneratedColumn<String> executionRequestId =
+      GeneratedColumn<String>(
+        'execution_request_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _executionQueuePositionMeta =
+      const VerificationMeta('executionQueuePosition');
+  @override
+  late final GeneratedColumn<int> executionQueuePosition = GeneratedColumn<int>(
+    'execution_queue_position',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _executionQueueRevisionMeta =
+      const VerificationMeta('executionQueueRevision');
+  @override
+  late final GeneratedColumn<int> executionQueueRevision = GeneratedColumn<int>(
+    'execution_queue_revision',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _executionStateMeta = const VerificationMeta(
+    'executionState',
+  );
+  @override
+  late final GeneratedColumn<String> executionState = GeneratedColumn<String>(
+    'execution_state',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _pauseReasonMeta = const VerificationMeta(
+    'pauseReason',
+  );
+  @override
+  late final GeneratedColumn<String> pauseReason = GeneratedColumn<String>(
+    'pause_reason',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _preemptedByExecutionIdMeta =
+      const VerificationMeta('preemptedByExecutionId');
+  @override
+  late final GeneratedColumn<String> preemptedByExecutionId =
+      GeneratedColumn<String>(
+        'preempted_by_execution_id',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _resumeDepthMeta = const VerificationMeta(
+    'resumeDepth',
+  );
+  @override
+  late final GeneratedColumn<int> resumeDepth = GeneratedColumn<int>(
+    'resume_depth',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _mediaTimeUsMeta = const VerificationMeta(
+    'mediaTimeUs',
+  );
+  @override
+  late final GeneratedColumn<int> mediaTimeUs = GeneratedColumn<int>(
+    'media_time_us',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _processedBytesMeta = const VerificationMeta(
+    'processedBytes',
+  );
+  @override
+  late final GeneratedColumn<int> processedBytes = GeneratedColumn<int>(
+    'processed_bytes',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _lastEventSequenceMeta = const VerificationMeta(
+    'lastEventSequence',
+  );
+  @override
+  late final GeneratedColumn<int> lastEventSequence = GeneratedColumn<int>(
+    'last_event_sequence',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<int> updatedAt = GeneratedColumn<int>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    taskId,
+    clientFileId,
+    engineSessionId,
+    analysisId,
+    revision,
+    schemaVersion,
+    snapshotJson,
+    validityStatus,
+    analysisWorkId,
+    analysisRequestId,
+    analysisQueuePosition,
+    analysisQueueRevision,
+    executionId,
+    executionRequestId,
+    executionQueuePosition,
+    executionQueueRevision,
+    executionState,
+    pauseReason,
+    preemptedByExecutionId,
+    resumeDepth,
+    mediaTimeUs,
+    processedBytes,
+    lastEventSequence,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'engine_analysis_projections';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<EngineAnalysisProjectionRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('client_file_id')) {
+      context.handle(
+        _clientFileIdMeta,
+        clientFileId.isAcceptableOrUnknown(
+          data['client_file_id']!,
+          _clientFileIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_clientFileIdMeta);
+    }
+    if (data.containsKey('engine_session_id')) {
+      context.handle(
+        _engineSessionIdMeta,
+        engineSessionId.isAcceptableOrUnknown(
+          data['engine_session_id']!,
+          _engineSessionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_engineSessionIdMeta);
+    }
+    if (data.containsKey('analysis_id')) {
+      context.handle(
+        _analysisIdMeta,
+        analysisId.isAcceptableOrUnknown(data['analysis_id']!, _analysisIdMeta),
+      );
+    }
+    if (data.containsKey('revision')) {
+      context.handle(
+        _revisionMeta,
+        revision.isAcceptableOrUnknown(data['revision']!, _revisionMeta),
+      );
+    }
+    if (data.containsKey('schema_version')) {
+      context.handle(
+        _schemaVersionMeta,
+        schemaVersion.isAcceptableOrUnknown(
+          data['schema_version']!,
+          _schemaVersionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('snapshot_json')) {
+      context.handle(
+        _snapshotJsonMeta,
+        snapshotJson.isAcceptableOrUnknown(
+          data['snapshot_json']!,
+          _snapshotJsonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('validity_status')) {
+      context.handle(
+        _validityStatusMeta,
+        validityStatus.isAcceptableOrUnknown(
+          data['validity_status']!,
+          _validityStatusMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_work_id')) {
+      context.handle(
+        _analysisWorkIdMeta,
+        analysisWorkId.isAcceptableOrUnknown(
+          data['analysis_work_id']!,
+          _analysisWorkIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_request_id')) {
+      context.handle(
+        _analysisRequestIdMeta,
+        analysisRequestId.isAcceptableOrUnknown(
+          data['analysis_request_id']!,
+          _analysisRequestIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_queue_position')) {
+      context.handle(
+        _analysisQueuePositionMeta,
+        analysisQueuePosition.isAcceptableOrUnknown(
+          data['analysis_queue_position']!,
+          _analysisQueuePositionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('analysis_queue_revision')) {
+      context.handle(
+        _analysisQueueRevisionMeta,
+        analysisQueueRevision.isAcceptableOrUnknown(
+          data['analysis_queue_revision']!,
+          _analysisQueueRevisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('execution_id')) {
+      context.handle(
+        _executionIdMeta,
+        executionId.isAcceptableOrUnknown(
+          data['execution_id']!,
+          _executionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('execution_request_id')) {
+      context.handle(
+        _executionRequestIdMeta,
+        executionRequestId.isAcceptableOrUnknown(
+          data['execution_request_id']!,
+          _executionRequestIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('execution_queue_position')) {
+      context.handle(
+        _executionQueuePositionMeta,
+        executionQueuePosition.isAcceptableOrUnknown(
+          data['execution_queue_position']!,
+          _executionQueuePositionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('execution_queue_revision')) {
+      context.handle(
+        _executionQueueRevisionMeta,
+        executionQueueRevision.isAcceptableOrUnknown(
+          data['execution_queue_revision']!,
+          _executionQueueRevisionMeta,
+        ),
+      );
+    }
+    if (data.containsKey('execution_state')) {
+      context.handle(
+        _executionStateMeta,
+        executionState.isAcceptableOrUnknown(
+          data['execution_state']!,
+          _executionStateMeta,
+        ),
+      );
+    }
+    if (data.containsKey('pause_reason')) {
+      context.handle(
+        _pauseReasonMeta,
+        pauseReason.isAcceptableOrUnknown(
+          data['pause_reason']!,
+          _pauseReasonMeta,
+        ),
+      );
+    }
+    if (data.containsKey('preempted_by_execution_id')) {
+      context.handle(
+        _preemptedByExecutionIdMeta,
+        preemptedByExecutionId.isAcceptableOrUnknown(
+          data['preempted_by_execution_id']!,
+          _preemptedByExecutionIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('resume_depth')) {
+      context.handle(
+        _resumeDepthMeta,
+        resumeDepth.isAcceptableOrUnknown(
+          data['resume_depth']!,
+          _resumeDepthMeta,
+        ),
+      );
+    }
+    if (data.containsKey('media_time_us')) {
+      context.handle(
+        _mediaTimeUsMeta,
+        mediaTimeUs.isAcceptableOrUnknown(
+          data['media_time_us']!,
+          _mediaTimeUsMeta,
+        ),
+      );
+    }
+    if (data.containsKey('processed_bytes')) {
+      context.handle(
+        _processedBytesMeta,
+        processedBytes.isAcceptableOrUnknown(
+          data['processed_bytes']!,
+          _processedBytesMeta,
+        ),
+      );
+    }
+    if (data.containsKey('last_event_sequence')) {
+      context.handle(
+        _lastEventSequenceMeta,
+        lastEventSequence.isAcceptableOrUnknown(
+          data['last_event_sequence']!,
+          _lastEventSequenceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {taskId};
+  @override
+  EngineAnalysisProjectionRow map(
+    Map<String, dynamic> data, {
+    String? tablePrefix,
+  }) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EngineAnalysisProjectionRow(
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}task_id'],
+      )!,
+      clientFileId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}client_file_id'],
+      )!,
+      engineSessionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}engine_session_id'],
+      )!,
+      analysisId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_id'],
+      ),
+      revision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}revision'],
+      ),
+      schemaVersion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}schema_version'],
+      ),
+      snapshotJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}snapshot_json'],
+      ),
+      validityStatus: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}validity_status'],
+      ),
+      analysisWorkId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_work_id'],
+      ),
+      analysisRequestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}analysis_request_id'],
+      ),
+      analysisQueuePosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_queue_position'],
+      ),
+      analysisQueueRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}analysis_queue_revision'],
+      ),
+      executionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}execution_id'],
+      ),
+      executionRequestId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}execution_request_id'],
+      ),
+      executionQueuePosition: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}execution_queue_position'],
+      ),
+      executionQueueRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}execution_queue_revision'],
+      ),
+      executionState: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}execution_state'],
+      ),
+      pauseReason: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}pause_reason'],
+      ),
+      preemptedByExecutionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}preempted_by_execution_id'],
+      ),
+      resumeDepth: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}resume_depth'],
+      ),
+      mediaTimeUs: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}media_time_us'],
+      ),
+      processedBytes: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}processed_bytes'],
+      ),
+      lastEventSequence: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}last_event_sequence'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $EngineAnalysisProjectionRowsTable createAlias(String alias) {
+    return $EngineAnalysisProjectionRowsTable(attachedDatabase, alias);
+  }
+}
+
+class EngineAnalysisProjectionRow extends DataClass
+    implements Insertable<EngineAnalysisProjectionRow> {
+  final String taskId;
+  final String clientFileId;
+  final String engineSessionId;
+  final String? analysisId;
+  final int? revision;
+  final String? schemaVersion;
+  final String? snapshotJson;
+  final String? validityStatus;
+  final String? analysisWorkId;
+  final String? analysisRequestId;
+  final int? analysisQueuePosition;
+  final int? analysisQueueRevision;
+  final String? executionId;
+  final String? executionRequestId;
+  final int? executionQueuePosition;
+  final int? executionQueueRevision;
+  final String? executionState;
+  final String? pauseReason;
+  final String? preemptedByExecutionId;
+  final int? resumeDepth;
+  final int? mediaTimeUs;
+  final int? processedBytes;
+  final int lastEventSequence;
+  final int updatedAt;
+  const EngineAnalysisProjectionRow({
+    required this.taskId,
+    required this.clientFileId,
+    required this.engineSessionId,
+    this.analysisId,
+    this.revision,
+    this.schemaVersion,
+    this.snapshotJson,
+    this.validityStatus,
+    this.analysisWorkId,
+    this.analysisRequestId,
+    this.analysisQueuePosition,
+    this.analysisQueueRevision,
+    this.executionId,
+    this.executionRequestId,
+    this.executionQueuePosition,
+    this.executionQueueRevision,
+    this.executionState,
+    this.pauseReason,
+    this.preemptedByExecutionId,
+    this.resumeDepth,
+    this.mediaTimeUs,
+    this.processedBytes,
+    required this.lastEventSequence,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['task_id'] = Variable<String>(taskId);
+    map['client_file_id'] = Variable<String>(clientFileId);
+    map['engine_session_id'] = Variable<String>(engineSessionId);
+    if (!nullToAbsent || analysisId != null) {
+      map['analysis_id'] = Variable<String>(analysisId);
+    }
+    if (!nullToAbsent || revision != null) {
+      map['revision'] = Variable<int>(revision);
+    }
+    if (!nullToAbsent || schemaVersion != null) {
+      map['schema_version'] = Variable<String>(schemaVersion);
+    }
+    if (!nullToAbsent || snapshotJson != null) {
+      map['snapshot_json'] = Variable<String>(snapshotJson);
+    }
+    if (!nullToAbsent || validityStatus != null) {
+      map['validity_status'] = Variable<String>(validityStatus);
+    }
+    if (!nullToAbsent || analysisWorkId != null) {
+      map['analysis_work_id'] = Variable<String>(analysisWorkId);
+    }
+    if (!nullToAbsent || analysisRequestId != null) {
+      map['analysis_request_id'] = Variable<String>(analysisRequestId);
+    }
+    if (!nullToAbsent || analysisQueuePosition != null) {
+      map['analysis_queue_position'] = Variable<int>(analysisQueuePosition);
+    }
+    if (!nullToAbsent || analysisQueueRevision != null) {
+      map['analysis_queue_revision'] = Variable<int>(analysisQueueRevision);
+    }
+    if (!nullToAbsent || executionId != null) {
+      map['execution_id'] = Variable<String>(executionId);
+    }
+    if (!nullToAbsent || executionRequestId != null) {
+      map['execution_request_id'] = Variable<String>(executionRequestId);
+    }
+    if (!nullToAbsent || executionQueuePosition != null) {
+      map['execution_queue_position'] = Variable<int>(executionQueuePosition);
+    }
+    if (!nullToAbsent || executionQueueRevision != null) {
+      map['execution_queue_revision'] = Variable<int>(executionQueueRevision);
+    }
+    if (!nullToAbsent || executionState != null) {
+      map['execution_state'] = Variable<String>(executionState);
+    }
+    if (!nullToAbsent || pauseReason != null) {
+      map['pause_reason'] = Variable<String>(pauseReason);
+    }
+    if (!nullToAbsent || preemptedByExecutionId != null) {
+      map['preempted_by_execution_id'] = Variable<String>(
+        preemptedByExecutionId,
+      );
+    }
+    if (!nullToAbsent || resumeDepth != null) {
+      map['resume_depth'] = Variable<int>(resumeDepth);
+    }
+    if (!nullToAbsent || mediaTimeUs != null) {
+      map['media_time_us'] = Variable<int>(mediaTimeUs);
+    }
+    if (!nullToAbsent || processedBytes != null) {
+      map['processed_bytes'] = Variable<int>(processedBytes);
+    }
+    map['last_event_sequence'] = Variable<int>(lastEventSequence);
+    map['updated_at'] = Variable<int>(updatedAt);
+    return map;
+  }
+
+  EngineAnalysisProjectionRowsCompanion toCompanion(bool nullToAbsent) {
+    return EngineAnalysisProjectionRowsCompanion(
+      taskId: Value(taskId),
+      clientFileId: Value(clientFileId),
+      engineSessionId: Value(engineSessionId),
+      analysisId: analysisId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisId),
+      revision: revision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(revision),
+      schemaVersion: schemaVersion == null && nullToAbsent
+          ? const Value.absent()
+          : Value(schemaVersion),
+      snapshotJson: snapshotJson == null && nullToAbsent
+          ? const Value.absent()
+          : Value(snapshotJson),
+      validityStatus: validityStatus == null && nullToAbsent
+          ? const Value.absent()
+          : Value(validityStatus),
+      analysisWorkId: analysisWorkId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisWorkId),
+      analysisRequestId: analysisRequestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisRequestId),
+      analysisQueuePosition: analysisQueuePosition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisQueuePosition),
+      analysisQueueRevision: analysisQueueRevision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(analysisQueueRevision),
+      executionId: executionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(executionId),
+      executionRequestId: executionRequestId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(executionRequestId),
+      executionQueuePosition: executionQueuePosition == null && nullToAbsent
+          ? const Value.absent()
+          : Value(executionQueuePosition),
+      executionQueueRevision: executionQueueRevision == null && nullToAbsent
+          ? const Value.absent()
+          : Value(executionQueueRevision),
+      executionState: executionState == null && nullToAbsent
+          ? const Value.absent()
+          : Value(executionState),
+      pauseReason: pauseReason == null && nullToAbsent
+          ? const Value.absent()
+          : Value(pauseReason),
+      preemptedByExecutionId: preemptedByExecutionId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(preemptedByExecutionId),
+      resumeDepth: resumeDepth == null && nullToAbsent
+          ? const Value.absent()
+          : Value(resumeDepth),
+      mediaTimeUs: mediaTimeUs == null && nullToAbsent
+          ? const Value.absent()
+          : Value(mediaTimeUs),
+      processedBytes: processedBytes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(processedBytes),
+      lastEventSequence: Value(lastEventSequence),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory EngineAnalysisProjectionRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EngineAnalysisProjectionRow(
+      taskId: serializer.fromJson<String>(json['taskId']),
+      clientFileId: serializer.fromJson<String>(json['clientFileId']),
+      engineSessionId: serializer.fromJson<String>(json['engineSessionId']),
+      analysisId: serializer.fromJson<String?>(json['analysisId']),
+      revision: serializer.fromJson<int?>(json['revision']),
+      schemaVersion: serializer.fromJson<String?>(json['schemaVersion']),
+      snapshotJson: serializer.fromJson<String?>(json['snapshotJson']),
+      validityStatus: serializer.fromJson<String?>(json['validityStatus']),
+      analysisWorkId: serializer.fromJson<String?>(json['analysisWorkId']),
+      analysisRequestId: serializer.fromJson<String?>(
+        json['analysisRequestId'],
+      ),
+      analysisQueuePosition: serializer.fromJson<int?>(
+        json['analysisQueuePosition'],
+      ),
+      analysisQueueRevision: serializer.fromJson<int?>(
+        json['analysisQueueRevision'],
+      ),
+      executionId: serializer.fromJson<String?>(json['executionId']),
+      executionRequestId: serializer.fromJson<String?>(
+        json['executionRequestId'],
+      ),
+      executionQueuePosition: serializer.fromJson<int?>(
+        json['executionQueuePosition'],
+      ),
+      executionQueueRevision: serializer.fromJson<int?>(
+        json['executionQueueRevision'],
+      ),
+      executionState: serializer.fromJson<String?>(json['executionState']),
+      pauseReason: serializer.fromJson<String?>(json['pauseReason']),
+      preemptedByExecutionId: serializer.fromJson<String?>(
+        json['preemptedByExecutionId'],
+      ),
+      resumeDepth: serializer.fromJson<int?>(json['resumeDepth']),
+      mediaTimeUs: serializer.fromJson<int?>(json['mediaTimeUs']),
+      processedBytes: serializer.fromJson<int?>(json['processedBytes']),
+      lastEventSequence: serializer.fromJson<int>(json['lastEventSequence']),
+      updatedAt: serializer.fromJson<int>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'taskId': serializer.toJson<String>(taskId),
+      'clientFileId': serializer.toJson<String>(clientFileId),
+      'engineSessionId': serializer.toJson<String>(engineSessionId),
+      'analysisId': serializer.toJson<String?>(analysisId),
+      'revision': serializer.toJson<int?>(revision),
+      'schemaVersion': serializer.toJson<String?>(schemaVersion),
+      'snapshotJson': serializer.toJson<String?>(snapshotJson),
+      'validityStatus': serializer.toJson<String?>(validityStatus),
+      'analysisWorkId': serializer.toJson<String?>(analysisWorkId),
+      'analysisRequestId': serializer.toJson<String?>(analysisRequestId),
+      'analysisQueuePosition': serializer.toJson<int?>(analysisQueuePosition),
+      'analysisQueueRevision': serializer.toJson<int?>(analysisQueueRevision),
+      'executionId': serializer.toJson<String?>(executionId),
+      'executionRequestId': serializer.toJson<String?>(executionRequestId),
+      'executionQueuePosition': serializer.toJson<int?>(executionQueuePosition),
+      'executionQueueRevision': serializer.toJson<int?>(executionQueueRevision),
+      'executionState': serializer.toJson<String?>(executionState),
+      'pauseReason': serializer.toJson<String?>(pauseReason),
+      'preemptedByExecutionId': serializer.toJson<String?>(
+        preemptedByExecutionId,
+      ),
+      'resumeDepth': serializer.toJson<int?>(resumeDepth),
+      'mediaTimeUs': serializer.toJson<int?>(mediaTimeUs),
+      'processedBytes': serializer.toJson<int?>(processedBytes),
+      'lastEventSequence': serializer.toJson<int>(lastEventSequence),
+      'updatedAt': serializer.toJson<int>(updatedAt),
+    };
+  }
+
+  EngineAnalysisProjectionRow copyWith({
+    String? taskId,
+    String? clientFileId,
+    String? engineSessionId,
+    Value<String?> analysisId = const Value.absent(),
+    Value<int?> revision = const Value.absent(),
+    Value<String?> schemaVersion = const Value.absent(),
+    Value<String?> snapshotJson = const Value.absent(),
+    Value<String?> validityStatus = const Value.absent(),
+    Value<String?> analysisWorkId = const Value.absent(),
+    Value<String?> analysisRequestId = const Value.absent(),
+    Value<int?> analysisQueuePosition = const Value.absent(),
+    Value<int?> analysisQueueRevision = const Value.absent(),
+    Value<String?> executionId = const Value.absent(),
+    Value<String?> executionRequestId = const Value.absent(),
+    Value<int?> executionQueuePosition = const Value.absent(),
+    Value<int?> executionQueueRevision = const Value.absent(),
+    Value<String?> executionState = const Value.absent(),
+    Value<String?> pauseReason = const Value.absent(),
+    Value<String?> preemptedByExecutionId = const Value.absent(),
+    Value<int?> resumeDepth = const Value.absent(),
+    Value<int?> mediaTimeUs = const Value.absent(),
+    Value<int?> processedBytes = const Value.absent(),
+    int? lastEventSequence,
+    int? updatedAt,
+  }) => EngineAnalysisProjectionRow(
+    taskId: taskId ?? this.taskId,
+    clientFileId: clientFileId ?? this.clientFileId,
+    engineSessionId: engineSessionId ?? this.engineSessionId,
+    analysisId: analysisId.present ? analysisId.value : this.analysisId,
+    revision: revision.present ? revision.value : this.revision,
+    schemaVersion: schemaVersion.present
+        ? schemaVersion.value
+        : this.schemaVersion,
+    snapshotJson: snapshotJson.present ? snapshotJson.value : this.snapshotJson,
+    validityStatus: validityStatus.present
+        ? validityStatus.value
+        : this.validityStatus,
+    analysisWorkId: analysisWorkId.present
+        ? analysisWorkId.value
+        : this.analysisWorkId,
+    analysisRequestId: analysisRequestId.present
+        ? analysisRequestId.value
+        : this.analysisRequestId,
+    analysisQueuePosition: analysisQueuePosition.present
+        ? analysisQueuePosition.value
+        : this.analysisQueuePosition,
+    analysisQueueRevision: analysisQueueRevision.present
+        ? analysisQueueRevision.value
+        : this.analysisQueueRevision,
+    executionId: executionId.present ? executionId.value : this.executionId,
+    executionRequestId: executionRequestId.present
+        ? executionRequestId.value
+        : this.executionRequestId,
+    executionQueuePosition: executionQueuePosition.present
+        ? executionQueuePosition.value
+        : this.executionQueuePosition,
+    executionQueueRevision: executionQueueRevision.present
+        ? executionQueueRevision.value
+        : this.executionQueueRevision,
+    executionState: executionState.present
+        ? executionState.value
+        : this.executionState,
+    pauseReason: pauseReason.present ? pauseReason.value : this.pauseReason,
+    preemptedByExecutionId: preemptedByExecutionId.present
+        ? preemptedByExecutionId.value
+        : this.preemptedByExecutionId,
+    resumeDepth: resumeDepth.present ? resumeDepth.value : this.resumeDepth,
+    mediaTimeUs: mediaTimeUs.present ? mediaTimeUs.value : this.mediaTimeUs,
+    processedBytes: processedBytes.present
+        ? processedBytes.value
+        : this.processedBytes,
+    lastEventSequence: lastEventSequence ?? this.lastEventSequence,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  EngineAnalysisProjectionRow copyWithCompanion(
+    EngineAnalysisProjectionRowsCompanion data,
+  ) {
+    return EngineAnalysisProjectionRow(
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      clientFileId: data.clientFileId.present
+          ? data.clientFileId.value
+          : this.clientFileId,
+      engineSessionId: data.engineSessionId.present
+          ? data.engineSessionId.value
+          : this.engineSessionId,
+      analysisId: data.analysisId.present
+          ? data.analysisId.value
+          : this.analysisId,
+      revision: data.revision.present ? data.revision.value : this.revision,
+      schemaVersion: data.schemaVersion.present
+          ? data.schemaVersion.value
+          : this.schemaVersion,
+      snapshotJson: data.snapshotJson.present
+          ? data.snapshotJson.value
+          : this.snapshotJson,
+      validityStatus: data.validityStatus.present
+          ? data.validityStatus.value
+          : this.validityStatus,
+      analysisWorkId: data.analysisWorkId.present
+          ? data.analysisWorkId.value
+          : this.analysisWorkId,
+      analysisRequestId: data.analysisRequestId.present
+          ? data.analysisRequestId.value
+          : this.analysisRequestId,
+      analysisQueuePosition: data.analysisQueuePosition.present
+          ? data.analysisQueuePosition.value
+          : this.analysisQueuePosition,
+      analysisQueueRevision: data.analysisQueueRevision.present
+          ? data.analysisQueueRevision.value
+          : this.analysisQueueRevision,
+      executionId: data.executionId.present
+          ? data.executionId.value
+          : this.executionId,
+      executionRequestId: data.executionRequestId.present
+          ? data.executionRequestId.value
+          : this.executionRequestId,
+      executionQueuePosition: data.executionQueuePosition.present
+          ? data.executionQueuePosition.value
+          : this.executionQueuePosition,
+      executionQueueRevision: data.executionQueueRevision.present
+          ? data.executionQueueRevision.value
+          : this.executionQueueRevision,
+      executionState: data.executionState.present
+          ? data.executionState.value
+          : this.executionState,
+      pauseReason: data.pauseReason.present
+          ? data.pauseReason.value
+          : this.pauseReason,
+      preemptedByExecutionId: data.preemptedByExecutionId.present
+          ? data.preemptedByExecutionId.value
+          : this.preemptedByExecutionId,
+      resumeDepth: data.resumeDepth.present
+          ? data.resumeDepth.value
+          : this.resumeDepth,
+      mediaTimeUs: data.mediaTimeUs.present
+          ? data.mediaTimeUs.value
+          : this.mediaTimeUs,
+      processedBytes: data.processedBytes.present
+          ? data.processedBytes.value
+          : this.processedBytes,
+      lastEventSequence: data.lastEventSequence.present
+          ? data.lastEventSequence.value
+          : this.lastEventSequence,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EngineAnalysisProjectionRow(')
+          ..write('taskId: $taskId, ')
+          ..write('clientFileId: $clientFileId, ')
+          ..write('engineSessionId: $engineSessionId, ')
+          ..write('analysisId: $analysisId, ')
+          ..write('revision: $revision, ')
+          ..write('schemaVersion: $schemaVersion, ')
+          ..write('snapshotJson: $snapshotJson, ')
+          ..write('validityStatus: $validityStatus, ')
+          ..write('analysisWorkId: $analysisWorkId, ')
+          ..write('analysisRequestId: $analysisRequestId, ')
+          ..write('analysisQueuePosition: $analysisQueuePosition, ')
+          ..write('analysisQueueRevision: $analysisQueueRevision, ')
+          ..write('executionId: $executionId, ')
+          ..write('executionRequestId: $executionRequestId, ')
+          ..write('executionQueuePosition: $executionQueuePosition, ')
+          ..write('executionQueueRevision: $executionQueueRevision, ')
+          ..write('executionState: $executionState, ')
+          ..write('pauseReason: $pauseReason, ')
+          ..write('preemptedByExecutionId: $preemptedByExecutionId, ')
+          ..write('resumeDepth: $resumeDepth, ')
+          ..write('mediaTimeUs: $mediaTimeUs, ')
+          ..write('processedBytes: $processedBytes, ')
+          ..write('lastEventSequence: $lastEventSequence, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hashAll([
+    taskId,
+    clientFileId,
+    engineSessionId,
+    analysisId,
+    revision,
+    schemaVersion,
+    snapshotJson,
+    validityStatus,
+    analysisWorkId,
+    analysisRequestId,
+    analysisQueuePosition,
+    analysisQueueRevision,
+    executionId,
+    executionRequestId,
+    executionQueuePosition,
+    executionQueueRevision,
+    executionState,
+    pauseReason,
+    preemptedByExecutionId,
+    resumeDepth,
+    mediaTimeUs,
+    processedBytes,
+    lastEventSequence,
+    updatedAt,
+  ]);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EngineAnalysisProjectionRow &&
+          other.taskId == this.taskId &&
+          other.clientFileId == this.clientFileId &&
+          other.engineSessionId == this.engineSessionId &&
+          other.analysisId == this.analysisId &&
+          other.revision == this.revision &&
+          other.schemaVersion == this.schemaVersion &&
+          other.snapshotJson == this.snapshotJson &&
+          other.validityStatus == this.validityStatus &&
+          other.analysisWorkId == this.analysisWorkId &&
+          other.analysisRequestId == this.analysisRequestId &&
+          other.analysisQueuePosition == this.analysisQueuePosition &&
+          other.analysisQueueRevision == this.analysisQueueRevision &&
+          other.executionId == this.executionId &&
+          other.executionRequestId == this.executionRequestId &&
+          other.executionQueuePosition == this.executionQueuePosition &&
+          other.executionQueueRevision == this.executionQueueRevision &&
+          other.executionState == this.executionState &&
+          other.pauseReason == this.pauseReason &&
+          other.preemptedByExecutionId == this.preemptedByExecutionId &&
+          other.resumeDepth == this.resumeDepth &&
+          other.mediaTimeUs == this.mediaTimeUs &&
+          other.processedBytes == this.processedBytes &&
+          other.lastEventSequence == this.lastEventSequence &&
+          other.updatedAt == this.updatedAt);
+}
+
+class EngineAnalysisProjectionRowsCompanion
+    extends UpdateCompanion<EngineAnalysisProjectionRow> {
+  final Value<String> taskId;
+  final Value<String> clientFileId;
+  final Value<String> engineSessionId;
+  final Value<String?> analysisId;
+  final Value<int?> revision;
+  final Value<String?> schemaVersion;
+  final Value<String?> snapshotJson;
+  final Value<String?> validityStatus;
+  final Value<String?> analysisWorkId;
+  final Value<String?> analysisRequestId;
+  final Value<int?> analysisQueuePosition;
+  final Value<int?> analysisQueueRevision;
+  final Value<String?> executionId;
+  final Value<String?> executionRequestId;
+  final Value<int?> executionQueuePosition;
+  final Value<int?> executionQueueRevision;
+  final Value<String?> executionState;
+  final Value<String?> pauseReason;
+  final Value<String?> preemptedByExecutionId;
+  final Value<int?> resumeDepth;
+  final Value<int?> mediaTimeUs;
+  final Value<int?> processedBytes;
+  final Value<int> lastEventSequence;
+  final Value<int> updatedAt;
+  final Value<int> rowid;
+  const EngineAnalysisProjectionRowsCompanion({
+    this.taskId = const Value.absent(),
+    this.clientFileId = const Value.absent(),
+    this.engineSessionId = const Value.absent(),
+    this.analysisId = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.schemaVersion = const Value.absent(),
+    this.snapshotJson = const Value.absent(),
+    this.validityStatus = const Value.absent(),
+    this.analysisWorkId = const Value.absent(),
+    this.analysisRequestId = const Value.absent(),
+    this.analysisQueuePosition = const Value.absent(),
+    this.analysisQueueRevision = const Value.absent(),
+    this.executionId = const Value.absent(),
+    this.executionRequestId = const Value.absent(),
+    this.executionQueuePosition = const Value.absent(),
+    this.executionQueueRevision = const Value.absent(),
+    this.executionState = const Value.absent(),
+    this.pauseReason = const Value.absent(),
+    this.preemptedByExecutionId = const Value.absent(),
+    this.resumeDepth = const Value.absent(),
+    this.mediaTimeUs = const Value.absent(),
+    this.processedBytes = const Value.absent(),
+    this.lastEventSequence = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  EngineAnalysisProjectionRowsCompanion.insert({
+    required String taskId,
+    required String clientFileId,
+    required String engineSessionId,
+    this.analysisId = const Value.absent(),
+    this.revision = const Value.absent(),
+    this.schemaVersion = const Value.absent(),
+    this.snapshotJson = const Value.absent(),
+    this.validityStatus = const Value.absent(),
+    this.analysisWorkId = const Value.absent(),
+    this.analysisRequestId = const Value.absent(),
+    this.analysisQueuePosition = const Value.absent(),
+    this.analysisQueueRevision = const Value.absent(),
+    this.executionId = const Value.absent(),
+    this.executionRequestId = const Value.absent(),
+    this.executionQueuePosition = const Value.absent(),
+    this.executionQueueRevision = const Value.absent(),
+    this.executionState = const Value.absent(),
+    this.pauseReason = const Value.absent(),
+    this.preemptedByExecutionId = const Value.absent(),
+    this.resumeDepth = const Value.absent(),
+    this.mediaTimeUs = const Value.absent(),
+    this.processedBytes = const Value.absent(),
+    this.lastEventSequence = const Value.absent(),
+    required int updatedAt,
+    this.rowid = const Value.absent(),
+  }) : taskId = Value(taskId),
+       clientFileId = Value(clientFileId),
+       engineSessionId = Value(engineSessionId),
+       updatedAt = Value(updatedAt);
+  static Insertable<EngineAnalysisProjectionRow> custom({
+    Expression<String>? taskId,
+    Expression<String>? clientFileId,
+    Expression<String>? engineSessionId,
+    Expression<String>? analysisId,
+    Expression<int>? revision,
+    Expression<String>? schemaVersion,
+    Expression<String>? snapshotJson,
+    Expression<String>? validityStatus,
+    Expression<String>? analysisWorkId,
+    Expression<String>? analysisRequestId,
+    Expression<int>? analysisQueuePosition,
+    Expression<int>? analysisQueueRevision,
+    Expression<String>? executionId,
+    Expression<String>? executionRequestId,
+    Expression<int>? executionQueuePosition,
+    Expression<int>? executionQueueRevision,
+    Expression<String>? executionState,
+    Expression<String>? pauseReason,
+    Expression<String>? preemptedByExecutionId,
+    Expression<int>? resumeDepth,
+    Expression<int>? mediaTimeUs,
+    Expression<int>? processedBytes,
+    Expression<int>? lastEventSequence,
+    Expression<int>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (taskId != null) 'task_id': taskId,
+      if (clientFileId != null) 'client_file_id': clientFileId,
+      if (engineSessionId != null) 'engine_session_id': engineSessionId,
+      if (analysisId != null) 'analysis_id': analysisId,
+      if (revision != null) 'revision': revision,
+      if (schemaVersion != null) 'schema_version': schemaVersion,
+      if (snapshotJson != null) 'snapshot_json': snapshotJson,
+      if (validityStatus != null) 'validity_status': validityStatus,
+      if (analysisWorkId != null) 'analysis_work_id': analysisWorkId,
+      if (analysisRequestId != null) 'analysis_request_id': analysisRequestId,
+      if (analysisQueuePosition != null)
+        'analysis_queue_position': analysisQueuePosition,
+      if (analysisQueueRevision != null)
+        'analysis_queue_revision': analysisQueueRevision,
+      if (executionId != null) 'execution_id': executionId,
+      if (executionRequestId != null)
+        'execution_request_id': executionRequestId,
+      if (executionQueuePosition != null)
+        'execution_queue_position': executionQueuePosition,
+      if (executionQueueRevision != null)
+        'execution_queue_revision': executionQueueRevision,
+      if (executionState != null) 'execution_state': executionState,
+      if (pauseReason != null) 'pause_reason': pauseReason,
+      if (preemptedByExecutionId != null)
+        'preempted_by_execution_id': preemptedByExecutionId,
+      if (resumeDepth != null) 'resume_depth': resumeDepth,
+      if (mediaTimeUs != null) 'media_time_us': mediaTimeUs,
+      if (processedBytes != null) 'processed_bytes': processedBytes,
+      if (lastEventSequence != null) 'last_event_sequence': lastEventSequence,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  EngineAnalysisProjectionRowsCompanion copyWith({
+    Value<String>? taskId,
+    Value<String>? clientFileId,
+    Value<String>? engineSessionId,
+    Value<String?>? analysisId,
+    Value<int?>? revision,
+    Value<String?>? schemaVersion,
+    Value<String?>? snapshotJson,
+    Value<String?>? validityStatus,
+    Value<String?>? analysisWorkId,
+    Value<String?>? analysisRequestId,
+    Value<int?>? analysisQueuePosition,
+    Value<int?>? analysisQueueRevision,
+    Value<String?>? executionId,
+    Value<String?>? executionRequestId,
+    Value<int?>? executionQueuePosition,
+    Value<int?>? executionQueueRevision,
+    Value<String?>? executionState,
+    Value<String?>? pauseReason,
+    Value<String?>? preemptedByExecutionId,
+    Value<int?>? resumeDepth,
+    Value<int?>? mediaTimeUs,
+    Value<int?>? processedBytes,
+    Value<int>? lastEventSequence,
+    Value<int>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return EngineAnalysisProjectionRowsCompanion(
+      taskId: taskId ?? this.taskId,
+      clientFileId: clientFileId ?? this.clientFileId,
+      engineSessionId: engineSessionId ?? this.engineSessionId,
+      analysisId: analysisId ?? this.analysisId,
+      revision: revision ?? this.revision,
+      schemaVersion: schemaVersion ?? this.schemaVersion,
+      snapshotJson: snapshotJson ?? this.snapshotJson,
+      validityStatus: validityStatus ?? this.validityStatus,
+      analysisWorkId: analysisWorkId ?? this.analysisWorkId,
+      analysisRequestId: analysisRequestId ?? this.analysisRequestId,
+      analysisQueuePosition:
+          analysisQueuePosition ?? this.analysisQueuePosition,
+      analysisQueueRevision:
+          analysisQueueRevision ?? this.analysisQueueRevision,
+      executionId: executionId ?? this.executionId,
+      executionRequestId: executionRequestId ?? this.executionRequestId,
+      executionQueuePosition:
+          executionQueuePosition ?? this.executionQueuePosition,
+      executionQueueRevision:
+          executionQueueRevision ?? this.executionQueueRevision,
+      executionState: executionState ?? this.executionState,
+      pauseReason: pauseReason ?? this.pauseReason,
+      preemptedByExecutionId:
+          preemptedByExecutionId ?? this.preemptedByExecutionId,
+      resumeDepth: resumeDepth ?? this.resumeDepth,
+      mediaTimeUs: mediaTimeUs ?? this.mediaTimeUs,
+      processedBytes: processedBytes ?? this.processedBytes,
+      lastEventSequence: lastEventSequence ?? this.lastEventSequence,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (taskId.present) {
+      map['task_id'] = Variable<String>(taskId.value);
+    }
+    if (clientFileId.present) {
+      map['client_file_id'] = Variable<String>(clientFileId.value);
+    }
+    if (engineSessionId.present) {
+      map['engine_session_id'] = Variable<String>(engineSessionId.value);
+    }
+    if (analysisId.present) {
+      map['analysis_id'] = Variable<String>(analysisId.value);
+    }
+    if (revision.present) {
+      map['revision'] = Variable<int>(revision.value);
+    }
+    if (schemaVersion.present) {
+      map['schema_version'] = Variable<String>(schemaVersion.value);
+    }
+    if (snapshotJson.present) {
+      map['snapshot_json'] = Variable<String>(snapshotJson.value);
+    }
+    if (validityStatus.present) {
+      map['validity_status'] = Variable<String>(validityStatus.value);
+    }
+    if (analysisWorkId.present) {
+      map['analysis_work_id'] = Variable<String>(analysisWorkId.value);
+    }
+    if (analysisRequestId.present) {
+      map['analysis_request_id'] = Variable<String>(analysisRequestId.value);
+    }
+    if (analysisQueuePosition.present) {
+      map['analysis_queue_position'] = Variable<int>(
+        analysisQueuePosition.value,
+      );
+    }
+    if (analysisQueueRevision.present) {
+      map['analysis_queue_revision'] = Variable<int>(
+        analysisQueueRevision.value,
+      );
+    }
+    if (executionId.present) {
+      map['execution_id'] = Variable<String>(executionId.value);
+    }
+    if (executionRequestId.present) {
+      map['execution_request_id'] = Variable<String>(executionRequestId.value);
+    }
+    if (executionQueuePosition.present) {
+      map['execution_queue_position'] = Variable<int>(
+        executionQueuePosition.value,
+      );
+    }
+    if (executionQueueRevision.present) {
+      map['execution_queue_revision'] = Variable<int>(
+        executionQueueRevision.value,
+      );
+    }
+    if (executionState.present) {
+      map['execution_state'] = Variable<String>(executionState.value);
+    }
+    if (pauseReason.present) {
+      map['pause_reason'] = Variable<String>(pauseReason.value);
+    }
+    if (preemptedByExecutionId.present) {
+      map['preempted_by_execution_id'] = Variable<String>(
+        preemptedByExecutionId.value,
+      );
+    }
+    if (resumeDepth.present) {
+      map['resume_depth'] = Variable<int>(resumeDepth.value);
+    }
+    if (mediaTimeUs.present) {
+      map['media_time_us'] = Variable<int>(mediaTimeUs.value);
+    }
+    if (processedBytes.present) {
+      map['processed_bytes'] = Variable<int>(processedBytes.value);
+    }
+    if (lastEventSequence.present) {
+      map['last_event_sequence'] = Variable<int>(lastEventSequence.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<int>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EngineAnalysisProjectionRowsCompanion(')
+          ..write('taskId: $taskId, ')
+          ..write('clientFileId: $clientFileId, ')
+          ..write('engineSessionId: $engineSessionId, ')
+          ..write('analysisId: $analysisId, ')
+          ..write('revision: $revision, ')
+          ..write('schemaVersion: $schemaVersion, ')
+          ..write('snapshotJson: $snapshotJson, ')
+          ..write('validityStatus: $validityStatus, ')
+          ..write('analysisWorkId: $analysisWorkId, ')
+          ..write('analysisRequestId: $analysisRequestId, ')
+          ..write('analysisQueuePosition: $analysisQueuePosition, ')
+          ..write('analysisQueueRevision: $analysisQueueRevision, ')
+          ..write('executionId: $executionId, ')
+          ..write('executionRequestId: $executionRequestId, ')
+          ..write('executionQueuePosition: $executionQueuePosition, ')
+          ..write('executionQueueRevision: $executionQueueRevision, ')
+          ..write('executionState: $executionState, ')
+          ..write('pauseReason: $pauseReason, ')
+          ..write('preemptedByExecutionId: $preemptedByExecutionId, ')
+          ..write('resumeDepth: $resumeDepth, ')
+          ..write('mediaTimeUs: $mediaTimeUs, ')
+          ..write('processedBytes: $processedBytes, ')
+          ..write('lastEventSequence: $lastEventSequence, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $WorkbenchOrderStateRowsTable extends WorkbenchOrderStateRows
+    with TableInfo<$WorkbenchOrderStateRowsTable, WorkbenchOrderStateRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $WorkbenchOrderStateRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _orderRevisionMeta = const VerificationMeta(
+    'orderRevision',
+  );
+  @override
+  late final GeneratedColumn<int> orderRevision = GeneratedColumn<int>(
+    'order_revision',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, orderRevision];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'workbench_order_state';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<WorkbenchOrderStateRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('order_revision')) {
+      context.handle(
+        _orderRevisionMeta,
+        orderRevision.isAcceptableOrUnknown(
+          data['order_revision']!,
+          _orderRevisionMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  WorkbenchOrderStateRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return WorkbenchOrderStateRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      orderRevision: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}order_revision'],
+      )!,
+    );
+  }
+
+  @override
+  $WorkbenchOrderStateRowsTable createAlias(String alias) {
+    return $WorkbenchOrderStateRowsTable(attachedDatabase, alias);
+  }
+}
+
+class WorkbenchOrderStateRow extends DataClass
+    implements Insertable<WorkbenchOrderStateRow> {
+  final int id;
+  final int orderRevision;
+  const WorkbenchOrderStateRow({required this.id, required this.orderRevision});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['order_revision'] = Variable<int>(orderRevision);
+    return map;
+  }
+
+  WorkbenchOrderStateRowsCompanion toCompanion(bool nullToAbsent) {
+    return WorkbenchOrderStateRowsCompanion(
+      id: Value(id),
+      orderRevision: Value(orderRevision),
+    );
+  }
+
+  factory WorkbenchOrderStateRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return WorkbenchOrderStateRow(
+      id: serializer.fromJson<int>(json['id']),
+      orderRevision: serializer.fromJson<int>(json['orderRevision']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'orderRevision': serializer.toJson<int>(orderRevision),
+    };
+  }
+
+  WorkbenchOrderStateRow copyWith({int? id, int? orderRevision}) =>
+      WorkbenchOrderStateRow(
+        id: id ?? this.id,
+        orderRevision: orderRevision ?? this.orderRevision,
+      );
+  WorkbenchOrderStateRow copyWithCompanion(
+    WorkbenchOrderStateRowsCompanion data,
+  ) {
+    return WorkbenchOrderStateRow(
+      id: data.id.present ? data.id.value : this.id,
+      orderRevision: data.orderRevision.present
+          ? data.orderRevision.value
+          : this.orderRevision,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkbenchOrderStateRow(')
+          ..write('id: $id, ')
+          ..write('orderRevision: $orderRevision')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, orderRevision);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is WorkbenchOrderStateRow &&
+          other.id == this.id &&
+          other.orderRevision == this.orderRevision);
+}
+
+class WorkbenchOrderStateRowsCompanion
+    extends UpdateCompanion<WorkbenchOrderStateRow> {
+  final Value<int> id;
+  final Value<int> orderRevision;
+  const WorkbenchOrderStateRowsCompanion({
+    this.id = const Value.absent(),
+    this.orderRevision = const Value.absent(),
+  });
+  WorkbenchOrderStateRowsCompanion.insert({
+    this.id = const Value.absent(),
+    this.orderRevision = const Value.absent(),
+  });
+  static Insertable<WorkbenchOrderStateRow> custom({
+    Expression<int>? id,
+    Expression<int>? orderRevision,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (orderRevision != null) 'order_revision': orderRevision,
+    });
+  }
+
+  WorkbenchOrderStateRowsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? orderRevision,
+  }) {
+    return WorkbenchOrderStateRowsCompanion(
+      id: id ?? this.id,
+      orderRevision: orderRevision ?? this.orderRevision,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (orderRevision.present) {
+      map['order_revision'] = Variable<int>(orderRevision.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('WorkbenchOrderStateRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('orderRevision: $orderRevision')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7104,6 +8785,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $TaskFolderRowsTable taskFolderRows = $TaskFolderRowsTable(this);
   late final $AppNotificationRowsTable appNotificationRows =
       $AppNotificationRowsTable(this);
+  late final $EngineAnalysisProjectionRowsTable engineAnalysisProjectionRows =
+      $EngineAnalysisProjectionRowsTable(this);
+  late final $WorkbenchOrderStateRowsTable workbenchOrderStateRows =
+      $WorkbenchOrderStateRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -7113,6 +8798,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     taskRows,
     taskFolderRows,
     appNotificationRows,
+    engineAnalysisProjectionRows,
+    workbenchOrderStateRows,
   ];
 }
 
@@ -9958,6 +11645,786 @@ typedef $$AppNotificationRowsTableProcessedTableManager =
       AppNotificationRow,
       PrefetchHooks Function()
     >;
+typedef $$EngineAnalysisProjectionRowsTableCreateCompanionBuilder =
+    EngineAnalysisProjectionRowsCompanion Function({
+      required String taskId,
+      required String clientFileId,
+      required String engineSessionId,
+      Value<String?> analysisId,
+      Value<int?> revision,
+      Value<String?> schemaVersion,
+      Value<String?> snapshotJson,
+      Value<String?> validityStatus,
+      Value<String?> analysisWorkId,
+      Value<String?> analysisRequestId,
+      Value<int?> analysisQueuePosition,
+      Value<int?> analysisQueueRevision,
+      Value<String?> executionId,
+      Value<String?> executionRequestId,
+      Value<int?> executionQueuePosition,
+      Value<int?> executionQueueRevision,
+      Value<String?> executionState,
+      Value<String?> pauseReason,
+      Value<String?> preemptedByExecutionId,
+      Value<int?> resumeDepth,
+      Value<int?> mediaTimeUs,
+      Value<int?> processedBytes,
+      Value<int> lastEventSequence,
+      required int updatedAt,
+      Value<int> rowid,
+    });
+typedef $$EngineAnalysisProjectionRowsTableUpdateCompanionBuilder =
+    EngineAnalysisProjectionRowsCompanion Function({
+      Value<String> taskId,
+      Value<String> clientFileId,
+      Value<String> engineSessionId,
+      Value<String?> analysisId,
+      Value<int?> revision,
+      Value<String?> schemaVersion,
+      Value<String?> snapshotJson,
+      Value<String?> validityStatus,
+      Value<String?> analysisWorkId,
+      Value<String?> analysisRequestId,
+      Value<int?> analysisQueuePosition,
+      Value<int?> analysisQueueRevision,
+      Value<String?> executionId,
+      Value<String?> executionRequestId,
+      Value<int?> executionQueuePosition,
+      Value<int?> executionQueueRevision,
+      Value<String?> executionState,
+      Value<String?> pauseReason,
+      Value<String?> preemptedByExecutionId,
+      Value<int?> resumeDepth,
+      Value<int?> mediaTimeUs,
+      Value<int?> processedBytes,
+      Value<int> lastEventSequence,
+      Value<int> updatedAt,
+      Value<int> rowid,
+    });
+
+class $$EngineAnalysisProjectionRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $EngineAnalysisProjectionRowsTable> {
+  $$EngineAnalysisProjectionRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get clientFileId => $composableBuilder(
+    column: $table.clientFileId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get engineSessionId => $composableBuilder(
+    column: $table.engineSessionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisId => $composableBuilder(
+    column: $table.analysisId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get schemaVersion => $composableBuilder(
+    column: $table.schemaVersion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get validityStatus => $composableBuilder(
+    column: $table.validityStatus,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisWorkId => $composableBuilder(
+    column: $table.analysisWorkId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get analysisRequestId => $composableBuilder(
+    column: $table.analysisRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisQueuePosition => $composableBuilder(
+    column: $table.analysisQueuePosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get analysisQueueRevision => $composableBuilder(
+    column: $table.analysisQueueRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get executionId => $composableBuilder(
+    column: $table.executionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get executionRequestId => $composableBuilder(
+    column: $table.executionRequestId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get executionQueuePosition => $composableBuilder(
+    column: $table.executionQueuePosition,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get executionQueueRevision => $composableBuilder(
+    column: $table.executionQueueRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get executionState => $composableBuilder(
+    column: $table.executionState,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pauseReason => $composableBuilder(
+    column: $table.pauseReason,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get preemptedByExecutionId => $composableBuilder(
+    column: $table.preemptedByExecutionId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get resumeDepth => $composableBuilder(
+    column: $table.resumeDepth,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get mediaTimeUs => $composableBuilder(
+    column: $table.mediaTimeUs,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get processedBytes => $composableBuilder(
+    column: $table.processedBytes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get lastEventSequence => $composableBuilder(
+    column: $table.lastEventSequence,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EngineAnalysisProjectionRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $EngineAnalysisProjectionRowsTable> {
+  $$EngineAnalysisProjectionRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get taskId => $composableBuilder(
+    column: $table.taskId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get clientFileId => $composableBuilder(
+    column: $table.clientFileId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get engineSessionId => $composableBuilder(
+    column: $table.engineSessionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisId => $composableBuilder(
+    column: $table.analysisId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get revision => $composableBuilder(
+    column: $table.revision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get schemaVersion => $composableBuilder(
+    column: $table.schemaVersion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get validityStatus => $composableBuilder(
+    column: $table.validityStatus,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisWorkId => $composableBuilder(
+    column: $table.analysisWorkId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get analysisRequestId => $composableBuilder(
+    column: $table.analysisRequestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisQueuePosition => $composableBuilder(
+    column: $table.analysisQueuePosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get analysisQueueRevision => $composableBuilder(
+    column: $table.analysisQueueRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get executionId => $composableBuilder(
+    column: $table.executionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get executionRequestId => $composableBuilder(
+    column: $table.executionRequestId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get executionQueuePosition => $composableBuilder(
+    column: $table.executionQueuePosition,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get executionQueueRevision => $composableBuilder(
+    column: $table.executionQueueRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get executionState => $composableBuilder(
+    column: $table.executionState,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get pauseReason => $composableBuilder(
+    column: $table.pauseReason,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get preemptedByExecutionId => $composableBuilder(
+    column: $table.preemptedByExecutionId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get resumeDepth => $composableBuilder(
+    column: $table.resumeDepth,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get mediaTimeUs => $composableBuilder(
+    column: $table.mediaTimeUs,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get processedBytes => $composableBuilder(
+    column: $table.processedBytes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get lastEventSequence => $composableBuilder(
+    column: $table.lastEventSequence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EngineAnalysisProjectionRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EngineAnalysisProjectionRowsTable> {
+  $$EngineAnalysisProjectionRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get taskId =>
+      $composableBuilder(column: $table.taskId, builder: (column) => column);
+
+  GeneratedColumn<String> get clientFileId => $composableBuilder(
+    column: $table.clientFileId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get engineSessionId => $composableBuilder(
+    column: $table.engineSessionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisId => $composableBuilder(
+    column: $table.analysisId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get revision =>
+      $composableBuilder(column: $table.revision, builder: (column) => column);
+
+  GeneratedColumn<String> get schemaVersion => $composableBuilder(
+    column: $table.schemaVersion,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get snapshotJson => $composableBuilder(
+    column: $table.snapshotJson,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get validityStatus => $composableBuilder(
+    column: $table.validityStatus,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisWorkId => $composableBuilder(
+    column: $table.analysisWorkId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get analysisRequestId => $composableBuilder(
+    column: $table.analysisRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisQueuePosition => $composableBuilder(
+    column: $table.analysisQueuePosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get analysisQueueRevision => $composableBuilder(
+    column: $table.analysisQueueRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get executionId => $composableBuilder(
+    column: $table.executionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get executionRequestId => $composableBuilder(
+    column: $table.executionRequestId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get executionQueuePosition => $composableBuilder(
+    column: $table.executionQueuePosition,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get executionQueueRevision => $composableBuilder(
+    column: $table.executionQueueRevision,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get executionState => $composableBuilder(
+    column: $table.executionState,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get pauseReason => $composableBuilder(
+    column: $table.pauseReason,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get preemptedByExecutionId => $composableBuilder(
+    column: $table.preemptedByExecutionId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get resumeDepth => $composableBuilder(
+    column: $table.resumeDepth,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get mediaTimeUs => $composableBuilder(
+    column: $table.mediaTimeUs,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get processedBytes => $composableBuilder(
+    column: $table.processedBytes,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get lastEventSequence => $composableBuilder(
+    column: $table.lastEventSequence,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$EngineAnalysisProjectionRowsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EngineAnalysisProjectionRowsTable,
+          EngineAnalysisProjectionRow,
+          $$EngineAnalysisProjectionRowsTableFilterComposer,
+          $$EngineAnalysisProjectionRowsTableOrderingComposer,
+          $$EngineAnalysisProjectionRowsTableAnnotationComposer,
+          $$EngineAnalysisProjectionRowsTableCreateCompanionBuilder,
+          $$EngineAnalysisProjectionRowsTableUpdateCompanionBuilder,
+          (
+            EngineAnalysisProjectionRow,
+            BaseReferences<
+              _$AppDatabase,
+              $EngineAnalysisProjectionRowsTable,
+              EngineAnalysisProjectionRow
+            >,
+          ),
+          EngineAnalysisProjectionRow,
+          PrefetchHooks Function()
+        > {
+  $$EngineAnalysisProjectionRowsTableTableManager(
+    _$AppDatabase db,
+    $EngineAnalysisProjectionRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EngineAnalysisProjectionRowsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$EngineAnalysisProjectionRowsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$EngineAnalysisProjectionRowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> taskId = const Value.absent(),
+                Value<String> clientFileId = const Value.absent(),
+                Value<String> engineSessionId = const Value.absent(),
+                Value<String?> analysisId = const Value.absent(),
+                Value<int?> revision = const Value.absent(),
+                Value<String?> schemaVersion = const Value.absent(),
+                Value<String?> snapshotJson = const Value.absent(),
+                Value<String?> validityStatus = const Value.absent(),
+                Value<String?> analysisWorkId = const Value.absent(),
+                Value<String?> analysisRequestId = const Value.absent(),
+                Value<int?> analysisQueuePosition = const Value.absent(),
+                Value<int?> analysisQueueRevision = const Value.absent(),
+                Value<String?> executionId = const Value.absent(),
+                Value<String?> executionRequestId = const Value.absent(),
+                Value<int?> executionQueuePosition = const Value.absent(),
+                Value<int?> executionQueueRevision = const Value.absent(),
+                Value<String?> executionState = const Value.absent(),
+                Value<String?> pauseReason = const Value.absent(),
+                Value<String?> preemptedByExecutionId = const Value.absent(),
+                Value<int?> resumeDepth = const Value.absent(),
+                Value<int?> mediaTimeUs = const Value.absent(),
+                Value<int?> processedBytes = const Value.absent(),
+                Value<int> lastEventSequence = const Value.absent(),
+                Value<int> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => EngineAnalysisProjectionRowsCompanion(
+                taskId: taskId,
+                clientFileId: clientFileId,
+                engineSessionId: engineSessionId,
+                analysisId: analysisId,
+                revision: revision,
+                schemaVersion: schemaVersion,
+                snapshotJson: snapshotJson,
+                validityStatus: validityStatus,
+                analysisWorkId: analysisWorkId,
+                analysisRequestId: analysisRequestId,
+                analysisQueuePosition: analysisQueuePosition,
+                analysisQueueRevision: analysisQueueRevision,
+                executionId: executionId,
+                executionRequestId: executionRequestId,
+                executionQueuePosition: executionQueuePosition,
+                executionQueueRevision: executionQueueRevision,
+                executionState: executionState,
+                pauseReason: pauseReason,
+                preemptedByExecutionId: preemptedByExecutionId,
+                resumeDepth: resumeDepth,
+                mediaTimeUs: mediaTimeUs,
+                processedBytes: processedBytes,
+                lastEventSequence: lastEventSequence,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String taskId,
+                required String clientFileId,
+                required String engineSessionId,
+                Value<String?> analysisId = const Value.absent(),
+                Value<int?> revision = const Value.absent(),
+                Value<String?> schemaVersion = const Value.absent(),
+                Value<String?> snapshotJson = const Value.absent(),
+                Value<String?> validityStatus = const Value.absent(),
+                Value<String?> analysisWorkId = const Value.absent(),
+                Value<String?> analysisRequestId = const Value.absent(),
+                Value<int?> analysisQueuePosition = const Value.absent(),
+                Value<int?> analysisQueueRevision = const Value.absent(),
+                Value<String?> executionId = const Value.absent(),
+                Value<String?> executionRequestId = const Value.absent(),
+                Value<int?> executionQueuePosition = const Value.absent(),
+                Value<int?> executionQueueRevision = const Value.absent(),
+                Value<String?> executionState = const Value.absent(),
+                Value<String?> pauseReason = const Value.absent(),
+                Value<String?> preemptedByExecutionId = const Value.absent(),
+                Value<int?> resumeDepth = const Value.absent(),
+                Value<int?> mediaTimeUs = const Value.absent(),
+                Value<int?> processedBytes = const Value.absent(),
+                Value<int> lastEventSequence = const Value.absent(),
+                required int updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => EngineAnalysisProjectionRowsCompanion.insert(
+                taskId: taskId,
+                clientFileId: clientFileId,
+                engineSessionId: engineSessionId,
+                analysisId: analysisId,
+                revision: revision,
+                schemaVersion: schemaVersion,
+                snapshotJson: snapshotJson,
+                validityStatus: validityStatus,
+                analysisWorkId: analysisWorkId,
+                analysisRequestId: analysisRequestId,
+                analysisQueuePosition: analysisQueuePosition,
+                analysisQueueRevision: analysisQueueRevision,
+                executionId: executionId,
+                executionRequestId: executionRequestId,
+                executionQueuePosition: executionQueuePosition,
+                executionQueueRevision: executionQueueRevision,
+                executionState: executionState,
+                pauseReason: pauseReason,
+                preemptedByExecutionId: preemptedByExecutionId,
+                resumeDepth: resumeDepth,
+                mediaTimeUs: mediaTimeUs,
+                processedBytes: processedBytes,
+                lastEventSequence: lastEventSequence,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EngineAnalysisProjectionRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EngineAnalysisProjectionRowsTable,
+      EngineAnalysisProjectionRow,
+      $$EngineAnalysisProjectionRowsTableFilterComposer,
+      $$EngineAnalysisProjectionRowsTableOrderingComposer,
+      $$EngineAnalysisProjectionRowsTableAnnotationComposer,
+      $$EngineAnalysisProjectionRowsTableCreateCompanionBuilder,
+      $$EngineAnalysisProjectionRowsTableUpdateCompanionBuilder,
+      (
+        EngineAnalysisProjectionRow,
+        BaseReferences<
+          _$AppDatabase,
+          $EngineAnalysisProjectionRowsTable,
+          EngineAnalysisProjectionRow
+        >,
+      ),
+      EngineAnalysisProjectionRow,
+      PrefetchHooks Function()
+    >;
+typedef $$WorkbenchOrderStateRowsTableCreateCompanionBuilder =
+    WorkbenchOrderStateRowsCompanion Function({
+      Value<int> id,
+      Value<int> orderRevision,
+    });
+typedef $$WorkbenchOrderStateRowsTableUpdateCompanionBuilder =
+    WorkbenchOrderStateRowsCompanion Function({
+      Value<int> id,
+      Value<int> orderRevision,
+    });
+
+class $$WorkbenchOrderStateRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $WorkbenchOrderStateRowsTable> {
+  $$WorkbenchOrderStateRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get orderRevision => $composableBuilder(
+    column: $table.orderRevision,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$WorkbenchOrderStateRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $WorkbenchOrderStateRowsTable> {
+  $$WorkbenchOrderStateRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get orderRevision => $composableBuilder(
+    column: $table.orderRevision,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$WorkbenchOrderStateRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $WorkbenchOrderStateRowsTable> {
+  $$WorkbenchOrderStateRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get orderRevision => $composableBuilder(
+    column: $table.orderRevision,
+    builder: (column) => column,
+  );
+}
+
+class $$WorkbenchOrderStateRowsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $WorkbenchOrderStateRowsTable,
+          WorkbenchOrderStateRow,
+          $$WorkbenchOrderStateRowsTableFilterComposer,
+          $$WorkbenchOrderStateRowsTableOrderingComposer,
+          $$WorkbenchOrderStateRowsTableAnnotationComposer,
+          $$WorkbenchOrderStateRowsTableCreateCompanionBuilder,
+          $$WorkbenchOrderStateRowsTableUpdateCompanionBuilder,
+          (
+            WorkbenchOrderStateRow,
+            BaseReferences<
+              _$AppDatabase,
+              $WorkbenchOrderStateRowsTable,
+              WorkbenchOrderStateRow
+            >,
+          ),
+          WorkbenchOrderStateRow,
+          PrefetchHooks Function()
+        > {
+  $$WorkbenchOrderStateRowsTableTableManager(
+    _$AppDatabase db,
+    $WorkbenchOrderStateRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$WorkbenchOrderStateRowsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$WorkbenchOrderStateRowsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$WorkbenchOrderStateRowsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> orderRevision = const Value.absent(),
+              }) => WorkbenchOrderStateRowsCompanion(
+                id: id,
+                orderRevision: orderRevision,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> orderRevision = const Value.absent(),
+              }) => WorkbenchOrderStateRowsCompanion.insert(
+                id: id,
+                orderRevision: orderRevision,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$WorkbenchOrderStateRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $WorkbenchOrderStateRowsTable,
+      WorkbenchOrderStateRow,
+      $$WorkbenchOrderStateRowsTableFilterComposer,
+      $$WorkbenchOrderStateRowsTableOrderingComposer,
+      $$WorkbenchOrderStateRowsTableAnnotationComposer,
+      $$WorkbenchOrderStateRowsTableCreateCompanionBuilder,
+      $$WorkbenchOrderStateRowsTableUpdateCompanionBuilder,
+      (
+        WorkbenchOrderStateRow,
+        BaseReferences<
+          _$AppDatabase,
+          $WorkbenchOrderStateRowsTable,
+          WorkbenchOrderStateRow
+        >,
+      ),
+      WorkbenchOrderStateRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -9970,4 +12437,15 @@ class $AppDatabaseManager {
       $$TaskFolderRowsTableTableManager(_db, _db.taskFolderRows);
   $$AppNotificationRowsTableTableManager get appNotificationRows =>
       $$AppNotificationRowsTableTableManager(_db, _db.appNotificationRows);
+  $$EngineAnalysisProjectionRowsTableTableManager
+  get engineAnalysisProjectionRows =>
+      $$EngineAnalysisProjectionRowsTableTableManager(
+        _db,
+        _db.engineAnalysisProjectionRows,
+      );
+  $$WorkbenchOrderStateRowsTableTableManager get workbenchOrderStateRows =>
+      $$WorkbenchOrderStateRowsTableTableManager(
+        _db,
+        _db.workbenchOrderStateRows,
+      );
 }

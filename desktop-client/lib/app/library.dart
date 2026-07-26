@@ -42,6 +42,7 @@ export 'providers/app_settings_provider.dart';
 export 'providers/app_settings_save_provider.dart';
 export 'providers/app_update_provider.dart';
 export 'providers/database_provider.dart';
+export 'providers/engine_provider.dart';
 export 'providers/execution_provider.dart';
 export 'providers/input_runtime_provider.dart';
 export 'providers/platform_provider.dart';

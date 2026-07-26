@@ -29,6 +29,7 @@ import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
+import 'package:framelean/domain/value_objects/task_failure.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
@@ -1176,6 +1177,32 @@ void main() {
     expect(retryCount, 0);
   });
 
+  testWidgets('queued task shows the authoritative Engine queue position', (
+    tester,
+  ) async {
+    final task = testTask(status: TaskStatus.analysisQueued);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: task,
+            engineProjection: EngineAnalysisProjection(
+              taskId: task.id,
+              clientFileId: task.id,
+              engineSessionId: 'session-1',
+              analysisQueuePosition: 3,
+              analysisQueueRevision: 7,
+              lastEventSequence: 9,
+              updatedAt: DateTime.fromMillisecondsSinceEpoch(1),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('分析队列第 3 位'), findsOneWidget);
+  });
+
   testWidgets('paused task continues with a different icon than start', (
     tester,
   ) async {
@@ -1233,6 +1260,39 @@ void main() {
 
     expect(startCount, 0);
     expect(retryCount, 1);
+  });
+
+  testWidgets('non-retryable engine failure hides the retry action', (
+    tester,
+  ) async {
+    final task = testTask().markFailed(
+      const TaskFailure(
+        stage: TaskFailureStage.processStart,
+        code: TaskFailureCode.engineExecutionUnavailable,
+        userMessage: '当前版本尚未接通媒体执行链。',
+        technicalSummary: 'ENGINE_EXECUTION_CHAIN_NOT_READY',
+        occurredAt: 1,
+        retryable: false,
+      ),
+    );
+    var retryCount = 0;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaTaskListTile(
+            task: task,
+            onRetry: () {
+              retryCount += 1;
+            },
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byTooltip('重试任务'), findsNothing);
+    expect(find.byIcon(Icons.refresh_rounded), findsNothing);
+    expect(retryCount, 0);
   });
 
   testWidgets('completed task shows restart action', (tester) async {

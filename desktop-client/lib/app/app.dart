@@ -7,9 +7,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:framelean/app/notifications/app_notification_host.dart';
 import 'package:framelean/app/providers/app_update_provider.dart';
+import 'package:framelean/app/providers/engine_provider.dart';
+import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/platform_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
-import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/theme/app_theme_controller.dart';
 import 'package:framelean/app/theme/framelean_theme_context.dart';
 import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
@@ -47,6 +48,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     if (_runtimeEffectsEnabled) {
       unawaited(reconcileThemeModeAfterStartup());
       unawaited(_cleanupInterruptedOutputsAfterStartup());
+      unawaited(_startEngineLifecycle());
     }
     if (_runtimeEffectsEnabled && (Platform.isMacOS || Platform.isWindows)) {
       windowManager.addListener(this);
@@ -65,6 +67,14 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
       );
     } on Object {
       // A failed cleanup must not prevent the workbench from opening.
+    }
+  }
+
+  Future<void> _startEngineLifecycle() async {
+    try {
+      await ref.read(engineLifecycleCoordinatorProvider.future);
+    } on Object catch (error, stackTrace) {
+      debugPrint('[engine] lifecycle startup failed: $error\n$stackTrace');
     }
   }
 
@@ -177,8 +187,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
   Future<void> _requestQuit() async {
     final tasks = await ref.read(mediaTaskRepositoryProvider).loadAllTasks();
     final hasRunningTasks = tasks.any(
-      (task) =>
-          task.status == TaskStatus.running || task.status == TaskStatus.paused,
+      (task) => _engineExecutionIsNonTerminal(task.status),
     );
     if (hasRunningTasks) {
       await _showWindow();
@@ -228,6 +237,28 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
       if (confirmed != true) return;
     }
 
+    if (_runtimeEffectsEnabled) {
+      EngineLifecycleGateway? gateway;
+      try {
+        gateway = (await ref.read(
+          engineLifecycleCoordinatorProvider.future,
+        )).gateway;
+        await gateway.connect();
+        await ref.read(mediaTaskExecutionCoordinatorProvider).cancelAll();
+      } on Object catch (error, stackTrace) {
+        debugPrint('[engine] cancel during quit failed: $error\n$stackTrace');
+      } finally {
+        if (gateway case final EngineProcessControl processControl) {
+          try {
+            await processControl.shutdownEngine();
+          } on Object catch (error, stackTrace) {
+            debugPrint(
+              '[engine] shutdown during quit failed: $error\n$stackTrace',
+            );
+          }
+        }
+      }
+    }
     await ref.read(ffmpegTaskQueueRunnerProvider).cancelAllExecutions();
     if (_runtimeEffectsEnabled) {
       if (Platform.isWindows) await trayManager.destroy();
@@ -296,4 +327,16 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
       },
     );
   }
+}
+
+bool _engineExecutionIsNonTerminal(TaskStatus status) {
+  return switch (status) {
+    TaskStatus.executionQueued ||
+    TaskStatus.running ||
+    TaskStatus.preempting ||
+    TaskStatus.preempted ||
+    TaskStatus.resuming ||
+    TaskStatus.paused => true,
+    _ => false,
+  };
 }

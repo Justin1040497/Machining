@@ -47,7 +47,11 @@ class TaskFolderListTile extends StatelessWidget {
         .where((task) => task.status == TaskStatus.completed)
         .length;
     final failedCount = tasks
-        .where((task) => task.status == TaskStatus.failed)
+        .where(
+          (task) =>
+              task.status == TaskStatus.executionFailed ||
+              task.status == TaskStatus.analysisFailed,
+        )
         .length;
     final progress = tasks.isEmpty
         ? 0.0
@@ -246,14 +250,16 @@ class TaskFolderListTile extends StatelessWidget {
 
   bool _isRetryableTask(MediaTask task) {
     return task.status == TaskStatus.completed ||
-        task.status == TaskStatus.failed ||
+        task.status == TaskStatus.executionFailed ||
+        task.status == TaskStatus.analysisFailed ||
         task.status == TaskStatus.cancelled;
   }
 
   bool _isLoggableTask(MediaTask task) {
     return task.status == TaskStatus.running ||
         task.status == TaskStatus.completed ||
-        task.status == TaskStatus.failed ||
+        task.status == TaskStatus.executionFailed ||
+        task.status == TaskStatus.analysisFailed ||
         task.status == TaskStatus.paused;
   }
 }

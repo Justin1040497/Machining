@@ -37,29 +37,37 @@ void main() {
       expect(taskRepository.taskById('inside-folder').sortOrder, 9);
     });
 
-    test('does not move an item across a running top-level boundary', () async {
-      final taskRepository = FakeMediaTaskRepository([
-        mediaTask(id: 'first', sortOrder: 0),
-        mediaTask(
-          id: 'running-in-folder',
-          sortOrder: 9,
-          folderId: 'folder-a',
-          status: TaskStatus.running,
-        ),
-        mediaTask(id: 'last', sortOrder: 2),
-      ]);
-      final folderRepository = FakeTaskFolderRepository([
-        taskFolder(id: 'folder-a', sortOrder: 1),
-      ]);
+    test(
+      'moves a Client folder block while Engine keeps its active child fixed',
+      () async {
+        final taskRepository = FakeMediaTaskRepository([
+          mediaTask(id: 'first', sortOrder: 0),
+          mediaTask(
+            id: 'running-in-folder',
+            sortOrder: 9,
+            folderId: 'folder-a',
+            status: TaskStatus.running,
+          ),
+          mediaTask(id: 'last', sortOrder: 2),
+        ]);
+        final folderRepository = FakeTaskFolderRepository([
+          taskFolder(id: 'folder-a', sortOrder: 1),
+        ]);
 
-      await ReorderWorkbenchTopLevelItemsUseCase(
-        mediaTaskRepository: taskRepository,
-        taskFolderRepository: folderRepository,
-      ).call(oldIndex: 2, newIndex: 0);
+        await ReorderWorkbenchTopLevelItemsUseCase(
+          mediaTaskRepository: taskRepository,
+          taskFolderRepository: folderRepository,
+        ).call(oldIndex: 2, newIndex: 0);
 
-      expect(taskRepository.sortOrderUpdates, isEmpty);
-      expect(folderRepository.sortOrderUpdates, isEmpty);
-    });
+        expect(taskRepository.sortOrderUpdates, [
+          const MediaTaskSortOrderUpdate(taskId: 'last', sortOrder: 0),
+          const MediaTaskSortOrderUpdate(taskId: 'first', sortOrder: 1),
+        ]);
+        expect(folderRepository.sortOrderUpdates, [
+          const TaskFolderSortOrderUpdate(folderId: 'folder-a', sortOrder: 2),
+        ]);
+      },
+    );
   });
 
   group('ReorderFolderTasksUseCase', () {

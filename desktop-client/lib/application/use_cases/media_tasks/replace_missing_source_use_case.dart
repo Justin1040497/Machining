@@ -1,3 +1,4 @@
+import 'package:framelean/application/repositories/engine_analysis_projection_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/input_runtime/media_kind_resolver.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
@@ -8,12 +9,14 @@ import 'package:path/path.dart' as path;
 
 class ReplaceMissingSourceUseCase {
   final MediaTaskRepository repository;
+  final EngineAnalysisProjectionRepository analysisProjectionRepository;
   final MediaKindResolver mediaKindResolver;
   final SourceFileChecker sourceFileChecker;
   final SourceFileFingerprintReader fingerprintReader;
 
   const ReplaceMissingSourceUseCase({
     required this.repository,
+    required this.analysisProjectionRepository,
     required this.mediaKindResolver,
     required this.sourceFileChecker,
     required this.fingerprintReader,
@@ -40,6 +43,7 @@ class ReplaceMissingSourceUseCase {
         )
         .withSourceFileFingerprint(fingerprint);
 
+    await analysisProjectionRepository.deleteByTaskId(taskId);
     await repository.saveTask(updatedTask);
     return updatedTask;
   }

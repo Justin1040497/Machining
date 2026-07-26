@@ -2,11 +2,15 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/engine/engine_gateway.dart';
+import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart'
+    show FfmpegQueueStartOutcome;
+import 'package:framelean/application/services/execution/media_task_execution_coordinator.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
+import 'package:framelean/application/use_cases/media_tasks/submit_engine_execution_use_case.dart';
 import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
@@ -15,6 +19,7 @@ import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
+import 'package:framelean/domain/value_objects/engine_configuration_reference.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
@@ -82,6 +87,14 @@ void main() {
     final oldConfig = MediaTaskConfig.initialVideo();
     final newConfig = MediaTaskConfig.initialVideo().copyWith(
       videoCodec: VideoCodec.hevc,
+      engineConfiguration: const EngineConfigurationReference(
+        analysisId: 'analysis-1',
+        analysisRevision: 1,
+        candidateId: 'candidate-1',
+        selectionMode: 'preset',
+        selectionJson:
+            '{"mode":"preset","selection":{"preset_id":"balanced","candidate_id":"candidate-1"}}',
+      ),
     );
     final running = videoTask(
       id: 'running',
@@ -147,7 +160,12 @@ void main() {
       folderRepository.folderById(folder.id).defaultPurpose,
       TaskPurpose.conversion,
     );
+    expect(
+      folderRepository.folderById(folder.id).defaultConfig.engineConfiguration,
+      isNull,
+    );
     expect(repository.taskById('completed').config.videoCodec, VideoCodec.hevc);
+    expect(repository.taskById('completed').config.engineConfiguration, isNull);
     expect(repository.taskById('completed').purpose, TaskPurpose.conversion);
     expect(repository.taskById('pending').config.videoCodec, VideoCodec.hevc);
     expect(repository.taskById('missing').config.videoCodec, VideoCodec.hevc);
@@ -309,7 +327,7 @@ void main() {
     },
   );
 
-  test('starts the first startable folder task through queue runner', () async {
+  test('submits every folder task through FEngine in folder order', () async {
     final folder = testFolder();
     final blockedPending = videoTask(
       id: 'blocked',
@@ -328,14 +346,24 @@ void main() {
       status: TaskStatus.pending,
       folderSortOrder: 2,
     );
-    final queueRunner = FakeFfmpegTaskQueueRunner();
+    final submitter = FakeEngineExecutionSubmitter();
+    final repository = FakeMediaTaskRepository([
+      blockedPending,
+      pending,
+      paused,
+    ]);
 
-    await StartNextTaskInFolderUseCase(
-      repository: FakeMediaTaskRepository([blockedPending, pending, paused]),
-      queueRunner: queueRunner,
+    final result = await StartNextTaskInFolderUseCase(
+      executionCoordinator: MediaTaskExecutionCoordinator(
+        repository: repository,
+        taskFolderRepository: FakeTaskFolderRepository([folder]),
+        submitEngineExecution: submitter,
+      ),
     ).call(folder.id);
 
-    expect(queueRunner.startedFolderIds, [folder.id]);
+    expect(submitter.taskIds, [blockedPending.id, paused.id, pending.id]);
+    expect(result.outcome, FfmpegQueueStartOutcome.invalidTaskState);
+    expect(result.message, contains('3 个任务缺少 FEngine 配置'));
   });
 
   test(
@@ -598,98 +626,18 @@ class FakeSourceFileFingerprintReader implements SourceFileFingerprintReader {
   }
 }
 
-class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
-  @override
-  Future<void> dispose() async {}
+class FakeEngineExecutionSubmitter implements EngineExecutionSubmitter {
+  final List<String> taskIds = [];
 
   @override
-  void requestQueueRefill() {}
-
-  final List<String> startedFolderIds = [];
-
-  @override
-  String? foregroundTaskId;
-
-  @override
-  Set<String> get runningTaskIds =>
-      foregroundTaskId == null ? const {} : {foregroundTaskId!};
-
-  @override
-  int get activeExecutionCount => runningTaskIds.length;
-
-  @override
-  int get effectiveMaxConcurrentExecutions => 1;
-
-  @override
-  ExecutionScope get executionScope => const ExecutionScope.none();
-
-  @override
-  FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
-
-  @override
-  Future<void> cancelAllExecutions() async {}
-
-  @override
-  Future<FfmpegQueueStartResult> cancelTask(String taskId) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.cancelled,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.paused,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> pauseTask(String taskId) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.paused,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> pauseFolderQueue(String folderId) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.paused,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStatus> refreshStatus() async {
-    return queueStatus;
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> startWorkbenchQueue({
-    bool allowExtremeCompression = false,
-  }) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notReady,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> startSingleTask(
+  Future<EngineExecutionDispatchResult> call(
     String taskId, {
-    bool allowExtremeCompression = false,
+    EngineWorkPriority priority = EngineWorkPriority.normal,
   }) async {
-    return FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.started,
-      task: null,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> startFolderQueue(
-    String folderId, {
-    bool allowExtremeCompression = false,
-  }) async {
-    startedFolderIds.add(folderId);
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.started,
+    taskIds.add(taskId);
+    return const EngineExecutionDispatchResult(
+      outcome: EngineExecutionDispatchOutcome.notEngineConfigured,
+      message: '任务没有可提交的引擎配置',
     );
   }
 }

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/domain/library.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/engine_task_projection_consumer.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/workbench_icons.dart';
 
@@ -370,27 +371,35 @@ class _TaskFolderContentPanelState extends State<TaskFolderContentPanel>
                                         ? 0
                                         : 8,
                                   ),
-                                  child: MediaTaskListTile(
-                                    task: task,
-                                    thumbnail: widget.thumbnailForTask(task),
-                                    onStart: () => widget.onStart(task),
-                                    onPause: () => widget.onPause(task),
-                                    onRetry: () => widget.onRetry(task),
-                                    onRelink: () => widget.onRelink(task),
-                                    onShowLog: () => widget.onShowLog(task),
-                                    onRevealOutput: () =>
-                                        widget.onRevealOutput(task),
-                                    onRemove: actionsEnabled
-                                        ? () => unawaited(_removeTask(task))
-                                        : null,
-                                    removeTooltip: '移出任务夹',
-                                    removeIcon:
-                                        WorkbenchIcons.remove,
-                                    dragHandle: _FolderTaskDragHandle(
-                                      index: index,
-                                      enabled: dragEnabled,
-                                    ),
-                                    tooltipsEnabled: false,
+                                  child: EngineTaskProjectionConsumer(
+                                    taskId: task.id,
+                                    builder: (context, projection) =>
+                                        MediaTaskListTile(
+                                          task: task,
+                                          engineProjection: projection,
+                                          thumbnail: widget.thumbnailForTask(
+                                            task,
+                                          ),
+                                          onStart: () => widget.onStart(task),
+                                          onPause: () => widget.onPause(task),
+                                          onRetry: () => widget.onRetry(task),
+                                          onRelink: () => widget.onRelink(task),
+                                          onShowLog: () =>
+                                              widget.onShowLog(task),
+                                          onRevealOutput: () =>
+                                              widget.onRevealOutput(task),
+                                          onRemove: actionsEnabled
+                                              ? () =>
+                                                    unawaited(_removeTask(task))
+                                              : null,
+                                          removeTooltip: '移出任务夹',
+                                          removeIcon: WorkbenchIcons.remove,
+                                          dragHandle: _FolderTaskDragHandle(
+                                            index: index,
+                                            enabled: dragEnabled,
+                                          ),
+                                          tooltipsEnabled: false,
+                                        ),
                                   ),
                                 );
                               },

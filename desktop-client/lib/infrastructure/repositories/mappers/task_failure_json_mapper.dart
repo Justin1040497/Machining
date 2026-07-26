@@ -26,7 +26,8 @@ TaskFailure? decodeTaskFailure(
   required String? legacyAnalysisErrorMessage,
   required int? failedAt,
 }) {
-  if (status != TaskStatus.failed) {
+  if (status != TaskStatus.analysisFailed &&
+      status != TaskStatus.executionFailed) {
     return null;
   }
 

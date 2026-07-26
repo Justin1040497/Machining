@@ -29,6 +29,7 @@ enum TaskFailureCode {
   securitySoftwareBlocked,
   outputFileInUse,
   processStartFailed,
+  engineExecutionUnavailable,
   processExitedAbnormally,
   processStalled,
   processInterrupted,

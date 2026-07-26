@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/guide/models/guide_geometry.dart';
+import 'package:framelean/features/workbench/widgets/media_task_list/engine_task_projection_consumer.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
 import 'package:framelean/features/workbench/workbench_icons.dart';
@@ -347,31 +348,35 @@ class _WorkbenchTaskListCardState extends State<WorkbenchTaskListCard> {
     final dragEnabled =
         !_reorderCommitInFlight && task.status != TaskStatus.running;
     final selectedForBatch = widget.selectedTaskIds.contains(task.id);
-    final tile = MediaTaskListTile(
-      task: task,
-      thumbnail: widget.thumbnailForTask(task),
-      onTap: widget.selectionMode
-          ? () => widget.onToggleTaskSelection(task)
-          : () => widget.onOpenTask(task),
-      onStart: () => widget.onStart(task),
-      onPause: () => widget.onPause(task),
-      onRemove: () => widget.onRemove(task),
-      onRetry: () => widget.onRetry(task),
-      onRelink: () => widget.onRelink(task),
-      onShowLog: () => widget.onShowLog(task),
-      onRevealOutput: () => widget.onRevealOutput(task),
-      onSecondaryTapDown: widget.selectionMode
-          ? null
-          : (details) {
-              widget.onContextMenu(task, details.globalPosition);
-            },
-      tooltipsEnabled: false,
-      dragHandle: widget.selectionMode
-          ? _TaskSelectionCheckbox(
-              selected: selectedForBatch,
-              onChanged: () => widget.onToggleTaskSelection(task),
-            )
-          : _TaskDragHandleSlot(index: index, enabled: dragEnabled),
+    final tile = EngineTaskProjectionConsumer(
+      taskId: task.id,
+      builder: (context, projection) => MediaTaskListTile(
+        task: task,
+        engineProjection: projection,
+        thumbnail: widget.thumbnailForTask(task),
+        onTap: widget.selectionMode
+            ? () => widget.onToggleTaskSelection(task)
+            : () => widget.onOpenTask(task),
+        onStart: () => widget.onStart(task),
+        onPause: () => widget.onPause(task),
+        onRemove: () => widget.onRemove(task),
+        onRetry: () => widget.onRetry(task),
+        onRelink: () => widget.onRelink(task),
+        onShowLog: () => widget.onShowLog(task),
+        onRevealOutput: () => widget.onRevealOutput(task),
+        onSecondaryTapDown: widget.selectionMode
+            ? null
+            : (details) {
+                widget.onContextMenu(task, details.globalPosition);
+              },
+        tooltipsEnabled: false,
+        dragHandle: widget.selectionMode
+            ? _TaskSelectionCheckbox(
+                selected: selectedForBatch,
+                onChanged: () => widget.onToggleTaskSelection(task),
+              )
+            : _TaskDragHandleSlot(index: index, enabled: dragEnabled),
+      ),
     );
 
     return Container(

@@ -77,7 +77,7 @@ class ReconcileMediaTasksUseCase {
         continue;
       }
 
-      if (task.status == TaskStatus.awaitingAnalysis) {
+      if (task.status == TaskStatus.awaitAnalysis) {
         checkedTasks.add(task.markAnalyzing().markAnalysisReady());
         hasChanged = true;
         continue;

@@ -40,7 +40,7 @@ class MediaTaskActionButton extends StatelessWidget {
 
   MediaTaskListAction? resolveTaskAction() {
     return switch (task.status) {
-      TaskStatus.pending when task.canStartExecution => MediaTaskListAction(
+      TaskStatus.ready when task.canStartExecution => MediaTaskListAction(
         tooltip: task.status.actionTooltip,
         icon: task.status.actionIcon,
         onPressed: onStart,
@@ -60,7 +60,14 @@ class MediaTaskActionButton extends StatelessWidget {
         icon: task.status.actionIcon,
         onPressed: onRetry,
       ),
-      TaskStatus.failed || TaskStatus.cancelled => MediaTaskListAction(
+      TaskStatus.analysisFailed || TaskStatus.executionFailed
+          when task.failure?.recoveryAction != TaskRecoveryAction.none =>
+        MediaTaskListAction(
+          tooltip: task.status.actionTooltip,
+          icon: task.status.actionIcon,
+          onPressed: onRetry,
+        ),
+      TaskStatus.cancelled => MediaTaskListAction(
         tooltip: task.status.actionTooltip,
         icon: task.status.actionIcon,
         onPressed: onRetry,

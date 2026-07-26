@@ -71,14 +71,13 @@ class MediaAnalysisQueueSnapshot {
   final int total;
 }
 
-/// 全局媒体分析队列执行器。
+/// Client-side submission coordinator for FEngine analysis requests.
 ///
-/// 所有媒体分析入口（单文件导入、多文件导入、文件夹导入、拖拽导入、
-/// 启动恢复、手动重新分析等）必须通过此队列统一调度，确保：
-/// - 任意时刻活跃 FFprobe 进程数 <= 1
-/// - 同一 taskId 不重复分析
-/// - 单个文件失败不影响其他文件
-/// - 应用退出时能安全停止
+/// This object only provides duplicate suppression, a bounded IPC submission
+/// window, and UI-facing status tracking. FEngine owns work ordering,
+/// priority, execution slots, and queue backpressure after a request is sent.
+/// The local pending list therefore represents requests waiting for an IPC
+/// slot, not a second media-processing scheduler.
 ///
 /// 用法：
 /// ```dart
@@ -95,14 +94,17 @@ class MediaAnalysisQueueSnapshot {
 class MediaAnalysisQueue {
   MediaAnalysisQueue({
     required Future<MediaTask?> Function(String taskId) analyzeTask,
-    this.maxConcurrentAnalyses = 1,
+    this.maxInFlightSubmissions = 32,
     this.onEntryStateChanged,
-  }) : _analyzeTask = analyzeTask;
+  }) : _analyzeTask = analyzeTask,
+       assert(maxInFlightSubmissions > 0);
 
   final Future<MediaTask?> Function(String taskId) _analyzeTask;
 
-  /// 全局 FFprobe 最大并发数，第一版固定为 1。
-  final int maxConcurrentAnalyses;
+  /// Maximum number of Client -> FEngine requests waiting for a terminal
+  /// response at once. It is an IPC backpressure limit, not an execution
+  /// concurrency setting.
+  final int maxInFlightSubmissions;
 
   /// 条目状态变化回调，用于 UI 层刷新任务列表。
   void Function(MediaAnalysisEntry entry)? onEntryStateChanged;
@@ -266,7 +268,7 @@ class MediaAnalysisQueue {
       return;
     }
 
-    while (_activeCount < maxConcurrentAnalyses && _pendingQueue.isNotEmpty) {
+    while (_activeCount < maxInFlightSubmissions && _pendingQueue.isNotEmpty) {
       final taskId = _pendingQueue.removeFirst();
       _activeCount++;
       _activeTaskIds.add(taskId);
@@ -287,16 +289,30 @@ class MediaAnalysisQueue {
   Future<void> _executeAnalysis(String taskId) async {
     MediaAnalysisEntry? resultEntry;
     try {
-      await _analyzeTask(taskId);
+      final analyzedTask = await _analyzeTask(taskId);
 
       // 检查是否被取消
       if (_stopped) {
         return;
       }
 
-      resultEntry = _entries[taskId] = _entries[taskId]!.copyWith(
-        state: MediaAnalysisEntryState.succeeded,
-      );
+      if (analyzedTask == null) {
+        resultEntry = _entries[taskId] = _entries[taskId]!.copyWith(
+          state: MediaAnalysisEntryState.cancelled,
+        );
+      } else if (analyzedTask.isAnalysisReady) {
+        resultEntry = _entries[taskId] = _entries[taskId]!.copyWith(
+          state: MediaAnalysisEntryState.succeeded,
+        );
+      } else {
+        resultEntry = _entries[taskId] = _entries[taskId]!.copyWith(
+          state: MediaAnalysisEntryState.failed,
+          errorMessage:
+              analyzedTask.failure?.userMessage ??
+              analyzedTask.analysisErrorMessage ??
+              '媒体分析未生成可用结果',
+        );
+      }
     } on Object catch (error) {
       if (_stopped) {
         return;

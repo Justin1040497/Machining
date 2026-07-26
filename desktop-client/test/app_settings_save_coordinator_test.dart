@@ -5,8 +5,6 @@ import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/app_notifications/app_notification_manager.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_coordinator.dart';
 import 'package:framelean/application/services/app_settings/app_settings_save_target.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_locator.dart';
-import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
 import 'package:framelean/application/use_cases/app_settings/save_app_settings_use_case.dart';
 import 'package:framelean/domain/entities/app_notification_entry.dart';
@@ -63,10 +61,7 @@ _CoordinatorHarness _buildCoordinator() {
   addTearDown(notificationManager.dispose);
 
   final coordinator = AppSettingsSaveCoordinator(
-    saveSettingsUseCase: SaveAppSettingsUseCase(
-      repository: settingsRepository,
-      ffmpegLocator: _FakeFfmpegLocator(),
-    ),
+    saveSettingsUseCase: SaveAppSettingsUseCase(repository: settingsRepository),
     notificationManager: notificationManager,
     setThemeMode: (_) {},
     writeThemeCache: (_) async {},
@@ -161,32 +156,6 @@ class _FakeMediaTaskRepository implements MediaTaskRepository {
 
   @override
   Future<void> insertTasks(List<MediaTask> newTasks) async {}
-}
-
-class _FakeFfmpegLocator implements FfmpegLocator {
-  @override
-  Future<ResolvedFfmpegRuntime> resolve({
-    String? customFfmpegPath,
-    String? customFfprobePath,
-  }) async {
-    return const ResolvedFfmpegRuntime(ffmpeg: null, ffprobe: null);
-  }
-
-  @override
-  Future<ResolvedFfmpegTool> validateCustomFfmpegPath(String inputPath) async {
-    return ResolvedFfmpegTool(
-      path: inputPath,
-      source: FfmpegBinarySource.custom,
-    );
-  }
-
-  @override
-  Future<ResolvedFfmpegTool> validateCustomFfprobePath(String inputPath) async {
-    return ResolvedFfmpegTool(
-      path: inputPath,
-      source: FfmpegBinarySource.custom,
-    );
-  }
 }
 
 class _FakeAppNotificationRepository implements AppNotificationRepository {

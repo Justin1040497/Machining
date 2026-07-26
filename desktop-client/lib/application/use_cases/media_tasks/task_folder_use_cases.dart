@@ -2,6 +2,7 @@ import 'package:framelean/application/repositories/app_settings_repository.dart'
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/execution/media_task_execution_coordinator.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
@@ -278,7 +279,9 @@ class ApplyTaskFolderConfigUseCase {
   }) async {
     final folders = await taskFolderRepository.loadAllFolders();
     final folder = folders.firstWhere((folder) => folder.id == folderId);
-    final normalizedConfig = config.forKind(folder.mediaKind);
+    final normalizedConfig = config
+        .forKind(folder.mediaKind)
+        .copyWith(engineConfiguration: null);
     await taskFolderRepository.saveFolder(
       folder.copyWith(
         defaultConfig: normalizedConfig,
@@ -408,19 +411,15 @@ class RetryTaskFolderTerminalTasksUseCase {
 }
 
 class StartNextTaskInFolderUseCase {
-  const StartNextTaskInFolderUseCase({
-    required this.repository,
-    required this.queueRunner,
-  });
+  const StartNextTaskInFolderUseCase({required this.executionCoordinator});
 
-  final MediaTaskRepository repository;
-  final FfmpegTaskQueueRunner queueRunner;
+  final MediaTaskExecutionCoordinator executionCoordinator;
 
   Future<FfmpegQueueStartResult> call(
     String folderId, {
     bool allowExtremeCompression = false,
   }) async {
-    return queueRunner.startFolderQueue(
+    return executionCoordinator.startFolderQueue(
       folderId,
       allowExtremeCompression: allowExtremeCompression,
     );
@@ -569,7 +568,8 @@ bool _canApplyFolderConfig(MediaTask task) {
 
 bool _isRetryableFolderTask(MediaTask task) {
   return task.status == TaskStatus.completed ||
-      task.status == TaskStatus.failed ||
+      task.status == TaskStatus.executionFailed ||
+      task.status == TaskStatus.analysisFailed ||
       task.status == TaskStatus.cancelled;
 }
 

@@ -11,6 +11,7 @@ import 'package:framelean/domain/enums/resolution_preset.dart';
 import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
+import 'package:framelean/domain/value_objects/engine_configuration_reference.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_processing_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
@@ -27,6 +28,7 @@ class MediaTaskConfig {
   final int? targetSizeBytes;
   final double? targetSizeRatio;
   final int? threadLimit;
+  final EngineConfigurationReference? engineConfiguration;
   final VideoProcessingConfig? video;
   final ImageProcessingConfig? image;
   final AudioProcessingConfig? audio;
@@ -40,6 +42,7 @@ class MediaTaskConfig {
     this.targetSizeBytes,
     this.targetSizeRatio,
     this.threadLimit,
+    this.engineConfiguration,
     this.video,
     this.image,
     this.audio,
@@ -64,6 +67,7 @@ class MediaTaskConfig {
       targetSizeBytes: null,
       targetSizeRatio: null,
       threadLimit: null,
+      engineConfiguration: null,
       video: video,
     );
   }
@@ -78,6 +82,7 @@ class MediaTaskConfig {
       targetSizeBytes: null,
       targetSizeRatio: null,
       threadLimit: null,
+      engineConfiguration: null,
       image: ImageProcessingConfig.initial(),
     );
   }
@@ -92,6 +97,7 @@ class MediaTaskConfig {
       targetSizeBytes: null,
       targetSizeRatio: null,
       threadLimit: null,
+      engineConfiguration: null,
       audio: AudioProcessingConfig.initial(),
     );
   }
@@ -106,6 +112,7 @@ class MediaTaskConfig {
       targetSizeBytes: null,
       targetSizeRatio: null,
       threadLimit: null,
+      engineConfiguration: null,
       video: VideoProcessingConfig.initial(),
       image: ImageProcessingConfig.initial(),
       audio: AudioProcessingConfig.initial(),
@@ -172,6 +179,7 @@ class MediaTaskConfig {
       targetSizeBytes: targetSizeBytes,
       targetSizeRatio: targetSizeRatio,
       threadLimit: threadLimit,
+      engineConfiguration: engineConfiguration,
       video: mediaKind == MediaKind.video
           ? video ?? VideoProcessingConfig.initial()
           : null,
@@ -193,6 +201,7 @@ class MediaTaskConfig {
     Object? targetSizeBytes = _notProvided,
     Object? targetSizeRatio = _notProvided,
     Object? threadLimit = _notProvided,
+    Object? engineConfiguration = _notProvided,
     VideoProcessingConfig? video,
     ImageProcessingConfig? image,
     AudioProcessingConfig? audio,
@@ -244,6 +253,9 @@ class MediaTaskConfig {
       threadLimit: identical(threadLimit, _notProvided)
           ? this.threadLimit
           : normalizeThreadLimit(threadLimit as int?),
+      engineConfiguration: identical(engineConfiguration, _notProvided)
+          ? this.engineConfiguration
+          : engineConfiguration as EngineConfigurationReference?,
       video: nextVideo,
       image: image ?? this.image,
       audio: audio ?? this.audio,

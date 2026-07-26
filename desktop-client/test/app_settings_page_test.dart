@@ -39,7 +39,6 @@ void main() {
     expect(find.text('图片任务'), findsOneWidget);
     expect(find.text('音频任务'), findsOneWidget);
     expect(find.text('输出配置'), findsOneWidget);
-    expect(find.text('编码器配置'), findsOneWidget);
     expect(find.text('应用主题颜色'), findsOneWidget);
     expect(find.text('完成音频设置'), findsOneWidget);
     expect(find.text('任务完成后以弹窗的形式提示'), findsNothing);
@@ -426,28 +425,6 @@ void main() {
     );
   });
 
-  testWidgets('saves custom encoder paths', (tester) async {
-    AppSettings? savedSettings;
-
-    await pumpSettingsPage(
-      tester,
-      onSave: (settings) async => savedSettings = settings,
-    );
-
-    await tester.tap(find.text('编码器配置'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.more_horiz_rounded).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.more_horiz_rounded).last);
-    await tester.pumpAndSettle();
-    await tapSectionAction(tester, '保存');
-    await tester.pumpAndSettle();
-
-    expect(savedSettings, isNotNull);
-    expect(savedSettings!.customFfmpegPath, '/usr/local/bin/ffmpeg');
-    expect(savedSettings!.customFfprobePath, '/usr/local/bin/ffprobe');
-  });
-
   testWidgets('saves video defaults', (tester) async {
     AppSettings? savedSettings;
 
@@ -626,8 +603,6 @@ Future<void> pumpSettingsPage(
             return (onSave ?? (_) async {})(settings);
           },
           onPickOutputDirectory: () async => '/tmp/framelean-picked',
-          onPickFfmpegPath: () async => '/usr/local/bin/ffmpeg',
-          onPickFfprobePath: () async => '/usr/local/bin/ffprobe',
           onClose: onClose,
           onPreviewAppCacheCleanup:
               onPreviewAppCacheCleanup ??

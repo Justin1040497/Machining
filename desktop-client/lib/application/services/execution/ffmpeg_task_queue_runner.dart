@@ -19,6 +19,7 @@ import 'package:framelean/application/services/ffmpeg_planning/ffmpeg_command_bu
 import 'package:framelean/application/services/input_runtime/ffmpeg_runtime.dart';
 import 'package:framelean/application/services/input_runtime/media_input_preparer.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
+import 'package:framelean/application/services/engine/task_folder_queue_projection.dart';
 import 'package:framelean/application/constants.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:path/path.dart' as path;
@@ -863,6 +864,13 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     MediaTask task, {
     bool allowExtremeCompression = false,
   }) async {
+    if (task.config.engineConfiguration != null) {
+      return FfmpegQueueStartResult(
+        outcome: FfmpegQueueStartOutcome.invalidTaskState,
+        task: task,
+        message: 'Engine 配置任务必须通过 FEngine 提交，不能回退到旧 FFmpeg 链。',
+      );
+    }
     if (!task.isAnalysisReady) {
       return FfmpegQueueStartResult(
         outcome: FfmpegQueueStartOutcome.notReady,
@@ -1908,36 +1916,18 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     List<MediaTask> tasks,
     List<TaskFolder> folders,
   ) {
-    final folderTasksById = <String, List<MediaTask>>{};
-    for (final task in tasks) {
-      final folderId = task.folderId;
-      if (folderId == null) {
-        continue;
-      }
-      folderTasksById.putIfAbsent(folderId, () => []).add(task);
-    }
-
-    for (final folderTasks in folderTasksById.values) {
-      folderTasks.sort(_compareFolderTasksForExecution);
-    }
-
-    final topLevelItems = <_ExecutionTopLevelItem>[
-      for (final folder in folders)
-        _ExecutionTopLevelItem.folder(
-          folder,
-          folderTasksById[folder.id] ?? const <MediaTask>[],
-        ),
-      for (final task in tasks.where((task) => task.folderId == null))
-        _ExecutionTopLevelItem.task(task),
-    ]..sort(_compareTopLevelItemsForExecution);
-
-    return [
-      for (final item in topLevelItems)
-        if (item.task != null) item.task! else ...item.folderTasks,
-    ];
+    final byId = <String, MediaTask>{for (final task in tasks) task.id: task};
+    return const TaskFolderQueueProjection()
+        .orderedTaskIds(tasks, folders)
+        .map((taskId) => byId[taskId])
+        .whereType<MediaTask>()
+        .toList(growable: false);
   }
 
   bool isStartableTask(MediaTask task) {
+    if (task.config.engineConfiguration != null) {
+      return false;
+    }
     if (task.isAnalysisReady) {
       return true;
     }
@@ -1954,17 +1944,6 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
     return a.createdAt.compareTo(b.createdAt);
   }
 
-  int _compareTopLevelItemsForExecution(
-    _ExecutionTopLevelItem a,
-    _ExecutionTopLevelItem b,
-  ) {
-    final order = a.sortOrder.compareTo(b.sortOrder);
-    if (order != 0) {
-      return order;
-    }
-    return a.createdAt.compareTo(b.createdAt);
-  }
-
   MediaTask? findTaskById(List<MediaTask> tasks, String taskId) {
     for (final task in tasks) {
       if (task.id == taskId) {
@@ -1974,38 +1953,4 @@ class DefaultFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
 
     return null;
   }
-}
-
-class _ExecutionTopLevelItem {
-  const _ExecutionTopLevelItem._({
-    required this.sortOrder,
-    required this.createdAt,
-    required this.folderTasks,
-    this.task,
-  });
-
-  factory _ExecutionTopLevelItem.task(MediaTask task) {
-    return _ExecutionTopLevelItem._(
-      sortOrder: task.sortOrder,
-      createdAt: task.createdAt,
-      folderTasks: const [],
-      task: task,
-    );
-  }
-
-  factory _ExecutionTopLevelItem.folder(
-    TaskFolder folder,
-    List<MediaTask> folderTasks,
-  ) {
-    return _ExecutionTopLevelItem._(
-      sortOrder: folder.sortOrder,
-      createdAt: folder.createdAt,
-      folderTasks: folderTasks,
-    );
-  }
-
-  final int sortOrder;
-  final int createdAt;
-  final MediaTask? task;
-  final List<MediaTask> folderTasks;
 }

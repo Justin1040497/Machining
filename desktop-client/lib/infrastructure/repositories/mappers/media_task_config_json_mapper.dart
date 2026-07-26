@@ -17,7 +17,7 @@ MediaTaskConfig decodeMediaTaskConfig(String text) {
 
 Map<String, Object?> mediaTaskConfigToJson(MediaTaskConfig config) {
   return {
-    'configVersion': 2,
+    'configVersion': 3,
     'outputLocationMode': config.outputLocationMode.name,
     'outputDirectory': config.outputDirectory,
     'outputFileName': config.outputFileName,
@@ -26,6 +26,9 @@ Map<String, Object?> mediaTaskConfigToJson(MediaTaskConfig config) {
     'targetSizeBytes': config.targetSizeBytes,
     'targetSizeRatio': config.targetSizeRatio,
     'threadLimit': config.threadLimit,
+    'engineConfiguration': engineConfigurationToJson(
+      config.engineConfiguration,
+    ),
     'video': videoConfigToJson(config.video),
     'image': imageConfigToJson(config.image),
     'audio': audioConfigToJson(config.audio),
@@ -59,9 +62,59 @@ MediaTaskConfig mediaTaskConfigFromJson(Map<String, dynamic> json) {
     targetSizeBytes: intValue(json['targetSizeBytes']),
     targetSizeRatio: doubleValue(json['targetSizeRatio']),
     threadLimit: intValue(json['threadLimit']),
+    engineConfiguration: engineConfigurationFromJson(
+      mapValue(json['engineConfiguration']),
+    ),
     video: videoConfigFromJson(mapValue(json['video'])),
     image: imageConfigFromJson(mapValue(json['image'])),
     audio: audioConfigFromJson(mapValue(json['audio'])),
+  );
+}
+
+Map<String, Object?>? engineConfigurationToJson(
+  EngineConfigurationReference? reference,
+) {
+  if (reference == null) {
+    return null;
+  }
+  return {
+    'analysisId': reference.analysisId,
+    'analysisRevision': reference.analysisRevision,
+    'candidateId': reference.candidateId,
+    'selectionMode': reference.selectionMode,
+    'selectionJson': reference.selectionJson,
+  };
+}
+
+EngineConfigurationReference? engineConfigurationFromJson(
+  Map<String, dynamic>? json,
+) {
+  if (json == null) {
+    return null;
+  }
+  final analysisId = stringValue(json['analysisId']);
+  final candidateId = stringValue(json['candidateId']);
+  final selectionMode = stringValue(json['selectionMode']);
+  final selectionJson = stringValue(json['selectionJson']);
+  final revision = intValue(json['analysisRevision']);
+  if (analysisId == null ||
+      analysisId.isEmpty ||
+      candidateId == null ||
+      candidateId.isEmpty ||
+      selectionMode == null ||
+      selectionMode.isEmpty ||
+      selectionJson == null ||
+      selectionJson.isEmpty ||
+      revision == null ||
+      revision < 0) {
+    return null;
+  }
+  return EngineConfigurationReference(
+    analysisId: analysisId,
+    analysisRevision: revision,
+    candidateId: candidateId,
+    selectionMode: selectionMode,
+    selectionJson: selectionJson,
   );
 }
 

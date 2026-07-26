@@ -70,7 +70,7 @@ class ReorderFolderTasksUseCase {
         _OrderableItem(
           id: task.id,
           kind: WorkbenchTopLevelItemKind.task,
-          running: task.status == TaskStatus.running,
+          running: _isActiveQueueTask(task),
           createdAt: task.createdAt,
           sortOrder: task.folderSortOrder ?? task.sortOrder,
         ),
@@ -99,25 +99,14 @@ List<_OrderableItem> _buildTopLevelItems(
   List<MediaTask> tasks,
   List<TaskFolder> folders,
 ) {
-  final folderTasksById = <String, List<MediaTask>>{};
-  for (final task in tasks) {
-    final folderId = task.folderId;
-    if (folderId == null) {
-      continue;
-    }
-    folderTasksById.putIfAbsent(folderId, () => []).add(task);
-  }
-
   final items = <_OrderableItem>[
     for (final folder in folders)
       _OrderableItem(
         id: folder.id,
         kind: WorkbenchTopLevelItemKind.folder,
-        running:
-            folderTasksById[folder.id]?.any(
-              (task) => task.status == TaskStatus.running,
-            ) ??
-            false,
+        // A folder remains a movable Client product block. FEngine filters
+        // active children and only reorders its remaining waiting members.
+        running: false,
         createdAt: folder.createdAt,
         sortOrder: folder.sortOrder,
       ),
@@ -125,7 +114,7 @@ List<_OrderableItem> _buildTopLevelItems(
       _OrderableItem(
         id: task.id,
         kind: WorkbenchTopLevelItemKind.task,
-        running: task.status == TaskStatus.running,
+        running: _isActiveQueueTask(task),
         createdAt: task.createdAt,
         sortOrder: task.sortOrder,
       ),
@@ -190,6 +179,13 @@ int _compareFolderTasks(MediaTask a, MediaTask b) {
     return order;
   }
   return a.createdAt.compareTo(b.createdAt);
+}
+
+bool _isActiveQueueTask(MediaTask task) {
+  return task.status == TaskStatus.analyzing ||
+      task.status == TaskStatus.running ||
+      task.status == TaskStatus.preempting ||
+      task.status == TaskStatus.resuming;
 }
 
 class _OrderableItem {

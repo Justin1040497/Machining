@@ -193,7 +193,7 @@ class AppDialogActions extends StatelessWidget {
   });
 
   final VoidCallback onCancel;
-  final VoidCallback onSave;
+  final VoidCallback? onSave;
   final Widget? leading;
   final String cancelLabel;
   final String saveLabel;

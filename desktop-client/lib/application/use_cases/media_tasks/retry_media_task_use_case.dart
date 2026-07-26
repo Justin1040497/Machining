@@ -1,4 +1,5 @@
 import 'package:framelean/application/repositories/app_settings_repository.dart';
+import 'package:framelean/application/repositories/engine_analysis_projection_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
@@ -15,12 +16,14 @@ class RetryMediaTaskResult {
 class RetryMediaTaskUseCase {
   final MediaTaskRepository repository;
   final AppSettingsRepository settingsRepository;
+  final EngineAnalysisProjectionRepository analysisProjectionRepository;
   final SourceFileChecker sourceFileChecker;
   final SourceFileFingerprintReader fingerprintReader;
 
   const RetryMediaTaskUseCase({
     required this.repository,
     required this.settingsRepository,
+    required this.analysisProjectionRepository,
     required this.sourceFileChecker,
     required this.fingerprintReader,
   });
@@ -28,6 +31,14 @@ class RetryMediaTaskUseCase {
   Future<RetryMediaTaskResult> call(String taskId) async {
     final tasks = await repository.loadAllTasks();
     final task = findMediaTaskById(tasks, taskId);
+    final failure = task.failure;
+    if ((task.status == TaskStatus.analysisFailed ||
+            task.status == TaskStatus.executionFailed) &&
+        failure != null &&
+        !failure.retryable &&
+        failure.recoveryAction == TaskRecoveryAction.none) {
+      throw StateError('当前失败不支持直接重试，请先解决失败原因。');
+    }
 
     if (!await sourceFileChecker.exists(task.inputPath)) {
       final updatedTask = task.markMissingSource();
@@ -62,6 +73,9 @@ class RetryMediaTaskUseCase {
       ),
     );
 
+    if (shouldAnalyze) {
+      await analysisProjectionRepository.deleteByTaskId(taskId);
+    }
     await repository.saveTask(pendingTask);
     return RetryMediaTaskResult(
       task: pendingTask,

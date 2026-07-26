@@ -86,14 +86,20 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       fingerprintReader: ref.read(sourceFileFingerprintReaderProvider),
       settingsRepository: ref.read(appSettingsRepositoryProvider),
       now: DateTime.now,
-    ).call(inputPaths, skipUnsupported: true);
-
-    await createTaskFoldersForImportedBatch(createdTasks);
-    if (createdTasks.isNotEmpty) {
-      _enqueueAnalyses(createdTasks.map((task) => task.id));
+    ).call(inputPaths, skipUnsupported: true, persist: false);
+    if (createdTasks.isEmpty) {
+      return createdTasks;
     }
-
-    return createdTasks;
+    final organized = await OrganizeImportedMediaBatchAtomicallyUseCase(
+      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
+      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+      persistence: ref.read(importedMediaBatchPersistenceProvider),
+    ).call(createdTasks);
+    state = AsyncData(organized.allTasks);
+    ref.invalidate(taskFolderListProvider);
+    unawaited(syncFfmpegQueueStatus());
+    _enqueueAnalyses(organized.orderedImportedTaskIds);
+    return organized.createdTasks;
   }
 
   Future<MediaTask> _createImportedDraft(String inputPath) {
@@ -120,6 +126,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       settingsRepository: ref.read(appSettingsRepositoryProvider),
       folderScanner: ref.read(mediaFolderScannerProvider),
       now: DateTime.now,
+      batchPersistence: ref.read(importedMediaBatchPersistenceProvider),
     ).call(folderPath: folderPath, scanDepth: settings.folderImportScanDepth);
 
     state = AsyncData(
@@ -191,6 +198,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     await pruneEmptyTaskFolders();
     state = AsyncData(tasks);
     ref.invalidate(taskFolderListProvider);
+    await _applyEngineQueueOrder(tasks);
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -251,7 +259,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final recoveryAction = task.failure?.recoveryAction;
     final savedTask =
         recoverFromConfigurationFailure &&
-            task.status == TaskStatus.failed &&
+            task.status == TaskStatus.executionFailed &&
             (recoveryAction == TaskRecoveryAction.editConfiguration ||
                 recoveryAction == TaskRecoveryAction.chooseOutputDirectory)
         ? task.markPendingForRetry()
@@ -260,6 +268,64 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     await repository.saveTask(savedTask);
     state = AsyncData(replaceMediaTask(tasks, savedTask));
     unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<MediaTask> saveEngineTaskConfiguration({
+    required String taskId,
+    required String analysisId,
+    required int analysisRevision,
+    required EngineConfigurationSelection selection,
+  }) async {
+    final resolvedTask =
+        await SaveEngineTaskConfigurationUseCase(
+          repository: ref.read(mediaTaskRepositoryProvider),
+          analysisProjectionRepository: ref.read(
+            engineAnalysisProjectionRepositoryProvider,
+          ),
+        ).call(
+          taskId: taskId,
+          analysisId: analysisId,
+          analysisRevision: analysisRevision,
+          selection: selection,
+        );
+    if (resolvedTask == null) {
+      throw StateError('任务已不存在，配置未保存。');
+    }
+
+    // The use case returns the repository's latest task when its generation
+    // changed while resolving. Reflect that latest task in the list before
+    // rejecting the stale selection so the in-memory projection cannot lag
+    // behind the persisted task.
+    if (state.hasValue) {
+      state = AsyncData(replaceMediaTask(state.requireValue, resolvedTask));
+    }
+
+    final reference = resolvedTask.config.engineConfiguration;
+    if (reference == null ||
+        reference.analysisId != analysisId ||
+        reference.analysisRevision != analysisRevision ||
+        reference.candidateId != selection.candidateId) {
+      throw StateError('任务或分析结果已发生变化，配置未保存。');
+    }
+
+    return resolvedTask;
+  }
+
+  @Deprecated(
+    'Use saveEngineTaskConfiguration; no ResolveConfiguration RPC is sent.',
+  )
+  Future<MediaTask> resolveEngineTaskConfiguration({
+    required String taskId,
+    required String analysisId,
+    required int analysisRevision,
+    required EngineConfigurationSelection selection,
+  }) {
+    return saveEngineTaskConfiguration(
+      taskId: taskId,
+      analysisId: analysisId,
+      analysisRevision: analysisRevision,
+      selection: selection,
+    );
   }
 
   Future<void> replaceMissingSource({
@@ -273,6 +339,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final tasks = state.requireValue;
     final updatedTask = await ReplaceMissingSourceUseCase(
       repository: repository,
+      analysisProjectionRepository: ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      ),
       mediaKindResolver: resolver,
       sourceFileChecker: sourceFileChecker,
       fingerprintReader: fingerprintReader,
@@ -286,8 +355,12 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<void> deleteTaskById(String taskId) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    await ref.read(mediaTaskExecutionCoordinatorProvider).cancelTask(taskId);
     await DeleteMediaTaskUseCase(
       repository: repository,
+      analysisProjectionRepository: ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      ),
       queueRunner: queueRunner,
     ).call(taskId);
     await pruneEmptyTaskFolders();
@@ -305,6 +378,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final result = await RetryMediaTaskUseCase(
       repository: repository,
       settingsRepository: ref.read(appSettingsRepositoryProvider),
+      analysisProjectionRepository: ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      ),
       sourceFileChecker: sourceFileChecker,
       fingerprintReader: fingerprintReader,
     ).call(taskId);
@@ -319,8 +395,12 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<void> clearTasks() async {
     final repository = ref.read(mediaTaskRepositoryProvider);
     final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
+    await ref.read(mediaTaskExecutionCoordinatorProvider).cancelAll();
     final tasks = await ClearMediaTasksUseCase(
       repository: repository,
+      analysisProjectionRepository: ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      ),
       taskFolderRepository: ref.read(taskFolderRepositoryProvider),
       queueRunner: queueRunner,
     ).call();
@@ -343,9 +423,8 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<FfmpegQueueStartResult> startExecutionQueue({
     bool allowExtremeCompression = false,
   }) async {
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     final result = await StartExecutionQueueUseCase(
-      queueRunner: queueRunner,
+      executionCoordinator: ref.read(mediaTaskExecutionCoordinatorProvider),
     ).call(allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
@@ -362,9 +441,8 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     String taskId, {
     bool allowExtremeCompression = false,
   }) async {
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     final result = await StartOrResumeMediaTaskUseCase(
-      queueRunner: queueRunner,
+      executionCoordinator: ref.read(mediaTaskExecutionCoordinatorProvider),
     ).call(taskId, allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
@@ -381,10 +459,8 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     String folderId, {
     bool allowExtremeCompression = false,
   }) async {
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     final result = await StartNextTaskInFolderUseCase(
-      repository: ref.read(mediaTaskRepositoryProvider),
-      queueRunner: queueRunner,
+      executionCoordinator: ref.read(mediaTaskExecutionCoordinatorProvider),
     ).call(folderId, allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
@@ -398,10 +474,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   }
 
   Future<FfmpegQueueStartResult> pauseTaskById(String taskId) async {
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final result = await PauseMediaTaskExecutionUseCase(
-      queueRunner: queueRunner,
-    ).call(taskId);
+    final result = await ref
+        .read(mediaTaskExecutionCoordinatorProvider)
+        .pauseTask(taskId);
 
     await refreshTasksFromRepository();
     if (result.outcome == FfmpegQueueStartOutcome.paused) {
@@ -414,11 +489,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<FfmpegQueueStartResult> pauseRunningTaskInFolder(
     String folderId,
   ) async {
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final result = await PauseRunningTaskInFolderUseCase(
-      repository: ref.read(mediaTaskRepositoryProvider),
-      queueRunner: queueRunner,
-    ).call(folderId);
+    final result = await ref
+        .read(mediaTaskExecutionCoordinatorProvider)
+        .pauseFolder(folderId);
 
     await refreshTasksFromRepository();
     if (result.outcome == FfmpegQueueStartOutcome.paused) {
@@ -429,10 +502,9 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   }
 
   Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
-    final result = await PauseAllMediaTaskExecutionsUseCase(
-      queueRunner: queueRunner,
-    ).call();
+    final result = await ref
+        .read(mediaTaskExecutionCoordinatorProvider)
+        .pauseActive();
 
     await refreshTasksFromRepository();
     return result;
@@ -507,6 +579,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(oldIndex: oldIndex, newIndex: newIndex);
     state = AsyncData(tasks);
     ref.invalidate(taskFolderListProvider);
+    await _applyEngineQueueOrder(tasks);
     unawaited(syncFfmpegQueueStatus());
   }
 
@@ -519,7 +592,22 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       repository: ref.read(mediaTaskRepositoryProvider),
     ).call(folderId: folderId, oldIndex: oldIndex, newIndex: newIndex);
     state = AsyncData(tasks);
+    await _applyEngineQueueOrder(tasks);
     unawaited(syncFfmpegQueueStatus());
+  }
+
+  Future<void> _applyEngineQueueOrder(List<MediaTask> tasks) async {
+    final gateway = await ref.read(engineGatewayProvider.future);
+    await ApplyEngineQueueOrderUseCase(
+      gateway: gateway,
+      projectionRepository: ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      ),
+      orderRevisionStore: ref.read(workbenchOrderRevisionStoreProvider),
+    ).call(
+      tasks: tasks,
+      folders: await ref.read(taskFolderRepositoryProvider).loadAllFolders(),
+    );
   }
 
   Future<void> analyzeTasksInBackground(List<String> taskIds) async {
@@ -538,8 +626,77 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     if (ids.isEmpty) {
       return;
     }
-    _queue.enqueueAll(ids);
+    unawaited(_submitAnalysisBatchAndTrack(ids));
+  }
+
+  Future<void> _submitAnalysisBatchAndTrack(List<String> taskIds) async {
+    late final List<String> accepted;
+    try {
+      accepted = await SubmitEngineAnalysisBatchUseCase(
+        repository: ref.read(mediaTaskRepositoryProvider),
+        projectionRepository: ref.read(
+          engineAnalysisProjectionRepositoryProvider,
+        ),
+        readEngineGateway: () => ref.read(engineGatewayProvider.future),
+      ).call(taskIds);
+    } on StateError catch (error) {
+      if (!error.toString().contains('不支持原子批量分析提交')) {
+        await _recordAnalysisBatchFailure(taskIds, error);
+        return;
+      }
+      // Compatibility-only gateways can still use the established per-task
+      // request path. The production LocalFEngineGateway always supports the
+      // atomic batch command.
+      accepted = taskIds;
+    } on Object catch (error) {
+      // A transport failure has an unknown commit result. Never resubmit the
+      // children individually: doing so could duplicate work that FEngine
+      // already accepted before the connection was interrupted.
+      await _recordAnalysisBatchFailure(taskIds, error);
+      return;
+    }
+    if (!ref.mounted) {
+      return;
+    }
+    _queue.enqueueAll(accepted);
     unawaited(_refreshWhenAnalysisQueueIsIdle());
+  }
+
+  Future<void> _recordAnalysisBatchFailure(
+    List<String> taskIds,
+    Object error,
+  ) async {
+    if (!ref.mounted) {
+      return;
+    }
+    final repository = ref.read(mediaTaskRepositoryProvider);
+    final occurredAt = DateTime.now().millisecondsSinceEpoch;
+    for (final taskId in taskIds) {
+      final task = await repository.loadTaskById(taskId);
+      if (!ref.mounted) {
+        return;
+      }
+      if (task == null ||
+          (task.status != TaskStatus.awaitAnalysis &&
+              task.status != TaskStatus.analysisQueued)) {
+        continue;
+      }
+      await repository.saveTask(
+        task.markAnalysisFailed(
+          TaskFailure(
+            stage: TaskFailureStage.analysis,
+            code: TaskFailureCode.analysisRuntimeUnavailable,
+            userMessage: '分析批次未能确认进入媒体引擎，请重试。',
+            technicalSummary: error.toString(),
+            occurredAt: occurredAt,
+            retryable: true,
+          ),
+        ),
+      );
+    }
+    if (ref.mounted && state.hasValue) {
+      await refreshTasksFromRepository();
+    }
   }
 
   Future<void> _refreshWhenAnalysisQueueIsIdle() async {

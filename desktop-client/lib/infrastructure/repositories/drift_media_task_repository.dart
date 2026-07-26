@@ -144,7 +144,7 @@ extension MediaTaskMapper on MediaTask {
       fileName: Value(fileName),
       mediaKind: Value(mediaKind.name),
       purpose: Value(purpose.name),
-      status: Value(status.name),
+      status: Value(_taskStatusToStorage(status)),
       progress: Value(progress),
       sortOrder: Value(sortOrder),
       folderId: Value(folderId),
@@ -239,7 +239,7 @@ extension MediaTaskMapper on MediaTask {
 extension TaskRowMapper on TaskRow {
   MediaTask toDomain() {
     final resolvedMediaKind = enumValueByName(MediaKind.values, mediaKind);
-    final resolvedStatus = enumValueByName(TaskStatus.values, status);
+    final resolvedStatus = _taskStatusFromStorage(status);
     return MediaTask(
       id: id,
       inputPath: inputPath,
@@ -411,6 +411,49 @@ extension TaskRowMapper on TaskRow {
       ),
     );
   }
+}
+
+String _taskStatusToStorage(TaskStatus status) {
+  return switch (status) {
+    TaskStatus.awaitAnalysis => 'await_analysis',
+    TaskStatus.analysisQueued => 'analysis_queued',
+    TaskStatus.analyzing => 'analyzing',
+    TaskStatus.ready => 'ready',
+    TaskStatus.analysisFailed => 'analysis_failed',
+    TaskStatus.executionQueued => 'execution_queued',
+    TaskStatus.running => 'running',
+    TaskStatus.preempting => 'preempting',
+    TaskStatus.preempted => 'preempted',
+    TaskStatus.resuming => 'resuming',
+    TaskStatus.paused => 'paused',
+    TaskStatus.completed => 'completed',
+    TaskStatus.executionFailed => 'execution_failed',
+    TaskStatus.cancelled => 'cancelled',
+    TaskStatus.missingSource => 'missing_source',
+  };
+}
+
+TaskStatus _taskStatusFromStorage(String value) {
+  return switch (value) {
+    'await_analysis' ||
+    'awaitingAnalysis' ||
+    'analysis_pending' => TaskStatus.awaitAnalysis,
+    'analysis_queued' => TaskStatus.analysisQueued,
+    'analyzing' => TaskStatus.analyzing,
+    'ready' || 'pending' => TaskStatus.ready,
+    'analysis_failed' => TaskStatus.analysisFailed,
+    'execution_queued' => TaskStatus.executionQueued,
+    'running' => TaskStatus.running,
+    'preempting' => TaskStatus.preempting,
+    'preempted' => TaskStatus.preempted,
+    'resuming' => TaskStatus.resuming,
+    'paused' => TaskStatus.paused,
+    'completed' => TaskStatus.completed,
+    'execution_failed' || 'failed' => TaskStatus.executionFailed,
+    'cancelled' => TaskStatus.cancelled,
+    'missing_source' || 'missingSource' => TaskStatus.missingSource,
+    _ => throw StateError('未知任务状态: $value'),
+  };
 }
 
 class DriftTaskFolderRepository implements TaskFolderRepository {

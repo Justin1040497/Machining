@@ -1,7 +1,9 @@
 import 'package:framelean/application/library.dart';
 import 'package:framelean/infrastructure/database/app_notifications.dart';
+import 'package:framelean/infrastructure/database/engine_analysis_projections.dart';
 import 'package:framelean/infrastructure/database/settings.dart';
 import 'package:framelean/infrastructure/database/task_folders.dart';
+import 'package:framelean/infrastructure/database/workbench_order_states.dart';
 import 'package:framelean/infrastructure/database/tasks.dart';
 import 'package:path/path.dart';
 import 'dart:io';
@@ -15,7 +17,14 @@ part 'app_database.g.dart';
 
 /// 数据库管理
 @DriftDatabase(
-  tables: [SettingsRows, TaskRows, TaskFolderRows, AppNotificationRows],
+  tables: [
+    SettingsRows,
+    TaskRows,
+    TaskFolderRows,
+    AppNotificationRows,
+    EngineAnalysisProjectionRows,
+    WorkbenchOrderStateRows,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// 创建AppDatabase时 自动打开数据库
@@ -55,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 30;
+  int get schemaVersion => 34;
 
   @override
   MigrationStrategy get migration {
@@ -412,6 +421,95 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 30) {
           await _safeAddColumn(migrator, taskRows, taskRows.failureJson);
+        }
+        if (from < 31) {
+          await _safeCreateTable(migrator, engineAnalysisProjectionRows);
+        }
+        if (from < 32) {
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.analysisWorkId,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.analysisQueuePosition,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.analysisQueueRevision,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.executionId,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.executionQueuePosition,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.executionQueueRevision,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.executionState,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.pauseReason,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.preemptedByExecutionId,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.resumeDepth,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.mediaTimeUs,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.processedBytes,
+          );
+          await customStatement(
+            "UPDATE tasks SET status = CASE "
+            "WHEN status IN ('awaitingAnalysis', 'analysis_pending') THEN 'await_analysis' "
+            "WHEN status = 'pending' THEN 'ready' "
+            "WHEN status = 'failed' AND analysis_error_message IS NOT NULL THEN 'analysis_failed' "
+            "WHEN status = 'failed' THEN 'execution_failed' "
+            "WHEN status = 'missingSource' THEN 'missing_source' "
+            "ELSE status END",
+          );
+        }
+        if (from < 33) {
+          await _safeCreateTable(migrator, workbenchOrderStateRows);
+        }
+        if (from < 34) {
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.analysisRequestId,
+          );
+          await _safeAddColumn(
+            migrator,
+            engineAnalysisProjectionRows,
+            engineAnalysisProjectionRows.executionRequestId,
+          );
         }
       },
     );

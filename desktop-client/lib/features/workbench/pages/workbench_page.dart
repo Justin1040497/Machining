@@ -15,6 +15,7 @@ import 'package:framelean/features/workbench/pages/workbench_page/configuration/
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/confirm/import_failure_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/engine_task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_context_menu.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_log_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_rename_dialog.dart';
@@ -208,7 +209,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       tasks: tasks,
       openedFolder: openedFolder,
     );
-    syncTaskThumbnailsAfterBuild(tasks);
 
     final hasRunningTask = tasks.any(
       (task) => task.status == TaskStatus.running,
@@ -700,19 +700,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     return thumbnailStore.imageForTask(task);
   }
 
-  void syncTaskThumbnailsAfterBuild(List<MediaTask> tasks) {
-    thumbnailStore.scheduleGenerationAfterBuild(
-      tasks: tasks,
-      ref: ref,
-      isMounted: () => mounted,
-      onChanged: () {
-        if (mounted) {
-          setState(() {});
-        }
-      },
-    );
-  }
-
   Future<void> pauseRunningTasks() async {
     try {
       final result = await ref
@@ -943,7 +930,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
   }
 
-  MediaTaskConfig resolveVideoDraftConfig({
+  MediaTaskConfig _resolveTaskFolderVideoDraftConfig({
     required MediaTask task,
     required WorkbenchTaskConfigurationDraft draft,
     required bool usePerTaskTargetSize,
@@ -1004,7 +991,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           return;
         }
 
-        final draft = await showWorkbenchTaskConfigurationEditor(
+        final draft = await showTaskFolderConfigurationEditor(
           context: context,
           task: representativeTask,
           thumbnail: null,
@@ -1032,7 +1019,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         }
 
         final updatedConfig = isVideoTask
-            ? resolveVideoDraftConfig(
+            ? _resolveTaskFolderVideoDraftConfig(
                 task: representativeTask,
                 draft: draft,
                 usePerTaskTargetSize: false,
@@ -1065,7 +1052,7 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
       fileName: folder.name,
       mediaKind: folder.mediaKind,
       purpose: folder.defaultPurpose,
-      status: TaskStatus.awaitingAnalysis,
+      status: TaskStatus.awaitAnalysis,
       config: folder.defaultConfig,
       progress: 0,
       sortOrder: folder.sortOrder,
@@ -1075,106 +1062,41 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
 
   Future<void> showTaskConfigurationDialog(MediaTask task) async {
     await runWorkbenchActionOnce('show-task-configuration-dialog', () async {
-      final isVideoTask = task.mediaKind == MediaKind.video;
-      final initialValues = resolveWorkbenchTaskConfigurationInitialValues(
-        task: task,
-        selectedQualityIndex: selectedQualityIndex,
-        selectedOutputFormat: selectedOutputFormat,
-        selectedVideoCodec: selectedVideoCodec,
-        selectedEncoderBackend: selectedEncoderBackend,
-        selectedResolutionPreset: selectedResolutionPreset,
-        selectedSmartPreset: selectedSmartPreset,
-      );
-      final appSettings = await ref.read(appSettingsProvider.future);
+      final snapshot = await LoadEngineAnalysisSnapshotUseCase(
+        analysisProjectionRepository: ref.read(
+          engineAnalysisProjectionRepositoryProvider,
+        ),
+      ).call(task);
       if (!mounted) {
         return;
       }
+      if (snapshot == null ||
+          snapshot.taskMode != engineTaskModeForMediaTask(task)) {
+        showWorkbenchSnackBar('引擎分析结果不可用，请重新分析。');
+        return;
+      }
 
-      setState(() {
-        selectedTaskId = task.id;
-        selectedOutputFormat = initialValues.outputFormat;
-        selectedVideoCodec = initialValues.videoCodec;
-        selectedEncoderBackend = initialValues.encoderBackend;
-        selectedResolutionPreset = initialValues.resolutionPreset;
-        selectedCompressionMode = initialValues.compressionMode;
-        selectedSmartPreset = initialValues.smartPreset;
-        selectedQualityIndex = initialValues.qualityIndex;
-        syncedConfigTaskId = task.id;
-        syncedQualityTaskKey = '${task.id}:${task.analysisUpdatedAt}';
-      });
-
-      final draft = await showWorkbenchTaskConfigurationEditor(
+      final resolvedTask = await showEngineTaskConfigurationEditor(
         context: context,
         task: task,
+        snapshot: snapshot,
         thumbnail: thumbnailForTask(task),
-        systemOutputDirectoryLabel: _systemOutputDirectoryLabel(appSettings),
-        onPickOutputDirectory: () =>
-            ref.read(fileSelectionServiceProvider).pickOutputDirectory(),
-        selectedQualityIndex: initialValues.qualityIndex,
-        selectedOutputFormat: initialValues.outputFormat,
-        selectedVideoCodec: initialValues.videoCodec,
-        selectedEncoderBackend: initialValues.encoderBackend,
-        selectedResolutionPreset: initialValues.resolutionPreset,
-        selectedCompressionMode: initialValues.compressionMode,
-        selectedSmartPreset: initialValues.smartPreset,
-        selectedTargetSizeRatio: initialValues.targetSizeRatio,
         onOpenSource: () {
           unawaited(revealPathInFileManager(task.inputPath));
         },
+        onResolve: (selection) {
+          return ref
+              .read(mediaTaskListProvider.notifier)
+              .saveEngineTaskConfiguration(
+                taskId: task.id,
+                analysisId: snapshot.analysisId,
+                analysisRevision: snapshot.analysisRevision,
+                selection: selection,
+              );
+        },
       );
-      if (!mounted || draft == null) {
+      if (!mounted || resolvedTask == null) {
         return;
-      }
-
-      if (!isVideoTask) {
-        try {
-          await updateSelectedTaskConfig(
-            config: draft.config,
-            purpose: draft.purpose,
-          );
-        } on Object catch (error) {
-          showWorkbenchSnackBar(error.toString());
-        }
-        return;
-      }
-
-      try {
-        final updatedConfig = resolveVideoDraftConfig(
-          task: task,
-          draft: draft,
-          usePerTaskTargetSize: true,
-        );
-
-        await updateSelectedTaskConfig(
-          config: updatedConfig,
-          purpose: draft.purpose,
-        );
-
-        if (!mounted) {
-          return;
-        }
-
-        setState(() {
-          selectedQualityIndex =
-              draft.compressionMode == CompressionMode.targetSize
-              ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(
-                  WorkbenchQualityPolicy.normalizeTargetSizeRatio(
-                    draft.targetSizeRatio,
-                  ),
-                )
-              : draft.qualityIndex;
-          selectedOutputFormat = draft.outputFormat;
-          selectedVideoCodec = draft.videoCodec;
-          selectedEncoderBackend = draft.encoderBackend;
-          selectedResolutionPreset = draft.resolutionPreset;
-          selectedCompressionMode =
-              draft.compressionMode == CompressionMode.targetSize
-              ? CompressionMode.targetSize
-              : CompressionMode.preset;
-          selectedSmartPreset = draft.smartPreset;
-        });
-      } on Object catch (error) {
-        showWorkbenchSnackBar(error.toString());
       }
     });
   }
@@ -1623,7 +1545,8 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
         hasLoggableTask: folderTasks.any(
           (task) =>
               task.status == TaskStatus.completed ||
-              task.status == TaskStatus.failed,
+              task.status == TaskStatus.executionFailed ||
+              task.status == TaskStatus.analysisFailed,
         ),
         globalPosition: globalPosition,
       );
@@ -2141,7 +2064,7 @@ AppNotificationLevel notificationLevelForWorkbenchMessage(String message) {
 bool _taskNeedsUpdateRestartWarning(MediaTask task) {
   return task.status == TaskStatus.running ||
       task.status == TaskStatus.paused ||
-      task.status == TaskStatus.awaitingAnalysis ||
-      task.status == TaskStatus.pending ||
+      task.status == TaskStatus.awaitAnalysis ||
+      task.status == TaskStatus.ready ||
       task.status == TaskStatus.analyzing;
 }

@@ -24,6 +24,7 @@ class ImportMediaTasksUseCase {
   Future<List<MediaTask>> call(
     Iterable<String> inputPaths, {
     bool skipUnsupported = false,
+    bool persist = true,
   }) async {
     final settings = await settingsRepository.loadSettings();
     final existingTasks = await repository.loadAllTasks();
@@ -76,7 +77,7 @@ class ImportMediaTasksUseCase {
       currentSortOrder += 1;
     }
 
-    if (createdTasks.isNotEmpty) {
+    if (persist && createdTasks.isNotEmpty) {
       await repository.insertTasks(createdTasks);
     }
     return createdTasks;

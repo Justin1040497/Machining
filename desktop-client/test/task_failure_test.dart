@@ -94,6 +94,30 @@ void main() {
       expect(decoded.retryable, failure.retryable);
     });
 
+    test('round trips the engine execution unavailable code', () {
+      const engineFailure = TaskFailure(
+        stage: TaskFailureStage.processStart,
+        code: TaskFailureCode.engineExecutionUnavailable,
+        userMessage: '当前版本尚未接通媒体执行链。',
+        technicalSummary: 'ENGINE_EXECUTION_CHAIN_NOT_READY',
+        occurredAt: 456,
+        retryable: false,
+      );
+
+      final decoded = decodeTaskFailure(
+        encodeTaskFailure(engineFailure),
+        status: TaskStatus.failed,
+        legacyErrorMessage: null,
+        legacyAnalysisErrorMessage: null,
+        failedAt: null,
+      )!;
+
+      expect(decoded.code, TaskFailureCode.engineExecutionUnavailable);
+      expect(decoded.stage, TaskFailureStage.processStart);
+      expect(decoded.retryable, isFalse);
+      expect(decoded.recoveryAction, TaskRecoveryAction.none);
+    });
+
     test('restores legacy analysis failure', () {
       final decoded = decodeTaskFailure(
         null,

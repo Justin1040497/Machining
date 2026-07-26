@@ -44,7 +44,7 @@ class MediaTaskStatusBadge extends StatelessWidget {
     final colors = context.frameLeanColors;
 
     switch (task.status) {
-      case TaskStatus.awaitingAnalysis:
+      case TaskStatus.awaitAnalysis:
         return MediaTaskStatusStyle(
           label: '等待分析',
           backgroundColor: colors.statusPending,
@@ -56,7 +56,7 @@ class MediaTaskStatusBadge extends StatelessWidget {
           backgroundColor: colors.statusRunning,
           foregroundColor: colors.onWarning,
         );
-      case TaskStatus.pending:
+      case TaskStatus.ready:
         return MediaTaskStatusStyle(
           label: '等待开始',
           backgroundColor: colors.statusPending,
@@ -68,7 +68,8 @@ class MediaTaskStatusBadge extends StatelessWidget {
           backgroundColor: colors.progress,
           foregroundColor: colors.primary,
         );
-      case TaskStatus.failed:
+      case TaskStatus.analysisFailed:
+      case TaskStatus.executionFailed:
         return MediaTaskStatusStyle(
           label: '失败',
           backgroundColor: colors.statusFailed,
@@ -95,6 +96,36 @@ class MediaTaskStatusBadge extends StatelessWidget {
       case TaskStatus.paused:
         return MediaTaskStatusStyle(
           label: '暂停中',
+          backgroundColor: colors.runningSoft,
+          foregroundColor: colors.statusRunning,
+        );
+      case TaskStatus.analysisQueued:
+        return MediaTaskStatusStyle(
+          label: '分析排队中',
+          backgroundColor: colors.statusPending,
+          foregroundColor: colors.onWarning,
+        );
+      case TaskStatus.executionQueued:
+        return MediaTaskStatusStyle(
+          label: '执行排队中',
+          backgroundColor: colors.statusPending,
+          foregroundColor: colors.onWarning,
+        );
+      case TaskStatus.preempting:
+        return MediaTaskStatusStyle(
+          label: '正在抢占',
+          backgroundColor: colors.runningSoft,
+          foregroundColor: colors.statusRunning,
+        );
+      case TaskStatus.preempted:
+        return MediaTaskStatusStyle(
+          label: '已抢占',
+          backgroundColor: colors.runningSoft,
+          foregroundColor: colors.statusRunning,
+        );
+      case TaskStatus.resuming:
+        return MediaTaskStatusStyle(
+          label: '正在恢复',
           backgroundColor: colors.runningSoft,
           foregroundColor: colors.statusRunning,
         );

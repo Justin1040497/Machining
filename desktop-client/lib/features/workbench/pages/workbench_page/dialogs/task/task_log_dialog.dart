@@ -124,13 +124,19 @@ class TaskFolderLogDialog extends StatelessWidget {
 
   String _statusLabel(TaskStatus status) {
     return switch (status) {
-      TaskStatus.awaitingAnalysis => '等待分析',
-      TaskStatus.pending => '等待开始',
+      TaskStatus.awaitAnalysis => '等待分析',
+      TaskStatus.analysisQueued => '分析排队中',
+      TaskStatus.ready => '等待开始',
+      TaskStatus.analysisFailed => '分析失败',
       TaskStatus.analyzing => '分析中',
+      TaskStatus.executionQueued => '执行排队中',
       TaskStatus.running => '处理中',
+      TaskStatus.preempting => '正在抢占',
+      TaskStatus.preempted => '已抢占',
+      TaskStatus.resuming => '正在恢复',
       TaskStatus.paused => '已暂停',
       TaskStatus.completed => '已完成',
-      TaskStatus.failed => '失败',
+      TaskStatus.executionFailed => '执行失败',
       TaskStatus.cancelled => '已取消',
       TaskStatus.missingSource => '源文件丢失',
     };
@@ -352,7 +358,7 @@ class _TaskLogDialogState extends ConsumerState<TaskLogDialog> {
     String message;
     if (currentTask.isAwaitingAnalysis) {
       message = '任务正在等待分析，暂无日志';
-    } else if (currentTask.status == TaskStatus.pending) {
+    } else if (currentTask.status == TaskStatus.ready) {
       message = '任务尚未开始，暂无日志';
     } else if (currentTask.status == TaskStatus.analyzing) {
       message = '正在分析媒体文件...';

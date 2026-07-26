@@ -57,7 +57,7 @@ class MediaTask {
       fileName: fileName,
       mediaKind: mediaKind,
       purpose: purpose,
-      status: TaskStatus.awaitingAnalysis,
+      status: TaskStatus.awaitAnalysis,
       config: MediaTaskConfig.normalize(config, mediaKind),
       progress: 0,
       sortOrder: sortOrder,
@@ -171,10 +171,10 @@ class MediaTask {
   String? get analysisErrorMessage =>
       failure?.stage == TaskFailureStage.analysis ? failure?.userMessage : null;
 
-  bool get isAwaitingAnalysis => status == TaskStatus.awaitingAnalysis;
+  bool get isAwaitingAnalysis => status == TaskStatus.awaitAnalysis;
 
   bool get isAnalysisReady =>
-      status == TaskStatus.pending && analysisResult != null;
+      status == TaskStatus.ready && analysisResult != null;
 
   /// 是否满足一次全新执行的领域准入条件。
   ///
@@ -191,8 +191,8 @@ class MediaTask {
   MediaTask markPendingForRetry() {
     return copyWith(
       status: analysisResult == null
-          ? TaskStatus.awaitingAnalysis
-          : TaskStatus.pending,
+          ? TaskStatus.awaitAnalysis
+          : TaskStatus.ready,
       progress: 0,
       clearFailure: true,
       clearStartedAt: true,
@@ -205,7 +205,7 @@ class MediaTask {
 
   MediaTask markAwaitingAnalysis() {
     return copyWith(
-      status: TaskStatus.awaitingAnalysis,
+      status: TaskStatus.awaitAnalysis,
       progress: 0,
       clearFailure: true,
       clearStartedAt: true,
@@ -215,9 +215,17 @@ class MediaTask {
     );
   }
 
+  MediaTask markAnalysisQueued() {
+    if (status != TaskStatus.awaitAnalysis) {
+      return this;
+    }
+    return copyWith(status: TaskStatus.analysisQueued, clearFailure: true);
+  }
+
   /// 标记分析队列已经取得该任务的执行位。
   MediaTask markAnalyzing() {
-    if (status != TaskStatus.awaitingAnalysis) {
+    if (status != TaskStatus.awaitAnalysis &&
+        status != TaskStatus.analysisQueued) {
       return this;
     }
     return copyWith(status: TaskStatus.analyzing);
@@ -225,14 +233,42 @@ class MediaTask {
 
   /// 分析完成后恢复为可执行的等待状态。
   MediaTask markAnalysisReady() {
-    if (status != TaskStatus.analyzing) {
+    if (status != TaskStatus.awaitAnalysis &&
+        status != TaskStatus.analysisQueued &&
+        status != TaskStatus.analyzing) {
       return this;
     }
     if (analysisResult == null) {
       return this;
     }
-    return copyWith(status: TaskStatus.pending, clearFailure: true);
+    return copyWith(status: TaskStatus.ready, clearFailure: true);
   }
+
+  MediaTask markAnalysisFailed(TaskFailure failure, {int? failedAt}) {
+    return copyWith(
+      status: TaskStatus.analysisFailed,
+      failure: failure,
+      failedAt: failedAt ?? failure.occurredAt,
+    );
+  }
+
+  MediaTask markExecutionQueued() {
+    if (status != TaskStatus.ready) {
+      return this;
+    }
+    return copyWith(
+      status: TaskStatus.executionQueued,
+      progress: 0,
+      clearFailure: true,
+      clearFailedAt: true,
+    );
+  }
+
+  MediaTask markPreempting() => copyWith(status: TaskStatus.preempting);
+
+  MediaTask markPreempted() => copyWith(status: TaskStatus.preempted);
+
+  MediaTask markResuming() => copyWith(status: TaskStatus.resuming);
 
   /// 标记源文件丢失，任务会在列表里显示为需要用户重新指定文件
   MediaTask markMissingSource() {
@@ -256,7 +292,7 @@ class MediaTask {
   /// 标记任务启动或执行失败
   MediaTask markFailed(TaskFailure failure, {int? failedAt}) {
     return copyWith(
-      status: TaskStatus.failed,
+      status: TaskStatus.executionFailed,
       failure: failure,
       failedAt: failedAt ?? failure.occurredAt,
     );
@@ -320,7 +356,8 @@ class MediaTask {
     return copyWith(
       inputPath: newInputPath,
       fileName: newFileName,
-      status: TaskStatus.awaitingAnalysis,
+      config: config.copyWith(engineConfiguration: null),
+      status: TaskStatus.awaitAnalysis,
       progress: 0,
       clearOutputPath: true,
       clearOutputFileSize: true,
@@ -362,6 +399,7 @@ class MediaTask {
     final tags = {...policyTags}
       ..remove(MediaTaskPolicyTag.transparentPreserve);
     return copyWith(
+      config: config.copyWith(engineConfiguration: null),
       clearAnalysisResult: true,
       clearAnalysisUpdatedAt: true,
       clearFailure: true,

@@ -10,11 +10,18 @@ library;
 
 export 'constants.dart';
 
+// models
+export 'models/engine_analysis_documents.dart';
+export 'models/engine_analysis_projection.dart';
+
 // repositories（端口定义，infrastructure 实现）
 export 'repositories/app_notification_repository.dart';
 export 'repositories/app_settings_repository.dart';
+export 'repositories/engine_analysis_projection_repository.dart';
+export 'repositories/imported_media_batch_persistence.dart';
 export 'repositories/media_task_repository.dart';
 export 'repositories/task_folder_repository.dart';
+export 'repositories/workbench_order_revision_store.dart';
 
 // services
 export 'services/analysis/media_analysis_queue.dart';
@@ -36,6 +43,7 @@ export 'services/execution/execution_log_store.dart';
 export 'services/execution/execution_resource_guard.dart';
 export 'services/execution/media_resource_monitor.dart';
 export 'services/execution/media_work_scheduler.dart';
+export 'services/execution/media_task_execution_coordinator.dart';
 export 'services/execution/ffmpeg_process_controller.dart';
 export 'services/execution/ffmpeg_process_observer.dart';
 export 'services/execution/ffmpeg_process_starter.dart';
@@ -44,6 +52,12 @@ export 'services/execution/output_failure.dart';
 export 'services/execution/output_preflight_service.dart';
 export 'services/execution/preview_frame_generator.dart';
 export 'services/execution/video_thumbnail_generator.dart';
+export 'services/engine/engine_gateway.dart';
+export 'services/engine/engine_lifecycle_coordinator.dart';
+export 'services/engine/task_folder_queue_projection.dart';
+export 'services/engine/engine_execution_output_planner.dart';
+export 'services/engine/engine_media_display_projection_mapper.dart';
+export 'services/engine/engine_task_mode_mapper.dart';
 export 'services/ffmpeg_planning/compression_advisor.dart';
 export 'services/ffmpeg_planning/compression_estimator.dart';
 export 'services/ffmpeg_planning/default_compression_advisor.dart';
@@ -74,12 +88,15 @@ export 'use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.
 export 'use_cases/app_settings/load_app_settings_use_case.dart';
 export 'use_cases/app_settings/save_app_settings_use_case.dart';
 export 'use_cases/media_tasks/analyze_media_task_use_case.dart';
+export 'use_cases/media_tasks/apply_engine_queue_order_use_case.dart';
 export 'use_cases/media_tasks/clear_media_tasks_use_case.dart';
 export 'use_cases/media_tasks/delete_media_task_use_case.dart';
 export 'use_cases/media_tasks/generate_preview_frames_use_case.dart';
 export 'use_cases/media_tasks/import_media_folder_use_case.dart';
 export 'use_cases/media_tasks/import_media_task_use_case.dart';
 export 'use_cases/media_tasks/import_media_tasks_use_case.dart';
+export 'use_cases/media_tasks/load_engine_analysis_snapshot_use_case.dart';
+export 'use_cases/media_tasks/organize_imported_media_batch_atomically_use_case.dart';
 export 'use_cases/media_tasks/media_task_use_case_helpers.dart';
 export 'use_cases/media_tasks/pause_all_media_task_executions_use_case.dart';
 export 'use_cases/media_tasks/pause_media_task_execution_use_case.dart';
@@ -87,6 +104,10 @@ export 'use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 export 'use_cases/media_tasks/reconcile_media_tasks_use_case.dart';
 export 'use_cases/media_tasks/reorder_workbench_items_use_case.dart';
 export 'use_cases/media_tasks/replace_missing_source_use_case.dart';
+export 'use_cases/media_tasks/resolve_engine_task_configuration_use_case.dart';
+export 'use_cases/media_tasks/save_engine_task_configuration_use_case.dart';
+export 'use_cases/media_tasks/submit_engine_execution_use_case.dart';
+export 'use_cases/media_tasks/submit_engine_analysis_batch_use_case.dart';
 export 'use_cases/media_tasks/retry_media_task_use_case.dart';
 export 'use_cases/media_tasks/start_execution_queue_use_case.dart';
 export 'use_cases/media_tasks/start_or_resume_media_task_use_case.dart';

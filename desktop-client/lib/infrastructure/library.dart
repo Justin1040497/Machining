@@ -3,8 +3,9 @@
 /// 跨层调用必须经此 barrel 导入，禁止直达具体文件。
 /// 同层内部互引用可直达文件（属于内部实现细节）。
 ///
-/// 不导出的内部实现（20 个）：
-/// - database/{app_notifications,settings,task_folders,tasks,persistence_compatibility}.dart
+/// 不导出的内部实现（21 个）：
+/// - database/{app_notifications,engine_analysis_projections,settings,task_folders,tasks,
+///   persistence_compatibility}.dart
 ///   （drift 表定义与兼容性辅助，仅 infrastructure 内部用）
 /// - repositories/mappers/{compression_mode_mapper,media_task_config_json_mapper}.dart
 ///   （DTO 映射，仅仓储实现内部用）
@@ -24,7 +25,10 @@ export 'database/app_database.dart';
 // repositories（drift 实现）
 export 'repositories/drift_app_notification_repository.dart';
 export 'repositories/drift_app_settings_repository.dart';
+export 'repositories/drift_engine_analysis_projection_repository.dart';
 export 'repositories/drift_media_task_repository.dart';
+export 'repositories/drift_imported_media_batch_persistence.dart';
+export 'repositories/drift_workbench_order_revision_store.dart';
 
 // services - app_maintenance
 export 'services/app_maintenance/local_app_cache_cleaner.dart';
@@ -53,6 +57,12 @@ export 'services/execution/local_preview_frame_generator.dart';
 export 'services/execution/local_video_thumbnail_generator.dart';
 export 'services/execution/signal_ffmpeg_process_controller.dart';
 export 'services/execution/windows_ffmpeg_process_controller.dart';
+
+// services - engine
+export 'services/engine/fengine_frame_codec.dart';
+export 'services/engine/fengine_protocol_client.dart';
+export 'services/engine/local_fengine_executable_locator.dart';
+export 'services/engine/local_fengine_gateway.dart';
 
 // services - ffmpeg_planning
 export 'services/ffmpeg_planning/default_ffmpeg_command_builder.dart';

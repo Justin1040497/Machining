@@ -23,7 +23,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       _SettingsSection.image => _isImageSectionDirty,
       _SettingsSection.audio => _isAudioSectionDirty,
       _SettingsSection.output => _isOutputSectionDirty,
-      _SettingsSection.encoder => _isEncoderSectionDirty,
     };
   }
 
@@ -104,18 +103,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
     return false;
   }
 
-  bool get _isEncoderSectionDirty {
-    final currentFfmpeg = ffmpegPathController.text.trim();
-    final savedFfmpeg = savedSettings.customFfmpegPath ?? '';
-    if (currentFfmpeg != savedFfmpeg) return true;
-
-    final currentFfprobe = ffprobePathController.text.trim();
-    final savedFfprobe = savedSettings.customFfprobePath ?? '';
-    if (currentFfprobe != savedFfprobe) return true;
-
-    return false;
-  }
-
   // ------- per-section revert -------
 
   void _revertSection(_SettingsSection section) {
@@ -138,8 +125,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
         _revertAudioSection();
       case _SettingsSection.output:
         _revertOutputSection();
-      case _SettingsSection.encoder:
-        _revertEncoderSection();
       case _SettingsSection.about:
         break;
     }
@@ -188,13 +173,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       outputDirectoryController.text =
           savedSettings.defaultOutputDirectory ??
           widget.fallbackDefaultDirectory;
-    });
-  }
-
-  void _revertEncoderSection() {
-    updateViewState(() {
-      ffmpegPathController.text = savedSettings.customFfmpegPath ?? '';
-      ffprobePathController.text = savedSettings.customFfprobePath ?? '';
     });
   }
 
@@ -268,13 +246,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
               : outputDirectory,
           defaultOutputFileNameTemplate: outputFileNameTemplateController.text,
         );
-      case _SettingsSection.encoder:
-        final ffmpegPath = ffmpegPathController.text.trim();
-        final ffprobePath = ffprobePathController.text.trim();
-        return base.copyWith(
-          customFfmpegPath: ffmpegPath.isEmpty ? null : ffmpegPath,
-          customFfprobePath: ffprobePath.isEmpty ? null : ffprobePath,
-        );
       case _SettingsSection.about:
         return base;
     }
@@ -289,8 +260,7 @@ enum _SettingsSection {
   video('视频任务', Icons.ondemand_video_rounded),
   image('图片任务', Icons.image_outlined),
   audio('音频任务', Icons.album_outlined),
-  output('输出配置', Icons.output_rounded),
-  encoder('编码器配置', Icons.build_rounded);
+  output('输出配置', Icons.output_rounded);
 
   const _SettingsSection(this.label, this.icon);
 
@@ -308,7 +278,6 @@ extension _SettingsSectionSaveTarget on _SettingsSection {
       _SettingsSection.image => AppSettingsSaveTarget.imageTask,
       _SettingsSection.audio => AppSettingsSaveTarget.audioTask,
       _SettingsSection.output => AppSettingsSaveTarget.output,
-      _SettingsSection.encoder => AppSettingsSaveTarget.encoder,
       _SettingsSection.about => throw StateError('关于分区没有可保存的设置'),
     };
   }

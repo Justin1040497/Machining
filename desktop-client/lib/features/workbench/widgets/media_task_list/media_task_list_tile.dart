@@ -10,6 +10,7 @@ import 'package:path/path.dart' as path;
 
 class MediaTaskListTile extends StatelessWidget {
   final MediaTask task;
+  final EngineAnalysisProjection? engineProjection;
   final ImageProvider? thumbnail;
   final VoidCallback? onTap;
   final VoidCallback? onStart;
@@ -28,6 +29,7 @@ class MediaTaskListTile extends StatelessWidget {
   const MediaTaskListTile({
     super.key,
     required this.task,
+    this.engineProjection,
     this.thumbnail,
     this.onTap,
     this.onStart,
@@ -50,7 +52,8 @@ class MediaTaskListTile extends StatelessWidget {
   bool _shouldShowLogButton() {
     return task.status == TaskStatus.running ||
         task.status == TaskStatus.completed ||
-        task.status == TaskStatus.failed ||
+        task.status == TaskStatus.executionFailed ||
+        task.status == TaskStatus.analysisFailed ||
         task.status == TaskStatus.paused;
   }
 
@@ -110,7 +113,7 @@ class MediaTaskListTile extends StatelessWidget {
                     child: GestureDetector(
                       behavior: HitTestBehavior.opaque,
                       onTap: onTap,
-                      child: _buildTaskText(context),
+                      child: _buildTaskText(context, engineProjection),
                     ),
                   ),
                   MediaTaskActionButton(
@@ -180,7 +183,10 @@ class MediaTaskListTile extends StatelessWidget {
     );
   }
 
-  Widget _buildTaskText(BuildContext context) {
+  Widget _buildTaskText(
+    BuildContext context,
+    EngineAnalysisProjection? projection,
+  ) {
     final colors = context.frameLeanColors;
 
     return Column(
@@ -212,7 +218,7 @@ class MediaTaskListTile extends StatelessWidget {
             const SizedBox(width: 10),
             Flexible(
               child: Text(
-                _taskDetailsText(),
+                _taskDetailsText(projection),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(color: colors.textTertiary, fontSize: 11.flSp),
@@ -224,7 +230,26 @@ class MediaTaskListTile extends StatelessWidget {
     );
   }
 
-  String _taskDetailsText() {
+  String _taskDetailsText(EngineAnalysisProjection? projection) {
+    final queueLabel = switch (task.status) {
+      TaskStatus.analysisQueued
+          when projection?.analysisQueuePosition != null =>
+        '分析队列第 ${projection!.analysisQueuePosition} 位',
+      TaskStatus.executionQueued
+          when projection?.executionQueuePosition != null =>
+        '执行队列第 ${projection!.executionQueuePosition} 位',
+      TaskStatus.preempted when (projection?.resumeDepth ?? 0) > 0 =>
+        '自动恢复栈第 ${projection!.resumeDepth} 层',
+      TaskStatus.paused => '用户暂停，不参与自动恢复',
+      _ => null,
+    };
+    if (queueLabel != null) {
+      final preemptedBy = projection?.preemptedByExecutionId;
+      if (preemptedBy != null && preemptedBy.isNotEmpty) {
+        return '$queueLabel · 被 ${_shortExecutionId(preemptedBy)} 抢占';
+      }
+      return queueLabel;
+    }
     if (task.status != TaskStatus.completed) {
       return _formatBytes(task.sourceFileFingerprint?.fileSize);
     }
@@ -244,6 +269,12 @@ class MediaTaskListTile extends StatelessWidget {
         ? '压缩了${_formatPercent(changedPercent)}'
         : '增大了${_formatPercent(changedPercent.abs())}';
     return '${_formatBytes(sourceSize)} - ${_formatBytes(outputSize)} · $result';
+  }
+
+  String _shortExecutionId(String executionId) {
+    return executionId.length <= 12
+        ? executionId
+        : '${executionId.substring(0, 12)}…';
   }
 
   String _sourceFormatLabel() {

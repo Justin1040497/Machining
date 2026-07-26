@@ -22,6 +22,7 @@ import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
 import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/engine_configuration_reference.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/task_failure.dart';
@@ -93,6 +94,44 @@ void main() {
         expect(harness.repository.taskById('first').status, TaskStatus.running);
       },
     );
+
+    test(
+      'continuous queue excludes engine-configured tasks from legacy starts',
+      () async {
+        final engineTask = engineConfiguredVideoTask(
+          id: 'engine',
+          sortOrder: 0,
+        );
+        final legacyTask = videoTask(id: 'legacy', sortOrder: 1);
+        final harness = QueueHarness(tasks: [engineTask, legacyTask]);
+
+        expect(harness.runner.isStartableTask(engineTask), isFalse);
+
+        final result = await harness.runner.start();
+
+        expect(result.outcome, FfmpegQueueStartOutcome.started);
+        expect(result.task?.id, legacyTask.id);
+        expect(harness.processStarter.starts.map((start) => start.taskId), [
+          legacyTask.id,
+        ]);
+        expect(
+          harness.repository.taskById(engineTask.id).status,
+          TaskStatus.pending,
+        );
+      },
+    );
+
+    test('startTask directly rejects an engine-configured task', () async {
+      final task = engineConfiguredVideoTask(id: 'engine-direct', sortOrder: 0);
+      final harness = QueueHarness(tasks: [task]);
+
+      final result = await harness.runner.startTask(task);
+
+      expect(result.outcome, FfmpegQueueStartOutcome.invalidTaskState);
+      expect(result.message, contains('不能回退到旧 FFmpeg 链'));
+      expect(harness.processStarter.starts, isEmpty);
+      expect(harness.repository.taskById(task.id).status, TaskStatus.pending);
+    });
 
     test(
       'single start rejects unanalysed task before any FFmpeg work',
@@ -1298,6 +1337,24 @@ MediaTask videoTask({String id = 'task', required int sortOrder}) {
       .withAnalysisResult(MediaAnalysisResult(durationMs: 1000))
       .markAnalysisReady()
       .copyWith(id: id);
+}
+
+MediaTask engineConfiguredVideoTask({
+  required String id,
+  required int sortOrder,
+}) {
+  return videoTask(id: id, sortOrder: sortOrder).copyWith(
+    config: MediaTaskConfig.initialVideo().copyWith(
+      engineConfiguration: const EngineConfigurationReference(
+        analysisId: 'analysis-1',
+        analysisRevision: 1,
+        candidateId: 'candidate-1',
+        selectionMode: 'manual',
+        selectionJson:
+            '{"mode":"manual","selection":{"candidate_id":"candidate-1"}}',
+      ),
+    ),
+  );
 }
 
 TaskFolder taskFolder({required String id, required int sortOrder}) {
