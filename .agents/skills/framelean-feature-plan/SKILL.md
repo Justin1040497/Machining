@@ -22,8 +22,8 @@ Apply component-specific boundaries instead of treating the Monorepo as one runt
 
 - Desktop Client follows its Flutter clean-architecture and local product-state boundaries.
 - Backend preserves the Maven modules declared by `backend/pom.xml`; target `admin-web` separately when the change is Vue-only.
-- FLL owns core in-process processing and Runtime Schema; FEngine owns the independent process-host boundary and currently provides only CLI Bootstrap.
-- `protocol/v1` remains responsibility documentation until a separate accepted design defines real fields or transport.
+- FLL owns core in-process processing, execution Task state, single-lane LIFO scheduling, output transactions, and Runtime Schema. FEngine owns the independent process-host boundary and currently provides the diagnostic CLI, length-framed JSON Worker, authenticated loopback daemon, independent analysis/execution queues, session/idempotency, Snapshot persistence, execution control, and reconnect reconciliation.
+- Treat `fengine/src/protocol.rs` as the implemented protocol v1 wire source and `protocol/v1` as its responsibility and compatibility documentation. Treat compatible-media libav stream-copy/remux as implemented; keep Decoder, Encoder, Processor-based transcoding and daemon-crash checkpoint recovery out of plans unless a new requirement explicitly adds them.
 - Third-party source inputs stay in `dependencies/`; generated binaries stay in ignored `build/dependencies/`.
 
 Default to inline output. Save a plan that must survive the current conversation to `.workspace/plans/YYMMDD-feature-slug.md`; do not place temporary plans in `docs/`. Keep external comparison research in `.workspace/` and use only FrameLean terminology in planned tracked files. Suggest a branch only when the user requests one or the workflow needs it. Do not implement code in this Skill.
