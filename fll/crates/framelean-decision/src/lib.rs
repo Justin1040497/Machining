@@ -1,6 +1,8 @@
 use std::collections::BTreeSet;
 
-use framelean_analysis::{MediaAnalysis, MediaDescriptor, MediaKind, MediaStreamDescriptor};
+use framelean_analysis::{
+    MediaAnalysis, MediaAnalysisStatus, MediaDescriptor, MediaKind, MediaStreamDescriptor,
+};
 use framelean_core::{
     BackendId, BitRateBps, EngineError, EngineErrorCode, ErrorKind, ObservationStatus, Result,
 };
@@ -16,7 +18,7 @@ use serde::{Deserialize, Serialize};
 pub const ENGINE_EXECUTION_CHAIN_NOT_READY: EngineErrorCode =
     EngineErrorCode::EngineExecutionChainNotReady;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum TaskMode {
     VideoCompress,
@@ -133,15 +135,25 @@ pub struct AuxiliaryInputRequirement {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct UnknownInputRequirement {
+    pub stream_index: u32,
+    pub codec: String,
+    pub media_type_code: i32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct InputMediaRequirements {
     pub container: Option<String>,
     pub media_kind: MediaKind,
+    pub analysis_status: MediaAnalysisStatus,
+    pub source_size_bytes: u64,
     pub duration_microseconds: Option<u64>,
     pub video_streams: Vec<VideoInputRequirement>,
     pub audio_streams: Vec<AudioInputRequirement>,
     pub subtitle_streams: Vec<AuxiliaryInputRequirement>,
     pub data_streams: Vec<AuxiliaryInputRequirement>,
     pub attachments: Vec<AuxiliaryInputRequirement>,
+    pub unknown_streams: Vec<UnknownInputRequirement>,
     pub image: Option<ImageInputRequirement>,
 }
 
@@ -150,12 +162,15 @@ impl InputMediaRequirements {
         let mut value = Self {
             container: detected(&media.format),
             media_kind: media.kind,
+            analysis_status: media.status,
+            source_size_bytes: media.file_size.value(),
             duration_microseconds: media.duration.value.map(duration_microseconds),
             video_streams: Vec::new(),
             audio_streams: Vec::new(),
             subtitle_streams: Vec::new(),
             data_streams: Vec::new(),
             attachments: Vec::new(),
+            unknown_streams: Vec::new(),
             image: None,
         };
         match &media.descriptor {
@@ -208,6 +223,13 @@ impl InputMediaRequirements {
                             value.attachments.push(AuxiliaryInputRequirement {
                                 stream_index: stream.stream_index,
                                 codec: stream.codec.clone(),
+                            });
+                        }
+                        MediaStreamDescriptor::Unknown(stream) => {
+                            value.unknown_streams.push(UnknownInputRequirement {
+                                stream_index: stream.stream_index,
+                                codec: stream.codec.clone(),
+                                media_type_code: stream.media_type_code,
                             });
                         }
                     }
@@ -267,6 +289,14 @@ fn infer_hdr_mode(value: &framelean_analysis::HdrInfo) -> HdrMode {
 pub struct ExecutionChainId(String);
 
 impl ExecutionChainId {
+    pub fn new(value: impl Into<String>) -> Result<Self> {
+        let value = value.into();
+        if value.trim().is_empty() {
+            return Err(EngineError::invalid_identifier("execution chain"));
+        }
+        Ok(Self(value))
+    }
+
     pub fn as_str(&self) -> &str {
         &self.0
     }
@@ -322,6 +352,131 @@ pub struct CapabilitySet {
     pub exclusions: Vec<CapabilityExclusion>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ConfigurationOption<T> {
+    pub value: T,
+    pub candidate_ids: Vec<ExecutionChainId>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ConfigurationOptionGraph {
+    pub candidate_ids: Vec<ExecutionChainId>,
+    pub containers: Vec<ConfigurationOption<String>>,
+    pub video_codecs: Vec<ConfigurationOption<String>>,
+    pub video_profiles: Vec<ConfigurationOption<String>>,
+    pub audio_codecs: Vec<ConfigurationOption<String>>,
+    pub video_encoders: Vec<ConfigurationOption<BackendId>>,
+    pub audio_encoders: Vec<ConfigurationOption<BackendId>>,
+    pub pixel_formats: Vec<ConfigurationOption<String>>,
+    pub bit_depths: Vec<ConfigurationOption<u8>>,
+    pub hdr_modes: Vec<ConfigurationOption<HdrMode>>,
+    pub preserves_hdr: Vec<ConfigurationOption<bool>>,
+    pub requires_tone_mapping: Vec<ConfigurationOption<bool>>,
+}
+
+impl ConfigurationOptionGraph {
+    pub fn from_capabilities(capabilities: &CapabilitySet) -> Self {
+        let mut graph = Self {
+            candidate_ids: Vec::new(),
+            containers: Vec::new(),
+            video_codecs: Vec::new(),
+            video_profiles: Vec::new(),
+            audio_codecs: Vec::new(),
+            video_encoders: Vec::new(),
+            audio_encoders: Vec::new(),
+            pixel_formats: Vec::new(),
+            bit_depths: Vec::new(),
+            hdr_modes: Vec::new(),
+            preserves_hdr: Vec::new(),
+            requires_tone_mapping: Vec::new(),
+        };
+        for candidate in &capabilities.execution_chains {
+            graph.candidate_ids.push(candidate.id.clone());
+            push_configuration_option(
+                &mut graph.containers,
+                candidate.output_container.clone(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.video_codecs,
+                candidate.output_video_codec.as_ref(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.video_profiles,
+                candidate.output_video_profile.as_ref(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.audio_codecs,
+                candidate.output_audio_codec.as_ref(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.video_encoders,
+                candidate.video_encoder.as_ref(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.audio_encoders,
+                candidate.audio_encoder.as_ref(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.pixel_formats,
+                candidate.output_pixel_format.as_ref(),
+                &candidate.id,
+            );
+            push_optional_configuration_option(
+                &mut graph.bit_depths,
+                candidate.output_bit_depth.as_ref(),
+                &candidate.id,
+            );
+            push_configuration_option(
+                &mut graph.hdr_modes,
+                candidate.output_hdr_mode,
+                &candidate.id,
+            );
+            push_configuration_option(
+                &mut graph.preserves_hdr,
+                candidate.preserves_hdr,
+                &candidate.id,
+            );
+            push_configuration_option(
+                &mut graph.requires_tone_mapping,
+                candidate.requires_tone_mapping,
+                &candidate.id,
+            );
+        }
+        graph
+    }
+}
+
+fn push_optional_configuration_option<T: Clone + PartialEq>(
+    options: &mut Vec<ConfigurationOption<T>>,
+    value: Option<&T>,
+    candidate_id: &ExecutionChainId,
+) {
+    if let Some(value) = value {
+        push_configuration_option(options, value.clone(), candidate_id);
+    }
+}
+
+fn push_configuration_option<T: PartialEq>(
+    options: &mut Vec<ConfigurationOption<T>>,
+    value: T,
+    candidate_id: &ExecutionChainId,
+) {
+    if let Some(option) = options.iter_mut().find(|option| option.value == value) {
+        option.candidate_ids.push(candidate_id.clone());
+    } else {
+        options.push(ConfigurationOption {
+            value,
+            candidate_ids: vec![candidate_id.clone()],
+        });
+    }
+}
+
 pub trait CapabilityResolver: Send + Sync {
     fn resolve(
         &self,
@@ -365,37 +520,52 @@ impl CapabilityResolver for DefaultCapabilityResolver {
             .filter(|backend| environment_accepts(backend, environment))
             .collect();
 
+        let input_exclusion = input_requirement_exclusion(requirements);
         let mut chains = Vec::new();
-        for demuxer in &ready_demuxers {
-            let Some((video_decoders, audio_decoders)) =
-                select_decoders(requirements, &ready_decoders)
-            else {
-                continue;
-            };
-            for muxer in &ready_muxers {
-                let BackendCapability::Muxer(muxer_capability) = &muxer.capability else {
-                    continue;
-                };
-                if !muxer_accepts_input(muxer_capability, requirements) {
-                    continue;
-                }
-                for combination in muxer_combinations(muxer_capability) {
+        if input_exclusion.is_none() {
+            for demuxer in &ready_demuxers {
+                for muxer in &ready_muxers {
+                    let BackendCapability::Muxer(muxer_capability) = &muxer.capability else {
+                        continue;
+                    };
+                    if !muxer_accepts_input(muxer_capability, requirements) {
+                        continue;
+                    }
                     for output_format in &muxer_capability.output_formats {
-                        if let Some(mut candidates) = build_output_candidates(
-                            CandidateBuildContext {
-                                requirements,
-                                task_mode,
-                                processors: &ready_processors,
-                                encoders: &ready_encoders,
-                                demuxer,
-                                video_decoders: &video_decoders,
-                                audio_decoders: &audio_decoders,
-                                muxer,
-                            },
+                        if let Some(candidate) = build_stream_copy_candidate(
+                            requirements,
+                            task_mode,
+                            demuxer,
+                            muxer,
+                            muxer_capability,
                             output_format,
-                            &combination,
                         ) {
-                            chains.append(&mut candidates);
+                            chains.push(candidate);
+                        }
+                    }
+                    let Some((video_decoders, audio_decoders)) =
+                        select_decoders(requirements, &ready_decoders)
+                    else {
+                        continue;
+                    };
+                    for combination in muxer_combinations(muxer_capability) {
+                        for output_format in &muxer_capability.output_formats {
+                            if let Some(mut candidates) = build_output_candidates(
+                                CandidateBuildContext {
+                                    requirements,
+                                    task_mode,
+                                    processors: &ready_processors,
+                                    encoders: &ready_encoders,
+                                    demuxer,
+                                    video_decoders: &video_decoders,
+                                    audio_decoders: &audio_decoders,
+                                    muxer,
+                                },
+                                output_format,
+                                &combination,
+                            ) {
+                                chains.append(&mut candidates);
+                            }
                         }
                     }
                 }
@@ -422,6 +592,8 @@ impl CapabilityResolver for DefaultCapabilityResolver {
         let available = !chains.is_empty();
         let exclusions = if available {
             Vec::new()
+        } else if let Some(exclusion) = input_exclusion {
+            vec![exclusion]
         } else {
             vec![CapabilityExclusion {
                 code: ENGINE_EXECUTION_CHAIN_NOT_READY,
@@ -479,6 +651,134 @@ impl CapabilityResolver for DefaultCapabilityResolver {
             exclusions,
         })
     }
+}
+
+fn build_stream_copy_candidate(
+    requirements: &InputMediaRequirements,
+    task_mode: TaskMode,
+    demuxer: &BackendDescriptor,
+    muxer: &BackendDescriptor,
+    muxer_capability: &MuxerCapability,
+    output_container: &str,
+) -> Option<ExecutionChainCandidate> {
+    if !matches!(
+        task_mode,
+        TaskMode::VideoConvert | TaskMode::AudioConvert | TaskMode::ImageConvert
+    ) || requirements.video_streams.len() > 1
+        || requirements.audio_streams.len() > 1
+        || !requirements.subtitle_streams.is_empty()
+        || !requirements.data_streams.is_empty()
+        || !requirements.attachments.is_empty()
+    {
+        return None;
+    }
+    let video = requirements
+        .video_streams
+        .first()
+        .map(|stream| stream.codec.clone())
+        .or_else(|| requirements.image.as_ref().map(|image| image.codec.clone()));
+    let audio = requirements
+        .audio_streams
+        .first()
+        .map(|stream| stream.codec.clone());
+    if video
+        .as_ref()
+        .is_some_and(|codec| !muxer_capability.video_codecs.contains(codec))
+        || audio
+            .as_ref()
+            .is_some_and(|codec| !muxer_capability.audio_codecs.contains(codec))
+    {
+        return None;
+    }
+
+    let input_video = requirements.video_streams.first();
+    let mut candidate = ExecutionChainCandidate {
+        id: ExecutionChainId(String::new()),
+        demuxer: demuxer.id.clone(),
+        video_decoders: Vec::new(),
+        audio_decoders: Vec::new(),
+        processors: Vec::new(),
+        video_encoder: None,
+        audio_encoder: None,
+        muxer: muxer.id.clone(),
+        output_container: output_container.to_owned(),
+        output_video_codec: video,
+        output_video_profile: input_video.and_then(|stream| stream.profile.clone()),
+        output_audio_codec: audio,
+        output_pixel_format: input_video.and_then(|stream| stream.pixel_format.clone()),
+        output_bit_depth: input_video.and_then(|stream| stream.bit_depth),
+        output_hdr_mode: input_video.map_or(HdrMode::Sdr, |stream| stream.hdr_mode),
+        preserves_hdr: input_video.is_some_and(|stream| stream.hdr_mode != HdrMode::Sdr),
+        requires_tone_mapping: false,
+    };
+    candidate.id = chain_id(&candidate);
+    Some(candidate)
+}
+
+fn input_requirement_exclusion(
+    requirements: &InputMediaRequirements,
+) -> Option<CapabilityExclusion> {
+    if requirements.analysis_status == MediaAnalysisStatus::Failed {
+        return Some(CapabilityExclusion {
+            code: EngineErrorCode::MediaInfoReadFailed,
+            message: "failed media analysis cannot produce an execution chain".to_owned(),
+            backend_id: None,
+        });
+    }
+    if !requirements.unknown_streams.is_empty() {
+        return Some(CapabilityExclusion {
+            code: EngineErrorCode::MediaStreamUnrecognized,
+            message: "media input contains unrecognized streams".to_owned(),
+            backend_id: None,
+        });
+    }
+    if requirements
+        .video_streams
+        .iter()
+        .any(|stream| stream.profile.is_none())
+    {
+        return Some(CapabilityExclusion {
+            code: EngineErrorCode::MediaProfileUnavailable,
+            message: "video profile is required before building an execution chain".to_owned(),
+            backend_id: None,
+        });
+    }
+    if requirements
+        .video_streams
+        .iter()
+        .any(|stream| stream.pixel_format.is_none())
+        || requirements
+            .audio_streams
+            .iter()
+            .any(|stream| stream.sample_format.is_none())
+        || requirements
+            .image
+            .as_ref()
+            .is_some_and(|image| image.pixel_format.is_none())
+    {
+        return Some(CapabilityExclusion {
+            code: EngineErrorCode::MediaPixelFormatUnavailable,
+            message: "pixel or sample format is required before building an execution chain"
+                .to_owned(),
+            backend_id: None,
+        });
+    }
+    if requirements
+        .video_streams
+        .iter()
+        .any(|stream| stream.bit_depth.is_none())
+        || requirements
+            .image
+            .as_ref()
+            .is_some_and(|image| image.bit_depth.is_none())
+    {
+        return Some(CapabilityExclusion {
+            code: EngineErrorCode::MediaBitDepthUnavailable,
+            message: "bit depth is required before building an execution chain".to_owned(),
+            backend_id: None,
+        });
+    }
+    None
 }
 
 fn diagnostic_matches_input(
@@ -1150,30 +1450,9 @@ pub enum RecommendationStatus {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
-pub struct RecommendedConfiguration {
-    pub execution_chain_id: ExecutionChainId,
-    pub container: String,
-    pub video_codec: Option<String>,
-    pub video_profile: Option<String>,
-    pub audio_codec: Option<String>,
-    pub demuxer_backend: BackendId,
-    pub video_decoders: Vec<StreamBackendSelection>,
-    pub audio_decoders: Vec<StreamBackendSelection>,
-    pub video_encoder_backend: Option<BackendId>,
-    pub audio_encoder_backend: Option<BackendId>,
-    pub processors: Vec<ProcessorSelection>,
-    pub muxer_backend: BackendId,
-    pub output_pixel_format: Option<String>,
-    pub output_bit_depth: Option<u8>,
-    pub output_hdr_mode: HdrMode,
-    pub preserves_hdr: bool,
-    pub requires_tone_mapping: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct Recommendation {
     pub status: RecommendationStatus,
-    pub configuration: Option<RecommendedConfiguration>,
+    pub configuration: Option<ResolvedConfiguration>,
     pub reasons: Vec<String>,
     pub estimate: Option<SizeEstimate>,
     pub resource_sample_unix_ms: Option<u64>,
@@ -1183,8 +1462,10 @@ pub trait RecommendationEngine: Send + Sync {
     fn recommend(
         &self,
         requirements: &InputMediaRequirements,
+        task_mode: TaskMode,
         capabilities: &CapabilitySet,
         resource_sample: Option<&ResourceSample>,
+        estimator: (&dyn SizeEstimator, &EstimatorPolicy),
     ) -> Recommendation;
 }
 
@@ -1195,8 +1476,10 @@ impl RecommendationEngine for DefaultRecommendationEngine {
     fn recommend(
         &self,
         requirements: &InputMediaRequirements,
+        task_mode: TaskMode,
         capabilities: &CapabilitySet,
         resource_sample: Option<&ResourceSample>,
+        estimator: (&dyn SizeEstimator, &EstimatorPolicy),
     ) -> Recommendation {
         let balanced = preset_policies()
             .into_iter()
@@ -1216,29 +1499,32 @@ impl RecommendationEngine for DefaultRecommendationEngine {
                 resource_sample_unix_ms: resource_sample.map(|value| value.sampled_at_unix_ms),
             };
         };
+        let configuration = DecisionService
+            .resolve_selection(
+                &RecalculateSelection::Preset(PresetSelection {
+                    preset_id: balanced.id,
+                    candidate_id: chain.id.clone(),
+                    overrides: ManualSelection::empty(),
+                }),
+                requirements,
+                task_mode,
+                capabilities,
+                None,
+            )
+            .expect("a matching preset candidate must resolve");
+        let estimate = estimate_configuration(requirements, &configuration, estimator).ok();
+        let mut reasons = vec!["balanced execution-ready chain".to_owned()];
+        let status = if estimate.is_some() {
+            RecommendationStatus::Complete
+        } else {
+            reasons.push("ESTIMATE_UNAVAILABLE".to_owned());
+            RecommendationStatus::Partial
+        };
         Recommendation {
-            status: RecommendationStatus::Complete,
-            configuration: Some(RecommendedConfiguration {
-                execution_chain_id: chain.id.clone(),
-                container: chain.output_container.clone(),
-                video_codec: chain.output_video_codec.clone(),
-                video_profile: chain.output_video_profile.clone(),
-                audio_codec: chain.output_audio_codec.clone(),
-                demuxer_backend: chain.demuxer.clone(),
-                video_decoders: chain.video_decoders.clone(),
-                audio_decoders: chain.audio_decoders.clone(),
-                video_encoder_backend: chain.video_encoder.clone(),
-                audio_encoder_backend: chain.audio_encoder.clone(),
-                processors: chain.processors.clone(),
-                muxer_backend: chain.muxer.clone(),
-                output_pixel_format: chain.output_pixel_format.clone(),
-                output_bit_depth: chain.output_bit_depth,
-                output_hdr_mode: chain.output_hdr_mode,
-                preserves_hdr: chain.preserves_hdr,
-                requires_tone_mapping: chain.requires_tone_mapping,
-            }),
-            reasons: vec!["balanced execution-ready chain".to_owned()],
-            estimate: None,
+            status,
+            configuration: Some(configuration),
+            reasons,
+            estimate,
             resource_sample_unix_ms: resource_sample.map(|value| value.sampled_at_unix_ms),
         }
     }
@@ -1251,25 +1537,10 @@ pub fn validate_recommendation(
     let Some(configuration) = &recommendation.configuration else {
         return recommendation.status == RecommendationStatus::Unavailable;
     };
-    capabilities.execution_chains.iter().any(|chain| {
-        configuration.execution_chain_id == chain.id
-            && configuration.container == chain.output_container
-            && configuration.video_codec == chain.output_video_codec
-            && configuration.video_profile == chain.output_video_profile
-            && configuration.audio_codec == chain.output_audio_codec
-            && configuration.demuxer_backend == chain.demuxer
-            && configuration.video_decoders == chain.video_decoders
-            && configuration.audio_decoders == chain.audio_decoders
-            && configuration.video_encoder_backend == chain.video_encoder
-            && configuration.audio_encoder_backend == chain.audio_encoder
-            && configuration.processors == chain.processors
-            && configuration.muxer_backend == chain.muxer
-            && configuration.output_pixel_format == chain.output_pixel_format
-            && configuration.output_bit_depth == chain.output_bit_depth
-            && configuration.output_hdr_mode == chain.output_hdr_mode
-            && configuration.preserves_hdr == chain.preserves_hdr
-            && configuration.requires_tone_mapping == chain.requires_tone_mapping
-    })
+    capabilities
+        .execution_chains
+        .iter()
+        .any(|chain| resolved_configuration_matches_candidate(configuration, chain))
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -1302,6 +1573,10 @@ pub struct PresetDefinition {
     pub unavailable_reason: Option<String>,
     pub policy_version: u32,
     pub policy: PresetPolicy,
+    pub candidate: Option<ExecutionChainCandidate>,
+    pub configuration: Option<ResolvedConfiguration>,
+    pub estimate: Option<SizeEstimate>,
+    pub risks: Vec<String>,
 }
 
 pub fn preset_policies() -> Vec<PresetPolicy> {
@@ -1373,16 +1648,49 @@ pub fn fixed_presets(
     requirements: &InputMediaRequirements,
     task_mode: TaskMode,
     capabilities: &CapabilitySet,
+    estimator: (&dyn SizeEstimator, &EstimatorPolicy),
 ) -> Vec<PresetDefinition> {
     preset_policies()
         .into_iter()
         .map(|policy| {
+            let candidate = capabilities
+                .execution_chains
+                .iter()
+                .filter(|chain| preset_matches_candidate(&policy, requirements, chain))
+                .min_by_key(|chain| preset_rank(&policy, chain))
+                .cloned();
+            let configuration = candidate.as_ref().and_then(|candidate| {
+                DecisionService
+                    .resolve_selection(
+                        &RecalculateSelection::Preset(PresetSelection {
+                            preset_id: policy.id.clone(),
+                            candidate_id: candidate.id.clone(),
+                            overrides: ManualSelection::empty(),
+                        }),
+                        requirements,
+                        task_mode,
+                        capabilities,
+                        None,
+                    )
+                    .ok()
+            });
+            let estimate = configuration.as_ref().and_then(|configuration| {
+                estimate_configuration(requirements, configuration, estimator).ok()
+            });
             let applicable = capabilities.available
                 && policy.applicable_task_modes.contains(&task_mode)
-                && capabilities
-                    .execution_chains
-                    .iter()
-                    .any(|chain| preset_matches_candidate(&policy, requirements, chain));
+                && configuration.is_some()
+                && estimate.is_some();
+            let mut risks = Vec::new();
+            if configuration
+                .as_ref()
+                .is_some_and(|value| value.requires_tone_mapping)
+            {
+                risks.push("HDR_TONE_MAPPING_REQUIRED".to_owned());
+            }
+            if configuration.is_some() && estimate.is_none() {
+                risks.push("ESTIMATE_UNAVAILABLE".to_owned());
+            }
             PresetDefinition {
                 id: policy.id.clone(),
                 display_name: policy.display_name.clone(),
@@ -1391,6 +1699,8 @@ pub fn fixed_presets(
                 unavailable_reason: (!applicable).then(|| {
                     if !capabilities.available {
                         "ENGINE_EXECUTION_CHAIN_NOT_READY"
+                    } else if configuration.is_some() && estimate.is_none() {
+                        "PRESET_ESTIMATE_UNAVAILABLE"
                     } else {
                         "PRESET_NOT_APPLICABLE"
                     }
@@ -1398,6 +1708,10 @@ pub fn fixed_presets(
                 }),
                 policy_version: 1,
                 policy,
+                candidate,
+                configuration,
+                estimate,
+                risks,
             }
         })
         .collect()
@@ -1455,6 +1769,7 @@ impl CustomTargetSizeOptions {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct TargetSizeSelection {
+    pub candidate_id: ExecutionChainId,
     pub target_bytes: u64,
     pub allow_resolution_change: bool,
     pub allow_frame_rate_change: bool,
@@ -1484,6 +1799,13 @@ impl ManualSelection {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct PresetSelection {
     pub preset_id: PresetId,
+    pub candidate_id: ExecutionChainId,
+    pub overrides: ManualSelection,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ManualConfigurationSelection {
+    pub candidate_id: ExecutionChainId,
     pub overrides: ManualSelection,
 }
 
@@ -1492,7 +1814,7 @@ pub struct PresetSelection {
 pub enum RecalculateSelection {
     Preset(PresetSelection),
     CustomTargetSize(TargetSizeSelection),
-    Manual(ManualSelection),
+    Manual(ManualConfigurationSelection),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -1512,6 +1834,9 @@ pub struct ResolvedConfiguration {
     pub video_codec: Option<String>,
     pub video_profile: Option<String>,
     pub audio_codec: Option<String>,
+    pub demuxer_backend: BackendId,
+    pub video_decoders: Vec<StreamBackendSelection>,
+    pub audio_decoders: Vec<StreamBackendSelection>,
     pub video_encoder_backend: Option<BackendId>,
     pub audio_encoder_backend: Option<BackendId>,
     pub processors: Vec<ProcessorSelection>,
@@ -1552,20 +1877,119 @@ impl DecisionService {
                 "FrameLean has no execution-ready media chain",
             ));
         }
-        let empty_manual = ManualSelection::empty();
-        let (source, preset, manual, target) = match selection {
-            RecalculateSelection::Manual(value) => (SelectionSource::Manual, None, value, None),
-            RecalculateSelection::Preset(value) => {
-                let Some(policy) = preset_policies()
+        let preset = match selection {
+            RecalculateSelection::Preset(value) => Some(
+                preset_policies()
                     .into_iter()
                     .find(|policy| policy.id == value.preset_id)
-                else {
+                    .ok_or_else(|| {
+                        conflict(
+                            EngineErrorCode::PresetNotApplicable,
+                            Some("preset_id"),
+                            "unknown preset",
+                        )
+                    })?,
+            ),
+            RecalculateSelection::CustomTargetSize(_) | RecalculateSelection::Manual(_) => None,
+        };
+        self.resolve_selection_with_policy(
+            selection,
+            requirements,
+            task_mode,
+            capabilities,
+            preset,
+            estimator,
+        )
+    }
+
+    pub fn resolve_selection_from_snapshot(
+        &self,
+        selection: &RecalculateSelection,
+        requirements: &InputMediaRequirements,
+        task_mode: TaskMode,
+        capabilities: &CapabilitySet,
+        presets: &[PresetDefinition],
+        estimator: Option<(&dyn SizeEstimator, &EstimatorPolicy)>,
+    ) -> std::result::Result<ResolvedConfiguration, DecisionConflict> {
+        if !capabilities.available {
+            return Err(conflict(
+                ENGINE_EXECUTION_CHAIN_NOT_READY,
+                None,
+                "FrameLean has no execution-ready media chain",
+            ));
+        }
+        let preset = match selection {
+            RecalculateSelection::Preset(value) => {
+                let definition = presets
+                    .iter()
+                    .find(|preset| preset.id == value.preset_id)
+                    .ok_or_else(|| {
+                        conflict(
+                            EngineErrorCode::PresetNotApplicable,
+                            Some("preset_id"),
+                            "preset does not exist in the analysis snapshot",
+                        )
+                    })?;
+                if !definition.applicable {
                     return Err(conflict(
                         EngineErrorCode::PresetNotApplicable,
                         Some("preset_id"),
-                        "unknown preset",
+                        "preset was not applicable in the analysis snapshot",
                     ));
-                };
+                }
+                if definition
+                    .candidate
+                    .as_ref()
+                    .is_none_or(|candidate| candidate.id != value.candidate_id)
+                {
+                    return Err(conflict(
+                        EngineErrorCode::PresetNotApplicable,
+                        Some("candidate_id"),
+                        "preset does not match the frozen analysis candidate",
+                    ));
+                }
+                Some(definition.policy.clone())
+            }
+            RecalculateSelection::CustomTargetSize(_) | RecalculateSelection::Manual(_) => None,
+        };
+        self.resolve_selection_with_policy(
+            selection,
+            requirements,
+            task_mode,
+            capabilities,
+            preset,
+            estimator,
+        )
+    }
+
+    fn resolve_selection_with_policy(
+        &self,
+        selection: &RecalculateSelection,
+        requirements: &InputMediaRequirements,
+        task_mode: TaskMode,
+        capabilities: &CapabilitySet,
+        selected_preset: Option<PresetPolicy>,
+        estimator: Option<(&dyn SizeEstimator, &EstimatorPolicy)>,
+    ) -> std::result::Result<ResolvedConfiguration, DecisionConflict> {
+        if !capabilities.available {
+            return Err(conflict(
+                ENGINE_EXECUTION_CHAIN_NOT_READY,
+                None,
+                "FrameLean has no execution-ready media chain",
+            ));
+        }
+        let empty_manual = ManualSelection::empty();
+        let (source, preset, candidate_id, manual, target) = match selection {
+            RecalculateSelection::Manual(value) => (
+                SelectionSource::Manual,
+                None,
+                &value.candidate_id,
+                &value.overrides,
+                None,
+            ),
+            RecalculateSelection::Preset(value) => {
+                let policy =
+                    selected_preset.expect("preset policy is resolved before selection validation");
                 if !policy.applicable_task_modes.contains(&task_mode) {
                     return Err(conflict(
                         EngineErrorCode::PresetNotApplicable,
@@ -1583,6 +2007,7 @@ impl DecisionService {
                 (
                     SelectionSource::Preset,
                     Some(policy),
+                    &value.candidate_id,
                     &value.overrides,
                     None,
                 )
@@ -1590,37 +2015,39 @@ impl DecisionService {
             RecalculateSelection::CustomTargetSize(value) => (
                 SelectionSource::CustomTargetSize,
                 None,
+                &value.candidate_id,
                 &empty_manual,
                 Some(value),
             ),
         };
-        let mut candidates: Vec<_> = capabilities
+        let Some(chain) = capabilities
             .execution_chains
             .iter()
-            .filter(|chain| {
-                preset
-                    .as_ref()
-                    .is_none_or(|policy| preset_matches_candidate(policy, requirements, chain))
-            })
-            .collect();
-        if candidates.is_empty() && preset.is_some() {
+            .find(|chain| &chain.id == candidate_id)
+        else {
+            return Err(conflict(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                Some("candidate_id"),
+                "candidate does not exist in the analysis result",
+            ));
+        };
+        if preset
+            .as_ref()
+            .is_some_and(|policy| !preset_matches_candidate(policy, requirements, chain))
+        {
             return Err(conflict(
                 EngineErrorCode::PresetNotApplicable,
-                Some("preset_id"),
-                "preset does not match an execution chain",
+                Some("candidate_id"),
+                "preset does not match the selected execution chain",
             ));
         }
-        candidates.retain(|chain| manual_matches(manual, chain));
-        if let Some(policy) = &preset {
-            candidates.sort_by_key(|chain| preset_rank(policy, chain));
-        }
-        let Some(chain) = candidates.first().copied() else {
+        if !manual_matches(manual, chain) {
             return Err(conflict(
                 EngineErrorCode::MediaCapabilityIncompatible,
                 None,
-                "selection does not match a complete execution chain",
+                "selection overrides do not match the selected execution chain",
             ));
-        };
+        }
         let target_size = if let Some(target) = target {
             if target.target_bytes == 0 {
                 return Err(conflict(
@@ -1679,6 +2106,9 @@ impl DecisionService {
             video_codec: chain.output_video_codec.clone(),
             video_profile: chain.output_video_profile.clone(),
             audio_codec: chain.output_audio_codec.clone(),
+            demuxer_backend: chain.demuxer.clone(),
+            video_decoders: chain.video_decoders.clone(),
+            audio_decoders: chain.audio_decoders.clone(),
             video_encoder_backend: chain.video_encoder.clone(),
             audio_encoder_backend: chain.audio_encoder.clone(),
             processors: chain.processors.clone(),
@@ -1800,6 +2230,82 @@ fn preset_bitrates(
     (video, audio)
 }
 
+pub fn resolved_configuration_matches_candidate(
+    configuration: &ResolvedConfiguration,
+    candidate: &ExecutionChainCandidate,
+) -> bool {
+    configuration.execution_chain_id == candidate.id
+        && configuration.container == candidate.output_container
+        && configuration.video_codec == candidate.output_video_codec
+        && configuration.video_profile == candidate.output_video_profile
+        && configuration.audio_codec == candidate.output_audio_codec
+        && configuration.demuxer_backend == candidate.demuxer
+        && configuration.video_decoders == candidate.video_decoders
+        && configuration.audio_decoders == candidate.audio_decoders
+        && configuration.video_encoder_backend == candidate.video_encoder
+        && configuration.audio_encoder_backend == candidate.audio_encoder
+        && configuration.processors == candidate.processors
+        && configuration.muxer_backend == candidate.muxer
+        && configuration.output_pixel_format == candidate.output_pixel_format
+        && configuration.output_bit_depth == candidate.output_bit_depth
+        && configuration.output_hdr_mode == candidate.output_hdr_mode
+        && configuration.preserves_hdr == candidate.preserves_hdr
+        && configuration.requires_tone_mapping == candidate.requires_tone_mapping
+}
+
+fn estimate_configuration(
+    requirements: &InputMediaRequirements,
+    configuration: &ResolvedConfiguration,
+    estimator: (&dyn SizeEstimator, &EstimatorPolicy),
+) -> Result<SizeEstimate> {
+    let duration_seconds = requirements
+        .duration_microseconds
+        .filter(|value| *value > 0)
+        .map(|value| value.div_ceil(1_000_000))
+        .ok_or_else(|| {
+            EngineError::new(
+                ErrorKind::Estimation,
+                "media duration is unavailable for output estimation",
+            )
+        })?;
+    let stream_bitrates: Vec<_> = [
+        configuration.target_video_bitrate,
+        configuration.target_audio_bitrate,
+    ]
+    .into_iter()
+    .flatten()
+    .collect();
+    if stream_bitrates.is_empty() {
+        return Err(EngineError::new(
+            ErrorKind::Estimation,
+            "resolved configuration has no target bitrates",
+        ));
+    }
+    let media_kind = match requirements.media_kind {
+        MediaKind::Video => EstimateMediaKind::Video,
+        MediaKind::Audio => EstimateMediaKind::Audio,
+        MediaKind::AnimatedImage => EstimateMediaKind::AnimatedImage,
+        MediaKind::Image => EstimateMediaKind::StaticImage,
+        MediaKind::Other => {
+            return Err(EngineError::new(
+                ErrorKind::Estimation,
+                "media kind is unsupported by the estimator",
+            ));
+        }
+    };
+    let mut estimate = estimator.0.estimate(
+        &EstimateRequest::TimedStreams {
+            media_kind,
+            duration_seconds,
+            stream_bitrates,
+        },
+        estimator.1,
+    )?;
+    estimate.recommended_video_bitrate = configuration.target_video_bitrate;
+    estimate.recommended_audio_bitrate = configuration.target_audio_bitrate;
+    Ok(estimate)
+}
+
 fn conflict(
     code: EngineErrorCode,
     field: Option<&str>,
@@ -1825,6 +2331,18 @@ pub struct EstimatorPolicy {
     pub version: u32,
     pub calibrated_container_overhead_bytes: Option<u64>,
     pub calibration_sample_count: u32,
+}
+
+impl EstimatorPolicy {
+    pub fn baseline() -> Self {
+        Self {
+            id: EstimatorPolicyId::new("builtin-baseline")
+                .expect("fixed estimator policy identifier is valid"),
+            version: 1,
+            calibrated_container_overhead_bytes: None,
+            calibration_sample_count: 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -1941,12 +2459,7 @@ impl SizeEstimator for DeterministicSizeEstimator {
                 "duration must be greater than zero",
             ));
         }
-        let overhead = policy.calibrated_container_overhead_bytes.ok_or_else(|| {
-            EngineError::new(
-                ErrorKind::Estimation,
-                "container overhead policy is not calibrated",
-            )
-        })?;
+        let overhead = policy.calibrated_container_overhead_bytes.unwrap_or(0);
         let bits_per_second = stream_bitrates
             .iter()
             .try_fold(0_u64, |sum, value| sum.checked_add(value.value()))
@@ -1962,12 +2475,21 @@ impl SizeEstimator for DeterministicSizeEstimator {
             maximum_bytes: None,
             recommended_video_bitrate: None,
             recommended_audio_bitrate: None,
-            confidence: if policy.calibration_sample_count == 0 {
+            confidence: if policy.calibrated_container_overhead_bytes.is_none()
+                || policy.calibration_sample_count == 0
+            {
                 EstimateConfidence::Low
             } else {
                 EstimateConfidence::Medium
             },
-            basis: vec![format!("estimator_policy:{}", policy.id.as_str())],
+            basis: vec![
+                format!("estimator_policy:{}", policy.id.as_str()),
+                if policy.calibrated_container_overhead_bytes.is_some() {
+                    "container_overhead:calibrated".to_owned()
+                } else {
+                    "container_overhead:uncalibrated_zero_baseline".to_owned()
+                },
+            ],
         })
     }
 
@@ -2025,7 +2547,7 @@ impl SizeEstimator for DeterministicSizeEstimator {
 mod tests {
     use framelean_analysis::{
         AudioStreamInfo, HdrInfo, MediaAnalysis, MediaDescriptor, MediaKind, SourceId,
-        VideoStreamInfo,
+        UnknownStreamInfo, VideoStreamInfo,
     };
     use framelean_core::{FileSizeBytes, ObservationStatus, Observed};
     use framelean_environment::{CpuInfo, EnvironmentSnapshot};
@@ -2225,6 +2747,67 @@ mod tests {
     }
 
     #[test]
+    fn requirements_preserve_unknown_streams_and_block_candidates() {
+        let mut media = media();
+        let MediaDescriptor::Video { streams } = &mut media.descriptor else {
+            panic!("fixture must be video");
+        };
+        streams.push(MediaStreamDescriptor::Unknown(UnknownStreamInfo {
+            stream_index: 4,
+            codec: "unknown".to_owned(),
+            media_type_code: -1,
+        }));
+
+        let requirements = InputMediaRequirements::from_media_analysis(&media);
+        assert_eq!(requirements.unknown_streams.len(), 1);
+        assert_eq!(requirements.unknown_streams[0].stream_index, 4);
+
+        let capabilities = DefaultCapabilityResolver
+            .resolve(
+                &requirements,
+                TaskMode::VideoCompress,
+                &environment(),
+                &complete_catalog(true),
+            )
+            .unwrap();
+        assert!(!capabilities.available);
+        assert!(capabilities.execution_chains.is_empty());
+        assert_eq!(
+            capabilities.exclusions[0].code,
+            EngineErrorCode::MediaStreamUnrecognized
+        );
+    }
+
+    #[test]
+    fn partial_analysis_with_missing_required_facts_cannot_build_candidates() {
+        let mut media = media();
+        media.status = MediaAnalysisStatus::Partial;
+        let MediaDescriptor::Video { streams } = &mut media.descriptor else {
+            panic!("fixture must be video");
+        };
+        let MediaStreamDescriptor::Video(video) = &mut streams[0] else {
+            panic!("fixture must contain a video stream");
+        };
+        video.profile = unavailable();
+
+        let requirements = InputMediaRequirements::from_media_analysis(&media);
+        let capabilities = DefaultCapabilityResolver
+            .resolve(
+                &requirements,
+                TaskMode::VideoCompress,
+                &environment(),
+                &complete_catalog(true),
+            )
+            .unwrap();
+        assert!(!capabilities.available);
+        assert!(capabilities.execution_chains.is_empty());
+        assert_eq!(
+            capabilities.exclusions[0].code,
+            EngineErrorCode::MediaProfileUnavailable
+        );
+    }
+
+    #[test]
     fn native_only_catalog_is_diagnostic_not_selectable() {
         let capabilities = DefaultCapabilityResolver
             .resolve(
@@ -2254,9 +2837,23 @@ mod tests {
             .unwrap();
         assert_eq!(capabilities.containers, vec!["mp4"]);
         assert_eq!(capabilities.execution_chains.len(), 1);
-        let recommendation =
-            DefaultRecommendationEngine.recommend(&requirements, &capabilities, None);
+        let recommendation = DefaultRecommendationEngine.recommend(
+            &requirements,
+            TaskMode::VideoCompress,
+            &capabilities,
+            None,
+            (&DeterministicSizeEstimator, &EstimatorPolicy::baseline()),
+        );
         assert!(validate_recommendation(&recommendation, &capabilities));
+        assert_eq!(
+            recommendation
+                .configuration
+                .as_ref()
+                .unwrap()
+                .execution_chain_id,
+            capabilities.execution_chains[0].id
+        );
+        assert!(recommendation.estimate.is_some());
     }
 
     #[test]
@@ -2286,11 +2883,72 @@ mod tests {
                 &complete_catalog(true),
             )
             .unwrap();
-        let ids: Vec<_> = fixed_presets(&requirements, TaskMode::VideoCompress, &capabilities)
-            .into_iter()
+        let presets = fixed_presets(
+            &requirements,
+            TaskMode::VideoCompress,
+            &capabilities,
+            (&DeterministicSizeEstimator, &EstimatorPolicy::baseline()),
+        );
+        let ids: Vec<_> = presets
+            .iter()
             .map(|preset| preset.id.as_str().to_owned())
             .collect();
         assert_eq!(ids, ["clear", "balanced", "chat", "compact"]);
+        for preset in presets {
+            assert!(preset.applicable);
+            let candidate = preset.candidate.as_ref().unwrap();
+            let configuration = preset.configuration.as_ref().unwrap();
+            assert_eq!(configuration.execution_chain_id, candidate.id);
+            assert!(resolved_configuration_matches_candidate(
+                configuration,
+                candidate
+            ));
+            assert!(preset.estimate.is_some());
+        }
+    }
+
+    #[test]
+    fn configuration_option_graph_preserves_candidate_membership() {
+        let requirements = requirements();
+        let mut capabilities = DefaultCapabilityResolver
+            .resolve(
+                &requirements,
+                TaskMode::VideoCompress,
+                &environment(),
+                &complete_catalog(true),
+            )
+            .unwrap();
+        let first_id = capabilities.execution_chains[0].id.clone();
+        let mut second = capabilities.execution_chains[0].clone();
+        second.id = ExecutionChainId::new("chain-second").unwrap();
+        second.output_container = "mkv".to_owned();
+        second.output_video_codec = Some("hevc".to_owned());
+        let second_id = second.id.clone();
+        capabilities.execution_chains.push(second);
+
+        let graph = ConfigurationOptionGraph::from_capabilities(&capabilities);
+        assert_eq!(
+            graph.candidate_ids,
+            vec![first_id.clone(), second_id.clone()]
+        );
+        assert_eq!(
+            graph
+                .containers
+                .iter()
+                .find(|option| option.value == "mp4")
+                .unwrap()
+                .candidate_ids,
+            vec![first_id]
+        );
+        assert_eq!(
+            graph
+                .video_codecs
+                .iter()
+                .find(|option| option.value == "hevc")
+                .unwrap()
+                .candidate_ids,
+            vec![second_id]
+        );
     }
 
     #[test]
@@ -2306,12 +2964,15 @@ mod tests {
             .unwrap();
         let resolved = DecisionService
             .resolve_selection(
-                &RecalculateSelection::Manual(ManualSelection {
-                    container: Some("mp4".to_owned()),
-                    video_codec: Some("h264".to_owned()),
-                    audio_codec: None,
-                    output_pixel_format: Some("yuv420p".to_owned()),
-                    preserves_hdr: Some(false),
+                &RecalculateSelection::Manual(ManualConfigurationSelection {
+                    candidate_id: capabilities.execution_chains[0].id.clone(),
+                    overrides: ManualSelection {
+                        container: Some("mp4".to_owned()),
+                        video_codec: Some("h264".to_owned()),
+                        audio_codec: None,
+                        output_pixel_format: Some("yuv420p".to_owned()),
+                        preserves_hdr: Some(false),
+                    },
                 }),
                 &requirements,
                 TaskMode::VideoCompress,
@@ -2323,6 +2984,36 @@ mod tests {
             resolved.execution_chain_id,
             capabilities.execution_chains[0].id
         );
+    }
+
+    #[test]
+    fn unavailable_capability_precedes_preset_lookup() {
+        let requirements = requirements();
+        let capabilities = DefaultCapabilityResolver
+            .resolve(
+                &requirements,
+                TaskMode::VideoCompress,
+                &environment(),
+                &complete_catalog(false),
+            )
+            .unwrap();
+        assert!(!capabilities.available);
+
+        let conflict = DecisionService
+            .resolve_selection(
+                &RecalculateSelection::Preset(PresetSelection {
+                    preset_id: PresetId::new("unknown").unwrap(),
+                    candidate_id: ExecutionChainId::new("unavailable").unwrap(),
+                    overrides: ManualSelection::empty(),
+                }),
+                &requirements,
+                TaskMode::VideoCompress,
+                &capabilities,
+                None,
+            )
+            .unwrap_err();
+
+        assert_eq!(conflict.code, ENGINE_EXECUTION_CHAIN_NOT_READY);
     }
 
     #[test]
@@ -2363,8 +3054,13 @@ mod tests {
                 .as_deref(),
             Some("main")
         );
-        let recommendation =
-            DefaultRecommendationEngine.recommend(&requirements, &capabilities, None);
+        let recommendation = DefaultRecommendationEngine.recommend(
+            &requirements,
+            TaskMode::VideoCompress,
+            &capabilities,
+            None,
+            (&DeterministicSizeEstimator, &EstimatorPolicy::baseline()),
+        );
         assert_eq!(
             recommendation
                 .configuration
@@ -2389,15 +3085,21 @@ mod tests {
         capabilities.execution_chains[0].output_video_codec = Some("hevc".to_owned());
         capabilities.execution_chains[0].output_video_profile = Some("main".to_owned());
 
-        let chat = fixed_presets(&requirements, TaskMode::VideoCompress, &capabilities)
-            .into_iter()
-            .find(|preset| preset.id.as_str() == "chat")
-            .unwrap();
+        let chat = fixed_presets(
+            &requirements,
+            TaskMode::VideoCompress,
+            &capabilities,
+            (&DeterministicSizeEstimator, &EstimatorPolicy::baseline()),
+        )
+        .into_iter()
+        .find(|preset| preset.id.as_str() == "chat")
+        .unwrap();
         assert!(!chat.applicable);
         let conflict = DecisionService
             .resolve_selection(
                 &RecalculateSelection::Preset(PresetSelection {
                     preset_id: PresetId::new("chat").unwrap(),
+                    candidate_id: capabilities.execution_chains[0].id.clone(),
                     overrides: ManualSelection::empty(),
                 }),
                 &requirements,
@@ -2485,12 +3187,15 @@ mod tests {
 
         let conflict = DecisionService
             .resolve_selection(
-                &RecalculateSelection::Manual(ManualSelection {
-                    container: Some("mp4".to_owned()),
-                    video_codec: Some("hevc".to_owned()),
-                    audio_codec: None,
-                    output_pixel_format: None,
-                    preserves_hdr: None,
+                &RecalculateSelection::Manual(ManualConfigurationSelection {
+                    candidate_id: capabilities.execution_chains[0].id.clone(),
+                    overrides: ManualSelection {
+                        container: Some("mp4".to_owned()),
+                        video_codec: Some("hevc".to_owned()),
+                        audio_codec: None,
+                        output_pixel_format: None,
+                        preserves_hdr: None,
+                    },
                 }),
                 &requirements,
                 TaskMode::VideoCompress,
@@ -2516,6 +3221,7 @@ mod tests {
             .resolve_selection(
                 &RecalculateSelection::Preset(PresetSelection {
                     preset_id: PresetId::new("chat").unwrap(),
+                    candidate_id: capabilities.execution_chains[0].id.clone(),
                     overrides: ManualSelection {
                         container: None,
                         video_codec: Some("hevc".to_owned()),
@@ -2548,6 +3254,7 @@ mod tests {
             .resolve_selection(
                 &RecalculateSelection::Preset(PresetSelection {
                     preset_id: PresetId::new("chat").unwrap(),
+                    candidate_id: capabilities.execution_chains[0].id.clone(),
                     overrides: ManualSelection::empty(),
                 }),
                 &requirements,
@@ -2572,6 +3279,7 @@ mod tests {
         let target = DecisionService
             .resolve_selection(
                 &RecalculateSelection::CustomTargetSize(TargetSizeSelection {
+                    candidate_id: capabilities.execution_chains[0].id.clone(),
                     target_bytes: 101_000,
                     allow_resolution_change: false,
                     allow_frame_rate_change: false,
@@ -2587,16 +3295,26 @@ mod tests {
     }
 
     #[test]
-    fn estimator_requires_calibrated_container_overhead() {
+    fn baseline_estimate_is_low_confidence_but_target_solver_requires_calibration() {
         let policy = EstimatorPolicy {
             id: EstimatorPolicyId::new("policy-1").unwrap(),
             version: 1,
             calibrated_container_overhead_bytes: None,
             calibration_sample_count: 0,
         };
+        let estimate = DeterministicSizeEstimator
+            .estimate_bitrate_output(10, &[BitRateBps::new(1_000)], &policy)
+            .unwrap();
+        assert_eq!(estimate.confidence, EstimateConfidence::Low);
+        assert!(
+            estimate
+                .basis
+                .iter()
+                .any(|value| value == "container_overhead:uncalibrated_zero_baseline")
+        );
         assert!(
             DeterministicSizeEstimator
-                .estimate_bitrate_output(10, &[BitRateBps::new(1_000)], &policy)
+                .solve_target_bitrate(10_000, 10, None, &policy)
                 .is_err()
         );
     }

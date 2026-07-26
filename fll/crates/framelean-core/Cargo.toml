@@ -7,3 +7,4 @@ publish.workspace = true
 [dependencies]
 schemars.workspace = true
 serde.workspace = true
+uuid.workspace = true

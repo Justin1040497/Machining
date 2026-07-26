@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "AnalyzeMediaResponse",
+  "title": "AnalysisSnapshotView",
   "type": "object",
   "properties": {
     "analysis_id": {
@@ -12,80 +12,32 @@
       "minimum": 0
     },
     "capabilities": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/CapabilitySet"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/CapabilitySet"
     },
     "configuration_options": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ConfigurationOptionGraph"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "configuration_status": {
-      "$ref": "#/$defs/ConfigurationStatus"
+      "$ref": "#/$defs/ConfigurationOptionGraph"
     },
     "custom_target_size": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/CustomTargetSizeOptions"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/CustomTargetSizeOptions"
+    },
+    "decision_model_revision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
     },
     "engine_backend_summary": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/EngineBackendSummary"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/EngineBackendSummary"
     },
     "environment_summary": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/EnvironmentSummary"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/EnvironmentSummary"
     },
-    "error": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/ErrorDetail"
-        },
-        {
-          "type": "null"
-        }
-      ]
+    "estimator_model_revision": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 0
     },
     "media": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/MediaAnalysis"
-        },
-        {
-          "type": "null"
-        }
-      ]
-    },
-    "media_analysis_status": {
-      "$ref": "#/$defs/MediaAnalysisStatus"
+      "$ref": "#/$defs/MediaAnalysis"
     },
     "presets": {
       "type": "array",
@@ -94,40 +46,22 @@
       }
     },
     "recommendation": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/Recommendation"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/Recommendation"
     },
     "requirements": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/InputMediaRequirements"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/InputMediaRequirements"
     },
     "schema_version": {
       "type": "string"
     },
     "source_fingerprint": {
-      "anyOf": [
-        {
-          "$ref": "#/$defs/SourceFingerprintSummary"
-        },
-        {
-          "type": "null"
-        }
-      ]
+      "$ref": "#/$defs/SourceFingerprintSummary"
     },
     "task_mode": {
       "$ref": "#/$defs/TaskMode"
+    },
+    "validity": {
+      "$ref": "#/$defs/AnalysisSnapshotValidity"
     },
     "warnings": {
       "type": "array",
@@ -140,13 +74,57 @@
     "schema_version",
     "analysis_id",
     "analysis_revision",
+    "decision_model_revision",
+    "estimator_model_revision",
     "task_mode",
-    "media_analysis_status",
-    "configuration_status",
+    "media",
+    "source_fingerprint",
+    "requirements",
+    "environment_summary",
+    "engine_backend_summary",
+    "capabilities",
+    "configuration_options",
+    "recommendation",
     "presets",
-    "warnings"
+    "custom_target_size",
+    "warnings",
+    "validity"
   ],
   "$defs": {
+    "AnalysisSnapshotValidity": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EngineErrorCode"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "status": {
+          "$ref": "#/$defs/AnalysisSnapshotValidityStatus"
+        }
+      },
+      "required": [
+        "status"
+      ]
+    },
+    "AnalysisSnapshotValidityStatus": {
+      "type": "string",
+      "enum": [
+        "valid",
+        "invalid"
+      ]
+    },
     "AnimationInfo": {
       "type": "object",
       "properties": {
@@ -613,14 +591,6 @@
         "requires_tone_mapping"
       ]
     },
-    "ConfigurationStatus": {
-      "type": "string",
-      "enum": [
-        "available",
-        "unavailable",
-        "not_evaluated"
-      ]
-    },
     "CustomTargetSizeOptions": {
       "type": "object",
       "properties": {
@@ -816,25 +786,6 @@
         "architecture",
         "logical_cores",
         "total_memory_bytes"
-      ]
-    },
-    "ErrorDetail": {
-      "type": "object",
-      "properties": {
-        "code": {
-          "$ref": "#/$defs/EngineErrorCode"
-        },
-        "message": {
-          "type": "string"
-        },
-        "retryable": {
-          "type": "boolean"
-        }
-      },
-      "required": [
-        "code",
-        "message",
-        "retryable"
       ]
     },
     "EstimateConfidence": {

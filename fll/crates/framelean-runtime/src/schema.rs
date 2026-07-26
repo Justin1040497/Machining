@@ -1,6 +1,9 @@
 use schemars::Schema;
 
-use crate::{AnalyzeMediaResponse, RecalculateConfigurationResponse};
+use crate::{
+    AnalysisSnapshotView, AnalyzeMediaResponse, ExecutionSubmissionRequest,
+    ExecutionSubmissionResult, RecalculateConfigurationResponse,
+};
 
 pub fn analyze_media_response_schema() -> Schema {
     schemars::schema_for!(AnalyzeMediaResponse)
@@ -8,6 +11,18 @@ pub fn analyze_media_response_schema() -> Schema {
 
 pub fn recalculate_configuration_response_schema() -> Schema {
     schemars::schema_for!(RecalculateConfigurationResponse)
+}
+
+pub fn analysis_snapshot_view_schema() -> Schema {
+    schemars::schema_for!(AnalysisSnapshotView)
+}
+
+pub fn execution_submission_request_schema() -> Schema {
+    schemars::schema_for!(ExecutionSubmissionRequest)
+}
+
+pub fn execution_submission_result_schema() -> Schema {
+    schemars::schema_for!(ExecutionSubmissionResult)
 }
 
 #[cfg(test)]
@@ -26,9 +41,12 @@ mod tests {
             .unwrap();
         for field in [
             "media",
+            "source_fingerprint",
+            "requirements",
             "environment_summary",
             "engine_backend_summary",
             "capabilities",
+            "configuration_options",
             "recommendation",
             "presets",
             "custom_target_size",
@@ -57,6 +75,18 @@ mod tests {
         assert_schema_matches(
             root.join("recalculate-configuration-response-v1.schema.json"),
             recalculate_configuration_response_schema(),
+        );
+        assert_schema_matches(
+            root.join("analysis-snapshot-v1.schema.json"),
+            analysis_snapshot_view_schema(),
+        );
+        assert_schema_matches(
+            root.join("execution-submission-request-v1.schema.json"),
+            execution_submission_request_schema(),
+        );
+        assert_schema_matches(
+            root.join("execution-submission-result-v1.schema.json"),
+            execution_submission_result_schema(),
         );
     }
 

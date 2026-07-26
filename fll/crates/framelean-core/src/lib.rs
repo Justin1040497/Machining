@@ -50,6 +50,7 @@ pub enum EngineErrorCode {
     AnalysisSourceChanged,
     AnalysisSnapshotExpired,
     AnalysisRevisionConflict,
+    QueueRevisionConflict,
     EngineExecutionChainNotReady,
     MediaCapabilityIncompatible,
     PresetNotApplicable,
@@ -88,7 +89,9 @@ impl EngineErrorCode {
     pub const fn is_retryable(self) -> bool {
         matches!(
             self,
-            Self::MediaInfoReadFailed | Self::AnalysisRevisionConflict
+            Self::MediaInfoReadFailed
+                | Self::AnalysisRevisionConflict
+                | Self::QueueRevisionConflict
         )
     }
 }
@@ -249,6 +252,12 @@ define_id!(NodeId, "node");
 define_id!(ProcessorId, "processor");
 define_id!(AnalysisId, "analysis");
 define_id!(BackendId, "backend");
+
+impl AnalysisId {
+    pub fn generate() -> Self {
+        Self(format!("analysis-{}", uuid::Uuid::new_v4()))
+    }
+}
 
 macro_rules! define_u64_unit {
     ($name:ident) => {

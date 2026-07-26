@@ -1,7 +1,11 @@
 use std::fs;
 use std::path::PathBuf;
 
-use framelean_runtime::{analyze_media_response_schema, recalculate_configuration_response_schema};
+use framelean_runtime::{
+    analysis_snapshot_view_schema, analyze_media_response_schema,
+    execution_submission_request_schema, execution_submission_result_schema,
+    recalculate_configuration_response_schema,
+};
 
 fn main() {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../schemas");
@@ -13,6 +17,18 @@ fn main() {
     write(
         root.join("recalculate-configuration-response-v1.schema.json"),
         &recalculate_configuration_response_schema(),
+    );
+    write(
+        root.join("analysis-snapshot-v1.schema.json"),
+        &analysis_snapshot_view_schema(),
+    );
+    write(
+        root.join("execution-submission-request-v1.schema.json"),
+        &execution_submission_request_schema(),
+    );
+    write(
+        root.join("execution-submission-result-v1.schema.json"),
+        &execution_submission_result_schema(),
     );
 }
 

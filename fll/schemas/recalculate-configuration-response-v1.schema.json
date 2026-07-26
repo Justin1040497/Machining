@@ -14,6 +14,9 @@
     "capabilities": {
       "$ref": "#/$defs/CapabilitySet"
     },
+    "configuration_options": {
+      "$ref": "#/$defs/ConfigurationOptionGraph"
+    },
     "configuration_status": {
       "$ref": "#/$defs/ConfigurationStatus"
     },
@@ -74,6 +77,7 @@
     "analysis_revision",
     "configuration_status",
     "capabilities",
+    "configuration_options",
     "recommendation",
     "presets",
     "custom_target_size",
@@ -271,6 +275,172 @@
         "message"
       ]
     },
+    "ConfigurationOption": {
+      "type": "object",
+      "properties": {
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "value",
+        "candidate_ids"
+      ]
+    },
+    "ConfigurationOption2": {
+      "type": "object",
+      "properties": {
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "value",
+        "candidate_ids"
+      ]
+    },
+    "ConfigurationOption3": {
+      "type": "object",
+      "properties": {
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "$ref": "#/$defs/HdrMode"
+        }
+      },
+      "required": [
+        "value",
+        "candidate_ids"
+      ]
+    },
+    "ConfigurationOption4": {
+      "type": "object",
+      "properties": {
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "value",
+        "candidate_ids"
+      ]
+    },
+    "ConfigurationOptionGraph": {
+      "type": "object",
+      "properties": {
+        "audio_codecs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        },
+        "audio_encoders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        },
+        "bit_depths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption2"
+          }
+        },
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        },
+        "hdr_modes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption3"
+          }
+        },
+        "pixel_formats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        },
+        "preserves_hdr": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption4"
+          }
+        },
+        "requires_tone_mapping": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption4"
+          }
+        },
+        "video_codecs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        },
+        "video_encoders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        },
+        "video_profiles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption"
+          }
+        }
+      },
+      "required": [
+        "candidate_ids",
+        "containers",
+        "video_codecs",
+        "video_profiles",
+        "audio_codecs",
+        "video_encoders",
+        "audio_encoders",
+        "pixel_formats",
+        "bit_depths",
+        "hdr_modes",
+        "preserves_hdr",
+        "requires_tone_mapping"
+      ]
+    },
     "ConfigurationStatus": {
       "type": "string",
       "enum": [
@@ -358,6 +528,7 @@
         "ANALYSIS_SOURCE_CHANGED",
         "ANALYSIS_SNAPSHOT_EXPIRED",
         "ANALYSIS_REVISION_CONFLICT",
+        "QUEUE_REVISION_CONFLICT",
         "ENGINE_EXECUTION_CHAIN_NOT_READY",
         "MEDIA_CAPABILITY_INCOMPATIBLE",
         "PRESET_NOT_APPLICABLE",
@@ -510,6 +681,21 @@
         "unknown"
       ]
     },
+    "ManualConfigurationSelection": {
+      "type": "object",
+      "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
+        "overrides": {
+          "$ref": "#/$defs/ManualSelection"
+        }
+      },
+      "required": [
+        "candidate_id",
+        "overrides"
+      ]
+    },
     "ManualSelection": {
       "type": "object",
       "properties": {
@@ -551,11 +737,41 @@
         "applicable": {
           "type": "boolean"
         },
+        "candidate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExecutionChainCandidate"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "configuration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ResolvedConfiguration"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "description": {
           "type": "string"
         },
         "display_name": {
           "type": "string"
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SizeEstimate"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "id": {
           "type": "string"
@@ -567,6 +783,12 @@
           "type": "integer",
           "format": "uint32",
           "minimum": 0
+        },
+        "risks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         },
         "unavailable_reason": {
           "type": [
@@ -581,7 +803,8 @@
         "description",
         "applicable",
         "policy_version",
-        "policy"
+        "policy",
+        "risks"
       ]
     },
     "PresetPolicy": {
@@ -658,6 +881,9 @@
     "PresetSelection": {
       "type": "object",
       "properties": {
+        "candidate_id": {
+          "type": "string"
+        },
         "overrides": {
           "$ref": "#/$defs/ManualSelection"
         },
@@ -667,6 +893,7 @@
       },
       "required": [
         "preset_id",
+        "candidate_id",
         "overrides"
       ]
     },
@@ -727,7 +954,7 @@
               "const": "manual"
             },
             "selection": {
-              "$ref": "#/$defs/ManualSelection"
+              "$ref": "#/$defs/ManualConfigurationSelection"
             }
           },
           "required": [
@@ -743,7 +970,7 @@
         "configuration": {
           "anyOf": [
             {
-              "$ref": "#/$defs/RecommendedConfiguration"
+              "$ref": "#/$defs/ResolvedConfiguration"
             },
             {
               "type": "null"
@@ -791,7 +1018,7 @@
         "unavailable"
       ]
     },
-    "RecommendedConfiguration": {
+    "ResolvedConfiguration": {
       "type": "object",
       "properties": {
         "audio_codec": {
@@ -816,98 +1043,6 @@
           "type": "string"
         },
         "demuxer_backend": {
-          "type": "string"
-        },
-        "execution_chain_id": {
-          "type": "string"
-        },
-        "muxer_backend": {
-          "type": "string"
-        },
-        "output_bit_depth": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint8",
-          "maximum": 255,
-          "minimum": 0
-        },
-        "output_hdr_mode": {
-          "$ref": "#/$defs/HdrMode"
-        },
-        "output_pixel_format": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "preserves_hdr": {
-          "type": "boolean"
-        },
-        "processors": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/ProcessorSelection"
-          }
-        },
-        "requires_tone_mapping": {
-          "type": "boolean"
-        },
-        "video_codec": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "video_decoders": {
-          "type": "array",
-          "items": {
-            "$ref": "#/$defs/StreamBackendSelection"
-          }
-        },
-        "video_encoder_backend": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "video_profile": {
-          "type": [
-            "string",
-            "null"
-          ]
-        }
-      },
-      "required": [
-        "execution_chain_id",
-        "container",
-        "demuxer_backend",
-        "video_decoders",
-        "audio_decoders",
-        "processors",
-        "muxer_backend",
-        "output_hdr_mode",
-        "preserves_hdr",
-        "requires_tone_mapping"
-      ]
-    },
-    "ResolvedConfiguration": {
-      "type": "object",
-      "properties": {
-        "audio_codec": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "audio_encoder_backend": {
-          "type": [
-            "string",
-            "null"
-          ]
-        },
-        "container": {
           "type": "string"
         },
         "execution_chain_id": {
@@ -987,6 +1122,12 @@
             "null"
           ]
         },
+        "video_decoders": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/StreamBackendSelection"
+          }
+        },
         "video_encoder_backend": {
           "type": [
             "string",
@@ -1004,6 +1145,9 @@
         "selection_source",
         "execution_chain_id",
         "container",
+        "demuxer_backend",
+        "video_decoders",
+        "audio_decoders",
         "processors",
         "muxer_backend",
         "output_hdr_mode",
@@ -1140,6 +1284,9 @@
         "allow_resolution_change": {
           "type": "boolean"
         },
+        "candidate_id": {
+          "type": "string"
+        },
         "target_bytes": {
           "type": "integer",
           "format": "uint64",
@@ -1147,6 +1294,7 @@
         }
       },
       "required": [
+        "candidate_id",
         "target_bytes",
         "allow_resolution_change",
         "allow_frame_rate_change"

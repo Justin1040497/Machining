@@ -5,7 +5,8 @@ use std::ptr;
 use framelean_analysis::{
     AnalyzedMedia, AnimationInfo, AudioStreamInfo, DataStreamInfo, HdrInfo, ImageInfo,
     MediaAnalysis, MediaAnalyzeRequest, MediaAnalyzer, MediaDescriptor, MediaKind,
-    MediaStreamDescriptor, SourceFingerprint, SubtitleStreamInfo, VideoStreamInfo,
+    MediaStreamDescriptor, SourceFingerprint, SubtitleStreamInfo, UnknownStreamInfo,
+    VideoStreamInfo,
 };
 use framelean_core::{
     BackendId, BitRateBps, EngineError, ErrorKind, FileSizeBytes, ObservationStatus, Observed,
@@ -25,6 +26,24 @@ pub struct LibraryVersions {
     pub avformat: u32,
     pub avcodec: u32,
     pub avutil: u32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct RemuxProgress {
+    pub media_time_us: u64,
+    pub processed_bytes: u64,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemuxControl {
+    Continue,
+    Cancel,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RemuxOutcome {
+    Completed(RemuxProgress),
+    Cancelled(RemuxProgress),
 }
 
 pub fn library_versions() -> Result<LibraryVersions> {
@@ -52,6 +71,99 @@ impl FfmpegAdapter {
             ));
         }
         Ok(Self)
+    }
+
+    pub fn remux(
+        &self,
+        input_path: &Path,
+        output_path: &Path,
+        mut control: impl FnMut(RemuxProgress) -> RemuxControl,
+    ) -> Result<RemuxOutcome> {
+        let input = InputContext::open(input_path)?;
+        let mut output = OutputContext::create(output_path)?;
+        output.copy_streams_from(&input)?;
+        output.open_io(output_path)?;
+        output.write_header()?;
+
+        let packet = Packet::new_for_execution()?;
+        let mut progress = RemuxProgress {
+            media_time_us: 0,
+            processed_bytes: 0,
+        };
+        loop {
+            // SAFETY: both pointers are valid and owned for the duration of the call.
+            let read_result = unsafe { ffi::av_read_frame(input.0, packet.0) };
+            if read_result == ffi::AVERROR_EOF {
+                break;
+            }
+            if read_result < 0 {
+                return Err(media_native_error(
+                    framelean_core::EngineErrorCode::MediaInfoReadFailed,
+                    "failed while reading media packets",
+                    read_result,
+                ));
+            }
+
+            // SAFETY: av_read_frame initialized the packet and the stream index is
+            // guaranteed by libavformat to refer to the input context.
+            let packet_ref = unsafe { &mut *packet.0 };
+            let stream_index = packet_ref.stream_index as usize;
+            let input_stream = unsafe { &**input.as_ref().streams.add(stream_index) };
+            let output_stream = unsafe { &**output.as_ref().streams.add(stream_index) };
+            let timestamp = if packet_ref.pts != ffi::AV_NOPTS_VALUE {
+                packet_ref.pts
+            } else {
+                packet_ref.dts
+            };
+            if timestamp != ffi::AV_NOPTS_VALUE {
+                let media_time_us = unsafe {
+                    ffi::av_rescale_q(
+                        timestamp,
+                        input_stream.time_base,
+                        ffi::AVRational {
+                            num: 1,
+                            den: 1_000_000,
+                        },
+                    )
+                };
+                progress.media_time_us = progress.media_time_us.max(media_time_us.max(0) as u64);
+            }
+            progress.processed_bytes = progress
+                .processed_bytes
+                .saturating_add(packet_ref.size.max(0) as u64);
+            if control(progress) == RemuxControl::Cancel {
+                // SAFETY: packet remains allocated for this unref and Drop.
+                unsafe { ffi::av_packet_unref(packet.0) };
+                return Ok(RemuxOutcome::Cancelled(progress));
+            }
+
+            // SAFETY: packet timestamps are in the input stream time base and
+            // are rescaled before being handed to the corresponding output stream.
+            unsafe {
+                ffi::av_packet_rescale_ts(
+                    packet.0,
+                    input_stream.time_base,
+                    output_stream.time_base,
+                );
+            }
+            packet_ref.pos = -1;
+            let write_result = unsafe { ffi::av_interleaved_write_frame(output.context, packet.0) };
+            if write_result < 0 {
+                // SAFETY: packet remains allocated for this unref and Drop.
+                unsafe { ffi::av_packet_unref(packet.0) };
+                return Err(media_native_error(
+                    framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                    "failed while writing media packets",
+                    write_result,
+                ));
+            }
+            // av_interleaved_write_frame takes ownership of packet contents and
+            // resets the packet; unref is still safe and makes reuse explicit.
+            unsafe { ffi::av_packet_unref(packet.0) };
+        }
+
+        output.write_trailer()?;
+        Ok(RemuxOutcome::Completed(progress))
     }
 }
 
@@ -114,12 +226,160 @@ impl Packet {
         }
         Ok(Self(packet))
     }
+
+    fn new_for_execution() -> Result<Self> {
+        // SAFETY: allocation has no pointer preconditions and is owned by this guard.
+        let packet = unsafe { ffi::av_packet_alloc() };
+        if packet.is_null() {
+            return Err(EngineError::with_code(
+                ErrorKind::Runtime,
+                framelean_core::EngineErrorCode::NativeLibraryUnavailable,
+                "failed to allocate packet for media execution",
+            ));
+        }
+        Ok(Self(packet))
+    }
 }
 
 impl Drop for Packet {
     fn drop(&mut self) {
         // SAFETY: packet is owned by this guard and freed exactly once.
         unsafe { ffi::av_packet_free(&mut self.0) };
+    }
+}
+
+struct OutputContext {
+    context: *mut ffi::AVFormatContext,
+    io_open: bool,
+}
+
+impl OutputContext {
+    fn create(path: &Path) -> Result<Self> {
+        let path = path_c_string(path)?;
+        let mut context = ptr::null_mut();
+        // SAFETY: context is an out pointer initialized to null; the filename is
+        // used only to select the output muxer and remains alive for the call.
+        let result = unsafe {
+            ffi::avformat_alloc_output_context2(
+                &mut context,
+                ptr::null(),
+                ptr::null(),
+                path.as_ptr(),
+            )
+        };
+        if result < 0 || context.is_null() {
+            return Err(media_native_error(
+                framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                "failed to create media output context",
+                result,
+            ));
+        }
+        Ok(Self {
+            context,
+            io_open: false,
+        })
+    }
+
+    fn as_ref(&self) -> &ffi::AVFormatContext {
+        // SAFETY: OutputContext owns a non-null context until Drop.
+        unsafe { &*self.context }
+    }
+
+    fn copy_streams_from(&mut self, input: &InputContext) -> Result<()> {
+        for index in 0..input.as_ref().nb_streams as usize {
+            // SAFETY: the index is bounded by nb_streams and both contexts live
+            // for the duration of parameter copying.
+            let input_stream = unsafe { &**input.as_ref().streams.add(index) };
+            let output_stream = unsafe { ffi::avformat_new_stream(self.context, ptr::null()) };
+            if output_stream.is_null() {
+                return Err(EngineError::with_code(
+                    ErrorKind::Runtime,
+                    framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                    "failed to create an output stream",
+                ));
+            }
+            let copy_result = unsafe {
+                ffi::avcodec_parameters_copy((*output_stream).codecpar, input_stream.codecpar)
+            };
+            if copy_result < 0 {
+                return Err(media_native_error(
+                    framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                    "failed to copy media stream parameters",
+                    copy_result,
+                ));
+            }
+            // SAFETY: output_stream and codecpar are owned by the output context.
+            unsafe {
+                (*(*output_stream).codecpar).codec_tag = 0;
+                (*output_stream).time_base = input_stream.time_base;
+            }
+        }
+        Ok(())
+    }
+
+    fn open_io(&mut self, path: &Path) -> Result<()> {
+        let format = unsafe { self.as_ref().oformat.as_ref() }
+            .ok_or_else(|| EngineError::invalid_task_state("media output context has no muxer"))?;
+        if format.flags & ffi::AVFMT_NOFILE as i32 != 0 {
+            return Ok(());
+        }
+        let path = path_c_string(path)?;
+        // SAFETY: pb is the output context's I/O out pointer and path remains
+        // alive for the duration of avio_open.
+        let result = unsafe {
+            ffi::avio_open(
+                &mut (*self.context).pb,
+                path.as_ptr(),
+                ffi::AVIO_FLAG_WRITE as i32,
+            )
+        };
+        if result < 0 {
+            return Err(media_native_error(
+                framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                "failed to open media output",
+                result,
+            ));
+        }
+        self.io_open = true;
+        Ok(())
+    }
+
+    fn write_header(&mut self) -> Result<()> {
+        // SAFETY: output streams and I/O were initialized before this call.
+        let result = unsafe { ffi::avformat_write_header(self.context, ptr::null_mut()) };
+        if result < 0 {
+            return Err(media_native_error(
+                framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                "failed to write media output header",
+                result,
+            ));
+        }
+        Ok(())
+    }
+
+    fn write_trailer(&mut self) -> Result<()> {
+        // SAFETY: the header was written and the context remains valid.
+        let result = unsafe { ffi::av_write_trailer(self.context) };
+        if result < 0 {
+            return Err(media_native_error(
+                framelean_core::EngineErrorCode::OutputContainerNotWritable,
+                "failed to finalize media output",
+                result,
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl Drop for OutputContext {
+    fn drop(&mut self) {
+        if self.io_open {
+            // SAFETY: pb was opened by avio_open and is closed exactly once.
+            unsafe { ffi::avio_closep(&mut (*self.context).pb) };
+        }
+        // SAFETY: context was allocated by avformat_alloc_output_context2 and
+        // is freed exactly once after its I/O is closed.
+        unsafe { ffi::avformat_free_context(self.context) };
     }
 }
 
@@ -173,7 +433,7 @@ impl MediaAnalyzer for FfmpegAdapter {
                 .map_or(ptr::null(), |format| format.name)
         });
         let format_name = format_names.first().cloned();
-        let (mut streams, unrecognized_streams) = map_streams(context)?;
+        let mut streams = map_streams(context)?;
         if streams.is_empty() {
             return Err(EngineError::with_code(
                 ErrorKind::Analysis,
@@ -213,8 +473,15 @@ impl MediaAnalyzer for FfmpegAdapter {
                     _ => None,
                 })
                 .is_some_and(|value| value.status != ObservationStatus::Detected)
-            && packet_animation_evidence.is_some();
-        let (kind, descriptor) = classify_media(format_name.as_deref(), streams, &duration)?;
+            && packet_animation_evidence
+                .as_ref()
+                .is_some_and(|value| value.status != ObservationStatus::Detected);
+        let (kind, descriptor) = classify_media(
+            format_name.as_deref(),
+            streams,
+            &duration,
+            packet_animation_evidence.as_ref(),
+        )?;
         if kind == MediaKind::Image {
             duration = Observed::with_status(
                 ObservationStatus::NotApplicable,
@@ -227,13 +494,7 @@ impl MediaAnalyzer for FfmpegAdapter {
             .map(|value| value.to_string_lossy().into_owned())
             .unwrap_or_else(|| "media".to_owned());
 
-        let warnings = analysis_warnings(
-            kind,
-            &descriptor,
-            &duration,
-            unrecognized_streams,
-            animation_unknown,
-        );
+        let warnings = analysis_warnings(kind, &descriptor, &duration, animation_unknown);
         let status = if warnings.is_empty() {
             framelean_analysis::MediaAnalysisStatus::Complete
         } else {
@@ -287,9 +548,8 @@ impl BackendCatalogProvider for FfmpegAdapter {
     }
 }
 
-fn map_streams(context: &ffi::AVFormatContext) -> Result<(Vec<MediaStreamDescriptor>, usize)> {
+fn map_streams(context: &ffi::AVFormatContext) -> Result<Vec<MediaStreamDescriptor>> {
     let mut streams = Vec::new();
-    let mut unrecognized = 0;
     for index in 0..context.nb_streams as usize {
         // SAFETY: index is bounded by nb_streams and streams is owned by AVFormatContext.
         let stream = unsafe { &**context.streams.add(index) };
@@ -321,10 +581,14 @@ fn map_streams(context: &ffi::AVFormatContext) -> Result<(Vec<MediaStreamDescrip
                     codec,
                 }))
             }
-            _ => unrecognized += 1,
+            _ => streams.push(MediaStreamDescriptor::Unknown(UnknownStreamInfo {
+                stream_index: index as u32,
+                codec,
+                media_type_code: parameters.codec_type,
+            })),
         }
     }
-    Ok((streams, unrecognized))
+    Ok(streams)
 }
 
 fn map_video_stream(
@@ -404,6 +668,7 @@ fn classify_media(
     format: Option<&str>,
     streams: Vec<MediaStreamDescriptor>,
     duration: &Observed<MediaDuration>,
+    packet_animation_evidence: Option<&Observed<bool>>,
 ) -> Result<(MediaKind, MediaDescriptor)> {
     let videos: Vec<_> = streams
         .iter()
@@ -423,7 +688,7 @@ fn classify_media(
             || value.contains("gif")
             || value.contains("apng")
     });
-    if videos.len() == 1 && !has_audio && image_format {
+    if videos.len() == 1 && streams.len() == 1 && !has_audio && image_format {
         let video = videos[0];
         let image = ImageInfo {
             codec: video.codec.clone(),
@@ -434,7 +699,10 @@ fn classify_media(
             alpha: unavailable("alpha requires pixel format component inspection"),
             color_space: video.hdr.color_space.clone(),
         };
-        let animated = video.frame_count.value.is_some_and(|value| value > 1);
+        let animated = video.frame_count.value.is_some_and(|value| value > 1)
+            || packet_animation_evidence.is_some_and(|value| {
+                value.status == ObservationStatus::Detected && value.value == Some(true)
+            });
         if animated {
             return Ok((
                 MediaKind::AnimatedImage,
@@ -472,10 +740,18 @@ fn analysis_warnings(
     kind: MediaKind,
     descriptor: &MediaDescriptor,
     duration: &Observed<MediaDuration>,
-    unrecognized_streams: usize,
     animation_unknown: bool,
 ) -> Vec<framelean_analysis::MediaWarning> {
     let mut warnings = Vec::new();
+    let unrecognized_streams = match descriptor {
+        MediaDescriptor::Video { streams }
+        | MediaDescriptor::Audio { streams }
+        | MediaDescriptor::Other { streams } => streams
+            .iter()
+            .filter(|stream| matches!(stream, MediaStreamDescriptor::Unknown(_)))
+            .count(),
+        MediaDescriptor::Image { .. } | MediaDescriptor::AnimatedImage { .. } => 0,
+    };
     if unrecognized_streams > 0 {
         warnings.push(media_warning(
             framelean_core::EngineErrorCode::MediaStreamUnrecognized,
@@ -600,12 +876,14 @@ fn demuxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
             id: BackendId::new(format!("ffmpeg.demuxer.{primary}"))?,
             provider: "framelean-ffmpeg".to_owned(),
             version: version.clone(),
-            availability: BackendAvailability::native_only(NativeSupportStatus::NativeDiscovered),
+            availability: BackendAvailability::execution_ready(
+                NativeSupportStatus::NativeInitializable,
+            ),
             environment: BackendEnvironmentRequirements::unrestricted(),
             capability: BackendCapability::Demuxer(DemuxerCapability {
                 input_formats: names,
                 stream_types: all_stream_kinds(),
-                codec_restrictions: CapabilityConstraint::Unknown,
+                codec_restrictions: CapabilityConstraint::Unrestricted,
                 supports_multiple_streams: unavailable(
                     "per-format multi-stream support requires qualification",
                 ),
@@ -642,7 +920,9 @@ fn muxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
             ))?,
             provider: "framelean-ffmpeg".to_owned(),
             version: version.clone(),
-            availability: BackendAvailability::native_only(NativeSupportStatus::NativeDiscovered),
+            availability: BackendAvailability::execution_ready(
+                NativeSupportStatus::NativeInitializable,
+            ),
             environment: BackendEnvironmentRequirements::unrestricted(),
             capability: BackendCapability::Muxer(MuxerCapability {
                 output_formats: names,
@@ -933,11 +1213,12 @@ fn media_native_error(
             format!("FFmpeg error {code}")
         }
     };
-    EngineError::with_code(
-        ErrorKind::Analysis,
-        error_code,
-        format!("{message}: {description}"),
-    )
+    let kind = if error_code == framelean_core::EngineErrorCode::OutputContainerNotWritable {
+        ErrorKind::Runtime
+    } else {
+        ErrorKind::Analysis
+    };
+    EngineError::with_code(kind, error_code, format!("{message}: {description}"))
 }
 
 #[cfg(unix)]
@@ -990,6 +1271,9 @@ fn slug(value: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use std::fs;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
     use framelean_media::capability::{EngineExecutionReadiness, EngineRegistrationStatus};
 
     use super::*;
@@ -1000,6 +1284,72 @@ mod tests {
         assert!(versions.avformat > 0);
         assert!(versions.avcodec > 0);
         assert!(versions.avutil > 0);
+    }
+
+    #[test]
+    fn remux_writes_a_real_readable_media_output_with_packet_progress() {
+        static TEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+        let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "framelean-remux-test-{}-{sequence}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let input_path = root.join("input.wav");
+        let output_path = root.join("output.wav");
+        fs::write(&input_path, pcm_wav_fixture()).unwrap();
+        let mut progress_events = Vec::new();
+
+        let result = FfmpegAdapter::new()
+            .unwrap()
+            .remux(&input_path, &output_path, |progress| {
+                progress_events.push(progress);
+                RemuxControl::Continue
+            })
+            .unwrap();
+
+        let RemuxOutcome::Completed(progress) = result else {
+            panic!("remux unexpectedly cancelled");
+        };
+        assert!(progress.processed_bytes > 0);
+        assert!(!progress_events.is_empty());
+        assert!(fs::metadata(&output_path).unwrap().len() > 44);
+        let output = InputContext::open(&output_path).unwrap();
+        assert_eq!(output.as_ref().nb_streams, 1);
+        drop(output);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    fn pcm_wav_fixture() -> Vec<u8> {
+        const SAMPLE_RATE: u32 = 8_000;
+        const SAMPLE_COUNT: u32 = 800;
+        const CHANNELS: u16 = 1;
+        const BITS_PER_SAMPLE: u16 = 16;
+        let data_size = SAMPLE_COUNT * u32::from(CHANNELS) * u32::from(BITS_PER_SAMPLE / 8);
+        let mut bytes = Vec::with_capacity((44 + data_size) as usize);
+        bytes.extend_from_slice(b"RIFF");
+        bytes.extend_from_slice(&(36 + data_size).to_le_bytes());
+        bytes.extend_from_slice(b"WAVEfmt ");
+        bytes.extend_from_slice(&16_u32.to_le_bytes());
+        bytes.extend_from_slice(&1_u16.to_le_bytes());
+        bytes.extend_from_slice(&CHANNELS.to_le_bytes());
+        bytes.extend_from_slice(&SAMPLE_RATE.to_le_bytes());
+        let byte_rate = SAMPLE_RATE * u32::from(CHANNELS) * u32::from(BITS_PER_SAMPLE / 8);
+        bytes.extend_from_slice(&byte_rate.to_le_bytes());
+        let block_align = CHANNELS * (BITS_PER_SAMPLE / 8);
+        bytes.extend_from_slice(&block_align.to_le_bytes());
+        bytes.extend_from_slice(&BITS_PER_SAMPLE.to_le_bytes());
+        bytes.extend_from_slice(b"data");
+        bytes.extend_from_slice(&data_size.to_le_bytes());
+        for index in 0..SAMPLE_COUNT {
+            let sample = if index % 16 < 8 {
+                4_000_i16
+            } else {
+                -4_000_i16
+            };
+            bytes.extend_from_slice(&sample.to_le_bytes());
+        }
+        bytes
     }
 
     #[test]
@@ -1048,11 +1398,25 @@ mod tests {
     }
 
     #[test]
-    fn allocating_codec_context_is_not_reported_as_initializable() {
+    fn only_implemented_remux_backends_are_reported_as_initializable() {
         let catalog = FfmpegAdapter::new().unwrap().backend_catalog().unwrap();
-        assert!(catalog.backends.iter().all(|backend| {
-            backend.availability.native_support != NativeSupportStatus::NativeInitializable
-        }));
+        assert!(
+            catalog
+                .backends
+                .iter()
+                .all(|backend| match backend.capability {
+                    BackendCapability::Demuxer(_) | BackendCapability::Muxer(_) => {
+                        backend.availability.native_support
+                            == NativeSupportStatus::NativeInitializable
+                    }
+                    BackendCapability::Decoder(_)
+                    | BackendCapability::Processor(_)
+                    | BackendCapability::Encoder(_) => {
+                        backend.availability.native_support
+                            != NativeSupportStatus::NativeInitializable
+                    }
+                })
+        );
     }
 
     #[test]
@@ -1062,6 +1426,7 @@ mod tests {
             Some("webp_pipe"),
             vec![MediaStreamDescriptor::Video(Box::new(image_stream(1)))],
             &duration,
+            None,
         )
         .unwrap();
         assert_eq!(kind, MediaKind::Image);
@@ -1074,6 +1439,7 @@ mod tests {
             Some("gif"),
             vec![MediaStreamDescriptor::Video(Box::new(image_stream(2)))],
             &duration,
+            None,
         )
         .unwrap();
         assert_eq!(kind, MediaKind::AnimatedImage);
@@ -1087,6 +1453,7 @@ mod tests {
                 Some(format),
                 vec![MediaStreamDescriptor::Video(Box::new(image_stream(1)))],
                 &duration,
+                None,
             )
             .unwrap();
             assert_eq!(kind, MediaKind::Image, "{format}");
@@ -1096,6 +1463,7 @@ mod tests {
                 Some(format),
                 vec![MediaStreamDescriptor::Video(Box::new(image_stream(2)))],
                 &duration,
+                None,
             )
             .unwrap();
             assert_eq!(kind, MediaKind::AnimatedImage, "{format}");
@@ -1107,21 +1475,73 @@ mod tests {
             Some("gif"),
             vec![MediaStreamDescriptor::Video(Box::new(unknown))],
             &duration,
+            None,
         )
         .unwrap();
         assert_eq!(kind, MediaKind::Image);
     }
 
     #[test]
+    fn bounded_packet_evidence_classifies_animated_image() {
+        let duration = Observed::detected(MediaDuration::new(1, 1).unwrap(), "fixture");
+        let mut stream = image_stream(1);
+        stream.frame_count = unavailable("fixture");
+        let packet_evidence = Observed::detected(true, "fixture");
+
+        let (kind, descriptor) = classify_media(
+            Some("gif"),
+            vec![MediaStreamDescriptor::Video(Box::new(stream))],
+            &duration,
+            Some(&packet_evidence),
+        )
+        .unwrap();
+
+        assert_eq!(kind, MediaKind::AnimatedImage);
+        assert!(matches!(descriptor, MediaDescriptor::AnimatedImage { .. }));
+    }
+
+    #[test]
+    fn unknown_stream_is_preserved_instead_of_collapsing_to_image() {
+        let duration = Observed::detected(MediaDuration::new(1, 1).unwrap(), "fixture");
+        let streams = vec![
+            MediaStreamDescriptor::Video(Box::new(image_stream(1))),
+            MediaStreamDescriptor::Unknown(UnknownStreamInfo {
+                stream_index: 1,
+                codec: "unknown".to_owned(),
+                media_type_code: -1,
+            }),
+        ];
+
+        let (kind, descriptor) = classify_media(Some("gif"), streams, &duration, None).unwrap();
+        let MediaDescriptor::Video { streams } = descriptor else {
+            panic!("unknown image stream must remain visible in a stream descriptor");
+        };
+        assert_eq!(kind, MediaKind::Video);
+        assert_eq!(streams.len(), 2);
+
+        let warnings =
+            analysis_warnings(kind, &MediaDescriptor::Video { streams }, &duration, false);
+        assert!(warnings.iter().any(
+            |warning| warning.code == framelean_core::EngineErrorCode::MediaStreamUnrecognized
+        ));
+    }
+
+    #[test]
     fn decision_critical_missing_video_facts_produce_partial_warnings() {
         let descriptor = MediaDescriptor::Video {
-            streams: vec![MediaStreamDescriptor::Video(Box::new(image_stream(1)))],
+            streams: vec![
+                MediaStreamDescriptor::Video(Box::new(image_stream(1))),
+                MediaStreamDescriptor::Unknown(UnknownStreamInfo {
+                    stream_index: 1,
+                    codec: "unknown".to_owned(),
+                    media_type_code: -1,
+                }),
+            ],
         };
         let warnings = analysis_warnings(
             MediaKind::Video,
             &descriptor,
             &unavailable("fixture"),
-            1,
             false,
         );
         let codes: Vec<_> = warnings.iter().map(|warning| warning.code).collect();
@@ -1161,25 +1581,29 @@ mod tests {
     }
 
     #[test]
-    fn ffmpeg_catalog_never_claims_engine_execution_readiness() {
+    fn ffmpeg_catalog_claims_execution_readiness_only_for_real_remux_backends() {
         let catalog = FfmpegAdapter::new().unwrap().backend_catalog().unwrap();
         assert!(!catalog.backends.is_empty());
-        assert!(catalog.backends.iter().all(|backend| {
-            backend.availability.engine_registration == EngineRegistrationStatus::NotRegistered
-                && backend.availability.engine_execution_readiness
-                    == EngineExecutionReadiness::NotReady
-        }));
         assert!(
             catalog
                 .backends
                 .iter()
-                .any(|backend| matches!(backend.capability, BackendCapability::Demuxer(_)))
-        );
-        assert!(
-            catalog
-                .backends
-                .iter()
-                .any(|backend| matches!(backend.capability, BackendCapability::Muxer(_)))
+                .all(|backend| match backend.capability {
+                    BackendCapability::Demuxer(_) | BackendCapability::Muxer(_) => {
+                        backend.availability.engine_registration
+                            == EngineRegistrationStatus::EngineRegistered
+                            && backend.availability.engine_execution_readiness
+                                == EngineExecutionReadiness::EngineExecutionReady
+                    }
+                    BackendCapability::Decoder(_)
+                    | BackendCapability::Processor(_)
+                    | BackendCapability::Encoder(_) => {
+                        backend.availability.engine_registration
+                            == EngineRegistrationStatus::NotRegistered
+                            && backend.availability.engine_execution_readiness
+                                == EngineExecutionReadiness::NotReady
+                    }
+                })
         );
     }
 }

@@ -1,20 +1,27 @@
 use std::sync::Arc;
 
-use framelean_core::{EngineError, EngineErrorCode, ProcessorId, Result, TaskId};
-use framelean_decision::{DecisionService, InputMediaRequirements};
+use framelean_core::{AnalysisId, EngineError, EngineErrorCode, ProcessorId, Result, TaskId};
+use framelean_decision::{
+    ConfigurationOptionGraph, CustomTargetSizeOptions, DecisionService, DeterministicSizeEstimator,
+    InputMediaRequirements, fixed_presets,
+};
 use framelean_media::capability::BackendCatalogProvider;
 use framelean_media::processor::{ProcessOutput, ProcessorMetadata};
 use framelean_pipeline::{ExecutionContext, Pipeline, PipelineBuilder};
 use framelean_plugin::{Plugin, PluginError, PluginRegistry, ProcessorFactory};
 
 use crate::analysis::{
-    AnalysisAssembly, build_failure, build_success, collect_catalog, response_warnings,
+    AnalysisAssembly, AnalysisSnapshotValidity, build_failure, build_success, collect_catalog,
+    response_warnings, snapshot_view,
 };
+use crate::snapshot::{CURRENT_DECISION_MODEL_REVISION, CURRENT_ESTIMATOR_MODEL_REVISION};
 use crate::{
-    AnalysisServices, AnalysisSnapshotPolicy, AnalysisSnapshotStore, AnalyzeMediaResponse,
-    AnalyzeTaskRequest, ConfigurationConflict, FifoScheduler, PipelineSpec,
-    RecalculateConfigurationRequest, RecalculateConfigurationResponse, Scheduler, Task,
-    TaskRequest,
+    AnalysisServices, AnalysisSnapshotPolicy, AnalysisSnapshotRecord, AnalysisSnapshotStore,
+    AnalysisSnapshotView, AnalyzeMediaResponse, AnalyzeTaskRequest, ConfigurationConflict,
+    ExecutionLaneSnapshot, ExecutionRuntime, ExecutionRuntimeEvent, ExecutionRuntimePlan,
+    ExecutionServices, ExecutionSubmissionRequest, ExecutionSubmissionResult, ExecutionTaskState,
+    FifoScheduler, PipelineSpec, RecalculateConfigurationRequest, RecalculateConfigurationResponse,
+    Scheduler, Task, TaskRequest,
 };
 
 pub struct EngineRuntime {
@@ -23,7 +30,7 @@ pub struct EngineRuntime {
     next_task_number: u64,
     analysis_services: Option<AnalysisServices>,
     analysis_snapshots: Option<AnalysisSnapshotStore>,
-    next_analysis_number: u64,
+    execution_runtime: Option<ExecutionRuntime>,
 }
 
 impl EngineRuntime {
@@ -34,7 +41,7 @@ impl EngineRuntime {
             next_task_number: 1,
             analysis_services: None,
             analysis_snapshots: None,
-            next_analysis_number: 1,
+            execution_runtime: None,
         }
     }
 
@@ -48,12 +55,18 @@ impl EngineRuntime {
         runtime
     }
 
+    pub fn with_analysis_and_execution_services(
+        analysis_services: AnalysisServices,
+        snapshot_policy: AnalysisSnapshotPolicy,
+        execution_services: ExecutionServices,
+    ) -> Self {
+        let mut runtime = Self::with_analysis_services(analysis_services, snapshot_policy);
+        runtime.execution_runtime = Some(ExecutionRuntime::new(execution_services));
+        runtime
+    }
+
     pub fn analyze_media(&mut self, request: AnalyzeTaskRequest) -> Result<AnalyzeMediaResponse> {
-        let analysis_id =
-            framelean_core::AnalysisId::new(format!("analysis-{}", self.next_analysis_number))?;
-        self.next_analysis_number = self.next_analysis_number.checked_add(1).ok_or_else(|| {
-            EngineError::new(framelean_core::ErrorKind::Runtime, "analysis id overflow")
-        })?;
+        let analysis_id = AnalysisId::generate();
 
         let services = self.analysis_services.as_ref().ok_or_else(|| {
             EngineError::new(
@@ -67,6 +80,7 @@ impl EngineRuntime {
         let native_providers = services.native_backend_providers.clone();
         let capability_resolver = Arc::clone(&services.capability_resolver);
         let recommendation_engine = Arc::clone(&services.recommendation_engine);
+        let size_estimator = Arc::clone(&services.size_estimator);
         let estimator_policy = services.estimator_policy.clone();
 
         let analyzed = match analyzer.analyze(&request.media_request) {
@@ -74,6 +88,11 @@ impl EngineRuntime {
             Err(error) => return Ok(build_failure(analysis_id, request.task_mode, error)),
         };
         let (media, source_fingerprint) = analyzed.into_parts();
+        if let Some(expected_source) = &request.media_request.expected_source
+            && let Err(error) = expected_source.validate(&source_fingerprint)
+        {
+            return Ok(build_failure(analysis_id, request.task_mode, error));
+        }
         let requirements = InputMediaRequirements::from_media_analysis(&media);
         let environment = environment_provider.snapshot()?;
         let resource_sample = monitor.sample().ok();
@@ -86,8 +105,25 @@ impl EngineRuntime {
             &environment,
             &catalog,
         )?;
-        let recommendation =
-            recommendation_engine.recommend(&requirements, &capabilities, resource_sample.as_ref());
+        let recommendation = recommendation_engine.recommend(
+            &requirements,
+            request.task_mode,
+            &capabilities,
+            resource_sample.as_ref(),
+            (size_estimator.as_ref(), &estimator_policy),
+        );
+        let configuration_options = ConfigurationOptionGraph::from_capabilities(&capabilities);
+        let presets = fixed_presets(
+            &requirements,
+            request.task_mode,
+            &capabilities,
+            (size_estimator.as_ref(), &estimator_policy),
+        );
+        let custom_target_size = CustomTargetSizeOptions::from_context(
+            &capabilities,
+            Some(&estimator_policy),
+            media.file_size.value(),
+        );
         let (response, snapshot) = build_success(
             analysis_id,
             &request,
@@ -101,7 +137,10 @@ impl EngineRuntime {
                 native_backend_count: collected_catalog.native_backend_count,
                 plugin_backend_count: collected_catalog.plugin_backend_count,
                 capabilities,
+                configuration_options,
                 recommendation,
+                presets,
+                custom_target_size,
                 estimator_policy,
             },
         );
@@ -116,16 +155,6 @@ impl EngineRuntime {
         &mut self,
         request: RecalculateConfigurationRequest,
     ) -> Result<RecalculateConfigurationResponse> {
-        let services = self.analysis_services.as_ref().ok_or_else(|| {
-            EngineError::new(
-                framelean_core::ErrorKind::Runtime,
-                "analysis services are not configured",
-            )
-        })?;
-        let capability_resolver = Arc::clone(&services.capability_resolver);
-        let recommendation_engine = Arc::clone(&services.recommendation_engine);
-        let size_estimator = services.size_estimator.clone();
-        let estimator_policy = services.estimator_policy.clone();
         let snapshot = self
             .analysis_snapshots
             .as_mut()
@@ -142,6 +171,24 @@ impl EngineRuntime {
                 framelean_core::ErrorKind::Snapshot,
                 EngineErrorCode::AnalysisRevisionConflict,
                 "analysis revision does not match the current snapshot",
+            ));
+        }
+        if snapshot.decision_model_revision != CURRENT_DECISION_MODEL_REVISION {
+            return Err(EngineError::new(
+                framelean_core::ErrorKind::Snapshot,
+                format!(
+                    "analysis snapshot decision model revision {} is incompatible with runtime revision {}",
+                    snapshot.decision_model_revision, CURRENT_DECISION_MODEL_REVISION
+                ),
+            ));
+        }
+        if snapshot.estimator_model_revision != CURRENT_ESTIMATOR_MODEL_REVISION {
+            return Err(EngineError::new(
+                framelean_core::ErrorKind::Snapshot,
+                format!(
+                    "analysis snapshot estimator model revision {} is incompatible with runtime revision {}",
+                    snapshot.estimator_model_revision, CURRENT_ESTIMATOR_MODEL_REVISION
+                ),
             ));
         }
         let current_fingerprint = framelean_analysis::SourceFingerprint::from_local_file(
@@ -163,36 +210,17 @@ impl EngineRuntime {
             ));
         }
 
-        let requirements = InputMediaRequirements::from_media_analysis(&snapshot.media);
-        let capabilities = capability_resolver.resolve(
-            &requirements,
-            snapshot.task_mode,
-            &snapshot.environment,
-            &snapshot.backend_catalog,
-        )?;
-        let recommendation = recommendation_engine.recommend(
-            &requirements,
-            &capabilities,
-            snapshot.resource_sample.as_ref(),
-        );
-        let presets =
-            framelean_decision::fixed_presets(&requirements, snapshot.task_mode, &capabilities);
-        let custom_target_size = framelean_decision::CustomTargetSizeOptions::from_context(
-            &capabilities,
-            estimator_policy.as_ref(),
-            snapshot.media.file_size.value(),
-        );
-        let resolution = DecisionService.resolve_selection(
+        let frozen_estimator = DeterministicSizeEstimator;
+        let resolution = DecisionService.resolve_selection_from_snapshot(
             &request.selection,
-            &requirements,
+            &snapshot.requirements,
             snapshot.task_mode,
-            &capabilities,
-            size_estimator
-                .as_deref()
-                .zip(estimator_policy.as_ref())
-                .map(|(estimator, policy)| {
-                    (estimator as &dyn framelean_decision::SizeEstimator, policy)
-                }),
+            &snapshot.capabilities,
+            &snapshot.presets,
+            Some((
+                &frozen_estimator as &dyn framelean_decision::SizeEstimator,
+                &snapshot.estimator_policy,
+            )),
         );
         let (resolved_configuration, conflicts) = match resolution {
             Ok(resolved) => (Some(resolved), Vec::new()),
@@ -205,29 +233,22 @@ impl EngineRuntime {
                 }],
             ),
         };
-        if let Some(resolved) = &resolved_configuration {
-            snapshot.revision = snapshot.revision.next()?;
-            snapshot.capabilities = capabilities.clone();
-            snapshot.recommendation = recommendation.clone();
-            snapshot.presets = presets.clone();
-            snapshot.custom_target_size = custom_target_size.clone();
-            snapshot.resolved_configuration = Some(resolved.clone());
-        }
-        let warnings = response_warnings(&snapshot.media, &capabilities);
+        let warnings = response_warnings(&snapshot.media, &snapshot.capabilities);
 
         Ok(RecalculateConfigurationResponse {
             schema_version: "1.0".to_owned(),
             analysis_id: request.analysis_id,
             analysis_revision: snapshot.revision,
-            configuration_status: if capabilities.available {
+            configuration_status: if snapshot.capabilities.available {
                 framelean_decision::ConfigurationStatus::Available
             } else {
                 framelean_decision::ConfigurationStatus::Unavailable
             },
-            capabilities,
-            recommendation,
-            presets,
-            custom_target_size,
+            capabilities: snapshot.capabilities.clone(),
+            configuration_options: snapshot.configuration_options.clone(),
+            recommendation: snapshot.recommendation.clone(),
+            presets: snapshot.presets.clone(),
+            custom_target_size: snapshot.custom_target_size.clone(),
             selection: request.selection,
             resolved_configuration,
             conflicts,
@@ -236,10 +257,242 @@ impl EngineRuntime {
         })
     }
 
+    /// Atomically validates the durable analysis selection and creates a real
+    /// media execution task. The selected backend remains responsible for
+    /// rejecting execution chains it cannot actually run.
+    pub fn submit_execution(
+        &mut self,
+        request: ExecutionSubmissionRequest,
+    ) -> Result<ExecutionSubmissionResult> {
+        request.output.validate()?;
+        let analysis_id = request.analysis_id.clone();
+        let output = request.output;
+        let recalculated = self.recalculate_configuration(RecalculateConfigurationRequest {
+            analysis_id: request.analysis_id,
+            expected_revision: request.expected_revision,
+            selection: request.selection,
+            context: request.context,
+        })?;
+        let Some(resolved_configuration) = recalculated.resolved_configuration else {
+            let conflict = recalculated.conflicts.first();
+            return Err(EngineError::with_code(
+                framelean_core::ErrorKind::Runtime,
+                conflict.map_or(EngineErrorCode::EngineExecutionChainNotReady, |value| {
+                    value.code
+                }),
+                conflict.map_or("media execution configuration is unavailable", |value| {
+                    value.message.as_str()
+                }),
+            ));
+        };
+        let source_path = self
+            .analysis_snapshots
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::new(
+                    framelean_core::ErrorKind::Snapshot,
+                    "analysis snapshot store is not configured",
+                )
+            })?
+            .get_mut(&analysis_id)?
+            .media_request
+            .source
+            .path()
+            .to_path_buf();
+        let execution_id = self
+            .execution_runtime
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })?
+            .submit(ExecutionRuntimePlan {
+                source_path,
+                output,
+                configuration: resolved_configuration,
+            })?;
+        let execution_lane = self.execution_snapshot()?;
+        let queue_position = execution_lane
+            .normal_waiting
+            .iter()
+            .position(|entry| entry.execution_id == execution_id)
+            .map_or(0, |position| position + 1);
+        Ok(ExecutionSubmissionResult {
+            execution_id,
+            state: ExecutionTaskState::Queued,
+            queue_position,
+            queue_revision: execution_lane.queue_revision,
+        })
+    }
+
+    pub fn execution_snapshot(&self) -> Result<ExecutionLaneSnapshot> {
+        self.execution_runtime
+            .as_ref()
+            .map(ExecutionRuntime::snapshot)
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })
+    }
+
+    pub fn reorder_waiting_executions(
+        &mut self,
+        expected_revision: u64,
+        ordered_execution_ids: &[TaskId],
+    ) -> Result<u64> {
+        self.execution_runtime
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })?
+            .reorder_waiting(expected_revision, ordered_execution_ids)
+    }
+
+    pub fn preempt_and_start_execution(&mut self, execution_id: &TaskId) -> Result<()> {
+        self.execution_runtime
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })?
+            .preempt_and_start(execution_id)
+    }
+
+    pub fn pause_execution(&mut self, execution_id: &TaskId) -> Result<()> {
+        self.execution_runtime
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })?
+            .pause_for_user(execution_id)
+    }
+
+    pub fn resume_execution(&mut self, execution_id: &TaskId) -> Result<()> {
+        self.execution_runtime
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })?
+            .resume_user_paused(execution_id)
+    }
+
+    pub fn cancel_execution(&mut self, execution_id: &TaskId) -> Result<()> {
+        self.execution_runtime
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "media execution services are not configured",
+                )
+            })?
+            .cancel(execution_id)
+    }
+
+    pub fn drain_execution_events(&mut self) -> Vec<ExecutionRuntimeEvent> {
+        self.execution_runtime
+            .as_mut()
+            .map(ExecutionRuntime::drain_events)
+            .unwrap_or_default()
+    }
+
     pub fn analysis_snapshot_count(&self) -> usize {
         self.analysis_snapshots
             .as_ref()
             .map_or(0, AnalysisSnapshotStore::len)
+    }
+
+    pub fn analysis_snapshot(&mut self, analysis_id: &AnalysisId) -> Result<AnalysisSnapshotView> {
+        let snapshot = self
+            .analysis_snapshots
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::new(
+                    framelean_core::ErrorKind::Snapshot,
+                    "analysis snapshot store is not configured",
+                )
+            })?
+            .get_mut(analysis_id)?;
+        let validity = match framelean_analysis::SourceFingerprint::from_local_file(
+            snapshot.media_request.source.path(),
+        ) {
+            Ok(current) if current == snapshot.source_fingerprint => {
+                AnalysisSnapshotValidity::valid()
+            }
+            Ok(_) => {
+                AnalysisSnapshotValidity::source_changed("analysis source fingerprint changed")
+            }
+            Err(error) => AnalysisSnapshotValidity::source_changed(format!(
+                "analysis source can no longer be fingerprinted: {}",
+                error.message()
+            )),
+        };
+        Ok(snapshot_view(snapshot, validity))
+    }
+
+    pub fn analysis_snapshot_record(
+        &mut self,
+        analysis_id: &AnalysisId,
+    ) -> Result<AnalysisSnapshotRecord> {
+        let snapshot = self
+            .analysis_snapshots
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::new(
+                    framelean_core::ErrorKind::Snapshot,
+                    "analysis snapshot store is not configured",
+                )
+            })?
+            .get_mut(analysis_id)?;
+        Ok(AnalysisSnapshotRecord::from(&*snapshot))
+    }
+
+    pub fn discard_analysis_snapshot(&mut self, analysis_id: &AnalysisId) -> Result<bool> {
+        Ok(self
+            .analysis_snapshots
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::new(
+                    framelean_core::ErrorKind::Snapshot,
+                    "analysis snapshot store is not configured",
+                )
+            })?
+            .remove(analysis_id))
+    }
+
+    pub fn restore_analysis_snapshot(&mut self, record: AnalysisSnapshotRecord) -> Result<()> {
+        let snapshot = record.try_into()?;
+        self.analysis_snapshots
+            .as_mut()
+            .ok_or_else(|| {
+                EngineError::new(
+                    framelean_core::ErrorKind::Snapshot,
+                    "analysis snapshot store is not configured",
+                )
+            })?
+            .insert(snapshot)?;
+        Ok(())
     }
 
     pub fn register_plugin(&mut self, plugin: &dyn Plugin) -> Result<()> {

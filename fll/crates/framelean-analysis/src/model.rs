@@ -29,13 +29,14 @@ impl SourceId {
 const QUICK_HASH_CHUNK_BYTES: u64 = 1024 * 1024;
 const FULL_HASH_LIMIT_BYTES: u64 = QUICK_HASH_CHUNK_BYTES * 2;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "platform", rename_all = "snake_case")]
 pub enum PlatformFileId {
     Unix { device: u64, inode: u64 },
     Windows { volume_serial: u64, file_index: u64 },
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct SourceFingerprint {
     canonical_path: PathBuf,
     canonicalization_status: framelean_core::ObservationStatus,
@@ -247,7 +248,8 @@ fn update_path_hash(hash: &mut blake3::Hasher, path: &Path) {
     hash.update(value.as_bytes());
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(tag = "kind", content = "value", rename_all = "snake_case")]
 pub enum MediaSource {
     LocalFile(PathBuf),
 }
@@ -270,10 +272,45 @@ impl MediaSource {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
 pub struct MediaAnalyzeRequest {
     pub source: MediaSource,
     pub request_id: Option<String>,
+    #[serde(default)]
+    pub expected_source: Option<ExpectedSourceFacts>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ExpectedSourceFacts {
+    pub file_size_bytes: u64,
+    pub modified_time_unix_nanos: Option<String>,
+}
+
+impl ExpectedSourceFacts {
+    pub fn validate(&self, fingerprint: &SourceFingerprint) -> Result<()> {
+        if fingerprint.size_bytes() != self.file_size_bytes {
+            return Err(framelean_core::EngineError::with_code(
+                framelean_core::ErrorKind::Analysis,
+                framelean_core::EngineErrorCode::AnalysisSourceChanged,
+                "media source size no longer matches the submitted source facts",
+            ));
+        }
+        if let Some(expected) = &self.modified_time_unix_nanos {
+            let expected = expected.parse::<u128>().map_err(|_| {
+                framelean_core::EngineError::invalid_argument(
+                    "expected source modified time must be an unsigned integer",
+                )
+            })?;
+            if fingerprint.modified_time_unix_nanos() != Some(expected) {
+                return Err(framelean_core::EngineError::with_code(
+                    framelean_core::ErrorKind::Analysis,
+                    framelean_core::EngineErrorCode::AnalysisSourceChanged,
+                    "media source modified time no longer matches the submitted source facts",
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -371,6 +408,7 @@ pub enum MediaStreamDescriptor {
     Subtitle(SubtitleStreamInfo),
     Data(DataStreamInfo),
     Attachment(DataStreamInfo),
+    Unknown(UnknownStreamInfo),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -420,6 +458,13 @@ pub struct SubtitleStreamInfo {
 pub struct DataStreamInfo {
     pub stream_index: u32,
     pub codec: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct UnknownStreamInfo {
+    pub stream_index: u32,
+    pub codec: String,
+    pub media_type_code: i32,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
