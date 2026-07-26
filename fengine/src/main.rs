@@ -2,15 +2,14 @@ use std::fs;
 use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::ExitCode;
-use std::sync::Arc;
 use std::thread;
 use std::time::Duration;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use framelean_analysis::{MediaAnalysisStatus, MediaAnalyzeRequest, MediaSource};
 use framelean_core::{EngineError, ErrorKind, ProcessorId};
+use framelean_engine::{build_default_runtime, serve_stdio};
 use framelean_environment::{EnvironmentSnapshotProvider, ResourceMonitor, SystemEnvironment};
-use framelean_ffmpeg::FfmpegAdapter;
 use framelean_media::processor::{
     ProcessInput, ProcessOutput, ProcessingStage, Processor, ProcessorContext, ProcessorMetadata,
     ProcessorResult,
@@ -18,10 +17,8 @@ use framelean_media::processor::{
 use framelean_media::{MediaBuffer, StreamId, VideoFrame};
 use framelean_plugin::{Plugin, PluginMetadata, PluginRegistry, PluginResult, ProcessorFactory};
 use framelean_runtime::{
-    AnalysisServices, AnalysisSnapshotPolicy, AnalyzeTaskRequest, DefaultCapabilityResolver,
-    DefaultRecommendationEngine, EngineRuntime, EvictionStrategy, PipelineSpec,
-    RecalculateConfigurationRequest, RecalculateSelection, RequestContext, TaskMode, TaskRequest,
-    TaskState,
+    AnalyzeTaskRequest, EngineRuntime, PipelineSpec, RecalculateConfigurationRequest,
+    RecalculateSelection, RequestContext, TaskMode, TaskRequest, TaskState,
 };
 
 const DEMO_PROCESSOR_ID: &str = "example.passthrough";
@@ -64,6 +61,13 @@ fn main() -> ExitCode {
             interval_ms,
             json,
         }) => execute_monitor(samples, interval_ms, json),
+        Some(Command::Serve { snapshot_dir }) => match serve_stdio(snapshot_dir) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("FEngine worker failed: {error}");
+                ExitCode::FAILURE
+            }
+        },
     }
 }
 
@@ -97,6 +101,10 @@ enum Command {
         interval_ms: u64,
         #[arg(long)]
         json: bool,
+    },
+    Serve {
+        #[arg(long)]
+        snapshot_dir: PathBuf,
     },
 }
 
@@ -198,25 +206,13 @@ fn analyze(
     mode: TaskMode,
     selection_path: Option<PathBuf>,
 ) -> Result<Output, EngineError> {
-    let adapter = Arc::new(FfmpegAdapter::new()?);
-    let system = Arc::new(SystemEnvironment::new());
-    let services = AnalysisServices {
-        analyzer: adapter.clone(),
-        environment: system.clone(),
-        resource_monitor: system,
-        native_backend_providers: vec![adapter],
-        capability_resolver: Arc::new(DefaultCapabilityResolver),
-        recommendation_engine: Arc::new(DefaultRecommendationEngine),
-        size_estimator: None,
-        estimator_policy: None,
-    };
-    let policy = AnalysisSnapshotPolicy::new(None, None, EvictionStrategy::LeastRecentlyUsed)?;
-    let mut runtime = EngineRuntime::with_analysis_services(services, policy);
+    let mut runtime = build_default_runtime()?;
     let initial = runtime.analyze_media(AnalyzeTaskRequest {
         task_mode: mode,
         media_request: MediaAnalyzeRequest {
             source: MediaSource::local_file(path)?,
             request_id: None,
+            expected_source: None,
         },
         context: RequestContext::default(),
     })?;
@@ -436,6 +432,26 @@ impl Plugin for ExamplePlugin {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn serve_command_accepts_snapshot_directory() {
+        let cli = Cli::try_parse_from([
+            "framelean-engine",
+            "serve",
+            "--snapshot-dir",
+            "/tmp/framelean-snapshots",
+        ])
+        .unwrap();
+        let Some(Command::Serve { snapshot_dir }) = cli.command else {
+            panic!("serve command should be parsed");
+        };
+        assert_eq!(snapshot_dir, PathBuf::from("/tmp/framelean-snapshots"));
+    }
+
+    #[test]
+    fn serve_command_requires_snapshot_directory() {
+        assert!(Cli::try_parse_from(["framelean-engine", "serve"]).is_err());
+    }
 
     #[test]
     fn demo_completes_static_execution_chain() {
