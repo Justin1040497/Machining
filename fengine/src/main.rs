@@ -8,7 +8,7 @@ use std::time::Duration;
 use clap::{Parser, Subcommand, ValueEnum};
 use framelean_analysis::{MediaAnalysisStatus, MediaAnalyzeRequest, MediaSource};
 use framelean_core::{EngineError, ErrorKind, ProcessorId};
-use framelean_engine::{build_default_runtime, serve_stdio};
+use framelean_engine::{build_default_runtime, serve_daemon, serve_stdio};
 use framelean_environment::{EnvironmentSnapshotProvider, ResourceMonitor, SystemEnvironment};
 use framelean_media::processor::{
     ProcessInput, ProcessOutput, ProcessingStage, Processor, ProcessorContext, ProcessorMetadata,
@@ -68,6 +68,16 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
+        Some(Command::ServeDaemon {
+            snapshot_dir,
+            endpoint_file,
+        }) => match serve_daemon(snapshot_dir, endpoint_file) {
+            Ok(()) => ExitCode::SUCCESS,
+            Err(error) => {
+                eprintln!("FEngine daemon failed: {error}");
+                ExitCode::FAILURE
+            }
+        },
     }
 }
 
@@ -105,6 +115,12 @@ enum Command {
     Serve {
         #[arg(long)]
         snapshot_dir: PathBuf,
+    },
+    ServeDaemon {
+        #[arg(long)]
+        snapshot_dir: PathBuf,
+        #[arg(long)]
+        endpoint_file: PathBuf,
     },
 }
 
@@ -451,6 +467,28 @@ mod tests {
     #[test]
     fn serve_command_requires_snapshot_directory() {
         assert!(Cli::try_parse_from(["framelean-engine", "serve"]).is_err());
+    }
+
+    #[test]
+    fn serve_daemon_command_accepts_endpoint_and_snapshot_paths() {
+        let cli = Cli::try_parse_from([
+            "framelean-engine",
+            "serve-daemon",
+            "--snapshot-dir",
+            "/tmp/framelean-snapshots",
+            "--endpoint-file",
+            "/tmp/framelean-endpoint.json",
+        ])
+        .unwrap();
+        let Some(Command::ServeDaemon {
+            snapshot_dir,
+            endpoint_file,
+        }) = cli.command
+        else {
+            panic!("serve-daemon command should be parsed");
+        };
+        assert_eq!(snapshot_dir, PathBuf::from("/tmp/framelean-snapshots"));
+        assert_eq!(endpoint_file, PathBuf::from("/tmp/framelean-endpoint.json"));
     }
 
     #[test]
