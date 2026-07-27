@@ -64,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 35;
+  int get schemaVersion => 36;
 
   @override
   MigrationStrategy get migration {
@@ -375,13 +375,6 @@ class AppDatabase extends _$AppDatabase {
           await _safeAddColumn(migrator, taskRows, taskRows.folderSortOrder);
           await _safeAddColumn(migrator, taskRows, taskRows.policyTagsJson);
         }
-        if (from < 26) {
-          await _safeAddColumn(
-            migrator,
-            settingsRows,
-            settingsRows.maxConcurrentExecutions,
-          );
-        }
         if (from < 27) {
           await _safeAddColumn(
             migrator,
@@ -510,6 +503,19 @@ class AppDatabase extends _$AppDatabase {
             engineAnalysisProjectionRows,
             engineAnalysisProjectionRows.executionRequestId,
           );
+        }
+        if (from < 36) {
+          final settingsColumns = await customSelect(
+            'PRAGMA table_info(settings)',
+          ).get();
+          final hasLegacyConcurrencyColumn = settingsColumns.any(
+            (row) => row.read<String>('name') == 'max_concurrent_executions',
+          );
+          if (hasLegacyConcurrencyColumn) {
+            await customStatement(
+              'ALTER TABLE settings DROP COLUMN max_concurrent_executions',
+            );
+          }
         }
       },
     );

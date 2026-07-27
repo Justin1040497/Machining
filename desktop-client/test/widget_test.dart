@@ -944,113 +944,6 @@ void main() {
     },
   );
 
-  testWidgets('already compressed source shows no estimated size text', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: testTask(
-              analysisResult: MediaAnalysisResult(
-                durationMs: 60000,
-                videoWidth: 3840,
-                videoHeight: 2160,
-                videoCodec: 'hevc',
-                videoBitrate: 3000000,
-                audioBitrate: 128000,
-              ),
-            ),
-            thumbnail: null,
-            selectedQualityIndex: 4,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.preset,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.textContaining('约'), findsNothing);
-    expect(find.text('文件已压缩，不保证更小'), findsNothing);
-    expect(find.text('已压缩'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(AppDialogActions),
-        matching: find.text('已压缩'),
-      ),
-      findsOneWidget,
-    );
-  });
-
-  testWidgets('already compressed target size mode hides target bytes', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: testTask(
-              config: VideoTaskConfig.initial().copyWith(
-                compressionMode: CompressionMode.targetSize,
-                targetSizeRatio: 0.4,
-              ),
-              analysisResult: MediaAnalysisResult(
-                durationMs: 60000,
-                videoWidth: 3840,
-                videoHeight: 2160,
-                videoCodec: 'hevc',
-                videoBitrate: 3000000,
-                audioBitrate: 128000,
-              ),
-            ),
-            thumbnail: null,
-            selectedQualityIndex: 3,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.targetSize,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.4,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('文件已压缩，不保证更小'), findsNothing);
-    expect(find.text('已压缩'), findsOneWidget);
-    expect(find.textContaining('压缩至'), findsNothing);
-  });
-
   testWidgets('missing source task action relinks instead of retrying', (
     tester,
   ) async {
@@ -2753,7 +2646,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
         videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
         task.analysisResult?.isHdr == true;
     final modified = _isModified();
-    final compressed = isVideoTask && _isSourceAlreadyCompressed();
 
     // ---- build primaryContent ----
     Widget primaryContent;
@@ -2871,7 +2763,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
       onThreadLimitChanged: (_) {},
       advancedContent: advancedContent,
       modified: modified,
-      compressed: compressed,
     );
   }
 
@@ -3034,15 +2925,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
       if (preset.smartPreset == smartPreset) return preset;
     }
     return _recommendedPresets.first;
-  }
-
-  bool _isSourceAlreadyCompressed() {
-    if (task.mediaKind != MediaKind.video) return false;
-    final codec = task.analysisResult?.videoCodec?.toLowerCase() ?? '';
-    return codec == 'hevc' ||
-        codec == 'h265' ||
-        codec == 'vp9' ||
-        codec == 'av1';
   }
 
   bool _preserveMetadata() {

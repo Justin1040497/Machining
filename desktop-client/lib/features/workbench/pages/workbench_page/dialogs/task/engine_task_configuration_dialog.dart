@@ -116,7 +116,6 @@ class _EngineTaskConfigurationDialogState
       onThreadLimitChanged: (_) {},
       advancedContent: null,
       modified: false,
-      compressed: false,
       saveEnabled: saveEnabled,
       saveLabel: saveLabel,
       onSave: _resolve,

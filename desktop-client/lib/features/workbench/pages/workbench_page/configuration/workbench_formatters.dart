@@ -101,14 +101,6 @@ abstract final class WorkbenchFormatters {
     return VideoCodec.h264;
   }
 
-  static bool isSourceAlreadyCompressed(MediaTask task) {
-    return SourceCompressionAssessor.assess(task).alreadyCompressed;
-  }
-
-  static int? lowBitrateThreshold(MediaAnalysisResult? analysis) {
-    return SourceCompressionAssessor.lowBitrateThreshold(analysis);
-  }
-
   static String formatBytes(int? bytes) {
     if (bytes == null) {
       return '-';

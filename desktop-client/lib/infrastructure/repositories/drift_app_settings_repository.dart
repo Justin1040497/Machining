@@ -71,7 +71,6 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             themeMode: Value(settings.themeMode.name),
             hideNotificationBadge: Value(settings.hideNotificationBadge),
             taskCompletionSound: Value(settings.taskCompletionSound.id),
-            maxConcurrentExecutions: Value(settings.maxConcurrentExecutions),
             folderImportScanDepth: Value(settings.folderImportScanDepth),
             notificationPoliciesJson: Value(
               encodeNotificationPolicies(settings.notificationPolicies),
@@ -110,7 +109,6 @@ extension SettingsRowMapper on SettingsRow {
         themeMode: appThemeModeFromSettings(themeMode),
         hideNotificationBadge: hideNotificationBadge,
         taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
-        maxConcurrentExecutions: maxConcurrentExecutions,
         folderImportScanDepth: folderImportScanDepth,
         notificationPolicies: decodeNotificationPolicies(
           notificationPoliciesJson,
@@ -146,7 +144,6 @@ extension SettingsRowMapper on SettingsRow {
       themeMode: appThemeModeFromSettings(themeMode),
       hideNotificationBadge: hideNotificationBadge,
       taskCompletionSound: TaskCompletionSound.fromId(taskCompletionSound),
-      maxConcurrentExecutions: maxConcurrentExecutions,
       folderImportScanDepth: folderImportScanDepth,
       notificationPolicies: decodeNotificationPolicies(
         notificationPoliciesJson,

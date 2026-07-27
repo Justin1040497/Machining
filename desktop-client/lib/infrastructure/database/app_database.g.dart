@@ -185,18 +185,6 @@ class $SettingsRowsTable extends SettingsRows
         requiredDuringInsert: false,
         defaultValue: const Constant('clean_success'),
       );
-  static const VerificationMeta _maxConcurrentExecutionsMeta =
-      const VerificationMeta('maxConcurrentExecutions');
-  @override
-  late final GeneratedColumn<int> maxConcurrentExecutions =
-      GeneratedColumn<int>(
-        'max_concurrent_executions',
-        aliasedName,
-        false,
-        type: DriftSqlType.int,
-        requiredDuringInsert: false,
-        defaultValue: const Constant(2),
-      );
   static const VerificationMeta _folderImportScanDepthMeta =
       const VerificationMeta('folderImportScanDepth');
   @override
@@ -282,7 +270,6 @@ class $SettingsRowsTable extends SettingsRows
     hideNotificationBadge,
     showTaskCompletionDialog,
     taskCompletionSound,
-    maxConcurrentExecutions,
     folderImportScanDepth,
     notificationPoliciesJson,
     shortcutBindingsJson,
@@ -419,15 +406,6 @@ class $SettingsRowsTable extends SettingsRows
         ),
       );
     }
-    if (data.containsKey('max_concurrent_executions')) {
-      context.handle(
-        _maxConcurrentExecutionsMeta,
-        maxConcurrentExecutions.isAcceptableOrUnknown(
-          data['max_concurrent_executions']!,
-          _maxConcurrentExecutionsMeta,
-        ),
-      );
-    }
     if (data.containsKey('folder_import_scan_depth')) {
       context.handle(
         _folderImportScanDepthMeta,
@@ -545,10 +523,6 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}task_completion_sound'],
       )!,
-      maxConcurrentExecutions: attachedDatabase.typeMapping.read(
-        DriftSqlType.int,
-        data['${effectivePrefix}max_concurrent_executions'],
-      )!,
       folderImportScanDepth: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}folder_import_scan_depth'],
@@ -597,7 +571,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final bool hideNotificationBadge;
   final bool showTaskCompletionDialog;
   final String taskCompletionSound;
-  final int maxConcurrentExecutions;
   final int folderImportScanDepth;
   final String notificationPoliciesJson;
   final String shortcutBindingsJson;
@@ -619,7 +592,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     required this.hideNotificationBadge,
     required this.showTaskCompletionDialog,
     required this.taskCompletionSound,
-    required this.maxConcurrentExecutions,
     required this.folderImportScanDepth,
     required this.notificationPoliciesJson,
     required this.shortcutBindingsJson,
@@ -666,7 +638,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       showTaskCompletionDialog,
     );
     map['task_completion_sound'] = Variable<String>(taskCompletionSound);
-    map['max_concurrent_executions'] = Variable<int>(maxConcurrentExecutions);
     map['folder_import_scan_depth'] = Variable<int>(folderImportScanDepth);
     map['notification_policies_json'] = Variable<String>(
       notificationPoliciesJson,
@@ -701,7 +672,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       hideNotificationBadge: Value(hideNotificationBadge),
       showTaskCompletionDialog: Value(showTaskCompletionDialog),
       taskCompletionSound: Value(taskCompletionSound),
-      maxConcurrentExecutions: Value(maxConcurrentExecutions),
       folderImportScanDepth: Value(folderImportScanDepth),
       notificationPoliciesJson: Value(notificationPoliciesJson),
       shortcutBindingsJson: Value(shortcutBindingsJson),
@@ -753,9 +723,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       taskCompletionSound: serializer.fromJson<String>(
         json['taskCompletionSound'],
       ),
-      maxConcurrentExecutions: serializer.fromJson<int>(
-        json['maxConcurrentExecutions'],
-      ),
       folderImportScanDepth: serializer.fromJson<int>(
         json['folderImportScanDepth'],
       ),
@@ -804,9 +771,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         showTaskCompletionDialog,
       ),
       'taskCompletionSound': serializer.toJson<String>(taskCompletionSound),
-      'maxConcurrentExecutions': serializer.toJson<int>(
-        maxConcurrentExecutions,
-      ),
       'folderImportScanDepth': serializer.toJson<int>(folderImportScanDepth),
       'notificationPoliciesJson': serializer.toJson<String>(
         notificationPoliciesJson,
@@ -833,7 +797,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     bool? hideNotificationBadge,
     bool? showTaskCompletionDialog,
     String? taskCompletionSound,
-    int? maxConcurrentExecutions,
     int? folderImportScanDepth,
     String? notificationPoliciesJson,
     String? shortcutBindingsJson,
@@ -866,8 +829,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     showTaskCompletionDialog:
         showTaskCompletionDialog ?? this.showTaskCompletionDialog,
     taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
-    maxConcurrentExecutions:
-        maxConcurrentExecutions ?? this.maxConcurrentExecutions,
     folderImportScanDepth: folderImportScanDepth ?? this.folderImportScanDepth,
     notificationPoliciesJson:
         notificationPoliciesJson ?? this.notificationPoliciesJson,
@@ -916,9 +877,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       taskCompletionSound: data.taskCompletionSound.present
           ? data.taskCompletionSound.value
           : this.taskCompletionSound,
-      maxConcurrentExecutions: data.maxConcurrentExecutions.present
-          ? data.maxConcurrentExecutions.value
-          : this.maxConcurrentExecutions,
       folderImportScanDepth: data.folderImportScanDepth.present
           ? data.folderImportScanDepth.value
           : this.folderImportScanDepth,
@@ -957,7 +915,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('hideNotificationBadge: $hideNotificationBadge, ')
           ..write('showTaskCompletionDialog: $showTaskCompletionDialog, ')
           ..write('taskCompletionSound: $taskCompletionSound, ')
-          ..write('maxConcurrentExecutions: $maxConcurrentExecutions, ')
           ..write('folderImportScanDepth: $folderImportScanDepth, ')
           ..write('notificationPoliciesJson: $notificationPoliciesJson, ')
           ..write('shortcutBindingsJson: $shortcutBindingsJson, ')
@@ -969,7 +926,7 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   }
 
   @override
-  int get hashCode => Object.hashAll([
+  int get hashCode => Object.hash(
     id,
     defaultOutputDirectory,
     lastSelectedOutputDirectory,
@@ -984,14 +941,13 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     hideNotificationBadge,
     showTaskCompletionDialog,
     taskCompletionSound,
-    maxConcurrentExecutions,
     folderImportScanDepth,
     notificationPoliciesJson,
     shortcutBindingsJson,
     closeBehavior,
     createdAt,
     updatedAt,
-  ]);
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1014,7 +970,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           other.hideNotificationBadge == this.hideNotificationBadge &&
           other.showTaskCompletionDialog == this.showTaskCompletionDialog &&
           other.taskCompletionSound == this.taskCompletionSound &&
-          other.maxConcurrentExecutions == this.maxConcurrentExecutions &&
           other.folderImportScanDepth == this.folderImportScanDepth &&
           other.notificationPoliciesJson == this.notificationPoliciesJson &&
           other.shortcutBindingsJson == this.shortcutBindingsJson &&
@@ -1038,7 +993,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<bool> hideNotificationBadge;
   final Value<bool> showTaskCompletionDialog;
   final Value<String> taskCompletionSound;
-  final Value<int> maxConcurrentExecutions;
   final Value<int> folderImportScanDepth;
   final Value<String> notificationPoliciesJson;
   final Value<String> shortcutBindingsJson;
@@ -1060,7 +1014,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.hideNotificationBadge = const Value.absent(),
     this.showTaskCompletionDialog = const Value.absent(),
     this.taskCompletionSound = const Value.absent(),
-    this.maxConcurrentExecutions = const Value.absent(),
     this.folderImportScanDepth = const Value.absent(),
     this.notificationPoliciesJson = const Value.absent(),
     this.shortcutBindingsJson = const Value.absent(),
@@ -1083,7 +1036,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.hideNotificationBadge = const Value.absent(),
     this.showTaskCompletionDialog = const Value.absent(),
     this.taskCompletionSound = const Value.absent(),
-    this.maxConcurrentExecutions = const Value.absent(),
     this.folderImportScanDepth = const Value.absent(),
     this.notificationPoliciesJson = const Value.absent(),
     this.shortcutBindingsJson = const Value.absent(),
@@ -1107,7 +1059,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<bool>? hideNotificationBadge,
     Expression<bool>? showTaskCompletionDialog,
     Expression<String>? taskCompletionSound,
-    Expression<int>? maxConcurrentExecutions,
     Expression<int>? folderImportScanDepth,
     Expression<String>? notificationPoliciesJson,
     Expression<String>? shortcutBindingsJson,
@@ -1141,8 +1092,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'show_task_completion_dialog': showTaskCompletionDialog,
       if (taskCompletionSound != null)
         'task_completion_sound': taskCompletionSound,
-      if (maxConcurrentExecutions != null)
-        'max_concurrent_executions': maxConcurrentExecutions,
       if (folderImportScanDepth != null)
         'folder_import_scan_depth': folderImportScanDepth,
       if (notificationPoliciesJson != null)
@@ -1170,7 +1119,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<bool>? hideNotificationBadge,
     Value<bool>? showTaskCompletionDialog,
     Value<String>? taskCompletionSound,
-    Value<int>? maxConcurrentExecutions,
     Value<int>? folderImportScanDepth,
     Value<String>? notificationPoliciesJson,
     Value<String>? shortcutBindingsJson,
@@ -1202,8 +1150,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       showTaskCompletionDialog:
           showTaskCompletionDialog ?? this.showTaskCompletionDialog,
       taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
-      maxConcurrentExecutions:
-          maxConcurrentExecutions ?? this.maxConcurrentExecutions,
       folderImportScanDepth:
           folderImportScanDepth ?? this.folderImportScanDepth,
       notificationPoliciesJson:
@@ -1280,11 +1226,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         taskCompletionSound.value,
       );
     }
-    if (maxConcurrentExecutions.present) {
-      map['max_concurrent_executions'] = Variable<int>(
-        maxConcurrentExecutions.value,
-      );
-    }
     if (folderImportScanDepth.present) {
       map['folder_import_scan_depth'] = Variable<int>(
         folderImportScanDepth.value,
@@ -1333,7 +1274,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('hideNotificationBadge: $hideNotificationBadge, ')
           ..write('showTaskCompletionDialog: $showTaskCompletionDialog, ')
           ..write('taskCompletionSound: $taskCompletionSound, ')
-          ..write('maxConcurrentExecutions: $maxConcurrentExecutions, ')
           ..write('folderImportScanDepth: $folderImportScanDepth, ')
           ..write('notificationPoliciesJson: $notificationPoliciesJson, ')
           ..write('shortcutBindingsJson: $shortcutBindingsJson, ')
@@ -8704,7 +8644,6 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<bool> hideNotificationBadge,
       Value<bool> showTaskCompletionDialog,
       Value<String> taskCompletionSound,
-      Value<int> maxConcurrentExecutions,
       Value<int> folderImportScanDepth,
       Value<String> notificationPoliciesJson,
       Value<String> shortcutBindingsJson,
@@ -8728,7 +8667,6 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<bool> hideNotificationBadge,
       Value<bool> showTaskCompletionDialog,
       Value<String> taskCompletionSound,
-      Value<int> maxConcurrentExecutions,
       Value<int> folderImportScanDepth,
       Value<String> notificationPoliciesJson,
       Value<String> shortcutBindingsJson,
@@ -8813,11 +8751,6 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<String> get taskCompletionSound => $composableBuilder(
     column: $table.taskCompletionSound,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<int> get maxConcurrentExecutions => $composableBuilder(
-    column: $table.maxConcurrentExecutions,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -8933,11 +8866,6 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<int> get maxConcurrentExecutions => $composableBuilder(
-    column: $table.maxConcurrentExecutions,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<int> get folderImportScanDepth => $composableBuilder(
     column: $table.folderImportScanDepth,
     builder: (column) => ColumnOrderings(column),
@@ -9046,11 +8974,6 @@ class $$SettingsRowsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<int> get maxConcurrentExecutions => $composableBuilder(
-    column: $table.maxConcurrentExecutions,
-    builder: (column) => column,
-  );
-
   GeneratedColumn<int> get folderImportScanDepth => $composableBuilder(
     column: $table.folderImportScanDepth,
     builder: (column) => column,
@@ -9126,7 +9049,6 @@ class $$SettingsRowsTableTableManager
                 Value<bool> hideNotificationBadge = const Value.absent(),
                 Value<bool> showTaskCompletionDialog = const Value.absent(),
                 Value<String> taskCompletionSound = const Value.absent(),
-                Value<int> maxConcurrentExecutions = const Value.absent(),
                 Value<int> folderImportScanDepth = const Value.absent(),
                 Value<String> notificationPoliciesJson = const Value.absent(),
                 Value<String> shortcutBindingsJson = const Value.absent(),
@@ -9148,7 +9070,6 @@ class $$SettingsRowsTableTableManager
                 hideNotificationBadge: hideNotificationBadge,
                 showTaskCompletionDialog: showTaskCompletionDialog,
                 taskCompletionSound: taskCompletionSound,
-                maxConcurrentExecutions: maxConcurrentExecutions,
                 folderImportScanDepth: folderImportScanDepth,
                 notificationPoliciesJson: notificationPoliciesJson,
                 shortcutBindingsJson: shortcutBindingsJson,
@@ -9175,7 +9096,6 @@ class $$SettingsRowsTableTableManager
                 Value<bool> hideNotificationBadge = const Value.absent(),
                 Value<bool> showTaskCompletionDialog = const Value.absent(),
                 Value<String> taskCompletionSound = const Value.absent(),
-                Value<int> maxConcurrentExecutions = const Value.absent(),
                 Value<int> folderImportScanDepth = const Value.absent(),
                 Value<String> notificationPoliciesJson = const Value.absent(),
                 Value<String> shortcutBindingsJson = const Value.absent(),
@@ -9197,7 +9117,6 @@ class $$SettingsRowsTableTableManager
                 hideNotificationBadge: hideNotificationBadge,
                 showTaskCompletionDialog: showTaskCompletionDialog,
                 taskCompletionSound: taskCompletionSound,
-                maxConcurrentExecutions: maxConcurrentExecutions,
                 folderImportScanDepth: folderImportScanDepth,
                 notificationPoliciesJson: notificationPoliciesJson,
                 shortcutBindingsJson: shortcutBindingsJson,

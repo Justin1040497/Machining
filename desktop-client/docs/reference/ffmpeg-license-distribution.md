@@ -41,11 +41,13 @@ legal/third-party/
 
 ## 仓库策略
 
-不提交由该 SDK 生成的可执行产物，也不把它们作为 Desktop runtime：
+构建脚本使用 `--disable-programs`，SDK 不生成也不分发 FFmpeg CLI 程序；
+Desktop runtime 只包含静态链接该 SDK 的 FEngine：
 
 ```text
-build/dependencies/ffmpeg/<platform>/bin/ffmpeg
-build/dependencies/ffmpeg/<platform>/bin/ffprobe
+build/dependencies/ffmpeg/<platform>/include/
+build/dependencies/ffmpeg/<platform>/lib/
+desktop release/FEngine executable
 ```
 
 提交以下构建脚本、说明和元数据：

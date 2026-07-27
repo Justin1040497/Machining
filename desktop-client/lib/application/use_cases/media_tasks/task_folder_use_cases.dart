@@ -415,14 +415,8 @@ class StartNextTaskInFolderUseCase {
 
   final MediaTaskExecutionCoordinator executionCoordinator;
 
-  Future<EngineQueueStartResult> call(
-    String folderId, {
-    bool allowExtremeCompression = false,
-  }) async {
-    return executionCoordinator.startFolderQueue(
-      folderId,
-      allowExtremeCompression: allowExtremeCompression,
-    );
+  Future<EngineQueueStartResult> call(String folderId) async {
+    return executionCoordinator.startFolderQueue(folderId);
   }
 }
 

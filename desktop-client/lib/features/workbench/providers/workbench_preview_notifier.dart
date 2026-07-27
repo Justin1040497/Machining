@@ -69,10 +69,7 @@ class WorkbenchPreviewNotifier extends Notifier<WorkbenchPreviewState> {
     state = state.copyWith(selectedFrameIndex: index < 0 ? 0 : index);
   }
 
-  Future<void> generate({
-    required MediaTask task,
-    required bool allowExtremeCompression,
-  }) async {
+  Future<void> generate({required MediaTask task}) async {
     state = state.copyWith(errorMessage: null);
     generationId += 1;
     final activeGenerationId = generationId;
@@ -81,7 +78,7 @@ class WorkbenchPreviewNotifier extends Notifier<WorkbenchPreviewState> {
     try {
       final result = await GeneratePreviewFramesUseCase(
         readEngineGateway: () => ref.read(engineGatewayProvider.future),
-      ).call(task: task, allowExtremeCompression: allowExtremeCompression);
+      ).call(task: task);
       if (!_isActiveGeneration(activeGenerationId)) {
         return;
       }

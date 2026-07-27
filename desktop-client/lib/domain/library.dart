@@ -43,7 +43,6 @@ export 'enums/two_pass_mode.dart';
 export 'enums/video_codec.dart';
 
 // services
-export 'services/source_compression_assessor.dart';
 
 // value_objects
 export 'value_objects/app_compression_settings.dart';

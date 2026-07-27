@@ -31,6 +31,11 @@ class ReconcileMediaTasksUseCase {
     var hasChanged = false;
 
     for (final task in tasks) {
+      if (_isEngineOwnedNonTerminal(task.status)) {
+        checkedTasks.add(task);
+        continue;
+      }
+
       final exists = await sourceFileChecker.exists(task.inputPath);
 
       if (!exists) {
@@ -95,4 +100,18 @@ class ReconcileMediaTasksUseCase {
       taskIdsNeedingAnalysis: taskIdsNeedingAnalysis,
     );
   }
+}
+
+bool _isEngineOwnedNonTerminal(TaskStatus status) {
+  return switch (status) {
+    TaskStatus.analysisQueued ||
+    TaskStatus.analyzing ||
+    TaskStatus.executionQueued ||
+    TaskStatus.running ||
+    TaskStatus.preempting ||
+    TaskStatus.preempted ||
+    TaskStatus.resuming ||
+    TaskStatus.paused => true,
+    _ => false,
+  };
 }

@@ -27,7 +27,7 @@ license records rather than FrameLean's main project license:
 
 ## Media Runtime
 
-### FFmpeg / FFprobe
+### FFmpeg / libav
 
 - Upstream: <https://ffmpeg.org/>
 - Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
@@ -39,8 +39,9 @@ license records rather than FrameLean's main project license:
   builds.
 - Local build reference: `scripts/build/build_ffmpeg_macos_arm64.sh`
 
-FFmpeg and FFprobe are maintained by the FFmpeg project. FrameLean only invokes
-and distributes the runtime binaries when they are included in release packages.
+FFmpeg and its libav libraries are maintained by the FFmpeg project. FrameLean
+statically links the bundled libav SDK into FEngine and does not distribute or
+invoke ffmpeg / ffprobe executables.
 
 ### x264 / libx264
 
@@ -58,7 +59,7 @@ source and license delivery path documented in legal/SOURCE_OFFER.md.
 - Source for current documented runtime: <https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz>
 - Used by FrameLean through the FFmpeg runtime via `--enable-libmp3lame`.
 
-LAME provides MP3 encoding support for the bundled FFmpeg runtime.
+LAME provides MP3 encoding support through the bundled static libav SDK.
 
 ### libwebp
 
@@ -66,7 +67,7 @@ LAME provides MP3 encoding support for the bundled FFmpeg runtime.
 - Source for current documented runtime: <https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-1.5.0.tar.gz>
 - Used by FrameLean through the FFmpeg runtime via `--enable-libwebp`.
 
-libwebp provides WebP image encoding support for the bundled FFmpeg runtime.
+libwebp provides WebP image encoding support through the bundled static libav SDK.
 
 ### Opus / libopus
 
@@ -74,8 +75,8 @@ libwebp provides WebP image encoding support for the bundled FFmpeg runtime.
 - Source for current documented runtime: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
 - Used by FrameLean through the FFmpeg runtime via `--enable-libopus`.
 
-Opus provides Opus and Ogg Opus audio encoding support for the bundled FFmpeg
-runtime.
+Opus provides Opus and Ogg Opus audio encoding support through the bundled
+static libav SDK.
 
 ### zimg / libzimg
 

@@ -36,7 +36,6 @@ void main() {
     expect(settings.themeMode, AppThemeMode.system);
     expect(settings.hideNotificationBadge, isTrue);
     expect(settings.taskCompletionSound, TaskCompletionSound.cleanSuccess);
-    expect(settings.maxConcurrentExecutions, defaultMaxConcurrentExecutions);
   });
 
   test('copyWith can clear nullable output path and update defaults', () {
@@ -48,7 +47,6 @@ void main() {
       themeMode: AppThemeMode.dark,
       hideNotificationBadge: false,
       taskCompletionSound: TaskCompletionSound.originalSoftA,
-      maxConcurrentExecutions: 3,
     );
 
     final cleared = settings.copyWith(
@@ -63,27 +61,11 @@ void main() {
     expect(cleared.themeMode, AppThemeMode.dark);
     expect(cleared.hideNotificationBadge, isFalse);
     expect(cleared.taskCompletionSound, TaskCompletionSound.originalSoftA);
-    expect(cleared.maxConcurrentExecutions, 3);
     expect(
       cleared.defaultMediaConfig.video?.smartPreset,
       SmartCompressionPreset.chat,
     );
     expect(cleared.defaultMediaConfig.video?.videoCodec, VideoCodec.hevc);
-  });
-
-  test('normalizes max concurrent executions to supported bounds', () {
-    expect(
-      AppSettings.initial()
-          .copyWith(maxConcurrentExecutions: 0)
-          .maxConcurrentExecutions,
-      1,
-    );
-    expect(
-      AppSettings.initial()
-          .copyWith(maxConcurrentExecutions: 4)
-          .maxConcurrentExecutions,
-      3,
-    );
   });
 
   test('default media config updates legacy video getters', () {

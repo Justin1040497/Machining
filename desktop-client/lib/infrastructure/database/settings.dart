@@ -36,9 +36,6 @@ class SettingsRows extends Table {
   TextColumn get taskCompletionSound => text()
       .named('task_completion_sound')
       .withDefault(const Constant('clean_success'))();
-  IntColumn get maxConcurrentExecutions => integer()
-      .named('max_concurrent_executions')
-      .withDefault(const Constant(2))();
   IntColumn get folderImportScanDepth => integer()
       .named('folder_import_scan_depth')
       .withDefault(const Constant(2))();

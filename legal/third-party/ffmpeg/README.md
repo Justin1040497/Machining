@@ -1,8 +1,8 @@
-# FFmpeg / FFprobe
+# FFmpeg / static libav SDK
 
-FrameLean release packages can include FFmpeg and FFprobe runtime binaries.
-The current documented runtime is FFmpeg 7.1.1 built with GPL components,
-including x264 / libx264.
+FrameLean release packages include FEngine statically linked with a libav SDK
+built from FFmpeg 7.1.1 and GPL components including x264 / libx264. They do
+not include or launch ffmpeg / ffprobe executable programs.
 
 Upstream source:
 
@@ -18,7 +18,7 @@ scripts/build/build_ffmpeg_macos_universal.sh
 
 The macOS runtime build metadata is mirrored in ffmpeg-build-info.txt and kept
 beside the tracked source and build inputs in `dependencies/ffmpeg/`.
-Distributed macOS builds use the generated Universal 2 runtime in
+Distributed macOS builds link FEngine against the generated Universal 2 SDK in
 `build/dependencies/ffmpeg/macos-universal/`.
 
 Distributed builds must not enable FFmpeg's `--enable-nonfree` option.

@@ -9,17 +9,17 @@ The corresponding source for FrameLean includes:
 
 - FrameLean application source code.
 - Build scripts and packaging metadata in this repository.
-- FFmpeg runtime build scripts and metadata in `scripts/build/` and
+- Static libav SDK build scripts and metadata in `scripts/build/` and
   `dependencies/ffmpeg/`; generated local runtimes are placed under the
   ignored `build/dependencies/ffmpeg/` directory.
-- Documentation needed to rebuild or replace the bundled FFmpeg / FFprobe
-  runtime.
+- Documentation needed to rebuild the bundled static libav SDK and the FEngine
+  binary linked against it.
 
 When a binary build of FrameLean is publicly distributed, the corresponding
 source should be made available from the same release location, or from a
 clearly linked public source repository, for as long as required by GPLv3.
 
-## FFmpeg Runtime
+## Static libav Runtime
 
 Current FrameLean builds target FFmpeg 7.1.1 with x264/libx264, LAME/libmp3lame,
 libwebp, Opus/libopus, zimg/libzimg, libvpx, and SVT-AV1 enabled.
@@ -87,10 +87,11 @@ release.
 
 ## User Replacement and Rebuild
 
-FrameLean resolves FFmpeg / FFprobe from bundled runtime locations, known system
-locations, PATH, or user-configured custom paths, depending on platform and app
-settings. Users should be able to replace or rebuild the FFmpeg / FFprobe
-runtime with a GPL-compatible build.
+FrameLean does not resolve or execute ffmpeg / ffprobe programs from bundled
+locations, system locations, PATH, or app settings. Standard media processing
+runs inside FEngine through FLL linked to the bundled static libav SDK. Users
+can rebuild that SDK with a GPL-compatible configuration and then rebuild
+FEngine through the documented project scripts.
 
 Release packaging includes this legal directory, the root LICENSE file,
 legal/NOTICE.md, and the relevant FFmpeg build metadata so recipients receive

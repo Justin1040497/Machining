@@ -7,6 +7,34 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {
   group('AppDatabase migrations', () {
+    test('upgrades schema 35 by removing the legacy concurrency limit', () async {
+      final fixture = await _seedCurrentDatabase();
+      addTearDown(fixture.dispose);
+      _downgrade(
+        fixture.file,
+        version: 35,
+        statements: const [
+          'ALTER TABLE settings ADD COLUMN max_concurrent_executions INTEGER NOT NULL DEFAULT 2',
+          'UPDATE settings SET max_concurrent_executions = 3 WHERE id = 1',
+        ],
+      );
+
+      final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+      addTearDown(database.close);
+
+      final columns = await database
+          .customSelect('PRAGMA table_info(settings)')
+          .get();
+      expect(
+        columns.map((row) => row.read<String>('name')),
+        isNot(contains('max_concurrent_executions')),
+      );
+      final settings = await database.select(database.settingsRows).getSingle();
+      expect(settings.id, 1);
+      expect(settings.folderImportScanDepth, 2);
+      expect(await _userVersion(database), 36);
+    });
+
     test('upgrades schema 33 with persistent operation request ids', () async {
       final fixture = await _seedCurrentDatabase();
       addTearDown(fixture.dispose);
@@ -29,7 +57,7 @@ void main() {
         columns.map((row) => row.read<String>('name')),
         containsAll(['analysis_request_id', 'execution_request_id']),
       );
-      expect(await _userVersion(database), 35);
+      expect(await _userVersion(database), 36);
     });
 
     test('upgrades schema 32 with persisted order revision state', () async {
@@ -48,7 +76,7 @@ void main() {
         await database.select(database.workbenchOrderStateRows).get(),
         isEmpty,
       );
-      expect(await _userVersion(database), 35);
+      expect(await _userVersion(database), 36);
     });
 
     test('upgrades schema 31 lifecycle projections and legacy statuses', () async {
@@ -82,7 +110,7 @@ void main() {
         await database.select(database.engineAnalysisProjectionRows).get(),
         isEmpty,
       );
-      expect(await _userVersion(database), 35);
+      expect(await _userVersion(database), 36);
     });
 
     test(
@@ -104,7 +132,7 @@ void main() {
           await database.select(database.engineAnalysisProjectionRows).get(),
           isEmpty,
         );
-        expect(await _userVersion(database), 35);
+        expect(await _userVersion(database), 36);
       },
     );
 
@@ -123,7 +151,7 @@ void main() {
       final task = (await database.select(database.taskRows).get()).single;
       expect(task.id, 'legacy-task');
       expect(task.failureJson, isNull);
-      expect(await _userVersion(database), 35);
+      expect(await _userVersion(database), 36);
     });
 
     test(
@@ -160,7 +188,7 @@ void main() {
         expect(settings.notificationPoliciesJson, '{}');
         expect(settings.shortcutBindingsJson, '{}');
         expect(settings.closeBehavior, 'background');
-        expect(await _userVersion(database), 35);
+        expect(await _userVersion(database), 36);
       },
     );
 
@@ -178,7 +206,6 @@ void main() {
           'ALTER TABLE tasks DROP COLUMN policy_tags_json',
           'ALTER TABLE tasks DROP COLUMN analysis_audio_streams_json',
           'ALTER TABLE tasks DROP COLUMN output_file_size',
-          'ALTER TABLE settings DROP COLUMN max_concurrent_executions',
           'ALTER TABLE settings DROP COLUMN folder_import_scan_depth',
           'ALTER TABLE settings DROP COLUMN notification_policies_json',
           'ALTER TABLE settings DROP COLUMN shortcut_bindings_json',
@@ -198,9 +225,8 @@ void main() {
         hasLength(1),
       );
       final settings = await database.select(database.settingsRows).getSingle();
-      expect(settings.maxConcurrentExecutions, 2);
       expect(settings.folderImportScanDepth, 2);
-      expect(await _userVersion(database), 35);
+      expect(await _userVersion(database), 36);
     });
 
     test('applies custom value migrations from schema 21', () async {
@@ -223,7 +249,7 @@ void main() {
       expect(settings.defaultCompressionSmartPreset, 'chat');
       expect(settings.defaultOutputFileNameTemplate, '{source}-{action}');
       expect(settings.taskCompletionSound, 'clean_success');
-      expect(await _userVersion(database), 35);
+      expect(await _userVersion(database), 36);
     });
   });
 }

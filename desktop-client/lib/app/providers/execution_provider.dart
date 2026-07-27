@@ -2,33 +2,10 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/library.dart';
-import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/engine_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:path/path.dart' as path;
-
-final executionResourceGuardProvider = Provider<ExecutionResourceGuard>((ref) {
-  return const LocalExecutionResourceGuard();
-});
-
-/// 全局媒体工作资源调度器，管理所有媒体工作的资源分配。
-final mediaWorkSchedulerProvider = Provider<MediaWorkScheduler>((ref) {
-  final monitor = ref.read(mediaResourceMonitorProvider);
-  monitor.start();
-
-  final scheduler = MediaWorkScheduler(resourceMonitor: monitor);
-  ref.onDispose(() {
-    unawaited(scheduler.stop());
-    unawaited(monitor.stop());
-  });
-  return scheduler;
-});
-
-/// 全局系统资源监控器，每 1 秒采样内存，计算压力级别。
-final mediaResourceMonitorProvider = Provider<MediaResourceMonitor>((ref) {
-  return MediaResourceMonitor();
-});
 
 /// Client-side analysis submission coordinator. FEngine owns the external
 /// work queue and FLL owns the actual analysis.

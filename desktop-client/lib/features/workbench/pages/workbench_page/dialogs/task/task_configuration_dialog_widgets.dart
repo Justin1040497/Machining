@@ -555,11 +555,9 @@ class WorkbenchTaskConfigurationStatusBadges extends StatelessWidget {
   const WorkbenchTaskConfigurationStatusBadges({
     super.key,
     required this.modified,
-    required this.compressed,
   });
 
   final bool modified;
-  final bool compressed;
 
   @override
   Widget build(BuildContext context) {
@@ -574,12 +572,6 @@ class WorkbenchTaskConfigurationStatusBadges extends StatelessWidget {
             label: '已修改',
             color: colors.primary,
             backgroundColor: colors.primarySoft,
-          ),
-        if (compressed)
-          _StatusBadge(
-            label: '已压缩',
-            color: colors.statusRunning,
-            backgroundColor: colors.runningSoft,
           ),
       ],
     );

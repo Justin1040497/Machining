@@ -156,7 +156,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `source_file_size` | integer | 是 | `null` | `sourceFileFingerprint.fileSize` | 源文件字节数 |
 | `source_last_modified_at` | integer | 是 | `null` | `sourceFileFingerprint.lastModifiedAt` | 源文件最后修改时间，毫秒时间戳 |
 
-指纹用于判断任务恢复时源文件是否仍是同一个文件。应用启动加载任务时，如果文件不存在会标记为 `missingSource`；如果文件存在但指纹变化，会清空旧分析结果并重新进入 `analyzing`。
+指纹用于判断非活动任务恢复时源文件是否仍是同一个文件。应用启动加载任务时，如果文件不存在会标记为 `missingSource`；如果文件存在但指纹变化，会清空旧分析结果并回到 `await_analysis`。FEngine 非终态任务不由 Client 在启动时本地改写，而是等待 Engine Snapshot 对账。
 
 ### 媒体分析镜像字段
 
@@ -246,7 +246,6 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `hide_notification_badge` | boolean | 否 | `true` | `hideNotificationBadge` | 是否隐藏工作台右上角通知未读角标；不影响通知持久化、未读状态或通知中心入口 |
 | `show_task_completion_dialog` | boolean | 否 | `true` | 旧兼容列 | 历史完成弹窗偏好列；当前 domain / UI 不再映射为可修改设置，任务完成只走完成提示音、通知中心和任务项完成文件入口 |
 | `task_completion_sound` | text | 否 | `clean_success` | `taskCompletionSound` | 任务完成后播放的提示音选择；`none` 表示不播放，其他值映射到随包内置的 `assets/sounds/` WAV 提示音 |
-| `max_concurrent_executions` | integer | 否 | `2` | `maxConcurrentExecutions` | 用户期望的最大并行任务数，领域层归一化到 1 到 3；实际运行并发还会由资源守卫按 CPU、内存和运行任务类型降级 |
 | `folder_import_scan_depth` | integer | 否 | `2` | `folderImportScanDepth` | 文件夹导入递归扫描深度，领域层归一化到 0 到 5；层级越深，导入前遍历时间越长 |
 | `notification_policies_json` | text | 否 | `{}` | `notificationPolicies` | 按 `NotificationEventType` 保存通知投递策略；缺失事件按领域默认补齐 |
 | `shortcut_bindings_json` | text | 否 | `{}` | `shortcutBindings` | 按 `AppShortcutAction` 保存快捷键绑定；缺失动作按默认快捷键补齐 |
@@ -343,11 +342,11 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 ### 应用启动恢复
 
 1. `MediaTaskListNotifier.build()` 调用 `ReconcileMediaTasksUseCase`。
-2. `ReconcileMediaTasksUseCase` 读取全部任务并检查源文件是否存在。
-3. 源文件不存在时标记 `missingSource`。
-4. 源文件存在但指纹变化时，更新指纹、使 Snapshot 投影失效并转为 `await_analysis`。
-5. 没有有效 Snapshot 的旧任务会对账为 `await_analysis` 并重新提交 FEngine；带有效 Snapshot 的 `ready` 任务保持不变。
-6. Client 读取 FEngine Engine Snapshot，对账分析队列、execution lane、LIFO 恢复栈与任务展示状态。
+2. `ReconcileMediaTasksUseCase` 只检查非活动任务的源文件；`analysis_queued`、`analyzing`、`execution_queued`、运行、暂停和抢占状态原样保留。
+3. 非活动任务的源文件不存在时标记 `missingSource`。
+4. 非活动任务的源文件存在但指纹变化时，更新指纹、使 Snapshot 投影失效并转为 `await_analysis`。
+5. 没有有效 Snapshot 的旧非活动任务会对账为 `await_analysis` 并重新提交 FEngine；带有效 Snapshot 的 `ready` 任务保持不变。
+6. Client 读取 FEngine Engine Snapshot，对账分析队列、execution lane、LIFO 恢复栈与任务展示状态；只有该对账能修正 Engine 非终态任务。
 
 ### 执行和进度
 
@@ -400,6 +399,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 33 | 新增 `workbench_order_states`，持久化 Client 对 FEngine 队列 revision 的展示状态 |
 | 34 | 为分析和执行投影增加幂等 request ID |
 | 35 | 从当前 Settings schema 移除自定义 FFmpeg / FFprobe executable 路径；升级库中残留的旧列不再读取或写入 |
+| 36 | 移除 Client 并发上限设置与 `max_concurrent_executions` 列；执行并发统一由 FLL 单 lane 调度语义决定 |
 
 ## 修改数据模型的约束
 

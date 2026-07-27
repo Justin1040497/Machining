@@ -325,7 +325,6 @@ class _AppSettingsViewState extends State<AppSettingsView> {
   late AppThemeMode themeMode;
   late TaskCompletionSound completionSound;
   late bool hideNotificationBadge;
-  late int maxConcurrentExecutions;
   late int folderImportScanDepth;
   late AppCloseBehavior closeBehavior;
   late Map<NotificationEventType, NotificationDeliveryMode>
@@ -363,7 +362,6 @@ class _AppSettingsViewState extends State<AppSettingsView> {
     themeMode = widget.initialSettings.themeMode;
     completionSound = widget.initialSettings.taskCompletionSound;
     hideNotificationBadge = widget.initialSettings.hideNotificationBadge;
-    maxConcurrentExecutions = widget.initialSettings.maxConcurrentExecutions;
     folderImportScanDepth = widget.initialSettings.folderImportScanDepth;
     closeBehavior = widget.initialSettings.closeBehavior;
     notificationPolicies = Map.of(widget.initialSettings.notificationPolicies);

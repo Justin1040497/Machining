@@ -31,7 +31,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       completionSound != savedSettings.taskCompletionSound ||
       hideNotificationBadge != savedSettings.hideNotificationBadge ||
       closeBehavior != savedSettings.closeBehavior ||
-      maxConcurrentExecutions != savedSettings.maxConcurrentExecutions ||
       folderImportScanDepth != savedSettings.folderImportScanDepth;
 
   bool get _isNotificationSectionDirty =>
@@ -135,7 +134,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
       themeMode = savedSettings.themeMode;
       completionSound = savedSettings.taskCompletionSound;
       hideNotificationBadge = savedSettings.hideNotificationBadge;
-      maxConcurrentExecutions = savedSettings.maxConcurrentExecutions;
       folderImportScanDepth = savedSettings.folderImportScanDepth;
       closeBehavior = savedSettings.closeBehavior;
     });
@@ -209,7 +207,6 @@ extension _AppSettingsViewSectionState on _AppSettingsViewState {
           themeMode: themeMode,
           taskCompletionSound: completionSound,
           hideNotificationBadge: hideNotificationBadge,
-          maxConcurrentExecutions: maxConcurrentExecutions,
           folderImportScanDepth: folderImportScanDepth,
           closeBehavior: closeBehavior,
         );

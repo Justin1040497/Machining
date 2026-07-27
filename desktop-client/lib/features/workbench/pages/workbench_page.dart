@@ -1687,35 +1687,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
-  Future<void> startOrResumeTask(
-    MediaTask task, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<void> startOrResumeTask(MediaTask task) async {
     await runWorkbenchActionOnce('start-or-resume-task:${task.id}', () {
-      return startOrResumeTaskUnchecked(
-        task,
-        allowExtremeCompression: allowExtremeCompression,
-      );
+      return startOrResumeTaskUnchecked(task);
     });
   }
 
-  Future<void> startOrResumeTaskUnchecked(
-    MediaTask task, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<void> startOrResumeTaskUnchecked(MediaTask task) async {
     try {
       final result = await ref
           .read(mediaTaskListProvider.notifier)
-          .startOrResumeTaskById(
-            task.id,
-            allowExtremeCompression: allowExtremeCompression,
-          );
-      if (await confirmAndRestartWhenCompressionRequiresConfirmation(
-        result,
-        () => startOrResumeTaskUnchecked(task, allowExtremeCompression: true),
-      )) {
-        return;
-      }
+          .startOrResumeTaskById(task.id);
       if (result.message != null) {
         showWorkbenchSnackBar(result.message!);
       }
@@ -1739,60 +1721,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     });
   }
 
-  Future<void> startExecutionQueue({
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<void> startExecutionQueue() async {
     try {
       final result = await ref
           .read(mediaTaskListProvider.notifier)
-          .startExecutionQueue(
-            allowExtremeCompression: allowExtremeCompression,
-          );
-      if (await confirmAndRestartWhenCompressionRequiresConfirmation(
-        result,
-        () => startExecutionQueue(allowExtremeCompression: true),
-      )) {
-        return;
-      }
+          .startExecutionQueue();
       if (result.message != null) {
         showWorkbenchSnackBar(result.message!);
       }
     } on Object catch (error) {
       showWorkbenchSnackBar(error.toString());
     }
-  }
-
-  Future<bool> confirmAndRestartWhenCompressionRequiresConfirmation(
-    EngineQueueStartResult result,
-    Future<void> Function() restart,
-  ) async {
-    if (result.outcome !=
-        EngineQueueStartOutcome.compressionConfirmationRequired) {
-      return false;
-    }
-
-    if (!mounted) {
-      return true;
-    }
-
-    final confirmed = await ConfirmDialog.show(
-      context,
-      title: '确认继续压缩',
-      body: '${result.message ?? '该视频已经压缩过，再压缩体积可能变大'}\n继续后会使用更激进的压缩策略。',
-      confirmLabel: '继续压缩',
-      confirmWidth: 96,
-    );
-    if (!mounted) {
-      return true;
-    }
-
-    if (confirmed) {
-      await restart();
-      return true;
-    }
-
-    showWorkbenchSnackBar('已取消本次压缩');
-    return true;
   }
 
   MediaTask? currentSelectedTask() {
@@ -1868,35 +1807,17 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     );
   }
 
-  Future<void> startTaskFolder(
-    TaskFolder folder, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<void> startTaskFolder(TaskFolder folder) async {
     await runWorkbenchActionOnce('start-task-folder:${folder.id}', () {
-      return startTaskFolderUnchecked(
-        folder,
-        allowExtremeCompression: allowExtremeCompression,
-      );
+      return startTaskFolderUnchecked(folder);
     });
   }
 
-  Future<void> startTaskFolderUnchecked(
-    TaskFolder folder, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<void> startTaskFolderUnchecked(TaskFolder folder) async {
     try {
       final result = await ref
           .read(mediaTaskListProvider.notifier)
-          .startNextTaskInFolder(
-            folder.id,
-            allowExtremeCompression: allowExtremeCompression,
-          );
-      if (await confirmAndRestartWhenCompressionRequiresConfirmation(
-        result,
-        () => startTaskFolderUnchecked(folder, allowExtremeCompression: true),
-      )) {
-        return;
-      }
+          .startNextTaskInFolder(folder.id);
       if (result.message != null) {
         showWorkbenchSnackBar(result.message!);
       }

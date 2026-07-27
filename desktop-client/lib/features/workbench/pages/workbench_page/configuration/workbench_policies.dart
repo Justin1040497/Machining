@@ -20,13 +20,7 @@ abstract final class WorkbenchQualityPolicy {
       return qualityIndexForSmartPreset(smartPreset);
     }
 
-    final configuredIndex = qualityIndexForCrf(task.config.compressionCrf);
-    if (WorkbenchFormatters.isSourceAlreadyCompressed(task) &&
-        configuredIndex == 2) {
-      return WorkbenchConstants.qualityOptions.length - 1;
-    }
-
-    return configuredIndex;
+    return qualityIndexForCrf(task.config.compressionCrf);
   }
 
   static int qualityIndexForCrf(int crf) {
@@ -59,9 +53,7 @@ abstract final class WorkbenchQualityPolicy {
 
   static int qualityIndexForTargetSizeRatio(double? targetSizeRatio) {
     if (targetSizeRatio == null || targetSizeRatio <= 0) {
-      return qualityIndexForTargetSizeRatio(
-        defaultTargetSizeRatio,
-      );
+      return qualityIndexForTargetSizeRatio(defaultTargetSizeRatio);
     }
 
     var nearestIndex = 0;

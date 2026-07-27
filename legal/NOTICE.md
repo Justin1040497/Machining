@@ -13,7 +13,8 @@ A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 You should have received a copy of the GNU General Public License along with
 FrameLean. If not, see <https://www.gnu.org/licenses/>.
 
-FrameLean distribution packages may include FFmpeg and FFprobe binaries built
-with GPL components, including x264/libx264, LAME/libmp3lame, libwebp, and
-Opus/libopus. See THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md in this directory
-for third-party license and source availability information.
+FrameLean distribution packages include FEngine statically linked with libav
+libraries built from FFmpeg and GPL components including x264/libx264,
+LAME/libmp3lame, libwebp, and Opus/libopus. They do not include ffmpeg or
+ffprobe executables. See THIRD_PARTY_NOTICES.md and SOURCE_OFFER.md in this
+directory for third-party license and source availability information.

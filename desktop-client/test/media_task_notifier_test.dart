@@ -79,6 +79,44 @@ void main() {
       expect(fingerprintReader.readPaths, isEmpty);
     });
 
+    test(
+      'leaves engine-owned nonterminal tasks for snapshot reconciliation',
+      () async {
+        const statuses = <TaskStatus>[
+          TaskStatus.analysisQueued,
+          TaskStatus.analyzing,
+          TaskStatus.executionQueued,
+          TaskStatus.running,
+          TaskStatus.preempting,
+          TaskStatus.preempted,
+          TaskStatus.resuming,
+          TaskStatus.paused,
+        ];
+        final tasks = <MediaTask>[
+          for (var index = 0; index < statuses.length; index += 1)
+            videoTask(
+              id: 'engine-task-$index',
+              inputPath: '/videos/engine-task-$index.mp4',
+              status: statuses[index],
+              sortOrder: index,
+            ),
+        ];
+        final repository = FakeMediaTaskRepository(tasks);
+        final fingerprintReader = FakeSourceFileFingerprintReader();
+        final container = testContainer(
+          repository: repository,
+          sourceFileChecker: const FakeSourceFileChecker(existingPaths: {}),
+          fingerprintReader: fingerprintReader,
+        );
+
+        final reconciled = await container.read(mediaTaskListProvider.future);
+
+        expect(reconciled.map((task) => task.status), statuses);
+        expect(repository.replaceAllCallCount, 0);
+        expect(fingerprintReader.readPaths, isEmpty);
+      },
+    );
+
     test('creates new drafts from app settings defaults', () async {
       final repository = FakeMediaTaskRepository([]);
       final container = testContainer(

@@ -33,7 +33,6 @@ class TaskConfigDialogTemplate extends StatelessWidget {
     required this.onThreadLimitChanged,
     this.advancedContent,
     this.modified = false,
-    this.compressed = false,
     this.saveEnabled = true,
     this.saveLabel = '保存',
     this.scrollController,
@@ -68,7 +67,6 @@ class TaskConfigDialogTemplate extends StatelessWidget {
   final Widget? advancedContent;
 
   final bool modified;
-  final bool compressed;
   final bool saveEnabled;
   final String saveLabel;
 
@@ -204,7 +202,6 @@ class TaskConfigDialogTemplate extends StatelessWidget {
                   child: AppDialogActions(
                     leading: WorkbenchTaskConfigurationStatusBadges(
                       modified: modified,
-                      compressed: compressed,
                     ),
                     onCancel: onClose,
                     onSave: saveEnabled ? onSave : null,

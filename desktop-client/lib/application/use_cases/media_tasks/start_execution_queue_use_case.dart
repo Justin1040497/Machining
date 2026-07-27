@@ -6,11 +6,7 @@ class StartExecutionQueueUseCase {
 
   const StartExecutionQueueUseCase({required this.executionCoordinator});
 
-  Future<EngineQueueStartResult> call({
-    // Retained for source compatibility while the workbench removes the
-    // legacy compression-confirmation flow. Engine execution ignores it.
-    bool allowExtremeCompression = false,
-  }) {
+  Future<EngineQueueStartResult> call() {
     return executionCoordinator.startWorkbenchQueue();
   }
 }

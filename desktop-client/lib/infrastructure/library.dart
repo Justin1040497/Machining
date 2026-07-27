@@ -45,9 +45,6 @@ export 'services/app_update/local_updater_helper_launcher.dart';
 export 'services/app_update/method_channel_sparkle_update_controller.dart';
 
 // services - execution
-export 'services/execution/local_execution_resource_guard.dart';
-export 'services/execution/local_interrupted_output_cleaner.dart';
-
 // services - engine
 export 'services/engine/fengine_frame_codec.dart';
 export 'services/engine/fengine_protocol_client.dart';

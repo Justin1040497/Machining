@@ -17,7 +17,7 @@ const String enterpriseUpdateConfigChannel =
     'framelean/enterprise_update_config';
 
 /// 进程控制通道 (Windows)
-const String processControlChannel = 'framelean/process_control';
+const String windowsPrivilegeChannel = 'framelean/windows_privilege';
 
 // ---------------------------------------------------------------------------
 // 临时目录

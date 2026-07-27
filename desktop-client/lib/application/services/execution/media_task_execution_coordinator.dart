@@ -23,12 +23,7 @@ class MediaTaskExecutionCoordinator {
   final EngineExecutionSubmitter submitEngineExecution;
   final Future<EngineLifecycleGateway> Function()? readEngineGateway;
 
-  Future<EngineQueueStartResult> startSingleTask(
-    String taskId, {
-    // Kept at the call boundary until the workbench UI drops the legacy
-    // compression-confirmation option. It has no effect on Engine requests.
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<EngineQueueStartResult> startSingleTask(String taskId) async {
     final task = await repository.loadTaskById(taskId);
     if (task == null) {
       return const EngineQueueStartResult(
@@ -221,18 +216,13 @@ class MediaTaskExecutionCoordinator {
     return reader();
   }
 
-  Future<EngineQueueStartResult> startWorkbenchQueue({
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<EngineQueueStartResult> startWorkbenchQueue() async {
     return _aggregateResults(
       await _submitEngineTasks(await _orderedWorkbenchTasks()),
     );
   }
 
-  Future<EngineQueueStartResult> startFolderQueue(
-    String folderId, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<EngineQueueStartResult> startFolderQueue(String folderId) async {
     final tasks = await repository.loadAllTasks();
     final folderTasks =
         tasks.where((task) => task.folderId == folderId).toList()

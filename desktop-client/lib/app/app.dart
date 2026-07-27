@@ -17,7 +17,6 @@ import 'package:framelean/app/theme/theme_prefs_reconciler.dart';
 import 'package:framelean/app/presentation/widgets/app_dialog_frame.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
-import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -47,26 +46,11 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
     _runtimeEffectsEnabled = ref.read(appRuntimeEffectsEnabledProvider);
     if (_runtimeEffectsEnabled) {
       unawaited(reconcileThemeModeAfterStartup());
-      unawaited(_cleanupInterruptedOutputsAfterStartup());
       unawaited(_startEngineLifecycle());
     }
     if (_runtimeEffectsEnabled && (Platform.isMacOS || Platform.isWindows)) {
       windowManager.addListener(this);
       unawaited(_configureDesktopLifecycle());
-    }
-  }
-
-  Future<void> _cleanupInterruptedOutputsAfterStartup() async {
-    try {
-      final settings = await LoadAppSettingsUseCase(
-        repository: ref.read(appSettingsRepositoryProvider),
-      ).call();
-      await const LocalInterruptedOutputCleaner().cleanup(
-        repository: ref.read(mediaTaskRepositoryProvider),
-        settings: settings,
-      );
-    } on Object {
-      // A failed cleanup must not prevent the workbench from opening.
     }
   }
 

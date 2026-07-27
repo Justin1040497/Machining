@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/app/library.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/audio_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/image_config_panel.dart';
@@ -79,9 +78,6 @@ Future<WorkbenchTaskConfigurationDraft?> showTaskFolderConfigurationEditor({
           final isVideoTask = task.mediaKind == MediaKind.video;
           final preserveHdr = state.preserveHdrActive(task);
           final modified = state.isModified(task: task);
-          final compressed =
-              isVideoTask &&
-              WorkbenchFormatters.isSourceAlreadyCompressed(task);
 
           // ---- build slot widgets ----
 
@@ -648,7 +644,6 @@ Future<WorkbenchTaskConfigurationDraft?> showTaskFolderConfigurationEditor({
             },
             advancedContent: advancedContent,
             modified: modified,
-            compressed: compressed,
           );
         },
       );

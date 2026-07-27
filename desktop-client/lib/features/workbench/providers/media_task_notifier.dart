@@ -399,12 +399,10 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     }
   }
 
-  Future<EngineQueueStartResult> startExecutionQueue({
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<EngineQueueStartResult> startExecutionQueue() async {
     final result = await StartExecutionQueueUseCase(
       executionCoordinator: ref.read(mediaTaskExecutionCoordinatorProvider),
-    ).call(allowExtremeCompression: allowExtremeCompression);
+    ).call();
 
     await refreshTasksFromRepository();
     if (result.outcome == EngineQueueStartOutcome.started ||
@@ -416,13 +414,10 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     return result;
   }
 
-  Future<EngineQueueStartResult> startOrResumeTaskById(
-    String taskId, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<EngineQueueStartResult> startOrResumeTaskById(String taskId) async {
     final result = await StartOrResumeMediaTaskUseCase(
       executionCoordinator: ref.read(mediaTaskExecutionCoordinatorProvider),
-    ).call(taskId, allowExtremeCompression: allowExtremeCompression);
+    ).call(taskId);
 
     await refreshTasksFromRepository();
     if (result.outcome == EngineQueueStartOutcome.started ||
@@ -434,13 +429,10 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     return result;
   }
 
-  Future<EngineQueueStartResult> startNextTaskInFolder(
-    String folderId, {
-    bool allowExtremeCompression = false,
-  }) async {
+  Future<EngineQueueStartResult> startNextTaskInFolder(String folderId) async {
     final result = await StartNextTaskInFolderUseCase(
       executionCoordinator: ref.read(mediaTaskExecutionCoordinatorProvider),
-    ).call(folderId, allowExtremeCompression: allowExtremeCompression);
+    ).call(folderId);
 
     await refreshTasksFromRepository();
     if (result.outcome == EngineQueueStartOutcome.started ||

@@ -12,9 +12,6 @@ import 'package:framelean/domain/value_objects/app_shortcut_binding.dart';
 
 const Object _notProvided = Object();
 const String defaultOutputFileNameTemplatePattern = '{source}-{action}';
-const int minConcurrentExecutions = 1;
-const int defaultMaxConcurrentExecutions = 2;
-const int maxConcurrentExecutionsLimit = 3;
 const int minFolderImportScanDepth = 0;
 const int defaultFolderImportScanDepth = 2;
 const int maxFolderImportScanDepth = 5;
@@ -38,13 +35,6 @@ const defaultNotificationPolicies =
       NotificationEventType.clipboardOperation:
           NotificationDeliveryMode.transient,
     };
-
-int normalizeMaxConcurrentExecutions(int? value) {
-  return (value ?? defaultMaxConcurrentExecutions).clamp(
-    minConcurrentExecutions,
-    maxConcurrentExecutionsLimit,
-  );
-}
 
 int normalizeFolderImportScanDepth(int? value) {
   return (value ?? defaultFolderImportScanDepth).clamp(
@@ -136,9 +126,6 @@ class AppSettings {
   /// 任务完成后播放的提示音
   final TaskCompletionSound taskCompletionSound;
 
-  /// 用户期望的最大并行执行数；执行器会按设备负载继续自动降级。
-  final int maxConcurrentExecutions;
-
   /// 文件夹导入时递归扫描的最大层级。
   final int folderImportScanDepth;
 
@@ -163,16 +150,12 @@ class AppSettings {
     this.themeMode = AppThemeMode.system,
     this.hideNotificationBadge = true,
     this.taskCompletionSound = TaskCompletionSound.cleanSuccess,
-    int? maxConcurrentExecutions,
     int? folderImportScanDepth,
     Map<NotificationEventType, NotificationDeliveryMode>? notificationPolicies,
     Map<AppShortcutAction, AppShortcutBinding>? shortcutBindings,
     this.closeBehavior = AppCloseBehavior.background,
   }) : defaultOutputFileNameTemplate = normalizeDefaultOutputFileNameTemplate(
          defaultOutputFileNameTemplate,
-       ),
-       maxConcurrentExecutions = normalizeMaxConcurrentExecutions(
-         maxConcurrentExecutions,
        ),
        folderImportScanDepth = normalizeFolderImportScanDepth(
          folderImportScanDepth,
@@ -214,7 +197,6 @@ class AppSettings {
       themeMode: AppThemeMode.system,
       hideNotificationBadge: true,
       taskCompletionSound: TaskCompletionSound.cleanSuccess,
-      maxConcurrentExecutions: defaultMaxConcurrentExecutions,
       folderImportScanDepth: defaultFolderImportScanDepth,
       notificationPolicies: defaultNotificationPolicies,
       shortcutBindings: defaultAppShortcutBindings,
@@ -236,7 +218,6 @@ class AppSettings {
     AppThemeMode? themeMode,
     bool? hideNotificationBadge,
     TaskCompletionSound? taskCompletionSound,
-    int? maxConcurrentExecutions,
     int? folderImportScanDepth,
     Map<NotificationEventType, NotificationDeliveryMode>? notificationPolicies,
     Map<AppShortcutAction, AppShortcutBinding>? shortcutBindings,
@@ -264,8 +245,6 @@ class AppSettings {
       hideNotificationBadge:
           hideNotificationBadge ?? this.hideNotificationBadge,
       taskCompletionSound: taskCompletionSound ?? this.taskCompletionSound,
-      maxConcurrentExecutions:
-          maxConcurrentExecutions ?? this.maxConcurrentExecutions,
       folderImportScanDepth:
           folderImportScanDepth ?? this.folderImportScanDepth,
       notificationPolicies: notificationPolicies ?? this.notificationPolicies,

@@ -4,9 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:framelean/app/library.dart';
 
 abstract final class WorkbenchWindowsPrivilege {
-  static const MethodChannel _channel = MethodChannel(
-    processControlChannel,
-  );
+  static const MethodChannel _channel = MethodChannel(windowsPrivilegeChannel);
 
   static Future<bool> isRunningElevated() async {
     if (!Platform.isWindows) {

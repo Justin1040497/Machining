@@ -49,7 +49,11 @@ for path_name in "${forbidden[@]}"; do
   fi
 done
 
-git_dir_count="$(find . -type d -name .git -prune -print | wc -l | tr -d ' ')"
+git_dir_count="$(
+  find . \
+    \( -path ./build -o -path ./.workspace \) -prune -o \
+    -type d -name .git -prune -print | wc -l | tr -d ' '
+)"
 if [[ "$git_dir_count" != "1" ]]; then
   echo "error: expected exactly one .git directory, found $git_dir_count" >&2
   exit 1

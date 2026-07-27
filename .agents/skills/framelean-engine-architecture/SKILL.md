@@ -56,7 +56,7 @@ FLL 是 FrameLean 的核心处理库；FEngine 是依赖 FLL 的独立引擎进�
 - FEngine 长期拥有引擎进程生命周期、运行隔离、外部请求入口及状态、进度、日志、错误和结果的进程级出口。
 - 当前已实现 protocol v1 长度帧 JSON、stdio 与本机 loopback transport、心跳、请求幂等、独立分析/执行队列、Snapshot 存储、批量提交、队列重排、进度、暂停/恢复/取消和 LIFO 抢占恢复。
 - FLL 当前真实执行 Backend 支持不含转换节点的 libav packet stream-copy/remux；需要 Decoder、Encoder 或 Processor 的完整压缩/转码 Pipeline 尚未实现，必须返回可识别失败。
-- Desktop Client 已接入 Engine Gateway 的完整任务生命周期，并在重连后使用 Engine Snapshot 对账；旧 Dart FFmpeg Runner 只保留兼容用途，不得作为新任务路径的调度来源。
+- Desktop Client 已接入 Engine Gateway 的完整任务生命周期，并在重连后使用 Engine Snapshot 对账；Client 不保留 Dart FFmpeg Runner、FFprobe 分析器或 FFmpeg 命令规划。
 - Client 进程重启可接回仍存活的守护 Worker；守护进程自身崩溃后的跨进程媒体 checkpoint 续作尚未实现。
 
 ## 硬规则

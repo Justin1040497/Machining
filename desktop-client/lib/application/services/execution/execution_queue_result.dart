@@ -13,7 +13,6 @@ enum EngineQueueStartOutcome {
   alreadyRunning,
   noPendingTask,
   missingSource,
-  compressionConfirmationRequired,
   queued,
   throttled,
   completed,

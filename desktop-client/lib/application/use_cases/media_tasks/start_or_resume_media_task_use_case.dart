@@ -6,12 +6,7 @@ class StartOrResumeMediaTaskUseCase {
 
   const StartOrResumeMediaTaskUseCase({required this.executionCoordinator});
 
-  Future<EngineQueueStartResult> call(
-    String taskId, {
-    // Retained for source compatibility while the workbench removes the
-    // legacy compression-confirmation flow. Engine execution ignores it.
-    bool allowExtremeCompression = false,
-  }) {
+  Future<EngineQueueStartResult> call(String taskId) {
     return executionCoordinator.startSingleTask(taskId);
   }
 }

@@ -29,7 +29,7 @@
 - 导入单个文件、多个文件或文件夹，并按媒体类型组织任务夹。
 - 自定义容器、编码器、分辨率、质量、码率、声道和输出位置。
 - 按设备能力使用 VideoToolbox、NVENC、QSV、AMF 等硬件编码。
-- 使用受控并行队列，支持排序、暂停、重试、恢复和批量配置。
+- 使用 FEngine 权威分析/执行队列与 FLL 单 lane，支持排序、暂停、重试、LIFO 抢占恢复和批量配置。
 - 通过临时输出、结果验收和本地持久化降低任务失败或异常退出造成的损坏风险。
 
 更完整的能力和平台边界见 [项目上下文](desktop-client/CONTEXT.md)。
@@ -96,7 +96,7 @@ Windows 开发时将设备参数改为 `windows`。其他组件的命令、依�
 
 ## 许可
 
-FrameLean 按 [GPL-3.0-or-later](LICENSE) 分发。发布包包含 FFmpeg 及其他第三方组件，相关许可和源码可得性说明见：
+FrameLean 按 [GPL-3.0-or-later](LICENSE) 分发。发布包中的 FEngine 静态链接由 FFmpeg 构建的 libav SDK 及其他第三方组件，不包含 FFmpeg CLI 程序；相关许可和源码可得性说明见：
 
 - [第三方声明](legal/THIRD_PARTY_NOTICES.md)
 - [源码提供说明](legal/SOURCE_OFFER.md)

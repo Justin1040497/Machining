@@ -22,10 +22,7 @@ class GeneratePreviewFramesUseCase {
 
   const GeneratePreviewFramesUseCase({required this.readEngineGateway});
 
-  Future<PreviewFrameResult> call({
-    required MediaTask task,
-    required bool allowExtremeCompression,
-  }) async {
+  Future<PreviewFrameResult> call({required MediaTask task}) async {
     final durationMs = task.analysisResult?.durationMs;
     final fingerprint = task.sourceFileFingerprint;
     if (durationMs == null || durationMs <= 0 || fingerprint == null) {

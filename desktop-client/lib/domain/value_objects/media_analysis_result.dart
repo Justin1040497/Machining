@@ -64,10 +64,10 @@ class MediaAnalysisResult {
   /// 音频声道布局，例如 mono、stereo、5.1(side)
   final String? audioChannelLayout;
 
-  /// 可转码主音频流在 FFprobe `streams` 中的全局索引。
+  /// 可转码主音频流在 FLL 媒体流列表中的全局索引。
   final int? audioStreamIndex;
 
-  /// FFprobe 识别出的可转码音频流列表。
+  /// FLL 分析得到的可转码音频流列表。
   final List<MediaAudioStreamInfo> audioStreams;
 
   /// 静态图片宽高和编码信息。

@@ -8,66 +8,72 @@ import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/workbench_task_thumbnail_store.dart';
 
 void main() {
-  test('preview use case sends source facts and maps engine artifacts', () async {
-    final gateway = _FakeEngineMediaGateway();
-    final task = _videoTask(id: 'preview-task', durationMs: 10000);
+  test(
+    'preview use case sends source facts and maps engine artifacts',
+    () async {
+      final gateway = _FakeEngineMediaGateway();
+      final task = _videoTask(id: 'preview-task', durationMs: 10000);
 
-    final result = await GeneratePreviewFramesUseCase(
-      readEngineGateway: () async => gateway,
-    ).call(task: task, allowExtremeCompression: false);
+      final result = await GeneratePreviewFramesUseCase(
+        readEngineGateway: () async => gateway,
+      ).call(task: task);
 
-    final request = gateway.previewRequests.single;
-    expect(request.clientTaskId, task.id);
-    expect(request.source.path, task.inputPath);
-    expect(request.source.fileSizeBytes, 2048);
-    expect(request.timestampsUs, <int>[
-      1200000,
-      3300000,
-      5000000,
-      6700000,
-      8800000,
-    ]);
-    expect(request.maxWidth, 960);
-    expect(result.frames.map((frame) => frame.ratio), <double>[
-      0.12,
-      0.33,
-      0.5,
-      0.67,
-      0.88,
-    ]);
-    expect(result.frames.first.timestampSeconds, 1.201);
-    expect(result.frames.first.framePath, endsWith('frame-0.bmp'));
-  });
+      final request = gateway.previewRequests.single;
+      expect(request.clientTaskId, task.id);
+      expect(request.source.path, task.inputPath);
+      expect(request.source.fileSizeBytes, 2048);
+      expect(request.timestampsUs, <int>[
+        1200000,
+        3300000,
+        5000000,
+        6700000,
+        8800000,
+      ]);
+      expect(request.maxWidth, 960);
+      expect(result.frames.map((frame) => frame.ratio), <double>[
+        0.12,
+        0.33,
+        0.5,
+        0.67,
+        0.88,
+      ]);
+      expect(result.frames.first.timestampSeconds, 1.201);
+      expect(result.frames.first.framePath, endsWith('frame-0.bmp'));
+    },
+  );
 
-  test('thumbnail store deduplicates pending work and caches a valid file', () async {
-    final gateway = _FakeEngineMediaGateway(pauseThumbnail: true);
-    final store = WorkbenchTaskThumbnailStore();
-    final task = _videoTask(id: 'thumbnail-task', durationMs: 12000);
-    var readyCount = 0;
+  test(
+    'thumbnail store deduplicates pending work and caches a valid file',
+    () async {
+      final gateway = _FakeEngineMediaGateway(pauseThumbnail: true);
+      final store = WorkbenchTaskThumbnailStore();
+      final task = _videoTask(id: 'thumbnail-task', durationMs: 12000);
+      var readyCount = 0;
 
-    final first = store.ensureVideoThumbnail(
-      task: task,
-      gateway: gateway,
-      onReady: () => readyCount += 1,
-    );
-    await Future<void>.delayed(Duration.zero);
-    await store.ensureVideoThumbnail(
-      task: task,
-      gateway: gateway,
-      onReady: () => readyCount += 1,
-    );
+      final first = store.ensureVideoThumbnail(
+        task: task,
+        gateway: gateway,
+        onReady: () => readyCount += 1,
+      );
+      await Future<void>.delayed(Duration.zero);
+      await store.ensureVideoThumbnail(
+        task: task,
+        gateway: gateway,
+        onReady: () => readyCount += 1,
+      );
 
-    expect(gateway.thumbnailRequests, hasLength(1));
-    final request = gateway.thumbnailRequests.single;
-    expect(request.durationUs, 12000000);
-    expect(request.maxWidth, 80);
-    gateway.releaseThumbnail();
-    await first;
+      expect(gateway.thumbnailRequests, hasLength(1));
+      final request = gateway.thumbnailRequests.single;
+      expect(request.durationUs, 12000000);
+      expect(request.maxWidth, 80);
+      gateway.releaseThumbnail();
+      await first;
 
-    expect(readyCount, 1);
-    expect(store.imageForTask(task), isA<FileImage>());
-    await File(request.outputPath).delete();
-  });
+      expect(readyCount, 1);
+      expect(store.imageForTask(task), isA<FileImage>());
+      await File(request.outputPath).delete();
+    },
+  );
 }
 
 MediaTask _videoTask({required String id, required int durationMs}) {

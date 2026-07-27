@@ -14,7 +14,7 @@ lib/infrastructure/services/proprietary_audio/ncm/
 
 - 使用 Dart 读取 NCM 容器、还原音频密钥和生成 key box。
 - 使用 `pointycastle` 提供 AES-ECB/PKCS7 基础能力。
-- 解包后的文件根据文件头识别为 MP3 或 FLAC，再进入现有 FFprobe / FFmpeg 链路。
+- 解包后的文件根据文件头识别为 MP3 或 FLAC，再经 FEngine Gateway 进入 FLL 进程内 libav 分析与执行链路。
 
 行为参考：
 

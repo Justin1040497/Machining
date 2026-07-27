@@ -57,24 +57,6 @@ extension _AppSettingsViewSections on _AppSettingsViewState {
         ),
         const SizedBox(height: 18),
         _SettingsDropdown<int>(
-          label: '最大并行任务数',
-          value: maxConcurrentExecutions,
-          values: const [
-            minConcurrentExecutions,
-            defaultMaxConcurrentExecutions,
-            maxConcurrentExecutionsLimit,
-          ],
-          itemLabel: (value) =>
-              value == defaultMaxConcurrentExecutions ? '$value（推荐）' : '$value',
-          onChanged: (value) {
-            if (value == null) {
-              return;
-            }
-            updateViewState(() => maxConcurrentExecutions = value);
-          },
-        ),
-        const SizedBox(height: 18),
-        _SettingsDropdown<int>(
           label: '文件夹扫描层级',
           value: folderImportScanDepth,
           values: const [
