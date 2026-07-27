@@ -735,17 +735,6 @@ fn input_requirement_exclusion(
     if requirements
         .video_streams
         .iter()
-        .any(|stream| stream.profile.is_none())
-    {
-        return Some(CapabilityExclusion {
-            code: EngineErrorCode::MediaProfileUnavailable,
-            message: "video profile is required before building an execution chain".to_owned(),
-            backend_id: None,
-        });
-    }
-    if requirements
-        .video_streams
-        .iter()
         .any(|stream| stream.pixel_format.is_none())
         || requirements
             .audio_streams
@@ -906,10 +895,7 @@ fn select_decoders(
 fn decoder_accepts_video(capability: &DecoderCapability, stream: &VideoInputRequirement) -> bool {
     capability.stream_type == StreamKind::Video
         && capability.codecs.contains(&stream.codec)
-        && stream
-            .profile
-            .as_ref()
-            .is_some_and(|v| capability.profiles.allows(v))
+        && optional_value_allowed(&capability.profiles, stream.profile.as_ref())
         && stream
             .pixel_format
             .as_ref()
@@ -922,14 +908,22 @@ fn decoder_accepts_video(capability: &DecoderCapability, stream: &VideoInputRequ
 fn decoder_accepts_audio(capability: &DecoderCapability, stream: &AudioInputRequirement) -> bool {
     capability.stream_type == StreamKind::Audio
         && capability.codecs.contains(&stream.codec)
-        && stream
-            .profile
-            .as_ref()
-            .is_some_and(|v| capability.profiles.allows(v))
+        && optional_value_allowed(&capability.profiles, stream.profile.as_ref())
         && stream
             .sample_format
             .as_ref()
             .is_some_and(|v| capability.pixel_or_sample_formats.allows(v))
+}
+
+fn optional_value_allowed<T: PartialEq>(
+    constraint: &CapabilityConstraint<T>,
+    value: Option<&T>,
+) -> bool {
+    match constraint {
+        CapabilityConstraint::Unrestricted => true,
+        CapabilityConstraint::Restricted(_) => value.is_some_and(|value| constraint.allows(value)),
+        CapabilityConstraint::Unknown | CapabilityConstraint::Unsupported => false,
+    }
 }
 
 fn decoder_accepts_image(capability: &DecoderCapability, image: &ImageInputRequirement) -> bool {
@@ -1499,19 +1493,28 @@ impl RecommendationEngine for DefaultRecommendationEngine {
                 resource_sample_unix_ms: resource_sample.map(|value| value.sampled_at_unix_ms),
             };
         };
-        let configuration = DecisionService
-            .resolve_selection(
-                &RecalculateSelection::Preset(PresetSelection {
-                    preset_id: balanced.id,
-                    candidate_id: chain.id.clone(),
-                    overrides: ManualSelection::empty(),
-                }),
-                requirements,
-                task_mode,
-                capabilities,
-                None,
-            )
-            .expect("a matching preset candidate must resolve");
+        let configuration = match DecisionService.resolve_selection(
+            &RecalculateSelection::Preset(PresetSelection {
+                preset_id: balanced.id,
+                candidate_id: chain.id.clone(),
+                overrides: ManualSelection::empty(),
+            }),
+            requirements,
+            task_mode,
+            capabilities,
+            None,
+        ) {
+            Ok(configuration) => configuration,
+            Err(conflict) => {
+                return Recommendation {
+                    status: RecommendationStatus::Unavailable,
+                    configuration: None,
+                    reasons: vec![format!("{:?}", conflict.code)],
+                    estimate: None,
+                    resource_sample_unix_ms: resource_sample.map(|value| value.sampled_at_unix_ms),
+                };
+            }
+        };
         let estimate = estimate_configuration(requirements, &configuration, estimator).ok();
         let mut reasons = vec!["balanced execution-ready chain".to_owned()];
         let status = if estimate.is_some() {
@@ -2779,7 +2782,7 @@ mod tests {
     }
 
     #[test]
-    fn partial_analysis_with_missing_required_facts_cannot_build_candidates() {
+    fn partial_analysis_with_missing_pixel_format_cannot_build_candidates() {
         let mut media = media();
         media.status = MediaAnalysisStatus::Partial;
         let MediaDescriptor::Video { streams } = &mut media.descriptor else {
@@ -2788,7 +2791,7 @@ mod tests {
         let MediaStreamDescriptor::Video(video) = &mut streams[0] else {
             panic!("fixture must contain a video stream");
         };
-        video.profile = unavailable();
+        video.pixel_format = unavailable();
 
         let requirements = InputMediaRequirements::from_media_analysis(&media);
         let capabilities = DefaultCapabilityResolver
@@ -2803,7 +2806,7 @@ mod tests {
         assert!(capabilities.execution_chains.is_empty());
         assert_eq!(
             capabilities.exclusions[0].code,
-            EngineErrorCode::MediaProfileUnavailable
+            EngineErrorCode::MediaPixelFormatUnavailable
         );
     }
 

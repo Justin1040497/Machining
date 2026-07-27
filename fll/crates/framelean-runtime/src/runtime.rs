@@ -1,13 +1,18 @@
 use std::sync::Arc;
 
+use framelean_analysis::MediaKind;
 use framelean_core::{AnalysisId, EngineError, EngineErrorCode, ProcessorId, Result, TaskId};
 use framelean_decision::{
     ConfigurationOptionGraph, CustomTargetSizeOptions, DecisionService, DeterministicSizeEstimator,
     InputMediaRequirements, fixed_presets,
 };
-use framelean_media::capability::BackendCatalogProvider;
+use framelean_media::capability::{
+    BackendCapability, BackendCatalog, BackendCatalogProvider, StreamKind,
+};
 use framelean_media::processor::{ProcessOutput, ProcessorMetadata};
-use framelean_pipeline::{ExecutionContext, Pipeline, PipelineBuilder};
+use framelean_pipeline::{
+    ExecutionContext, MediaPipelineNode, MediaPipelinePlan, Pipeline, PipelineBuilder,
+};
 use framelean_plugin::{Plugin, PluginError, PluginRegistry, ProcessorFactory};
 
 use crate::analysis::{
@@ -18,10 +23,10 @@ use crate::snapshot::{CURRENT_DECISION_MODEL_REVISION, CURRENT_ESTIMATOR_MODEL_R
 use crate::{
     AnalysisServices, AnalysisSnapshotPolicy, AnalysisSnapshotRecord, AnalysisSnapshotStore,
     AnalysisSnapshotView, AnalyzeMediaResponse, AnalyzeTaskRequest, ConfigurationConflict,
-    ExecutionLaneSnapshot, ExecutionRuntime, ExecutionRuntimeEvent, ExecutionRuntimePlan,
-    ExecutionServices, ExecutionSubmissionRequest, ExecutionSubmissionResult, ExecutionTaskState,
-    FifoScheduler, PipelineSpec, RecalculateConfigurationRequest, RecalculateConfigurationResponse,
-    Scheduler, Task, TaskRequest,
+    ExecutionLaneSnapshot, ExecutionResourcePool, ExecutionRuntime, ExecutionRuntimeEvent,
+    ExecutionRuntimePlan, ExecutionServices, ExecutionSubmissionRequest, ExecutionSubmissionResult,
+    ExecutionTaskState, FifoScheduler, PipelineSpec, RecalculateConfigurationRequest,
+    RecalculateConfigurationResponse, Scheduler, Task, TaskRequest,
 };
 
 pub struct EngineRuntime {
@@ -285,20 +290,30 @@ impl EngineRuntime {
                 }),
             ));
         };
-        let source_path = self
-            .analysis_snapshots
-            .as_mut()
-            .ok_or_else(|| {
-                EngineError::new(
-                    framelean_core::ErrorKind::Snapshot,
-                    "analysis snapshot store is not configured",
-                )
-            })?
-            .get_mut(&analysis_id)?
-            .media_request
-            .source
-            .path()
-            .to_path_buf();
+        let (source_path, backend_catalog, resource_pool) = {
+            let snapshot = self
+                .analysis_snapshots
+                .as_mut()
+                .ok_or_else(|| {
+                    EngineError::new(
+                        framelean_core::ErrorKind::Snapshot,
+                        "analysis snapshot store is not configured",
+                    )
+                })?
+                .get_mut(&analysis_id)?;
+            (
+                snapshot.media_request.source.path().to_path_buf(),
+                snapshot.backend_catalog.clone(),
+                match snapshot.media.kind {
+                    MediaKind::Video => ExecutionResourcePool::Video,
+                    MediaKind::Audio
+                    | MediaKind::Image
+                    | MediaKind::AnimatedImage
+                    | MediaKind::Other => ExecutionResourcePool::Auxiliary,
+                },
+            )
+        };
+        let pipeline = build_media_pipeline_plan(&resolved_configuration, &backend_catalog)?;
         let execution_id = self
             .execution_runtime
             .as_mut()
@@ -312,9 +327,20 @@ impl EngineRuntime {
             .submit(ExecutionRuntimePlan {
                 source_path,
                 output,
+                pipeline,
                 configuration: resolved_configuration,
+                resource_pool,
             })?;
         let execution_lane = self.execution_snapshot()?;
+        let state = if execution_lane
+            .active_executions
+            .iter()
+            .any(|entry| entry.execution_id == execution_id)
+        {
+            ExecutionTaskState::Running
+        } else {
+            ExecutionTaskState::Queued
+        };
         let queue_position = execution_lane
             .normal_waiting
             .iter()
@@ -322,7 +348,7 @@ impl EngineRuntime {
             .map_or(0, |position| position + 1);
         Ok(ExecutionSubmissionResult {
             execution_id,
-            state: ExecutionTaskState::Queued,
+            state,
             queue_position,
             queue_revision: execution_lane.queue_revision,
         })
@@ -593,6 +619,100 @@ impl EngineRuntime {
         }
         Ok(())
     }
+}
+
+fn build_media_pipeline_plan(
+    configuration: &framelean_decision::ResolvedConfiguration,
+    catalog: &BackendCatalog,
+) -> Result<MediaPipelinePlan> {
+    let mut nodes = vec![
+        MediaPipelineNode::Source,
+        MediaPipelineNode::Demuxer {
+            backend_id: configuration.demuxer_backend.clone(),
+        },
+    ];
+    nodes.extend(
+        configuration
+            .video_decoders
+            .iter()
+            .map(|selection| MediaPipelineNode::Decoder {
+                backend_id: selection.backend_id.clone(),
+                stream_index: selection.stream_index,
+                stream_kind: StreamKind::Video,
+            }),
+    );
+    nodes.extend(
+        configuration
+            .audio_decoders
+            .iter()
+            .map(|selection| MediaPipelineNode::Decoder {
+                backend_id: selection.backend_id.clone(),
+                stream_index: selection.stream_index,
+                stream_kind: StreamKind::Audio,
+            }),
+    );
+    for selection in &configuration.processors {
+        let backend = catalog
+            .backends
+            .iter()
+            .find(|backend| backend.id == selection.backend_id)
+            .ok_or_else(|| {
+                EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    format!(
+                        "selected processor backend {} is absent from the frozen catalog",
+                        selection.backend_id
+                    ),
+                )
+            })?;
+        let BackendCapability::Processor(capability) = &backend.capability else {
+            return Err(EngineError::with_code(
+                framelean_core::ErrorKind::Pipeline,
+                EngineErrorCode::EngineExecutionChainNotReady,
+                format!(
+                    "selected backend {} is not a processor",
+                    selection.backend_id
+                ),
+            ));
+        };
+        nodes.push(match capability.stream_type {
+            StreamKind::Video => MediaPipelineNode::VideoProcessor {
+                backend_id: selection.backend_id.clone(),
+                operation: selection.operation.clone(),
+            },
+            StreamKind::Audio => MediaPipelineNode::AudioProcessor {
+                backend_id: selection.backend_id.clone(),
+                operation: selection.operation.clone(),
+            },
+            StreamKind::Subtitle | StreamKind::Data | StreamKind::Attachment => {
+                return Err(EngineError::with_code(
+                    framelean_core::ErrorKind::Pipeline,
+                    EngineErrorCode::EngineExecutionChainNotReady,
+                    "selected processor stream kind is not implemented",
+                ));
+            }
+        });
+    }
+    if let Some(backend_id) = &configuration.video_encoder_backend {
+        nodes.push(MediaPipelineNode::Encoder {
+            backend_id: backend_id.clone(),
+            stream_kind: StreamKind::Video,
+        });
+    }
+    if let Some(backend_id) = &configuration.audio_encoder_backend {
+        nodes.push(MediaPipelineNode::Encoder {
+            backend_id: backend_id.clone(),
+            stream_kind: StreamKind::Audio,
+        });
+    }
+    nodes.extend([
+        MediaPipelineNode::Muxer {
+            backend_id: configuration.muxer_backend.clone(),
+        },
+        MediaPipelineNode::Sink,
+    ]);
+    MediaPipelinePlan::new(nodes).map_err(EngineError::from)
 }
 
 impl Default for EngineRuntime {

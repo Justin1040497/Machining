@@ -17,12 +17,12 @@ pub use analysis::{
 };
 pub use execution::{
     ExecutionCheckpoint, ExecutionLaneControl, ExecutionLaneSnapshot, ExecutionOutputRequest,
-    ExecutionPauseReason, ExecutionScheduler, ExecutionSubmissionRequest,
+    ExecutionPauseReason, ExecutionResourcePool, ExecutionScheduler, ExecutionSubmissionRequest,
     ExecutionSubmissionResult, ExecutionTaskState, OutputCollisionPolicy, ScheduledExecution,
 };
 pub use execution_backend::{
     ExecutionBackend, ExecutionBackendControl, ExecutionBackendObserver, ExecutionBackendOutcome,
-    ExecutionBackendRequest, ExecutionProgress, ExecutionServices,
+    ExecutionBackendRequest, ExecutionProgress, ExecutionServices, FfmpegExecutionBackend,
 };
 pub use execution_runtime::{ExecutionRuntime, ExecutionRuntimeEvent, ExecutionRuntimePlan};
 pub use framelean_decision::{

@@ -6,26 +6,32 @@ use std::time::{Duration, Instant};
 
 use framelean_core::{EngineError, EngineErrorCode, ErrorKind, Result, TaskId};
 use framelean_decision::ResolvedConfiguration;
+use framelean_pipeline::MediaPipelinePlan;
 
 use crate::{
     ExecutionBackend, ExecutionBackendControl, ExecutionBackendObserver, ExecutionBackendOutcome,
     ExecutionBackendRequest, ExecutionCheckpoint, ExecutionLaneControl, ExecutionLaneSnapshot,
-    ExecutionOutputRequest, ExecutionPauseReason, ExecutionProgress, ExecutionScheduler,
-    ExecutionServices, ExecutionTaskState, OutputTransaction, ScheduledExecution,
+    ExecutionOutputRequest, ExecutionPauseReason, ExecutionProgress, ExecutionResourcePool,
+    ExecutionScheduler, ExecutionServices, ExecutionTaskState, OutputTransaction,
+    ScheduledExecution,
 };
 
 const SAFE_PAUSE_TIMEOUT: Duration = Duration::from_secs(5);
+const PROGRESS_EVENT_INTERVAL: Duration = Duration::from_millis(100);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionRuntimePlan {
     pub source_path: std::path::PathBuf,
     pub output: ExecutionOutputRequest,
+    pub pipeline: MediaPipelinePlan,
     pub configuration: ResolvedConfiguration,
+    pub resource_pool: ExecutionResourcePool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExecutionRuntimeEvent {
     pub execution_id: TaskId,
+    pub resource_pool: ExecutionResourcePool,
     pub sequence: u64,
     pub state: ExecutionTaskState,
     pub pause_reason: Option<ExecutionPauseReason>,
@@ -110,6 +116,7 @@ impl ExecutionRuntime {
     pub fn submit(&mut self, plan: ExecutionRuntimePlan) -> Result<TaskId> {
         let execution_id = TaskId::new(format!("execution-{}", self.next_execution_number))?;
         self.next_execution_number = self.next_execution_number.saturating_add(1);
+        let resource_pool = plan.resource_pool;
         self.tasks.insert(
             execution_id.clone(),
             RuntimeExecutionTask {
@@ -119,26 +126,18 @@ impl ExecutionRuntime {
                 terminal_reported: false,
             },
         );
-        self.scheduler.enqueue(execution_id.clone())?;
-        if let Err(error) = self.start_next_if_idle() {
-            self.scheduler.remove_non_active(&execution_id);
-            self.tasks.remove(&execution_id);
-            return Err(error);
-        }
+        self.scheduler
+            .enqueue(execution_id.clone(), resource_pool)?;
+        self.advance_available_slots();
         self.sync_scheduled_states();
         Ok(execution_id)
     }
 
     pub fn preempt_and_start(&mut self, execution_id: &TaskId) -> Result<()> {
-        let active_id = self
-            .scheduler
-            .snapshot()
-            .active
-            .map(|entry| entry.execution_id)
-            .ok_or_else(|| {
-                EngineError::invalid_task_state("cannot preempt an idle execution lane")
-            })?;
-        self.send_state_event(&active_id, ExecutionTaskState::Preempting)?;
+        let victims = self.scheduler.preemption_victims_for(execution_id)?;
+        for victim_id in &victims {
+            self.send_state_event(victim_id, ExecutionTaskState::Preempting)?;
+        }
         let mut scheduler = std::mem::take(&mut self.scheduler);
         let mut control = RuntimeLaneControl {
             backend: Arc::clone(&self.services.backend),
@@ -150,21 +149,23 @@ impl ExecutionRuntime {
         if result.is_ok() {
             self.sync_scheduled_states();
         } else {
-            self.send_state_event(&active_id, ExecutionTaskState::Running)?;
+            for victim_id in &victims {
+                self.send_state_event(victim_id, ExecutionTaskState::Running)?;
+            }
         }
         result
     }
 
     pub fn pause_for_user(&mut self, execution_id: &TaskId) -> Result<()> {
-        if self
+        if !self
             .scheduler
             .snapshot()
-            .active
-            .as_ref()
-            .is_none_or(|entry| entry.execution_id != *execution_id)
+            .active_executions
+            .iter()
+            .any(|entry| entry.execution_id == *execution_id)
         {
             return Err(EngineError::invalid_task_state(
-                "only the active execution can be paused",
+                "only an active execution can be paused",
             ));
         }
         self.send_state_event(execution_id, ExecutionTaskState::PauseRequested)?;
@@ -174,7 +175,7 @@ impl ExecutionRuntime {
             tasks: &mut self.tasks,
             event_tx: self.event_tx.clone(),
         };
-        let result = scheduler.pause_active_for_user(&mut control);
+        let result = scheduler.pause_active_for_user(execution_id, &mut control);
         self.scheduler = scheduler;
         let paused = match result {
             Ok(paused) => paused,
@@ -188,7 +189,7 @@ impl ExecutionRuntime {
         if let Some(task) = self.tasks.get_mut(execution_id) {
             task.state = ExecutionTaskState::Paused;
         }
-        self.start_next_if_idle()?;
+        self.advance_available_slots();
         Ok(())
     }
 
@@ -353,35 +354,40 @@ impl ExecutionRuntime {
                 && self
                     .scheduler
                     .snapshot()
-                    .active
-                    .as_ref()
-                    .is_some_and(|active| active.execution_id == event.execution_id)
+                    .active_executions
+                    .iter()
+                    .any(|active| active.execution_id == event.execution_id)
             {
                 self.scheduler
-                    .clear_active_terminal(state)
+                    .clear_active_terminal(&event.execution_id, state)
                     .expect("terminal event belongs to the active execution");
-                self.advance_idle_lane();
+                self.advance_available_slots();
                 self.sync_scheduled_states();
             }
             let snapshot = self.scheduler.snapshot();
             let scheduled = snapshot
-                .active
-                .as_ref()
-                .filter(|entry| entry.execution_id == event.execution_id)
-                .or_else(|| {
-                    snapshot
-                        .resume_stack
-                        .iter()
-                        .find(|entry| entry.execution_id == event.execution_id)
-                });
+                .active_executions
+                .iter()
+                .chain(snapshot.video_resume_stack.iter())
+                .chain(snapshot.auxiliary_resume_stack.iter())
+                .find(|entry| entry.execution_id == event.execution_id);
+            let resource_pool = self
+                .tasks
+                .get(&event.execution_id)
+                .map(|task| task.plan.resource_pool)
+                .expect("runtime event belongs to a known execution");
             events.push(ExecutionRuntimeEvent {
                 execution_id: event.execution_id,
+                resource_pool,
                 sequence: self.next_event_sequence,
                 state,
                 pause_reason: scheduled.and_then(|entry| entry.pause_reason),
                 preempted_by_execution_id: scheduled
                     .and_then(|entry| entry.preempted_by_execution_id.clone()),
-                resume_depth: snapshot.resume_stack.len(),
+                resume_depth: match resource_pool {
+                    ExecutionResourcePool::Video => snapshot.video_resume_stack.len(),
+                    ExecutionResourcePool::Auxiliary => snapshot.auxiliary_resume_stack.len(),
+                },
                 progress,
                 output_path,
                 error_code,
@@ -392,30 +398,26 @@ impl ExecutionRuntime {
         events
     }
 
-    fn start_next_if_idle(&mut self) -> Result<()> {
+    fn start_next_available(&mut self) -> Result<Option<TaskId>> {
         let mut scheduler = std::mem::take(&mut self.scheduler);
         let mut control = RuntimeLaneControl {
             backend: Arc::clone(&self.services.backend),
             tasks: &mut self.tasks,
             event_tx: self.event_tx.clone(),
         };
-        let result = scheduler.start_next(&mut control);
+        let result = scheduler.start_next_available(&mut control);
         self.scheduler = scheduler;
-        result.map(|_| ())
+        result
     }
 
-    fn advance_idle_lane(&mut self) {
+    fn advance_available_slots(&mut self) {
         loop {
-            let error = match self.start_next_if_idle() {
-                Ok(()) => return,
+            let failed_execution_id = self.scheduler.next_start_candidate();
+            let error = match self.start_next_available() {
+                Ok(Some(_)) => continue,
+                Ok(None) => return,
                 Err(error) => error,
             };
-            let snapshot = self.scheduler.snapshot();
-            let failed_execution_id = snapshot
-                .resume_stack
-                .last()
-                .or_else(|| snapshot.normal_waiting.first())
-                .map(|entry| entry.execution_id.clone());
             let Some(failed_execution_id) = failed_execution_id else {
                 return;
             };
@@ -442,10 +444,11 @@ impl ExecutionRuntime {
     fn sync_scheduled_states(&mut self) {
         let snapshot = self.scheduler.snapshot();
         for entry in snapshot
-            .active
+            .active_executions
             .iter()
             .chain(snapshot.normal_waiting.iter())
-            .chain(snapshot.resume_stack.iter())
+            .chain(snapshot.video_resume_stack.iter())
+            .chain(snapshot.auxiliary_resume_stack.iter())
         {
             if let Some(task) = self.tasks.get_mut(&entry.execution_id) {
                 task.state = entry.state;
@@ -536,6 +539,7 @@ impl ExecutionLaneControl for RuntimeLaneControl<'_> {
         let request = ExecutionBackendRequest {
             source_path: task.plan.source_path.clone(),
             working_output_path: transaction.working_path().to_path_buf(),
+            pipeline: task.plan.pipeline.clone(),
             configuration: task.plan.configuration.clone(),
         };
         let control = Arc::new(TaskControl::default());
@@ -604,6 +608,7 @@ fn run_execution_thread(
         control: Arc::clone(&control),
         event_tx: event_tx.clone(),
         pause_event_sent: false,
+        last_progress_event_at: None,
     };
     let outcome = backend.execute(&request, &mut observer);
     let event = match outcome {
@@ -645,14 +650,22 @@ struct RuntimeBackendObserver {
     control: Arc<TaskControl>,
     event_tx: Sender<ThreadEvent>,
     pause_event_sent: bool,
+    last_progress_event_at: Option<Instant>,
 }
 
 impl ExecutionBackendObserver for RuntimeBackendObserver {
     fn on_progress(&mut self, progress: ExecutionProgress) -> ExecutionBackendControl {
-        let _ = self.event_tx.send(ThreadEvent {
-            execution_id: self.execution_id.clone(),
-            kind: ThreadEventKind::Progress(progress),
-        });
+        let now = Instant::now();
+        if self
+            .last_progress_event_at
+            .is_none_or(|previous| now.duration_since(previous) >= PROGRESS_EVENT_INTERVAL)
+        {
+            let _ = self.event_tx.send(ThreadEvent {
+                execution_id: self.execution_id.clone(),
+                kind: ThreadEventKind::Progress(progress),
+            });
+            self.last_progress_event_at = Some(now);
+        }
         let Ok(mut state) = self.control.state.lock() else {
             return ExecutionBackendControl::Cancel;
         };
@@ -688,6 +701,48 @@ impl ExecutionBackendObserver for RuntimeBackendObserver {
             self.control.changed.notify_all();
         }
         ExecutionBackendControl::Continue
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn burst_progress_is_throttled_without_losing_control_progress() {
+        let (event_tx, event_rx) = mpsc::channel();
+        let control = Arc::new(TaskControl::default());
+        let mut observer = RuntimeBackendObserver {
+            execution_id: TaskId::new("execution-progress-throttle").unwrap(),
+            control: Arc::clone(&control),
+            event_tx,
+            pause_event_sent: false,
+            last_progress_event_at: None,
+        };
+
+        for value in 1..=100 {
+            assert_eq!(
+                observer.on_progress(ExecutionProgress {
+                    media_time_us: value,
+                    processed_bytes: value * 10,
+                }),
+                ExecutionBackendControl::Continue
+            );
+        }
+
+        let progress_events = event_rx
+            .try_iter()
+            .filter(|event| matches!(event.kind, ThreadEventKind::Progress(_)))
+            .count();
+        assert_eq!(progress_events, 1);
+        let state = control.state.lock().unwrap();
+        assert_eq!(
+            state.latest_progress,
+            ExecutionProgress {
+                media_time_us: 100,
+                processed_bytes: 1_000,
+            }
+        );
     }
 }
 

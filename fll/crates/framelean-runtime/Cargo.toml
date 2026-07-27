@@ -12,6 +12,7 @@ framelean-plugin = { path = "../framelean-plugin" }
 framelean-analysis = { path = "../framelean-analysis" }
 framelean-environment = { path = "../framelean-environment" }
 framelean-decision = { path = "../framelean-decision" }
+framelean-ffmpeg = { path = "../framelean-ffmpeg" }
 schemars.workspace = true
 serde.workspace = true
 

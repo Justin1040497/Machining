@@ -1,7 +1,8 @@
 use std::error::Error;
 use std::fmt::{self, Display, Formatter};
 
-use framelean_core::{EngineError, ErrorKind, NodeId, TaskId};
+use framelean_core::{BackendId, EngineError, ErrorKind, NodeId, TaskId};
+use framelean_media::capability::StreamKind;
 use framelean_media::processor::{
     ProcessInput, ProcessOutput, ProcessingStage, Processor, ProcessorContext, ProcessorError,
 };
@@ -17,6 +18,175 @@ pub enum NodeKind {
     Encoder,
     Muxer,
     Sink,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MediaPipelineNode {
+    Source,
+    Demuxer {
+        backend_id: BackendId,
+    },
+    PacketProcessor {
+        backend_id: BackendId,
+        operation: String,
+    },
+    Decoder {
+        backend_id: BackendId,
+        stream_index: u32,
+        stream_kind: StreamKind,
+    },
+    VideoProcessor {
+        backend_id: BackendId,
+        operation: String,
+    },
+    AudioProcessor {
+        backend_id: BackendId,
+        operation: String,
+    },
+    Encoder {
+        backend_id: BackendId,
+        stream_kind: StreamKind,
+    },
+    Muxer {
+        backend_id: BackendId,
+    },
+    Sink,
+}
+
+impl MediaPipelineNode {
+    pub fn kind(&self) -> NodeKind {
+        match self {
+            Self::Source => NodeKind::Source,
+            Self::Demuxer { .. } => NodeKind::Demuxer,
+            Self::PacketProcessor { .. } => NodeKind::PacketProcessor,
+            Self::Decoder { .. } => NodeKind::Decoder,
+            Self::VideoProcessor { .. } => NodeKind::VideoProcessor,
+            Self::AudioProcessor { .. } => NodeKind::AudioProcessor,
+            Self::Encoder { .. } => NodeKind::Encoder,
+            Self::Muxer { .. } => NodeKind::Muxer,
+            Self::Sink => NodeKind::Sink,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct MediaPipelinePlan {
+    nodes: Vec<MediaPipelineNode>,
+}
+
+impl MediaPipelinePlan {
+    pub fn new(nodes: Vec<MediaPipelineNode>) -> PipelineResult<Self> {
+        validate_media_pipeline_nodes(&nodes)?;
+        Ok(Self { nodes })
+    }
+
+    pub fn nodes(&self) -> &[MediaPipelineNode] {
+        &self.nodes
+    }
+
+    pub fn has_transform_stages(&self) -> bool {
+        self.nodes.iter().any(|node| {
+            matches!(
+                node,
+                MediaPipelineNode::Decoder { .. }
+                    | MediaPipelineNode::VideoProcessor { .. }
+                    | MediaPipelineNode::AudioProcessor { .. }
+                    | MediaPipelineNode::Encoder { .. }
+            )
+        })
+    }
+}
+
+fn validate_media_pipeline_nodes(nodes: &[MediaPipelineNode]) -> PipelineResult<()> {
+    if nodes.is_empty() {
+        return Err(PipelineError::Empty);
+    }
+    if !matches!(nodes.first(), Some(MediaPipelineNode::Source))
+        || !matches!(nodes.last(), Some(MediaPipelineNode::Sink))
+    {
+        return Err(PipelineError::InvalidMediaPlan(
+            "media pipeline must start with Source and end with Sink".to_owned(),
+        ));
+    }
+
+    let mut previous_rank = 0;
+    let mut source_count = 0;
+    let mut demuxer_count = 0;
+    let mut muxer_count = 0;
+    let mut sink_count = 0;
+    for node in nodes {
+        let rank = media_node_rank(node);
+        if rank < previous_rank {
+            return Err(PipelineError::InvalidMediaPlan(format!(
+                "{} cannot appear after {}",
+                media_node_name(node.kind()),
+                media_node_name(kind_for_rank(previous_rank))
+            )));
+        }
+        previous_rank = rank;
+        match node {
+            MediaPipelineNode::Source => source_count += 1,
+            MediaPipelineNode::Demuxer { .. } => demuxer_count += 1,
+            MediaPipelineNode::Muxer { .. } => muxer_count += 1,
+            MediaPipelineNode::Sink => sink_count += 1,
+            MediaPipelineNode::PacketProcessor { operation, .. }
+            | MediaPipelineNode::VideoProcessor { operation, .. }
+            | MediaPipelineNode::AudioProcessor { operation, .. }
+                if operation.trim().is_empty() =>
+            {
+                return Err(PipelineError::InvalidMediaPlan(
+                    "processor operation cannot be empty".to_owned(),
+                ));
+            }
+            _ => {}
+        }
+    }
+    if source_count != 1 || demuxer_count != 1 || muxer_count != 1 || sink_count != 1 {
+        return Err(PipelineError::InvalidMediaPlan(
+            "media pipeline requires exactly one Source, Demuxer, Muxer, and Sink".to_owned(),
+        ));
+    }
+    Ok(())
+}
+
+fn media_node_rank(node: &MediaPipelineNode) -> u8 {
+    match node {
+        MediaPipelineNode::Source => 0,
+        MediaPipelineNode::Demuxer { .. } => 1,
+        MediaPipelineNode::PacketProcessor { .. } => 2,
+        MediaPipelineNode::Decoder { .. } => 3,
+        MediaPipelineNode::VideoProcessor { .. } | MediaPipelineNode::AudioProcessor { .. } => 4,
+        MediaPipelineNode::Encoder { .. } => 5,
+        MediaPipelineNode::Muxer { .. } => 6,
+        MediaPipelineNode::Sink => 7,
+    }
+}
+
+fn kind_for_rank(rank: u8) -> NodeKind {
+    match rank {
+        0 => NodeKind::Source,
+        1 => NodeKind::Demuxer,
+        2 => NodeKind::PacketProcessor,
+        3 => NodeKind::Decoder,
+        4 => NodeKind::VideoProcessor,
+        5 => NodeKind::Encoder,
+        6 => NodeKind::Muxer,
+        _ => NodeKind::Sink,
+    }
+}
+
+fn media_node_name(kind: NodeKind) -> &'static str {
+    match kind {
+        NodeKind::Source => "Source",
+        NodeKind::Demuxer => "Demuxer",
+        NodeKind::PacketProcessor => "PacketProcessor",
+        NodeKind::Decoder => "Decoder",
+        NodeKind::VideoProcessor => "VideoProcessor",
+        NodeKind::AudioProcessor => "AudioProcessor",
+        NodeKind::Encoder => "Encoder",
+        NodeKind::Muxer => "Muxer",
+        NodeKind::Sink => "Sink",
+    }
 }
 
 pub struct ExecutionContext {
@@ -207,6 +377,7 @@ impl Pipeline {
 #[derive(Debug, PartialEq, Eq)]
 pub enum PipelineError {
     Empty,
+    InvalidMediaPlan(String),
     MixedStages {
         expected: ProcessingStage,
         actual: ProcessingStage,
@@ -230,6 +401,9 @@ impl Display for PipelineError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
             Self::Empty => formatter.write_str("pipeline must contain at least one processor"),
+            Self::InvalidMediaPlan(message) => {
+                write!(formatter, "invalid media pipeline: {message}")
+            }
             Self::MixedStages { expected, actual } => {
                 write!(
                     formatter,
@@ -374,6 +548,10 @@ mod tests {
 
     fn metadata(id: &str, stage: ProcessingStage) -> ProcessorMetadata {
         ProcessorMetadata::new(ProcessorId::new(id).unwrap(), id, stage).unwrap()
+    }
+
+    fn backend_id(value: &str) -> BackendId {
+        BackendId::new(value).unwrap()
     }
 
     fn passthrough(input: ProcessInput) -> ProcessOutput {
@@ -585,6 +763,74 @@ mod tests {
                 .downcast_ref::<PipelineError>()
                 .is_some()
         );
+    }
+
+    #[test]
+    fn media_pipeline_accepts_remux_and_transform_stage_order() {
+        let remux = MediaPipelinePlan::new(vec![
+            MediaPipelineNode::Source,
+            MediaPipelineNode::Demuxer {
+                backend_id: backend_id("demuxer"),
+            },
+            MediaPipelineNode::Muxer {
+                backend_id: backend_id("muxer"),
+            },
+            MediaPipelineNode::Sink,
+        ])
+        .unwrap();
+        assert!(!remux.has_transform_stages());
+
+        let transcode = MediaPipelinePlan::new(vec![
+            MediaPipelineNode::Source,
+            MediaPipelineNode::Demuxer {
+                backend_id: backend_id("demuxer"),
+            },
+            MediaPipelineNode::Decoder {
+                backend_id: backend_id("decoder"),
+                stream_index: 0,
+                stream_kind: StreamKind::Video,
+            },
+            MediaPipelineNode::VideoProcessor {
+                backend_id: backend_id("processor"),
+                operation: "pixel_format_conversion".to_owned(),
+            },
+            MediaPipelineNode::Encoder {
+                backend_id: backend_id("encoder"),
+                stream_kind: StreamKind::Video,
+            },
+            MediaPipelineNode::Muxer {
+                backend_id: backend_id("muxer"),
+            },
+            MediaPipelineNode::Sink,
+        ])
+        .unwrap();
+        assert!(transcode.has_transform_stages());
+    }
+
+    #[test]
+    fn media_pipeline_rejects_out_of_order_stages() {
+        let error = MediaPipelinePlan::new(vec![
+            MediaPipelineNode::Source,
+            MediaPipelineNode::Demuxer {
+                backend_id: backend_id("demuxer"),
+            },
+            MediaPipelineNode::Encoder {
+                backend_id: backend_id("encoder"),
+                stream_kind: StreamKind::Video,
+            },
+            MediaPipelineNode::Decoder {
+                backend_id: backend_id("decoder"),
+                stream_index: 0,
+                stream_kind: StreamKind::Video,
+            },
+            MediaPipelineNode::Muxer {
+                backend_id: backend_id("muxer"),
+            },
+            MediaPipelineNode::Sink,
+        ])
+        .unwrap_err();
+
+        assert!(matches!(error, PipelineError::InvalidMediaPlan(_)));
     }
 
     #[test]

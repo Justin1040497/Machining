@@ -22,15 +22,16 @@ FLL 拥有进程内处理逻辑、Task 状态、Scheduler 和执行组合，不�
 - 配置解析只使用 Snapshot 冻结的需求、候选、选项图、推荐、预设和估算策略；Snapshot 同时记录 decision/estimator model revision，不兼容的 Runtime 会拒绝重新解析。
 - 低置信度基线体积估算与已校准目标体积策略的分离；未校准策略不能反推目标码率。
 - 执行提交请求/结果、输出冲突策略和同目录原子发布的 `OutputTransaction`。
-- 单活动 execution lane、用户暂停、安全检查点、取消、LIFO 抢占恢复和权威 lane Snapshot。
+- Video 1 槽与 Auxiliary 动态 1/2 槽、用户暂停、安全检查点、取消、按池 LIFO 抢占恢复和权威 execution Snapshot。
 - 基于进程内 libavformat 的真实 packet stream-copy/remux Backend，包含进度、回滚和原子输出发布。
-- 同一处理阶段内的最小 Pipeline 执行骨架。
+- 真实单视频、无音频的 decode -> 可选 swscale 像素格式转换 -> libx264 encode -> MP4 mux 执行链。
+- 由冻结 Snapshot 的 Candidate 构建并校验完整跨阶段 `MediaPipelinePlan`，再由 Runtime 选择 native execution Backend。
 - 静态 Plugin、ProcessorFactory 和 Registry。
-- Task 生命周期、分析 FIFO 与执行 LIFO 调度、Runtime 组装入口。
+- Task 生命周期、分析 FIFO 与执行资源池/按池 LIFO 调度、Runtime 组装入口。
 
 现有 CLI 已迁入独立的 `../fengine` 工程，不属于本 workspace。
 
-当前版本可以分析媒体、生成冻结 Snapshot、创建真实 execution，并对不含 Decoder、Encoder 或 Processor 的候选链执行 libav packet stream-copy/remux。执行进度、用户暂停/恢复、取消、安全抢占、LIFO 自动恢复与 `OutputTransaction` 已接入 Runtime。需要任一转换节点的链仍返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`，不会被 native discovery 伪装为 Engine-ready。当前不提供完整压缩/转码、动态插件加载、IPC 或网络服务。
+当前版本可以分析媒体、生成冻结 Snapshot、创建真实 execution，并对兼容候选链执行 libav packet stream-copy/remux，或执行单视频、无音频的 software decode -> 可选 swscale -> libx264 -> MP4 转码。执行进度、用户暂停/恢复、取消、安全抢占、资源池并发、按池 LIFO 自动恢复与 `OutputTransaction` 已接入 Runtime。音频、多流、HDR tone mapping、任意 Plugin Processor 桥接、未资格化 codec/hardware 以及其他转换组合仍返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`，不会被 native discovery 伪装为 Engine-ready。
 
 ## Workspace
 

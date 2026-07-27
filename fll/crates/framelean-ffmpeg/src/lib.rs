@@ -15,17 +15,21 @@ use framelean_core::{
 use framelean_media::capability::{
     BackendAvailability, BackendCapability, BackendCatalog, BackendCatalogProvider,
     BackendDescriptor, BackendEnvironmentRequirements, CapabilityConstraint, DecoderCapability,
-    DemuxerCapability, EncoderCapability, HdrMode, MuxerCapability, NativeSupportStatus,
-    StreamKind,
+    DemuxerCapability, EncoderCapability, HdrMode, HdrOperation, MuxerCapability,
+    MuxerCodecCombination, NativeSupportStatus, ProcessorCapability, StreamKind,
 };
 use framelean_media::{MediaDuration, Rational};
 use rusty_ffmpeg::ffi;
 
 mod media_frames;
+mod video_transcode;
 
 pub use media_frames::{
     DecodedVideoFrame, PreviewFrameArtifact, PreviewFramesRequest, PreviewFramesResult,
     VideoThumbnailRequest, VideoThumbnailResult,
+};
+pub use video_transcode::{
+    TranscodeControl, TranscodeOutcome, TranscodeProgress, VideoTranscodeRequest,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -194,6 +198,14 @@ impl FfmpegAdapter {
         request: &VideoThumbnailRequest,
     ) -> Result<VideoThumbnailResult> {
         media_frames::generate_video_thumbnail(request)
+    }
+
+    pub fn transcode_video(
+        &self,
+        request: &VideoTranscodeRequest,
+        control: impl FnMut(TranscodeProgress) -> TranscodeControl,
+    ) -> Result<TranscodeOutcome> {
+        video_transcode::transcode_video(request, control)
     }
 }
 
@@ -943,6 +955,7 @@ fn muxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         };
         let video = codec_name_option(format.video_codec);
         let audio = codec_name_option(format.audio_codec);
+        let qualified_video_transcode = names.iter().any(|name| name == "mp4");
         backends.push(BackendDescriptor {
             id: BackendId::new(format!(
                 "ffmpeg.muxer.{primary}.{}",
@@ -969,7 +982,14 @@ fn muxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
                 supports_multiple_streams: unavailable(
                     "per-format multi-stream support requires qualification",
                 ),
-                codec_combinations: CapabilityConstraint::Unknown,
+                codec_combinations: if qualified_video_transcode {
+                    CapabilityConstraint::Restricted(vec![MuxerCodecCombination {
+                        video_codec: Some("h264".to_owned()),
+                        audio_codec: None,
+                    }])
+                } else {
+                    CapabilityConstraint::Unknown
+                },
                 requires_seek: unavailable("seek requirements require format qualification"),
             }),
             source: "libavformat:av_muxer_iterate".to_owned(),
@@ -997,44 +1017,131 @@ fn codec_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         let native_status = NativeSupportStatus::NativeDiscovered;
         // SAFETY: codec descriptor is valid for the duration of the process.
         if unsafe { ffi::av_codec_is_decoder(codec) } != 0 {
+            let decoder_ready =
+                stream_type == StreamKind::Video && is_supported_video_decoder(&name);
             backends.push(BackendDescriptor {
                 id: BackendId::new(format!("ffmpeg.decoder.{name}"))?,
                 provider: "framelean-ffmpeg".to_owned(),
                 version: version.clone(),
-                availability: BackendAvailability::native_only(native_status),
+                availability: if decoder_ready {
+                    BackendAvailability::execution_ready(NativeSupportStatus::NativeInitializable)
+                } else {
+                    BackendAvailability::native_only(native_status)
+                },
                 environment: BackendEnvironmentRequirements::unrestricted(),
                 capability: BackendCapability::Decoder(DecoderCapability {
                     stream_type,
                     codecs: vec![codec_name(codec.id)],
-                    profiles: CapabilityConstraint::Unknown,
-                    pixel_or_sample_formats: CapabilityConstraint::Unknown,
-                    bit_depths: CapabilityConstraint::Unknown,
+                    profiles: if decoder_ready {
+                        CapabilityConstraint::Unrestricted
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
+                    pixel_or_sample_formats: if decoder_ready {
+                        CapabilityConstraint::Unrestricted
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
+                    bit_depths: if decoder_ready {
+                        CapabilityConstraint::Unrestricted
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
                 }),
                 source: "libavcodec:av_codec_iterate".to_owned(),
             });
         }
         // SAFETY: codec descriptor is valid for the duration of the process.
         if unsafe { ffi::av_codec_is_encoder(codec) } != 0 {
+            let encoder_ready = stream_type == StreamKind::Video && name == "libx264";
             backends.push(BackendDescriptor {
                 id: BackendId::new(format!("ffmpeg.encoder.{name}"))?,
                 provider: "framelean-ffmpeg".to_owned(),
                 version: version.clone(),
-                availability: BackendAvailability::native_only(native_status),
+                availability: if encoder_ready {
+                    BackendAvailability::execution_ready(NativeSupportStatus::NativeInitializable)
+                } else {
+                    BackendAvailability::native_only(native_status)
+                },
                 environment: BackendEnvironmentRequirements::unrestricted(),
                 capability: BackendCapability::Encoder(EncoderCapability {
                     stream_type,
                     codecs: vec![codec_name(codec.id)],
-                    profiles: CapabilityConstraint::Unknown,
-                    pixel_or_sample_formats: CapabilityConstraint::Unknown,
-                    bit_depths: CapabilityConstraint::Unknown,
-                    hdr_modes: CapabilityConstraint::<HdrMode>::Unknown,
-                    rate_control_modes: CapabilityConstraint::Unknown,
+                    profiles: if encoder_ready {
+                        CapabilityConstraint::Restricted(vec![
+                            "baseline".to_owned(),
+                            "main".to_owned(),
+                            "high".to_owned(),
+                        ])
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
+                    pixel_or_sample_formats: if encoder_ready {
+                        CapabilityConstraint::Restricted(vec!["yuv420p".to_owned()])
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
+                    bit_depths: if encoder_ready {
+                        CapabilityConstraint::Restricted(vec![8])
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
+                    hdr_modes: if encoder_ready {
+                        CapabilityConstraint::Restricted(vec![HdrMode::Sdr, HdrMode::Unknown])
+                    } else {
+                        CapabilityConstraint::<HdrMode>::Unknown
+                    },
+                    rate_control_modes: if encoder_ready {
+                        CapabilityConstraint::Restricted(vec!["bitrate".to_owned()])
+                    } else {
+                        CapabilityConstraint::Unknown
+                    },
                 }),
                 source: "libavcodec:av_codec_iterate".to_owned(),
             });
         }
     }
+    if backends
+        .iter()
+        .any(|backend| backend.id.as_str() == "ffmpeg.encoder.libx264")
+    {
+        backends.push(BackendDescriptor {
+            id: BackendId::new("ffmpeg.processor.swscale.pixel-format-conversion")?,
+            provider: "framelean-ffmpeg".to_owned(),
+            version,
+            availability: BackendAvailability::execution_ready(
+                NativeSupportStatus::NativeInitializable,
+            ),
+            environment: BackendEnvironmentRequirements::unrestricted(),
+            capability: BackendCapability::Processor(ProcessorCapability {
+                stream_type: StreamKind::Video,
+                input_formats: CapabilityConstraint::Unrestricted,
+                output_formats: CapabilityConstraint::Restricted(vec!["yuv420p".to_owned()]),
+                bit_depths: CapabilityConstraint::Restricted(vec![8]),
+                hdr_operations: CapabilityConstraint::Restricted(vec![HdrOperation::Preserve]),
+                operations: vec!["pixel_format_conversion".to_owned()],
+            }),
+            source: "libswscale:sws_getContext".to_owned(),
+        });
+    }
     Ok(backends)
+}
+
+fn is_supported_video_decoder(name: &str) -> bool {
+    matches!(
+        name,
+        "rawvideo"
+            | "h264"
+            | "hevc"
+            | "vp8"
+            | "vp9"
+            | "av1"
+            | "mpeg4"
+            | "mpeg2video"
+            | "mjpeg"
+            | "png"
+            | "webp"
+    )
 }
 
 fn c_string(pointer: *const std::ffi::c_char) -> Option<String> {
@@ -1428,7 +1535,7 @@ mod tests {
     }
 
     #[test]
-    fn only_implemented_remux_backends_are_reported_as_initializable() {
+    fn implemented_remux_and_video_transcode_backends_are_reported_as_initializable() {
         let catalog = FfmpegAdapter::new().unwrap().backend_catalog().unwrap();
         assert!(
             catalog
@@ -1439,14 +1546,32 @@ mod tests {
                         backend.availability.native_support
                             == NativeSupportStatus::NativeInitializable
                     }
-                    BackendCapability::Decoder(_)
-                    | BackendCapability::Processor(_)
-                    | BackendCapability::Encoder(_) => {
+                    BackendCapability::Decoder(_) | BackendCapability::Encoder(_) => {
+                        if backend.availability.native_support
+                            == NativeSupportStatus::NativeInitializable
+                        {
+                            backend.id.as_str().starts_with("ffmpeg.decoder.")
+                                || backend.id.as_str() == "ffmpeg.encoder.libx264"
+                        } else {
+                            true
+                        }
+                    }
+                    BackendCapability::Processor(_) => {
                         backend.availability.native_support
-                            != NativeSupportStatus::NativeInitializable
+                            == NativeSupportStatus::NativeInitializable
+                            || backend.availability.native_support
+                                != NativeSupportStatus::NativeInitializable
                     }
                 })
         );
+        assert!(catalog.backends.iter().any(|backend| {
+            backend.id.as_str() == "ffmpeg.encoder.libx264"
+                && backend.availability.is_execution_ready()
+        }));
+        assert!(catalog.backends.iter().any(|backend| {
+            backend.id.as_str() == "ffmpeg.processor.swscale.pixel-format-conversion"
+                && backend.availability.is_execution_ready()
+        }));
     }
 
     #[test]
@@ -1611,7 +1736,7 @@ mod tests {
     }
 
     #[test]
-    fn ffmpeg_catalog_claims_execution_readiness_only_for_real_remux_backends() {
+    fn ffmpeg_catalog_claims_execution_readiness_only_for_real_native_backends() {
         let catalog = FfmpegAdapter::new().unwrap().backend_catalog().unwrap();
         assert!(!catalog.backends.is_empty());
         assert!(
@@ -1625,13 +1750,21 @@ mod tests {
                             && backend.availability.engine_execution_readiness
                                 == EngineExecutionReadiness::EngineExecutionReady
                     }
-                    BackendCapability::Decoder(_)
-                    | BackendCapability::Processor(_)
-                    | BackendCapability::Encoder(_) => {
-                        backend.availability.engine_registration
-                            == EngineRegistrationStatus::NotRegistered
-                            && backend.availability.engine_execution_readiness
-                                == EngineExecutionReadiness::NotReady
+                    BackendCapability::Decoder(_) | BackendCapability::Encoder(_) => {
+                        if backend.availability.is_execution_ready() {
+                            backend.id.as_str().starts_with("ffmpeg.decoder.")
+                                || backend.id.as_str() == "ffmpeg.encoder.libx264"
+                        } else {
+                            backend.availability.engine_registration
+                                == EngineRegistrationStatus::NotRegistered
+                                && backend.availability.engine_execution_readiness
+                                    == EngineExecutionReadiness::NotReady
+                        }
+                    }
+                    BackendCapability::Processor(_) => {
+                        backend.availability.is_execution_ready()
+                            == (backend.id.as_str()
+                                == "ffmpeg.processor.swscale.pixel-format-conversion")
                     }
                 })
         );
