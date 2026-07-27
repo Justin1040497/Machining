@@ -67,7 +67,7 @@
 - 不创建 `docs/archive/`、`docs/features/`、`docs/plans/` 或 `docs/product/roadmap.md`。
 - 不创建假能力、空 crate 或仅为目标目录占位的模块；FLL 与 FEngine 保持独立 Cargo 工程。
 - Pipeline 不依赖 Plugin，Plugin 不依赖 Pipeline；两者只在 Runtime 内部组合。
-- FLL 是核心处理库；FEngine 是独立引擎进程和进程级管理边界。当前 FEngine 已实现长度帧 JSON Worker、受 token 保护的本机 loopback 守护连接、独立分析/执行队列、会话幂等、Snapshot 对账和执行控制；FLL Runtime 已支持真实 libav stream-copy/remux、单 lane LIFO 调度和输出事务。需要 Decoder、Encoder 或 Processor 的完整转码链仍必须 fail closed。
+- FLL 是核心处理库；FEngine 是独立引擎进程和进程级管理边界。当前 FEngine 已实现长度帧 JSON Worker、受 token 保护的本机 loopback 守护连接、独立分析/执行队列、会话幂等、Snapshot 对账和执行控制；FLL Runtime 已支持真实 libav stream-copy/remux、严格限定的单视频无音频 libx264 转码、Video/Auxiliary 资源池、按池 LIFO 调度和输出事务。音频、多流、HDR、任意 Plugin Processor 桥接及其他未资格化转换组合仍必须 fail closed。
 - FEngine 不绕过 FLL Runtime 修改 Task 状态；进程通信、监督或会话能力只在存在真实实现时建立。
 - Backend 只按实际 `backend/pom.xml` modules 工作，不重命名、提升或合并现有 `ruoyi-*` 模块。
 - `protocol/v1` 记录当前 Client/FEngine transport、命令、职责和兼容边界；wire model 位于 `fengine/src/protocol.rs`，Runtime Schema 的代码源头与基线继续位于 FLL。

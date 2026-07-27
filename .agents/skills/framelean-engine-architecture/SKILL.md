@@ -40,7 +40,7 @@ FLL 是 FrameLean 的核心处理库；FEngine 是依赖 FLL 的独立引擎进�
 - `framelean-ffmpeg`：进程内 libav Adapter，实现媒体分析、Native Backend Catalog 和兼容媒体的 packet stream-copy/remux；不调用 ffmpeg/ffprobe executable。
 - `framelean-pipeline`：`NodeKind`、Builder 和执行；只认识 Processor，不知道 Registry、Plugin 或 Factory 来源。
 - `framelean-plugin`：Plugin、Factory、Registry 和 Plugin Processor capability 汇集；当前仅静态注册，不控制 Pipeline，不加载动态库。
-- `framelean-runtime`：FLL 内部执行与组合边界；聚合分析、环境、Backend、决策和 Schema，保存 AnalysisSnapshot，拥有 execution Task、单 lane LIFO Scheduler、安全暂停上下文和输出事务，并组装 Plugin / Pipeline。
+- `framelean-runtime`：FLL 内部执行与组合边界；聚合分析、环境、Backend、决策和 Schema，保存 AnalysisSnapshot，拥有 execution Task、Video/Auxiliary 资源池 Scheduler、按池 LIFO 恢复、安全暂停上下文和输出事务，并组装 Plugin / Pipeline。
 - `fengine`：独立引擎进程、执行宿主和进程级管理边界；解析参数、装配 Adapter 与 Runtime，并实现长度帧 JSON Worker、本机守护连接、独立分析/执行队列、会话幂等、Client ID 映射和 Snapshot 持久化，不承载核心处理逻辑。
 
 ## 两层组装边界
@@ -54,8 +54,8 @@ FLL 是 FrameLean 的核心处理库；FEngine 是依赖 FLL 的独立引擎进�
 
 - FLL 拥有进程内媒体处理、Task 状态、Scheduler、Pipeline、Plugin、Runtime 和 Runtime Schema。
 - FEngine 长期拥有引擎进程生命周期、运行隔离、外部请求入口及状态、进度、日志、错误和结果的进程级出口。
-- 当前已实现 protocol v1 长度帧 JSON、stdio 与本机 loopback transport、心跳、请求幂等、独立分析/执行队列、Snapshot 存储、批量提交、队列重排、进度、暂停/恢复/取消和 LIFO 抢占恢复。
-- FLL 当前真实执行 Backend 支持不含转换节点的 libav packet stream-copy/remux；需要 Decoder、Encoder 或 Processor 的完整压缩/转码 Pipeline 尚未实现，必须返回可识别失败。
+- 当前已实现 protocol v1 长度帧 JSON、stdio 与本机 loopback transport、心跳、请求幂等、独立分析/执行队列、Snapshot 存储、批量提交、队列重排、多个活动 execution、进度、暂停/恢复/取消和按资源池 LIFO 抢占恢复。
+- FLL 当前真实执行 Backend 支持 libav packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4；音频、多流、HDR、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换组合必须返回可识别失败。
 - Desktop Client 已接入 Engine Gateway 的完整任务生命周期，并在重连后使用 Engine Snapshot 对账；Client 不保留 Dart FFmpeg Runner、FFprobe 分析器或 FFmpeg 命令规划。
 - Client 进程重启可接回仍存活的守护 Worker；守护进程自身崩溃后的跨进程媒体 checkpoint 续作尚未实现。
 

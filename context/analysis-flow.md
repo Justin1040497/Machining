@@ -15,4 +15,4 @@ Client AnalyzeMedia | SubmitAnalysisBatch
 
 FEngine 已实现常驻 Worker、受随机 token 保护的本机回环守护连接、会话、心跳、幂等、独立分析队列和 Snapshot 磁盘适配；FLL 继续拥有 AnalysisSnapshot 模型、分析与配置算法、Task、Scheduler、Pipeline 和 Runtime。FEngine 持久化成功之前不会把分析报告为完成。批量分析先整体校验再按 Client 摊平顺序建立独立工作；分析在 Client 离线窗口结束时，Engine Snapshot 的有界终态摘要会引导 Client 重新读取持久化 FLL Snapshot。
 
-新 Client 从 Snapshot 保存 opaque selection，不再把配置保存拆成独立 `ResolveConfiguration` 步骤。执行提交时，FLL 以 analysis ID/revision 和 selection 做同一次原子复核。兼容 RPC 仍可查询旧 Client 的配置解析，但不在新 UI 保存路径中调用。
+Client 从 Snapshot 保存 opaque selection，不再把配置保存拆成独立 `ResolveConfiguration` 步骤。协议中不存在该 RPC；执行提交时，FLL 以 analysis ID/revision 和 selection 做同一次原子复核。

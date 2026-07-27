@@ -6,3 +6,4 @@
 
 - [任务夹摊平与跨阶段队列顺序](260726-task-folder-queue-flattening.md)
 - [LIFO 抢占式执行与自动恢复](260726-lifo-preemptive-execution.md)
+- [资源池并发与按池 LIFO 恢复](260727-resource-pool-concurrency.md)

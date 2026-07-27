@@ -29,7 +29,7 @@
 - 导入单个文件、多个文件或文件夹，并按媒体类型组织任务夹。
 - 自定义容器、编码器、分辨率、质量、码率、声道和输出位置。
 - 按设备能力使用 VideoToolbox、NVENC、QSV、AMF 等硬件编码。
-- 使用 FEngine 权威分析/执行队列与 FLL 单 lane，支持排序、暂停、重试、LIFO 抢占恢复和批量配置。
+- 使用 FEngine 权威分析/执行队列与 FLL Video/Auxiliary 资源池，支持排序、暂停、重试、按池 LIFO 抢占恢复和批量配置。
 - 通过临时输出、结果验收和本地持久化降低任务失败或异常退出造成的损坏风险。
 
 更完整的能力和平台边界见 [项目上下文](desktop-client/CONTEXT.md)。
@@ -66,7 +66,7 @@ FrameLean 使用统一的 Monorepo 项目结构管理桌面客户端产品、更
 - [`scripts/`](scripts/README.md) 与 `tools/`：仓库级构建、验证、发布和辅助工具入口。
 - [`docs/`](docs/README.md)、`context/`、`changelog/` 与 `legal/`：正式文档、系统上下文、技术变更和合规资料。
 
-FLL 提供进程内媒体分析、决策、execution Task、单 lane LIFO 调度、输出事务和 Runtime Schema；FEngine 已实现独立 Worker、本机回环守护连接、单项/批量分析与执行、双队列 revision 和原子重排、会话幂等、事件 sequence、Snapshot 对账与执行控制。Desktop Client 的新任务路径已统一经 FEngine，并可在 Client 连接中断或进程重启后接回仍在运行的 Worker。当前真实媒体 Backend 支持可兼容媒体的 libav packet stream-copy/remux；需要解码、编码或 processor 的完整压缩/转码链仍会明确拒绝。
+FLL 提供进程内媒体分析、决策、execution Task、Video/Auxiliary 资源池和按池 LIFO 调度、输出事务和 Runtime Schema；FEngine 已实现独立 Worker、本机回环守护连接、单项/批量分析与执行、双队列 revision 和原子重排、会话幂等、事件 sequence、Snapshot 对账与执行控制。Desktop Client 的新任务路径已统一经 FEngine，并可在 Client 连接中断或进程重启后接回仍在运行的 Worker。当前真实媒体 Backend 支持可兼容媒体的 libav packet stream-copy/remux；需要解码、编码或 processor 的完整压缩/转码链仍会明确拒绝。
 
 ## 开发
 
