@@ -34,6 +34,7 @@ attaches the macOS and Windows artifacts.
 | `build/build_qmc_decrypt_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned upstream QMC adapter and copy its license files for one architecture | `build/dependencies/qmc/macos-{arch}/` |
 | `build/build_qmc_decrypt_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 QMC adapter slices | `build/dependencies/qmc/macos-universal/` |
 | `build/build_qmc_decrypt_windows.ps1` | Windows x64 | Build the pinned upstream QMC adapter and copy its license files | `build/dependencies/qmc/windows-x64/` |
+| `verify/engine_client_e2e.sh` | macOS / Windows shell | Build debug FEngine against bundled static libav, then run the real Desktop Gateway daemon E2E | no persistent output |
 
 These scripts prepare dependencies. They do not package the FrameLean app.
 

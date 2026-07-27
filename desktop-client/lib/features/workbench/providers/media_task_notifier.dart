@@ -11,33 +11,14 @@ final mediaTaskListProvider =
       MediaTaskListNotifier.new,
     );
 
-final taskFolderListProvider = FutureProvider<List<TaskFolder>>((ref) {
-  return ref.watch(taskFolderRepositoryProvider).loadAllFolders();
-});
-
 class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Timer? executionRefreshTimer;
-  MediaAnalysisQueue? _analysisQueue;
-
-  MediaAnalysisQueue get _queue {
-    if (_analysisQueue != null) {
-      return _analysisQueue!;
-    }
-    final queue = ref.read(mediaAnalysisQueueProvider);
-    queue.onEntryStateChanged = (entry) {
-      unawaited(refreshAnalysisTaskState(entry.taskId));
-    };
-    _analysisQueue = queue;
-    return _analysisQueue!;
-  }
 
   @override
   Future<List<MediaTask>> build() async {
+    ref.watch(taskArrangementRevisionProvider);
     ref.onDispose(() {
       executionRefreshTimer?.cancel();
-      if (_analysisQueue case final queue?) {
-        queue.onEntryStateChanged = null;
-      }
     });
 
     final repository = ref.watch(mediaTaskRepositoryProvider);
@@ -222,19 +203,20 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ref.invalidate(taskFolderListProvider);
   }
 
-  Future<void> applyTaskFolderConfig({
+  Future<MediaTask> saveTaskFolderEngineConfiguration({
     required String folderId,
-    required MediaTaskConfig config,
-    required TaskPurpose purpose,
+    required Map<String, EngineAnalysisSnapshotDocument> snapshots,
+    required EngineConfigurationSelection selection,
   }) async {
-    final result = await ApplyTaskFolderConfigUseCase(
-      mediaTaskRepository: ref.read(mediaTaskRepositoryProvider),
-      taskFolderRepository: ref.read(taskFolderRepositoryProvider),
-      appSettingsRepository: ref.read(appSettingsRepositoryProvider),
-    ).call(folderId: folderId, config: config, purpose: purpose);
-    state = AsyncData(result.tasks);
-    ref.invalidate(taskFolderListProvider);
+    final tasks = await SaveTaskFolderEngineConfigurationUseCase(
+      repository: ref.read(mediaTaskRepositoryProvider),
+      analysisProjectionRepository: ref.read(
+        engineAnalysisProjectionRepositoryProvider,
+      ),
+    ).call(folderId: folderId, snapshots: snapshots, selection: selection);
+    state = AsyncData(tasks);
     unawaited(syncEngineQueueStatus());
+    return tasks.firstWhere((task) => snapshots.containsKey(task.id));
   }
 
   Future<void> retryTerminalTasksInFolder(String folderId) async {
@@ -475,7 +457,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   Future<EngineQueueStartResult> pauseAllRunningTasks() async {
     final result = await ref
         .read(mediaTaskExecutionCoordinatorProvider)
-        .pauseActive();
+        .pauseAll();
 
     await refreshTasksFromRepository();
     return result;
@@ -582,13 +564,12 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
   }
 
   Future<void> analyzeTasksInBackground(List<String> taskIds) async {
-    // 所有分析现已统一路由到全局 MediaAnalysisQueue，
-    // 此处保留方法签名以兼容外部调用者（如 WorkbenchImportHandler）。
+    // 该应用层入口由导入工作流使用，实际分析统一提交到 FEngine。
     _enqueueAnalyses(taskIds);
   }
 
   Future<void> analyzeTaskById(String taskId) async {
-    // 所有分析现已统一路由到全局 MediaAnalysisQueue。
+    // 单任务入口与批量入口共享 FEngine 分析队列。
     _enqueueAnalyses([taskId]);
   }
 
@@ -610,15 +591,6 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
         ),
         readEngineGateway: () => ref.read(engineGatewayProvider.future),
       ).call(taskIds);
-    } on StateError catch (error) {
-      if (!error.toString().contains('不支持原子批量分析提交')) {
-        await _recordAnalysisBatchFailure(taskIds, error);
-        return;
-      }
-      // Compatibility-only gateways can still use the established per-task
-      // request path. The production LocalFEngineGateway always supports the
-      // atomic batch command.
-      accepted = taskIds;
     } on Object catch (error) {
       // A transport failure has an unknown commit result. Never resubmit the
       // children individually: doing so could duplicate work that FEngine
@@ -629,8 +601,11 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     if (!ref.mounted) {
       return;
     }
-    _queue.enqueueAll(accepted);
-    unawaited(_refreshWhenAnalysisQueueIsIdle());
+    if (accepted.isEmpty) {
+      return;
+    }
+    await refreshTasksFromRepository();
+    await syncEngineQueueStatus();
   }
 
   Future<void> _recordAnalysisBatchFailure(
@@ -668,29 +643,6 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     if (ref.mounted && state.hasValue) {
       await refreshTasksFromRepository();
     }
-  }
-
-  Future<void> _refreshWhenAnalysisQueueIsIdle() async {
-    await _queue.waitForCompletion();
-    if (!ref.mounted || !state.hasValue) {
-      return;
-    }
-    await refreshTasksFromRepository();
-  }
-
-  /// 分析完成后刷新任务列表中的单个任务状态。
-  /// 由 MediaAnalysisQueue.onEntryStateChanged 回调触发，
-  /// 使用 loadTaskById 精确更新，避免全量 loadAllTasks。
-  Future<void> refreshAnalysisTaskState(String taskId) async {
-    if (!state.hasValue) {
-      return;
-    }
-    final repository = ref.read(mediaTaskRepositoryProvider);
-    final updatedTask = await repository.loadTaskById(taskId);
-    if (updatedTask != null) {
-      state = AsyncData(replaceMediaTask(state.requireValue, updatedTask));
-    }
-    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> syncEngineQueueStatus() async {

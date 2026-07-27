@@ -288,7 +288,7 @@ final class FEngineProtocolClient {
 
   Future<FEngineProtocolResult> requestWork({
     required String commandType,
-    required Map<String, Object?> commandPayload,
+    Map<String, Object?>? commandPayload,
     required String expectedTerminalEvent,
     Set<String> alternativeTerminalEvents = const <String>{},
     String? requestId,
@@ -529,6 +529,10 @@ final class FEngineProtocolClient {
           sequence: sequence,
           event: payload,
         );
+        return;
+      }
+      if (kind == 'error') {
+        _failConnection(_parseWorkerError(payload, requestId: requestId));
         return;
       }
       throw _protocolFailure(

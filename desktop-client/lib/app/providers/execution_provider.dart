@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/library.dart';
@@ -6,34 +5,6 @@ import 'package:framelean/app/providers/app_notification_provider.dart';
 import 'package:framelean/app/providers/engine_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
 import 'package:path/path.dart' as path;
-
-/// Client-side analysis submission coordinator. FEngine owns the external
-/// work queue and FLL owns the actual analysis.
-final mediaAnalysisQueueProvider = Provider<MediaAnalysisQueue>((ref) {
-  final queue = MediaAnalysisQueue(
-    analyzeTask: (taskId) async {
-      final repository = ref.read(mediaTaskRepositoryProvider);
-      final projectionRepository = ref.read(
-        engineAnalysisProjectionRepositoryProvider,
-      );
-
-      final useCase = AnalyzeMediaTaskUseCase(
-        repository: repository,
-        analysisProjectionRepository: projectionRepository,
-        readEngineGateway: () => ref.read(engineGatewayProvider.future),
-      );
-
-      return useCase.call(taskId);
-    },
-  );
-
-  ref.onDispose(() {
-    // 容器销毁时停止队列，防止子进程泄漏
-    unawaited(queue.stop());
-  });
-
-  return queue;
-});
 
 /// Engine execution submission is a process-boundary operation. The provider
 /// keeps one use-case instance so duplicate submissions for the same task can
@@ -55,9 +26,8 @@ final submitEngineExecutionUseCaseProvider =
 
 /// Routes all Client execution requests to the FEngine process boundary.
 ///
-/// The legacy runner provider remains available to migration-only controls
-/// (pause, cancellation and cleanup) until those surfaces move to Engine APIs.
-/// It is intentionally not injected into the execution coordinator.
+/// Pause, resume, cancellation and cleanup use the Engine control APIs through
+/// the same process boundary.
 final mediaTaskExecutionCoordinatorProvider =
     Provider<MediaTaskExecutionCoordinator>((ref) {
       return MediaTaskExecutionCoordinator(

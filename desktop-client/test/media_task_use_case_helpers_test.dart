@@ -374,7 +374,7 @@ MediaTask testTask({
     fileName: 'holiday.mov',
     mediaKind: MediaKind.video,
     purpose: purpose,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: MediaTaskConfig.initialFor(MediaKind.video),
     progress: 0,
     sortOrder: sortOrder,

@@ -95,36 +95,42 @@ class MediaTaskExecutionCoordinator {
   }
 
   Future<EngineQueueStartResult> pauseFolder(String folderId) async {
-    final snapshot =
-        (await (await _requireGateway()).getEngineSnapshot()).value;
-    final activeId = snapshot.executionLane.active?.executionId;
-    if (activeId == null) {
+    final gateway = await _requireGateway();
+    final projectionRepository = _requireProjectionRepository();
+    final snapshot = (await gateway.getEngineSnapshot()).value;
+    final activeIds = snapshot.executionLane.activeExecutions
+        .map((entry) => entry.executionId)
+        .toSet();
+    if (activeIds.isEmpty) {
       return const EngineQueueStartResult(
         outcome: EngineQueueStartOutcome.noPendingTask,
         message: 'FEngine 当前没有运行中的任务',
       );
     }
+    final tasksByExecutionId = <String, MediaTask>{};
     for (final task in await repository.loadAllTasks()) {
       if (task.folderId != folderId) {
         continue;
       }
-      final projection = await _requireProjectionRepository().loadByTaskId(
-        task.id,
-      );
-      if (projection?.executionId == activeId) {
-        return pauseTask(task.id);
+      final projection = await projectionRepository.loadByTaskId(task.id);
+      final executionId = projection?.executionId;
+      if (executionId != null && activeIds.contains(executionId)) {
+        tasksByExecutionId[executionId] = task;
       }
     }
-    return const EngineQueueStartResult(
-      outcome: EngineQueueStartOutcome.noPendingTask,
-      message: '该任务夹没有运行中的 FEngine 任务',
+    return _pauseExecutions(
+      gateway: gateway,
+      executionIds: tasksByExecutionId.keys,
+      tasksByExecutionId: tasksByExecutionId,
+      emptyMessage: '该任务夹没有运行中的 FEngine 任务',
     );
   }
 
   Future<EngineQueueStartResult> pauseActive() async {
     final snapshot =
         (await (await _requireGateway()).getEngineSnapshot()).value;
-    final activeId = snapshot.executionLane.active?.executionId;
+    final activeId =
+        snapshot.executionLane.activeExecutions.firstOrNull?.executionId;
     if (activeId == null) {
       return const EngineQueueStartResult(
         outcome: EngineQueueStartOutcome.noPendingTask,
@@ -134,15 +140,75 @@ class MediaTaskExecutionCoordinator {
     return _controlExecutionId(activeId, EngineExecutionControlAction.pause);
   }
 
-  Future<EngineQueueStartResult> pauseAll() => pauseActive();
+  Future<EngineQueueStartResult> pauseAll() async {
+    final gateway = await _requireGateway();
+    final snapshot = (await gateway.getEngineSnapshot()).value;
+    final activeIds = snapshot.executionLane.activeExecutions
+        .map((entry) => entry.executionId)
+        .toList(growable: false);
+    final tasksByExecutionId = <String, MediaTask>{};
+    if (activeIds.isNotEmpty) {
+      final activeIdSet = activeIds.toSet();
+      final projectionRepository = _requireProjectionRepository();
+      for (final task in await repository.loadAllTasks()) {
+        final projection = await projectionRepository.loadByTaskId(task.id);
+        final executionId = projection?.executionId;
+        if (executionId != null && activeIdSet.contains(executionId)) {
+          tasksByExecutionId[executionId] = task;
+        }
+      }
+    }
+    return _pauseExecutions(
+      gateway: gateway,
+      executionIds: activeIds,
+      tasksByExecutionId: tasksByExecutionId,
+      emptyMessage: 'FEngine 当前没有运行中的任务',
+    );
+  }
+
+  Future<EngineQueueStartResult> _pauseExecutions({
+    required EngineLifecycleGateway gateway,
+    required Iterable<String> executionIds,
+    required Map<String, MediaTask> tasksByExecutionId,
+    required String emptyMessage,
+  }) async {
+    final ids = executionIds.toList(growable: false);
+    if (ids.isEmpty) {
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.noPendingTask,
+        message: emptyMessage,
+      );
+    }
+
+    EngineQueueStartResult? firstNonPaused;
+    for (final executionId in ids) {
+      final result = _controlResult(
+        tasksByExecutionId[executionId],
+        await gateway.controlExecution(
+          executionId,
+          EngineExecutionControlAction.pause,
+        ),
+      );
+      if (result.outcome != EngineQueueStartOutcome.paused) {
+        firstNonPaused ??= result;
+      }
+    }
+    return firstNonPaused ??
+        EngineQueueStartResult(
+          outcome: EngineQueueStartOutcome.paused,
+          task: tasksByExecutionId[ids.first],
+          message: '已向 FEngine 暂停 ${ids.length} 个运行中任务',
+        );
+  }
 
   Future<void> cancelAll() async {
     final gateway = await _requireGateway();
     final lane = (await gateway.getEngineSnapshot()).value.executionLane;
     final executionIds = <String>{
-      if (lane.active case final active?) active.executionId,
+      ...lane.activeExecutions.map((entry) => entry.executionId),
       ...lane.normalWaiting.map((entry) => entry.executionId),
-      ...lane.resumeStack.map((entry) => entry.executionId),
+      ...lane.videoResumeStack.map((entry) => entry.executionId),
+      ...lane.auxiliaryResumeStack.map((entry) => entry.executionId),
       ...lane.userPaused.map((entry) => entry.executionId),
     };
     for (final executionId in executionIds) {

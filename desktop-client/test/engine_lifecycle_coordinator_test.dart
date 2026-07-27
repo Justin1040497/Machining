@@ -10,12 +10,16 @@ void main() {
     () async {
       final tasks = <MediaTask>[
         _task('analysis'),
+        _task('running-video').copyWith(status: TaskStatus.ready),
+        _task('running-audio').copyWith(status: TaskStatus.ready),
         _task('waiting').copyWith(status: TaskStatus.ready),
         _task('preempted').copyWith(status: TaskStatus.ready),
         _task('paused').copyWith(status: TaskStatus.ready),
       ];
       final taskRepository = _TaskRepository(tasks);
       final projections = _ProjectionRepository(<EngineAnalysisProjection>[
+        _projection('running-video', executionId: 'execution-running-video'),
+        _projection('running-audio', executionId: 'execution-running-audio'),
         _projection('waiting', executionId: 'execution-waiting'),
         _projection('preempted', executionId: 'execution-preempted'),
         _projection('paused', executionId: 'execution-paused'),
@@ -31,11 +35,22 @@ void main() {
           analysisQueue: const <EngineAnalysisQueueEntrySnapshot>[],
           executionLane: EngineExecutionLaneSnapshot(
             queueRevision: 9,
-            active: null,
+            activeExecutions: <EngineScheduledExecution>[
+              _execution(
+                'execution-running-video',
+                EngineExecutionState.running,
+                resourcePool: EngineExecutionResourcePool.video,
+              ),
+              _execution(
+                'execution-running-audio',
+                EngineExecutionState.running,
+              ),
+            ],
             normalWaiting: <EngineScheduledExecution>[
               _execution('execution-waiting', EngineExecutionState.queued),
             ],
-            resumeStack: <EngineScheduledExecution>[
+            videoResumeStack: const <EngineScheduledExecution>[],
+            auxiliaryResumeStack: <EngineScheduledExecution>[
               _execution(
                 'execution-preempted',
                 EngineExecutionState.preempted,
@@ -64,6 +79,8 @@ void main() {
       await coordinator.start();
 
       expect(taskRepository['analysis'].status, TaskStatus.analyzing);
+      expect(taskRepository['running-video'].status, TaskStatus.running);
+      expect(taskRepository['running-audio'].status, TaskStatus.running);
       expect(taskRepository['waiting'].status, TaskStatus.executionQueued);
       expect(taskRepository['preempted'].status, TaskStatus.preempted);
       expect(taskRepository['paused'].status, TaskStatus.paused);
@@ -85,9 +102,12 @@ void main() {
         analysisQueue: const <EngineAnalysisQueueEntrySnapshot>[],
         executionLane: EngineExecutionLaneSnapshot(
           queueRevision: 1,
-          active: _execution('execution-1', EngineExecutionState.running),
+          activeExecutions: <EngineScheduledExecution>[
+            _execution('execution-1', EngineExecutionState.running),
+          ],
           normalWaiting: const <EngineScheduledExecution>[],
-          resumeStack: const <EngineScheduledExecution>[],
+          videoResumeStack: const <EngineScheduledExecution>[],
+          auxiliaryResumeStack: const <EngineScheduledExecution>[],
         ),
         lastSequence: 3,
       ),
@@ -148,14 +168,16 @@ void main() {
           analysisQueue: <EngineAnalysisQueueEntrySnapshot>[],
           executionLane: EngineExecutionLaneSnapshot(
             queueRevision: 2,
-            active: null,
+            activeExecutions: <EngineScheduledExecution>[],
             normalWaiting: <EngineScheduledExecution>[],
-            resumeStack: <EngineScheduledExecution>[],
+            videoResumeStack: <EngineScheduledExecution>[],
+            auxiliaryResumeStack: <EngineScheduledExecution>[],
           ),
           terminalExecutions: <EngineTerminalExecutionSnapshot>[
             EngineTerminalExecutionSnapshot(
               executionId: 'execution-1',
               clientTaskId: 'task',
+              resourcePool: EngineExecutionResourcePool.auxiliary,
               state: EngineExecutionState.completed,
               outputPath: '/recovered.wav',
             ),
@@ -214,9 +236,10 @@ void main() {
           ],
           executionLane: EngineExecutionLaneSnapshot(
             queueRevision: 0,
-            active: null,
+            activeExecutions: <EngineScheduledExecution>[],
             normalWaiting: <EngineScheduledExecution>[],
-            resumeStack: <EngineScheduledExecution>[],
+            videoResumeStack: <EngineScheduledExecution>[],
+            auxiliaryResumeStack: <EngineScheduledExecution>[],
           ),
           lastSequence: 4,
         ),
@@ -251,9 +274,10 @@ void main() {
           analysisQueue: <EngineAnalysisQueueEntrySnapshot>[],
           executionLane: EngineExecutionLaneSnapshot(
             queueRevision: 0,
-            active: null,
+            activeExecutions: <EngineScheduledExecution>[],
             normalWaiting: <EngineScheduledExecution>[],
-            resumeStack: <EngineScheduledExecution>[],
+            videoResumeStack: <EngineScheduledExecution>[],
+            auxiliaryResumeStack: <EngineScheduledExecution>[],
           ),
           lastSequence: 4,
         ),
@@ -303,9 +327,10 @@ void main() {
         analysisQueue: <EngineAnalysisQueueEntrySnapshot>[],
         executionLane: EngineExecutionLaneSnapshot(
           queueRevision: 0,
-          active: null,
+          activeExecutions: <EngineScheduledExecution>[],
           normalWaiting: <EngineScheduledExecution>[],
-          resumeStack: <EngineScheduledExecution>[],
+          videoResumeStack: <EngineScheduledExecution>[],
+          auxiliaryResumeStack: <EngineScheduledExecution>[],
         ),
         lastSequence: 1,
       ),
@@ -338,9 +363,10 @@ void main() {
         analysisQueue: <EngineAnalysisQueueEntrySnapshot>[],
         executionLane: EngineExecutionLaneSnapshot(
           queueRevision: 0,
-          active: null,
+          activeExecutions: <EngineScheduledExecution>[],
           normalWaiting: <EngineScheduledExecution>[],
-          resumeStack: <EngineScheduledExecution>[],
+          videoResumeStack: <EngineScheduledExecution>[],
+          auxiliaryResumeStack: <EngineScheduledExecution>[],
         ),
         lastSequence: 0,
       ),
@@ -408,9 +434,10 @@ void main() {
         analysisQueue: <EngineAnalysisQueueEntrySnapshot>[],
         executionLane: EngineExecutionLaneSnapshot(
           queueRevision: 0,
-          active: null,
+          activeExecutions: <EngineScheduledExecution>[],
           normalWaiting: <EngineScheduledExecution>[],
-          resumeStack: <EngineScheduledExecution>[],
+          videoResumeStack: <EngineScheduledExecution>[],
+          auxiliaryResumeStack: <EngineScheduledExecution>[],
         ),
         lastSequence: 0,
       ),
@@ -471,9 +498,12 @@ EngineScheduledExecution _execution(
   String id,
   EngineExecutionState state, {
   EngineExecutionPauseReason? pauseReason,
+  EngineExecutionResourcePool resourcePool =
+      EngineExecutionResourcePool.auxiliary,
 }) {
   return EngineScheduledExecution(
     executionId: id,
+    resourcePool: resourcePool,
     state: state,
     pauseReason: pauseReason,
     preemptedByExecutionId: null,

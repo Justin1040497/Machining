@@ -72,9 +72,10 @@ EngineStateSnapshot _snapshot({
     ],
     executionLane: EngineExecutionLaneSnapshot(
       queueRevision: executionRevision,
-      active: null,
+      activeExecutions: const <EngineScheduledExecution>[],
       normalWaiting: const <EngineScheduledExecution>[],
-      resumeStack: const <EngineScheduledExecution>[],
+      videoResumeStack: const <EngineScheduledExecution>[],
+      auxiliaryResumeStack: const <EngineScheduledExecution>[],
     ),
     lastSequence: 0,
   );

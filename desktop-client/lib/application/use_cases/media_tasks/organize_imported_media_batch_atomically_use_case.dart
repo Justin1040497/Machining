@@ -84,9 +84,8 @@ final class OrganizeImportedMediaBatchAtomicallyUseCase {
           ...createdFolders,
         ]),
         mediaKind: entry.key,
-        defaultPurpose: group.first.purpose,
+        origin: TaskFolderOrigin.automaticImport,
         sortOrder: topLevelOrder,
-        defaultConfig: group.first.config,
       );
       createdFolders.add(folder);
       for (var index = 0; index < group.length; index += 1) {

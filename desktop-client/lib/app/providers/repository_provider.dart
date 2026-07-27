@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/library.dart';
+import 'package:framelean/domain/library.dart';
 import 'package:framelean/infrastructure/library.dart';
 import 'package:framelean/app/providers/database_provider.dart';
 
@@ -24,6 +25,13 @@ final importedMediaBatchPersistenceProvider =
       return DriftImportedMediaBatchPersistence(ref.watch(appDatabaseProvider));
     });
 
+final taskFolderArrangementPersistenceProvider =
+    Provider<TaskFolderArrangementPersistence>((ref) {
+      return DriftTaskFolderArrangementPersistence(
+        ref.watch(appDatabaseProvider),
+      );
+    });
+
 final workbenchOrderRevisionStoreProvider =
     Provider<WorkbenchOrderRevisionStore>((ref) {
       return DriftWorkbenchOrderRevisionStore(ref.watch(appDatabaseProvider));
@@ -38,4 +46,23 @@ final engineAnalysisProjectionRepositoryProvider =
 final taskFolderRepositoryProvider = Provider<TaskFolderRepository>((ref) {
   final database = ref.watch(appDatabaseProvider);
   return DriftTaskFolderRepository(database);
+});
+
+final taskArrangementRevisionProvider =
+    NotifierProvider<TaskArrangementRevisionNotifier, int>(
+      TaskArrangementRevisionNotifier.new,
+    );
+
+final class TaskArrangementRevisionNotifier extends Notifier<int> {
+  @override
+  int build() => 0;
+
+  void advance() {
+    state += 1;
+  }
+}
+
+final taskFolderListProvider = FutureProvider<List<TaskFolder>>((ref) {
+  ref.watch(taskArrangementRevisionProvider);
+  return ref.watch(taskFolderRepositoryProvider).loadAllFolders();
 });

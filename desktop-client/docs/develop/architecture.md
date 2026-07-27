@@ -78,7 +78,7 @@ lib/
 
 ### Client 任务夹
 
-任务夹只存在于 Client。导入批次中，同类型且数量不少于 2 的任务可形成任务夹；提交分析或执行时按 Client 稳定顺序摊平成独立 Engine work item。Engine 队列从不包含 folder item。
+任务夹只存在于 Client，是批量配置作用域而非执行或并发单位。导入批次先按媒体类型创建自动任务夹意图；`AnalysisCompleted` 后 Client 用媒体兼容类别重组，至少区分视频 SDR 与 HDR，数量不足 2 的分区释放为总队列独立任务。手动创建只接受已分析且兼容的任务。配置界面仅展示全部成员共同可用的预设或候选；保存时每个子任务仍得到自己的 Snapshot-bound selection。提交分析或执行时按 Client 稳定顺序摊平成独立 Engine work item，Engine 队列从不包含 folder item。
 
 ## 主要流程
 
@@ -94,7 +94,7 @@ lib/
 
 1. 配置面板展示 Snapshot 声明的选项。
 2. 用户点击开始后，Client 提交 selection、analysis id/revision 和输出请求。
-3. FLL 拥有单活动 execution lane；FEngine 投影普通等待队列、活动项和 LIFO 恢复栈。
+3. FLL 拥有 Video/Auxiliary 资源池和按池 LIFO 调度；FEngine 投影普通等待队列、多个活动项和两个恢复栈。
 4. 用户点击另一个任务开始时，FEngine 在安全点暂停当前任务并压栈。
 5. 插队任务完成后按 LIFO 恢复；用户主动暂停的任务不会自动恢复。
 6. FLL 负责同目录临时输出、成功原子发布和失败回滚。
@@ -120,7 +120,6 @@ Client 通过带随机 token 的 loopback daemon transport 连接 Worker。发�
 | --- | --- |
 | `engineGatewayProvider` | 创建并复用 FEngine Gateway |
 | `engineLifecycleCoordinatorProvider` | 连接、心跳、重连和 Snapshot 对账 |
-| `mediaAnalysisQueueProvider` | Client 批量提交协调；实际队列属于 FEngine |
 | `mediaTaskExecutionCoordinatorProvider` | 开始、暂停、取消、任务夹摊平和抢占入口 |
 | `mediaTaskListProvider` | 工作台任务投影和用户操作入口 |
 | `workbenchPreviewProvider` | 预览帧请求和 UI 状态 |
@@ -158,14 +157,14 @@ Desktop package 不包含或启动 `ffmpeg` / `ffprobe` executable。
 - 源文件缺失或 source facts 不匹配时拒绝生成新 Snapshot/artifact。
 - 协议、Worker 和 FLL engine code 保持结构化边界。
 - 预览帧与缩略图失败只影响可选视觉 artifact，不改变任务状态。
-- 需要 Decoder、Encoder 或 Processor 的转码链未实现时返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
+- 当前真实 Backend 支持兼容媒体的 packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4；音频、多流、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
 - Client 不以本地计时器、文件日志或进程句柄作为任务权威；FEngine/FLL Snapshot 和事件是唯一来源。
 
 ## 验证入口
 
 - `test/local_fengine_gateway_test.dart`
 - `test/engine_media_artifact_use_cases_test.dart`
-- `test/analyze_media_task_use_case_test.dart`
+- `test/submit_engine_analysis_batch_use_case_test.dart`
 - `test/submit_engine_execution_use_case_test.dart`
 - `test/task_folder_use_cases_test.dart`
 - `test/media_task_notifier_test.dart`

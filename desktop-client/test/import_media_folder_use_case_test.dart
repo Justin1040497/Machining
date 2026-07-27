@@ -9,7 +9,6 @@ import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/infrastructure/services/input_runtime/file_extension_media_kind_resolver.dart';
 
@@ -142,7 +141,6 @@ void main() {
         name: '旅行素材 - 视频',
         mediaKind: MediaKind.video,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialVideo(),
       ),
     ]);
     final useCase = _createUseCase(

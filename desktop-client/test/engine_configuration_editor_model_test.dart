@@ -2,9 +2,20 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/models/engine_analysis_documents.dart';
+import 'package:framelean/application/models/engine_analysis_projection.dart';
+import 'package:framelean/application/repositories/engine_analysis_projection_repository.dart';
+import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/services/engine/engine_configuration_editor_model.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
+import 'package:framelean/application/services/engine/engine_task_folder_selection_planner.dart';
+import 'package:framelean/application/use_cases/media_tasks/save_engine_task_configuration_use_case.dart';
+import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/enums/media_kind.dart';
+import 'package:framelean/domain/enums/task_purpose.dart';
+import 'package:framelean/domain/enums/task_status.dart';
+import 'package:framelean/domain/value_objects/media_task_config.dart';
+import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/engine_configuration_reference.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/engine_configuration_editor_model.dart';
 
 void main() {
   group('EngineConfigurationEditorModel presets', () {
@@ -237,6 +248,264 @@ void main() {
       expect(model.validationMessage, '当前分析结果没有可执行候选方案。');
     });
   });
+
+  group('EngineTaskFolderSelectionPlanner', () {
+    test('maps a shared preset to each snapshot candidate', () {
+      final planner = EngineTaskFolderSelectionPlanner({
+        'first': _snapshot(
+          candidateIds: const ['candidate-a'],
+          sharedPresetId: 'balanced',
+        ),
+        'second': _snapshot(
+          candidateIds: const ['candidate-b'],
+          sharedPresetId: 'balanced',
+        ),
+      });
+
+      final selections = planner.resolve(
+        const EnginePresetSelection(
+          presetId: 'balanced',
+          candidateId: 'candidate-a',
+        ),
+      );
+
+      expect(
+        (selections['first']! as EnginePresetSelection).candidateId,
+        'candidate-a',
+      );
+      expect(
+        (selections['second']! as EnginePresetSelection).candidateId,
+        'candidate-b',
+      );
+    });
+
+    test('rejects a manual candidate absent from any folder snapshot', () {
+      final planner = EngineTaskFolderSelectionPlanner({
+        'first': _snapshot(candidateIds: const ['candidate-a']),
+        'second': _snapshot(candidateIds: const ['candidate-b']),
+      });
+
+      expect(
+        () => planner.resolve(
+          const EngineManualConfigurationSelection(candidateId: 'candidate-a'),
+        ),
+        throwsA(isA<EngineTaskFolderSelectionException>()),
+      );
+    });
+  });
+
+  group('SaveTaskFolderEngineConfigurationUseCase', () {
+    test(
+      'maps one shared preset to each snapshot candidate before persisting',
+      () async {
+        final first = _readyFolderTask('task-a', 'folder-1');
+        final second = _readyFolderTask('task-b', 'folder-1');
+        final repository = _MemoryMediaTaskRepository([first, second]);
+
+        await SaveTaskFolderEngineConfigurationUseCase(
+          repository: repository,
+          analysisProjectionRepository: _MemoryProjectionRepository([
+            _projection(first.id),
+            _projection(second.id),
+          ]),
+        ).call(
+          folderId: 'folder-1',
+          snapshots: {
+            first.id: _snapshot(
+              candidateIds: const ['candidate-a'],
+              sharedPresetId: 'shared-preset',
+            ),
+            second.id: _snapshot(
+              candidateIds: const ['candidate-b'],
+              sharedPresetId: 'shared-preset',
+            ),
+          },
+          selection: const EnginePresetSelection(
+            presetId: 'shared-preset',
+            candidateId: 'candidate-a',
+          ),
+        );
+
+        expect(repository.insertCalls, 1);
+        expect(
+          repository.taskById(first.id).config.engineConfiguration?.candidateId,
+          'candidate-a',
+        );
+        expect(
+          repository
+              .taskById(second.id)
+              .config
+              .engineConfiguration
+              ?.candidateId,
+          'candidate-b',
+        );
+        final secondSelection =
+            jsonDecode(
+                  repository
+                      .taskById(second.id)
+                      .config
+                      .engineConfiguration!
+                      .selectionJson,
+                )
+                as Map<String, dynamic>;
+        final secondSelectionPayload =
+            secondSelection['selection'] as Map<String, dynamic>;
+        expect(secondSelectionPayload['candidate_id'], 'candidate-b');
+        expect(secondSelectionPayload['preset_id'], 'shared-preset');
+      },
+    );
+
+    test(
+      'rejects a manual candidate missing from one snapshot without writes',
+      () async {
+        final first = _readyFolderTask('task-a', 'folder-1');
+        final second = _readyFolderTask('task-b', 'folder-1');
+        final repository = _MemoryMediaTaskRepository([first, second]);
+
+        await expectLater(
+          SaveTaskFolderEngineConfigurationUseCase(
+            repository: repository,
+            analysisProjectionRepository: _MemoryProjectionRepository([
+              _projection(first.id),
+              _projection(second.id),
+            ]),
+          ).call(
+            folderId: 'folder-1',
+            snapshots: {
+              first.id: _snapshot(candidateIds: const ['candidate-a']),
+              second.id: _snapshot(candidateIds: const ['candidate-b']),
+            },
+            selection: const EngineManualConfigurationSelection(
+              candidateId: 'candidate-a',
+              overrides: EngineManualOverrides(container: 'mp4'),
+            ),
+          ),
+          throwsA(isA<EngineTaskFolderSelectionException>()),
+        );
+
+        expect(repository.insertCalls, 0);
+        expect(
+          repository.taskById(first.id).config.engineConfiguration,
+          isNull,
+        );
+        expect(
+          repository.taskById(second.id).config.engineConfiguration,
+          isNull,
+        );
+      },
+    );
+  });
+}
+
+MediaTask _readyFolderTask(String id, String folderId) {
+  return MediaTask(
+    id: id,
+    inputPath: '/tmp/$id.mp4',
+    fileName: '$id.mp4',
+    mediaKind: MediaKind.video,
+    purpose: TaskPurpose.compression,
+    status: TaskStatus.ready,
+    config: MediaTaskConfig.initialVideo(),
+    progress: 0,
+    sortOrder: 0,
+    folderId: folderId,
+    folderSortOrder: 0,
+    analysisResult: MediaAnalysisResult(durationMs: 1000),
+    analysisUpdatedAt: 1,
+    createdAt: 1,
+  );
+}
+
+EngineAnalysisProjection _projection(String taskId) {
+  return EngineAnalysisProjection(
+    taskId: taskId,
+    clientFileId: taskId,
+    engineSessionId: 'session-1',
+    analysisId: 'analysis-1',
+    revision: 4,
+    schemaVersion: 'framelean.analysis-snapshot.v1',
+    validityStatus: 'valid',
+    lastEventSequence: 1,
+    updatedAt: DateTime.fromMillisecondsSinceEpoch(1),
+  );
+}
+
+final class _MemoryProjectionRepository
+    implements EngineAnalysisProjectionRepository {
+  _MemoryProjectionRepository(Iterable<EngineAnalysisProjection> projections)
+    : values = {
+        for (final projection in projections) projection.taskId: projection,
+      };
+
+  final Map<String, EngineAnalysisProjection> values;
+
+  @override
+  Future<void> deleteAll() async => values.clear();
+
+  @override
+  Future<void> deleteByTaskId(String taskId) async => values.remove(taskId);
+
+  @override
+  Future<EngineAnalysisProjection?> loadByTaskId(String taskId) async {
+    return values[taskId];
+  }
+
+  @override
+  Future<void> upsert(EngineAnalysisProjection projection) async {
+    values[projection.taskId] = projection;
+  }
+}
+
+final class _MemoryMediaTaskRepository implements MediaTaskRepository {
+  _MemoryMediaTaskRepository(Iterable<MediaTask> tasks)
+    : values = {for (final task in tasks) task.id: task};
+
+  final Map<String, MediaTask> values;
+  int insertCalls = 0;
+
+  MediaTask taskById(String taskId) => values[taskId]!;
+
+  @override
+  Future<void> deleteTaskById(String taskId) async => values.remove(taskId);
+
+  @override
+  Future<void> insertTasks(List<MediaTask> tasks) async {
+    insertCalls += 1;
+    for (final task in tasks) {
+      values[task.id] = task;
+    }
+  }
+
+  @override
+  Future<List<MediaTask>> loadAllTasks() async => values.values.toList();
+
+  @override
+  Future<MediaTask?> loadTaskById(String taskId) async => values[taskId];
+
+  @override
+  Future<List<MediaTask>> loadTasksByIds(Iterable<String> taskIds) async {
+    return [for (final taskId in taskIds) ?values[taskId]];
+  }
+
+  @override
+  Future<void> replaceAllTasks(List<MediaTask> tasks) async {
+    values
+      ..clear()
+      ..addEntries(tasks.map((task) => MapEntry(task.id, task)));
+  }
+
+  @override
+  Future<void> saveTask(MediaTask task) async => values[task.id] = task;
+
+  @override
+  Future<void> updateTaskFolderSortOrders(
+    List<MediaTaskFolderSortOrderUpdate> updates,
+  ) async {}
+
+  @override
+  Future<void> updateTaskSortOrders(
+    List<MediaTaskSortOrderUpdate> updates,
+  ) async {}
 }
 
 EngineConfigurationReference _reference({
@@ -260,6 +529,7 @@ EngineAnalysisSnapshotDocument _snapshot({
   List<String> candidateIds = const ['candidate-a', 'candidate-b'],
   String? recommendationCandidateId,
   bool targetSizeAvailable = true,
+  String? sharedPresetId,
 }) {
   final candidates = <String, Map<String, Object?>>{
     for (final candidateId in candidateIds)
@@ -298,9 +568,15 @@ EngineAnalysisSnapshotDocument _snapshot({
     'recommendation': recommendation,
     'presets': <Object?>[
       if (candidates.containsKey('candidate-a'))
-        _preset(id: 'preset-a', candidate: candidates['candidate-a']!),
+        _preset(
+          id: sharedPresetId ?? 'preset-a',
+          candidate: candidates['candidate-a']!,
+        ),
       if (candidates.containsKey('candidate-b'))
-        _preset(id: 'preset-b', candidate: candidates['candidate-b']!),
+        _preset(
+          id: sharedPresetId ?? 'preset-b',
+          candidate: candidates['candidate-b']!,
+        ),
     ],
     'custom_target_size': targetSizeAvailable
         ? <String, Object?>{

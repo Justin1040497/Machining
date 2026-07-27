@@ -9,11 +9,9 @@ import 'package:framelean/app/library.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:framelean/features/notifications/library.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_constants.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_models.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/confirm/import_failure_dialog.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/engine_task_configuration_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_context_menu.dart';
@@ -29,72 +27,6 @@ import 'package:framelean/features/workbench/widgets/media_task_list/task_folder
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 const Object _configValueNotProvided = Object();
-
-@visibleForTesting
-class WorkbenchTaskConfigurationInitialValues {
-  const WorkbenchTaskConfigurationInitialValues({
-    required this.qualityIndex,
-    required this.outputFormat,
-    required this.videoCodec,
-    required this.encoderBackend,
-    required this.resolutionPreset,
-    required this.compressionMode,
-    required this.smartPreset,
-    required this.targetSizeRatio,
-  });
-
-  final int qualityIndex;
-  final OutputFormat outputFormat;
-  final VideoCodec videoCodec;
-  final EncoderBackend encoderBackend;
-  final ResolutionPreset resolutionPreset;
-  final CompressionMode compressionMode;
-  final SmartCompressionPreset smartPreset;
-  final double targetSizeRatio;
-}
-
-@visibleForTesting
-WorkbenchTaskConfigurationInitialValues
-resolveWorkbenchTaskConfigurationInitialValues({
-  required MediaTask task,
-  required int selectedQualityIndex,
-  required OutputFormat selectedOutputFormat,
-  required VideoCodec selectedVideoCodec,
-  required EncoderBackend selectedEncoderBackend,
-  required ResolutionPreset selectedResolutionPreset,
-  required SmartCompressionPreset selectedSmartPreset,
-}) {
-  final videoConfig = task.mediaKind == MediaKind.video
-      ? task.config.video
-      : null;
-  final isVideoTask = videoConfig != null;
-
-  return WorkbenchTaskConfigurationInitialValues(
-    qualityIndex: isVideoTask
-        ? WorkbenchQualityPolicy.initialQualityIndexForTask(task)
-        : selectedQualityIndex,
-    outputFormat: isVideoTask
-        ? videoConfig.outputFormat.toVideoOutputFormat()
-        : selectedOutputFormat,
-    videoCodec: isVideoTask ? videoConfig.videoCodec : selectedVideoCodec,
-    encoderBackend: isVideoTask
-        ? videoConfig.encoderBackend
-        : selectedEncoderBackend,
-    resolutionPreset: isVideoTask
-        ? videoConfig.resolutionPreset
-        : selectedResolutionPreset,
-    compressionMode: task.config.compressionMode,
-    smartPreset: isVideoTask
-        ? videoConfig.smartPreset ??
-              WorkbenchQualityPolicy.smartPresetForQualityIndex(
-                videoConfig.compressionCrf,
-              )
-        : selectedSmartPreset,
-    targetSizeRatio: isVideoTask
-        ? WorkbenchQualityPolicy.initialTargetSizeRatioForTask(task)
-        : defaultTargetSizeRatio,
-  );
-}
 
 @visibleForTesting
 List<MediaTask> resolveOpenedTaskFolderTasks({
@@ -954,42 +886,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     await ref.read(appUpdateProvider.notifier).installDownloadedUpdate();
   }
 
-  MediaTaskConfig _resolveTaskFolderVideoDraftConfig({
-    required MediaTask task,
-    required WorkbenchTaskConfigurationDraft draft,
-    required bool usePerTaskTargetSize,
-  }) {
-    final isTargetSize = draft.compressionMode == CompressionMode.targetSize;
-    final targetSizeRatio = WorkbenchQualityPolicy.normalizeTargetSizeRatio(
-      draft.targetSizeRatio,
-    );
-    final resolvedQualityIndex = isTargetSize
-        ? WorkbenchQualityPolicy.qualityIndexForTargetSizeRatio(targetSizeRatio)
-        : draft.qualityIndex;
-    final qualityOption =
-        WorkbenchConstants.qualityOptions[resolvedQualityIndex];
-    final targetSizeBytes = usePerTaskTargetSize
-        ? WorkbenchQualityPolicy.targetSizeBytesForTargetRatio(
-            task,
-            targetSizeRatio,
-          )
-        : null;
-
-    return draft.config.copyWith(
-      outputFormat: draft.outputFormat,
-      videoCodec: draft.videoCodec,
-      encoderBackend: draft.encoderBackend,
-      resolutionPreset: draft.resolutionPreset,
-      compressionCrf: qualityOption.crf,
-      compressionMode: isTargetSize
-          ? CompressionMode.targetSize
-          : CompressionMode.preset,
-      smartPreset: isTargetSize ? null : draft.smartPreset,
-      targetSizeBytes: isTargetSize ? targetSizeBytes : null,
-      targetSizeRatio: isTargetSize ? targetSizeRatio : null,
-    );
-  }
-
   Future<void> showTaskFolderConfigurationDialog(TaskFolder folder) async {
     await runWorkbenchActionOnce(
       'show-task-folder-configuration-dialog',
@@ -999,88 +895,74 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
           tasks: tasks,
           openedFolder: folder,
         );
-        final representativeTask = taskFolderRepresentativeTask(folder: folder);
-        final isVideoTask = representativeTask.mediaKind == MediaKind.video;
-        final initialValues = resolveWorkbenchTaskConfigurationInitialValues(
-          task: representativeTask,
-          selectedQualityIndex: selectedQualityIndex,
-          selectedOutputFormat: selectedOutputFormat,
-          selectedVideoCodec: selectedVideoCodec,
-          selectedEncoderBackend: selectedEncoderBackend,
-          selectedResolutionPreset: selectedResolutionPreset,
-          selectedSmartPreset: selectedSmartPreset,
+        final configurableTasks = folderTasks
+            .where((task) => task.canStartExecution)
+            .toList();
+        if (configurableTasks.isEmpty) {
+          showWorkbenchSnackBar('任务夹中没有等待开始且分析有效的任务。');
+          return;
+        }
+
+        final loadSnapshot = LoadEngineAnalysisSnapshotUseCase(
+          analysisProjectionRepository: ref.read(
+            engineAnalysisProjectionRepositoryProvider,
+          ),
         );
-        final appSettings = await ref.read(appSettingsProvider.future);
+        final snapshots = <String, EngineAnalysisSnapshotDocument>{};
+        for (final task in configurableTasks) {
+          final snapshot = await loadSnapshot.call(task);
+          if (snapshot == null) {
+            if (mounted) {
+              showWorkbenchSnackBar('任务夹中的分析结果不可用，请重新分析后再配置。');
+            }
+            return;
+          }
+          snapshots[task.id] = snapshot;
+        }
         if (!mounted) {
           return;
         }
 
-        final draft = await showTaskFolderConfigurationEditor(
+        final availability = EngineTaskFolderSelectionPlanner(
+          snapshots,
+        ).availability;
+        if (availability.isEmpty) {
+          showWorkbenchSnackBar('任务夹成员没有共同配置，请解散任务夹或移除不兼容任务。');
+          return;
+        }
+
+        final representativeTask = configurableTasks.first;
+        final representativeSnapshot = snapshots[representativeTask.id]!;
+        final resolvedTask = await showEngineTaskConfigurationEditor(
           context: context,
           task: representativeTask,
+          snapshot: representativeSnapshot,
           thumbnail: null,
           sourceSummary: WorkbenchTaskFolderSummary(
             folder: folder,
             tasks: folderTasks,
           ),
-          title: '任务夹设置',
-          showOutputLocationInMain: true,
-          systemOutputDirectoryLabel: _systemOutputDirectoryLabel(appSettings),
-          onPickOutputDirectory: () =>
-              ref.read(fileSelectionServiceProvider).pickOutputDirectory(),
-          selectedQualityIndex: initialValues.qualityIndex,
-          selectedOutputFormat: initialValues.outputFormat,
-          selectedVideoCodec: initialValues.videoCodec,
-          selectedEncoderBackend: initialValues.encoderBackend,
-          selectedResolutionPreset: initialValues.resolutionPreset,
-          selectedCompressionMode: initialValues.compressionMode,
-          selectedSmartPreset: initialValues.smartPreset,
-          selectedTargetSizeRatio: initialValues.targetSizeRatio,
+          title: '任务夹 Engine 配置',
+          allowedPresetIds: availability.presetIds,
+          allowedCandidateIds: availability.candidateIds,
+          // Target-size ranges are per Snapshot. Keep it unavailable until a
+          // folder-level range intersection is represented explicitly.
+          allowTargetSize: false,
           onOpenSource: null,
+          onResolve: (selection) {
+            return ref
+                .read(mediaTaskListProvider.notifier)
+                .saveTaskFolderEngineConfiguration(
+                  folderId: folder.id,
+                  snapshots: snapshots,
+                  selection: selection,
+                );
+          },
         );
-        if (!mounted || draft == null) {
-          return;
-        }
-
-        final updatedConfig = isVideoTask
-            ? _resolveTaskFolderVideoDraftConfig(
-                task: representativeTask,
-                draft: draft,
-                usePerTaskTargetSize: false,
-              )
-            : draft.config;
-
-        try {
-          await ref
-              .read(mediaTaskListProvider.notifier)
-              .applyTaskFolderConfig(
-                folderId: folder.id,
-                config: updatedConfig,
-                purpose: draft.purpose,
-              );
-          if (!mounted) {
-            return;
-          }
-          showWorkbenchSnackBar('任务夹设置已应用');
-        } on Object catch (error) {
-          showWorkbenchSnackBar(error.toString());
+        if (mounted && resolvedTask != null) {
+          showWorkbenchSnackBar('任务夹 Engine 配置已应用');
         }
       },
-    );
-  }
-
-  MediaTask taskFolderRepresentativeTask({required TaskFolder folder}) {
-    return MediaTask(
-      id: 'folder-config-${folder.id}',
-      inputPath: folder.name,
-      fileName: folder.name,
-      mediaKind: folder.mediaKind,
-      purpose: folder.defaultPurpose,
-      status: TaskStatus.awaitAnalysis,
-      config: folder.defaultConfig,
-      progress: 0,
-      sortOrder: folder.sortOrder,
-      createdAt: folder.createdAt,
     );
   }
 
@@ -1145,14 +1027,6 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
     }
 
     unawaited(showTaskConfigurationDialog(task));
-  }
-
-  String _systemOutputDirectoryLabel(AppSettings settings) {
-    if (settings.saveOutputToSourceDirectory) {
-      return '每个源文件所在目录';
-    }
-    final directory = settings.defaultOutputDirectory?.trim();
-    return directory == null || directory.isEmpty ? '每个源文件所在目录' : directory;
   }
 
   void toggleTaskSelectionMode() {

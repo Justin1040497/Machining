@@ -64,7 +64,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 36;
+  int get schemaVersion => 38;
 
   @override
   MigrationStrategy get migration {
@@ -386,11 +386,6 @@ class AppDatabase extends _$AppDatabase {
             taskRows,
             taskRows.analysisAudioStreamsJson,
           );
-          await _safeAddColumn(
-            migrator,
-            taskFolderRows,
-            taskFolderRows.defaultPurpose,
-          );
         }
         if (from < 28) {
           await _safeAddColumn(migrator, taskRows, taskRows.outputFileSize);
@@ -516,6 +511,32 @@ class AppDatabase extends _$AppDatabase {
               'ALTER TABLE settings DROP COLUMN max_concurrent_executions',
             );
           }
+        }
+        if (from < 37) {
+          final folderColumns = await customSelect(
+            'PRAGMA table_info(task_folders)',
+          ).get();
+          final names = folderColumns
+              .map((row) => row.read<String>('name'))
+              .toSet();
+          if (names.contains('default_purpose')) {
+            await customStatement(
+              'ALTER TABLE task_folders DROP COLUMN default_purpose',
+            );
+          }
+          if (names.contains('default_config_json')) {
+            await customStatement(
+              'ALTER TABLE task_folders DROP COLUMN default_config_json',
+            );
+          }
+        }
+        if (from < 38) {
+          await _safeAddColumn(migrator, taskFolderRows, taskFolderRows.origin);
+          await _safeAddColumn(
+            migrator,
+            taskFolderRows,
+            taskFolderRows.compatibilityClass,
+          );
         }
       },
     );

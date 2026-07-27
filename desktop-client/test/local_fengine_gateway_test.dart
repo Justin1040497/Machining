@@ -20,6 +20,9 @@ void main() {
 
       final operation = fixture.gateway.getEngineSnapshot();
       await _pump();
+      expect(fixture.transport.lastRequest['command'], <String, Object?>{
+        'type': 'get_engine_snapshot',
+      });
       fixture.transport.respond(
         requestId: 'snapshot-1',
         kind: 'response',
@@ -50,15 +53,17 @@ void main() {
             ],
             'execution_lane': <String, Object?>{
               'queue_revision': 4,
-              'active': null,
+              'active_executions': <Object?>[],
               'normal_waiting': <Object?>[],
-              'resume_stack': <Object?>[],
+              'video_resume_stack': <Object?>[],
+              'auxiliary_resume_stack': <Object?>[],
               'user_paused': <Object?>[],
             },
             'terminal_executions': <Object?>[
               <String, Object?>{
                 'execution_id': 'execution-1',
                 'client_task_id': 'task-execution',
+                'resource_pool': 'auxiliary',
                 'state': 'completed',
                 'output_path': '/output.wav',
                 'engine_code': null,

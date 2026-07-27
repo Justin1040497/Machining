@@ -10,3 +10,9 @@
 - 继续使用现有 Riverpod、Drift/SQLite 和 uuid，未为任务调度引入新第三方库。由于当前 Flutter SDK 锁定的 analyzer 与新 drift_dev 不兼容，临时将 `sqlparser` 严格锁定为 `0.44.5`；该 override 只解决 `DartPlaceholder.when` 的已知构建不兼容，不扩大运行时依赖面。
 - 本地 FEngine Gateway 改为连接随机 token 认证的 loopback 守护进程；普通连接关闭不再发送 Worker Shutdown，显式退出仍会取消非终态执行并关闭引擎。重连对账可从终态摘要恢复离线期间完成的分析 Snapshot 与执行终态。
 - 清理 Client 侧启动状态恢复、partial 文件扫描、本地资源调度、并发上限、旧压缩确认启发式和 Windows PID 媒体控制；任务状态、输出事务、风险投影与 execution lane 分别统一归 FEngine/FLL 权威边界，并删除失效的 Dart FFmpeg CLI。
+- 任务夹不再保存默认 purpose 或媒体配置；批量配置从每个子任务的有效 AnalysisSnapshot 派生独立 selection，并允许同一 preset 映射到不同的候选链。
+- 自动导入任务夹在分析完成后按兼容类别重组，视频至少区分 HDR 与 SDR；单项分区保持总队列独立任务。手动多选只允许已分析且兼容的任务进入同一任务夹，现有手动任务夹不会被静默拆分。
+- 任务夹配置窗口现在先求成员 Snapshot 的共同预设和候选，再保存逐任务的 Snapshot-bound selection；目标体积在具备明确的跨 Snapshot 交集模型前不在任务夹窗口提供。
+- 删除旧 Client 配置弹窗适配器及音频、图片、视频配置面板；工作台只呈现 FLL Snapshot 广告的预设、候选和参数。
+- 删除批量入队后的本地 `MediaAnalysisQueue` 和单任务分析重提链；Client 只提交一次 FEngine 原子分析批次，并由 Engine 生命周期事件和 Snapshot 对账更新状态。
+- Client Snapshot 对账支持多个同时运行的 execution，并按 Video/Auxiliary 两个恢复栈计算抢占深度；暂停全部与取消全部会覆盖所有活动资源槽，任务夹仍不参与并发调度。

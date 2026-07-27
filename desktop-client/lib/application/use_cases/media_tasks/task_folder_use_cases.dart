@@ -1,12 +1,11 @@
-import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_arrangement_persistence.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/execution/execution_queue_result.dart';
 import 'package:framelean/application/services/execution/media_task_execution_coordinator.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
-import 'package:framelean/application/use_cases/media_tasks/media_task_use_case_helpers.dart';
 import 'package:framelean/domain/library.dart';
 
 class CreateTaskFolderResult {
@@ -58,6 +57,7 @@ class CreateTaskFolderFromTasksUseCase {
     if (selectedTasks.any((task) => task.mediaKind != mediaKind)) {
       throw StateError('一个任务夹只能包含同一类型的媒体任务');
     }
+    _requireAnalyzedCompatibleTasks(selectedTasks);
 
     final folders = await taskFolderRepository.loadAllFolders();
     final folder = await _createFolderForTasks(
@@ -95,9 +95,12 @@ class CreateTaskFoldersFromTasksUseCase {
 
     final folders = await taskFolderRepository.loadAllFolders();
     final createdFolders = <TaskFolder>[];
-    final selectedByKind = <MediaKind, List<MediaTask>>{};
+    _requireAnalyzedTasks(selectedTasks);
+    final selectedByKind = <TaskFolderCompatibilityClass, List<MediaTask>>{};
     for (final task in selectedTasks) {
-      selectedByKind.putIfAbsent(task.mediaKind, () => []).add(task);
+      selectedByKind
+          .putIfAbsent(task.taskFolderCompatibilityClass!, () => [])
+          .add(task);
     }
 
     var existingFolders = folders;
@@ -168,6 +171,7 @@ class OrganizeImportedMediaBatchUseCase {
         selectedTasks: groupedTasks,
         existingFolders: existingFolders,
         name: preferredName,
+        origin: TaskFolderOrigin.automaticImport,
       );
       createdFolders.add(folder);
       existingFolders = [...existingFolders, folder];
@@ -177,6 +181,156 @@ class OrganizeImportedMediaBatchUseCase {
       folders: createdFolders,
       tasks: await mediaTaskRepository.loadAllTasks(),
     );
+  }
+}
+
+class ReconcileAnalyzedAutomaticTaskFoldersUseCase {
+  const ReconcileAnalyzedAutomaticTaskFoldersUseCase({
+    required this.mediaTaskRepository,
+    required this.taskFolderRepository,
+    required this.persistence,
+  });
+
+  final MediaTaskRepository mediaTaskRepository;
+  final TaskFolderRepository taskFolderRepository;
+  final TaskFolderArrangementPersistence persistence;
+
+  Future<bool> call() async {
+    final tasks = await mediaTaskRepository.loadAllTasks();
+    final folders = await taskFolderRepository.loadAllFolders();
+    final taskById = {for (final task in tasks) task.id: task};
+    final folderById = {for (final folder in folders) folder.id: folder};
+    final childrenByFolder = <String, List<MediaTask>>{};
+    for (final task in tasks) {
+      final folderId = task.folderId;
+      if (folderId != null) {
+        childrenByFolder.putIfAbsent(folderId, () => []).add(task);
+      }
+    }
+    for (final children in childrenByFolder.values) {
+      children.sort(_compareFolderTaskOrder);
+    }
+
+    final topLevel = <_ReconciledTopLevelItem>[
+      for (final task in tasks.where((task) => task.folderId == null))
+        _ReconciledTopLevelItem.task(task),
+      for (final folder in folders) _ReconciledTopLevelItem.folder(folder),
+    ]..sort(_compareReconciledTopLevel);
+
+    final result = <_ReconciledTopLevelItem>[];
+    final deletedFolderIds = <String>{};
+    final namingFolders = [...folders];
+    var changed = false;
+
+    for (final item in topLevel) {
+      final folder = item.folder;
+      if (folder == null || folder.origin != TaskFolderOrigin.automaticImport) {
+        result.add(item);
+        continue;
+      }
+
+      final children = childrenByFolder[folder.id] ?? const <MediaTask>[];
+      if (children.isEmpty) {
+        deletedFolderIds.add(folder.id);
+        folderById.remove(folder.id);
+        changed = true;
+        continue;
+      }
+      if (children.any(_isAnalysisPending)) {
+        result.add(item);
+        continue;
+      }
+
+      final partitions = <String, _TaskFolderPartition>{};
+      for (final child in children) {
+        final compatibilityClass = child.taskFolderCompatibilityClass;
+        final key = compatibilityClass?.name ?? 'unclassified:${child.id}';
+        partitions
+            .putIfAbsent(key, () => _TaskFolderPartition(compatibilityClass))
+            .tasks
+            .add(child);
+      }
+
+      if (partitions.length == 1 &&
+          partitions.values.single.tasks.length >= 2) {
+        final compatibilityClass = partitions.values.single.compatibilityClass!;
+        if (folder.compatibilityClass != compatibilityClass) {
+          final updated = folder.copyWith(
+            compatibilityClass: compatibilityClass,
+          );
+          folderById[folder.id] = updated;
+          result.add(_ReconciledTopLevelItem.folder(updated));
+          changed = true;
+        } else {
+          result.add(item);
+        }
+        continue;
+      }
+
+      var reusedOriginal = false;
+      for (final partition in partitions.values) {
+        if (partition.tasks.length == 1) {
+          final task = partition.tasks.single.releaseFromFolder();
+          taskById[task.id] = task;
+          result.add(_ReconciledTopLevelItem.task(task));
+          continue;
+        }
+
+        final compatibilityClass = partition.compatibilityClass!;
+        final targetFolder = reusedOriginal
+            ? TaskFolder.create(
+                name: defaultFolderName(
+                  partition.tasks.first.mediaKind,
+                  namingFolders,
+                  compatibilityClass: compatibilityClass,
+                ),
+                mediaKind: partition.tasks.first.mediaKind,
+                origin: TaskFolderOrigin.automaticImport,
+                compatibilityClass: compatibilityClass,
+                sortOrder: folder.sortOrder,
+              )
+            : folder.copyWith(compatibilityClass: compatibilityClass);
+        reusedOriginal = true;
+        folderById[targetFolder.id] = targetFolder;
+        if (targetFolder.id != folder.id) {
+          namingFolders.add(targetFolder);
+        }
+        for (final (index, task) in partition.tasks.indexed) {
+          taskById[task.id] = task.moveToFolder(
+            targetFolderId: targetFolder.id,
+            targetFolderSortOrder: index,
+          );
+        }
+        result.add(_ReconciledTopLevelItem.folder(targetFolder));
+      }
+
+      if (!reusedOriginal) {
+        folderById.remove(folder.id);
+        deletedFolderIds.add(folder.id);
+      }
+      changed = true;
+    }
+
+    if (!changed) {
+      return false;
+    }
+
+    for (final (index, item) in result.indexed) {
+      final task = item.task;
+      if (task != null) {
+        taskById[task.id] = task.releaseFromFolder(newSortOrder: index);
+        continue;
+      }
+      final folder = item.folder!;
+      folderById[folder.id] = folder.copyWith(sortOrder: index);
+    }
+
+    await persistence.apply(
+      tasks: taskById.values.toList(growable: false),
+      folders: folderById.values.toList(growable: false),
+      deletedFolderIds: deletedFolderIds,
+    );
+    return true;
   }
 }
 
@@ -258,81 +412,6 @@ class PruneEmptyTaskFoldersUseCase {
     }
 
     return deletedFolderIds;
-  }
-}
-
-class ApplyTaskFolderConfigUseCase {
-  const ApplyTaskFolderConfigUseCase({
-    required this.mediaTaskRepository,
-    required this.taskFolderRepository,
-    required this.appSettingsRepository,
-  });
-
-  final MediaTaskRepository mediaTaskRepository;
-  final TaskFolderRepository taskFolderRepository;
-  final AppSettingsRepository appSettingsRepository;
-
-  Future<TaskFolderBatchTasksResult> call({
-    required String folderId,
-    required MediaTaskConfig config,
-    required TaskPurpose purpose,
-  }) async {
-    final folders = await taskFolderRepository.loadAllFolders();
-    final folder = folders.firstWhere((folder) => folder.id == folderId);
-    final normalizedConfig = config
-        .forKind(folder.mediaKind)
-        .copyWith(engineConfiguration: null);
-    await taskFolderRepository.saveFolder(
-      folder.copyWith(
-        defaultConfig: normalizedConfig,
-        defaultPurpose: purpose,
-        updatedAt: DateTime.now().millisecondsSinceEpoch,
-      ),
-    );
-
-    final settings = await appSettingsRepository.loadSettings();
-    final template = settings.defaultOutputFileNameTemplate;
-    final now = DateTime.now();
-
-    final tasks = await mediaTaskRepository.loadAllTasks();
-    for (final task in tasks.where((task) => task.folderId == folderId)) {
-      if (!_canApplyFolderConfig(task)) {
-        continue;
-      }
-      final taskConfig = resolveSourceOutputFormatForConfig(
-        config: normalizedConfig,
-        sourceFileName: task.inputPath,
-        mediaKind: task.mediaKind,
-      );
-      // 任务夹共同设置时，每个任务的输出文件名按全局模板 + 各自源名重新渲染，
-      // 避免所有任务套用第一个任务的源名渲染结果。
-      final version = processingVersionForTask(
-        tasks: tasks,
-        inputPath: task.inputPath,
-        mediaKind: task.mediaKind,
-        purpose: purpose,
-        taskId: task.id,
-      );
-      final renderedFileName = buildDefaultOutputFileName(
-        sourceFileName: task.inputPath,
-        mediaKind: task.mediaKind,
-        template: template,
-        purpose: purpose,
-        mediaConfig: taskConfig,
-        now: now,
-        version: version,
-      );
-      await mediaTaskRepository.saveTask(
-        task.copyWith(
-          config: taskConfig.copyWith(outputFileName: renderedFileName),
-          purpose: purpose,
-        ),
-      );
-    }
-
-    return TaskFolderBatchTasksResult(
-      tasks: await mediaTaskRepository.loadAllTasks(),
-    );
   }
 }
 
@@ -465,12 +544,14 @@ class DeleteTaskFolderUseCase {
 
 String defaultFolderName(
   MediaKind mediaKind,
-  List<TaskFolder> existingFolders,
-) {
-  final label = switch (mediaKind) {
-    MediaKind.video => '视频',
-    MediaKind.image => '图片',
-    MediaKind.audio => '音频',
+  List<TaskFolder> existingFolders, {
+  TaskFolderCompatibilityClass? compatibilityClass,
+}) {
+  final label = switch ((mediaKind, compatibilityClass)) {
+    (MediaKind.video, TaskFolderCompatibilityClass.videoHdr) => 'HDR 视频',
+    (MediaKind.video, _) => '视频',
+    (MediaKind.image, _) => '图片',
+    (MediaKind.audio, _) => '音频',
   };
   final prefix = '$label任务夹';
   var maxIndex = 0;
@@ -525,17 +606,26 @@ Future<TaskFolder> _createFolderForTasks({
   required List<MediaTask> selectedTasks,
   required List<TaskFolder> existingFolders,
   String? name,
+  TaskFolderOrigin origin = TaskFolderOrigin.manual,
 }) async {
   final mediaKind = selectedTasks.first.mediaKind;
+  final compatibilityClass = selectedTasks.first.taskFolderCompatibilityClass;
+  if (origin == TaskFolderOrigin.manual) {
+    _requireAnalyzedCompatibleTasks(selectedTasks);
+  }
   final preferredName = name?.trim();
   final folder = TaskFolder.create(
     name: preferredName?.isNotEmpty == true
         ? uniqueFolderName(preferredName!, existingFolders)
-        : defaultFolderName(mediaKind, existingFolders),
+        : defaultFolderName(
+            mediaKind,
+            existingFolders,
+            compatibilityClass: compatibilityClass,
+          ),
     mediaKind: mediaKind,
-    defaultPurpose: selectedTasks.first.purpose,
+    origin: origin,
+    compatibilityClass: compatibilityClass,
     sortOrder: nextFolderSortOrder(existingFolders),
-    defaultConfig: selectedTasks.first.config,
   );
 
   await taskFolderRepository.saveFolder(folder);
@@ -554,10 +644,64 @@ Future<TaskFolder> _createFolderForTasks({
   return folder;
 }
 
-bool _canApplyFolderConfig(MediaTask task) {
-  return task.status != TaskStatus.running &&
-      task.status != TaskStatus.paused &&
-      task.status != TaskStatus.analyzing;
+void _requireAnalyzedTasks(List<MediaTask> tasks) {
+  if (tasks.any((task) => task.taskFolderCompatibilityClass == null)) {
+    throw StateError('请等待所选任务分析完成后再创建任务夹');
+  }
+}
+
+void _requireAnalyzedCompatibleTasks(List<MediaTask> tasks) {
+  _requireAnalyzedTasks(tasks);
+  final compatibilityClass = tasks.first.taskFolderCompatibilityClass;
+  if (tasks.any(
+    (task) => task.taskFolderCompatibilityClass != compatibilityClass,
+  )) {
+    throw StateError('所选任务包含不同的媒体配置类型，请分别创建任务夹');
+  }
+}
+
+bool _isAnalysisPending(MediaTask task) {
+  return task.status == TaskStatus.awaitAnalysis ||
+      task.status == TaskStatus.analysisQueued ||
+      task.status == TaskStatus.analyzing;
+}
+
+int _compareFolderTaskOrder(MediaTask left, MediaTask right) {
+  final order = (left.folderSortOrder ?? left.sortOrder).compareTo(
+    right.folderSortOrder ?? right.sortOrder,
+  );
+  return order != 0 ? order : left.createdAt.compareTo(right.createdAt);
+}
+
+int _compareReconciledTopLevel(
+  _ReconciledTopLevelItem left,
+  _ReconciledTopLevelItem right,
+) {
+  final order = left.sortOrder.compareTo(right.sortOrder);
+  return order != 0 ? order : left.createdAt.compareTo(right.createdAt);
+}
+
+final class _TaskFolderPartition {
+  _TaskFolderPartition(this.compatibilityClass);
+
+  final TaskFolderCompatibilityClass? compatibilityClass;
+  final List<MediaTask> tasks = [];
+}
+
+final class _ReconciledTopLevelItem {
+  const _ReconciledTopLevelItem.task(MediaTask value)
+    : task = value,
+      folder = null;
+
+  const _ReconciledTopLevelItem.folder(TaskFolder value)
+    : task = null,
+      folder = value;
+
+  final MediaTask? task;
+  final TaskFolder? folder;
+
+  int get sortOrder => task?.sortOrder ?? folder!.sortOrder;
+  int get createdAt => task?.createdAt ?? folder!.createdAt;
 }
 
 bool _isRetryableFolderTask(MediaTask task) {

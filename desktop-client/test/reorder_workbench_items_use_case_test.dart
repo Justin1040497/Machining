@@ -7,7 +7,6 @@ import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 
 void main() {
@@ -146,7 +145,7 @@ MediaTask mediaTask({
   required int sortOrder,
   String? folderId,
   int? folderSortOrder,
-  TaskStatus status = TaskStatus.pending,
+  TaskStatus status = TaskStatus.ready,
 }) {
   return MediaTask(
     id: id,
@@ -170,7 +169,6 @@ TaskFolder taskFolder({required String id, required int sortOrder}) {
     name: id,
     mediaKind: MediaKind.video,
     sortOrder: sortOrder,
-    defaultConfig: MediaTaskConfig.initialVideo(),
     createdAt: sortOrder,
     updatedAt: sortOrder,
   );

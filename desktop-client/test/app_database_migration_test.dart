@@ -7,6 +7,60 @@ import 'package:sqlite3/sqlite3.dart' as sqlite;
 
 void main() {
   group('AppDatabase migrations', () {
+    test(
+      'upgrades schema 37 with safe task folder grouping metadata',
+      () async {
+        final fixture = await _seedCurrentDatabase();
+        addTearDown(fixture.dispose);
+        _downgrade(
+          fixture.file,
+          version: 37,
+          statements: const [
+            'ALTER TABLE task_folders DROP COLUMN origin',
+            'ALTER TABLE task_folders DROP COLUMN compatibility_class',
+          ],
+        );
+
+        final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+        addTearDown(database.close);
+
+        final folder = await database
+            .select(database.taskFolderRows)
+            .getSingle();
+        expect(folder.origin, 'manual');
+        expect(folder.compatibilityClass, isNull);
+        expect(await _userVersion(database), 38);
+      },
+    );
+
+    test('upgrades schema 36 by removing folder media defaults', () async {
+      final fixture = await _seedCurrentDatabase();
+      addTearDown(fixture.dispose);
+      _downgrade(
+        fixture.file,
+        version: 36,
+        statements: const [
+          "ALTER TABLE task_folders ADD COLUMN default_purpose TEXT NOT NULL DEFAULT 'compression'",
+          "ALTER TABLE task_folders ADD COLUMN default_config_json TEXT NOT NULL DEFAULT '{}'",
+        ],
+      );
+
+      final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+      addTearDown(database.close);
+
+      final columns = await database
+          .customSelect('PRAGMA table_info(task_folders)')
+          .get();
+      final names = columns.map((row) => row.read<String>('name'));
+      expect(names, isNot(contains('default_purpose')));
+      expect(names, isNot(contains('default_config_json')));
+      final folder = await database.select(database.taskFolderRows).getSingle();
+      expect(folder.id, 'legacy-folder');
+      expect(folder.mediaKind, 'video');
+      expect(folder.sortOrder, 0);
+      expect(await _userVersion(database), 38);
+    });
+
     test('upgrades schema 35 by removing the legacy concurrency limit', () async {
       final fixture = await _seedCurrentDatabase();
       addTearDown(fixture.dispose);
@@ -32,7 +86,7 @@ void main() {
       final settings = await database.select(database.settingsRows).getSingle();
       expect(settings.id, 1);
       expect(settings.folderImportScanDepth, 2);
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
 
     test('upgrades schema 33 with persistent operation request ids', () async {
@@ -57,7 +111,7 @@ void main() {
         columns.map((row) => row.read<String>('name')),
         containsAll(['analysis_request_id', 'execution_request_id']),
       );
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
 
     test('upgrades schema 32 with persisted order revision state', () async {
@@ -76,7 +130,7 @@ void main() {
         await database.select(database.workbenchOrderStateRows).get(),
         isEmpty,
       );
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
 
     test('upgrades schema 31 lifecycle projections and legacy statuses', () async {
@@ -110,7 +164,7 @@ void main() {
         await database.select(database.engineAnalysisProjectionRows).get(),
         isEmpty,
       );
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
 
     test(
@@ -132,7 +186,7 @@ void main() {
           await database.select(database.engineAnalysisProjectionRows).get(),
           isEmpty,
         );
-        expect(await _userVersion(database), 36);
+        expect(await _userVersion(database), 38);
       },
     );
 
@@ -151,7 +205,7 @@ void main() {
       final task = (await database.select(database.taskRows).get()).single;
       expect(task.id, 'legacy-task');
       expect(task.failureJson, isNull);
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
 
     test(
@@ -188,7 +242,7 @@ void main() {
         expect(settings.notificationPoliciesJson, '{}');
         expect(settings.shortcutBindingsJson, '{}');
         expect(settings.closeBehavior, 'background');
-        expect(await _userVersion(database), 36);
+        expect(await _userVersion(database), 38);
       },
     );
 
@@ -226,7 +280,7 @@ void main() {
       );
       final settings = await database.select(database.settingsRows).getSingle();
       expect(settings.folderImportScanDepth, 2);
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
 
     test('applies custom value migrations from schema 21', () async {
@@ -249,7 +303,7 @@ void main() {
       expect(settings.defaultCompressionSmartPreset, 'chat');
       expect(settings.defaultOutputFileNameTemplate, '{source}-{action}');
       expect(settings.taskCompletionSound, 'clean_success');
-      expect(await _userVersion(database), 36);
+      expect(await _userVersion(database), 38);
     });
   });
 }
@@ -275,8 +329,8 @@ Future<_DatabaseFixture> _seedCurrentDatabase() async {
   );
   await database.customStatement(
     'INSERT INTO task_folders ('
-    'id, name, media_kind, sort_order, default_config_json, created_at, updated_at'
-    ") VALUES ('legacy-folder', 'Legacy', 'video', 0, '{}', 1, 1)",
+    'id, name, media_kind, sort_order, created_at, updated_at'
+    ") VALUES ('legacy-folder', 'Legacy', 'video', 0, 1, 1)",
   );
   await database.customStatement(
     'INSERT INTO app_notifications ('

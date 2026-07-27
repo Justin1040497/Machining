@@ -61,6 +61,16 @@ final engineLifecycleCoordinatorProvider =
         gateway: await gatewayFuture,
         taskRepository: taskRepository,
         projectionRepository: projectionRepository,
+        onAnalysisRecovered: (taskId) async {
+          final changed = await ReconcileAnalyzedAutomaticTaskFoldersUseCase(
+            mediaTaskRepository: taskRepository,
+            taskFolderRepository: ref.read(taskFolderRepositoryProvider),
+            persistence: ref.read(taskFolderArrangementPersistenceProvider),
+          ).call();
+          if (!disposed && changed) {
+            ref.read(taskArrangementRevisionProvider.notifier).advance();
+          }
+        },
         onProjectionChanged: (taskId) {
           if (!disposed) {
             ref.invalidate(engineTaskProjectionProvider(taskId));

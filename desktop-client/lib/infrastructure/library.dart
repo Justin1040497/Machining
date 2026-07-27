@@ -25,6 +25,7 @@ export 'repositories/drift_app_settings_repository.dart';
 export 'repositories/drift_engine_analysis_projection_repository.dart';
 export 'repositories/drift_media_task_repository.dart';
 export 'repositories/drift_imported_media_batch_persistence.dart';
+export 'repositories/drift_task_folder_arrangement_persistence.dart';
 export 'repositories/drift_workbench_order_revision_store.dart';
 
 // services - app_maintenance

@@ -22,6 +22,7 @@ scripts/build/with_bundled_ffmpeg.sh cargo check --manifest-path fll/Cargo.toml 
 scripts/build/with_bundled_ffmpeg.sh cargo test --manifest-path fll/Cargo.toml --locked
 scripts/build/with_bundled_ffmpeg.sh cargo check --manifest-path fengine/Cargo.toml --all-targets --locked
 scripts/build/with_bundled_ffmpeg.sh cargo test --manifest-path fengine/Cargo.toml --locked
+scripts/verify/engine_client_e2e.sh
 ```
 
 零媒体 CLI 扫描：
@@ -49,6 +50,9 @@ rg -n 'Process\.(start|run|runSync).*?(ffmpeg|ffprobe)|Command::new\(\s*"ffmpeg|
 - `GenerateVideoThumbnail` payload、Control queue metadata 与 `VideoThumbnailReady` artifact 映射。
 - `SubmitExecution` 原样提交用户 selection、analysis id/revision 和输出策略。
 - Worker error 与 FLL engine code 保持结构化，不从 stderr 文本推断任务真相。
+- 真实 daemon E2E 通过 `FRAMELEAN_TEST_REMUX_PROGRESS_DELAY_MS` 仅在 debug
+  FEngine 内为每个真实 libav packet 回调注入短暂停顿，以稳定验证 Gateway
+  两次安全插队、LIFO 自动恢复与同 session 重连；release binary 不读取该变量。
 
 ### 预览帧与缩略图
 
@@ -64,7 +68,7 @@ rg -n 'Process\.(start|run|runSync).*?(ffmpeg|ffprobe)|Command::new\(\s*"ffmpeg|
 - 导入任务进入 `await_analysis`，随后投影分析排队、分析中和 `ready`。
 - `AnalysisCompleted` 直接提供可选候选、预设、估算和参数投影；Client 不调用额外配置解析命令。
 - 用户点击开始后，selection 原样提交给 FEngine。
-- 普通等待队列与 LIFO 恢复栈分开投影。
+- 普通等待队列与 Video/Auxiliary 两个 LIFO 恢复栈分开投影。
 - 插队顺序遵守安全点暂停和 LIFO 恢复；用户暂停不会被自动恢复。
 - 双 revision 重排冲突不会部分应用。
 - 完成、失败和取消终态在离线重连后可通过 Engine Snapshot 恢复。
@@ -73,7 +77,7 @@ rg -n 'Process\.(start|run|runSync).*?(ffmpeg|ffprobe)|Command::new\(\s*"ffmpeg|
 
 - 源文件缺失或源 size/mtime 不匹配时不生成有效 Snapshot/artifact。
 - 协议断帧、非法 payload、WorkerBusy 和 sequence gap 具有明确恢复路径。
-- 需要 Decoder、Encoder 或 Processor 的链返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`，不会伪造进度或成功输出。
+- 严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4 可以真实完成；音频、多流、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`，不会伪造进度或成功输出。
 - 输出目录不可写、磁盘空间不足、文件占用和发布失败映射为可读失败。
 - 删除任务、清空列表、应用退出和更新准备会先通过 Engine control API 取消或暂停相关工作。
 
@@ -90,9 +94,11 @@ rg -n 'Process\.(start|run|runSync).*?(ffmpeg|ffprobe)|Command::new\(\s*"ffmpeg|
 ### 队列与插队
 
 1. 同时导入同类型 A1、A2、A3，确认 Client 形成任务夹但 Engine 队列中是独立任务。
-2. A1 运行时点击 A3 开始，确认 A1 安全暂停、A3 成为活动项。
-3. A3 运行时点击 A2 开始，确认 A2 完成后恢复 A3，最后恢复 A1。
-4. 拖拽分析或执行等待项，确认实际 Engine queue revision 和顺序变化。
+2. 同时导入 1 个 HDR 和 4 个 SDR 视频，确认 4 个 SDR 留在任务夹，HDR 视频释放为独立总队列项；同时导入 4 个 HDR 和 4 个 SDR 视频时确认形成两个任务夹。
+3. 打开任务夹配置，确认仅显示所有成员共同可用的预设或候选；无共同配置时提示解散或移除不兼容任务，不能部分保存。
+4. A1 运行时点击 A3 开始，确认 A1 安全暂停、A3 成为活动项。
+5. A3 运行时点击 A2 开始，确认 A2 完成后恢复 A3，最后恢复 A1。
+6. 拖拽分析或执行等待项，确认实际 Engine queue revision 和顺序变化。
 
 ### 重连
 

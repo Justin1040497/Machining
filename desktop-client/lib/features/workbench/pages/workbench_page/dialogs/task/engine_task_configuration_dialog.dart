@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/application/models/engine_analysis_documents.dart';
+import 'package:framelean/application/services/engine/engine_configuration_editor_model.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/engine_configuration_editor_model.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_template.dart';
 
 /// Opens the Engine-backed task configuration editor.
@@ -24,6 +24,10 @@ Future<MediaTask?> showEngineTaskConfigurationEditor({
   ImageProvider? thumbnail,
   Widget? sourceSummary,
   VoidCallback? onOpenSource,
+  String title = 'Engine 任务配置',
+  Set<String>? allowedPresetIds,
+  Set<String>? allowedCandidateIds,
+  bool allowTargetSize = true,
 }) {
   return showDialog<MediaTask>(
     context: context,
@@ -35,6 +39,10 @@ Future<MediaTask?> showEngineTaskConfigurationEditor({
         thumbnail: thumbnail,
         sourceSummary: sourceSummary,
         onOpenSource: onOpenSource,
+        title: title,
+        allowedPresetIds: allowedPresetIds,
+        allowedCandidateIds: allowedCandidateIds,
+        allowTargetSize: allowTargetSize,
       );
     },
   );
@@ -48,6 +56,10 @@ class _EngineTaskConfigurationDialog extends StatefulWidget {
     this.thumbnail,
     this.sourceSummary,
     this.onOpenSource,
+    required this.title,
+    this.allowedPresetIds,
+    this.allowedCandidateIds,
+    required this.allowTargetSize,
   });
 
   final MediaTask task;
@@ -57,6 +69,10 @@ class _EngineTaskConfigurationDialog extends StatefulWidget {
   final ImageProvider? thumbnail;
   final Widget? sourceSummary;
   final VoidCallback? onOpenSource;
+  final String title;
+  final Set<String>? allowedPresetIds;
+  final Set<String>? allowedCandidateIds;
+  final bool allowTargetSize;
 
   @override
   State<_EngineTaskConfigurationDialog> createState() =>
@@ -103,7 +119,7 @@ class _EngineTaskConfigurationDialogState
 
     return TaskConfigDialogTemplate(
       task: widget.task,
-      title: 'Engine 任务配置',
+      title: widget.title,
       onClose: () => Navigator.of(context).pop(),
       onOpenSource: widget.onOpenSource,
       thumbnail: widget.thumbnail,
@@ -132,7 +148,20 @@ class _EngineTaskConfigurationDialogState
     if (_targetFieldError != null) {
       return false;
     }
-    return _model.canResolve;
+    final selection = _model.selection;
+    if (selection == null) {
+      return false;
+    }
+    return switch (selection) {
+      EnginePresetSelection() => _availablePresets.any(
+        (preset) => preset.id == selection.presetId,
+      ),
+      EngineManualConfigurationSelection() => _candidateIds.contains(
+        selection.candidateId,
+      ),
+      EngineTargetSizeSelection() =>
+        _targetSizeAllowed && _candidateIds.contains(selection.candidateId),
+    };
   }
 
   EngineConfigurationEditorMode? _initialMode(
@@ -141,10 +170,10 @@ class _EngineTaskConfigurationDialogState
     if (model.mode != null) {
       return model.mode;
     }
-    if (model.availablePresets.isNotEmpty) {
+    if (_availablePresets.isNotEmpty) {
       return EngineConfigurationEditorMode.preset;
     }
-    if (model.candidateIds.isNotEmpty) {
+    if (_candidateIds.isNotEmpty) {
       return EngineConfigurationEditorMode.manual;
     }
     return null;
@@ -153,6 +182,29 @@ class _EngineTaskConfigurationDialogState
   EngineConfigurationEditorModel _baseModel() {
     return EngineConfigurationEditorModel(snapshot: widget.snapshot);
   }
+
+  List<EnginePresetOption> get _availablePresets {
+    final allowed = widget.allowedPresetIds;
+    final presets = widget.snapshot.availablePresets;
+    if (allowed == null) {
+      return presets;
+    }
+    return presets
+        .where((preset) => allowed.contains(preset.id))
+        .toList(growable: false);
+  }
+
+  List<String> get _candidateIds {
+    final allowed = widget.allowedCandidateIds;
+    final candidates = _model.candidateIds;
+    if (allowed == null) {
+      return candidates;
+    }
+    return candidates.where(allowed.contains).toList(growable: false);
+  }
+
+  bool get _targetSizeAllowed =>
+      widget.allowTargetSize && _model.hasCompleteTargetSizeRange;
 
   EngineConfigurationEditorModel _targetModelFromDefaults(
     EngineConfigurationEditorModel base,
@@ -209,7 +261,7 @@ class _EngineTaskConfigurationDialogState
       );
     }
 
-    if (_model.candidateIds.isEmpty) {
+    if (_candidateIds.isEmpty && _availablePresets.isEmpty) {
       children.add(
         _UnavailablePanel(
           title: '当前配置不可用',
@@ -222,7 +274,7 @@ class _EngineTaskConfigurationDialogState
       );
     }
 
-    if (_model.availablePresets.isEmpty &&
+    if (_availablePresets.isEmpty &&
         _activeMode != EngineConfigurationEditorMode.preset) {
       children.add(
         const _UnavailablePanel(
@@ -279,7 +331,7 @@ class _EngineTaskConfigurationDialogState
       EngineConfigurationEditorMode.preset,
       EngineConfigurationEditorMode.manual,
     ];
-    if (_model.hasCompleteTargetSizeRange) {
+    if (_targetSizeAllowed && _candidateIds.isNotEmpty) {
       modes.add(EngineConfigurationEditorMode.targetSize);
     }
     return modes;
@@ -418,7 +470,7 @@ class _EngineTaskConfigurationDialogState
   }
 
   Widget _buildPresetMode(BuildContext context) {
-    final presets = widget.snapshot.availablePresets;
+    final presets = _availablePresets;
     if (presets.isEmpty) {
       return const _UnavailablePanel(
         title: '预设不可用',
@@ -461,7 +513,7 @@ class _EngineTaskConfigurationDialogState
   }
 
   Widget _buildManualMode(BuildContext context) {
-    final candidateIds = _model.candidateIds;
+    final candidateIds = _candidateIds;
     if (candidateIds.isEmpty) {
       return const _UnavailablePanel(
         title: '手动配置不可用',
@@ -698,14 +750,14 @@ class _EngineTaskConfigurationDialogState
 
   Widget _buildTargetSizeMode(BuildContext context) {
     final target = _model.customTargetSize;
-    if (!_model.hasCompleteTargetSizeRange) {
+    if (!_targetSizeAllowed) {
       return _UnavailablePanel(
         title: '目标体积不可用',
         message: target.unavailableReason ?? '当前分析结果不支持目标体积模式。',
       );
     }
 
-    final candidateIds = _model.candidateIds;
+    final candidateIds = _candidateIds;
     final selectedCandidate =
         _model.mode == EngineConfigurationEditorMode.targetSize
         ? _model.selectedCandidateId

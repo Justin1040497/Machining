@@ -15,15 +15,15 @@ FrameLean（帧轻）是面向 macOS 和 Windows 的本地桌面媒体压缩与�
 ## 当前能力
 
 - 视频、图片和音频共享本地任务模型，任务状态覆盖 `await_analysis → analysis_queued → analyzing → ready → execution_queued → running → terminal`。
-- 一次导入先在 Drift 事务中组织任务夹，再按稳定顺序摊平成独立 FEngine 分析任务；任务夹不进入 FEngine/FLL 模型。
+- 一次导入先在 Drift 事务中组织自动任务夹意图，再按稳定顺序摊平成独立 FEngine 分析任务；分析完成后 Client 按媒体兼容类别重组任务夹，HDR 视频与 SDR 视频不会进入同一个任务夹。任务夹不进入 FEngine/FLL 模型。
 - 工作台投影 FEngine 的真实分析队列位置、执行队列位置、抢占关系和恢复深度；拖拽以双 revision 原子重排等待项。
-- 执行为 FLL 单 lane，支持用户暂停/恢复/取消和安全点 LIFO 抢占恢复；输出先写同目录临时文件，成功后原子发布。
+- 执行由 FLL 的 Video/Auxiliary 资源池调度，支持多个活动任务、用户暂停/恢复/取消和安全点按池 LIFO 抢占恢复；输出先写同目录临时文件，成功后原子发布。
 - Client 持久化稳定 analysis/execution request ID、Engine identity、queue revision 和事件 sequence；本地 Gateway 使用随机 token 认证的 loopback 守护连接，使 Worker 在 Client 连接中断或进程重启时继续运行。重连后以同一 session 的 Engine Snapshot 对账；离线期间产生的分析/执行终态通过有界终态摘要恢复，不伪造进度。
 - `AnalysisCompleted` 中的 FLL Snapshot 是媒体元数据、候选、预设、估算和配置投影的唯一来源；Client 不重新解析媒体或构造 native 命令。
 - 预览帧和视频缩略图通过 `EngineMediaGateway` 进入 FEngine Control queue，由 FLL 进程内 libav 解码并写入临时 BMP；它们不占用分析队列或 execution lane。
 - 视频覆盖 MP4、MOV、MKV、WebM 和 AVI 的受约束容器 / 编码组合；透明视频自动使用 MOV + ProRes 4444 保留 alpha。
 - 图片与音频压缩执行结果验收，避免把无效或更大的输出静默标记为成功。
-- 设置保存媒体默认值、输出规则、通知策略、快捷键、扫描深度、主题和关闭行为；执行并发由 FLL 单 lane 调度语义决定，不提供 Client 并发上限。
+- 设置保存媒体默认值、输出规则、通知策略、快捷键、扫描深度、主题和关闭行为；执行并发由 FLL 资源池调度语义决定，不提供 Client 并发上限。
 - 更新体验提供工作台状态、轻量通知和完整版本日志。公开发布默认跳转 GitHub、Gitee 或备用下载地址，不直接下载安装包。
 
 更细的行为、数据字段和测试边界分别以 `docs/develop/architecture.md`、`docs/develop/data-model.md` 和 `docs/develop/test-plan.md` 为准。

@@ -14,14 +14,14 @@ FrameLean 使用 Drift + SQLite。本地数据库由 `AppDatabase` 管理：
 lib/infrastructure/database/app_database.dart
 ```
 
-当前 schema 版本为 `30`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
+当前 schema 版本为 `37`，数据库文件名为 `framelean.sqlite`，创建在 `path_provider` 返回的应用支持目录中。
 
 当前表：
 
 | 表 | Drift 类 | 用途 |
 | --- | --- | --- |
 | `tasks` | `TaskRows` | 保存导入媒体任务、本地展示状态、输出配置和源文件指纹；可配置的媒体事实以 FEngine Snapshot 投影为准 |
-| `task_folders` | `TaskFolderRows` | 保存工作台任务夹、媒体类型、排序和任务夹默认配置 |
+| `task_folders` | `TaskFolderRows` | 保存工作台任务夹、媒体类型、来源、分析后兼容类别和排序；不保存可执行媒体配置 |
 | `settings` | `SettingsRows` | 保存应用级设置；当前只保存一行全局设置，固定 `id = 1` |
 | `app_notifications` | `AppNotificationRows` | 保存应用内通知历史，供全局提示和后续通知中心读取 |
 
@@ -32,7 +32,7 @@ lib/infrastructure/database/app_database.dart
 | 类型 | 位置 | 说明 |
 | --- | --- | --- |
 | `MediaTask` | `lib/domain/entities/media_task.dart` | 任务主实体，包含文件、状态、配置、分析结果、完成输出体积和时间戳 |
-| `TaskFolder` | `lib/domain/entities/task_folder.dart` | 工作台任务夹实体，包含名称、媒体类型、排序和默认配置 |
+| `TaskFolder` | `lib/domain/entities/task_folder.dart` | 工作台任务夹实体，包含名称、媒体类型、自动/手动来源、兼容类别和排序；仅属于 Client 批量配置分组 |
 | `MediaTaskConfig` | `lib/domain/value_objects/media_task_config.dart` | 单任务通用输出、压缩和分类型配置入口 |
 | `VideoProcessingConfig` | `lib/domain/value_objects/video_processing_config.dart` | 视频输出与压缩配置 |
 | `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量、无损压缩和元数据保留配置 |
@@ -56,7 +56,7 @@ lib/infrastructure/repositories/drift_app_notification_repository.dart
 lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 ```
 
-枚举字段通常使用 Dart enum 的 `.name` 持久化，例如 `TaskStatus.pending` 存为 `pending`。新增、删除或重命名枚举值会直接影响历史数据读取，必须配套迁移或兼容映射。当前 `CompressionMode` 已使用 `CompressionModeMapper` 和 `PersistenceCompatibility` 集中处理历史值兼容。
+枚举字段通过仓储映射为稳定的 snake_case 存储值，例如 `TaskStatus.awaitAnalysis` 存为 `await_analysis`。新增、删除或重命名枚举值必须同步更新仓储映射和数据库迁移。当前 `CompressionMode` 使用 `CompressionModeMapper` 和 `PersistenceCompatibility` 集中处理历史值。
 
 ## `tasks` 表
 
@@ -222,9 +222,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `name` | text | 否 | 无 | `name` | 工作台展示名称 |
 | `media_kind` | text | 否 | 无 | `mediaKind` | 任务夹媒体类型；首版不混放视频 / 图片 / 音频 |
 | `sort_order` | integer | 否 | 无 | `sortOrder` | 任务夹在工作台总列表中的排序 |
-| `default_config_json` | text | 否 | 无 | `defaultConfig` | 任务夹默认媒体处理配置，使用 `MediaTaskConfig` JSON 结构 |
 | `created_at` | integer | 否 | 无 | `createdAt` | 创建时间毫秒时间戳 |
 | `updated_at` | integer | 否 | 无 | `updatedAt` | 更新时间毫秒时间戳 |
+
+任务夹配置时，Client 从每个 ready 子任务各自的有效 `AnalysisSnapshot`
+读取候选与预设。一个公共 preset ID 可映射为不同任务的 candidate ID，
+最终仍将每个 selection 分别绑定该任务的 analysis ID/revision 持久化；
+任务夹 ID、默认 purpose 和默认媒体配置不会发送到 FEngine/FLL。
 
 ## `settings` 表
 
@@ -289,7 +293,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `execution_queued` | 已入执行队列 | FEngine 已接受 execution selection，等待或准备启动 |
 | `running` | 处理中 | FEngine execution lane 正在执行该任务 |
 | `preempting` | 正在抢占 | FEngine 正在暂停当前 execution 以启动前台任务 |
-| `preempted` | 已抢占 | 已暂停并位于 FEngine LIFO 恢复栈 |
+| `preempted` | 已抢占 | 已暂停并位于 FEngine 对应资源池的 LIFO 恢复栈 |
 | `resuming` | 正在恢复 | FEngine 正在从恢复栈重启该 execution |
 | `paused` | 已暂停 | FEngine 对 execution 发出暂停或抢占事件后 |
 | `completed` | 已完成 | FEngine 终态事件确认完成且输出 artifact 有效 |
@@ -334,8 +338,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 2. `MediaTaskListNotifier.createDraftFromPath()` 调用 `ImportMediaTaskUseCase`。
 3. `ImportMediaTaskUseCase` 识别 `MediaKind`，允许 `video`、`image`、`audio`，并读取 `SourceFileFingerprint`。
 4. 用应用设置和媒体类型生成新任务默认 `MediaTaskConfig`，创建 `MediaTask.draft()`。
-5. 批量写入 `await_analysis` 状态后，Client 通过 `AnalyzeMediaTaskUseCase` 把源事实提交给 FEngine 分析队列。
-6. FEngine 接受并派发后，Client 将状态投影为 `analyzing`。
+5. 批量写入 `await_analysis` 状态后，Client 通过 `SubmitEngineAnalysisBatchUseCase` 按稳定摊平顺序把源事实原子提交给 FEngine 分析队列。
+6. FEngine 批量回执后，Client 投影为 `analysis_queued`；后续 started 事件再投影为 `analyzing`，不建立第二条本地分析队列。
 7. `AnalysisCompleted(analysisId, revision, snapshot)` 到达后，Client 持久化 Snapshot 投影和展示镜像，再转为 `ready` / 等待用户启动。
 8. 分析失败事件写入 `TaskFailure(stage: analysis, ...)`，任务状态转为 `analysis_failed`。
 
@@ -346,13 +350,13 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 3. 非活动任务的源文件不存在时标记 `missingSource`。
 4. 非活动任务的源文件存在但指纹变化时，更新指纹、使 Snapshot 投影失效并转为 `await_analysis`。
 5. 没有有效 Snapshot 的旧非活动任务会对账为 `await_analysis` 并重新提交 FEngine；带有效 Snapshot 的 `ready` 任务保持不变。
-6. Client 读取 FEngine Engine Snapshot，对账分析队列、execution lane、LIFO 恢复栈与任务展示状态；只有该对账能修正 Engine 非终态任务。
+6. Client 读取 FEngine Engine Snapshot，对账分析队列、多个活动 execution、两个资源池恢复栈与任务展示状态；只有该对账能修正 Engine 非终态任务。
 
 ### 执行和进度
 
 1. 全新执行只接受持有有效 FLL Snapshot 的 `ready` 任务；Client 把用户选择的 candidate、preset 与参数原样提交给 FEngine。
 2. FEngine 以 source facts 与 Snapshot revision 再次校验准入；Client 不在本地解析配置、构造命令或预检 native 执行能力。
-3. 执行 lane、普通等待队列、用户暂停队列和 LIFO 恢复栈均由 FEngine 维护，Client 只投影其 Snapshot 与事件。
+3. 活动 execution、普通等待队列、用户暂停集合和两个资源池恢复栈均由 FLL 维护并由 FEngine 投影，Client 只消费 Snapshot 与事件。
 4. 用户手动启动等待任务时，FEngine `PreemptAndStart` 暂停当前活动 execution 并压入恢复栈；最后一次抢占的任务最先恢复。
 5. FEngine 接受 execution 后，Client 写入 execution ID、队列 revision 与运行态投影；工作台展示由后续状态事件持续更新。
 6. 进度来自 FEngine 的 `media_time_us`、已处理字节与 execution 状态事件；Client 不读取进程 stdout 或推导编码步骤。
@@ -399,7 +403,9 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 33 | 新增 `workbench_order_states`，持久化 Client 对 FEngine 队列 revision 的展示状态 |
 | 34 | 为分析和执行投影增加幂等 request ID |
 | 35 | 从当前 Settings schema 移除自定义 FFmpeg / FFprobe executable 路径；升级库中残留的旧列不再读取或写入 |
-| 36 | 移除 Client 并发上限设置与 `max_concurrent_executions` 列；执行并发统一由 FLL 单 lane 调度语义决定 |
+| 36 | 移除 Client 并发上限设置与 `max_concurrent_executions` 列；执行并发统一由 FLL 调度语义决定 |
+| 37 | 从 `task_folders` 移除 `default_purpose` 与 `default_config_json`；任务夹配置改为由各子任务的 Snapshot-bound selection 派生 |
+| 38 | 给 `task_folders` 增加 `origin` 与 `compatibility_class`；旧任务夹默认按手动创建处理，避免升级时自动拆分 |
 
 ## 修改数据模型的约束
 

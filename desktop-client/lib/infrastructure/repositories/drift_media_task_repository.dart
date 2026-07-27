@@ -516,9 +516,9 @@ extension TaskFolderMapper on TaskFolder {
       id: Value(id),
       name: Value(name),
       mediaKind: Value(mediaKind.name),
-      defaultPurpose: Value(defaultPurpose.name),
+      origin: Value(origin.name),
+      compatibilityClass: Value(compatibilityClass?.name),
       sortOrder: Value(sortOrder),
-      defaultConfigJson: Value(encodeMediaTaskConfig(defaultConfig)),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -528,13 +528,20 @@ extension TaskFolderMapper on TaskFolder {
 extension TaskFolderRowMapper on TaskFolderRow {
   TaskFolder toDomain() {
     final resolvedMediaKind = enumValueByName(MediaKind.values, mediaKind);
+    final resolvedOrigin =
+        nullableEnumValueByName(TaskFolderOrigin.values, origin) ??
+        TaskFolderOrigin.manual;
+    final resolvedCompatibilityClass = nullableEnumValueByName(
+      TaskFolderCompatibilityClass.values,
+      compatibilityClass,
+    );
     return TaskFolder(
       id: id,
       name: name,
       mediaKind: resolvedMediaKind,
-      defaultPurpose: enumValueByName(TaskPurpose.values, defaultPurpose),
+      origin: resolvedOrigin,
+      compatibilityClass: resolvedCompatibilityClass,
       sortOrder: sortOrder,
-      defaultConfig: decodeMediaTaskConfig(defaultConfigJson),
       createdAt: createdAt,
       updatedAt: updatedAt,
     );

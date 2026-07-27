@@ -5776,18 +5776,27 @@ class $TaskFolderRowsTable extends TaskFolderRows
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _defaultPurposeMeta = const VerificationMeta(
-    'defaultPurpose',
-  );
+  static const VerificationMeta _originMeta = const VerificationMeta('origin');
   @override
-  late final GeneratedColumn<String> defaultPurpose = GeneratedColumn<String>(
-    'default_purpose',
+  late final GeneratedColumn<String> origin = GeneratedColumn<String>(
+    'origin',
     aliasedName,
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('compression'),
+    defaultValue: const Constant('manual'),
   );
+  static const VerificationMeta _compatibilityClassMeta =
+      const VerificationMeta('compatibilityClass');
+  @override
+  late final GeneratedColumn<String> compatibilityClass =
+      GeneratedColumn<String>(
+        'compatibility_class',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
   static const VerificationMeta _sortOrderMeta = const VerificationMeta(
     'sortOrder',
   );
@@ -5799,18 +5808,6 @@ class $TaskFolderRowsTable extends TaskFolderRows
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _defaultConfigJsonMeta = const VerificationMeta(
-    'defaultConfigJson',
-  );
-  @override
-  late final GeneratedColumn<String> defaultConfigJson =
-      GeneratedColumn<String>(
-        'default_config_json',
-        aliasedName,
-        false,
-        type: DriftSqlType.string,
-        requiredDuringInsert: true,
-      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -5838,9 +5835,9 @@ class $TaskFolderRowsTable extends TaskFolderRows
     id,
     name,
     mediaKind,
-    defaultPurpose,
+    origin,
+    compatibilityClass,
     sortOrder,
-    defaultConfigJson,
     createdAt,
     updatedAt,
   ];
@@ -5877,12 +5874,18 @@ class $TaskFolderRowsTable extends TaskFolderRows
     } else if (isInserting) {
       context.missing(_mediaKindMeta);
     }
-    if (data.containsKey('default_purpose')) {
+    if (data.containsKey('origin')) {
       context.handle(
-        _defaultPurposeMeta,
-        defaultPurpose.isAcceptableOrUnknown(
-          data['default_purpose']!,
-          _defaultPurposeMeta,
+        _originMeta,
+        origin.isAcceptableOrUnknown(data['origin']!, _originMeta),
+      );
+    }
+    if (data.containsKey('compatibility_class')) {
+      context.handle(
+        _compatibilityClassMeta,
+        compatibilityClass.isAcceptableOrUnknown(
+          data['compatibility_class']!,
+          _compatibilityClassMeta,
         ),
       );
     }
@@ -5893,17 +5896,6 @@ class $TaskFolderRowsTable extends TaskFolderRows
       );
     } else if (isInserting) {
       context.missing(_sortOrderMeta);
-    }
-    if (data.containsKey('default_config_json')) {
-      context.handle(
-        _defaultConfigJsonMeta,
-        defaultConfigJson.isAcceptableOrUnknown(
-          data['default_config_json']!,
-          _defaultConfigJsonMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_defaultConfigJsonMeta);
     }
     if (data.containsKey('created_at')) {
       context.handle(
@@ -5942,17 +5934,17 @@ class $TaskFolderRowsTable extends TaskFolderRows
         DriftSqlType.string,
         data['${effectivePrefix}media_kind'],
       )!,
-      defaultPurpose: attachedDatabase.typeMapping.read(
+      origin: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
-        data['${effectivePrefix}default_purpose'],
+        data['${effectivePrefix}origin'],
       )!,
+      compatibilityClass: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}compatibility_class'],
+      ),
       sortOrder: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}sort_order'],
-      )!,
-      defaultConfigJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}default_config_json'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
@@ -5975,18 +5967,18 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
   final String id;
   final String name;
   final String mediaKind;
-  final String defaultPurpose;
+  final String origin;
+  final String? compatibilityClass;
   final int sortOrder;
-  final String defaultConfigJson;
   final int createdAt;
   final int updatedAt;
   const TaskFolderRow({
     required this.id,
     required this.name,
     required this.mediaKind,
-    required this.defaultPurpose,
+    required this.origin,
+    this.compatibilityClass,
     required this.sortOrder,
-    required this.defaultConfigJson,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -5996,9 +5988,11 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['media_kind'] = Variable<String>(mediaKind);
-    map['default_purpose'] = Variable<String>(defaultPurpose);
+    map['origin'] = Variable<String>(origin);
+    if (!nullToAbsent || compatibilityClass != null) {
+      map['compatibility_class'] = Variable<String>(compatibilityClass);
+    }
     map['sort_order'] = Variable<int>(sortOrder);
-    map['default_config_json'] = Variable<String>(defaultConfigJson);
     map['created_at'] = Variable<int>(createdAt);
     map['updated_at'] = Variable<int>(updatedAt);
     return map;
@@ -6009,9 +6003,11 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       id: Value(id),
       name: Value(name),
       mediaKind: Value(mediaKind),
-      defaultPurpose: Value(defaultPurpose),
+      origin: Value(origin),
+      compatibilityClass: compatibilityClass == null && nullToAbsent
+          ? const Value.absent()
+          : Value(compatibilityClass),
       sortOrder: Value(sortOrder),
-      defaultConfigJson: Value(defaultConfigJson),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -6026,9 +6022,11 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       mediaKind: serializer.fromJson<String>(json['mediaKind']),
-      defaultPurpose: serializer.fromJson<String>(json['defaultPurpose']),
+      origin: serializer.fromJson<String>(json['origin']),
+      compatibilityClass: serializer.fromJson<String?>(
+        json['compatibilityClass'],
+      ),
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
-      defaultConfigJson: serializer.fromJson<String>(json['defaultConfigJson']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       updatedAt: serializer.fromJson<int>(json['updatedAt']),
     );
@@ -6040,9 +6038,9 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'mediaKind': serializer.toJson<String>(mediaKind),
-      'defaultPurpose': serializer.toJson<String>(defaultPurpose),
+      'origin': serializer.toJson<String>(origin),
+      'compatibilityClass': serializer.toJson<String?>(compatibilityClass),
       'sortOrder': serializer.toJson<int>(sortOrder),
-      'defaultConfigJson': serializer.toJson<String>(defaultConfigJson),
       'createdAt': serializer.toJson<int>(createdAt),
       'updatedAt': serializer.toJson<int>(updatedAt),
     };
@@ -6052,18 +6050,20 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     String? id,
     String? name,
     String? mediaKind,
-    String? defaultPurpose,
+    String? origin,
+    Value<String?> compatibilityClass = const Value.absent(),
     int? sortOrder,
-    String? defaultConfigJson,
     int? createdAt,
     int? updatedAt,
   }) => TaskFolderRow(
     id: id ?? this.id,
     name: name ?? this.name,
     mediaKind: mediaKind ?? this.mediaKind,
-    defaultPurpose: defaultPurpose ?? this.defaultPurpose,
+    origin: origin ?? this.origin,
+    compatibilityClass: compatibilityClass.present
+        ? compatibilityClass.value
+        : this.compatibilityClass,
     sortOrder: sortOrder ?? this.sortOrder,
-    defaultConfigJson: defaultConfigJson ?? this.defaultConfigJson,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -6072,13 +6072,11 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       mediaKind: data.mediaKind.present ? data.mediaKind.value : this.mediaKind,
-      defaultPurpose: data.defaultPurpose.present
-          ? data.defaultPurpose.value
-          : this.defaultPurpose,
+      origin: data.origin.present ? data.origin.value : this.origin,
+      compatibilityClass: data.compatibilityClass.present
+          ? data.compatibilityClass.value
+          : this.compatibilityClass,
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
-      defaultConfigJson: data.defaultConfigJson.present
-          ? data.defaultConfigJson.value
-          : this.defaultConfigJson,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -6090,9 +6088,9 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('mediaKind: $mediaKind, ')
-          ..write('defaultPurpose: $defaultPurpose, ')
+          ..write('origin: $origin, ')
+          ..write('compatibilityClass: $compatibilityClass, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('defaultConfigJson: $defaultConfigJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -6104,9 +6102,9 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
     id,
     name,
     mediaKind,
-    defaultPurpose,
+    origin,
+    compatibilityClass,
     sortOrder,
-    defaultConfigJson,
     createdAt,
     updatedAt,
   );
@@ -6117,9 +6115,9 @@ class TaskFolderRow extends DataClass implements Insertable<TaskFolderRow> {
           other.id == this.id &&
           other.name == this.name &&
           other.mediaKind == this.mediaKind &&
-          other.defaultPurpose == this.defaultPurpose &&
+          other.origin == this.origin &&
+          other.compatibilityClass == this.compatibilityClass &&
           other.sortOrder == this.sortOrder &&
-          other.defaultConfigJson == this.defaultConfigJson &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -6128,9 +6126,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
   final Value<String> id;
   final Value<String> name;
   final Value<String> mediaKind;
-  final Value<String> defaultPurpose;
+  final Value<String> origin;
+  final Value<String?> compatibilityClass;
   final Value<int> sortOrder;
-  final Value<String> defaultConfigJson;
   final Value<int> createdAt;
   final Value<int> updatedAt;
   final Value<int> rowid;
@@ -6138,9 +6136,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.mediaKind = const Value.absent(),
-    this.defaultPurpose = const Value.absent(),
+    this.origin = const Value.absent(),
+    this.compatibilityClass = const Value.absent(),
     this.sortOrder = const Value.absent(),
-    this.defaultConfigJson = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -6149,9 +6147,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     required String id,
     required String name,
     required String mediaKind,
-    this.defaultPurpose = const Value.absent(),
+    this.origin = const Value.absent(),
+    this.compatibilityClass = const Value.absent(),
     required int sortOrder,
-    required String defaultConfigJson,
     required int createdAt,
     required int updatedAt,
     this.rowid = const Value.absent(),
@@ -6159,16 +6157,15 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
        name = Value(name),
        mediaKind = Value(mediaKind),
        sortOrder = Value(sortOrder),
-       defaultConfigJson = Value(defaultConfigJson),
        createdAt = Value(createdAt),
        updatedAt = Value(updatedAt);
   static Insertable<TaskFolderRow> custom({
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? mediaKind,
-    Expression<String>? defaultPurpose,
+    Expression<String>? origin,
+    Expression<String>? compatibilityClass,
     Expression<int>? sortOrder,
-    Expression<String>? defaultConfigJson,
     Expression<int>? createdAt,
     Expression<int>? updatedAt,
     Expression<int>? rowid,
@@ -6177,9 +6174,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (mediaKind != null) 'media_kind': mediaKind,
-      if (defaultPurpose != null) 'default_purpose': defaultPurpose,
+      if (origin != null) 'origin': origin,
+      if (compatibilityClass != null) 'compatibility_class': compatibilityClass,
       if (sortOrder != null) 'sort_order': sortOrder,
-      if (defaultConfigJson != null) 'default_config_json': defaultConfigJson,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -6190,9 +6187,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     Value<String>? id,
     Value<String>? name,
     Value<String>? mediaKind,
-    Value<String>? defaultPurpose,
+    Value<String>? origin,
+    Value<String?>? compatibilityClass,
     Value<int>? sortOrder,
-    Value<String>? defaultConfigJson,
     Value<int>? createdAt,
     Value<int>? updatedAt,
     Value<int>? rowid,
@@ -6201,9 +6198,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
       id: id ?? this.id,
       name: name ?? this.name,
       mediaKind: mediaKind ?? this.mediaKind,
-      defaultPurpose: defaultPurpose ?? this.defaultPurpose,
+      origin: origin ?? this.origin,
+      compatibilityClass: compatibilityClass ?? this.compatibilityClass,
       sortOrder: sortOrder ?? this.sortOrder,
-      defaultConfigJson: defaultConfigJson ?? this.defaultConfigJson,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -6222,14 +6219,14 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
     if (mediaKind.present) {
       map['media_kind'] = Variable<String>(mediaKind.value);
     }
-    if (defaultPurpose.present) {
-      map['default_purpose'] = Variable<String>(defaultPurpose.value);
+    if (origin.present) {
+      map['origin'] = Variable<String>(origin.value);
+    }
+    if (compatibilityClass.present) {
+      map['compatibility_class'] = Variable<String>(compatibilityClass.value);
     }
     if (sortOrder.present) {
       map['sort_order'] = Variable<int>(sortOrder.value);
-    }
-    if (defaultConfigJson.present) {
-      map['default_config_json'] = Variable<String>(defaultConfigJson.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
@@ -6249,9 +6246,9 @@ class TaskFolderRowsCompanion extends UpdateCompanion<TaskFolderRow> {
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('mediaKind: $mediaKind, ')
-          ..write('defaultPurpose: $defaultPurpose, ')
+          ..write('origin: $origin, ')
+          ..write('compatibilityClass: $compatibilityClass, ')
           ..write('sortOrder: $sortOrder, ')
-          ..write('defaultConfigJson: $defaultConfigJson, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -10815,9 +10812,9 @@ typedef $$TaskFolderRowsTableCreateCompanionBuilder =
       required String id,
       required String name,
       required String mediaKind,
-      Value<String> defaultPurpose,
+      Value<String> origin,
+      Value<String?> compatibilityClass,
       required int sortOrder,
-      required String defaultConfigJson,
       required int createdAt,
       required int updatedAt,
       Value<int> rowid,
@@ -10827,9 +10824,9 @@ typedef $$TaskFolderRowsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> name,
       Value<String> mediaKind,
-      Value<String> defaultPurpose,
+      Value<String> origin,
+      Value<String?> compatibilityClass,
       Value<int> sortOrder,
-      Value<String> defaultConfigJson,
       Value<int> createdAt,
       Value<int> updatedAt,
       Value<int> rowid,
@@ -10859,18 +10856,18 @@ class $$TaskFolderRowsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<String> get defaultPurpose => $composableBuilder(
-    column: $table.defaultPurpose,
+  ColumnFilters<String> get origin => $composableBuilder(
+    column: $table.origin,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get compatibilityClass => $composableBuilder(
+    column: $table.compatibilityClass,
     builder: (column) => ColumnFilters(column),
   );
 
   ColumnFilters<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get defaultConfigJson => $composableBuilder(
-    column: $table.defaultConfigJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -10909,18 +10906,18 @@ class $$TaskFolderRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get defaultPurpose => $composableBuilder(
-    column: $table.defaultPurpose,
+  ColumnOrderings<String> get origin => $composableBuilder(
+    column: $table.origin,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get compatibilityClass => $composableBuilder(
+    column: $table.compatibilityClass,
     builder: (column) => ColumnOrderings(column),
   );
 
   ColumnOrderings<int> get sortOrder => $composableBuilder(
     column: $table.sortOrder,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get defaultConfigJson => $composableBuilder(
-    column: $table.defaultConfigJson,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -10953,18 +10950,16 @@ class $$TaskFolderRowsTableAnnotationComposer
   GeneratedColumn<String> get mediaKind =>
       $composableBuilder(column: $table.mediaKind, builder: (column) => column);
 
-  GeneratedColumn<String> get defaultPurpose => $composableBuilder(
-    column: $table.defaultPurpose,
+  GeneratedColumn<String> get origin =>
+      $composableBuilder(column: $table.origin, builder: (column) => column);
+
+  GeneratedColumn<String> get compatibilityClass => $composableBuilder(
+    column: $table.compatibilityClass,
     builder: (column) => column,
   );
 
   GeneratedColumn<int> get sortOrder =>
       $composableBuilder(column: $table.sortOrder, builder: (column) => column);
-
-  GeneratedColumn<String> get defaultConfigJson => $composableBuilder(
-    column: $table.defaultConfigJson,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -11009,9 +11004,9 @@ class $$TaskFolderRowsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> name = const Value.absent(),
                 Value<String> mediaKind = const Value.absent(),
-                Value<String> defaultPurpose = const Value.absent(),
+                Value<String> origin = const Value.absent(),
+                Value<String?> compatibilityClass = const Value.absent(),
                 Value<int> sortOrder = const Value.absent(),
-                Value<String> defaultConfigJson = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
                 Value<int> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -11019,9 +11014,9 @@ class $$TaskFolderRowsTableTableManager
                 id: id,
                 name: name,
                 mediaKind: mediaKind,
-                defaultPurpose: defaultPurpose,
+                origin: origin,
+                compatibilityClass: compatibilityClass,
                 sortOrder: sortOrder,
-                defaultConfigJson: defaultConfigJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -11031,9 +11026,9 @@ class $$TaskFolderRowsTableTableManager
                 required String id,
                 required String name,
                 required String mediaKind,
-                Value<String> defaultPurpose = const Value.absent(),
+                Value<String> origin = const Value.absent(),
+                Value<String?> compatibilityClass = const Value.absent(),
                 required int sortOrder,
-                required String defaultConfigJson,
                 required int createdAt,
                 required int updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -11041,9 +11036,9 @@ class $$TaskFolderRowsTableTableManager
                 id: id,
                 name: name,
                 mediaKind: mediaKind,
-                defaultPurpose: defaultPurpose,
+                origin: origin,
+                compatibilityClass: compatibilityClass,
                 sortOrder: sortOrder,
-                defaultConfigJson: defaultConfigJson,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

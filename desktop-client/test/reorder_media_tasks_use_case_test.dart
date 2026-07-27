@@ -52,7 +52,7 @@ MediaTask mediaTask({required String id, required int sortOrder}) {
     fileName: '$id.mp4',
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: VideoTaskConfig.initial(),
     progress: 0,
     sortOrder: sortOrder,

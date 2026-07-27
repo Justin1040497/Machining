@@ -294,7 +294,7 @@ abstract final class WorkbenchEncoderPolicy {
 
 /// 编解码器与 HDR 策略。
 ///
-/// 消除 task_configuration_dialog.dart 中两处重复的 onVideoCodecChanged 逻辑。
+/// 保留旧任务配置路径中共用的编解码器变更约束。
 abstract final class WorkbenchCodecPolicy {
   /// 解析编解码器变更请求，返回修正后的 (codec, backend) 组合。
   ///

@@ -1,5 +1,6 @@
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/domain/enums/media_task_policy_tag.dart';
+import 'package:framelean/domain/enums/task_folder_compatibility_class.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
@@ -41,6 +42,21 @@ class MediaTask {
     MediaTaskPolicyTag.imageFormatFallback,
     MediaTaskPolicyTag.ineffectiveCompression,
   };
+
+  TaskFolderCompatibilityClass? get taskFolderCompatibilityClass {
+    final analysis = analysisResult;
+    if (analysis == null) {
+      return null;
+    }
+    return switch (mediaKind) {
+      MediaKind.video =>
+        analysis.hasHdrSignals
+            ? TaskFolderCompatibilityClass.videoHdr
+            : TaskFolderCompatibilityClass.videoSdr,
+      MediaKind.image => TaskFolderCompatibilityClass.image,
+      MediaKind.audio => TaskFolderCompatibilityClass.audio,
+    };
+  }
 
   /// 创建刚导入、尚未开始处理的草稿任务
   factory MediaTask.draft({
@@ -178,8 +194,8 @@ class MediaTask {
 
   /// 是否满足一次全新执行的领域准入条件。
   ///
-  /// `paused` 只能由 Runner 在仍持有对应 TaskExecution 时恢复，不能作为
-  /// 数据库任务重新启动。
+  /// `paused` 只能由 FEngine/FLL 在仍持有对应执行上下文时恢复，不能作为
+  /// 本地持久化任务重新启动。
   bool get canStartExecution => isAnalysisReady;
 
   /// 清空错误信息和失败时间

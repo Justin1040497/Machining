@@ -218,6 +218,19 @@ class MediaAnalysisResult {
   int? get preferredBitrate =>
       videoBitrate ?? audioBitrate ?? containerBitrate ?? estimatedBitrate;
 
+  bool get hasHdrSignals {
+    final transfer = colorTransfer?.trim().toLowerCase();
+    return transfer == 'smpte2084' ||
+        transfer == 'pq' ||
+        transfer == 'arib-std-b67' ||
+        transfer == 'hlg' ||
+        dolbyVisionProfile != null ||
+        masteringDisplayMetadata?.trim().isNotEmpty == true ||
+        masteringDisplayMaxLuminance != null ||
+        maxContentLightLevel != null ||
+        maxFrameAverageLightLevel != null;
+  }
+
   bool get isHdr {
     final transfer = colorTransfer?.trim().toLowerCase();
     final space = colorSpace?.trim().toLowerCase();

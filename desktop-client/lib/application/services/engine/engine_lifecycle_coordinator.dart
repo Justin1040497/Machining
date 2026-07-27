@@ -18,6 +18,7 @@ final class EngineLifecycleCoordinator {
     required this.projectionRepository,
     DateTime Function()? now,
     this.onProjectionChanged,
+    this.onAnalysisRecovered,
   }) : now = now ?? DateTime.now;
 
   final EngineLifecycleGateway gateway;
@@ -25,6 +26,7 @@ final class EngineLifecycleCoordinator {
   final EngineAnalysisProjectionRepository projectionRepository;
   final DateTime Function() now;
   final FutureOr<void> Function(String taskId)? onProjectionChanged;
+  final FutureOr<void> Function(String taskId)? onAnalysisRecovered;
 
   StreamSubscription<EngineWorkEvent>? _subscription;
   Future<void> _serial = Future<void>.value();
@@ -216,14 +218,16 @@ final class EngineLifecycleCoordinator {
     };
     final scheduled =
         <String, ({EngineScheduledExecution entry, TaskStatus status})>{
-          if (snapshot.executionLane.active case final entry?)
+          for (final entry in snapshot.executionLane.activeExecutions)
             entry.executionId: (entry: entry, status: TaskStatus.running),
           for (final entry in snapshot.executionLane.normalWaiting)
             entry.executionId: (
               entry: entry,
               status: TaskStatus.executionQueued,
             ),
-          for (final entry in snapshot.executionLane.resumeStack)
+          for (final entry in snapshot.executionLane.videoResumeStack)
+            entry.executionId: (entry: entry, status: TaskStatus.preempted),
+          for (final entry in snapshot.executionLane.auxiliaryResumeStack)
             entry.executionId: (entry: entry, status: TaskStatus.preempted),
           for (final entry in snapshot.executionLane.userPaused)
             entry.executionId: (entry: entry, status: TaskStatus.paused),
@@ -364,14 +368,18 @@ final class EngineLifecycleCoordinator {
           : snapshot.executionLane.normalWaiting.indexWhere(
               (entry) => entry.executionId == executionId,
             );
+      final resumeStack =
+          scheduledEntry?.resourcePool == EngineExecutionResourcePool.video
+          ? snapshot.executionLane.videoResumeStack
+          : snapshot.executionLane.auxiliaryResumeStack;
       final resumeStackIndex = executionId == null
           ? -1
-          : snapshot.executionLane.resumeStack.indexWhere(
-              (entry) => entry.executionId == executionId,
-            );
+          : resumeStack.indexWhere((entry) => entry.executionId == executionId);
       final isActiveExecution =
           executionId != null &&
-          snapshot.executionLane.active?.executionId == executionId;
+          snapshot.executionLane.activeExecutions.any(
+            (entry) => entry.executionId == executionId,
+          );
       await projectionRepository.upsert(
         authoritativeProjection.copyWith(
           engineSessionId: result.sessionId,
@@ -404,7 +412,7 @@ final class EngineLifecycleCoordinator {
               scheduledEntry.preemptedByExecutionId == null,
           resumeDepth: resumeStackIndex < 0
               ? 0
-              : snapshot.executionLane.resumeStack.length - resumeStackIndex,
+              : resumeStack.length - resumeStackIndex,
           lastEventSequence: result.sequence,
           updatedAt: now(),
         ),
@@ -457,6 +465,7 @@ final class EngineLifecycleCoordinator {
           updatedAt: now(),
         ),
       );
+      await onAnalysisRecovered?.call(task.id);
       await onProjectionChanged?.call(task.id);
     } on Object catch (error) {
       await taskRepository.saveTask(

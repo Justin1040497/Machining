@@ -58,7 +58,7 @@ abstract class MediaTaskRepository {
   /// 保存单个任务
   Future<void> saveTask(MediaTask task);
 
-  /// 批量插入新任务（单事务内完成），已存在的 ID 将被覆盖
+  /// 事务性批量 upsert，已存在的 ID 将被覆盖。
   Future<void> insertTasks(List<MediaTask> tasks);
 
   /// 用一整批任务覆盖当前任务列表

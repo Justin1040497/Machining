@@ -20,7 +20,7 @@ final updateRestartPreparationProvider = Provider<UpdateRestartPreparation>((
   ref,
 ) {
   return () async {
-    await ref.read(mediaTaskExecutionCoordinatorProvider).pauseActive();
+    await ref.read(mediaTaskExecutionCoordinatorProvider).pauseAll();
     await ref.read(mediaTaskExecutionCoordinatorProvider).cancelAll();
   };
 });

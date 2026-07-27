@@ -139,7 +139,7 @@ MediaTask _task({TaskPurpose purpose = TaskPurpose.compression}) {
     fileName: 'source.mp4',
     mediaKind: MediaKind.video,
     purpose: purpose,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: MediaTaskConfig.initialVideo(),
     progress: 0,
     sortOrder: 0,

@@ -30,7 +30,7 @@ MediaTask _task() {
     fileName: 'source.mp4',
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: MediaTaskConfig.initialVideo().copyWith(
       engineConfiguration: const EngineConfigurationReference(
         analysisId: 'analysis-1',

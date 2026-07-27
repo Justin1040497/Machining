@@ -4,6 +4,7 @@ import 'package:framelean/application/models/engine_analysis_documents.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
 import 'package:framelean/domain/value_objects/engine_configuration_reference.dart';
 
+/// Snapshot-backed configuration state shared by single-task and folder flows.
 enum EngineConfigurationEditorMode { preset, manual, targetSize }
 
 final class EngineConfigurationEditorModel {

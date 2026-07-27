@@ -8,7 +8,6 @@ import 'package:framelean/application/repositories/imported_media_batch_persiste
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/repositories/workbench_order_revision_store.dart';
-import 'package:framelean/application/services/analysis/media_analysis_queue.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
@@ -29,7 +28,6 @@ import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/features/workbench/providers/media_task_notifier.dart';
-import 'package:framelean/app/providers/execution_provider.dart';
 import 'package:framelean/app/providers/input_runtime_provider.dart';
 import 'package:framelean/app/providers/repository_provider.dart';
 
@@ -59,7 +57,7 @@ void main() {
 
     test('marks missing source tasks without dropping the task', () async {
       final pendingTask = videoTask(
-        status: TaskStatus.pending,
+        status: TaskStatus.ready,
       ).copyWith(sourceFileFingerprint: testFingerprint);
       final repository = FakeMediaTaskRepository([pendingTask]);
       final fingerprintReader = FakeSourceFileFingerprintReader();
@@ -173,49 +171,11 @@ void main() {
 
         expect(tasks, hasLength(2));
         expect(
-          tasks.every((task) => task.status == TaskStatus.awaitingAnalysis),
+          tasks.every((task) => task.status == TaskStatus.awaitAnalysis),
           isTrue,
         );
       },
     );
-
-    test('refreshes UI state after a fast analysis finishes', () async {
-      final repository = FakeMediaTaskRepository([]);
-      final queue = MediaAnalysisQueue(
-        analyzeTask: (taskId) async {
-          final task = (await repository.loadTaskById(taskId))!;
-          final analyzedTask = task
-              .markAnalyzing()
-              .withAnalysisResult(MediaAnalysisResult(durationMs: 1000))
-              .markAnalysisReady();
-          await repository.saveTask(analyzedTask);
-          return analyzedTask;
-        },
-      );
-      addTearDown(queue.stop);
-      final container = testContainer(
-        repository: repository,
-        sourceFileChecker: const FakeSourceFileChecker(
-          existingPaths: {'/videos/fast.mp4'},
-        ),
-        fingerprintReader: FakeSourceFileFingerprintReader(
-          fingerprint: testFingerprint,
-        ),
-        analysisQueue: queue,
-      );
-      addTearDown(container.dispose);
-
-      await container.read(mediaTaskListProvider.future);
-      await container
-          .read(mediaTaskListProvider.notifier)
-          .createDraftsFromPaths(['/videos/fast.mp4']);
-      await queue.waitForCompletion();
-      await Future<void>.delayed(Duration.zero);
-
-      final task = container.read(mediaTaskListProvider).requireValue.single;
-      expect(task.status, TaskStatus.pending);
-      expect(task.analysisResult, isNotNull);
-    });
 
     test(
       'increments output template version for repeated source imports',
@@ -258,7 +218,7 @@ void main() {
           ),
         );
         final failedTask = readyVideoTask(id: 'failed', sortOrder: 1).copyWith(
-          status: TaskStatus.failed,
+          status: TaskStatus.executionFailed,
           config: systemOutputVideoConfig(
             outputDirectory: '/old',
             outputFileName: 'old',
@@ -327,7 +287,7 @@ void main() {
     test('retry applies the latest output settings', () async {
       final failedTask = readyVideoTask(id: 'source', sortOrder: 0).copyWith(
         fileName: '1.mp4',
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         config: systemOutputVideoConfig(
           outputDirectory: '/old',
           outputFileName: 'old',
@@ -359,7 +319,7 @@ void main() {
           .retryTaskById(failedTask.id);
 
       final updatedTask = repository.taskById(failedTask.id);
-      expect(updatedTask.status, TaskStatus.pending);
+      expect(updatedTask.status, TaskStatus.ready);
       expect(updatedTask.config.outputLocationMode, OutputLocationMode.system);
       expect(updatedTask.config.outputDirectory, isEmpty);
       expect(updatedTask.config.outputFileName, 'source-h264');
@@ -424,7 +384,7 @@ void main() {
     );
 
     test(
-      'saving a selection does not call the legacy Engine resolve RPC',
+      'saving a selection is a local operation without an Engine round trip',
       () async {
         final previousReference = engineConfigurationReference(
           candidateId: 'candidate-old',
@@ -702,7 +662,6 @@ ProviderContainer testContainer({
   required FakeSourceFileChecker sourceFileChecker,
   required FakeSourceFileFingerprintReader fingerprintReader,
   FakeAppSettingsRepository? appSettingsRepository,
-  MediaAnalysisQueue? analysisQueue,
   FakeEngineAnalysisProjectionRepository? analysisProjectionRepository,
   FakeEngineGateway? engineGateway,
 }) {
@@ -711,8 +670,6 @@ ProviderContainer testContainer({
       FakeEngineAnalysisProjectionRepository(null);
   final gateway = engineGateway ?? FakeEngineGateway();
   final folderRepository = FakeTaskFolderRepository();
-  final queue =
-      analysisQueue ?? MediaAnalysisQueue(analyzeTask: repository.loadTaskById);
   return ProviderContainer.test(
     overrides: [
       appSettingsRepositoryProvider.overrideWithValue(
@@ -729,10 +686,6 @@ ProviderContainer testContainer({
       ),
       sourceFileCheckerProvider.overrideWithValue(sourceFileChecker),
       sourceFileFingerprintReaderProvider.overrideWithValue(fingerprintReader),
-      mediaAnalysisQueueProvider.overrideWith((ref) {
-        ref.onDispose(() => queue.stop());
-        return queue;
-      }),
       engineAnalysisProjectionRepositoryProvider.overrideWithValue(
         projectionRepository,
       ),
@@ -783,7 +736,7 @@ EngineAnalysisProjection engineAnalysisProjection({
 MediaTask videoTask({
   String id = 'task-1',
   String inputPath = '/videos/missing.mp4',
-  TaskStatus status = TaskStatus.pending,
+  TaskStatus status = TaskStatus.ready,
   VideoTaskConfig? config,
   int sortOrder = 0,
 }) {
@@ -876,9 +829,10 @@ class FakeEngineGateway implements EngineLifecycleGateway {
         analysisQueue: <EngineAnalysisQueueEntrySnapshot>[],
         executionLane: EngineExecutionLaneSnapshot(
           queueRevision: 0,
-          active: null,
+          activeExecutions: <EngineScheduledExecution>[],
           normalWaiting: <EngineScheduledExecution>[],
-          resumeStack: <EngineScheduledExecution>[],
+          videoResumeStack: <EngineScheduledExecution>[],
+          auxiliaryResumeStack: <EngineScheduledExecution>[],
         ),
         lastSequence: 0,
       ),

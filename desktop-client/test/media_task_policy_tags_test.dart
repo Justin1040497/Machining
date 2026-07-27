@@ -82,7 +82,7 @@ MediaTask task({Set<MediaTaskPolicyTag> policyTags = const {}}) {
     fileName: 'source.mov',
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.failed,
+    status: TaskStatus.executionFailed,
     config: VideoTaskConfig.initial(),
     progress: 0,
     sortOrder: 0,

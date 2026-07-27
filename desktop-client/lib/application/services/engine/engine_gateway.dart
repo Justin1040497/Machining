@@ -24,6 +24,8 @@ enum EngineExecutionState {
 
 enum EngineExecutionPauseReason { user, preemption }
 
+enum EngineExecutionResourcePool { video, auxiliary }
+
 enum EngineExecutionControlAction { pause, resume, cancel }
 
 enum EngineWorkEventType {
@@ -370,6 +372,7 @@ final class EngineBatchSubmission {
 final class EngineScheduledExecution {
   const EngineScheduledExecution({
     required this.executionId,
+    required this.resourcePool,
     required this.state,
     required this.pauseReason,
     required this.preemptedByExecutionId,
@@ -377,6 +380,7 @@ final class EngineScheduledExecution {
   });
 
   final String executionId;
+  final EngineExecutionResourcePool resourcePool;
   final EngineExecutionState state;
   final EngineExecutionPauseReason? pauseReason;
   final String? preemptedByExecutionId;
@@ -386,16 +390,18 @@ final class EngineScheduledExecution {
 final class EngineExecutionLaneSnapshot {
   const EngineExecutionLaneSnapshot({
     required this.queueRevision,
-    required this.active,
+    required this.activeExecutions,
     required this.normalWaiting,
-    required this.resumeStack,
+    required this.videoResumeStack,
+    required this.auxiliaryResumeStack,
     this.userPaused = const <EngineScheduledExecution>[],
   });
 
   final int queueRevision;
-  final EngineScheduledExecution? active;
+  final List<EngineScheduledExecution> activeExecutions;
   final List<EngineScheduledExecution> normalWaiting;
-  final List<EngineScheduledExecution> resumeStack;
+  final List<EngineScheduledExecution> videoResumeStack;
+  final List<EngineScheduledExecution> auxiliaryResumeStack;
   final List<EngineScheduledExecution> userPaused;
 }
 
@@ -457,6 +463,7 @@ final class EngineTerminalExecutionSnapshot {
   const EngineTerminalExecutionSnapshot({
     required this.executionId,
     required this.clientTaskId,
+    required this.resourcePool,
     required this.state,
     this.outputPath,
     this.engineCode,
@@ -465,6 +472,7 @@ final class EngineTerminalExecutionSnapshot {
 
   final String executionId;
   final String clientTaskId;
+  final EngineExecutionResourcePool resourcePool;
   final EngineExecutionState state;
   final String? outputPath;
   final String? engineCode;
@@ -734,6 +742,7 @@ final class EngineWorkEvent {
     this.queueRevision,
     this.clientTaskId,
     this.executionId,
+    this.resourcePool,
     this.executionState,
     this.pauseReason,
     this.preemptedByExecutionId,
@@ -756,6 +765,7 @@ final class EngineWorkEvent {
   final int? queueRevision;
   final String? clientTaskId;
   final String? executionId;
+  final EngineExecutionResourcePool? resourcePool;
   final EngineExecutionState? executionState;
   final EngineExecutionPauseReason? pauseReason;
   final String? preemptedByExecutionId;

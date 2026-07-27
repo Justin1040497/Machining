@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,327 +8,30 @@ import 'package:framelean/application/library.dart';
 import 'package:framelean/app/constants.dart';
 import 'package:framelean/app/presentation/widgets/reorderable/framelean_reorderable_list_view.dart';
 import 'package:framelean/app/theme/framelean_colors.dart';
-import 'package:framelean/app/theme/framelean_theme.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/enums/app_theme_mode.dart';
-import 'package:framelean/domain/enums/compression_mode.dart';
-import 'package:framelean/domain/enums/encoder_backend.dart';
-import 'package:framelean/domain/enums/hdr_output_mode.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
 import 'package:framelean/domain/enums/output_format.dart';
-import 'package:framelean/domain/enums/resolution_preset.dart';
-import 'package:framelean/domain/enums/smart_compression_preset.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
-import 'package:framelean/domain/enums/two_pass_mode.dart';
 import 'package:framelean/domain/enums/task_status.dart';
-import 'package:framelean/domain/enums/video_codec.dart';
 import 'package:framelean/domain/value_objects/audio_processing_config.dart';
 import 'package:framelean/domain/value_objects/image_processing_config.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
 import 'package:framelean/domain/value_objects/task_failure.dart';
-import 'package:framelean/domain/value_objects/video_processing_config.dart';
-import 'package:framelean/domain/value_objects/video_output_compatibility.dart';
 import 'package:framelean/domain/value_objects/video_task_config.dart';
 import 'package:framelean/app/presentation/widgets/confirm_dialog.dart';
 import 'package:framelean/features/workbench/pages/workbench_page.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_config_dialog_template.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/video_config_panel.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/image_config_panel.dart';
-import 'package:framelean/app/presentation/widgets/app_dialog_frame.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/config/audio_config_panel.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/workbench_shell.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/layout/top_bar.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_dropdown.dart';
-import 'package:framelean/app/presentation/widgets/form_controls/config_checkbox.dart';
-import 'package:framelean/app/presentation/domain_labels.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/media_task_list_tile.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_content_panel.dart';
 import 'package:framelean/features/workbench/widgets/media_task_list/task_folder_list_tile.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 
 void main() {
-  testWidgets('recommended presets do not change resolution automatically', (
-    tester,
-  ) async {
-    final resolutionChanges = <ResolutionPreset>[];
-    final smartPresetChanges = <SmartCompressionPreset>[];
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: testTask(),
-            thumbnail: null,
-            selectedQualityIndex: 4,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.preset,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: smartPresetChanges.add,
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: resolutionChanges.add,
-          ),
-        ),
-      ),
-    );
-
-    await tester.tap(find.text('微信发送'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('体积优先'));
-    await tester.pumpAndSettle();
-
-    expect(smartPresetChanges, [
-      SmartCompressionPreset.chat,
-      SmartCompressionPreset.compact,
-    ]);
-    expect(resolutionChanges, isEmpty);
-  });
-
-  testWidgets('preserve HDR disables target size and risky presets', (
-    tester,
-  ) async {
-    final modeChanges = <CompressionMode>[];
-    final smartPresetChanges = <SmartCompressionPreset>[];
-    final preserveHdrChanges = <bool>[];
-    final metadataChanges = <bool>[];
-    final videoConfig = VideoProcessingConfig.initial().copyWith(
-      videoCodec: VideoCodec.hevc,
-      hdrOutputMode: HdrOutputMode.preserveHdr,
-      smartPreset: SmartCompressionPreset.clear,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: MediaTask(
-              id: 'task-hdr',
-              inputPath: '/videos/hdr.mov',
-              fileName: 'hdr.mov',
-              mediaKind: MediaKind.video,
-              purpose: TaskPurpose.compression,
-              status: TaskStatus.pending,
-              config: MediaTaskConfig.initialVideo().copyWith(
-                video: videoConfig,
-              ),
-              progress: 0,
-              sortOrder: 0,
-              createdAt: 1,
-              sourceFileFingerprint: const SourceFileFingerprint(
-                fileSize: 100 * 1024 * 1024,
-                lastModifiedAt: 1,
-              ),
-              analysisResult: MediaAnalysisResult(
-                durationMs: 60000,
-                videoWidth: 3840,
-                videoHeight: 2160,
-                videoCodec: 'hevc',
-                videoBitrate: 12000000,
-                videoBitDepth: 10,
-                colorSpace: 'bt2020nc',
-                colorTransfer: 'smpte2084',
-                colorPrimaries: 'bt2020',
-              ),
-            ),
-            thumbnail: null,
-            selectedQualityIndex: 3,
-            selectedOutputFormat: OutputFormat.mov,
-            selectedVideoCodec: VideoCodec.hevc,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.preset,
-            selectedSmartPreset: SmartCompressionPreset.clear,
-            selectedTargetSizeRatio: 0.6,
-            selectedVideoConfig: videoConfig,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: modeChanges.add,
-            onSmartPresetChanged: smartPresetChanges.add,
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-            onPreserveHdrChanged: preserveHdrChanges.add,
-            onVideoPreserveMetadataChanged: metadataChanges.add,
-          ),
-        ),
-      ),
-    );
-
-    final purposeControl = tester
-        .widget<CupertinoSlidingSegmentedControl<TaskPurpose>>(
-          find.byWidgetPredicate(
-            (widget) => widget is CupertinoSlidingSegmentedControl<TaskPurpose>,
-          ),
-        );
-    final compressionControl = tester
-        .widget<CupertinoSlidingSegmentedControl<CompressionMode>>(
-          find.byWidgetPredicate(
-            (widget) =>
-                widget is CupertinoSlidingSegmentedControl<CompressionMode>,
-          ),
-        );
-    expect(purposeControl.groupValue, TaskPurpose.compression);
-    expect(
-      compressionControl.disabledChildren,
-      contains(CompressionMode.targetSize),
-    );
-    expect(find.byType(Switch), findsNothing);
-    expect(find.byType(Checkbox), findsNWidgets(2));
-
-    tester.widget<Checkbox>(find.byType(Checkbox).first).onChanged?.call(false);
-    tester.widget<Checkbox>(find.byType(Checkbox).last).onChanged?.call(false);
-    expect(preserveHdrChanges, [false]);
-    expect(metadataChanges, [false]);
-
-    await tester.tap(find.text('自定义目标体积'));
-    await tester.pumpAndSettle();
-    expect(modeChanges, isEmpty);
-    expect(find.text('目标体积'), findsNothing);
-
-    await tester.tap(find.text('微信发送'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('体积优先'));
-    await tester.pumpAndSettle();
-    expect(smartPresetChanges, isEmpty);
-
-    await tester.tap(find.text('均衡推荐'));
-    await tester.pumpAndSettle();
-    expect(smartPresetChanges, [SmartCompressionPreset.balanced]);
-  });
-
-  testWidgets('source matching config does not mark preset modified', (
-    tester,
-  ) async {
-    await _pumpTaskConfigurationDialog(tester);
-
-    expect(find.text('已修改'), findsNothing);
-    expect(find.text('修改'), findsNothing);
-    expect(find.text('已调'), findsNothing);
-  });
-
-  testWidgets('matching explicit resolution does not mark preset modified', (
-    tester,
-  ) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      task: testTask(
-        analysisResult: MediaAnalysisResult(
-          durationMs: 60000,
-          videoWidth: 1920,
-          videoHeight: 1080,
-          videoCodec: 'h264',
-          videoBitrate: 8000000,
-          audioBitrate: 128000,
-        ),
-      ),
-      selectedResolutionPreset: ResolutionPreset.p1080,
-    );
-
-    expect(find.text('已修改'), findsNothing);
-  });
-
-  testWidgets('different resolution marks preset modified', (tester) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      selectedResolutionPreset: ResolutionPreset.p1080,
-    );
-
-    expect(find.text('已修改'), findsOneWidget);
-    expect(
-      find.descendant(
-        of: find.byType(AppDialogActions),
-        matching: find.text('已修改'),
-      ),
-      findsOneWidget,
-    );
-    expect(find.text('修改'), findsNothing);
-  });
-
-  testWidgets('different video codec marks preset modified', (tester) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      selectedVideoCodec: VideoCodec.hevc,
-    );
-
-    expect(find.text('已修改'), findsOneWidget);
-  });
-
-  testWidgets('different output format marks preset modified', (tester) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      task: testTask(fileName: 'source.mov'),
-      selectedOutputFormat: OutputFormat.mp4,
-    );
-
-    expect(find.text('已修改'), findsOneWidget);
-  });
-
-  testWidgets('video source format option shows keep original label', (
-    tester,
-  ) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      task: testTask(fileName: 'source.mov'),
-      selectedOutputFormat: OutputFormat.mp4,
-    );
-
-    await tester.tap(find.byType(DropdownButtonFormField<OutputFormat>));
-    await tester.pumpAndSettle();
-
-    expect(find.text('MOV（保持原始）'), findsOneWidget);
-  });
-
-  test(
-    'non-video task configuration initial values do not require video config',
-    () {
-      final imageValues = resolveWorkbenchTaskConfigurationInitialValues(
-        task: imageTask(),
-        selectedQualityIndex: 5,
-        selectedOutputFormat: OutputFormat.mkv,
-        selectedVideoCodec: VideoCodec.hevc,
-        selectedEncoderBackend: EncoderBackend.videotoolbox,
-        selectedResolutionPreset: ResolutionPreset.p720,
-        selectedSmartPreset: SmartCompressionPreset.clear,
-      );
-      final audioValues = resolveWorkbenchTaskConfigurationInitialValues(
-        task: audioTask(),
-        selectedQualityIndex: 5,
-        selectedOutputFormat: OutputFormat.mkv,
-        selectedVideoCodec: VideoCodec.hevc,
-        selectedEncoderBackend: EncoderBackend.videotoolbox,
-        selectedResolutionPreset: ResolutionPreset.p720,
-        selectedSmartPreset: SmartCompressionPreset.clear,
-      );
-
-      expect(imageValues.outputFormat, OutputFormat.mkv);
-      expect(audioValues.outputFormat, OutputFormat.mkv);
-      expect(imageValues.encoderBackend, EncoderBackend.videotoolbox);
-      expect(audioValues.encoderBackend, EncoderBackend.videotoolbox);
-    },
-  );
-
   test('opened task folder list is mutable when no folder is open', () {
     final folderTasks = resolveOpenedTaskFolderTasks(
       tasks: const [],
@@ -348,7 +50,6 @@ void main() {
         name: '视频任务夹（1）',
         mediaKind: MediaKind.video,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialVideo(),
         createdAt: 1,
         updatedAt: 1,
       );
@@ -369,425 +70,11 @@ void main() {
     },
   );
 
-  testWidgets('target size mode uses segmented ratio slider', (tester) async {
-    final ratioChanges = <double>[];
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: testTask(
-              config: VideoTaskConfig.initial().copyWith(
-                compressionMode: CompressionMode.targetSize,
-                targetSizeRatio: 0.6,
-              ),
-            ),
-            thumbnail: null,
-            selectedQualityIndex: 3,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.targetSize,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: ratioChanges.add,
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byType(Slider), findsOneWidget);
-    expect(find.text('目标体积'), findsOneWidget);
-    expect(find.text('压缩体积60%'), findsOneWidget);
-    expect(find.text('60%'), findsWidgets);
-
-    final slider = tester.widget<Slider>(find.byType(Slider));
-    slider.onChanged?.call(8);
-
-    expect(ratioChanges, [0.9]);
-  });
-
-  testWidgets('dark theme segmented slider thumb uses primary color', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: frameLeanDarkTheme(),
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: testTask(
-              config: VideoTaskConfig.initial().copyWith(
-                compressionMode: CompressionMode.targetSize,
-                targetSizeRatio: 0.6,
-              ),
-            ),
-            thumbnail: null,
-            selectedQualityIndex: 3,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.targetSize,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    final sliderTheme = tester.widget<SliderTheme>(find.byType(SliderTheme));
-
-    expect(sliderTheme.data.thumbColor, frameLeanDarkColors.primary);
-  });
-
-  testWidgets('image task configuration exposes image controls', (
-    tester,
-  ) async {
-    final imageChanges = <ImageProcessingConfig>[];
-    final initialConfig = ImageProcessingConfig.initial().copyWith(
-      imageQuality: 80,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: imageTask(config: initialConfig),
-            thumbnail: null,
-            selectedQualityIndex: 4,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.preset,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            selectedImageConfig: initialConfig,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-            onImageConfigChanged: imageChanges.add,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('图片格式'), findsOneWidget);
-    expect(find.text('分辨率'), findsOneWidget);
-    expect(find.text('质量'), findsOneWidget);
-    expect(find.text('无损压缩'), findsOneWidget);
-    expect(find.text('保留80%的质量'), findsOneWidget);
-    expect(find.text('100%'), findsOneWidget);
-    expect(find.text('图片编码'), findsNothing);
-    expect(find.text('尺寸'), findsNothing);
-    expect(find.text('保留元数据'), findsOneWidget);
-    expect(find.text('视频编码'), findsNothing);
-    expect(find.byType(Switch), findsNothing);
-    expect(find.byType(Checkbox), findsNWidgets(2));
-    expect(find.text('开启'), findsNothing);
-    expect(find.text('关闭'), findsNothing);
-    expect(
-      tester.getCenter(find.byType(Checkbox).first).dy,
-      tester.getCenter(find.byType(Checkbox).last).dy,
-    );
-
-    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
-      find
-          .byWidgetPredicate(
-            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
-          )
-          .first,
-    );
-    expect(
-      formatDropdown.values,
-      MediaOutputFormat.formatsFor(MediaKind.image),
-    );
-    expect(formatDropdown.values, isNot(contains(MediaOutputFormat.mp3)));
-    formatDropdown.onChanged(MediaOutputFormat.webp);
-
-    final resizeDropdown = tester
-        .widget<DropdownButtonFormField<ImageResizePreset>>(
-          find.byWidgetPredicate(
-            (widget) => widget is DropdownButtonFormField<ImageResizePreset>,
-          ),
-        );
-    resizeDropdown.onChanged?.call(ImageResizePreset.longEdge1280);
-
-    final slider = tester.widget<Slider>(find.byType(Slider));
-    slider.onChanged?.call(9);
-
-    final losslessCheckbox = tester.widget<Checkbox>(
-      find.byType(Checkbox).first,
-    );
-    losslessCheckbox.onChanged?.call(true);
-
-    final metadataCheckbox = tester.widget<Checkbox>(
-      find.byType(Checkbox).last,
-    );
-    metadataCheckbox.onChanged?.call(false);
-
-    expect(
-      imageChanges.map((config) => config.outputFormat),
-      contains(MediaOutputFormat.webp),
-    );
-    expect(
-      imageChanges.map((config) => config.resizePreset),
-      contains(ImageResizePreset.longEdge1280),
-    );
-    expect(imageChanges.map((config) => config.imageQuality), contains(100));
-    expect(
-      imageChanges.map((config) => config.losslessCompression),
-      contains(true),
-    );
-    expect(
-      imageChanges.map((config) => config.preserveMetadata),
-      contains(false),
-    );
-  });
-
-  testWidgets('lossless image compression hides quality and limits formats', (
-    tester,
-  ) async {
-    final config = ImageProcessingConfig.initial().copyWith(
-      outputFormat: MediaOutputFormat.webp,
-      keepOriginalOutputFormat: false,
-      losslessCompression: true,
-    );
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: imageTask(config: config),
-            thumbnail: null,
-            selectedQualityIndex: 4,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.preset,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            selectedImageConfig: config,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-            onImageConfigChanged: (_) {},
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('无损压缩'), findsOneWidget);
-    expect(find.text('质量'), findsNothing);
-    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
-      find
-          .byWidgetPredicate(
-            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
-          )
-          .first,
-    );
-    expect(formatDropdown.values, const [
-      MediaOutputFormat.png,
-      MediaOutputFormat.webp,
-      MediaOutputFormat.tiff,
-    ]);
-  });
-
-  testWidgets('audio task configuration exposes audio controls', (
-    tester,
-  ) async {
-    final audioChanges = <AudioProcessingConfig>[];
-    final initialConfig = AudioProcessingConfig.initial();
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: _TestTaskConfigDialog(
-            task: audioTask(config: initialConfig),
-            thumbnail: null,
-            selectedQualityIndex: 4,
-            selectedOutputFormat: OutputFormat.mp4,
-            selectedVideoCodec: VideoCodec.h264,
-            selectedEncoderBackend: EncoderBackend.auto,
-            selectedResolutionPreset: ResolutionPreset.original,
-            selectedCompressionMode: CompressionMode.preset,
-            selectedSmartPreset: SmartCompressionPreset.balanced,
-            selectedTargetSizeRatio: 0.6,
-            selectedAudioConfig: initialConfig,
-            availableEncoderBackends: const [EncoderBackend.auto],
-            onClose: () {},
-            onOpenSource: () {},
-            onSave: () {},
-            onCompressionModeChanged: (_) {},
-            onSmartPresetChanged: (_) {},
-            onTargetSizeRatioChanged: (_) {},
-            onQualityChanged: (_) {},
-            onOutputFormatChanged: (_) {},
-            onVideoCodecChanged: (_) {},
-            onEncoderBackendChanged: (_) {},
-            onResolutionPresetChanged: (_) {},
-            onAudioConfigChanged: audioChanges.add,
-          ),
-        ),
-      ),
-    );
-
-    expect(find.text('音频格式'), findsOneWidget);
-    expect(find.text('音频编码'), findsNothing);
-    expect(find.text('码率'), findsOneWidget);
-    expect(find.text('采样率'), findsOneWidget);
-    expect(find.text('声道'), findsOneWidget);
-    expect(find.text('视频编码'), findsNothing);
-    expect(find.byType(Switch), findsNothing);
-    expect(find.byType(Checkbox), findsOneWidget);
-
-    final formatDropdown = tester.widget<ConfigDropdown<MediaOutputFormat>>(
-      find
-          .byWidgetPredicate(
-            (widget) => widget is ConfigDropdown<MediaOutputFormat>,
-          )
-          .first,
-    );
-    expect(
-      formatDropdown.values,
-      MediaOutputFormat.formatsFor(MediaKind.audio),
-    );
-    expect(formatDropdown.values, isNot(contains(MediaOutputFormat.png)));
-    expect(formatDropdown.values, contains(MediaOutputFormat.opus));
-    expect(formatDropdown.values, contains(MediaOutputFormat.oggOpus));
-    formatDropdown.onChanged(MediaOutputFormat.mp3);
-
-    final bitrateDropdown = tester
-        .widget<DropdownButtonFormField<AudioBitratePreset>>(
-          find.byWidgetPredicate(
-            (widget) => widget is DropdownButtonFormField<AudioBitratePreset>,
-          ),
-        );
-    bitrateDropdown.onChanged?.call(AudioBitratePreset.k128);
-
-    final channelsDropdown = tester
-        .widget<DropdownButtonFormField<AudioChannelsPreset>>(
-          find.byWidgetPredicate(
-            (widget) => widget is DropdownButtonFormField<AudioChannelsPreset>,
-          ),
-        );
-    channelsDropdown.onChanged?.call(AudioChannelsPreset.stereo);
-    tester.widget<Checkbox>(find.byType(Checkbox)).onChanged?.call(false);
-
-    expect(
-      audioChanges.map((config) => config.outputFormat),
-      contains(MediaOutputFormat.mp3),
-    );
-    expect(
-      audioChanges.map((config) => config.bitratePreset),
-      contains(AudioBitratePreset.k128),
-    );
-    expect(
-      audioChanges.map((config) => config.channels),
-      contains(AudioChannelsPreset.stereo),
-    );
-    expect(
-      audioChanges.map((config) => config.preserveMetadata),
-      contains(false),
-    );
-  });
-
-  testWidgets('image conversion only exposes target format in main panel', (
-    tester,
-  ) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      task: imageTask(config: ImageProcessingConfig.initial()),
-      selectedPurpose: TaskPurpose.conversion,
-    );
-
-    expect(find.text('目标格式'), findsOneWidget);
-    expect(find.text('质量'), findsNothing);
-    expect(find.text('分辨率'), findsNothing);
-    expect(find.text('无损压缩'), findsNothing);
-    expect(find.text('高级设置'), findsOneWidget);
-  });
-
-  testWidgets('audio conversion hides compression controls', (tester) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      task: audioTask(config: AudioProcessingConfig.initial()),
-      selectedPurpose: TaskPurpose.conversion,
-    );
-
-    expect(find.text('目标格式'), findsOneWidget);
-    expect(find.text('码率'), findsNothing);
-    expect(find.text('采样率'), findsNothing);
-    expect(find.text('声道'), findsNothing);
-    expect(find.text('高级设置'), findsOneWidget);
-  });
-
-  testWidgets('video conversion hides codec resolution and quality controls', (
-    tester,
-  ) async {
-    await _pumpTaskConfigurationDialog(
-      tester,
-      selectedPurpose: TaskPurpose.conversion,
-    );
-
-    expect(find.text('目标格式'), findsOneWidget);
-    expect(find.text('视频编码'), findsNothing);
-    expect(find.text('分辨率'), findsNothing);
-    expect(find.text('推荐方案'), findsNothing);
-    expect(find.text('两遍压缩'), findsNothing);
-    expect(find.text('高级设置'), findsOneWidget);
-  });
-
   testWidgets('folder configuration shows aggregate summary', (tester) async {
     final folder = TaskFolder.create(
       name: '视频任务夹 1',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
     );
     final tasks = [
       testTask(fileName: 'first.mp4').copyWith(
@@ -812,9 +99,12 @@ void main() {
       ),
     ];
 
-    await _pumpTaskConfigurationDialog(
-      tester,
-      sourceSummary: WorkbenchTaskFolderSummary(folder: folder, tasks: tasks),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: WorkbenchTaskFolderSummary(folder: folder, tasks: tasks),
+        ),
+      ),
     );
 
     expect(find.text('任务数量: 2'), findsOneWidget);
@@ -824,125 +114,6 @@ void main() {
     expect(find.textContaining('总时长:'), findsOneWidget);
     expect(find.textContaining('源文件大小:'), findsNothing);
   });
-
-  testWidgets(
-    'task configuration keeps header and actions fixed while body scrolls',
-    (tester) async {
-      tester.view.devicePixelRatio = 1;
-      tester.view.physicalSize = const Size(800, 400);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      addTearDown(tester.view.resetPhysicalSize);
-
-      final purposeChanges = <TaskPurpose>[];
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData(platform: TargetPlatform.macOS),
-          home: Scaffold(
-            body: _TestTaskConfigDialog(
-              task: testTask(),
-              thumbnail: null,
-              selectedQualityIndex: 4,
-              selectedOutputFormat: OutputFormat.mp4,
-              selectedVideoCodec: VideoCodec.h264,
-              selectedEncoderBackend: EncoderBackend.auto,
-              selectedResolutionPreset: ResolutionPreset.original,
-              selectedCompressionMode: CompressionMode.preset,
-              selectedSmartPreset: SmartCompressionPreset.balanced,
-              selectedTargetSizeRatio: 0.6,
-              availableEncoderBackends: const [EncoderBackend.auto],
-              onClose: () {},
-              onOpenSource: () {},
-              onSave: () {},
-              onPurposeChanged: purposeChanges.add,
-              onCompressionModeChanged: (_) {},
-              onSmartPresetChanged: (_) {},
-              onTargetSizeRatioChanged: (_) {},
-              onQualityChanged: (_) {},
-              onOutputFormatChanged: (_) {},
-              onVideoCodecChanged: (_) {},
-              onEncoderBackendChanged: (_) {},
-              onResolutionPresetChanged: (_) {},
-            ),
-          ),
-        ),
-      );
-
-      final purposeControlFinder = find.byWidgetPredicate(
-        (widget) => widget is CupertinoSlidingSegmentedControl<TaskPurpose>,
-      );
-      final purposeControl = tester
-          .widget<CupertinoSlidingSegmentedControl<TaskPurpose>>(
-            purposeControlFinder,
-          );
-      purposeControl.onValueChanged(TaskPurpose.conversion);
-      expect(purposeChanges, [TaskPurpose.conversion]);
-
-      final scrollViewFinder = find.byType(SingleChildScrollView);
-      final scrollView = tester.widget<SingleChildScrollView>(scrollViewFinder);
-      final scrollbar = tester.widget<Scrollbar>(find.byType(Scrollbar));
-      final scrollController = scrollView.controller!;
-      expect(find.byType(Scrollbar), findsOneWidget);
-      expect(scrollView.physics, isA<ClampingScrollPhysics>());
-      expect(scrollView.padding, isNull);
-      expect(
-        find.ancestor(
-          of: scrollViewFinder,
-          matching: find.byWidgetPredicate(
-            (widget) =>
-                widget is Container &&
-                widget.margin == const EdgeInsets.fromLTRB(2, 0, 12, 0),
-          ),
-        ),
-        findsOneWidget,
-      );
-      expect(scrollbar.controller, same(scrollController));
-      expect(scrollbar.thumbVisibility, isFalse);
-      expect(scrollbar.trackVisibility, isFalse);
-      expect(scrollbar.thickness, 4);
-      expect(scrollbar.radius, const Radius.circular(4));
-      expect(scrollbar.interactive, isTrue);
-      final topGesture = await tester.startGesture(
-        tester.getCenter(scrollViewFinder),
-      );
-      await topGesture.moveBy(const Offset(0, 80));
-      await tester.pump();
-      expect(
-        scrollController.offset,
-        scrollController.position.minScrollExtent,
-      );
-      await topGesture.up();
-      await tester.pumpAndSettle();
-
-      final headerBefore = tester.getCenter(find.byType(AppDialogBackHeader));
-      final actionsBefore = tester.getCenter(find.byType(AppDialogActions));
-      final sourceBefore = tester.getCenter(find.textContaining('源文件大小'));
-
-      await tester.drag(scrollViewFinder, const Offset(0, -180));
-      await tester.pumpAndSettle();
-
-      expect(tester.getCenter(find.byType(AppDialogBackHeader)), headerBefore);
-      expect(tester.getCenter(find.byType(AppDialogActions)), actionsBefore);
-      expect(
-        tester.getCenter(find.textContaining('源文件大小')).dy,
-        lessThan(sourceBefore.dy),
-      );
-
-      scrollController.jumpTo(scrollController.position.maxScrollExtent);
-      await tester.pump();
-      final bottomGesture = await tester.startGesture(
-        tester.getCenter(scrollViewFinder),
-      );
-      await bottomGesture.moveBy(const Offset(0, -80));
-      await tester.pump();
-      expect(
-        scrollController.offset,
-        scrollController.position.maxScrollExtent,
-      );
-      await bottomGesture.up();
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-    },
-  );
 
   testWidgets('missing source task action relinks instead of retrying', (
     tester,
@@ -976,9 +147,7 @@ void main() {
     expect(retryCount, 0);
   });
 
-  testWidgets('analyzed pending task starts instead of retrying', (
-    tester,
-  ) async {
+  testWidgets('ready task starts instead of retrying', (tester) async {
     var startCount = 0;
     var retryCount = 0;
 
@@ -986,7 +155,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: MediaTaskListTile(
-            task: testTask(status: TaskStatus.pending),
+            task: testTask(status: TaskStatus.ready),
             onStart: () {
               startCount += 1;
             },
@@ -1019,7 +188,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: MediaTaskListTile(
-            task: testTask(status: TaskStatus.pending),
+            task: testTask(status: TaskStatus.ready),
             onTap: () {
               openCount += 1;
             },
@@ -1038,7 +207,7 @@ void main() {
     expect(openCount, 0);
   });
 
-  testWidgets('pending task without analysis has no primary action', (
+  testWidgets('ready task without analysis has no primary action', (
     tester,
   ) async {
     var startCount = 0;
@@ -1048,10 +217,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: MediaTaskListTile(
-            task: testTask(
-              status: TaskStatus.pending,
-              hasAnalysisResult: false,
-            ),
+            task: testTask(status: TaskStatus.ready, hasAnalysisResult: false),
             onStart: () {
               startCount += 1;
             },
@@ -1124,7 +290,9 @@ void main() {
     expect(startCount, 1);
   });
 
-  testWidgets('failed task retries instead of starting', (tester) async {
+  testWidgets('execution-failed task retries instead of starting', (
+    tester,
+  ) async {
     var startCount = 0;
     var retryCount = 0;
 
@@ -1132,7 +300,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: MediaTaskListTile(
-            task: testTask(status: TaskStatus.failed),
+            task: testTask(status: TaskStatus.executionFailed),
             onStart: () {
               startCount += 1;
             },
@@ -1417,7 +585,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1512,7 +679,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1586,7 +752,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1646,7 +811,6 @@ void main() {
       name: '视频任务夹（2）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1738,7 +902,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1802,7 +965,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1853,7 +1015,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -1913,7 +1074,6 @@ void main() {
         name: '视频任务夹（2）',
         mediaKind: MediaKind.video,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialVideo(),
         createdAt: 1,
         updatedAt: 1,
       );
@@ -2062,7 +1222,6 @@ void main() {
         name: '视频任务夹（1）',
         mediaKind: MediaKind.video,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialVideo(),
         createdAt: 1,
         updatedAt: 1,
       );
@@ -2135,7 +1294,6 @@ void main() {
         name: '视频任务夹（1）',
         mediaKind: MediaKind.video,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialVideo(),
         createdAt: 1,
         updatedAt: 1,
       );
@@ -2279,7 +1437,6 @@ void main() {
       name: '视频任务夹（1）',
       mediaKind: MediaKind.video,
       sortOrder: 0,
-      defaultConfig: MediaTaskConfig.initialVideo(),
       createdAt: 1,
       updatedAt: 1,
     );
@@ -2328,7 +1485,6 @@ void main() {
         name: '图片任务夹（1）',
         mediaKind: MediaKind.image,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialImage(),
         createdAt: 1,
         updatedAt: 1,
       );
@@ -2535,504 +1691,6 @@ Future<void> _pumpWorkbenchShellForDragTest(
 }
 
 // ---------------------------------------------------------------------------
-// Test adapter: provides old WorkbenchTaskConfigurationDialog API on top
-// of the new TaskConfigDialogTemplate, so existing widget tests keep working.
-// ---------------------------------------------------------------------------
-
-class _TestTaskConfigDialog extends StatelessWidget {
-  const _TestTaskConfigDialog({
-    required this.task,
-    required this.thumbnail,
-    this.sourceSummary,
-    required this.selectedQualityIndex,
-    required this.selectedOutputFormat,
-    required this.selectedVideoCodec,
-    required this.selectedEncoderBackend,
-    required this.selectedResolutionPreset,
-    required this.selectedCompressionMode,
-    required this.selectedSmartPreset,
-    required this.selectedTargetSizeRatio,
-    this.selectedPurpose = TaskPurpose.compression,
-    this.selectedVideoConfig,
-    this.selectedImageConfig,
-    this.selectedAudioConfig,
-    required this.availableEncoderBackends,
-    required this.onClose,
-    this.onOpenSource,
-    required this.onSave,
-    this.onPurposeChanged,
-    required this.onCompressionModeChanged,
-    required this.onSmartPresetChanged,
-    required this.onTargetSizeRatioChanged,
-    required this.onQualityChanged,
-    required this.onOutputFormatChanged,
-    required this.onVideoCodecChanged,
-    required this.onEncoderBackendChanged,
-    required this.onResolutionPresetChanged,
-    this.onPreserveHdrChanged,
-    this.onVideoPreserveMetadataChanged,
-    this.onImageConfigChanged,
-    this.onAudioConfigChanged,
-  });
-
-  final MediaTask task;
-  final ImageProvider? thumbnail;
-  final Widget? sourceSummary;
-  final int selectedQualityIndex;
-  final OutputFormat selectedOutputFormat;
-  final VideoCodec selectedVideoCodec;
-  final EncoderBackend selectedEncoderBackend;
-  final ResolutionPreset selectedResolutionPreset;
-  final CompressionMode selectedCompressionMode;
-  final SmartCompressionPreset selectedSmartPreset;
-  final double selectedTargetSizeRatio;
-  final TaskPurpose selectedPurpose;
-  final VideoProcessingConfig? selectedVideoConfig;
-  final ImageProcessingConfig? selectedImageConfig;
-  final AudioProcessingConfig? selectedAudioConfig;
-  final List<EncoderBackend> availableEncoderBackends;
-  final VoidCallback onClose;
-  final VoidCallback? onOpenSource;
-  final VoidCallback onSave;
-  final ValueChanged<TaskPurpose>? onPurposeChanged;
-  final ValueChanged<CompressionMode> onCompressionModeChanged;
-  final ValueChanged<SmartCompressionPreset> onSmartPresetChanged;
-  final ValueChanged<double> onTargetSizeRatioChanged;
-  final ValueChanged<int> onQualityChanged;
-  final ValueChanged<OutputFormat> onOutputFormatChanged;
-  final ValueChanged<VideoCodec> onVideoCodecChanged;
-  final ValueChanged<EncoderBackend> onEncoderBackendChanged;
-  final ValueChanged<ResolutionPreset> onResolutionPresetChanged;
-  final ValueChanged<bool>? onPreserveHdrChanged;
-  final ValueChanged<bool>? onVideoPreserveMetadataChanged;
-  final ValueChanged<ImageProcessingConfig>? onImageConfigChanged;
-  final ValueChanged<AudioProcessingConfig>? onAudioConfigChanged;
-
-  static const _recommendedPresets = [
-    WorkbenchCompressionPreset(
-      smartPreset: SmartCompressionPreset.balanced,
-      qualityIndex: 4,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.h264,
-    ),
-    WorkbenchCompressionPreset(
-      smartPreset: SmartCompressionPreset.chat,
-      qualityIndex: 6,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.h264,
-    ),
-    WorkbenchCompressionPreset(
-      smartPreset: SmartCompressionPreset.clear,
-      qualityIndex: 3,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.h264,
-    ),
-    WorkbenchCompressionPreset(
-      smartPreset: SmartCompressionPreset.compact,
-      qualityIndex: 8,
-      outputFormat: OutputFormat.mp4,
-      videoCodec: VideoCodec.hevc,
-    ),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final isVideoTask = task.mediaKind == MediaKind.video;
-    final videoConfig =
-        selectedVideoConfig ??
-        task.config.video ??
-        VideoProcessingConfig.initial();
-    final preserveHdr =
-        videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
-        task.analysisResult?.isHdr == true;
-    final modified = _isModified();
-
-    // ---- build primaryContent ----
-    Widget primaryContent;
-
-    if (isVideoTask && selectedPurpose == TaskPurpose.compression) {
-      primaryContent = Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          WorkbenchCompressionOptionsSection(
-            mode: selectedCompressionMode,
-            presets: _recommendedPresets,
-            selectedQualityIndex: selectedQualityIndex,
-            activePresetTitle: _presetForSmartPreset(selectedSmartPreset).title,
-            selectedTargetSizeRatio: selectedTargetSizeRatio,
-            targetSizeModeEnabled:
-                !preserveHdr &&
-                VideoOutputCompatibility.supportsTargetSize(selectedVideoCodec),
-            isPresetEnabled: (preset) =>
-                !preserveHdr ||
-                preset.smartPreset == SmartCompressionPreset.balanced,
-            onModeChanged: onCompressionModeChanged,
-            onPresetSelected: (preset) {
-              onCompressionModeChanged(CompressionMode.preset);
-              onSmartPresetChanged(preset.smartPreset);
-              onQualityChanged(preset.qualityIndex);
-              onOutputFormatChanged(preset.outputFormat);
-              onVideoCodecChanged(preset.videoCodec);
-              onEncoderBackendChanged(EncoderBackend.auto);
-            },
-            onTargetSizeRatioChanged: onTargetSizeRatioChanged,
-          ),
-          const SizedBox(height: 14),
-          _buildMediaConfigPanel(),
-        ],
-      );
-    } else {
-      primaryContent = _buildMediaConfigPanel();
-    }
-
-    // ---- build advancedContent ----
-    final audioStreams = task.analysisResult?.audioStreams ?? const [];
-    final advancedContent = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (selectedPurpose == TaskPurpose.conversion)
-          ConfigCheckbox(
-            label: '保留元数据',
-            value: _preserveMetadata(),
-            height: 40,
-            fontSize: 12,
-            onChanged: _onPreserveMetadataChanged,
-          ),
-        if (task.mediaKind == MediaKind.video &&
-            selectedPurpose == TaskPurpose.compression) ...[
-          ConfigDropdown<TwoPassMode>(
-            label: '两遍压缩',
-            trailingText: '',
-            value: videoConfig.twoPassMode,
-            values: TwoPassMode.values,
-            itemLabel: (mode) => switch (mode) {
-              TwoPassMode.automatic => '自动',
-              TwoPassMode.enabled => '开启',
-              TwoPassMode.disabled => '关闭',
-            },
-            onChanged: (value) {
-              // This test adapter does not expose advanced callback assertions.
-            },
-            height: 40,
-            showTrailingText: false,
-            labelFontSize: 12,
-            valueFontSize: 12,
-          ),
-          if (audioStreams.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            ConfigDropdown<int>(
-              label: '音频流',
-              trailingText: '',
-              value: videoConfig.selectedAudioStreamIndex ?? -1,
-              values: [-1, ...audioStreams.map((stream) => stream.index)],
-              itemLabel: (value) {
-                if (value == -1) return '自动';
-                final stream = audioStreams.firstWhere(
-                  (stream) => stream.index == value,
-                  orElse: () => audioStreams.first,
-                );
-                return stream.displayLabel;
-              },
-              onChanged: (value) {
-                // This test adapter does not expose advanced callback assertions.
-              },
-              height: 40,
-              showTrailingText: false,
-              labelFontSize: 12,
-              valueFontSize: 12,
-            ),
-          ],
-        ],
-      ],
-    );
-
-    return TaskConfigDialogTemplate(
-      task: task,
-      title: '任务详情设置',
-      onClose: onClose,
-      onSave: onSave,
-      onOpenSource: onOpenSource,
-      thumbnail: thumbnail,
-      sourceSummary: sourceSummary,
-      selectedPurpose: selectedPurpose,
-      onPurposeChanged: onPurposeChanged ?? (_) {},
-      primaryContent: primaryContent,
-      threadLimit: task.config.threadLimit,
-      onThreadLimitChanged: (_) {},
-      advancedContent: advancedContent,
-      modified: modified,
-    );
-  }
-
-  Widget _buildMediaConfigPanel() {
-    if (selectedPurpose == TaskPurpose.conversion) {
-      switch (task.mediaKind) {
-        case MediaKind.video:
-          return WorkbenchConversionFormatPanel<OutputFormat>(
-            label: '目标格式',
-            value: selectedOutputFormat,
-            values: OutputFormat.values,
-            itemLabel: (value) => value.label,
-            onChanged: onOutputFormatChanged,
-          );
-        case MediaKind.image:
-          final imageConfig =
-              selectedImageConfig ??
-              task.config.image ??
-              ImageProcessingConfig.initial();
-          return WorkbenchConversionFormatPanel<MediaOutputFormat>(
-            label: '目标格式',
-            value: imageConfig.outputFormat,
-            values: MediaOutputFormat.formatsFor(MediaKind.image),
-            itemLabel: (value) => value.label,
-            onChanged: (value) {
-              onImageConfigChanged?.call(
-                imageConfig.copyWith(
-                  outputFormat: value,
-                  keepOriginalOutputFormat: false,
-                  losslessCompression: false,
-                  imageQuality: 100,
-                  resizePreset: ImageResizePreset.original,
-                ),
-              );
-            },
-          );
-        case MediaKind.audio:
-          final audioConfig =
-              selectedAudioConfig ??
-              task.config.audio ??
-              AudioProcessingConfig.initial();
-          return WorkbenchConversionFormatPanel<MediaOutputFormat>(
-            label: '目标格式',
-            value: audioConfig.outputFormat,
-            values: MediaOutputFormat.formatsFor(MediaKind.audio),
-            itemLabel: (value) => value.label,
-            onChanged: (value) {
-              onAudioConfigChanged?.call(
-                audioConfig.copyWith(
-                  outputFormat: value,
-                  keepOriginalOutputFormat: false,
-                  bitratePreset: AudioBitratePreset.source,
-                  sampleRate: AudioSampleRatePreset.source,
-                  channels: AudioChannelsPreset.source,
-                ),
-              );
-            },
-          );
-      }
-    }
-
-    switch (task.mediaKind) {
-      case MediaKind.video:
-        final videoConfig =
-            selectedVideoConfig ??
-            task.config.video ??
-            VideoProcessingConfig.initial();
-        final preserveHdr =
-            videoConfig.hdrOutputMode == HdrOutputMode.preserveHdr &&
-            task.analysisResult?.isHdr == true;
-        final sourceOutputFormat = mediaOutputFormatForSourceFileName(
-          sourceFileName: task.fileName,
-          mediaKind: task.mediaKind,
-        );
-        return WorkbenchVideoConfigPanel(
-          selectedOutputFormat: selectedOutputFormat,
-          selectedVideoCodec: preserveHdr
-              ? VideoCodec.hevc
-              : selectedVideoCodec,
-          selectedEncoderBackend: selectedEncoderBackend,
-          selectedResolutionPreset: selectedResolutionPreset,
-          availableEncoderBackends: availableEncoderBackends,
-          onOutputFormatChanged: onOutputFormatChanged,
-          onVideoCodecChanged: onVideoCodecChanged,
-          onEncoderBackendChanged: onEncoderBackendChanged,
-          onResolutionPresetChanged: onResolutionPresetChanged,
-          sourceOutputFormat: sourceOutputFormat?.toVideoOutputFormat(),
-          keepOriginalOutputFormat: videoConfig.keepOriginalOutputFormat,
-          showPreserveHdrOption: task.analysisResult?.isHdr == true,
-          preserveHdr: preserveHdr,
-          onPreserveHdrChanged: onPreserveHdrChanged,
-          preserveMetadata: videoConfig.preserveMetadata,
-          onPreserveMetadataChanged: onVideoPreserveMetadataChanged,
-          videoCodecValues: preserveHdr
-              ? const [VideoCodec.hevc]
-              : VideoOutputCompatibility.codecsFor(selectedOutputFormat),
-          videoCodecEnabled: !preserveHdr,
-          showEncoderBackend: false,
-          resolutionValues: const [
-            ResolutionPreset.original,
-            ResolutionPreset.p2160,
-            ResolutionPreset.p1080,
-            ResolutionPreset.p720,
-            ResolutionPreset.p480,
-          ],
-          padding: EdgeInsets.zero,
-          itemSpacing: 8,
-          dropdownHeight: 40,
-          showTrailingText: false,
-          resolutionLabelBuilder: (v) => v.label,
-          labelFontSize: 12,
-          valueFontSize: 12,
-        );
-      case MediaKind.image:
-        final imageConfig =
-            selectedImageConfig ??
-            task.config.image ??
-            ImageProcessingConfig.initial();
-        return WorkbenchImageConfigPanel(
-          config: imageConfig,
-          onChanged: onImageConfigChanged ?? (_) {},
-          showLosslessCompression: selectedPurpose == TaskPurpose.compression,
-          sourceOutputFormat: null,
-          sourceWidth:
-              task.analysisResult?.imageWidth ??
-              task.analysisResult?.videoWidth,
-          sourceHeight:
-              task.analysisResult?.imageHeight ??
-              task.analysisResult?.videoHeight,
-          padding: EdgeInsets.zero,
-          itemSpacing: 8,
-          dropdownHeight: 40,
-          showTrailingText: false,
-          labelFontSize: 12,
-          valueFontSize: 12,
-        );
-      case MediaKind.audio:
-        final audioConfig =
-            selectedAudioConfig ??
-            task.config.audio ??
-            AudioProcessingConfig.initial();
-        return WorkbenchAudioConfigPanel(
-          config: audioConfig,
-          onChanged: onAudioConfigChanged ?? (_) {},
-          sourceOutputFormat: null,
-          padding: EdgeInsets.zero,
-          itemSpacing: 8,
-          dropdownHeight: 40,
-          showTrailingText: false,
-          labelFontSize: 12,
-          valueFontSize: 12,
-        );
-    }
-  }
-
-  WorkbenchCompressionPreset _presetForSmartPreset(
-    SmartCompressionPreset smartPreset,
-  ) {
-    for (final preset in _recommendedPresets) {
-      if (preset.smartPreset == smartPreset) return preset;
-    }
-    return _recommendedPresets.first;
-  }
-
-  bool _preserveMetadata() {
-    return switch (task.mediaKind) {
-      MediaKind.video =>
-        (selectedVideoConfig ?? task.config.video)?.preserveMetadata ?? true,
-      MediaKind.image =>
-        (selectedImageConfig ?? task.config.image)?.preserveMetadata ?? true,
-      MediaKind.audio =>
-        (selectedAudioConfig ?? task.config.audio)?.preserveMetadata ?? true,
-    };
-  }
-
-  void _onPreserveMetadataChanged(bool value) {
-    switch (task.mediaKind) {
-      case MediaKind.video:
-        onVideoPreserveMetadataChanged?.call(value);
-      case MediaKind.image:
-        final config =
-            selectedImageConfig ??
-            task.config.image ??
-            ImageProcessingConfig.initial();
-        onImageConfigChanged?.call(config.copyWith(preserveMetadata: value));
-      case MediaKind.audio:
-        final config =
-            selectedAudioConfig ??
-            task.config.audio ??
-            AudioProcessingConfig.initial();
-        onAudioConfigChanged?.call(config.copyWith(preserveMetadata: value));
-    }
-  }
-
-  bool _isModified() {
-    if (task.purpose != selectedPurpose) return true;
-    if (task.config.compressionMode != selectedCompressionMode) return true;
-    switch (task.mediaKind) {
-      case MediaKind.video:
-        final videoConfig =
-            task.config.video ?? VideoProcessingConfig.initial();
-        if (WorkbenchTaskAdjustmentPolicy.isAdjustedFromSource(
-          task: task,
-          outputFormat: selectedOutputFormat,
-          videoCodec: selectedVideoCodec,
-          resolutionPreset: selectedResolutionPreset,
-        )) {
-          return true;
-        }
-        if (videoConfig.encoderBackend != selectedEncoderBackend) return true;
-      case MediaKind.image:
-        final selected = selectedImageConfig;
-        if (selected != null && selected != task.config.image) return true;
-      case MediaKind.audio:
-        final selected = selectedAudioConfig;
-        if (selected != null && selected != task.config.audio) return true;
-    }
-    return false;
-  }
-}
-
-Future<void> _pumpTaskConfigurationDialog(
-  WidgetTester tester, {
-  MediaTask? task,
-  int selectedQualityIndex = 4,
-  OutputFormat selectedOutputFormat = OutputFormat.mp4,
-  VideoCodec selectedVideoCodec = VideoCodec.h264,
-  EncoderBackend selectedEncoderBackend = EncoderBackend.auto,
-  ResolutionPreset selectedResolutionPreset = ResolutionPreset.original,
-  CompressionMode selectedCompressionMode = CompressionMode.preset,
-  SmartCompressionPreset selectedSmartPreset = SmartCompressionPreset.balanced,
-  double selectedTargetSizeRatio = 0.6,
-  TaskPurpose selectedPurpose = TaskPurpose.compression,
-  List<EncoderBackend> availableEncoderBackends = const [EncoderBackend.auto],
-  Widget? sourceSummary,
-}) async {
-  await tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: _TestTaskConfigDialog(
-          task: task ?? testTask(),
-          thumbnail: null,
-          sourceSummary: sourceSummary,
-          selectedQualityIndex: selectedQualityIndex,
-          selectedOutputFormat: selectedOutputFormat,
-          selectedVideoCodec: selectedVideoCodec,
-          selectedEncoderBackend: selectedEncoderBackend,
-          selectedResolutionPreset: selectedResolutionPreset,
-          selectedCompressionMode: selectedCompressionMode,
-          selectedSmartPreset: selectedSmartPreset,
-          selectedTargetSizeRatio: selectedTargetSizeRatio,
-          selectedPurpose: selectedPurpose,
-          availableEncoderBackends: availableEncoderBackends,
-          onClose: () {},
-          onOpenSource: () {},
-          onSave: () {},
-          onCompressionModeChanged: (_) {},
-          onSmartPresetChanged: (_) {},
-          onTargetSizeRatioChanged: (_) {},
-          onQualityChanged: (_) {},
-          onOutputFormatChanged: (_) {},
-          onVideoCodecChanged: (_) {},
-          onEncoderBackendChanged: (_) {},
-          onResolutionPresetChanged: (_) {},
-        ),
-      ),
-    ),
-  );
-}
-
 MediaTask testTask({
   String fileName = 'source.mp4',
   VideoTaskConfig? config,
@@ -3046,7 +1704,7 @@ MediaTask testTask({
     fileName: fileName,
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
-    status: status ?? TaskStatus.pending,
+    status: status ?? TaskStatus.ready,
     config: config ?? VideoTaskConfig.initial(),
     progress: 0,
     sortOrder: 0,
@@ -3076,7 +1734,7 @@ MediaTask imageTask({ImageProcessingConfig? config}) {
     fileName: 'source.png',
     mediaKind: MediaKind.image,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: MediaTaskConfig.initialImage().copyWith(
       image: config ?? ImageProcessingConfig.initial(),
     ),
@@ -3105,7 +1763,7 @@ MediaTask audioTask({AudioProcessingConfig? config}) {
     fileName: 'source.wav',
     mediaKind: MediaKind.audio,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: MediaTaskConfig.initialAudio().copyWith(
       audio: config ?? AudioProcessingConfig.initial(),
     ),

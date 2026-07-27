@@ -146,7 +146,7 @@ void main() {
 
         expect(result.outcome, EngineExecutionDispatchOutcome.failed);
         final failed = repository.taskById(task.id);
-        expect(failed.status, TaskStatus.failed);
+        expect(failed.status, TaskStatus.executionFailed);
         expect(
           failed.failure?.code,
           TaskFailureCode.engineExecutionUnavailable,
@@ -191,7 +191,7 @@ void main() {
 
         expect(result.outcome, EngineExecutionDispatchOutcome.stale);
         final latest = repository.taskById(task.id);
-        expect(latest.status, TaskStatus.pending);
+        expect(latest.status, TaskStatus.ready);
         expect(latest.config.outputFileName, 'new-name');
         expect(latest.failure, isNull);
       },
@@ -315,7 +315,7 @@ MediaTask _readyTask({String id = 'task-1', String? selectionJson}) {
     fileName: 'input.mp4',
     mediaKind: MediaKind.video,
     purpose: TaskPurpose.compression,
-    status: TaskStatus.pending,
+    status: TaskStatus.ready,
     config: MediaTaskConfig.initialVideo().copyWith(
       outputLocationMode: OutputLocationMode.custom,
       outputDirectory: '/exports',

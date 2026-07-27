@@ -18,17 +18,18 @@
 - `lib/application/services/execution/media_work_scheduler.dart`
 - `lib/application/services/execution/ffmpeg_task_queue_runner.dart`
 
-## 短异步任务完成后不要依赖轮询刷新 UI
+## FEngine 批量入队后不要再次建立 Client 分析队列
 
 经验：
 
-- 分析任务可能在第一次轮询前就完成；只观察某个中间快照或固定延时轮询，会错过状态变化并让仓储已完成、界面仍显示等待中的状态长期不一致。
-- 批量入队后应等待队列达到空闲，再从仓储刷新一次列表；队列内部负责 `awaitingAnalysis -> analyzing -> pending/failed` 的语义状态转换。
-- 停止并发队列时要先阻止新任务、等待活跃清理完成，再关闭状态流，避免异步回调写入已关闭的 stream。
+- `SubmitAnalysisBatch` 的回执已经表示 FEngine 原子接管整批任务；Client 再按子任务调用单任务分析，会重复提交并破坏权威队列顺序。
+- Client 在批量回执后只持久化 request/work ID 与队列位置，然后依赖 FEngine 事件和 Engine Snapshot 投影 `analysis_queued -> analyzing -> ready/analysis_failed`。
+- transport 失败后的提交结果可能未知，不能把子任务回退到本地队列重试；应标记可重试失败并由用户显式重试。
 
 关联：
 
-- `lib/application/services/analysis/media_analysis_queue.dart`
+- `lib/application/use_cases/media_tasks/submit_engine_analysis_batch_use_case.dart`
+- `lib/application/services/engine/engine_lifecycle_coordinator.dart`
 - `lib/features/workbench/providers/media_task_notifier.dart`
 
 ## 串行命令区内不要调用可能无限等待的异步方法

@@ -37,6 +37,8 @@ export 'enums/proprietary_audio_format.dart';
 export 'enums/resolution_preset.dart';
 export 'enums/smart_compression_preset.dart';
 export 'enums/task_completion_sound.dart';
+export 'enums/task_folder_compatibility_class.dart';
+export 'enums/task_folder_origin.dart';
 export 'enums/task_purpose.dart';
 export 'enums/task_status.dart';
 export 'enums/two_pass_mode.dart';

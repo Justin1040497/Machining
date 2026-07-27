@@ -12,7 +12,7 @@ void main() {
         sortOrder: 0,
       );
 
-      expect(draft.status, TaskStatus.awaitingAnalysis);
+      expect(draft.status, TaskStatus.awaitAnalysis);
       expect(draft.canStartExecution, isFalse);
 
       final analyzing = draft.markAnalyzing();
@@ -22,7 +22,7 @@ void main() {
       final ready = analyzing
           .withAnalysisResult(MediaAnalysisResult(durationMs: 1000))
           .markAnalysisReady();
-      expect(ready.status, TaskStatus.pending);
+      expect(ready.status, TaskStatus.ready);
       expect(ready.isAnalysisReady, isTrue);
       expect(ready.canStartExecution, isTrue);
     });
@@ -61,7 +61,7 @@ void main() {
       );
 
       final retried = failed.markPendingForRetry();
-      expect(retried.status, TaskStatus.pending);
+      expect(retried.status, TaskStatus.ready);
       expect(retried.analysisResult, isNotNull);
       expect(retried.failure, isNull);
     });
@@ -80,7 +80,7 @@ void main() {
     test('round trips version 1 payload', () {
       final decoded = decodeTaskFailure(
         encodeTaskFailure(failure),
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         legacyErrorMessage: null,
         legacyAnalysisErrorMessage: null,
         failedAt: null,
@@ -106,7 +106,7 @@ void main() {
 
       final decoded = decodeTaskFailure(
         encodeTaskFailure(engineFailure),
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         legacyErrorMessage: null,
         legacyAnalysisErrorMessage: null,
         failedAt: null,
@@ -121,7 +121,7 @@ void main() {
     test('restores legacy analysis failure', () {
       final decoded = decodeTaskFailure(
         null,
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         legacyErrorMessage: 'ffprobe stderr',
         legacyAnalysisErrorMessage: '媒体分析失败',
         failedAt: 99,
@@ -136,7 +136,7 @@ void main() {
     test('malformed JSON falls back without blocking task loading', () {
       final decoded = decodeTaskFailure(
         '{broken',
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         legacyErrorMessage: 'legacy error',
         legacyAnalysisErrorMessage: null,
         failedAt: 88,
@@ -152,7 +152,7 @@ void main() {
         '{"version":1,"stage":"futureStage","code":"futureCode",'
         '"userMessage":"提示","technicalSummary":"details",'
         '"occurredAt":1,"retryable":true}',
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         legacyErrorMessage: null,
         legacyAnalysisErrorMessage: null,
         failedAt: null,

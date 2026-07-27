@@ -3,8 +3,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:framelean/application/models/engine_analysis_documents.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
 import 'package:framelean/domain/entities/media_task.dart';
+import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/engine_task_configuration_dialog.dart';
+import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
 
 void main() {
   testWidgets('renders FLL preset content and resolves exact IDs', (
@@ -167,6 +169,66 @@ void main() {
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(await dialogFuture, isNull);
+  });
+
+  testWidgets('renders a folder summary and saves the selected FLL preset', (
+    tester,
+  ) async {
+    final first = _task();
+    final second = _task().copyWith(
+      id: 'task-2',
+      fileName: 'second.mp4',
+      inputPath: '/tmp/second.mp4',
+    );
+    final folder = TaskFolder(
+      id: 'folder-1',
+      name: '视频任务夹 1',
+      mediaKind: MediaKind.video,
+      sortOrder: 0,
+      createdAt: 1,
+      updatedAt: 1,
+    );
+    EngineConfigurationSelection? saved;
+    late BuildContext hostContext;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            hostContext = context;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
+
+    final dialogFuture = showEngineTaskConfigurationEditor(
+      context: hostContext,
+      task: first,
+      snapshot: _snapshot(),
+      title: '任务夹 Engine 配置',
+      sourceSummary: WorkbenchTaskFolderSummary(
+        folder: folder,
+        tasks: [first, second],
+      ),
+      onResolve: (selection) async {
+        saved = selection;
+        return first;
+      },
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('任务夹 Engine 配置'), findsOneWidget);
+    expect(find.text('任务数量: 2'), findsOneWidget);
+    expect(find.textContaining('源文件总大小:'), findsOneWidget);
+
+    await tester.tap(find.text('FLL 推荐预设'));
+    await tester.pump();
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+
+    expect(saved, isA<EnginePresetSelection>());
+    expect(await dialogFuture, same(first));
   });
 }
 

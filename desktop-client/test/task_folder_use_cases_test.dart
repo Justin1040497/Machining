@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:framelean/application/repositories/app_settings_repository.dart';
 import 'package:framelean/application/repositories/media_task_repository.dart';
+import 'package:framelean/application/repositories/task_folder_arrangement_persistence.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
 import 'package:framelean/application/services/execution/execution_queue_result.dart'
@@ -11,19 +11,17 @@ import 'package:framelean/application/services/input_runtime/source_file_fingerp
 import 'package:framelean/application/use_cases/media_tasks/place_workbench_top_level_item_use_case.dart';
 import 'package:framelean/application/use_cases/media_tasks/task_folder_use_cases.dart';
 import 'package:framelean/application/use_cases/media_tasks/submit_engine_execution_use_case.dart';
-import 'package:framelean/domain/entities/app_settings.dart';
 import 'package:framelean/domain/entities/media_task.dart';
 import 'package:framelean/domain/entities/task_folder.dart';
 import 'package:framelean/domain/enums/media_kind.dart';
-import 'package:framelean/domain/enums/media_output_format.dart';
+import 'package:framelean/domain/enums/task_folder_compatibility_class.dart';
+import 'package:framelean/domain/enums/task_folder_origin.dart';
 import 'package:framelean/domain/enums/task_purpose.dart';
 import 'package:framelean/domain/enums/task_status.dart';
 import 'package:framelean/domain/enums/video_codec.dart';
-import 'package:framelean/domain/value_objects/engine_configuration_reference.dart';
 import 'package:framelean/domain/value_objects/media_analysis_result.dart';
 import 'package:framelean/domain/value_objects/media_task_config.dart';
 import 'package:framelean/domain/value_objects/source_file_fingerprint.dart';
-import 'package:framelean/domain/value_objects/video_processing_config.dart';
 
 void main() {
   test('places inserted top-level task below unfinished items', () async {
@@ -82,182 +80,6 @@ void main() {
     expect(repository.taskById('second.png').folderId, isNotNull);
   });
 
-  test('applies folder config to non execution snapshot tasks', () async {
-    final folder = testFolder();
-    final oldConfig = MediaTaskConfig.initialVideo();
-    final newConfig = MediaTaskConfig.initialVideo().copyWith(
-      videoCodec: VideoCodec.hevc,
-      engineConfiguration: const EngineConfigurationReference(
-        analysisId: 'analysis-1',
-        analysisRevision: 1,
-        candidateId: 'candidate-1',
-        selectionMode: 'preset',
-        selectionJson:
-            '{"mode":"preset","selection":{"preset_id":"balanced","candidate_id":"candidate-1"}}',
-      ),
-    );
-    final running = videoTask(
-      id: 'running',
-      folderId: folder.id,
-      status: TaskStatus.running,
-      config: oldConfig,
-    );
-    final paused = videoTask(
-      id: 'paused',
-      folderId: folder.id,
-      status: TaskStatus.paused,
-      config: oldConfig,
-    );
-    final analyzing = videoTask(
-      id: 'analyzing',
-      folderId: folder.id,
-      status: TaskStatus.analyzing,
-      config: oldConfig,
-    );
-    final completed = videoTask(
-      id: 'completed',
-      folderId: folder.id,
-      status: TaskStatus.completed,
-      config: oldConfig,
-    );
-    final pending = videoTask(
-      id: 'pending',
-      folderId: folder.id,
-      status: TaskStatus.pending,
-      config: oldConfig,
-    );
-    final missing = videoTask(
-      id: 'missing',
-      folderId: folder.id,
-      status: TaskStatus.missingSource,
-      config: oldConfig,
-    );
-    final repository = FakeMediaTaskRepository([
-      running,
-      paused,
-      analyzing,
-      completed,
-      pending,
-      missing,
-    ]);
-    final folderRepository = FakeTaskFolderRepository([folder]);
-
-    await ApplyTaskFolderConfigUseCase(
-      mediaTaskRepository: repository,
-      taskFolderRepository: folderRepository,
-      appSettingsRepository: FakeAppSettingsRepository(),
-    ).call(
-      folderId: folder.id,
-      config: newConfig,
-      purpose: TaskPurpose.conversion,
-    );
-
-    expect(
-      folderRepository.folderById(folder.id).defaultConfig.videoCodec,
-      VideoCodec.hevc,
-    );
-    expect(
-      folderRepository.folderById(folder.id).defaultPurpose,
-      TaskPurpose.conversion,
-    );
-    expect(
-      folderRepository.folderById(folder.id).defaultConfig.engineConfiguration,
-      isNull,
-    );
-    expect(repository.taskById('completed').config.videoCodec, VideoCodec.hevc);
-    expect(repository.taskById('completed').config.engineConfiguration, isNull);
-    expect(repository.taskById('completed').purpose, TaskPurpose.conversion);
-    expect(repository.taskById('pending').config.videoCodec, VideoCodec.hevc);
-    expect(repository.taskById('missing').config.videoCodec, VideoCodec.hevc);
-    expect(repository.taskById('running').config.videoCodec, VideoCodec.h264);
-    expect(repository.taskById('paused').config.videoCodec, VideoCodec.h264);
-    expect(repository.taskById('analyzing').config.videoCodec, VideoCodec.h264);
-  });
-
-  test(
-    'folder keep-original config resolves each task source format',
-    () async {
-      final folder = testFolder();
-      final mp4Task = videoTask(id: 'mp4', folderId: folder.id);
-      final movTask = videoTask(
-        id: 'mov',
-        folderId: folder.id,
-      ).copyWith(inputPath: '/videos/mov.mov', fileName: 'mov.mov');
-      final repository = FakeMediaTaskRepository([mp4Task, movTask]);
-      final folderRepository = FakeTaskFolderRepository([folder]);
-      final config = MediaTaskConfig.initialVideo().copyWith(
-        video: VideoProcessingConfig.initial().copyWith(
-          outputFormat: MediaOutputFormat.mp4,
-          keepOriginalOutputFormat: true,
-        ),
-      );
-
-      await ApplyTaskFolderConfigUseCase(
-        mediaTaskRepository: repository,
-        taskFolderRepository: folderRepository,
-        appSettingsRepository: FakeAppSettingsRepository(),
-      ).call(
-        folderId: folder.id,
-        config: config,
-        purpose: TaskPurpose.compression,
-      );
-
-      expect(
-        repository.taskById('mp4').config.video?.outputFormat,
-        MediaOutputFormat.mp4,
-      );
-      expect(
-        repository.taskById('mov').config.video?.outputFormat,
-        MediaOutputFormat.mov,
-      );
-    },
-  );
-
-  test(
-    'folder config renders each task output file name from its own source name',
-    () async {
-      final folder = testFolder();
-      final mp4Task = videoTask(
-        id: 'clip-one',
-        folderId: folder.id,
-      ).copyWith(inputPath: '/videos/clip-one.mp4', fileName: 'clip-one.mp4');
-      final movTask = videoTask(
-        id: 'clip-two',
-        folderId: folder.id,
-      ).copyWith(inputPath: '/videos/clip-two.mov', fileName: 'clip-two.mov');
-      final repository = FakeMediaTaskRepository([mp4Task, movTask]);
-      final folderRepository = FakeTaskFolderRepository([folder]);
-      final newConfig = MediaTaskConfig.initialVideo().copyWith(
-        videoCodec: VideoCodec.hevc,
-      );
-
-      await ApplyTaskFolderConfigUseCase(
-        mediaTaskRepository: repository,
-        taskFolderRepository: folderRepository,
-        appSettingsRepository: FakeAppSettingsRepository(),
-      ).call(
-        folderId: folder.id,
-        config: newConfig,
-        purpose: TaskPurpose.compression,
-      );
-
-      // 默认模板 {source}-{action}，每个任务应使用自己的源名渲染，而不是
-      // 套用夹内第一个任务的源名。
-      expect(
-        repository.taskById('clip-one').config.outputFileName,
-        startsWith('clip-one-'),
-      );
-      expect(
-        repository.taskById('clip-two').config.outputFileName,
-        startsWith('clip-two-'),
-      );
-      expect(
-        repository.taskById('clip-one').config.outputFileName,
-        isNot(repository.taskById('clip-two').config.outputFileName),
-      );
-    },
-  );
-
   test(
     'retries terminal folder tasks and preserves their current config',
     () async {
@@ -274,7 +96,7 @@ void main() {
       final failed = readyVideoTask(
         id: 'failed',
         folderId: folder.id,
-        status: TaskStatus.failed,
+        status: TaskStatus.executionFailed,
         config: config,
       );
       final cancelled = readyVideoTask(
@@ -286,7 +108,7 @@ void main() {
       final pending = readyVideoTask(
         id: 'pending',
         folderId: folder.id,
-        status: TaskStatus.pending,
+        status: TaskStatus.ready,
         config: config,
       );
       final repository = FakeMediaTaskRepository([
@@ -311,10 +133,10 @@ void main() {
       ).call(folder.id);
 
       expect(result.taskIdsNeedingAnalysis, isEmpty);
-      expect(repository.taskById('completed').status, TaskStatus.pending);
-      expect(repository.taskById('failed').status, TaskStatus.pending);
-      expect(repository.taskById('cancelled').status, TaskStatus.pending);
-      expect(repository.taskById('pending').status, TaskStatus.pending);
+      expect(repository.taskById('completed').status, TaskStatus.ready);
+      expect(repository.taskById('failed').status, TaskStatus.ready);
+      expect(repository.taskById('cancelled').status, TaskStatus.ready);
+      expect(repository.taskById('pending').status, TaskStatus.ready);
       expect(
         repository.taskById('completed').config.videoCodec,
         VideoCodec.hevc,
@@ -332,7 +154,7 @@ void main() {
     final blockedPending = videoTask(
       id: 'blocked',
       folderId: folder.id,
-      status: TaskStatus.pending,
+      status: TaskStatus.ready,
     );
     final paused = readyVideoTask(
       id: 'paused',
@@ -343,7 +165,7 @@ void main() {
     final pending = readyVideoTask(
       id: 'pending',
       folderId: folder.id,
-      status: TaskStatus.pending,
+      status: TaskStatus.ready,
       folderSortOrder: 2,
     );
     final submitter = FakeEngineExecutionSubmitter();
@@ -396,6 +218,135 @@ void main() {
       expect(releasedTask.sortOrder, 9);
     },
   );
+
+  test(
+    'keeps four SDR videos grouped and releases one HDR singleton',
+    () async {
+      final folder = testFolder().copyWith(
+        origin: TaskFolderOrigin.automaticImport,
+      );
+      final tasks = <MediaTask>[
+        for (var index = 0; index < 4; index += 1)
+          readyVideoTask(
+            id: 'sdr-$index',
+            folderId: folder.id,
+            folderSortOrder: index,
+          ),
+        readyVideoTask(
+          id: 'hdr',
+          folderId: folder.id,
+          folderSortOrder: 4,
+          hdr: true,
+        ),
+      ];
+      final repository = FakeMediaTaskRepository(tasks);
+      final folderRepository = FakeTaskFolderRepository([folder]);
+
+      final changed = await ReconcileAnalyzedAutomaticTaskFoldersUseCase(
+        mediaTaskRepository: repository,
+        taskFolderRepository: folderRepository,
+        persistence: FakeTaskFolderArrangementPersistence(
+          repository,
+          folderRepository,
+        ),
+      ).call();
+
+      expect(changed, isTrue);
+      expect(folderRepository.folders, hasLength(1));
+      expect(
+        folderRepository.folders.single.compatibilityClass,
+        TaskFolderCompatibilityClass.videoSdr,
+      );
+      expect(repository.taskById('hdr').folderId, isNull);
+      expect(
+        repository.tasks.where((task) => task.folderId == folder.id),
+        hasLength(4),
+      );
+    },
+  );
+
+  test('splits four HDR and four SDR videos into two folders', () async {
+    final folder = testFolder().copyWith(
+      origin: TaskFolderOrigin.automaticImport,
+    );
+    final tasks = <MediaTask>[
+      for (var index = 0; index < 4; index += 1)
+        readyVideoTask(
+          id: 'hdr-$index',
+          folderId: folder.id,
+          folderSortOrder: index,
+          hdr: true,
+        ),
+      for (var index = 0; index < 4; index += 1)
+        readyVideoTask(
+          id: 'sdr-$index',
+          folderId: folder.id,
+          folderSortOrder: index + 4,
+        ),
+    ];
+    final repository = FakeMediaTaskRepository(tasks);
+    final folderRepository = FakeTaskFolderRepository([folder]);
+
+    await ReconcileAnalyzedAutomaticTaskFoldersUseCase(
+      mediaTaskRepository: repository,
+      taskFolderRepository: folderRepository,
+      persistence: FakeTaskFolderArrangementPersistence(
+        repository,
+        folderRepository,
+      ),
+    ).call();
+
+    expect(folderRepository.folders, hasLength(2));
+    expect(
+      folderRepository.folders.map((value) => value.compatibilityClass),
+      containsAll(<TaskFolderCompatibilityClass>{
+        TaskFolderCompatibilityClass.videoHdr,
+        TaskFolderCompatibilityClass.videoSdr,
+      }),
+    );
+    for (final groupedFolder in folderRepository.folders) {
+      expect(
+        repository.tasks.where((task) => task.folderId == groupedFolder.id),
+        hasLength(4),
+      );
+    }
+  });
+
+  test('manual multi-selection creates separate HDR and SDR folders', () async {
+    final tasks = <MediaTask>[
+      for (var index = 0; index < 2; index += 1)
+        readyVideoTask(
+          id: 'hdr-$index',
+          folderId: '',
+          hdr: true,
+        ).releaseFromFolder(newSortOrder: index),
+      for (var index = 0; index < 2; index += 1)
+        readyVideoTask(
+          id: 'sdr-$index',
+          folderId: '',
+        ).releaseFromFolder(newSortOrder: index + 2),
+    ];
+    final repository = FakeMediaTaskRepository(tasks);
+    final folderRepository = FakeTaskFolderRepository([]);
+
+    final result = await CreateTaskFoldersFromTasksUseCase(
+      mediaTaskRepository: repository,
+      taskFolderRepository: folderRepository,
+    ).call(taskIds: tasks.map((task) => task.id).toList());
+
+    expect(result.folders, hasLength(2));
+    expect(
+      result.folders.map((value) => value.compatibilityClass),
+      containsAll(<TaskFolderCompatibilityClass>{
+        TaskFolderCompatibilityClass.videoHdr,
+        TaskFolderCompatibilityClass.videoSdr,
+      }),
+    );
+    expect(
+      result.folders.every((value) => value.origin == TaskFolderOrigin.manual),
+      isTrue,
+    );
+  });
 }
 
 const testFingerprint = SourceFileFingerprint(
@@ -409,7 +360,6 @@ TaskFolder testFolder() {
     name: '视频任务夹（1）',
     mediaKind: MediaKind.video,
     sortOrder: 0,
-    defaultConfig: MediaTaskConfig.initialVideo(),
     createdAt: 1,
     updatedAt: 1,
   );
@@ -420,7 +370,7 @@ MediaTask videoTask({
   String? folderId,
   int? folderSortOrder,
   int sortOrder = 0,
-  TaskStatus status = TaskStatus.pending,
+  TaskStatus status = TaskStatus.ready,
   MediaTaskConfig? config,
 }) {
   return MediaTask(
@@ -443,8 +393,9 @@ MediaTask readyVideoTask({
   required String id,
   required String folderId,
   int? folderSortOrder,
-  TaskStatus status = TaskStatus.pending,
+  TaskStatus status = TaskStatus.ready,
   MediaTaskConfig? config,
+  bool hdr = false,
 }) {
   return videoTask(
     id: id,
@@ -454,9 +405,36 @@ MediaTask readyVideoTask({
     config: config,
   ).copyWith(
     sourceFileFingerprint: testFingerprint,
-    analysisResult: MediaAnalysisResult(durationMs: 1000),
+    analysisResult: MediaAnalysisResult(
+      durationMs: 1000,
+      colorTransfer: hdr ? 'smpte2084' : 'bt709',
+    ),
     analysisUpdatedAt: 1,
   );
+}
+
+class FakeTaskFolderArrangementPersistence
+    implements TaskFolderArrangementPersistence {
+  FakeTaskFolderArrangementPersistence(
+    this.taskRepository,
+    this.folderRepository,
+  );
+
+  final FakeMediaTaskRepository taskRepository;
+  final FakeTaskFolderRepository folderRepository;
+
+  @override
+  Future<void> apply({
+    required List<MediaTask> tasks,
+    required List<TaskFolder> folders,
+    required Set<String> deletedFolderIds,
+  }) async {
+    await taskRepository.replaceAllTasks(tasks);
+    folderRepository.folders
+      ..removeWhere((folder) => deletedFolderIds.contains(folder.id))
+      ..clear()
+      ..addAll(folders);
+  }
 }
 
 class FakeMediaTaskRepository implements MediaTaskRepository {
@@ -639,20 +617,5 @@ class FakeEngineExecutionSubmitter implements EngineExecutionSubmitter {
       outcome: EngineExecutionDispatchOutcome.notEngineConfigured,
       message: '任务没有可提交的引擎配置',
     );
-  }
-}
-
-class FakeAppSettingsRepository implements AppSettingsRepository {
-  FakeAppSettingsRepository({AppSettings? settings})
-    : _settings = settings ?? AppSettings.initial();
-
-  AppSettings _settings;
-
-  @override
-  Future<AppSettings> loadSettings() async => _settings;
-
-  @override
-  Future<void> saveSettings(AppSettings settings) async {
-    _settings = settings;
   }
 }

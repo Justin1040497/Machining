@@ -499,7 +499,6 @@ final class LocalFEngineGateway
     final client = await _connectedClient();
     final result = await client.requestWork(
       commandType: 'get_engine_snapshot',
-      commandPayload: const <String, Object?>{},
       expectedTerminalEvent: 'engine_snapshot_ready',
     );
     final snapshot = _parseEngineStateSnapshot(
@@ -814,6 +813,10 @@ final class LocalFEngineGateway
                 'execution_id',
               )
             : event.payload['execution_id'] as String?,
+        resourcePool: _parseExecutionResourcePool(
+          event.payload['resource_pool'] as String?,
+          requestId: event.requestId,
+        ),
         executionState: _readForwardedExecutionState(event),
         pauseReason: _readPauseReason(event),
         preemptedByExecutionId:
@@ -874,6 +877,23 @@ final class LocalFEngineGateway
         kind: EngineGatewayFailureKind.protocol,
         message: 'FEngine returned unsupported pause reason "$value"',
         requestId: event.requestId,
+      ),
+    };
+  }
+
+  EngineExecutionResourcePool? _parseExecutionResourcePool(
+    String? value, {
+    required String requestId,
+  }) {
+    return switch (value) {
+      null => null,
+      'video' => EngineExecutionResourcePool.video,
+      'auxiliary' => EngineExecutionResourcePool.auxiliary,
+      _ => throw EngineGatewayException(
+        kind: EngineGatewayFailureKind.protocol,
+        message:
+            'FEngine returned unsupported execution resource pool "$value"',
+        requestId: requestId,
       ),
     };
   }
@@ -1140,12 +1160,15 @@ final class LocalFEngineGateway
           'queue_revision',
           requestId: requestId,
         ),
-        active: lane['active'] == null
-            ? null
-            : _parseScheduledExecution(
-                _objectValue(lane['active'], 'active execution', requestId),
-                requestId: requestId,
-              ),
+        activeExecutions:
+            _requireList(lane, 'active_executions', requestId: requestId)
+                .map(
+                  (value) => _parseScheduledExecution(
+                    _objectValue(value, 'active execution', requestId),
+                    requestId: requestId,
+                  ),
+                )
+                .toList(growable: false),
         normalWaiting:
             _requireList(lane, 'normal_waiting', requestId: requestId)
                 .map(
@@ -1155,14 +1178,28 @@ final class LocalFEngineGateway
                   ),
                 )
                 .toList(growable: false),
-        resumeStack: _requireList(lane, 'resume_stack', requestId: requestId)
-            .map(
-              (value) => _parseScheduledExecution(
-                _objectValue(value, 'resume execution', requestId),
-                requestId: requestId,
-              ),
-            )
-            .toList(growable: false),
+        videoResumeStack:
+            _requireList(lane, 'video_resume_stack', requestId: requestId)
+                .map(
+                  (value) => _parseScheduledExecution(
+                    _objectValue(value, 'video resume execution', requestId),
+                    requestId: requestId,
+                  ),
+                )
+                .toList(growable: false),
+        auxiliaryResumeStack:
+            _requireList(lane, 'auxiliary_resume_stack', requestId: requestId)
+                .map(
+                  (value) => _parseScheduledExecution(
+                    _objectValue(
+                      value,
+                      'auxiliary resume execution',
+                      requestId,
+                    ),
+                    requestId: requestId,
+                  ),
+                )
+                .toList(growable: false),
         userPaused: _requireList(lane, 'user_paused', requestId: requestId)
             .map(
               (value) => _parseScheduledExecution(
@@ -1193,6 +1230,15 @@ final class LocalFEngineGateway
                     'terminal execution',
                     requestId: requestId,
                   ),
+                  resourcePool: _parseExecutionResourcePool(
+                    _requireNonEmptyString(
+                      terminal,
+                      'resource_pool',
+                      'terminal execution',
+                      requestId: requestId,
+                    ),
+                    requestId: requestId,
+                  )!,
                   state: _parseExecutionStateName(
                     _requireNonEmptyString(
                       terminal,
@@ -1254,6 +1300,15 @@ final class LocalFEngineGateway
         'scheduled execution',
         requestId: requestId,
       ),
+      resourcePool: _parseExecutionResourcePool(
+        _requireNonEmptyString(
+          json,
+          'resource_pool',
+          'scheduled execution',
+          requestId: requestId,
+        ),
+        requestId: requestId,
+      )!,
       state: _parseExecutionStateName(
         _requireNonEmptyString(
           json,
@@ -1467,7 +1522,7 @@ final class LocalFEngineGateway
     final snapshotDir = Directory(snapshotDirectory);
     await snapshotDir.create(recursive: true);
     final endpointFile = File(
-      path.join(snapshotDirectory, 'engine-endpoint.json'),
+      path.join(snapshotDir.parent.path, 'engine-endpoint.json'),
     );
     final existing = await _connectDaemon(endpointFile);
     if (existing != null) {

@@ -19,7 +19,7 @@ import 'package:framelean/infrastructure/repositories/drift_media_task_repositor
 void main() {
   group('DriftMediaTaskRepository mappers', () {
     test('persists structured failure and mirrors legacy columns', () {
-      final failedTask = mediaTask(status: TaskStatus.failed).copyWith(
+      final failedTask = mediaTask(status: TaskStatus.executionFailed).copyWith(
         failure: const TaskFailure(
           stage: TaskFailureStage.outputPublication,
           code: TaskFailureCode.outputPublishFailed,
@@ -164,7 +164,7 @@ void main() {
         fileName: 'source.png',
         mediaKind: MediaKind.image,
         purpose: TaskPurpose.compression,
-        status: TaskStatus.pending,
+        status: TaskStatus.ready,
         config: config,
         progress: 0,
         sortOrder: 0,
@@ -278,7 +278,6 @@ void main() {
         name: '后导入',
         mediaKind: MediaKind.video,
         sortOrder: 1,
-        defaultConfig: MediaTaskConfig.initialVideo(),
         createdAt: 20,
         updatedAt: 20,
       );
@@ -287,7 +286,6 @@ void main() {
         name: '先导入',
         mediaKind: MediaKind.image,
         sortOrder: 0,
-        defaultConfig: MediaTaskConfig.initialImage(),
         createdAt: 10,
         updatedAt: 10,
       );
@@ -300,8 +298,6 @@ void main() {
         'folder-earlier',
         'folder-later',
       ]);
-      expect(folders.first.defaultConfig.image, isNotNull);
-      expect(folders.last.defaultConfig.video, isNotNull);
 
       await repository.deleteFolderById('folder-earlier');
 
@@ -313,7 +309,7 @@ void main() {
 
 MediaTask mediaTask({
   String id = 'task-1',
-  TaskStatus status = TaskStatus.pending,
+  TaskStatus status = TaskStatus.ready,
   double progress = 0,
   int sortOrder = 0,
   String? outputPath,
