@@ -16,7 +16,7 @@ class PreparedMediaInput {
   }
 }
 
-/// 在 FFprobe 分析或 FFmpeg 执行前准备实际输入文件。
+/// 在提交 FEngine 分析或执行前准备实际输入文件。
 abstract interface class MediaInputPreparer {
   Future<PreparedMediaInput> prepare(
     MediaTask task, {

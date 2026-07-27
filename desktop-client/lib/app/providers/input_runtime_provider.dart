@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/infrastructure/library.dart';
-import 'package:framelean/app/providers/repository_provider.dart';
 
 /// 媒体类型识别服务
 final mediaKindResolverProvider = Provider<MediaKindResolver>((ref) {
@@ -33,7 +32,7 @@ final proprietaryAudioDecoderProvider = Provider<ProprietaryAudioDecoder>((
   return const ProprietaryAudioDecoderDispatcher();
 });
 
-/// FFprobe / FFmpeg 前的实际输入文件准备服务
+/// FEngine 前的实际输入文件准备服务
 final mediaInputPreparerProvider = Provider<MediaInputPreparer>((ref) {
   return DefaultMediaInputPreparer(
     proprietaryAudioFormatResolver: ref.watch(
@@ -56,67 +55,3 @@ final sourceFileFingerprintReaderProvider =
     Provider<SourceFileFingerprintReader>((ref) {
       return LocalSourceFileFingerprintReader();
     });
-
-/// FFmpeg / FFprobe 路径解析服务
-final ffmpegLocatorProvider = Provider<FfmpegLocator>((ref) {
-  return LocalFfmpegLocator();
-});
-
-/// FFprobe 媒体分析服务
-final mediaAnalyzerProvider = Provider<MediaAnalyzer>((ref) {
-  return FfprobeMediaAnalyzer();
-});
-
-/// 当前 FFmpeg / FFprobe 运行时状态
-final ffmpegRuntimeProvider =
-    AsyncNotifierProvider<FfmpegRuntimeNotifier, ResolvedFfmpegRuntime>(
-      FfmpegRuntimeNotifier.new,
-    );
-
-class FfmpegRuntimeNotifier extends AsyncNotifier<ResolvedFfmpegRuntime> {
-  @override
-  Future<ResolvedFfmpegRuntime> build() async {
-    final settingsRepository = ref.watch(appSettingsRepositoryProvider);
-    final locator = ref.watch(ffmpegLocatorProvider);
-    final settings = await settingsRepository.loadSettings();
-
-    return locator.resolve(
-      customFfmpegPath: settings.customFfmpegPath,
-      customFfprobePath: settings.customFfprobePath,
-    );
-  }
-
-  Future<void> updateCustomFfmpegPath(String inputPath) async {
-    final locator = ref.read(ffmpegLocatorProvider);
-    final settingsRepository = ref.read(appSettingsRepositoryProvider);
-
-    await locator.validateCustomFfmpegPath(inputPath);
-
-    final settings = await settingsRepository.loadSettings();
-    final updatedSettings = settings.withCustomFfmpegPath(inputPath);
-    await settingsRepository.saveSettings(updatedSettings);
-    final runtime = await locator.resolve(
-      customFfmpegPath: updatedSettings.customFfmpegPath,
-      customFfprobePath: updatedSettings.customFfprobePath,
-    );
-
-    state = AsyncData(runtime);
-  }
-
-  Future<void> updateCustomFfprobePath(String inputPath) async {
-    final locator = ref.read(ffmpegLocatorProvider);
-    final settingsRepository = ref.read(appSettingsRepositoryProvider);
-
-    await locator.validateCustomFfprobePath(inputPath);
-
-    final settings = await settingsRepository.loadSettings();
-    final updatedSettings = settings.withCustomFfprobePath(inputPath);
-    await settingsRepository.saveSettings(updatedSettings);
-    final runtime = await locator.resolve(
-      customFfmpegPath: updatedSettings.customFfmpegPath,
-      customFfprobePath: updatedSettings.customFfprobePath,
-    );
-
-    state = AsyncData(runtime);
-  }
-}

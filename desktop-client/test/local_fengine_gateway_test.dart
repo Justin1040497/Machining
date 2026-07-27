@@ -155,8 +155,8 @@ void main() {
         final result = await operation;
         await _pump();
         expect(result.workId, 'work-1');
-        expect(result.value.analysisId, 'analysis-1');
-        expect(result.value.hasSnapshot, isTrue);
+        expect(result.value.analysis.analysisId, 'analysis-1');
+        expect(result.value.snapshot, isNull);
         expect(events.map((event) => event.type), [
           EngineWorkEventType.queued,
           EngineWorkEventType.completed,
@@ -206,87 +206,161 @@ void main() {
 
       final result = await operation;
       expect(
-        result.value.mediaAnalysisStatus,
+        result.value.analysis.mediaAnalysisStatus,
         EngineMediaAnalysisStatus.failed,
       );
-      expect(result.value.errorCode, 'MEDIA_INVALID_FORMAT');
+      expect(result.value.analysis.errorCode, 'MEDIA_INVALID_FORMAT');
     });
 
-    test(
-      'serializes preset selection and keeps unavailable configuration typed',
-      () async {
-        final fixture = await _connectedGateway(<String>[
-          'hello-1',
-          'resolve-1',
-          'shutdown-1',
-        ]);
-        addTearDown(fixture.dispose);
+    test('maps preview frame requests and terminal artifacts', () async {
+      final fixture = await _connectedGateway(<String>[
+        'hello-1',
+        'preview-1',
+        'shutdown-1',
+      ]);
+      addTearDown(fixture.dispose);
 
-        final operation = fixture.gateway.resolveConfiguration(
-          const EngineConfigurationRequest(
-            analysisId: 'analysis-1',
-            expectedRevision: 7,
-            selection: EnginePresetSelection(
-              presetId: 'balanced',
-              candidateId: 'candidate-1',
-              overrides: EngineManualOverrides(videoCodec: 'h264'),
-            ),
+      final operation = fixture.gateway.generatePreviewFrames(
+        EnginePreviewFramesRequest(
+          clientTaskId: 'task-1',
+          source: EngineSourceFacts(
+            path: '/media/input.mp4',
+            fileSizeBytes: 123,
+            modifiedTimeUnixNanos: '456000000',
           ),
-        );
-        await _pump();
-        final command =
-            fixture.transport.lastRequest['command']! as Map<String, Object?>;
-        final payload = command['payload']! as Map<String, Object?>;
-        expect(command['type'], 'resolve_configuration');
-        expect(payload['expected_revision'], 7);
-        expect(payload['selection'], <String, Object?>{
-          'mode': 'preset',
-          'selection': <String, Object?>{
-            'preset_id': 'balanced',
-            'candidate_id': 'candidate-1',
-            'overrides': <String, Object?>{'video_codec': 'h264'},
-          },
-        });
+          outputDirectory: '/cache/previews/task-1',
+          timestampsUs: <int>[1000000, 2000000],
+          maxWidth: 960,
+        ),
+      );
+      await _pump();
 
-        fixture.transport.respond(
-          requestId: 'resolve-1',
-          kind: 'response',
-          type: 'accepted',
-          payload: _accepted('work-1'),
-        );
-        fixture.transport.respond(
-          requestId: 'resolve-1',
-          kind: 'event',
-          type: 'configuration_resolved',
-          payload: <String, Object?>{
-            'work_id': 'work-1',
-            'configuration': <String, Object?>{
-              'schema_version': 'framelean.recalculate-configuration.v1',
-              'analysis_id': 'analysis-1',
-              'analysis_revision': 7,
-              'configuration_status': 'unavailable',
-              'capabilities': <String, Object?>{},
-              'configuration_options': <String, Object?>{},
-              'recommendation': <String, Object?>{},
-              'presets': <Object?>[],
-              'custom_target_size': <String, Object?>{},
-              'selection': <String, Object?>{},
-              'resolved_configuration': null,
-              'conflicts': <Object?>[],
-              'warnings': <Object?>[],
-              'error': null,
-            },
-          },
-        );
+      final command =
+          fixture.transport.lastRequest['command']! as Map<String, Object?>;
+      final payload = command['payload']! as Map<String, Object?>;
+      expect(command['type'], 'generate_preview_frames');
+      expect(payload['client_task_id'], 'task-1');
+      expect(payload['timestamps_us'], <int>[1000000, 2000000]);
+      expect(payload['max_width'], 960);
+      expect(payload['source'], <String, Object?>{
+        'path': '/media/input.mp4',
+        'file_size_bytes': 123,
+        'modified_time_unix_nanos': '456000000',
+      });
 
-        final result = await operation;
-        expect(
-          result.value.configurationStatus,
-          EngineConfigurationStatus.unavailable,
-        );
-        expect(result.value.resolvedConfiguration, isNull);
-      },
-    );
+      fixture.transport.respond(
+        requestId: 'preview-1',
+        kind: 'response',
+        type: 'accepted',
+        payload: <String, Object?>{
+          ..._accepted('preview-work'),
+          'queue_kind': 'control',
+        },
+      );
+      fixture.transport.respond(
+        requestId: 'preview-1',
+        kind: 'event',
+        type: 'preview_frames_ready',
+        payload: <String, Object?>{
+          'work_id': 'preview-work',
+          'client_task_id': 'task-1',
+          'result': <String, Object?>{
+            'output_directory': '/cache/previews/task-1',
+            'frames': <Object?>[
+              <String, Object?>{
+                'index': 0,
+                'requested_timestamp_us': 1000000,
+                'decoded_timestamp_us': 1001000,
+                'width': 960,
+                'height': 540,
+                'output_path': '/cache/previews/task-1/frame-000.bmp',
+              },
+              <String, Object?>{
+                'index': 1,
+                'requested_timestamp_us': 2000000,
+                'decoded_timestamp_us': 2001000,
+                'width': 960,
+                'height': 540,
+                'output_path': '/cache/previews/task-1/frame-001.bmp',
+              },
+            ],
+          },
+        },
+      );
+
+      final result = await operation;
+      expect(result.queueKind, EngineQueueKind.control);
+      expect(result.value.frames, hasLength(2));
+      expect(result.value.frames.last.decodedTimestampUs, 2001000);
+      expect(
+        result.value.frames.last.outputPath,
+        '/cache/previews/task-1/frame-001.bmp',
+      );
+    });
+
+    test('maps video thumbnail requests and terminal artifacts', () async {
+      final fixture = await _connectedGateway(<String>[
+        'hello-1',
+        'thumbnail-1',
+        'shutdown-1',
+      ]);
+      addTearDown(fixture.dispose);
+
+      final operation = fixture.gateway.generateVideoThumbnail(
+        const EngineVideoThumbnailRequest(
+          clientTaskId: 'task-2',
+          source: EngineSourceFacts(
+            path: '/media/input.mov',
+            fileSizeBytes: 321,
+            modifiedTimeUnixNanos: '654000000',
+          ),
+          outputPath: '/cache/thumbnails/task-2.bmp',
+          durationUs: 12000000,
+          maxWidth: 80,
+        ),
+      );
+      await _pump();
+
+      final command =
+          fixture.transport.lastRequest['command']! as Map<String, Object?>;
+      final payload = command['payload']! as Map<String, Object?>;
+      expect(command['type'], 'generate_video_thumbnail');
+      expect(payload['duration_us'], 12000000);
+      expect(payload['max_width'], 80);
+      expect(payload['priority'], 'background');
+
+      fixture.transport.respond(
+        requestId: 'thumbnail-1',
+        kind: 'response',
+        type: 'accepted',
+        payload: <String, Object?>{
+          ..._accepted('thumbnail-work'),
+          'queue_kind': 'control',
+        },
+      );
+      fixture.transport.respond(
+        requestId: 'thumbnail-1',
+        kind: 'event',
+        type: 'video_thumbnail_ready',
+        payload: <String, Object?>{
+          'work_id': 'thumbnail-work',
+          'client_task_id': 'task-2',
+          'result': <String, Object?>{
+            'output_path': '/cache/thumbnails/task-2.bmp',
+            'requested_timestamp_us': 1440000,
+            'decoded_timestamp_us': 1441000,
+            'width': 80,
+            'height': 45,
+          },
+        },
+      );
+
+      final result = await operation;
+      expect(result.queueKind, EngineQueueKind.control);
+      expect(result.value.outputPath, '/cache/thumbnails/task-2.bmp');
+      expect(result.value.width, 80);
+      expect(result.value.height, 45);
+    });
 
     test(
       'submits execution with the engine-owned selection and output policy',
@@ -306,10 +380,13 @@ void main() {
             clientTaskId: 'task-1',
             analysisId: 'analysis-1',
             expectedRevision: 3,
-            selection: EngineManualConfigurationSelection(
-              candidateId: 'candidate-1',
-              overrides: EngineManualOverrides(videoCodec: 'h264'),
-            ),
+            selection: <String, Object?>{
+              'mode': 'manual',
+              'selection': <String, Object?>{
+                'candidate_id': 'candidate-1',
+                'overrides': <String, Object?>{'video_codec': 'h264'},
+              },
+            },
             requestedOutputPath: '/media/output.mp4',
             collisionPolicy: EngineOutputCollisionPolicy.generateUnique,
             priority: EngineWorkPriority.foreground,
@@ -704,10 +781,14 @@ EngineExecutionRequest _executionRequest() {
     clientTaskId: 'task-1',
     analysisId: 'analysis-1',
     expectedRevision: 1,
-    selection: EnginePresetSelection(
-      presetId: 'balanced',
-      candidateId: 'candidate-1',
-    ),
+    selection: <String, Object?>{
+      'mode': 'preset',
+      'selection': <String, Object?>{
+        'preset_id': 'balanced',
+        'candidate_id': 'candidate-1',
+        'overrides': <String, Object?>{},
+      },
+    },
     requestedOutputPath: '/media/output.mp4',
     collisionPolicy: EngineOutputCollisionPolicy.failIfExists,
   );

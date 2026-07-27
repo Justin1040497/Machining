@@ -80,8 +80,7 @@ class WorkbenchPreviewNotifier extends Notifier<WorkbenchPreviewState> {
 
     try {
       final result = await GeneratePreviewFramesUseCase(
-        readRuntime: () => ref.read(ffmpegRuntimeProvider.future),
-        previewFrameGenerator: ref.read(previewFrameGeneratorProvider),
+        readEngineGateway: () => ref.read(engineGatewayProvider.future),
       ).call(task: task, allowExtremeCompression: allowExtremeCompression);
       if (!_isActiveGeneration(activeGenerationId)) {
         return;

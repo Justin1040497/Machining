@@ -3,8 +3,8 @@ import 'package:framelean/application/repositories/app_settings_repository.dart'
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart'
-    show FfmpegQueueStartOutcome;
+import 'package:framelean/application/services/execution/execution_queue_result.dart'
+    show EngineQueueStartOutcome;
 import 'package:framelean/application/services/execution/media_task_execution_coordinator.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
@@ -362,7 +362,7 @@ void main() {
     ).call(folder.id);
 
     expect(submitter.taskIds, [blockedPending.id, paused.id, pending.id]);
-    expect(result.outcome, FfmpegQueueStartOutcome.invalidTaskState);
+    expect(result.outcome, EngineQueueStartOutcome.invalidTaskState);
     expect(result.message, contains('3 个任务缺少 FEngine 配置'));
   });
 

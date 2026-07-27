@@ -26,13 +26,14 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | --- | --- | --- | --- |
 | 桌面客户端 | Flutter Desktop | 已使用 | 当前主应用框架 |
 | 客户端语言 | Dart 3.11 约束 | 已使用 | `pubspec.yaml` 中 `environment.sdk: ^3.11.0` |
-| 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FFmpeg 运行时、任务列表和预览状态 |
+| 状态管理 | Flutter Riverpod 3 | 已使用 | Provider / AsyncNotifier / Notifier 管理依赖装配、FEngine 生命周期、任务列表和预览状态 |
 | 路由 | GoRouter | 已使用 | 当前 `/` 指向工作台，应用设置通过 `/settings` 全屏页面打开 |
 | 架构风格 | 接近 Clean Architecture 的分层 | 已使用 | `domain`、`application`、`infrastructure`、`features` 分层 |
-| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置和应用通知，当前 schema version 为 29 |
+| 本地数据库 | Drift + SQLite | 已使用 | 保存任务、设置、Engine 投影和应用通知，当前 schema version 为 35 |
 | 原生 SQLite | sqlite3 native assets / sqlite3_flutter_libs | 已使用 | 桌面端 Drift SQLite 运行依赖 |
-| 媒体分析 | FFprobe | 已使用 | 读取视频、图片、音频的时长、编码、码率、尺寸、音频、封装、色彩、HDR10 静态元数据和 Dolby Vision profile 信息 |
-| 媒体处理 | FFmpeg + libzimg | 已使用 | 生成视频预览帧、视频缩略图、媒体压缩和格式转换；HDR10 / HLG 转 SDR 依赖 `zscale` / `tonemap` |
+| 媒体分析 | FEngine + FLL libav | 已使用 | FLL 进程内读取媒体事实并返回冻结 AnalysisSnapshot |
+| 媒体 artifact | FEngine Control queue + FLL libavcodec/libswscale | 已使用 | 生成源媒体预览帧和非黑帧视频缩略图 BMP |
+| 媒体执行 | FEngine + FLL Runtime | 部分可用 | packet stream-copy/remux 可执行；完整转码链未就绪时 fail closed |
 | 媒体类型识别 | 文件扩展名映射 | 已使用 | 视频、图片、音频和部分专有音频输入扩展名会进入任务流程 |
 | 专有音频输入 | Dart 原生 NCM + 外部 QMC 适配器 | 已使用 | NCM 使用本地 Dart 解密；MGG / MFLAC 等 QMC 输入通过适配器或 `qmc-decrypt` 预处理 |
 | 文件选择 | file_selector + file_picker | 已使用 | `file_selector` 继续用于常规文件 / 文件夹 / 输出目录选择；`file_picker` 用于 macOS 同一对话框多选文件和文件夹 |
@@ -45,10 +46,10 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | 主题系统 | ThemeExtension + settings.theme_mode + theme_prefs.json | 已使用 | 工作台支持浅色 / 深色主题切换；`settings.theme_mode` 是权威设置，`theme_prefs.json` 只作为首帧缓存镜像，启动后会异步按 DB 自愈 |
 | 路径处理 | path / path_provider | 已使用 | 数据库路径、输出路径、临时目录、主题缓存路径和文件名处理 |
 | ID 生成 | uuid | 已使用 | `MediaTask.id` 使用 UUID |
-| macOS 打包 | Flutter macOS + CocoaPods plugin integration + Universal 2 runtime + Xcode build phase | 已使用 | Release app 只复制同时包含 x86_64 / arm64 的 FFmpeg 运行时；桌面插件通过 `macos/Podfile` 和 Runner workspace 集成 |
+| macOS 打包 | Flutter macOS + CocoaPods + Universal 2 FEngine | 已使用 | Release app 携带静态链接 bundled libav 的 Universal `framelean-engine` |
 | 应用更新 | 外部下载地址优先；JSON latest / ticket package 链和 Sparkle 2 可选保留 | 已使用 | 默认检查更新后展示版本日志与 GitHub / Gitee / 备用下载入口；只有 release 没有外部地址且 package 元数据完整时，才下载 Windows 安装器或把 macOS DMG 保存到应用私有目录；Sparkle appcast 仅在显式启用并提供签名时使用 |
-| Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录强制包含 Windows x64 FFmpeg 运行时 |
-| Linux / Web | Flutter 默认平台目录 | 候选方案 | 目录存在，但不是当前验证和发布目标 |
+| Windows 打包 | Flutter Windows + CMake install | 已使用 | Release 目录携带静态链接 bundled libav 的 Windows x64 FEngine |
+| Linux / Web | 不在当前范围 | 不支持 | 仓库不保留对应 Flutter 平台工程 |
 
 ## 依赖清单
 
@@ -64,7 +65,7 @@ AI 在理解项目时，应以“已使用”为当前事实，不要把“计�
 | `path_provider` | `^2.1.5` | 获取应用支持目录 |
 | `path` | `^1.9.1` | 跨平台路径拼接和规范化 |
 | `args` | `^2.7.0` | 命令参数工具依赖，目前保留在项目依赖中 |
-| `file_selector` | `^1.1.0` | 桌面文件、文件夹、输出目录和可执行文件选择 |
+| `file_selector` | `^1.1.0` | 桌面文件、文件夹和输出目录选择 |
 | `file_picker` | `^11.0.2` | macOS 文件和文件夹混合多选导入 |
 | `desktop_drop` | `^0.7.1` | 桌面拖拽导入 |
 | `flutter_animate` | `^4.5.2` | 声明式 UI 动画，当前用于工作台通知浮层 |
@@ -105,8 +106,8 @@ lib/
     repositories/
     services/platform/
     services/input_runtime/
-    services/ffmpeg_planning/
     services/execution/
+    services/engine/
     use_cases/app_settings/
     use_cases/media_tasks/
   infrastructure/
@@ -114,8 +115,8 @@ lib/
     repositories/
     services/platform/
     services/input_runtime/
-    services/ffmpeg_planning/
     services/execution/
+    services/engine/
   features/
     workbench/
 ```
@@ -142,9 +143,9 @@ build/dependencies/
 | 环境 | 说明 |
 | --- | --- |
 | Flutter SDK | 需要满足 Dart SDK `^3.11.0` |
-| macOS 开发 | 需要 Xcode Command Line Tools 和 CocoaPods；Release CI 使用 Flutter stable 并显式关闭 Swift Package Manager；构建内置 FFmpeg 时需要 Homebrew、`autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
+| macOS 开发 | 需要 Xcode Command Line Tools 和 CocoaPods；Release CI 使用 Flutter stable 并显式关闭 Swift Package Manager；构建 bundled static libav SDK 时需要 `autoconf`、`automake`、`libtool`、`nasm`、`pkg-config`；zimg tag archive 缺少 `configure` 时会通过 autotools 生成 |
 | Windows 开发 | 需要 Visual Studio C++ 桌面构建工具和 Flutter Windows 桌面支持 |
-| FFmpeg / FFprobe | 开发运行可使用 custom、bundled、known system 或 PATH 中的工具；发布包应包含内置运行时 |
+| bundled static libav SDK | 只作为 FEngine 的显式构建输入；开发和发布均不得从系统、Homebrew 或 PATH 寻找 `ffmpeg` / `ffprobe` executable |
 
 常用命令：
 
@@ -169,7 +170,7 @@ GitHub Actions Windows 打包：
 .github/workflows/desktop-client.yml
 ```
 
-该 workflow 通过 MSYS2/MinGW-w64 从源码编译 FFmpeg 运行时
+该 workflow 通过 MSYS2/MinGW-w64 从源码编译 static libav SDK
 （`scripts/build/build_ffmpeg_windows_x64.sh`），按锁定 commit 构建 Windows
 QMC 适配器，然后调用唯一发布入口 `scripts\release\build_windows.ps1`。一次
 Flutter Release 构建会生成便携 ZIP 和 Inno Setup 安装器，两个产物都会上传为
@@ -199,7 +200,7 @@ Flutter 和 Dart 依赖声明位于：
 pubspec.yaml
 ```
 
-FFmpeg 运行时说明位于：
+bundled static libav SDK 说明位于：
 
 ```text
 build/dependencies/ffmpeg/macos-arm64/README.md
@@ -209,148 +210,61 @@ build/dependencies/ffmpeg/windows-x64/README.md
 docs/reference/ffmpeg-license-distribution.md
 ```
 
-## FFmpeg / FFprobe 运行时
+## FEngine / bundled static libav 运行时
 
-运行时定位逻辑由 `LocalFfmpegLocator` 实现：
+Desktop Client 不定位、不校验也不启动 `ffmpeg` / `ffprobe` executable。所有标准媒体能力经本机 FEngine Gateway 进入 FLL：
 
-```text
-lib/infrastructure/services/input_runtime/local_ffmpeg_locator.dart
-```
+- 元数据、能力、候选、预设和估算来自 `AnalyzeMedia` 返回的 FLL Snapshot。
+- 预览帧和视频缩略图通过 `EngineMediaGateway` 提交到 FEngine Control queue，由 FLL 使用 libavcodec / libswscale 生成 BMP artifact。
+- 执行 selection 由 Client 按 Snapshot 展示并原样提交；Client 不生成 native 命令参数。
+- 当前默认执行 Backend 仅支持不含转换节点的 packet stream-copy/remux。需要 Decoder、Encoder 或 Processor 的链返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
 
-解析顺序：
-
-1. 用户设置的自定义 `ffmpeg` / `ffprobe` 路径。
-2. 应用包或可执行文件旁边的内置运行时。
-3. 平台常见系统路径。
-4. 系统 `PATH` 中的 `ffmpeg` / `ffprobe`。
-
-定位到 FFmpeg 后，应用会执行：
-
-```bash
-ffmpeg -hide_banner -encoders
-```
-
-然后由 `FfmpegEncoderCapabilities` 解析可用编码器。自动编码器后端优先级：
-
-| 平台 | 自动优先级 |
-| --- | --- |
-| macOS | 默认 VideoToolbox，然后回退到 `libx264` / `libx265` / `libvpx-vp9` / `libsvtav1` / `prores_ks` / 原生 `mpeg4` / `mjpeg`；Apple HDR / HVC1 / 10-bit MOV 等高风险源会优先走可用的软件编码 |
-| Windows | NVENC、Quick Sync、AMF，然后按编码回退到 `libx264` / `libx265` / `libvpx-vp9` / `libsvtav1` / `prores_ks` / 原生 `mpeg4` / `mjpeg` |
-| Linux | 当前没有额外硬件优先级，默认软件编码 |
-
-支持的编码器名称：
-
-| 类型 | 编码器 |
-| --- | --- |
-| 软件编码 | `libx264`、`libx265`、`libvpx-vp9`、`libsvtav1`、`prores_ks`、`mpeg4`、`mjpeg` |
-| macOS 硬件编码 | `h264_videotoolbox`、`hevc_videotoolbox` |
-| NVIDIA | `h264_nvenc`、`hevc_nvenc`、`av1_nvenc` |
-| Intel Quick Sync | `h264_qsv`、`hevc_qsv`、`vp9_qsv`、`av1_qsv` |
-| AMD AMF | `h264_amf`、`hevc_amf`、`av1_amf` |
-| 图片编码 | `libwebp` |
-| 音频编码 | `libmp3lame`、`aac`、`aac_at`、`libopus`、`pcm_s16le`、`flac`、`pcm_s16be`、`wmav2` |
-
-图片和音频输出命令按目标格式推导编码器；其中 WebP 依赖 `libwebp`，MP3 依赖 `libmp3lame`，Opus / Ogg Opus 依赖 `libopus`。如果当前 FFmpeg 缺少目标格式对应的编码器，命令规划会在启动 FFmpeg 前失败并给出可读提示。
-
-视频容器和编码器按固定兼容矩阵筛选：MP4 支持 H.264 / HEVC / AV1，MOV 支持 H.264 / HEVC / ProRes，MKV 支持 H.264 / HEVC / VP9 / AV1 / ProRes，WebM 支持 VP9 / AV1，AVI 仅支持 MPEG-4 Part 2 / MJPEG。AVI 只作为传统播放器兼容路径，不承载 HEVC、VP9、AV1 或 ProRes。
-
-视频色彩处理规则：
-
-- SDR 源优先保留 FFprobe 读取到的 range、matrix、transfer 和 primaries；缺失时按分辨率推断 BT.709 或 SD 的 SMPTE 170M，不再统一硬贴 BT.709。
-- HDR10 / HLG 源通过 `zscale + tonemap` 转为 SDR BT.709 输出，依赖 FFmpeg 启用 `libzimg` 并暴露 `zscale`、`tonemap` 滤镜。
-- Dolby Vision Profile 5 或缺少 HDR10 兼容层的 Dolby Vision 首版直接拒绝命令构造，避免输出变黑、偏紫或严重偏色。
-- 硬件编码器质量参数独立映射：CRF、NVENC CQ、QSV global quality、AMF QP 和 VideoToolbox `q:v` 不再共用同一个数值。
-
-## 平台打包事实
-
-### macOS
-
-macOS FFmpeg 架构切片和正式运行时目录：
+FEngine 正式构建使用仓库脚本生成的 bundled static libav SDK：
 
 ```text
 build/dependencies/ffmpeg/macos-arm64/
 build/dependencies/ffmpeg/macos-x64/
 build/dependencies/ffmpeg/macos-universal/
+build/dependencies/ffmpeg/windows-x64/
 ```
 
-其中 `macos-arm64` 和 `macos-x64` 是构建 Universal 2 时使用的原生架构
-切片，不是面向用户发布的两个 macOS 包。正式发布只读取
-`macos-universal`，并最终生成一个同时支持 Intel 与 Apple Silicon 的 DMG。
-正式发布使用的 `macos-universal` 应包含：
-
-```text
-ffmpeg
-ffprobe
-ffmpeg-build-info.txt
-README.md
-```
-
-运行时构建脚本：
+核心构建入口：
 
 ```text
 scripts/build/build_ffmpeg_macos_arch.sh
 scripts/build/build_ffmpeg_macos_universal.sh
+scripts/build/build_fengine_macos_arch.sh
+scripts/build/build_fengine_macos_universal.sh
+scripts/build/build_fengine_windows_x64.sh
+scripts/build/with_bundled_ffmpeg.sh
 ```
 
-DMG 打包脚本：
+这些 SDK 是构建输入，不是随 Desktop package 分发的 CLI 目录。构建不允许 system/Homebrew fallback。
 
-```text
-scripts/release/build_dmg_macos.sh
-```
+## 平台打包事实
 
-Xcode 中存在 `Bundle FFmpeg Runtime` build phase，会把可执行文件复制到：
+### macOS
 
-```text
-FrameLean.app/Contents/Resources/ffmpeg/
-```
+正式包只携带 Universal 2 `framelean-engine`、Flutter 应用资源、法律资料和确有需要的专有音频适配器。构建对最终 FEngine 执行 `otool -L`，拒绝动态 `libav*.dylib` 依赖；应用包中不包含 `ffmpeg` / `ffprobe` executable。
 
-Xcode 中也存在 `Bundle Legal Materials` build phase，会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
-
-```text
-FrameLean.app/Contents/Resources/legal/
-```
-
-当前 macOS FFmpeg build phase 只读取 `macos-universal`。`scripts/release/build_dmg_macos.sh` 会在打包前验证 Universal FFmpeg，显式构建 Release app，扫描包内全部 Mach-O 文件均包含 x86_64 / arm64，再进入签名、公证和 DMG 生成步骤。
-
-Apple Silicon 本机只能通过项目脚本原生构建 arm64 切片，不能把该文件复制到
-`macos-x64` 冒充 Intel 运行时。缺少原生 x86_64 切片时应运行 GitHub Actions
-的 `Build macOS Universal` workflow；该 workflow 在 ARM / Intel runner
-分别构建临时切片，合并后只上传一个 Universal 2 DMG 成果物。
-
-macOS Flutter 插件原生依赖通过 CocoaPods 集成。仓库保留 `macos/Podfile`、`macos/Podfile.lock` 和 Runner workspace 的 Pods 引用，用于 `window_manager`、`tray_manager` 等桌面插件注册；`pubspec.yaml` 在 `flutter.config` 中固定 `enable-swift-package-manager: false`，CI 也显式执行 `flutter config --no-enable-swift-package-manager`。`scripts/release/build_dmg_macos.sh` 在构建前后验证 CocoaPods 工程引用、Universal FFmpeg、UTF-8 locale、release app 内运行时和法律资料布局。
+macOS Flutter 插件原生依赖继续通过 CocoaPods 集成。仓库保留 `macos/Podfile`、`macos/Podfile.lock` 和 Runner workspace 的 Pods 引用；`pubspec.yaml` 固定关闭 Flutter Swift Package Manager。
 
 ### Windows
 
-Windows FFmpeg 运行时目录：
+正式包只携带 `framelean-engine.exe`、Flutter runner、所需 Microsoft runtime、法律资料和确有需要的专有音频适配器。构建对最终 FEngine 执行 `objdump -p`，拒绝动态 libav 与 GNU runtime DLL；Release 目录中不包含 `ffmpeg.exe` / `ffprobe.exe`。
 
-```text
-build/dependencies/ffmpeg/windows-x64/
-```
+### Linux / Web
 
-该目录应包含：
-
-```text
-ffmpeg.exe
-ffprobe.exe
-README.md
-```
-
-`windows/CMakeLists.txt` 会把这两个文件安装到：
-
-```text
-<FrameLean.exe 所在目录>/ffmpeg/
-```
-
-Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 `FATAL_ERROR`，避免生成缺少运行时的 Release 包。`scripts/release/build_windows.ps1` 会在构建后检查 Release 目录内 FFmpeg 是否包含 `libx264`、`libmp3lame`、`libwebp`、`libopus`，以及 HDR 转 SDR 需要的 `zscale`、`tonemap` 滤镜。
+不是当前正式发布目标，仓库不保留对应 Flutter 平台工程。
 
 ## 数据与文件存储
 
 | 数据 | 位置 / 机制 | 说明 |
 | --- | --- | --- |
 | 任务与设置 | 应用支持目录下的 `framelean.sqlite` | Drift + SQLite 管理 |
-| FFmpeg 执行日志 | 系统临时目录 `framelean/ffmpeg-logs` | 每次执行创建独立日志文件 |
-| 预览帧 | 系统临时目录 `framelean/previews/<taskId>` | 参数指纹变化后重新生成 |
-| 两遍压缩 pass log | 输出目录附近的隐藏前缀文件 | 任务完成或取消后 best-effort 清理 |
+| FEngine 日志 | 系统临时目录 `framelean/engine-logs` | Client 日志查看入口使用的执行日志目录 |
+| 预览帧 | 系统临时目录 `framelean/previews/<taskId>` | FLL 生成的 BMP artifact |
+| 视频缩略图 | 系统临时目录 `framelean/thumbnails/<taskId>.bmp` | FLL 非黑帧缩略图 artifact |
 | 输出文件 | 用户配置目录或源文件目录 | 路径冲突时自动追加 `（1）`、`（2）` 等后缀 |
 | 更新安装包缓存 | 应用支持目录 `updates/<version>/<platform>/` | 保留 package 路线的下载缓存，支持断点续传、SHA-256 校验和 Windows Ed25519 验签；外部下载地址模式不写入该目录 |
 
@@ -369,7 +283,7 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 
 工作台当前允许 `video`、`image`、`audio` 进入任务队列。视频保留完整配置、预览和缩略图主链路；图片和音频当前支持导入、分析、分类型配置面板、处理执行、任务项完成入口和通知中心结果回看。
 
-专有音频输入只作为导入格式，不进入 `MediaOutputFormat` 输出列表。`.ncm` 由 `NativeNcmAudioDecoder` 使用 Dart + `pointycastle` 在本地还原为临时 MP3 / FLAC；`.mgg`、`.mflac` 等 QMC 变体通过 `framelean-qmc-adapter` 或直接放置的 `qmc-decrypt` 外部运行时处理，再交给 FFprobe / FFmpeg 走标准音频链路。
+专有音频输入只作为导入格式，不进入 `MediaOutputFormat` 输出列表。`.ncm` 由 `NativeNcmAudioDecoder` 使用 Dart + `pointycastle` 在本地还原为临时 MP3 / FLAC；`.mgg`、`.mflac` 等 QMC 变体通过专有音频适配器预处理，再把准备后的标准媒体路径提交给 FEngine。
 
 ## 当前核心功能对应实现
 
@@ -385,14 +299,11 @@ Windows 构建时如果 `ffmpeg.exe` 或 `ffprobe.exe` 缺失，CMake 会直接 
 | 持久化兼容映射 | `lib/infrastructure/database/persistence_compatibility.dart`、`lib/infrastructure/repositories/mappers/compression_mode_mapper.dart`、`lib/infrastructure/repositories/mappers/media_task_config_json_mapper.dart` |
 | 媒体类型识别 | `FileExtensionMediaKindResolver` |
 | 专有音频输入适配 | `DefaultMediaInputPreparer`、`ProprietaryAudioDecoderDispatcher`、`NativeNcmAudioDecoder`、`BundledProprietaryAudioAdapterRegistry` |
-| FFprobe 分析 | `FfprobeMediaAnalyzer` |
-| 压缩建议 | `DefaultCompressionAdvisor` |
-| FFmpeg 命令构造 | `DefaultFfmpegCommandBuilder` 和 `services/ffmpeg_planning/` 下的命令规划 helper |
-| 队列执行 | `DefaultFfmpegTaskQueueRunner` |
-| 进程控制 | `FfmpegProcessController`；macOS / Linux 使用 signal，Windows 使用 runner method channel 调用原生线程挂起 / 恢复 |
-| 进度观测 | `LocalFfmpegProcessObserver` |
-| 预览帧生成 | `LocalPreviewFrameGenerator` |
-| 缩略图生成 | `LocalVideoThumbnailGenerator` |
+| FEngine Gateway | `EngineGateway`、`EngineMediaGateway`、`LocalFEngineGateway` |
+| 媒体分析 | `AnalyzeMediaTaskUseCase` 提交 FEngine，`EngineAnalysisProjectionRepository` 保存 FLL Snapshot 投影 |
+| 队列与执行控制 | `MediaTaskExecutionCoordinator`、Engine Snapshot 对账和 FEngine lifecycle commands |
+| 预览帧 | `GeneratePreviewFramesUseCase` 经 `EngineMediaGateway` 获取 FLL artifact |
+| 视频缩略图 | `WorkbenchTaskThumbnailStore` 经 `EngineMediaGateway` 获取并缓存 FLL artifact |
 
 ## 测试与验证边界
 
@@ -405,13 +316,10 @@ flutter test
 
 当前测试重点：
 
-- 压缩建议和体积预估。
-- FFmpeg 命令构造。
-- 编码器能力解析。
-- 队列启动、暂停、恢复、取消和串行执行。
-- FFmpeg 进度观测。
-- FFprobe 分析结果解析。
-- 预览帧和缩略图生成。
+- FLL Snapshot document 解析和配置 selection 映射。
+- FEngine Gateway 命令 payload、事件和错误映射。
+- 队列启动、暂停、恢复、取消、双 revision 重排和 LIFO 抢占恢复。
+- 预览帧与缩略图 Control queue 请求、artifact 映射和 Client 缓存去重。
 - Application use cases。
 - 持久化兼容映射。
 - 工作台预览状态和弹窗风格。
@@ -428,6 +336,6 @@ docs/develop/test-plan.md
 - 当前产品实现仍以本地媒体处理为主，暂不包含云端转码、账号体系或多设备同步。
 - 视频任务是最完整的能力面；图片和音频已支持基础本地处理，但暂不包含图片高级编辑、音频波形、试听、多轨或字幕能力。
 - Linux 和 Web 目录不是当前发布目标；涉及平台行为时不要默认它们已经可用。
-- 应用设置通过 `/settings` 全屏路由打开，按应用、关于、视频、图片、音频、输出和编码器分区独立保存或取消。
-- FFmpeg 二进制通常不应提交到 Git；本地和发布构建需要按 `build/dependencies/ffmpeg/*/README.md` 准备运行时。
-- 内置 FFmpeg + x264 的发布路线需要遵守 GPL 相关分发要求，见 `docs/reference/ffmpeg-license-distribution.md`。
+- 应用设置通过 `/settings` 全屏路由打开，按应用、关于、视频、图片、音频和输出分区独立保存或取消。
+- `build/dependencies/ffmpeg/*` 保存被忽略的 static libav SDK 构建输入；Desktop package 不复制其中的 CLI executable。
+- bundled static libav 的来源、构建信息与法律资料仍需随发布材料保持可追溯，见 `docs/reference/ffmpeg-license-distribution.md`。

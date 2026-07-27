@@ -15,7 +15,7 @@ class BundledProprietaryAudioAdapterRegistry
   final List<String> Function(ProprietaryAudioFormat format)? candidateBuilder;
 
   const BundledProprietaryAudioAdapterRegistry({
-    this.validateTimeout = ffprobeValidationTimeout,
+    this.validateTimeout = audioAdapterValidationTimeout,
     this.processRunner,
     this.candidateBuilder,
   });

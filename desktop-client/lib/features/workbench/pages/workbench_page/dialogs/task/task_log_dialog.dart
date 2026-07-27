@@ -13,7 +13,7 @@ import 'package:framelean/features/workbench/widgets/media_task_list/media_task_
 /// 任务日志弹窗
 ///
 /// 通过 Riverpod 实时更新任务状态和进度，
-/// 通过 [logStore] 读取 FFmpeg 文件日志。
+/// 通过 [logStore] 读取 FEngine 文件日志。
 /// 日志区域自动滚动到底部跟随最新输出。
 class TaskLogDialog extends ConsumerStatefulWidget {
   final MediaTask task;

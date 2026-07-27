@@ -87,18 +87,15 @@ if(PLUGIN_BUNDLED_LIBRARIES)
     COMPONENT Runtime)
 endif()
 
-# Bundle the Windows FFmpeg runtime when the local binaries are present.
-# The Dart runtime locator checks "<exe dir>/ffmpeg/ffmpeg.exe" and
-# "<exe dir>/ffmpeg/ffprobe.exe" before falling back to PATH.
-set(BUNDLED_FFMPEG_WINDOWS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build/dependencies/ffmpeg/windows-x64")
-if(EXISTS "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffmpeg.exe" AND EXISTS "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffprobe.exe")
-  install(FILES
-    "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffmpeg.exe"
-    "${BUNDLED_FFMPEG_WINDOWS_DIR}/ffprobe.exe"
-    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}/ffmpeg"
+# Bundle FEngine next to the desktop executable. FEngine contains the static
+# libav SDK and is the only supported media-processing process boundary.
+set(BUNDLED_FENGINE_WINDOWS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build/dependencies/fengine/windows-x64")
+if(EXISTS "${BUNDLED_FENGINE_WINDOWS_DIR}/framelean-engine.exe")
+  install(FILES "${BUNDLED_FENGINE_WINDOWS_DIR}/framelean-engine.exe"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)
 else()
-  message(FATAL_ERROR "Bundled Windows FFmpeg binaries not found in ${BUNDLED_FFMPEG_WINDOWS_DIR}. Place ffmpeg.exe and ffprobe.exe there before building.")
+  message(FATAL_ERROR "Bundled Windows FEngine executable not found in ${BUNDLED_FENGINE_WINDOWS_DIR}. Build it before packaging the desktop client.")
 endif()
 
 # Bundle optional QMC audio adapter runtimes when a local build is present.

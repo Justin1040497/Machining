@@ -20,9 +20,8 @@ final updateRestartPreparationProvider = Provider<UpdateRestartPreparation>((
   ref,
 ) {
   return () async {
-    final runner = ref.read(ffmpegTaskQueueRunnerProvider);
-    await runner.pauseAllRunningTasks();
-    await runner.cancelAllExecutions();
+    await ref.read(mediaTaskExecutionCoordinatorProvider).pauseActive();
+    await ref.read(mediaTaskExecutionCoordinatorProvider).cancelAll();
   };
 });
 

@@ -350,8 +350,6 @@ Future<WorkbenchTaskConfigurationDraft?> showTaskFolderConfigurationEditor({
                   selectedTargetSizeRatio: state.targetSizeRatio,
                   selectedVideoCodec: state.videoCodec,
                   preserveHdr: preserveHdr,
-                  estimatedSizeForPreset: (preset) => state
-                      .estimatedOutputSizeForPreset(task: task, preset: preset),
                   onCompressionModeChanged: (value) {
                     if (preserveHdr && value == CompressionMode.targetSize) {
                       return;
@@ -677,7 +675,6 @@ class _CompressionOptionsWrapper extends StatefulWidget {
     required this.selectedTargetSizeRatio,
     required this.selectedVideoCodec,
     required this.preserveHdr,
-    required this.estimatedSizeForPreset,
     required this.onCompressionModeChanged,
     required this.onSmartPresetChanged,
     required this.onQualityChanged,
@@ -693,7 +690,6 @@ class _CompressionOptionsWrapper extends StatefulWidget {
   final double selectedTargetSizeRatio;
   final VideoCodec selectedVideoCodec;
   final bool preserveHdr;
-  final String Function(WorkbenchCompressionPreset) estimatedSizeForPreset;
   final ValueChanged<CompressionMode> onCompressionModeChanged;
   final ValueChanged<SmartCompressionPreset> onSmartPresetChanged;
   final ValueChanged<int> onQualityChanged;
@@ -821,7 +817,6 @@ class _CompressionOptionsWrapperState
       selectedQualityIndex: widget.selectedQualityIndex,
       activePresetTitle: _activePresetTitle,
       selectedTargetSizeRatio: widget.selectedTargetSizeRatio,
-      estimatedSizeForPreset: widget.estimatedSizeForPreset,
       targetSizeModeEnabled:
           !widget.preserveHdr &&
           VideoOutputCompatibility.supportsTargetSize(

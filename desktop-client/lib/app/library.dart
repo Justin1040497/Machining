@@ -8,7 +8,6 @@
 /// - app_router.dart（路由配置，仅 app.dart 内部用）
 /// - notifications/{app_notification_host,app_notification_notice}.dart
 ///   （通知宿主实现，仅 app 内部用）
-/// - providers/ffmpeg_planning_provider.dart（仅 execution_provider 内部组合）
 /// - theme/{framelean_colors,framelean_responsive,framelean_theme,theme_prefs_reconciler}.dart
 ///   （主题辅助，仅 app 内部用）
 /// - presentation/widgets/reorderable/src/framelean_reorderable_list_core.dart

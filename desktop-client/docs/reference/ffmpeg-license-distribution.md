@@ -1,8 +1,8 @@
-# FFmpeg 许可与分发
+# bundled static libav 许可与分发
 
 ## 当前选择
 
-FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。项目内置 FFmpeg 7.1.1，并启用 x264 / libx264、LAME / libmp3lame、libwebp、Opus / libopus、zimg / libzimg、libvpx 和 SVT-AV1。因此包含该运行时的发布包需要按 GPLv3+ 路线处理。
+FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。FEngine 在进程内静态链接由 FFmpeg 7.1.1 构建得到的 libav SDK，并启用 x264 / libx264、LAME / libmp3lame、libwebp、Opus / libopus、zimg / libzimg、libvpx 和 SVT-AV1。因此包含该静态链接引擎的发布包需要按 GPLv3+ 路线处理。
 
 当前构建脚本启用：
 
@@ -41,20 +41,14 @@ legal/third-party/
 
 ## 仓库策略
 
-不提交 FFmpeg / FFprobe 二进制：
+不提交由该 SDK 生成的可执行产物，也不把它们作为 Desktop runtime：
 
 ```text
-build/dependencies/ffmpeg/macos-arm64/ffmpeg
-build/dependencies/ffmpeg/macos-arm64/ffprobe
-build/dependencies/ffmpeg/macos-x64/ffmpeg
-build/dependencies/ffmpeg/macos-x64/ffprobe
-build/dependencies/ffmpeg/macos-universal/ffmpeg
-build/dependencies/ffmpeg/macos-universal/ffprobe
-build/dependencies/ffmpeg/windows-x64/ffmpeg.exe
-build/dependencies/ffmpeg/windows-x64/ffprobe.exe
+build/dependencies/ffmpeg/<platform>/bin/ffmpeg
+build/dependencies/ffmpeg/<platform>/bin/ffprobe
 ```
 
-提交以下说明和元数据：
+提交以下构建脚本、说明和元数据：
 
 ```text
 build/dependencies/ffmpeg/macos-arm64/README.md
@@ -104,7 +98,9 @@ pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-make \
 bash scripts/build/build_ffmpeg_windows_x64.sh
 ```
 
-构建完成后必须通过：
+构建完成后，FEngine 需要在对应 SDK 上完成静态链接；发布脚本还会拒绝最终 FEngine 的动态 libav（及 Windows GNU runtime DLL）依赖。能力验证的具体命令、库列表和输出以构建脚本为准，不能把 `ffmpeg -encoders` 或 `ffprobe` 作为应用运行时检查。
+
+历史构建日志可能包含如下 FFmpeg configure 能力断言：
 
 ```text
 Architectures: x86_64 arm64
@@ -125,15 +121,15 @@ OK: tonemap filter is available
 
 ## 发布要求
 
-公开分发包含 FFmpeg + x264 的 app 时，发布包会包含：
+公开分发包含静态链接 libav + x264 的 FEngine 时，发布包会包含：
 
 - FrameLean 源码
 - FFmpeg、x264、LAME、libwebp、Opus、zimg、libvpx 和 SVT-AV1 的源码获取方式
 - FFmpeg 构建脚本和配置参数
 - GPLv3 许可证文本
 - FFmpeg / x264 / LAME / libwebp / Opus / zimg / libvpx / SVT-AV1 的版权说明
-- 用户能够替换或重新构建运行时的说明
-- 发布包内许可证目录，包含 `LICENSE`、`legal/NOTICE.md`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 FFmpeg 构建元数据
+- 用户能够重新构建 bundled static libav SDK 与 FEngine 的说明
+- 发布包内许可证目录，包含 `LICENSE`、`legal/NOTICE.md`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 SDK 构建元数据
 
 macOS Release app 会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 
@@ -141,7 +137,7 @@ macOS Release app 会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 FrameLean.app/Contents/Resources/legal/
 ```
 
-DMG 分发包包含 Universal 2 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。FFmpeg / FFprobe 的两个架构切片必须使用相同依赖版本和许可证配置。
+DMG 分发包包含 Universal 2 app bundle，因此许可证、第三方声明和源码获取说明会随应用一起分发。两套 static libav 架构切片必须使用相同依赖版本和许可证配置。app bundle 只携带静态链接后的 FEngine，不携带 `ffmpeg` / `ffprobe` executable。
 
 Windows Release 产物会把 `legal/`、`LICENSE` 和 `legal/NOTICE.md` 复制到：
 
@@ -151,7 +147,7 @@ FrameLean.exe directory/legal/
 
 ## 当前状态
 
-当前项目已经完成本地可分发运行时构建、Release app 内置验证、Windows x64 运行时打包基础支持、GPU 编码能力检测、MP3 / WebP / Opus / VP9 / AV1 / ProRes / AVI 旧格式输出编码器校验、HDR 转 SDR 所需 `zscale` / `tonemap` 滤镜校验、推荐方案 / 自定义目标体积压缩工作流、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。
+当前项目已经完成 static libav SDK 构建、静态链接 FEngine 的发布验证、Windows x64 打包基础支持、GPLv3+ 许可证文件、第三方声明、源码分发说明、DMG 打包入口和发布包内法律资料复制。实际可执行的媒体链以 FLL Runtime 当前实现为准；尚未接入的完整转码链必须 fail closed，不能以旧 CLI 能力表宣称为已支持。
 
 ## 发布检查
 

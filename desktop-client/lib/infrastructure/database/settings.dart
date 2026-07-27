@@ -9,10 +9,6 @@ class SettingsRows extends Table {
   BoolColumn get saveOutputToSourceDirectory => boolean()
       .named('save_output_to_source_directory')
       .withDefault(const Constant(true))();
-  TextColumn get customFfmpegPath =>
-      text().named('custom_ffmpeg_path').nullable()();
-  TextColumn get customFfprobePath =>
-      text().named('custom_ffprobe_path').nullable()();
   BoolColumn get showRawLog =>
       boolean().named('show_raw_log').withDefault(const Constant(false))();
   BoolColumn get showAdvancedOptions => boolean()

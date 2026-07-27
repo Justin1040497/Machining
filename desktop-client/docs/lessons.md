@@ -2,6 +2,8 @@
 
 这个文件只记录可复用经验，不写每日日志。条目应能帮助后续避免同类错误。
 
+> **当前架构边界（2026-07）**：标准媒体的分析、预览帧、缩略图和执行均经 FEngine 调用 FLL 的进程内 static libav API。Client 不定位、不启动或观察 `ffmpeg` / `ffprobe` executable，也不构造 native 命令。本文中保留的 CLI、命令规划、进程控制和 `FfmpegProcessController` 条目仅用于解释已移除实现的历史问题，不能作为新代码或当前架构依据。
+
 ## 资源恢复补位应事件驱动且不可重入
 
 经验：

@@ -10,7 +10,6 @@ import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/repositories/workbench_order_revision_store.dart';
 import 'package:framelean/application/services/analysis/media_analysis_queue.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
 import 'package:framelean/application/services/input_runtime/source_file_checker.dart';
 import 'package:framelean/application/services/input_runtime/source_file_fingerprint_reader.dart';
 import 'package:framelean/application/use_cases/app_settings/apply_output_settings_to_existing_tasks_use_case.dart';
@@ -347,11 +346,7 @@ void main() {
         final projectionRepository = FakeEngineAnalysisProjectionRepository(
           engineAnalysisProjection(taskId: target.id),
         );
-        final gateway = FakeEngineGateway(
-          onResolve: (request) async => engineOperation(
-            engineResolution(candidateId: request.selection.candidateId),
-          ),
-        );
+        final gateway = FakeEngineGateway();
         final container = testContainer(
           repository: repository,
           sourceFileChecker: FakeSourceFileChecker(
@@ -371,7 +366,7 @@ void main() {
         await container.read(mediaTaskListProvider.future);
         final resolved = await container
             .read(mediaTaskListProvider.notifier)
-            .resolveEngineTaskConfiguration(
+            .saveEngineTaskConfiguration(
               taskId: target.id,
               analysisId: 'analysis-1',
               analysisRevision: 4,
@@ -387,7 +382,6 @@ void main() {
           resolved.config.engineConfiguration?.candidateId,
           'candidate-new',
         );
-        expect(gateway.resolveRequests, isEmpty);
       },
     );
 
@@ -404,15 +398,7 @@ void main() {
           ),
         );
         final repository = FakeMediaTaskRepository([sibling, target]);
-        final gateway = FakeEngineGateway(
-          onResolve: (request) async => engineOperation(
-            engineResolution(
-              candidateId: request.selection.candidateId,
-              status: 'unavailable',
-              includeResolution: false,
-            ),
-          ),
-        );
+        final gateway = FakeEngineGateway();
         final container = testContainer(
           repository: repository,
           sourceFileChecker: FakeSourceFileChecker(
@@ -445,7 +431,6 @@ void main() {
             .requireValue;
         expect(tasksAfterSave.map((task) => task.id), ['sibling', 'target']);
         expect(saved.config.engineConfiguration?.candidateId, 'candidate-new');
-        expect(gateway.resolveRequests, isEmpty);
         expect(
           repository
               .taskById(target.id)
@@ -510,7 +495,7 @@ void main() {
         await expectLater(
           container
               .read(mediaTaskListProvider.notifier)
-              .resolveEngineTaskConfiguration(
+              .saveEngineTaskConfiguration(
                 taskId: target.id,
                 analysisId: 'analysis-1',
                 analysisRevision: 4,
@@ -582,7 +567,7 @@ void main() {
         await expectLater(
           container
               .read(mediaTaskListProvider.notifier)
-              .resolveEngineTaskConfiguration(
+              .saveEngineTaskConfiguration(
                 taskId: target.id,
                 analysisId: 'analysis-1',
                 analysisRevision: 4,
@@ -706,9 +691,6 @@ ProviderContainer testContainer({
       ),
       sourceFileCheckerProvider.overrideWithValue(sourceFileChecker),
       sourceFileFingerprintReaderProvider.overrideWithValue(fingerprintReader),
-      ffmpegTaskQueueRunnerProvider.overrideWithValue(
-        FakeFfmpegTaskQueueRunner(),
-      ),
       mediaAnalysisQueueProvider.overrideWith((ref) {
         ref.onDispose(() => queue.stop());
         return queue;
@@ -760,48 +742,6 @@ EngineAnalysisProjection engineAnalysisProjection({
   );
 }
 
-EngineConfigurationResolutionDocument engineResolution({
-  String analysisId = 'analysis-1',
-  int analysisRevision = 4,
-  String status = 'available',
-  required String candidateId,
-  bool includeResolution = true,
-}) {
-  return EngineConfigurationResolutionDocument.fromJson(<String, Object?>{
-    'schema_version': 'framelean.recalculate-configuration.v1',
-    'analysis_id': analysisId,
-    'analysis_revision': analysisRevision,
-    'configuration_status': status,
-    'resolved_configuration': includeResolution
-        ? <String, Object?>{
-            'selection_source': 'manual',
-            'execution_chain_id': candidateId,
-            'container': 'mp4',
-            'demuxer_backend': 'mov',
-            'video_decoders': <Object?>[],
-            'audio_decoders': <Object?>[],
-            'processors': <Object?>[],
-            'muxer_backend': 'mp4',
-            'output_hdr_mode': 'preserve',
-            'preserves_hdr': true,
-            'requires_tone_mapping': false,
-          }
-        : null,
-  });
-}
-
-EngineOperationResult<EngineConfigurationResolutionDocument> engineOperation(
-  EngineConfigurationResolutionDocument document,
-) {
-  return EngineOperationResult(
-    sessionId: 'session-1',
-    requestId: 'request-1',
-    workId: 'work-1',
-    sequence: 11,
-    value: document,
-  );
-}
-
 MediaTask videoTask({
   String id = 'task-1',
   String inputPath = '/videos/missing.mp4',
@@ -850,18 +790,11 @@ MediaTaskConfig systemOutputVideoConfig({
 }
 
 class FakeEngineGateway implements EngineLifecycleGateway {
-  FakeEngineGateway({this.onResolve});
-
-  final Future<EngineOperationResult<EngineConfigurationResolutionDocument>>
-  Function(EngineConfigurationRequest request)?
-  onResolve;
-  final List<EngineConfigurationRequest> resolveRequests = [];
-
   @override
   Stream<EngineWorkEvent> get events => const Stream.empty();
 
   @override
-  Future<EngineOperationResult<EngineAnalysisResponseDocument>> analyze(
+  Future<EngineOperationResult<EngineAnalysisCompletionDocument>> analyze(
     EngineAnalysisRequest request,
   ) {
     throw UnimplementedError();
@@ -892,17 +825,6 @@ class FakeEngineGateway implements EngineLifecycleGateway {
 
   @override
   Future<void> ping() async {}
-
-  @override
-  Future<EngineOperationResult<EngineConfigurationResolutionDocument>>
-  resolveConfiguration(EngineConfigurationRequest request) {
-    resolveRequests.add(request);
-    final handler = onResolve;
-    if (handler == null) {
-      throw UnimplementedError();
-    }
-    return handler(request);
-  }
 
   @override
   Future<EngineOperationResult<EngineStateSnapshot>> getEngineSnapshot() async {
@@ -1229,97 +1151,5 @@ class FakeAppSettingsRepository implements AppSettingsRepository {
   @override
   Future<void> saveSettings(AppSettings settings) async {
     this.settings = settings;
-  }
-}
-
-class FakeFfmpegTaskQueueRunner implements FfmpegTaskQueueRunner {
-  @override
-  void requestQueueRefill() {}
-
-  @override
-  String? foregroundTaskId;
-
-  @override
-  Set<String> get runningTaskIds =>
-      foregroundTaskId == null ? const {} : {foregroundTaskId!};
-
-  @override
-  int get activeExecutionCount => runningTaskIds.length;
-
-  @override
-  int get effectiveMaxConcurrentExecutions => 1;
-
-  @override
-  ExecutionScope get executionScope => const ExecutionScope.none();
-
-  @override
-  FfmpegQueueStatus queueStatus = FfmpegQueueStatus.idle;
-
-  @override
-  Future<void> cancelAllExecutions() async {}
-
-  @override
-  Future<void> dispose() async {}
-
-  @override
-  Future<FfmpegQueueStartResult> cancelTask(String taskId) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.cancelled,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> pauseTask(String taskId) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.paused,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.paused,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> pauseFolderQueue(String folderId) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.paused,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStatus> refreshStatus() async {
-    return queueStatus;
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> startWorkbenchQueue({
-    bool allowExtremeCompression = false,
-  }) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notReady,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> startSingleTask(
-    String taskId, {
-    bool allowExtremeCompression = false,
-  }) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notReady,
-    );
-  }
-
-  @override
-  Future<FfmpegQueueStartResult> startFolderQueue(
-    String folderId, {
-    bool allowExtremeCompression = false,
-  }) async {
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notReady,
-    );
   }
 }

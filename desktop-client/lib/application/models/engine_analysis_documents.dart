@@ -739,49 +739,14 @@ final class EngineAnalysisResponseDocument {
       mediaAnalysisStatus != EngineMediaAnalysisStatus.failed;
 }
 
-final class EngineConfigurationResolutionDocument {
-  EngineConfigurationResolutionDocument._({
-    required this.schemaVersion,
-    required this.analysisId,
-    required this.analysisRevision,
-    required this.configurationStatus,
-    required this.resolvedConfiguration,
-    required this.raw,
+final class EngineAnalysisCompletionDocument {
+  const EngineAnalysisCompletionDocument({
+    required this.analysis,
+    required this.snapshot,
   });
 
-  factory EngineConfigurationResolutionDocument.fromJson(
-    Map<String, Object?> json,
-  ) {
-    const path = r'$';
-    final resolvedJson = _readNullableObject(
-      json,
-      'resolved_configuration',
-      path,
-    );
-    return EngineConfigurationResolutionDocument._(
-      schemaVersion: _requireNonEmptyString(json, 'schema_version', path),
-      analysisId: _requireNonEmptyString(json, 'analysis_id', path),
-      analysisRevision: _requireNonNegativeInt(json, 'analysis_revision', path),
-      configurationStatus: _parseConfigurationStatus(
-        _requireNonEmptyString(json, 'configuration_status', path),
-        '$path.configuration_status',
-      ),
-      resolvedConfiguration: resolvedJson == null
-          ? null
-          : EngineResolvedConfigurationDocument.fromJson(
-              resolvedJson,
-              path: '$path.resolved_configuration',
-            ),
-      raw: _freezeMap(json, path),
-    );
-  }
-
-  final String schemaVersion;
-  final String analysisId;
-  final int analysisRevision;
-  final EngineConfigurationStatus configurationStatus;
-  final EngineResolvedConfigurationDocument? resolvedConfiguration;
-  final Map<String, Object?> raw;
+  final EngineAnalysisResponseDocument analysis;
+  final EngineAnalysisSnapshotDocument? snapshot;
 }
 
 void _validatePreset(

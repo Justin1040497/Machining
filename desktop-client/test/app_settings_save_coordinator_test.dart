@@ -65,7 +65,6 @@ _CoordinatorHarness _buildCoordinator() {
     notificationManager: notificationManager,
     setThemeMode: (_) {},
     writeThemeCache: (_) async {},
-    invalidateRuntime: () {},
     applyOutputSettingsUseCase: ApplyOutputSettingsToExistingTasksUseCase(
       repository: _FakeMediaTaskRepository(),
     ),

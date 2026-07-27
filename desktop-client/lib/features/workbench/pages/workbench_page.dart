@@ -697,7 +697,31 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   ImageProvider? thumbnailForTask(MediaTask task) {
+    if (task.mediaKind == MediaKind.video) {
+      unawaited(_requestVideoThumbnail(task));
+    }
     return thumbnailStore.imageForTask(task);
+  }
+
+  Future<void> _requestVideoThumbnail(MediaTask task) async {
+    try {
+      final gateway = await ref.read(engineGatewayProvider.future);
+      if (!mounted || gateway is! EngineMediaGateway) {
+        return;
+      }
+      await thumbnailStore.ensureVideoThumbnail(
+        task: task,
+        gateway: gateway as EngineMediaGateway,
+        onReady: () {
+          if (mounted) {
+            setState(() {});
+          }
+        },
+      );
+    } on Object {
+      // The task list retains its standard media placeholder when the Engine
+      // is unavailable or a file has no decodable video frame.
+    }
   }
 
   Future<void> pauseRunningTasks() async {
@@ -1739,11 +1763,11 @@ class _WorkbenchPageState extends ConsumerState<WorkbenchPage> {
   }
 
   Future<bool> confirmAndRestartWhenCompressionRequiresConfirmation(
-    FfmpegQueueStartResult result,
+    EngineQueueStartResult result,
     Future<void> Function() restart,
   ) async {
     if (result.outcome !=
-        FfmpegQueueStartOutcome.compressionConfirmationRequired) {
+        EngineQueueStartOutcome.compressionConfirmationRequired) {
       return false;
     }
 

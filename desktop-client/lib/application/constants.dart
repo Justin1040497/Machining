@@ -26,8 +26,8 @@ const String processControlChannel = 'framelean/process_control';
 /// 系统临时目录下的根目录名
 const String tempDirPrefix = 'framelean';
 
-/// FFmpeg 日志子目录
-const String ffmpegLogsSubDir = 'framelean/ffmpeg-logs';
+/// FEngine 日志子目录
+const String engineLogsSubDir = 'framelean/engine-logs';
 
 /// 预览帧缓存子目录
 const String previewsSubDir = 'framelean/previews';
@@ -46,14 +46,11 @@ const Duration debounceInterval = Duration(milliseconds: 500);
 // 超时
 // ---------------------------------------------------------------------------
 
-/// FFmpeg/FFprobe 可用性验证超时
-const Duration ffprobeValidationTimeout = Duration(seconds: 3);
-
-/// FFprobe 媒体分析超时
-const Duration ffprobeAnalysisTimeout = Duration(seconds: 20);
-
 /// 专有音频解码器超时
 const Duration audioDecoderTimeout = Duration(minutes: 2);
+
+/// 专有音频适配器可用性探测超时
+const Duration audioAdapterValidationTimeout = Duration(seconds: 3);
 
 // ---------------------------------------------------------------------------
 // 通知来源标识

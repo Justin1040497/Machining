@@ -25,16 +25,9 @@ void main() {
   });
 
   group('failure text classification', () {
-    test('recognizes permission and security software failures', () {
+    test('recognizes permission failures', () {
       expect(isPermissionDeniedText('PERMISSION DENIED'), isTrue);
-      expect(
-        isSecuritySoftwareBlockText('Permission denied: ffmpeg.exe'),
-        isTrue,
-      );
-      expect(
-        isSecuritySoftwareBlockText('Permission denied: output directory'),
-        isFalse,
-      );
+      expect(isPermissionDeniedText('Access is denied'), isTrue);
     });
 
     test('maps hardware stderr without exposing it as user message', () {

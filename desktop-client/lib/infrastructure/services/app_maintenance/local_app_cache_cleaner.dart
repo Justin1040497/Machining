@@ -18,7 +18,7 @@ class LocalAppCacheCleaner implements AppCacheCleaner {
        _excludeFilePathsProvider = excludeFilePathsProvider;
 
   static const _defaultCacheDirectoryNames = <String>[
-    'ffmpeg-logs',
+    'engine-logs',
     'previews',
     'thumbnails',
     'audio-adapters',

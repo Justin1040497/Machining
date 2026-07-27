@@ -102,8 +102,9 @@ class AnalyzeMediaTaskUseCase {
           requestId: analysisRequestId,
         ),
       );
-      final response = analysis.value;
-      if (!response.hasSnapshot) {
+      final response = analysis.value.analysis;
+      final completedSnapshot = analysis.value.snapshot;
+      if (!response.hasSnapshot || completedSnapshot == null) {
         final failed = await _markAnalysisDocumentFailure(task, response);
         await _deleteProjectionIfRequestMatches(task.id, analysisRequestId);
         return failed;
@@ -124,8 +125,15 @@ class AnalyzeMediaTaskUseCase {
         ),
       );
 
-      final snapshot = await engineGateway.getAnalysisSnapshot(
-        response.analysisId,
+      final snapshot = EngineOperationResult<EngineAnalysisSnapshotDocument>(
+        sessionId: analysis.sessionId,
+        requestId: analysis.requestId,
+        workId: analysis.workId,
+        sequence: analysis.sequence,
+        value: completedSnapshot,
+        queueKind: analysis.queueKind,
+        queuePosition: analysis.queuePosition,
+        queueRevision: analysis.queueRevision,
       );
       _validateAnalysisPair(response, snapshot.value, snapshot.requestId);
       return _commitSnapshot(

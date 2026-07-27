@@ -29,7 +29,7 @@ void main() {
         columns.map((row) => row.read<String>('name')),
         containsAll(['analysis_request_id', 'execution_request_id']),
       );
-      expect(await _userVersion(database), 34);
+      expect(await _userVersion(database), 35);
     });
 
     test('upgrades schema 32 with persisted order revision state', () async {
@@ -48,7 +48,7 @@ void main() {
         await database.select(database.workbenchOrderStateRows).get(),
         isEmpty,
       );
-      expect(await _userVersion(database), 34);
+      expect(await _userVersion(database), 35);
     });
 
     test('upgrades schema 31 lifecycle projections and legacy statuses', () async {
@@ -82,7 +82,7 @@ void main() {
         await database.select(database.engineAnalysisProjectionRows).get(),
         isEmpty,
       );
-      expect(await _userVersion(database), 34);
+      expect(await _userVersion(database), 35);
     });
 
     test(
@@ -104,7 +104,7 @@ void main() {
           await database.select(database.engineAnalysisProjectionRows).get(),
           isEmpty,
         );
-        expect(await _userVersion(database), 34);
+        expect(await _userVersion(database), 35);
       },
     );
 
@@ -123,7 +123,7 @@ void main() {
       final task = (await database.select(database.taskRows).get()).single;
       expect(task.id, 'legacy-task');
       expect(task.failureJson, isNull);
-      expect(await _userVersion(database), 34);
+      expect(await _userVersion(database), 35);
     });
 
     test(
@@ -160,7 +160,7 @@ void main() {
         expect(settings.notificationPoliciesJson, '{}');
         expect(settings.shortcutBindingsJson, '{}');
         expect(settings.closeBehavior, 'background');
-        expect(await _userVersion(database), 34);
+        expect(await _userVersion(database), 35);
       },
     );
 
@@ -200,7 +200,7 @@ void main() {
       final settings = await database.select(database.settingsRows).getSingle();
       expect(settings.maxConcurrentExecutions, 2);
       expect(settings.folderImportScanDepth, 2);
-      expect(await _userVersion(database), 34);
+      expect(await _userVersion(database), 35);
     });
 
     test('applies custom value migrations from schema 21', () async {
@@ -223,7 +223,7 @@ void main() {
       expect(settings.defaultCompressionSmartPreset, 'chat');
       expect(settings.defaultOutputFileNameTemplate, '{source}-{action}');
       expect(settings.taskCompletionSound, 'clean_success');
-      expect(await _userVersion(database), 34);
+      expect(await _userVersion(database), 35);
     });
   });
 }

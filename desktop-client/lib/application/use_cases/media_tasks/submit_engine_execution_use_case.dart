@@ -4,6 +4,8 @@ import 'package:framelean/application/repositories/engine_analysis_projection_re
 import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/services/engine/engine_execution_output_planner.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
+import 'dart:convert';
+
 import 'package:framelean/application/use_cases/media_tasks/load_engine_analysis_snapshot_use_case.dart';
 import 'package:framelean/domain/library.dart';
 import 'package:uuid/uuid.dart';
@@ -65,8 +67,8 @@ final class _PreparedEngineExecution {
 /// Validates and submits an Engine-configured product task.
 ///
 /// FEngine owns the external work queue and FLL owns configuration validation,
-/// Runtime Task creation, scheduling, and output publication. This use case
-/// only projects submission failures back into the Client task model.
+/// Runtime Task creation, scheduling, and output publication. The Client
+/// forwards the persisted selection JSON without re-resolving its semantics.
 class SubmitEngineExecutionUseCase
     implements EngineExecutionSubmitter, EngineExecutionBatchSubmitter {
   SubmitEngineExecutionUseCase({
@@ -326,30 +328,19 @@ class SubmitEngineExecutionUseCase
         ),
       );
     }
-    late final EngineConfigurationSelection selection;
+    late final Map<String, Object?> selection;
     try {
-      selection = engineConfigurationSelectionFromEncoded(
-        reference.selectionJson,
-      );
-    } on EngineConfigurationSelectionException catch (error) {
+      final decoded = jsonDecode(reference.selectionJson);
+      if (decoded is! Map<String, Object?>) {
+        throw const FormatException('selection must be a JSON object');
+      }
+      selection = Map<String, Object?>.unmodifiable(decoded);
+    } on FormatException catch (error) {
       return (
         prepared: null,
         result: await _recordFailure(
           originalTask: task,
           failure: _configurationFailure(error.toString()),
-        ),
-      );
-    }
-    if (selection.candidateId != reference.candidateId ||
-        engineConfigurationSelectionMode(selection) !=
-            reference.selectionMode) {
-      return (
-        prepared: null,
-        result: await _recordFailure(
-          originalTask: task,
-          failure: _configurationFailure(
-            '保存的 selection 与 candidate_id 或 selection_mode 不一致',
-          ),
         ),
       );
     }

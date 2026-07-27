@@ -39,10 +39,9 @@ void main() {
     expect(settings.maxConcurrentExecutions, defaultMaxConcurrentExecutions);
   });
 
-  test('copyWith can clear nullable paths and update default fields', () {
+  test('copyWith can clear nullable output path and update defaults', () {
     final settings = AppSettings.initial().copyWith(
       defaultOutputDirectory: '/Users/leftzhou/Desktop',
-      customFfmpegPath: '/usr/local/bin/ffmpeg',
       saveOutputToSourceDirectory: true,
       defaultSmartPreset: SmartCompressionPreset.chat,
       defaultOutputVideoCodec: VideoCodec.hevc,
@@ -54,12 +53,10 @@ void main() {
 
     final cleared = settings.copyWith(
       defaultOutputDirectory: null,
-      customFfmpegPath: null,
       saveOutputToSourceDirectory: false,
     );
 
     expect(cleared.defaultOutputDirectory, isNull);
-    expect(cleared.customFfmpegPath, isNull);
     expect(cleared.saveOutputToSourceDirectory, isFalse);
     expect(cleared.defaultSmartPreset, SmartCompressionPreset.chat);
     expect(cleared.defaultOutputVideoCodec, VideoCodec.hevc);

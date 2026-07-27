@@ -1,11 +1,14 @@
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/execution/execution_queue_result.dart';
+import 'package:framelean/application/services/execution/media_task_execution_coordinator.dart';
 
 class PauseAllMediaTaskExecutionsUseCase {
-  final FfmpegTaskQueueRunner queueRunner;
+  final MediaTaskExecutionCoordinator executionCoordinator;
 
-  const PauseAllMediaTaskExecutionsUseCase({required this.queueRunner});
+  const PauseAllMediaTaskExecutionsUseCase({
+    required this.executionCoordinator,
+  });
 
-  Future<FfmpegQueueStartResult> call() {
-    return queueRunner.pauseAllRunningTasks();
+  Future<EngineQueueStartResult> call() {
+    return executionCoordinator.pauseAll();
   }
 }

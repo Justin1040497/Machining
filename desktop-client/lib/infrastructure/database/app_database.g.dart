@@ -55,29 +55,6 @@ class $SettingsRowsTable extends SettingsRows
         ),
         defaultValue: const Constant(true),
       );
-  static const VerificationMeta _customFfmpegPathMeta = const VerificationMeta(
-    'customFfmpegPath',
-  );
-  @override
-  late final GeneratedColumn<String> customFfmpegPath = GeneratedColumn<String>(
-    'custom_ffmpeg_path',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
-  static const VerificationMeta _customFfprobePathMeta = const VerificationMeta(
-    'customFfprobePath',
-  );
-  @override
-  late final GeneratedColumn<String> customFfprobePath =
-      GeneratedColumn<String>(
-        'custom_ffprobe_path',
-        aliasedName,
-        true,
-        type: DriftSqlType.string,
-        requiredDuringInsert: false,
-      );
   static const VerificationMeta _showRawLogMeta = const VerificationMeta(
     'showRawLog',
   );
@@ -295,8 +272,6 @@ class $SettingsRowsTable extends SettingsRows
     defaultOutputDirectory,
     lastSelectedOutputDirectory,
     saveOutputToSourceDirectory,
-    customFfmpegPath,
-    customFfprobePath,
     showRawLog,
     showAdvancedOptions,
     defaultOutputVideoCodec,
@@ -354,24 +329,6 @@ class $SettingsRowsTable extends SettingsRows
         saveOutputToSourceDirectory.isAcceptableOrUnknown(
           data['save_output_to_source_directory']!,
           _saveOutputToSourceDirectoryMeta,
-        ),
-      );
-    }
-    if (data.containsKey('custom_ffmpeg_path')) {
-      context.handle(
-        _customFfmpegPathMeta,
-        customFfmpegPath.isAcceptableOrUnknown(
-          data['custom_ffmpeg_path']!,
-          _customFfmpegPathMeta,
-        ),
-      );
-    }
-    if (data.containsKey('custom_ffprobe_path')) {
-      context.handle(
-        _customFfprobePathMeta,
-        customFfprobePath.isAcceptableOrUnknown(
-          data['custom_ffprobe_path']!,
-          _customFfprobePathMeta,
         ),
       );
     }
@@ -548,14 +505,6 @@ class $SettingsRowsTable extends SettingsRows
         DriftSqlType.bool,
         data['${effectivePrefix}save_output_to_source_directory'],
       )!,
-      customFfmpegPath: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}custom_ffmpeg_path'],
-      ),
-      customFfprobePath: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}custom_ffprobe_path'],
-      ),
       showRawLog: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}show_raw_log'],
@@ -638,8 +587,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
   final String? defaultOutputDirectory;
   final String? lastSelectedOutputDirectory;
   final bool saveOutputToSourceDirectory;
-  final String? customFfmpegPath;
-  final String? customFfprobePath;
   final bool showRawLog;
   final bool showAdvancedOptions;
   final String defaultOutputVideoCodec;
@@ -662,8 +609,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     this.defaultOutputDirectory,
     this.lastSelectedOutputDirectory,
     required this.saveOutputToSourceDirectory,
-    this.customFfmpegPath,
-    this.customFfprobePath,
     required this.showRawLog,
     required this.showAdvancedOptions,
     required this.defaultOutputVideoCodec,
@@ -699,12 +644,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     map['save_output_to_source_directory'] = Variable<bool>(
       saveOutputToSourceDirectory,
     );
-    if (!nullToAbsent || customFfmpegPath != null) {
-      map['custom_ffmpeg_path'] = Variable<String>(customFfmpegPath);
-    }
-    if (!nullToAbsent || customFfprobePath != null) {
-      map['custom_ffprobe_path'] = Variable<String>(customFfprobePath);
-    }
     map['show_raw_log'] = Variable<bool>(showRawLog);
     map['show_advanced_options'] = Variable<bool>(showAdvancedOptions);
     map['default_output_video_codec'] = Variable<String>(
@@ -750,12 +689,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ? const Value.absent()
           : Value(lastSelectedOutputDirectory),
       saveOutputToSourceDirectory: Value(saveOutputToSourceDirectory),
-      customFfmpegPath: customFfmpegPath == null && nullToAbsent
-          ? const Value.absent()
-          : Value(customFfmpegPath),
-      customFfprobePath: customFfprobePath == null && nullToAbsent
-          ? const Value.absent()
-          : Value(customFfprobePath),
       showRawLog: Value(showRawLog),
       showAdvancedOptions: Value(showAdvancedOptions),
       defaultOutputVideoCodec: Value(defaultOutputVideoCodec),
@@ -793,10 +726,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       ),
       saveOutputToSourceDirectory: serializer.fromJson<bool>(
         json['saveOutputToSourceDirectory'],
-      ),
-      customFfmpegPath: serializer.fromJson<String?>(json['customFfmpegPath']),
-      customFfprobePath: serializer.fromJson<String?>(
-        json['customFfprobePath'],
       ),
       showRawLog: serializer.fromJson<bool>(json['showRawLog']),
       showAdvancedOptions: serializer.fromJson<bool>(
@@ -855,8 +784,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       'saveOutputToSourceDirectory': serializer.toJson<bool>(
         saveOutputToSourceDirectory,
       ),
-      'customFfmpegPath': serializer.toJson<String?>(customFfmpegPath),
-      'customFfprobePath': serializer.toJson<String?>(customFfprobePath),
       'showRawLog': serializer.toJson<bool>(showRawLog),
       'showAdvancedOptions': serializer.toJson<bool>(showAdvancedOptions),
       'defaultOutputVideoCodec': serializer.toJson<String>(
@@ -896,8 +823,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     Value<String?> defaultOutputDirectory = const Value.absent(),
     Value<String?> lastSelectedOutputDirectory = const Value.absent(),
     bool? saveOutputToSourceDirectory,
-    Value<String?> customFfmpegPath = const Value.absent(),
-    Value<String?> customFfprobePath = const Value.absent(),
     bool? showRawLog,
     bool? showAdvancedOptions,
     String? defaultOutputVideoCodec,
@@ -925,12 +850,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
         : this.lastSelectedOutputDirectory,
     saveOutputToSourceDirectory:
         saveOutputToSourceDirectory ?? this.saveOutputToSourceDirectory,
-    customFfmpegPath: customFfmpegPath.present
-        ? customFfmpegPath.value
-        : this.customFfmpegPath,
-    customFfprobePath: customFfprobePath.present
-        ? customFfprobePath.value
-        : this.customFfprobePath,
     showRawLog: showRawLog ?? this.showRawLog,
     showAdvancedOptions: showAdvancedOptions ?? this.showAdvancedOptions,
     defaultOutputVideoCodec:
@@ -969,12 +888,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
       saveOutputToSourceDirectory: data.saveOutputToSourceDirectory.present
           ? data.saveOutputToSourceDirectory.value
           : this.saveOutputToSourceDirectory,
-      customFfmpegPath: data.customFfmpegPath.present
-          ? data.customFfmpegPath.value
-          : this.customFfmpegPath,
-      customFfprobePath: data.customFfprobePath.present
-          ? data.customFfprobePath.value
-          : this.customFfprobePath,
       showRawLog: data.showRawLog.present
           ? data.showRawLog.value
           : this.showRawLog,
@@ -1030,8 +943,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
           ..write('defaultOutputDirectory: $defaultOutputDirectory, ')
           ..write('lastSelectedOutputDirectory: $lastSelectedOutputDirectory, ')
           ..write('saveOutputToSourceDirectory: $saveOutputToSourceDirectory, ')
-          ..write('customFfmpegPath: $customFfmpegPath, ')
-          ..write('customFfprobePath: $customFfprobePath, ')
           ..write('showRawLog: $showRawLog, ')
           ..write('showAdvancedOptions: $showAdvancedOptions, ')
           ..write('defaultOutputVideoCodec: $defaultOutputVideoCodec, ')
@@ -1063,8 +974,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
     defaultOutputDirectory,
     lastSelectedOutputDirectory,
     saveOutputToSourceDirectory,
-    customFfmpegPath,
-    customFfprobePath,
     showRawLog,
     showAdvancedOptions,
     defaultOutputVideoCodec,
@@ -1093,8 +1002,6 @@ class SettingsRow extends DataClass implements Insertable<SettingsRow> {
               this.lastSelectedOutputDirectory &&
           other.saveOutputToSourceDirectory ==
               this.saveOutputToSourceDirectory &&
-          other.customFfmpegPath == this.customFfmpegPath &&
-          other.customFfprobePath == this.customFfprobePath &&
           other.showRawLog == this.showRawLog &&
           other.showAdvancedOptions == this.showAdvancedOptions &&
           other.defaultOutputVideoCodec == this.defaultOutputVideoCodec &&
@@ -1121,8 +1028,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
   final Value<String?> defaultOutputDirectory;
   final Value<String?> lastSelectedOutputDirectory;
   final Value<bool> saveOutputToSourceDirectory;
-  final Value<String?> customFfmpegPath;
-  final Value<String?> customFfprobePath;
   final Value<bool> showRawLog;
   final Value<bool> showAdvancedOptions;
   final Value<String> defaultOutputVideoCodec;
@@ -1145,8 +1050,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultOutputDirectory = const Value.absent(),
     this.lastSelectedOutputDirectory = const Value.absent(),
     this.saveOutputToSourceDirectory = const Value.absent(),
-    this.customFfmpegPath = const Value.absent(),
-    this.customFfprobePath = const Value.absent(),
     this.showRawLog = const Value.absent(),
     this.showAdvancedOptions = const Value.absent(),
     this.defaultOutputVideoCodec = const Value.absent(),
@@ -1170,8 +1073,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     this.defaultOutputDirectory = const Value.absent(),
     this.lastSelectedOutputDirectory = const Value.absent(),
     this.saveOutputToSourceDirectory = const Value.absent(),
-    this.customFfmpegPath = const Value.absent(),
-    this.customFfprobePath = const Value.absent(),
     this.showRawLog = const Value.absent(),
     this.showAdvancedOptions = const Value.absent(),
     this.defaultOutputVideoCodec = const Value.absent(),
@@ -1196,8 +1097,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Expression<String>? defaultOutputDirectory,
     Expression<String>? lastSelectedOutputDirectory,
     Expression<bool>? saveOutputToSourceDirectory,
-    Expression<String>? customFfmpegPath,
-    Expression<String>? customFfprobePath,
     Expression<bool>? showRawLog,
     Expression<bool>? showAdvancedOptions,
     Expression<String>? defaultOutputVideoCodec,
@@ -1224,8 +1123,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
         'last_selected_output_directory': lastSelectedOutputDirectory,
       if (saveOutputToSourceDirectory != null)
         'save_output_to_source_directory': saveOutputToSourceDirectory,
-      if (customFfmpegPath != null) 'custom_ffmpeg_path': customFfmpegPath,
-      if (customFfprobePath != null) 'custom_ffprobe_path': customFfprobePath,
       if (showRawLog != null) 'show_raw_log': showRawLog,
       if (showAdvancedOptions != null)
         'show_advanced_options': showAdvancedOptions,
@@ -1263,8 +1160,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
     Value<String?>? defaultOutputDirectory,
     Value<String?>? lastSelectedOutputDirectory,
     Value<bool>? saveOutputToSourceDirectory,
-    Value<String?>? customFfmpegPath,
-    Value<String?>? customFfprobePath,
     Value<bool>? showRawLog,
     Value<bool>? showAdvancedOptions,
     Value<String>? defaultOutputVideoCodec,
@@ -1291,8 +1186,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           lastSelectedOutputDirectory ?? this.lastSelectedOutputDirectory,
       saveOutputToSourceDirectory:
           saveOutputToSourceDirectory ?? this.saveOutputToSourceDirectory,
-      customFfmpegPath: customFfmpegPath ?? this.customFfmpegPath,
-      customFfprobePath: customFfprobePath ?? this.customFfprobePath,
       showRawLog: showRawLog ?? this.showRawLog,
       showAdvancedOptions: showAdvancedOptions ?? this.showAdvancedOptions,
       defaultOutputVideoCodec:
@@ -1342,12 +1235,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
       map['save_output_to_source_directory'] = Variable<bool>(
         saveOutputToSourceDirectory.value,
       );
-    }
-    if (customFfmpegPath.present) {
-      map['custom_ffmpeg_path'] = Variable<String>(customFfmpegPath.value);
-    }
-    if (customFfprobePath.present) {
-      map['custom_ffprobe_path'] = Variable<String>(customFfprobePath.value);
     }
     if (showRawLog.present) {
       map['show_raw_log'] = Variable<bool>(showRawLog.value);
@@ -1432,8 +1319,6 @@ class SettingsRowsCompanion extends UpdateCompanion<SettingsRow> {
           ..write('defaultOutputDirectory: $defaultOutputDirectory, ')
           ..write('lastSelectedOutputDirectory: $lastSelectedOutputDirectory, ')
           ..write('saveOutputToSourceDirectory: $saveOutputToSourceDirectory, ')
-          ..write('customFfmpegPath: $customFfmpegPath, ')
-          ..write('customFfprobePath: $customFfprobePath, ')
           ..write('showRawLog: $showRawLog, ')
           ..write('showAdvancedOptions: $showAdvancedOptions, ')
           ..write('defaultOutputVideoCodec: $defaultOutputVideoCodec, ')
@@ -8809,8 +8694,6 @@ typedef $$SettingsRowsTableCreateCompanionBuilder =
       Value<String?> defaultOutputDirectory,
       Value<String?> lastSelectedOutputDirectory,
       Value<bool> saveOutputToSourceDirectory,
-      Value<String?> customFfmpegPath,
-      Value<String?> customFfprobePath,
       Value<bool> showRawLog,
       Value<bool> showAdvancedOptions,
       Value<String> defaultOutputVideoCodec,
@@ -8835,8 +8718,6 @@ typedef $$SettingsRowsTableUpdateCompanionBuilder =
       Value<String?> defaultOutputDirectory,
       Value<String?> lastSelectedOutputDirectory,
       Value<bool> saveOutputToSourceDirectory,
-      Value<String?> customFfmpegPath,
-      Value<String?> customFfprobePath,
       Value<bool> showRawLog,
       Value<bool> showAdvancedOptions,
       Value<String> defaultOutputVideoCodec,
@@ -8882,16 +8763,6 @@ class $$SettingsRowsTableFilterComposer
 
   ColumnFilters<bool> get saveOutputToSourceDirectory => $composableBuilder(
     column: $table.saveOutputToSourceDirectory,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customFfmpegPath => $composableBuilder(
-    column: $table.customFfmpegPath,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get customFfprobePath => $composableBuilder(
-    column: $table.customFfprobePath,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -9010,16 +8881,6 @@ class $$SettingsRowsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get customFfmpegPath => $composableBuilder(
-    column: $table.customFfmpegPath,
-    builder: (column) => ColumnOrderings(column),
-  );
-
-  ColumnOrderings<String> get customFfprobePath => $composableBuilder(
-    column: $table.customFfprobePath,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<bool> get showRawLog => $composableBuilder(
     column: $table.showRawLog,
     builder: (column) => ColumnOrderings(column),
@@ -9132,16 +8993,6 @@ class $$SettingsRowsTableAnnotationComposer
 
   GeneratedColumn<bool> get saveOutputToSourceDirectory => $composableBuilder(
     column: $table.saveOutputToSourceDirectory,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get customFfmpegPath => $composableBuilder(
-    column: $table.customFfmpegPath,
-    builder: (column) => column,
-  );
-
-  GeneratedColumn<String> get customFfprobePath => $composableBuilder(
-    column: $table.customFfprobePath,
     builder: (column) => column,
   );
 
@@ -9263,8 +9114,6 @@ class $$SettingsRowsTableTableManager
                 Value<String?> lastSelectedOutputDirectory =
                     const Value.absent(),
                 Value<bool> saveOutputToSourceDirectory = const Value.absent(),
-                Value<String?> customFfmpegPath = const Value.absent(),
-                Value<String?> customFfprobePath = const Value.absent(),
                 Value<bool> showRawLog = const Value.absent(),
                 Value<bool> showAdvancedOptions = const Value.absent(),
                 Value<String> defaultOutputVideoCodec = const Value.absent(),
@@ -9289,8 +9138,6 @@ class $$SettingsRowsTableTableManager
                 defaultOutputDirectory: defaultOutputDirectory,
                 lastSelectedOutputDirectory: lastSelectedOutputDirectory,
                 saveOutputToSourceDirectory: saveOutputToSourceDirectory,
-                customFfmpegPath: customFfmpegPath,
-                customFfprobePath: customFfprobePath,
                 showRawLog: showRawLog,
                 showAdvancedOptions: showAdvancedOptions,
                 defaultOutputVideoCodec: defaultOutputVideoCodec,
@@ -9316,8 +9163,6 @@ class $$SettingsRowsTableTableManager
                 Value<String?> lastSelectedOutputDirectory =
                     const Value.absent(),
                 Value<bool> saveOutputToSourceDirectory = const Value.absent(),
-                Value<String?> customFfmpegPath = const Value.absent(),
-                Value<String?> customFfprobePath = const Value.absent(),
                 Value<bool> showRawLog = const Value.absent(),
                 Value<bool> showAdvancedOptions = const Value.absent(),
                 Value<String> defaultOutputVideoCodec = const Value.absent(),
@@ -9342,8 +9187,6 @@ class $$SettingsRowsTableTableManager
                 defaultOutputDirectory: defaultOutputDirectory,
                 lastSelectedOutputDirectory: lastSelectedOutputDirectory,
                 saveOutputToSourceDirectory: saveOutputToSourceDirectory,
-                customFfmpegPath: customFfmpegPath,
-                customFfprobePath: customFfprobePath,
                 showRawLog: showRawLog,
                 showAdvancedOptions: showAdvancedOptions,
                 defaultOutputVideoCodec: defaultOutputVideoCodec,

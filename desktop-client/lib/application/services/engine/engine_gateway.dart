@@ -83,6 +83,95 @@ final class EngineAnalysisRequest {
   final String? requestId;
 }
 
+final class EnginePreviewFramesRequest {
+  const EnginePreviewFramesRequest({
+    required this.clientTaskId,
+    required this.source,
+    required this.outputDirectory,
+    required this.timestampsUs,
+    this.maxWidth,
+    this.priority = EngineWorkPriority.foreground,
+    this.requestId,
+  }) : assert(clientTaskId != ''),
+       assert(outputDirectory != ''),
+       assert(timestampsUs.length > 0),
+       assert(maxWidth == null || maxWidth > 0);
+
+  final String clientTaskId;
+  final EngineSourceFacts source;
+  final String outputDirectory;
+  final List<int> timestampsUs;
+  final int? maxWidth;
+  final EngineWorkPriority priority;
+  final String? requestId;
+}
+
+final class EnginePreviewFrameArtifact {
+  const EnginePreviewFrameArtifact({
+    required this.index,
+    required this.requestedTimestampUs,
+    required this.decodedTimestampUs,
+    required this.width,
+    required this.height,
+    required this.outputPath,
+  });
+
+  final int index;
+  final int requestedTimestampUs;
+  final int decodedTimestampUs;
+  final int width;
+  final int height;
+  final String outputPath;
+}
+
+final class EnginePreviewFramesResult {
+  const EnginePreviewFramesResult({
+    required this.outputDirectory,
+    required this.frames,
+  });
+
+  final String outputDirectory;
+  final List<EnginePreviewFrameArtifact> frames;
+}
+
+final class EngineVideoThumbnailRequest {
+  const EngineVideoThumbnailRequest({
+    required this.clientTaskId,
+    required this.source,
+    required this.outputPath,
+    required this.maxWidth,
+    this.durationUs,
+    this.priority = EngineWorkPriority.background,
+    this.requestId,
+  }) : assert(clientTaskId != ''),
+       assert(outputPath != ''),
+       assert(maxWidth > 0);
+
+  final String clientTaskId;
+  final EngineSourceFacts source;
+  final String outputPath;
+  final int? durationUs;
+  final int maxWidth;
+  final EngineWorkPriority priority;
+  final String? requestId;
+}
+
+final class EngineVideoThumbnailResult {
+  const EngineVideoThumbnailResult({
+    required this.outputPath,
+    required this.requestedTimestampUs,
+    required this.decodedTimestampUs,
+    required this.width,
+    required this.height,
+  });
+
+  final String outputPath;
+  final int requestedTimestampUs;
+  final int decodedTimestampUs;
+  final int width;
+  final int height;
+}
+
 final class EngineManualOverrides {
   const EngineManualOverrides({
     this.container,
@@ -205,21 +294,6 @@ Map<String, Object?> _engineManualOverridesToJson(
   };
 }
 
-final class EngineConfigurationRequest {
-  const EngineConfigurationRequest({
-    required this.analysisId,
-    required this.expectedRevision,
-    required this.selection,
-    this.priority = EngineWorkPriority.foreground,
-  }) : assert(analysisId != ''),
-       assert(expectedRevision >= 0);
-
-  final String analysisId;
-  final int expectedRevision;
-  final EngineConfigurationSelection selection;
-  final EngineWorkPriority priority;
-}
-
 final class EngineExecutionRequest {
   const EngineExecutionRequest({
     required this.clientTaskId,
@@ -238,7 +312,7 @@ final class EngineExecutionRequest {
   final String clientTaskId;
   final String analysisId;
   final int expectedRevision;
-  final EngineConfigurationSelection selection;
+  final Map<String, Object?> selection;
   final String requestedOutputPath;
   final EngineOutputCollisionPolicy collisionPolicy;
   final EngineWorkPriority priority;
@@ -727,7 +801,7 @@ abstract interface class EngineGateway {
 
   Stream<EngineWorkEvent> get events;
 
-  Future<EngineOperationResult<EngineAnalysisResponseDocument>> analyze(
+  Future<EngineOperationResult<EngineAnalysisCompletionDocument>> analyze(
     EngineAnalysisRequest request,
   );
 
@@ -737,12 +811,6 @@ abstract interface class EngineGateway {
     EngineWorkPriority priority = EngineWorkPriority.foreground,
   });
 
-  @Deprecated(
-    'Compatibility-only protocol v1 entry; new Client flow saves the Snapshot selection locally and submits execution directly.',
-  )
-  Future<EngineOperationResult<EngineConfigurationResolutionDocument>>
-  resolveConfiguration(EngineConfigurationRequest request);
-
   Future<EngineOperationResult<EngineExecutionSubmission>> submitExecution(
     EngineExecutionRequest request,
   );
@@ -750,6 +818,14 @@ abstract interface class EngineGateway {
   Future<void> ping();
 
   Future<void> close();
+}
+
+abstract interface class EngineMediaGateway implements EngineGateway {
+  Future<EngineOperationResult<EnginePreviewFramesResult>>
+  generatePreviewFrames(EnginePreviewFramesRequest request);
+
+  Future<EngineOperationResult<EngineVideoThumbnailResult>>
+  generateVideoThumbnail(EngineVideoThumbnailRequest request);
 }
 
 abstract interface class EngineLifecycleGateway implements EngineGateway {

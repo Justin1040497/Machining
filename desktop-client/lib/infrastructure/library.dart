@@ -11,9 +11,6 @@
 ///   （DTO 映射，仅仓储实现内部用）
 /// - services/app_update/{http_app_update_client,noop_app_update_client}.dart
 ///   （具体实现变体，由 enterprise_aware_app_update_client 调度）
-/// - services/ffmpeg_planning/{ffmpeg_command_formatters,ffmpeg_command_log_hint_builder,
-///   ffmpeg_command_step_builder,ffmpeg_encoder_resolver,ffmpeg_output_path_builder,
-///   ffmpeg_video_argument_builder}.dart（命令构建内部步骤）
 /// - services/input_runtime/standard_cli_proprietary_audio_decoder.dart
 ///   （由 proprietary_audio_decoder_dispatcher 调度）
 /// - services/proprietary_audio/ncm/*.dart（NCM 格式内部实现）
@@ -49,14 +46,7 @@ export 'services/app_update/method_channel_sparkle_update_controller.dart';
 
 // services - execution
 export 'services/execution/local_execution_resource_guard.dart';
-export 'services/execution/local_ffmpeg_process_observer.dart';
-export 'services/execution/local_ffmpeg_process_starter.dart';
 export 'services/execution/local_interrupted_output_cleaner.dart';
-export 'services/execution/local_output_preflight_service.dart';
-export 'services/execution/local_preview_frame_generator.dart';
-export 'services/execution/local_video_thumbnail_generator.dart';
-export 'services/execution/signal_ffmpeg_process_controller.dart';
-export 'services/execution/windows_ffmpeg_process_controller.dart';
 
 // services - engine
 export 'services/engine/fengine_frame_codec.dart';
@@ -64,16 +54,11 @@ export 'services/engine/fengine_protocol_client.dart';
 export 'services/engine/local_fengine_executable_locator.dart';
 export 'services/engine/local_fengine_gateway.dart';
 
-// services - ffmpeg_planning
-export 'services/ffmpeg_planning/default_ffmpeg_command_builder.dart';
-
 // services - input_runtime
 export 'services/input_runtime/bundled_proprietary_audio_adapter_registry.dart';
 export 'services/input_runtime/default_media_input_preparer.dart';
-export 'services/input_runtime/ffprobe_media_analyzer.dart';
 export 'services/input_runtime/file_extension_media_kind_resolver.dart';
 export 'services/input_runtime/file_extension_proprietary_audio_format_resolver.dart';
-export 'services/input_runtime/local_ffmpeg_locator.dart';
 export 'services/input_runtime/local_media_folder_scanner.dart';
 export 'services/input_runtime/local_source_file_checker.dart';
 export 'services/input_runtime/local_source_file_fingerprint_reader.dart';

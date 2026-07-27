@@ -259,7 +259,7 @@ class _FrameLeanAppState extends ConsumerState<FrameLeanApp>
         }
       }
     }
-    await ref.read(ffmpegTaskQueueRunnerProvider).cancelAllExecutions();
+    await ref.read(mediaTaskExecutionCoordinatorProvider).cancelAll();
     if (_runtimeEffectsEnabled) {
       if (Platform.isWindows) await trayManager.destroy();
       _allowWindowDestroy = true;

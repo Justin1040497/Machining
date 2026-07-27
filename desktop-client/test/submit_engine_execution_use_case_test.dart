@@ -34,8 +34,12 @@ void main() {
         expect(request.clientTaskId, task.id);
         expect(request.analysisId, 'analysis-1');
         expect(request.expectedRevision, 4);
-        expect(request.selection, isA<EngineManualConfigurationSelection>());
-        expect(request.selection.candidateId, 'candidate-1');
+        expect(request.selection['mode'], 'manual');
+        expect(
+          (request.selection['selection']!
+              as Map<String, Object?>)['candidate_id'],
+          'candidate-1',
+        );
         expect(request.requestedOutputPath, '/exports/custom-name.mp4');
         expect(
           request.collisionPolicy,
@@ -194,7 +198,7 @@ void main() {
     );
 
     test(
-      'rejects a malformed opaque selection before calling FEngine',
+      'forwards an opaque selection to FEngine without Client semantic validation',
       () async {
         final task = _readyTask(
           selectionJson: '{"mode":"manual","selection":null}',
@@ -211,12 +215,12 @@ void main() {
 
         final result = await useCase(task.id);
 
-        expect(result.outcome, EngineExecutionDispatchOutcome.failed);
-        expect(gateway.requests, isEmpty);
-        expect(
-          repository.taskById(task.id).failure?.code,
-          TaskFailureCode.unsupportedConfiguration,
-        );
+        expect(result.outcome, EngineExecutionDispatchOutcome.submitted);
+        expect(gateway.requests, hasLength(1));
+        expect(gateway.requests.single.selection, <String, Object?>{
+          'mode': 'manual',
+          'selection': null,
+        });
       },
     );
 
@@ -530,7 +534,7 @@ final class _FakeEngineGateway implements EngineBatchGateway {
   }
 
   @override
-  Future<EngineOperationResult<EngineAnalysisResponseDocument>> analyze(
+  Future<EngineOperationResult<EngineAnalysisCompletionDocument>> analyze(
     EngineAnalysisRequest request,
   ) {
     throw UnimplementedError();
@@ -555,12 +559,6 @@ final class _FakeEngineGateway implements EngineBatchGateway {
 
   @override
   Future<void> ping() async {}
-
-  @override
-  Future<EngineOperationResult<EngineConfigurationResolutionDocument>>
-  resolveConfiguration(EngineConfigurationRequest request) {
-    throw UnimplementedError();
-  }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

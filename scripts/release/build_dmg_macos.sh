@@ -8,16 +8,16 @@ CLIENT_ROOT="${ROOT}/desktop-client"
 RELEASE_DIR="${CLIENT_ROOT}/build/macos/Build/Products/Release"
 APP_PATH="${RELEASE_DIR}/FrameLean.app"
 DMG_SOURCE_PATH="${RELEASE_DIR}/FrameLean.dmg"
-FFMPEG_DIR="${ROOT}/build/dependencies/ffmpeg/macos-universal"
-FFMPEG_ARM64_DIR="${ROOT}/build/dependencies/ffmpeg/macos-arm64"
-FFMPEG_X64_DIR="${ROOT}/build/dependencies/ffmpeg/macos-x64"
+FENGINE_DIR="${ROOT}/build/dependencies/fengine/macos-universal"
+FENGINE_ARM64_DIR="${ROOT}/build/dependencies/fengine/macos-arm64"
+FENGINE_X64_DIR="${ROOT}/build/dependencies/fengine/macos-x64"
 QMC_ADAPTER_DIR="${ROOT}/build/dependencies/qmc/macos-universal"
 QMC_ARM64_DIR="${ROOT}/build/dependencies/qmc/macos-arm64"
 QMC_X64_DIR="${ROOT}/build/dependencies/qmc/macos-x64"
 LEGAL_DIR="${ROOT}/legal"
 PUBSPEC_PATH="${CLIENT_ROOT}/pubspec.yaml"
 VERIFY_SCRIPT="${ROOT}/scripts/release/verify_macos_universal.sh"
-MERGE_FFMPEG_SCRIPT="${ROOT}/scripts/build/build_ffmpeg_macos_universal.sh"
+MERGE_FENGINE_SCRIPT="${ROOT}/scripts/build/build_fengine_macos_universal.sh"
 MERGE_QMC_SCRIPT="${ROOT}/scripts/build/build_qmc_decrypt_macos_universal.sh"
 UPDATE_METADATA_JSON_PATH=""
 REQUIRE_SPARKLE_SIGNATURE="${FRAMELEAN_REQUIRE_SPARKLE_SIGNATURE:-false}"
@@ -57,31 +57,25 @@ binary_is_universal2() {
   [[ " $architectures " == *" arm64 "* && " $architectures " == *" x86_64 "* ]]
 }
 
-ffmpeg_universal_runtime_is_ready() {
-  binary_is_universal2 "$FFMPEG_DIR/ffmpeg" &&
-    binary_is_universal2 "$FFMPEG_DIR/ffprobe"
+fengine_universal_runtime_is_ready() {
+  binary_is_universal2 "$FENGINE_DIR/framelean-engine"
 }
 
-ffmpeg_slices_are_ready() {
-  binary_has_exact_arch "$FFMPEG_ARM64_DIR/ffmpeg" arm64 &&
-    binary_has_exact_arch "$FFMPEG_ARM64_DIR/ffprobe" arm64 &&
-    binary_has_exact_arch "$FFMPEG_X64_DIR/ffmpeg" x86_64 &&
-    binary_has_exact_arch "$FFMPEG_X64_DIR/ffprobe" x86_64
+fengine_slices_are_ready() {
+  binary_has_exact_arch "$FENGINE_ARM64_DIR/framelean-engine" arm64 &&
+    binary_has_exact_arch "$FENGINE_X64_DIR/framelean-engine" x86_64
 }
 
-print_ffmpeg_runtime_status() {
-  echo "Detected FFmpeg architectures:" >&2
-  echo "  macos-universal/ffmpeg: $(binary_arches "$FFMPEG_DIR/ffmpeg")" >&2
-  echo "  macos-universal/ffprobe: $(binary_arches "$FFMPEG_DIR/ffprobe")" >&2
-  echo "  macos-arm64/ffmpeg: $(binary_arches "$FFMPEG_ARM64_DIR/ffmpeg")" >&2
-  echo "  macos-arm64/ffprobe: $(binary_arches "$FFMPEG_ARM64_DIR/ffprobe")" >&2
-  echo "  macos-x64/ffmpeg: $(binary_arches "$FFMPEG_X64_DIR/ffmpeg")" >&2
-  echo "  macos-x64/ffprobe: $(binary_arches "$FFMPEG_X64_DIR/ffprobe")" >&2
+print_fengine_runtime_status() {
+  echo "Detected FEngine architectures:" >&2
+  echo "  macos-universal/framelean-engine: $(binary_arches "$FENGINE_DIR/framelean-engine")" >&2
+  echo "  macos-arm64/framelean-engine: $(binary_arches "$FENGINE_ARM64_DIR/framelean-engine")" >&2
+  echo "  macos-x64/framelean-engine: $(binary_arches "$FENGINE_X64_DIR/framelean-engine")" >&2
 }
 
-fail_for_unprepared_ffmpeg_runtime() {
-  echo "error: macOS Universal 2 FFmpeg runtime is not ready" >&2
-  print_ffmpeg_runtime_status
+fail_for_unprepared_fengine_runtime() {
+  echo "error: macOS Universal 2 FEngine runtime is not ready" >&2
+  print_fengine_runtime_status
   echo >&2
   echo "The macos-arm64 and macos-x64 directories are build inputs, not release packages." >&2
   echo "Do not copy arm64 files into macos-x64; the Intel slice must report x86_64." >&2
@@ -90,7 +84,7 @@ fail_for_unprepared_ffmpeg_runtime() {
   echo "It builds both native slices and outputs one final FrameLean-v<version>.dmg." >&2
   echo >&2
   echo "For a local build, first provide valid native slices, then run:" >&2
-  echo "  scripts/build/build_ffmpeg_macos_universal.sh" >&2
+  echo "  scripts/build/build_fengine_macos_universal.sh" >&2
   exit 1
 }
 
@@ -251,54 +245,13 @@ assert_macos_cocoapods_project() {
   fi
 }
 
-bundled_ffmpeg_has_required_capabilities() {
-  local ffmpeg_path="$FFMPEG_DIR/ffmpeg"
-  local encoder_output
-  local decoder_output
-  local demuxer_output
-  local muxer_output
-  local filter_output
-
-  encoder_output="$("$ffmpeg_path" -hide_banner -encoders 2>/dev/null || true)"
-  decoder_output="$("$ffmpeg_path" -hide_banner -decoders 2>/dev/null || true)"
-  demuxer_output="$("$ffmpeg_path" -hide_banner -demuxers 2>/dev/null || true)"
-  muxer_output="$("$ffmpeg_path" -hide_banner -muxers 2>/dev/null || true)"
-  filter_output="$("$ffmpeg_path" -hide_banner -filters 2>/dev/null || true)"
-
-  for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
-    if ! grep "$encoder_name" <<<"$encoder_output" >/dev/null; then
-      echo "Universal FFmpeg runtime is missing encoder: $encoder_name"
-      return 1
-    fi
-  done
-
-  for decoder_name in opus vorbis; do
-    if ! grep "$decoder_name" <<<"$decoder_output" >/dev/null; then
-      echo "Universal FFmpeg runtime is missing decoder: $decoder_name"
-      return 1
-    fi
-  done
-
-  if ! grep "ogg" <<<"$demuxer_output" >/dev/null; then
-    echo "Universal FFmpeg runtime is missing demuxer: ogg"
-    return 1
+assert_fengine_has_no_dynamic_libav() {
+  local engine_path="$1"
+  if otool -L "$engine_path" | grep -Eiq 'libav(codec|device|filter|format|util)|libsw(resample|scale)'; then
+    echo "error: FEngine has a dynamic libav dependency: $engine_path" >&2
+    otool -L "$engine_path" >&2
+    exit 1
   fi
-
-  for muxer_name in mp4 mov matroska webm avi; do
-    if ! grep "$muxer_name" <<<"$muxer_output" >/dev/null; then
-      echo "Universal FFmpeg runtime is missing muxer: $muxer_name"
-      return 1
-    fi
-  done
-
-  for filter_name in zscale tonemap; do
-    if ! grep "$filter_name" <<<"$filter_output" >/dev/null; then
-      echo "Universal FFmpeg runtime is missing filter: $filter_name"
-      return 1
-    fi
-  done
-
-  return 0
 }
 
 APP_VERSION="$(sed -nE 's/^version:[[:space:]]*([0-9]+\.[0-9]+\.[0-9]+)(\+[^[:space:]]+)?[[:space:]]*$/\1/p' "$PUBSPEC_PATH" | head -n 1)"
@@ -336,7 +289,7 @@ if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
   fi
 fi
 
-for command_name in dart dmgbuild flutter hdiutil lipo python3 shasum; do
+for command_name in dart dmgbuild flutter hdiutil lipo otool python3 shasum; do
   require_command "$command_name"
 done
 if [[ "$REQUIRE_SPARKLE_SIGNATURE" == "true" ]]; then
@@ -350,19 +303,16 @@ if [[ ! -d "$LEGAL_DIR" ]]; then
   exit 1
 fi
 
-if ! ffmpeg_universal_runtime_is_ready; then
-  if ffmpeg_slices_are_ready; then
-    "$MERGE_FFMPEG_SCRIPT"
+if ! fengine_universal_runtime_is_ready; then
+  if fengine_slices_are_ready; then
+    "$MERGE_FENGINE_SCRIPT"
   else
-    fail_for_unprepared_ffmpeg_runtime
+    fail_for_unprepared_fengine_runtime
   fi
 fi
 
-"$VERIFY_SCRIPT" "$FFMPEG_DIR/ffmpeg" "$FFMPEG_DIR/ffprobe"
-if ! bundled_ffmpeg_has_required_capabilities; then
-  echo "error: Universal FFmpeg runtime failed capability validation" >&2
-  exit 1
-fi
+"$VERIFY_SCRIPT" "$FENGINE_DIR/framelean-engine"
+assert_fengine_has_no_dynamic_libav "$FENGINE_DIR/framelean-engine"
 
 qmc_adapter_available=false
 for adapter_name in framelean-qmc-adapter qmc-decrypt; do
@@ -407,15 +357,11 @@ inject_sparkle_settings
 
 "$VERIFY_SCRIPT" "$APP_PATH"
 
-if [[ ! -x "$APP_PATH/Contents/Resources/ffmpeg/ffmpeg" ]]; then
-  echo "error: bundled ffmpeg is missing from the app package" >&2
+if [[ ! -x "$APP_PATH/Contents/Resources/framelean-engine" ]]; then
+  echo "error: bundled FEngine is missing from the app package" >&2
   exit 1
 fi
-
-if [[ ! -x "$APP_PATH/Contents/Resources/ffmpeg/ffprobe" ]]; then
-  echo "error: bundled ffprobe is missing from the app package" >&2
-  exit 1
-fi
+assert_fengine_has_no_dynamic_libav "$APP_PATH/Contents/Resources/framelean-engine"
 
 if [[ ! -f "$APP_PATH/Contents/Resources/legal/COPYING" ]]; then
   echo "error: legal materials are missing from the app package" >&2

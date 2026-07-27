@@ -19,12 +19,6 @@ bool isPermissionDeniedText(String text) {
       lower.contains('拒绝访问');
 }
 
-bool isSecuritySoftwareBlockText(String text) {
-  final lower = text.toLowerCase();
-  return isPermissionDeniedText(text) &&
-      (lower.contains('ffmpeg') || lower.contains('ffmpeg.exe'));
-}
-
 TaskFailure taskFailureFromError({
   required TaskFailureStage stage,
   required String technicalSummary,
@@ -63,9 +57,6 @@ TaskFailure taskFailureFromError({
       lower.contains('not enough space')) {
     code = TaskFailureCode.insufficientDiskSpace;
     userMessage = '磁盘空间不足，无法写入输出文件。';
-  } else if (isSecuritySoftwareBlockText(raw)) {
-    code = TaskFailureCode.securitySoftwareBlocked;
-    userMessage = 'FFmpeg 无法写入所选目录，可能被系统安全策略拦截。';
   } else if (isPermissionDeniedText(raw) ||
       lower.contains('directory not writable') ||
       raw.contains('输出目录不可写')) {
@@ -92,7 +83,7 @@ TaskFailure taskFailureFromError({
       lower.contains('not currently supported in build') ||
       raw.contains('不支持所需的编码器')) {
     code = TaskFailureCode.encoderUnavailable;
-    userMessage = '当前 FFmpeg 不支持任务所需的编码器。';
+    userMessage = '当前媒体引擎不支持任务所需的编码器。';
     retryable = false;
   } else if (lower.contains('invalid data found') ||
       lower.contains('moov atom not found') ||
@@ -108,7 +99,7 @@ TaskFailure taskFailureFromError({
     userMessage = '源文件不可访问，可能已被移动或移除。';
   } else if (stage == TaskFailureStage.processStart) {
     code = TaskFailureCode.processStartFailed;
-    userMessage = fallbackUserMessage ?? 'FFmpeg 进程启动失败。';
+    userMessage = fallbackUserMessage ?? '媒体引擎启动任务失败。';
   } else if (stage == TaskFailureStage.processing &&
       code == TaskFailureCode.unknown) {
     code = TaskFailureCode.processExitedAbnormally;

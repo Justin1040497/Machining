@@ -14,7 +14,7 @@ typedef FEngineTransportLauncher =
     });
 
 final class LocalFEngineGateway
-    implements EngineBatchGateway, EngineProcessControl {
+    implements EngineBatchGateway, EngineMediaGateway, EngineProcessControl {
   LocalFEngineGateway({
     required this.executablePath,
     required this.snapshotDirectory,
@@ -99,7 +99,7 @@ final class LocalFEngineGateway
   }
 
   @override
-  Future<EngineOperationResult<EngineAnalysisResponseDocument>> analyze(
+  Future<EngineOperationResult<EngineAnalysisCompletionDocument>> analyze(
     EngineAnalysisRequest request,
   ) async {
     final connection = await connect();
@@ -112,9 +112,23 @@ final class LocalFEngineGateway
     );
     final document = _parseDocument(
       requestId: result.requestId,
-      parse: () => EngineAnalysisResponseDocument.fromJson(
-        _requireObject(result.payload, 'analysis', 'analysis_completed'),
-      ),
+      parse: () {
+        final snapshotValue = result.payload['snapshot'];
+        return EngineAnalysisCompletionDocument(
+          analysis: EngineAnalysisResponseDocument.fromJson(
+            _requireObject(result.payload, 'analysis', 'analysis_completed'),
+          ),
+          snapshot: snapshotValue == null
+              ? null
+              : EngineAnalysisSnapshotDocument.fromJson(
+                  _requireObject(
+                    result.payload,
+                    'snapshot',
+                    'analysis_completed',
+                  ),
+                ),
+        );
+      },
     );
     return EngineOperationResult(
       sessionId: connection.sessionId,
@@ -185,36 +199,147 @@ final class LocalFEngineGateway
   }
 
   @override
-  Future<EngineOperationResult<EngineConfigurationResolutionDocument>>
-  resolveConfiguration(EngineConfigurationRequest request) async {
+  Future<EngineOperationResult<EnginePreviewFramesResult>>
+  generatePreviewFrames(EnginePreviewFramesRequest request) async {
     final connection = await connect();
     final client = await _connectedClient();
     final result = await client.requestWork(
-      commandType: 'resolve_configuration',
+      commandType: 'generate_preview_frames',
       commandPayload: <String, Object?>{
-        'analysis_id': request.analysisId,
-        'expected_revision': request.expectedRevision,
-        'selection': engineConfigurationSelectionToJson(request.selection),
+        'client_task_id': request.clientTaskId,
+        'source': _sourceFactsPayload(request.source),
+        'output_directory': request.outputDirectory,
+        'timestamps_us': request.timestampsUs,
+        'max_width': request.maxWidth,
         'priority': request.priority.name,
       },
-      expectedTerminalEvent: 'configuration_resolved',
+      expectedTerminalEvent: 'preview_frames_ready',
+      requestId: request.requestId,
     );
-    final document = _parseDocument(
+    final resultJson = _requireObject(
+      result.payload,
+      'result',
+      'preview_frames_ready',
+    );
+    final frames =
+        _requireList(resultJson, 'frames', requestId: result.requestId)
+            .map((value) {
+              final frame = _objectValue(
+                value,
+                'preview frame',
+                result.requestId,
+              );
+              return EnginePreviewFrameArtifact(
+                index: _requireIntValue(
+                  frame,
+                  'index',
+                  requestId: result.requestId,
+                ),
+                requestedTimestampUs: _requireIntValue(
+                  frame,
+                  'requested_timestamp_us',
+                  requestId: result.requestId,
+                ),
+                decodedTimestampUs: _requireIntValue(
+                  frame,
+                  'decoded_timestamp_us',
+                  requestId: result.requestId,
+                ),
+                width: _requireIntValue(
+                  frame,
+                  'width',
+                  requestId: result.requestId,
+                ),
+                height: _requireIntValue(
+                  frame,
+                  'height',
+                  requestId: result.requestId,
+                ),
+                outputPath: _requireNonEmptyString(
+                  frame,
+                  'output_path',
+                  'preview frame',
+                  requestId: result.requestId,
+                ),
+              );
+            })
+            .toList(growable: false);
+    return EngineOperationResult(
+      sessionId: connection.sessionId,
       requestId: result.requestId,
-      parse: () => EngineConfigurationResolutionDocument.fromJson(
-        _requireObject(
-          result.payload,
-          'configuration',
-          'configuration_resolved',
+      workId: _requireWorkId(result),
+      sequence: result.sequence,
+      value: EnginePreviewFramesResult(
+        outputDirectory: _requireNonEmptyString(
+          resultJson,
+          'output_directory',
+          'preview_frames_ready',
+          requestId: result.requestId,
         ),
+        frames: frames,
       ),
+      queueKind: _parseQueueKind(result.queueKind),
+      queuePosition: result.queuePosition,
+      queueRevision: result.queueRevision,
+    );
+  }
+
+  @override
+  Future<EngineOperationResult<EngineVideoThumbnailResult>>
+  generateVideoThumbnail(EngineVideoThumbnailRequest request) async {
+    final connection = await connect();
+    final client = await _connectedClient();
+    final result = await client.requestWork(
+      commandType: 'generate_video_thumbnail',
+      commandPayload: <String, Object?>{
+        'client_task_id': request.clientTaskId,
+        'source': _sourceFactsPayload(request.source),
+        'output_path': request.outputPath,
+        'duration_us': request.durationUs,
+        'max_width': request.maxWidth,
+        'priority': request.priority.name,
+      },
+      expectedTerminalEvent: 'video_thumbnail_ready',
+      requestId: request.requestId,
+    );
+    final resultJson = _requireObject(
+      result.payload,
+      'result',
+      'video_thumbnail_ready',
     );
     return EngineOperationResult(
       sessionId: connection.sessionId,
       requestId: result.requestId,
       workId: _requireWorkId(result),
       sequence: result.sequence,
-      value: document,
+      value: EngineVideoThumbnailResult(
+        outputPath: _requireNonEmptyString(
+          resultJson,
+          'output_path',
+          'video_thumbnail_ready',
+          requestId: result.requestId,
+        ),
+        requestedTimestampUs: _requireIntValue(
+          resultJson,
+          'requested_timestamp_us',
+          requestId: result.requestId,
+        ),
+        decodedTimestampUs: _requireIntValue(
+          resultJson,
+          'decoded_timestamp_us',
+          requestId: result.requestId,
+        ),
+        width: _requireIntValue(
+          resultJson,
+          'width',
+          requestId: result.requestId,
+        ),
+        height: _requireIntValue(
+          resultJson,
+          'height',
+          requestId: result.requestId,
+        ),
+      ),
       queueKind: _parseQueueKind(result.queueKind),
       queuePosition: result.queuePosition,
       queueRevision: result.queueRevision,
@@ -804,14 +929,18 @@ final class LocalFEngineGateway
     return <String, Object?>{
       'client_task_id': request.clientTaskId,
       'client_file_id': request.clientFileId,
-      'source': <String, Object?>{
-        'path': request.source.path,
-        'file_size_bytes': request.source.fileSizeBytes,
-        'modified_time_unix_nanos': request.source.modifiedTimeUnixNanos,
-      },
+      'source': _sourceFactsPayload(request.source),
       'task_mode': _taskModeName(request.taskMode),
       'priority': request.priority.name,
       'force_reanalysis': request.forceReanalysis,
+    };
+  }
+
+  Map<String, Object?> _sourceFactsPayload(EngineSourceFacts source) {
+    return <String, Object?>{
+      'path': source.path,
+      'file_size_bytes': source.fileSizeBytes,
+      'modified_time_unix_nanos': source.modifiedTimeUnixNanos,
     };
   }
 
@@ -822,7 +951,7 @@ final class LocalFEngineGateway
       'client_task_id': request.clientTaskId,
       'analysis_id': request.analysisId,
       'expected_revision': request.expectedRevision,
-      'selection': engineConfigurationSelectionToJson(request.selection),
+      'selection': request.selection,
       'output': <String, Object?>{
         'requested_path': request.requestedOutputPath,
         'collision_policy': _collisionPolicyName(request.collisionPolicy),

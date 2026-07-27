@@ -2,17 +2,12 @@ import 'package:framelean/application/repositories/media_task_repository.dart';
 import 'package:framelean/application/repositories/engine_analysis_projection_repository.dart';
 import 'package:framelean/application/repositories/task_folder_repository.dart';
 import 'package:framelean/application/services/engine/engine_gateway.dart';
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart'
-    show FfmpegQueueStartOutcome, FfmpegQueueStartResult;
+import 'package:framelean/application/services/execution/execution_queue_result.dart';
 import 'package:framelean/application/use_cases/media_tasks/submit_engine_execution_use_case.dart';
 import 'package:framelean/domain/library.dart';
 
 /// Routes every product execution request through the FEngine boundary.
 ///
-/// The legacy Dart FFmpeg runner remains available to the migration work, but
-/// it is deliberately not a dependency of this coordinator. This keeps queue
-/// selection and process execution out of the Client while FLL execution is
-/// being completed.
 class MediaTaskExecutionCoordinator {
   const MediaTaskExecutionCoordinator({
     required this.repository,
@@ -28,7 +23,7 @@ class MediaTaskExecutionCoordinator {
   final EngineExecutionSubmitter submitEngineExecution;
   final Future<EngineLifecycleGateway> Function()? readEngineGateway;
 
-  Future<FfmpegQueueStartResult> startSingleTask(
+  Future<EngineQueueStartResult> startSingleTask(
     String taskId, {
     // Kept at the call boundary until the workbench UI drops the legacy
     // compression-confirmation option. It has no effect on Engine requests.
@@ -36,8 +31,8 @@ class MediaTaskExecutionCoordinator {
   }) async {
     final task = await repository.loadTaskById(taskId);
     if (task == null) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.notFound,
+      return const EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.notFound,
         message: '找不到任务',
       );
     }
@@ -72,8 +67,8 @@ class MediaTaskExecutionCoordinator {
       if (task.status == TaskStatus.running ||
           task.status == TaskStatus.preempting ||
           task.status == TaskStatus.resuming) {
-        return FfmpegQueueStartResult(
-          outcome: FfmpegQueueStartOutcome.alreadyRunning,
+        return EngineQueueStartResult(
+          outcome: EngineQueueStartOutcome.alreadyRunning,
           task: task,
           message: '任务已经在 FEngine 执行 lane 中',
         );
@@ -96,21 +91,21 @@ class MediaTaskExecutionCoordinator {
     return _mapEngineResult(submitted);
   }
 
-  Future<FfmpegQueueStartResult> pauseTask(String taskId) {
+  Future<EngineQueueStartResult> pauseTask(String taskId) {
     return _controlTask(taskId, EngineExecutionControlAction.pause);
   }
 
-  Future<FfmpegQueueStartResult> cancelTask(String taskId) {
+  Future<EngineQueueStartResult> cancelTask(String taskId) {
     return _controlTask(taskId, EngineExecutionControlAction.cancel);
   }
 
-  Future<FfmpegQueueStartResult> pauseFolder(String folderId) async {
+  Future<EngineQueueStartResult> pauseFolder(String folderId) async {
     final snapshot =
         (await (await _requireGateway()).getEngineSnapshot()).value;
     final activeId = snapshot.executionLane.active?.executionId;
     if (activeId == null) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.noPendingTask,
+      return const EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.noPendingTask,
         message: 'FEngine 当前没有运行中的任务',
       );
     }
@@ -125,24 +120,26 @@ class MediaTaskExecutionCoordinator {
         return pauseTask(task.id);
       }
     }
-    return const FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.noPendingTask,
+    return const EngineQueueStartResult(
+      outcome: EngineQueueStartOutcome.noPendingTask,
       message: '该任务夹没有运行中的 FEngine 任务',
     );
   }
 
-  Future<FfmpegQueueStartResult> pauseActive() async {
+  Future<EngineQueueStartResult> pauseActive() async {
     final snapshot =
         (await (await _requireGateway()).getEngineSnapshot()).value;
     final activeId = snapshot.executionLane.active?.executionId;
     if (activeId == null) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.noPendingTask,
+      return const EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.noPendingTask,
         message: 'FEngine 当前没有运行中的任务',
       );
     }
     return _controlExecutionId(activeId, EngineExecutionControlAction.pause);
   }
+
+  Future<EngineQueueStartResult> pauseAll() => pauseActive();
 
   Future<void> cancelAll() async {
     final gateway = await _requireGateway();
@@ -161,14 +158,14 @@ class MediaTaskExecutionCoordinator {
     }
   }
 
-  Future<FfmpegQueueStartResult> _controlTask(
+  Future<EngineQueueStartResult> _controlTask(
     String taskId,
     EngineExecutionControlAction action,
   ) async {
     final task = await repository.loadTaskById(taskId);
     if (task == null) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.notFound,
+      return const EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.notFound,
         message: '找不到任务',
       );
     }
@@ -177,8 +174,8 @@ class MediaTaskExecutionCoordinator {
     );
     final executionId = projection?.executionId;
     if (executionId == null) {
-      return FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.invalidTaskState,
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.invalidTaskState,
         task: task,
         message: '任务没有可控制的 FEngine execution_id',
       );
@@ -189,7 +186,7 @@ class MediaTaskExecutionCoordinator {
     );
   }
 
-  Future<FfmpegQueueStartResult> _controlExecutionId(
+  Future<EngineQueueStartResult> _controlExecutionId(
     String executionId,
     EngineExecutionControlAction action,
   ) async {
@@ -224,7 +221,7 @@ class MediaTaskExecutionCoordinator {
     return reader();
   }
 
-  Future<FfmpegQueueStartResult> startWorkbenchQueue({
+  Future<EngineQueueStartResult> startWorkbenchQueue({
     bool allowExtremeCompression = false,
   }) async {
     return _aggregateResults(
@@ -232,7 +229,7 @@ class MediaTaskExecutionCoordinator {
     );
   }
 
-  Future<FfmpegQueueStartResult> startFolderQueue(
+  Future<EngineQueueStartResult> startFolderQueue(
     String folderId, {
     bool allowExtremeCompression = false,
   }) async {
@@ -311,12 +308,12 @@ class MediaTaskExecutionCoordinator {
     return [for (final item in items) ...item.tasks];
   }
 
-  FfmpegQueueStartResult _aggregateResults(
+  EngineQueueStartResult _aggregateResults(
     List<EngineExecutionDispatchResult> results,
   ) {
     if (results.isEmpty) {
-      return const FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.noPendingTask,
+      return const EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.noPendingTask,
         message: '当前范围没有可提交到 FEngine 的任务',
       );
     }
@@ -349,42 +346,42 @@ class MediaTaskExecutionCoordinator {
 
     final representative = _firstTask(results);
     if (submitted.isNotEmpty) {
-      return FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.queued,
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.queued,
         task: _firstTask(submitted) ?? representative,
         message: _batchSummary(results),
       );
     }
     if (failed.isNotEmpty) {
-      return FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.executionFailed,
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.executionFailed,
         task: _firstTask(failed) ?? representative,
         message: _batchSummary(results),
       );
     }
     if (notReady.isNotEmpty) {
-      return FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.notReady,
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.notReady,
         task: _firstTask(notReady) ?? representative,
         message: _batchSummary(results),
       );
     }
     if (notConfigured.isNotEmpty) {
-      return FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.invalidTaskState,
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.invalidTaskState,
         task: _firstTask(notConfigured) ?? representative,
         message: _batchSummary(results),
       );
     }
     if (notFound.isNotEmpty) {
-      return FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.notFound,
+      return EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.notFound,
         task: _firstTask(notFound) ?? representative,
         message: _batchSummary(results),
       );
     }
-    return FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notReady,
+    return EngineQueueStartResult(
+      outcome: EngineQueueStartOutcome.notReady,
       task: representative,
       message: _batchSummary(results),
     );
@@ -505,56 +502,56 @@ final class _ExecutionOrderItem {
   final List<MediaTask> tasks;
 }
 
-FfmpegQueueStartResult _mapEngineResult(EngineExecutionDispatchResult result) {
+EngineQueueStartResult _mapEngineResult(EngineExecutionDispatchResult result) {
   return switch (result.outcome) {
     EngineExecutionDispatchOutcome.submitted ||
-    EngineExecutionDispatchOutcome.alreadySubmitting => FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.queued,
+    EngineExecutionDispatchOutcome.alreadySubmitting => EngineQueueStartResult(
+      outcome: EngineQueueStartOutcome.queued,
       task: result.task,
       message: result.message ?? '任务已提交到 FEngine',
     ),
-    EngineExecutionDispatchOutcome.notFound => FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notFound,
+    EngineExecutionDispatchOutcome.notFound => EngineQueueStartResult(
+      outcome: EngineQueueStartOutcome.notFound,
       message: result.message,
     ),
     EngineExecutionDispatchOutcome.notReady ||
-    EngineExecutionDispatchOutcome.stale => FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.notReady,
+    EngineExecutionDispatchOutcome.stale => EngineQueueStartResult(
+      outcome: EngineQueueStartOutcome.notReady,
       task: result.task,
       message: result.message,
     ),
-    EngineExecutionDispatchOutcome.failed => FfmpegQueueStartResult(
-      outcome: FfmpegQueueStartOutcome.executionFailed,
+    EngineExecutionDispatchOutcome.failed => EngineQueueStartResult(
+      outcome: EngineQueueStartOutcome.executionFailed,
       task: result.task,
       message: result.message,
     ),
     EngineExecutionDispatchOutcome.notEngineConfigured =>
-      FfmpegQueueStartResult(
-        outcome: FfmpegQueueStartOutcome.invalidTaskState,
+      EngineQueueStartResult(
+        outcome: EngineQueueStartOutcome.invalidTaskState,
         task: result.task,
         message: result.message,
       ),
   };
 }
 
-FfmpegQueueStartResult _controlResult(
+EngineQueueStartResult _controlResult(
   MediaTask? task,
   EngineOperationResult<EngineExecutionState> result,
 ) {
   final outcome = switch (result.value) {
     EngineExecutionState.running ||
-    EngineExecutionState.resuming => FfmpegQueueStartOutcome.started,
+    EngineExecutionState.resuming => EngineQueueStartOutcome.started,
     EngineExecutionState.pauseRequested ||
-    EngineExecutionState.paused => FfmpegQueueStartOutcome.paused,
+    EngineExecutionState.paused => EngineQueueStartOutcome.paused,
     EngineExecutionState.cancelRequested ||
-    EngineExecutionState.cancelled => FfmpegQueueStartOutcome.cancelled,
-    EngineExecutionState.completed => FfmpegQueueStartOutcome.completed,
-    EngineExecutionState.failed => FfmpegQueueStartOutcome.executionFailed,
+    EngineExecutionState.cancelled => EngineQueueStartOutcome.cancelled,
+    EngineExecutionState.completed => EngineQueueStartOutcome.completed,
+    EngineExecutionState.failed => EngineQueueStartOutcome.executionFailed,
     EngineExecutionState.queued ||
     EngineExecutionState.preempting ||
-    EngineExecutionState.preempted => FfmpegQueueStartOutcome.queued,
+    EngineExecutionState.preempted => EngineQueueStartOutcome.queued,
   };
-  return FfmpegQueueStartResult(
+  return EngineQueueStartResult(
     outcome: outcome,
     task: task,
     message: 'FEngine execution 状态：${result.value.name}',

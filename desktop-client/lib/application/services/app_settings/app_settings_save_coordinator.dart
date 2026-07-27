@@ -7,7 +7,6 @@ import 'package:framelean/application/use_cases/app_settings/save_app_settings_u
 
 typedef AppThemeModeSetter = void Function(AppThemeMode mode);
 typedef AppThemeCacheWriter = Future<void> Function(AppThemeMode mode);
-typedef AppRuntimeInvalidator = void Function();
 typedef OutputSettingsAppliedCallback = void Function();
 
 class AppSettingsSaveCoordinator {
@@ -16,7 +15,6 @@ class AppSettingsSaveCoordinator {
     required this.notificationManager,
     required this.setThemeMode,
     required this.writeThemeCache,
-    required this.invalidateRuntime,
     required this.applyOutputSettingsUseCase,
     required this.onOutputSettingsApplied,
   });
@@ -25,7 +23,6 @@ class AppSettingsSaveCoordinator {
   final AppNotificationManager notificationManager;
   final AppThemeModeSetter setThemeMode;
   final AppThemeCacheWriter writeThemeCache;
-  final AppRuntimeInvalidator invalidateRuntime;
   final ApplyOutputSettingsToExistingTasksUseCase applyOutputSettingsUseCase;
   final OutputSettingsAppliedCallback onOutputSettingsApplied;
 
@@ -43,7 +40,6 @@ class AppSettingsSaveCoordinator {
         await saveSettingsUseCase.call(settings);
         setThemeMode(settings.themeMode);
         await writeThemeCache(settings.themeMode);
-        invalidateRuntime();
         if (target.refreshesExistingTasks) {
           await applyOutputSettingsUseCase.call(settings);
           onOutputSettingsApplied();

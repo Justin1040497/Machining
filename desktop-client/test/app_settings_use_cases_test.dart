@@ -7,9 +7,7 @@ import 'package:framelean/domain/entities/app_settings.dart';
 void main() {
   group('app settings use cases', () {
     test('loads settings from the repository', () async {
-      final settings = AppSettings.initial().copyWith(
-        customFfmpegPath: '/usr/bin/ffmpeg',
-      );
+      final settings = AppSettings.initial();
       final repository = FakeAppSettingsRepository(settings);
 
       final loadedSettings = await LoadAppSettingsUseCase(
@@ -19,26 +17,10 @@ void main() {
       expect(loadedSettings, same(settings));
     });
 
-    test(
-      'persists legacy custom FFmpeg paths without Client validation',
-      () async {
-        final repository = FakeAppSettingsRepository(AppSettings.initial());
-        final settings = AppSettings.initial().copyWith(
-          customFfmpegPath: '/custom/ffmpeg',
-          customFfprobePath: '/custom/ffprobe',
-        );
-
-        await SaveAppSettingsUseCase(repository: repository).call(settings);
-
-        expect(repository.settings, same(settings));
-      },
-    );
-
-    test('preserves empty legacy custom FFmpeg path values', () async {
+    test('persists settings without Client runtime validation', () async {
       final repository = FakeAppSettingsRepository(AppSettings.initial());
       final settings = AppSettings.initial().copyWith(
-        customFfmpegPath: '   ',
-        customFfprobePath: '',
+        defaultOutputDirectory: '/exports',
       );
 
       await SaveAppSettingsUseCase(repository: repository).call(settings);

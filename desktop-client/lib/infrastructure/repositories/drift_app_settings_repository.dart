@@ -52,8 +52,6 @@ class DriftAppSettingsRepository implements AppSettingsRepository {
             saveOutputToSourceDirectory: Value(
               settings.saveOutputToSourceDirectory,
             ),
-            customFfmpegPath: Value(settings.customFfmpegPath),
-            customFfprobePath: Value(settings.customFfprobePath),
             showRawLog: Value(settings.showRawLog),
             showAdvancedOptions: Value(settings.showAdvancedOptions),
             defaultOutputVideoCodec: Value(
@@ -101,8 +99,6 @@ extension SettingsRowMapper on SettingsRow {
         defaultOutputDirectory: defaultOutputDirectory,
         lastSelectedOutputDirectory: lastSelectedOutputDirectory,
         saveOutputToSourceDirectory: saveOutputToSourceDirectory,
-        customFfmpegPath: customFfmpegPath,
-        customFfprobePath: customFfprobePath,
         showRawLog: showRawLog,
         showAdvancedOptions: showAdvancedOptions,
         defaultMediaConfig: upgradeLegacyInitialDefaultMediaConfig(
@@ -132,8 +128,6 @@ extension SettingsRowMapper on SettingsRow {
       defaultOutputDirectory: defaultOutputDirectory,
       lastSelectedOutputDirectory: lastSelectedOutputDirectory,
       saveOutputToSourceDirectory: saveOutputToSourceDirectory,
-      customFfmpegPath: customFfmpegPath,
-      customFfprobePath: customFfprobePath,
       showRawLog: showRawLog,
       showAdvancedOptions: showAdvancedOptions,
       compressionSettings: AppCompressionSettings(

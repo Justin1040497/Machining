@@ -275,7 +275,7 @@ class MediaTask {
     return copyWith(status: TaskStatus.missingSource, clearFailure: true);
   }
 
-  /// 标记任务已经交给 FFmpeg 进程执行
+  /// 标记任务已经交给 FEngine 执行。
   MediaTask markRunning({required String outputPath, int? startedAt}) {
     return copyWith(
       status: TaskStatus.running,

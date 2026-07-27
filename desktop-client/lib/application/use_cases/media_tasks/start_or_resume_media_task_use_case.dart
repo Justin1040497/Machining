@@ -1,4 +1,4 @@
-import 'package:framelean/application/services/execution/ffmpeg_task_queue_runner.dart';
+import 'package:framelean/application/services/execution/execution_queue_result.dart';
 import 'package:framelean/application/services/execution/media_task_execution_coordinator.dart';
 
 class StartOrResumeMediaTaskUseCase {
@@ -6,7 +6,7 @@ class StartOrResumeMediaTaskUseCase {
 
   const StartOrResumeMediaTaskUseCase({required this.executionCoordinator});
 
-  Future<FfmpegQueueStartResult> call(
+  Future<EngineQueueStartResult> call(
     String taskId, {
     // Retained for source compatibility while the workbench removes the
     // legacy compression-confirmation flow. Engine execution ignores it.

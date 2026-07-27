@@ -9,7 +9,7 @@
 - 通过 FEngine Gateway 提交媒体分析与执行，投影引擎队列、进度、抢占关系和终态。
 - 集成 macOS 和 Windows 的窗口、通知、文件选择、更新与安装相关能力。
 
-新媒体任务路径已统一经 FEngine：Client 任务夹先摊平为独立任务，分析与执行队列分开投影，拖拽使用双 revision 原子重排，单任务开始可转换为安全点 LIFO 抢占。本地 Gateway 通过随机 token 认证的 loopback 守护连接接入 Worker；普通 Client 关闭只断开连接，显式退出会先取消任务再关闭 Worker。旧 Dart FFmpeg/FFprobe 服务仍为预览和尚未迁移的兼容功能保留，不是新 execution lane 的权威源。
+全部媒体路径已统一经 FEngine：Client 任务夹先摊平为独立任务，分析与执行队列分开投影，拖拽使用双 revision 原子重排，单任务开始可转换为安全点 LIFO 抢占。本地 Gateway 通过随机 token 认证的 loopback 守护连接接入 Worker；普通 Client 关闭只断开连接，显式退出会先取消任务再关闭 Worker。媒体元数据来自 FLL `AnalysisSnapshot`，预览帧和视频缩略图由 FLL 进程内 libav helper 生成并通过 FEngine Control queue 返回。Client 不定位、分发或启动 `ffmpeg` / `ffprobe` 可执行文件。
 
 ## 平台边界
 

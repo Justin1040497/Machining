@@ -5,10 +5,10 @@ import 'package:framelean/application/services/execution/media_resource_monitor.
 
 /// 媒体工作的类别。
 enum MediaWorkKind {
-  /// FFmpeg 编码与转换（正式任务）
+  /// FEngine 执行（正式任务）
   encode,
 
-  /// FFprobe 媒体分析
+  /// FEngine 媒体分析
   analyze,
 
   /// 缩略图生成
@@ -77,7 +77,7 @@ abstract class MediaWorkLease {
 /// 全局媒体工作资源调度器。
 ///
 /// 管理所有媒体工作（编码、分析、缩略图、预览等）的资源分配。
-/// 不处理任何业务逻辑（FFmpeg 命令构造、数据库操作等），
+/// 不处理任何业务逻辑（FEngine 请求、数据库操作等），
 /// 只负责决定“当前是否可以运行这个任务”。
 ///
 /// 用法：

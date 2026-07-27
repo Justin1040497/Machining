@@ -43,19 +43,36 @@ final engineTaskProjectionProvider = FutureProvider.autoDispose
 
 final engineLifecycleCoordinatorProvider =
     FutureProvider<EngineLifecycleCoordinator>((ref) async {
-      final coordinator = EngineLifecycleCoordinator(
-        gateway: await ref.watch(engineGatewayProvider.future),
-        taskRepository: ref.watch(mediaTaskRepositoryProvider),
-        projectionRepository: ref.watch(
-          engineAnalysisProjectionRepositoryProvider,
-        ),
+      final gatewayFuture = ref.watch(engineGatewayProvider.future);
+      final taskRepository = ref.watch(mediaTaskRepositoryProvider);
+      final projectionRepository = ref.watch(
+        engineAnalysisProjectionRepositoryProvider,
+      );
+      EngineLifecycleCoordinator? coordinator;
+      var disposed = false;
+      ref.onDispose(() {
+        disposed = true;
+        if (coordinator != null) {
+          unawaited(coordinator.close());
+        }
+      });
+
+      coordinator = EngineLifecycleCoordinator(
+        gateway: await gatewayFuture,
+        taskRepository: taskRepository,
+        projectionRepository: projectionRepository,
         onProjectionChanged: (taskId) {
-          ref.invalidate(engineTaskProjectionProvider(taskId));
+          if (!disposed) {
+            ref.invalidate(engineTaskProjectionProvider(taskId));
+          }
         },
       );
+      if (disposed) {
+        return coordinator;
+      }
       await coordinator.start();
-      ref.onDispose(() {
+      if (disposed) {
         unawaited(coordinator.close());
-      });
+      }
       return coordinator;
     });

@@ -2769,7 +2769,6 @@ class _TestTaskConfigDialog extends StatelessWidget {
             selectedQualityIndex: selectedQualityIndex,
             activePresetTitle: _presetForSmartPreset(selectedSmartPreset).title,
             selectedTargetSizeRatio: selectedTargetSizeRatio,
-            estimatedSizeForPreset: (_) => '',
             targetSizeModeEnabled:
                 !preserveHdr &&
                 VideoOutputCompatibility.supportsTargetSize(selectedVideoCodec),

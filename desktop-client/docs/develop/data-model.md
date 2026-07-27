@@ -4,7 +4,7 @@
 
 这份文档记录 FrameLean 当前落地的数据模型。内容以 `lib/domain` 的实体和值对象、`lib/infrastructure/database` 的 Drift 表，以及仓储映射代码为准。
 
-当前版本持久化本地任务列表、任务夹、应用设置和应用通知记录；FFmpeg 执行日志、预览帧、缩略图、隐藏 partial 输出文件和临时两遍压缩日志仍放在系统临时目录或输出目录附近，不写入 SQLite。
+当前版本持久化本地任务列表、任务夹、应用设置、FEngine Snapshot 投影和应用通知记录；预览帧、缩略图和执行日志缓存仍放在系统临时目录或输出目录附近，不写入 SQLite。
 
 ## 数据库总览
 
@@ -20,7 +20,7 @@ lib/infrastructure/database/app_database.dart
 
 | 表 | Drift 类 | 用途 |
 | --- | --- | --- |
-| `tasks` | `TaskRows` | 保存导入媒体任务、执行状态、输出配置、源文件指纹和 FFprobe 分析结果 |
+| `tasks` | `TaskRows` | 保存导入媒体任务、本地展示状态、输出配置和源文件指纹；可配置的媒体事实以 FEngine Snapshot 投影为准 |
 | `task_folders` | `TaskFolderRows` | 保存工作台任务夹、媒体类型、排序和任务夹默认配置 |
 | `settings` | `SettingsRows` | 保存应用级设置；当前只保存一行全局设置，固定 `id = 1` |
 | `app_notifications` | `AppNotificationRows` | 保存应用内通知历史，供全局提示和后续通知中心读取 |
@@ -38,7 +38,7 @@ lib/infrastructure/database/app_database.dart
 | `ImageProcessingConfig` | `lib/domain/value_objects/image_processing_config.dart` | 图片输出格式、分辨率、质量、无损压缩和元数据保留配置 |
 | `AudioProcessingConfig` | `lib/domain/value_objects/audio_processing_config.dart` | 音频输出格式、码率、采样率和声道配置 |
 | `VideoTaskConfig` | `lib/domain/value_objects/video_task_config.dart` | 旧视频配置兼容对象，可映射到 `MediaTaskConfig.video` |
-| `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FFprobe 解析出的时长、编码、码率、分辨率、音频、封装、色彩和 HDR / Dolby Vision 元数据 |
+| `MediaAnalysisResult` | `lib/domain/value_objects/media_analysis_result.dart` | FEngine/FLL 分析投影出的时长、编码、码率、分辨率、音频、封装、色彩和 HDR / Dolby Vision 元数据 |
 | `SourceFileFingerprint` | `lib/domain/value_objects/source_file_fingerprint.dart` | 源文件快速指纹：文件大小 + 最后修改时间 |
 | `TaskFailure` | `lib/domain/value_objects/task_failure.dart` | 当前失败的唯一权威信息，保存阶段、错误码、用户提示、技术摘要、发生时间和可重试性；恢复动作由阶段与错误码推导 |
 | `AppSettings` | `lib/domain/entities/app_settings.dart` | 应用设置、默认媒体处理配置和主题偏好 |
@@ -69,7 +69,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `id` | text | 否 | 无 | `MediaTask.id` | UUID 字符串，主键，由 `MediaTask.generateId()` 生成 |
 | `input_path` | text | 否 | 无 | `inputPath` | 源文件绝对路径或系统返回的本地路径 |
 | `file_name` | text | 否 | 无 | `fileName` | UI 展示文件名，通常是 `path.basename(inputPath)` |
-| `media_kind` | text | 否 | `video` | `mediaKind` | 媒体类型枚举；当前支持 `video`、`image`、`audio` 导入、分析和基础 FFmpeg 处理 |
+| `media_kind` | text | 否 | `video` | `mediaKind` | 媒体类型枚举；当前支持 `video`、`image`、`audio` 导入和经 FEngine 的分析 / 执行 |
 | `purpose` | text | 否 | 无 | `purpose` | 任务用途：`compression` 或 `conversion` |
 | `sort_order` | integer | 否 | 无 | `sortOrder` | 任务列表排序，读取时按 `sort_order ASC, created_at ASC` |
 | `folder_id` | text | 是 | `null` | `folderId` | 任务所属任务夹 ID；为空时任务显示在工作台总列表 |
@@ -81,15 +81,15 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | --- | --- | --- | --- | --- | --- |
 | `status` | text | 否 | 无 | `status` | 任务状态，见“任务状态”一节 |
 | `progress` | real | 否 | `0` | `progress` | 0 到 1 的进度值；实体构造时断言范围合法 |
-| `output_path` | text | 是 | `null` | `outputPath` | FFmpeg 计划生成的输出文件路径 |
+| `output_path` | text | 是 | `null` | `outputPath` | FEngine 接受的 execution selection 所对应的输出文件路径 |
 | `output_file_size` | integer | 是 | `null` | `outputFileSize` | 成功完成后记录的最终输出体积；重试或重新执行时清空 |
 | `failure_json` | text | 是 | `null` | `failure` | schema 30 的结构化失败 JSON，固定 `version: 1`；读取优先于旧错误列 |
 | `error_message` | text | 是 | `null` | 兼容镜像 | 暂保留的旧技术错误列；新写入同步 `TaskFailure.technicalSummary`，不再作为领域权威信息 |
 | `analysis_error_message` | text | 是 | `null` | 兼容镜像 | 暂保留的旧分析错误列；分析失败时同步用户提示，用于旧数据库 / 旧客户端降级兼容 |
 | `policy_tags_json` | text | 是 | `null` | `policyTags` | 任务自动策略标签 JSON 数组；为空表示没有标签 |
 | `created_at` | integer | 否 | 无 | `createdAt` | 毫秒时间戳，默认由实体构造时写入 |
-| `started_at` | integer | 是 | `null` | `startedAt` | 任务交给 FFmpeg 进程时写入 |
-| `completed_at` | integer | 是 | `null` | `completedAt` | FFmpeg 观测到成功完成时写入 |
+| `started_at` | integer | 是 | `null` | `startedAt` | FEngine execution 进入运行态时写入 |
+| `completed_at` | integer | 是 | `null` | `completedAt` | FEngine 终态事件确认完成时写入 |
 | `failed_at` | integer | 是 | `null` | `failedAt` | 启动、执行或分析失败时写入 |
 
 ### 单任务配置字段
@@ -158,7 +158,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 指纹用于判断任务恢复时源文件是否仍是同一个文件。应用启动加载任务时，如果文件不存在会标记为 `missingSource`；如果文件存在但指纹变化，会清空旧分析结果并重新进入 `analyzing`。
 
-### FFprobe 分析字段
+### 媒体分析镜像字段
 
 这些字段映射到 `MediaAnalysisResult` 和分析状态信息。
 
@@ -167,8 +167,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_duration_ms` | integer | 是 | `null` | `durationMs` | 媒体时长，毫秒 |
 | `analysis_video_width` | integer | 是 | `null` | `videoWidth` | 视频宽度 |
 | `analysis_video_height` | integer | 是 | `null` | `videoHeight` | 视频高度 |
-| `analysis_video_codec` | text | 是 | `null` | `videoCodec` | FFprobe 读取的视频编码名 |
-| `analysis_audio_codec` | text | 是 | `null` | `audioCodec` | FFprobe 读取的音频编码名 |
+| `analysis_video_codec` | text | 是 | `null` | `videoCodec` | FLL libav 分析出的主视频编码名 |
+| `analysis_audio_codec` | text | 是 | `null` | `audioCodec` | FLL libav 分析出的主音频编码名 |
 | `analysis_video_pixel_format` | text | 是 | `null` | `videoPixelFormat` | 视频像素格式，例如 `yuv420p`、`p010le` |
 | `analysis_video_bit_depth` | integer | 是 | `null` | `videoBitDepth` | 视频位深，优先读取 `bits_per_raw_sample`，缺失时从像素格式推断 |
 | `analysis_color_range` | text | 是 | `null` | `colorRange` | 视频色彩范围，例如 `tv`、`pc` |
@@ -182,11 +182,11 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_max_frame_average_light_level` | integer | 是 | `null` | `maxFrameAverageLightLevel` | HDR10 MaxFALL，单位 nits |
 | `analysis_dolby_vision_profile` | integer | 是 | `null` | `dolbyVisionProfile` | Dolby Vision Profile，例如 `5`、`8` |
 | `analysis_dolby_vision_compatibility_id` | integer | 是 | `null` | `dolbyVisionCompatibilityId` | Dolby Vision BL signal compatibility id，用于判断是否有 HDR10 兼容层 |
-| `analysis_average_frame_rate` | text | 是 | `null` | `averageFrameRate` | FFprobe `avg_frame_rate` 原始值 |
-| `analysis_real_frame_rate` | text | 是 | `null` | `realFrameRate` | FFprobe `r_frame_rate` 原始值 |
+| `analysis_average_frame_rate` | text | 是 | `null` | `averageFrameRate` | FLL 分析得到的平均帧率文本 |
+| `analysis_real_frame_rate` | text | 是 | `null` | `realFrameRate` | FLL 分析得到的实际帧率文本 |
 | `analysis_sample_aspect_ratio` | text | 是 | `null` | `sampleAspectRatio` | 视频像素宽高比 |
 | `analysis_display_aspect_ratio` | text | 是 | `null` | `displayAspectRatio` | 视频显示宽高比 |
-| `analysis_video_rotation_degrees` | integer | 是 | `null` | `videoRotationDegrees` | FFprobe tags 或 side data 中的旋转角度 |
+| `analysis_video_rotation_degrees` | integer | 是 | `null` | `videoRotationDegrees` | FLL 从容器标签或 side data 读取的旋转角度 |
 | `analysis_field_order` | text | 是 | `null` | `fieldOrder` | 扫描方式 / 场序信息 |
 | `analysis_video_bitrate` | integer | 是 | `null` | `videoBitrate` | 视频流码率，单位 bps |
 | `analysis_audio_bitrate` | integer | 是 | `null` | `audioBitrate` | 音频流码率，单位 bps |
@@ -196,14 +196,14 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `analysis_audio_channels` | integer | 是 | `null` | `audioChannels` | 音频声道数 |
 | `analysis_audio_sample_rate` | integer | 是 | `null` | `audioSampleRate` | 音频采样率 |
 | `analysis_audio_channel_layout` | text | 是 | `null` | `audioChannelLayout` | 音频声道布局，例如 `mono`、`stereo`、`5.1(side)` |
-| `analysis_audio_stream_index` | integer | 是 | `null` | `audioStreamIndex` | FFprobe 选出的可转码主音频流全局索引，用于 FFmpeg 精确 `-map 0:<index>?`，避免把 iPhone APAC / `none` 音频流一起映射进输出 |
+| `analysis_audio_stream_index` | integer | 是 | `null` | `audioStreamIndex` | FLL 选出的主音频流全局索引；仅作展示和 selection 事实镜像，不由 Client 生成 stream mapping 参数 |
 | `analysis_image_width` | integer | 是 | `null` | `imageWidth` | 图片宽度 |
 | `analysis_image_height` | integer | 是 | `null` | `imageHeight` | 图片高度 |
-| `analysis_image_codec` | text | 是 | `null` | `imageCodec` | FFprobe 读取的图片编码名 |
+| `analysis_image_codec` | text | 是 | `null` | `imageCodec` | FLL libav 分析出的图片编码名 |
 | `analysis_image_pixel_format` | text | 是 | `null` | `imagePixelFormat` | 图片像素格式 |
 | `analysis_image_bit_depth` | integer | 是 | `null` | `imageBitDepth` | 图片位深 |
 | `analysis_updated_at` | integer | 是 | `null` | `analysisUpdatedAt` | 分析结果写入时间，毫秒时间戳 |
-| `analysis_error_message` | text | 是 | `null` | `analysisErrorMessage` | 分析失败或 FFprobe 不可用时的错误信息 |
+| `analysis_error_message` | text | 是 | `null` | `analysisErrorMessage` | FEngine 分析失败时的展示错误信息 |
 
 压缩策略使用 `MediaAnalysisResult.preferredBitrate` 作为有效码率，优先级为：
 
@@ -236,8 +236,6 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | `default_output_directory` | text | 是 | `null` | `defaultOutputDirectory` | 默认输出目录，当前作为设置模型保留 |
 | `last_selected_output_directory` | text | 是 | `null` | `lastSelectedOutputDirectory` | 最近一次选择的输出目录 |
 | `save_output_to_source_directory` | boolean | 否 | `true` | `saveOutputToSourceDirectory` | 默认导出时是否保存到源文件旁 |
-| `custom_ffmpeg_path` | text | 是 | `null` | `customFfmpegPath` | 用户指定的 FFmpeg 可执行文件路径 |
-| `custom_ffprobe_path` | text | 是 | `null` | `customFfprobePath` | 用户指定的 FFprobe 可执行文件路径 |
 | `show_raw_log` | boolean | 否 | `false` | `showRawLog` | 是否显示原始日志 |
 | `show_advanced_options` | boolean | 否 | `false` | `showAdvancedOptions` | 是否展示高级选项 |
 | `default_output_video_codec` | text | 否 | `h264` | `compressionSettings.defaultOutputVideoCodec` | 新任务默认视频编码偏好 |
@@ -284,37 +282,43 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 
 | 存储值 | UI 含义 | 产生位置 |
 | --- | --- | --- |
-| `awaitingAnalysis` | 等待分析 | 新导入、重新分析、源文件变化或分析中断恢复后 |
-| `analyzing` | 分析中 | 分析队列真正取得 FFprobe 执行位后 |
-| `pending` | 等待开始 | 已持久化有效分析结果，等待首次执行或执行失败后重试 |
-| `running` | 处理中 | 队列启动 FFmpeg 进程后 |
-| `paused` | 已暂停 | 当前前台 FFmpeg 进程被队列执行器挂起后 |
-| `completed` | 已完成 | FFmpeg 进程成功退出且输出文件存在 |
-| `failed` | 失败 | 分析失败、FFmpeg 不可用、命令构造失败、进程失败或输出缺失 |
+| `await_analysis` | 等待分析 | 新导入、重新分析、源文件变化或分析中断恢复后 |
+| `analysis_queued` | 已入分析队列 | FEngine 已接受请求，等待分析工作派发 |
+| `analyzing` | 分析中 | FEngine 分析队列已经派发该任务 |
+| `ready` | 等待开始 | 已持久化有效 FLL Snapshot，等待用户启动或重试 |
+| `analysis_failed` | 分析失败 | FEngine 分析终态失败 |
+| `execution_queued` | 已入执行队列 | FEngine 已接受 execution selection，等待或准备启动 |
+| `running` | 处理中 | FEngine execution lane 正在执行该任务 |
+| `preempting` | 正在抢占 | FEngine 正在暂停当前 execution 以启动前台任务 |
+| `preempted` | 已抢占 | 已暂停并位于 FEngine LIFO 恢复栈 |
+| `resuming` | 正在恢复 | FEngine 正在从恢复栈重启该 execution |
+| `paused` | 已暂停 | FEngine 对 execution 发出暂停或抢占事件后 |
+| `completed` | 已完成 | FEngine 终态事件确认完成且输出 artifact 有效 |
+| `execution_failed` | 执行失败 | FEngine 执行失败，或输出 artifact 缺失 |
 | `cancelled` | 已取消 | 用户取消正在执行或暂停中的任务 |
-| `missingSource` | 源文件丢失 | 启动、重试或恢复任务时源文件不存在 |
+| `missing_source` | 源文件丢失 | 启动、重试或恢复任务时源文件不存在 |
 
 ### 任务用途
 
 | 存储值 | 含义 | 当前实现 |
 | --- | --- | --- |
-| `compression` | 文件压缩 | 当前主路径，使用压缩建议、CRF、目标体积等策略 |
-| `conversion` | 格式转换 | UI 主区域只选择目标格式；命令构造优先无损转封装，并在需要重编码时自动使用保真参数 |
+| `compression` | 文件压缩 | Client 从 FLL Snapshot 展示压缩候选、预设和估算 |
+| `conversion` | 格式转换 | Client 从 FLL Snapshot 展示可用格式和参数；实际执行链由 FLL 判定 |
 
 ### 媒体类型
 
 | 存储值 | 含义 | 当前实现 |
 | --- | --- | --- |
-| `video` | 视频 | 完整保留当前压缩、转封装、预览和缩略图主链路 |
-| `image` | 图片 | 支持导入、FFprobe 分析、源图缩略图、图片配置面板和基础 FFmpeg 输出 |
-| `audio` | 音频 | 支持导入、FFprobe 分析和默认配置下的基础 FFmpeg 输出；波形、试听和音频编辑不在当前范围 |
+| `video` | 视频 | 支持 FLL 分析、FEngine 配置与执行、预览帧和缩略图主链路 |
+| `image` | 图片 | 支持导入、FLL 分析、缩略图、图片配置面板和经 FEngine 的执行 |
+| `audio` | 音频 | 支持导入、FLL 分析和经 FEngine 的执行；波形、试听和音频编辑不在当前范围 |
 
 ### 压缩模式
 
 | 存储值 | 含义 | 数据要求 |
 | --- | --- | --- |
-| `preset` | 推荐方案 | 使用 `smart_preset` 和 `compression_crf`，结合 FFprobe 分析结果估算码率和体积，不强承诺输出大小 |
-| `targetSize` | 目标体积 | 优先使用 `target_size_bytes`，需要有效时长；软件编码下使用两遍压缩 |
+| `preset` | 推荐方案 | Client 从 FLL Snapshot 展示可选预设和伴随参数；不在本地估算或组装 native 命令 |
+| `targetSize` | 目标体积 | 将目标字节数与候选 ID 原样提交给 FEngine；可行性和执行链由 FLL 判定 |
 
 历史兼容值：
 
@@ -331,32 +335,30 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 2. `MediaTaskListNotifier.createDraftFromPath()` 调用 `ImportMediaTaskUseCase`。
 3. `ImportMediaTaskUseCase` 识别 `MediaKind`，允许 `video`、`image`、`audio`，并读取 `SourceFileFingerprint`。
 4. 用应用设置和媒体类型生成新任务默认 `MediaTaskConfig`，创建 `MediaTask.draft()`。
-5. 批量写入 `awaitingAnalysis` 状态后，再把任务 ID 交给全局分析队列。
-6. 分析队列取得资源租约后调用 `AnalyzeMediaTaskUseCase`，状态转为 `analyzing`。
-7. 成功后先写入 `MediaAnalysisResult`，再调用 `markAnalysisReady()` 转为 `pending`。
-8. 失败后写入 `TaskFailure(stage: analysis, ...)`，任务状态变为统一的 `failed`。
+5. 批量写入 `await_analysis` 状态后，Client 通过 `AnalyzeMediaTaskUseCase` 把源事实提交给 FEngine 分析队列。
+6. FEngine 接受并派发后，Client 将状态投影为 `analyzing`。
+7. `AnalysisCompleted(analysisId, revision, snapshot)` 到达后，Client 持久化 Snapshot 投影和展示镜像，再转为 `ready` / 等待用户启动。
+8. 分析失败事件写入 `TaskFailure(stage: analysis, ...)`，任务状态转为 `analysis_failed`。
 
 ### 应用启动恢复
 
 1. `MediaTaskListNotifier.build()` 调用 `ReconcileMediaTasksUseCase`。
 2. `ReconcileMediaTasksUseCase` 读取全部任务并检查源文件是否存在。
 3. 源文件不存在时标记 `missingSource`。
-4. 源文件存在但指纹变化时，更新指纹、清空分析结果并转为 `awaitingAnalysis`。
-5. 旧 `pending` 或其他状态缺少分析结果时对账为 `awaitingAnalysis` 并排入后台分析；带有效分析结果的旧 `pending` 保持不变。
-6. 队列执行器刷新状态，判断是否有可执行或暂停任务。
+4. 源文件存在但指纹变化时，更新指纹、使 Snapshot 投影失效并转为 `await_analysis`。
+5. 没有有效 Snapshot 的旧任务会对账为 `await_analysis` 并重新提交 FEngine；带有效 Snapshot 的 `ready` 任务保持不变。
+6. Client 读取 FEngine Engine Snapshot，对账分析队列、execution lane、LIFO 恢复栈与任务展示状态。
 
 ### 执行和进度
 
-1. 全新执行只接受 `canStartExecution`（`pending` 且有分析结果）的任务；`paused` 仅能恢复 Runner 内仍存在的 `TaskExecution`。
-2. Runner 在申请租约、准备输入、构造命令和输出预检之前再次执行准入检查；未就绪立即返回 `notReady`。
-3. 队列按 `settings.max_concurrent_executions` 读取用户上限，再由资源守卫按设备能力和运行任务类型决定当前可用执行位；多个任务可同时写入 `running`。
-4. 手动任务在执行位满时暂停最早运行者；被抢占任务只保存在运行期 FIFO 中，不新增数据库字段，应用重启后仍按普通 `paused` 任务处理。
-5. 命令构造成功后写入 `running`、`output_path` 和 `started_at`。
-6. 视频和音频任务默认使用 `ProgressMode.timed`：`LocalFfmpegProcessObserver` 读取 FFmpeg `-progress pipe:1` 输出里的 `out_time_ms`，结合 `analysis_duration_ms` 计算进度。
-7. 静态图片任务使用 `ProgressMode.step`，不依赖 duration；执行开始后报告中间进度，完成时由队列写入 100%。
-8. 多步骤计划会把每一步进度按步骤数缩放；目标体积的软件编码两遍压缩就是两步计划。
-9. 进程成功且输出文件存在时写入 `completed` 和 `completed_at`；图片和音频压缩还会验证输出小于源文件。
-10. 进程失败、输出文件缺失、无效压缩或监听错误时写入 `failed`、`failed_at` 和 `failure_json`；通知只展示 `userMessage`，完整 stderr 保留在执行日志。
+1. 全新执行只接受持有有效 FLL Snapshot 的 `ready` 任务；Client 把用户选择的 candidate、preset 与参数原样提交给 FEngine。
+2. FEngine 以 source facts 与 Snapshot revision 再次校验准入；Client 不在本地解析配置、构造命令或预检 native 执行能力。
+3. 执行 lane、普通等待队列、用户暂停队列和 LIFO 恢复栈均由 FEngine 维护，Client 只投影其 Snapshot 与事件。
+4. 用户手动启动等待任务时，FEngine `PreemptAndStart` 暂停当前活动 execution 并压入恢复栈；最后一次抢占的任务最先恢复。
+5. FEngine 接受 execution 后，Client 写入 execution ID、队列 revision 与运行态投影；工作台展示由后续状态事件持续更新。
+6. 进度来自 FEngine 的 `media_time_us`、已处理字节与 execution 状态事件；Client 不读取进程 stdout 或推导编码步骤。
+7. 完成事件确认输出 artifact 后写入 `completed`、`completed_at` 与输出信息。
+8. 失败、取消或 source facts 不匹配时写入对应终态和 `failure_json`；通知只展示面向用户的错误信息，诊断由 FEngine 提供。
 
 ## 迁移历史
 
@@ -365,7 +367,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 目标版本 | 变更 |
 | --- | --- |
 | 2 | 给 `tasks` 增加 `media_kind` |
-| 3 | 增加源文件指纹和基础 FFprobe 分析字段 |
+| 3 | 增加源文件指纹和基础媒体分析镜像字段 |
 | 4 | 增加视频、容器和估算码率字段 |
 | 5 | 增加音频码率字段 |
 | 6 | 给 `settings` 增加 `default_output_video_codec` |
@@ -374,7 +376,7 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 9 | 给 `tasks` 增加 `smart_preset` 和 `target_size_bytes` |
 | 10 | 给 `settings` 增加保存到源文件旁、默认推荐方案和默认导出文件名模板 |
 | 11 | 将 `tasks.compression_mode` 中的历史值 `smart`、`quality` 归一化为 `preset` |
-| 12 | 给 `tasks` 增加 FFprobe 色彩、像素格式、帧率、宽高比、旋转、场序和音频声道布局字段 |
+| 12 | 给 `tasks` 增加色彩、像素格式、帧率、宽高比、旋转、场序和音频声道布局镜像字段 |
 | 13 | 给 `tasks` 增加 `analysis_audio_stream_index` |
 | 14 | 给 `tasks` 增加 `media_config_json` 和图片分析字段；给 `settings` 增加 `default_media_config_json` |
 | 15 | 给 `settings` 增加 `theme_mode`，保存浅色 / 深色主题偏好 |
@@ -393,12 +395,17 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 | 28 | 给 `tasks` 增加 `output_file_size`，记录成功完成后的最终输出体积 |
 | 29 | 给 `settings` 增加 `notification_policies_json`、`shortcut_bindings_json` 和 `close_behavior`，持久化通知策略、快捷键和关闭行为 |
 | 30 | 给 `tasks` 增加 nullable `failure_json`；保留旧错误列并提供旧分析失败、普通失败、损坏 JSON 和未来枚举值的安全兼容读取 |
+| 31 | 新增 `engine_analysis_projections`，持久化 FLL Snapshot 与 FEngine session 归属 |
+| 32 | 增加 FEngine 分析 / 执行队列、LIFO 恢复栈和进度投影字段，并将旧任务状态迁移到 Engine 状态模型 |
+| 33 | 新增 `workbench_order_states`，持久化 Client 对 FEngine 队列 revision 的展示状态 |
+| 34 | 为分析和执行投影增加幂等 request ID |
+| 35 | 从当前 Settings schema 移除自定义 FFmpeg / FFprobe executable 路径；升级库中残留的旧列不再读取或写入 |
 
 ## 修改数据模型的约束
 
 - 新增非空列必须提供 Drift 默认值，或写清楚迁移填充值。
 - 枚举持久化值不能随意重命名；确实要重命名时，需要在仓储映射、兼容常量或迁移里兼容旧值。
-- 任务状态要能在应用重启后被重新校正；不能假设内存里的 FFmpeg 进程仍存在。
+- 任务状态要能在应用重启后由 FEngine Snapshot 重新校正；不能假设 Client 内存持有执行状态。
 - 源文件、预览帧、日志和输出文件路径都是本地路径，跨机器或用户移动文件后可能失效。
 - `target_size_ratio` 是兼容字段，新功能应优先读写 `target_size_bytes`。
-- 数据库不保存完整 FFprobe JSON；只保存当前 UI、处理策略和命令构造需要的字段。
+- 数据库不保存完整 native 探测输出；`engine_analysis_projections.snapshot_json` 保存 FLL 版本化 Snapshot，`tasks` 只保留当前 UI 所需的镜像字段。

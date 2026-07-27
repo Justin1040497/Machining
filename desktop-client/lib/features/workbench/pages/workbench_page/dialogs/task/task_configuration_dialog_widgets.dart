@@ -69,7 +69,6 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
     required this.selectedQualityIndex,
     required this.activePresetTitle,
     required this.selectedTargetSizeRatio,
-    required this.estimatedSizeForPreset,
     required this.onModeChanged,
     required this.onPresetSelected,
     required this.onTargetSizeRatioChanged,
@@ -82,8 +81,6 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
   final int selectedQualityIndex;
   final String? activePresetTitle;
   final double selectedTargetSizeRatio;
-  final String Function(WorkbenchCompressionPreset preset)
-  estimatedSizeForPreset;
   final ValueChanged<CompressionMode> onModeChanged;
   final ValueChanged<WorkbenchCompressionPreset> onPresetSelected;
   final ValueChanged<double> onTargetSizeRatioChanged;
@@ -134,7 +131,6 @@ class WorkbenchCompressionOptionsSection extends StatelessWidget {
                       presets: presets,
                       selectedQualityIndex: selectedQualityIndex,
                       activePresetTitle: activePresetTitle,
-                      estimatedSizeForPreset: estimatedSizeForPreset,
                       isPresetEnabled: isPresetEnabled,
                       onSelected: onPresetSelected,
                     )
@@ -436,7 +432,6 @@ class _RecommendedPresetRow extends StatelessWidget {
     required this.presets,
     required this.selectedQualityIndex,
     required this.activePresetTitle,
-    required this.estimatedSizeForPreset,
     required this.isPresetEnabled,
     required this.onSelected,
   });
@@ -444,8 +439,6 @@ class _RecommendedPresetRow extends StatelessWidget {
   final List<WorkbenchCompressionPreset> presets;
   final int selectedQualityIndex;
   final String? activePresetTitle;
-  final String Function(WorkbenchCompressionPreset preset)
-  estimatedSizeForPreset;
   final bool Function(WorkbenchCompressionPreset preset)? isPresetEnabled;
   final ValueChanged<WorkbenchCompressionPreset> onSelected;
 
@@ -464,7 +457,6 @@ class _RecommendedPresetRow extends StatelessWidget {
               selected: hasActivePreset
                   ? presets[index].title == activePresetTitle
                   : presets[index].qualityIndex == selectedQualityIndex,
-              estimatedSize: estimatedSizeForPreset(presets[index]),
               onTap: () => onSelected(presets[index]),
             ),
           ),
@@ -479,14 +471,12 @@ class _RecommendedPresetCard extends StatelessWidget {
     required this.preset,
     required this.enabled,
     required this.selected,
-    required this.estimatedSize,
     required this.onTap,
   });
 
   final WorkbenchCompressionPreset preset;
   final bool enabled;
   final bool selected;
-  final String estimatedSize;
   final VoidCallback onTap;
 
   @override
@@ -553,25 +543,6 @@ class _RecommendedPresetCard extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      estimatedSize,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: enabled
-                            ? (selected ? colors.primary : colors.textTertiary)
-                            : colors.iconMuted,
-                        fontSize: 9.flSp,
-                        height: 1,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),

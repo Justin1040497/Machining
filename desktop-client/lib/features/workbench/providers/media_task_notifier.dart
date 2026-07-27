@@ -55,7 +55,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     }
 
     await pruneEmptyTaskFolders();
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     return result.tasks;
   }
 
@@ -72,7 +72,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(WorkbenchInsertedItem.task(task.id));
 
     state = AsyncData(await repository.loadAllTasks());
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     if (analyzeInBackground) {
       _enqueueAnalyses([task.id]);
     }
@@ -97,7 +97,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(createdTasks);
     state = AsyncData(organized.allTasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     _enqueueAnalyses(organized.orderedImportedTaskIds);
     return organized.createdTasks;
   }
@@ -133,7 +133,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       await ref.read(mediaTaskRepositoryProvider).loadAllTasks(),
     );
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     if (result.createdTasks.isNotEmpty) {
       _enqueueAnalyses(result.createdTasks.map((task) => task.id));
     }
@@ -151,7 +151,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(taskIds: tasks.map((task) => task.id).toList());
     state = AsyncData(result.tasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> createTaskFolderFromTaskIds(List<String> taskIds) async {
@@ -162,7 +162,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
     state = AsyncData(result.tasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<List<TaskFolder>> createTaskFoldersFromTaskIds(
@@ -175,7 +175,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
     state = AsyncData(result.tasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     return result.folders;
   }
 
@@ -187,7 +187,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       repository: ref.read(mediaTaskRepositoryProvider),
     ).call(taskId: taskId, folderId: folderId);
     state = AsyncData(tasks);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> removeTaskFromFolder(String taskId) async {
@@ -199,7 +199,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     state = AsyncData(tasks);
     ref.invalidate(taskFolderListProvider);
     await _applyEngineQueueOrder(tasks);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> deleteTaskFolder(String folderId) async {
@@ -209,7 +209,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(folderId);
     state = AsyncData(tasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> renameTaskFolder({
@@ -234,7 +234,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(folderId: folderId, config: config, purpose: purpose);
     state = AsyncData(result.tasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> retryTerminalTasksInFolder(String folderId) async {
@@ -244,7 +244,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
       fingerprintReader: ref.read(sourceFileFingerprintReaderProvider),
     ).call(folderId);
     state = AsyncData(result.tasks);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     if (result.taskIdsNeedingAnalysis.isNotEmpty) {
       _enqueueAnalyses(result.taskIdsNeedingAnalysis);
     }
@@ -267,7 +267,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
     await repository.saveTask(savedTask);
     state = AsyncData(replaceMediaTask(tasks, savedTask));
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<MediaTask> saveEngineTaskConfiguration({
@@ -311,23 +311,6 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     return resolvedTask;
   }
 
-  @Deprecated(
-    'Use saveEngineTaskConfiguration; no ResolveConfiguration RPC is sent.',
-  )
-  Future<MediaTask> resolveEngineTaskConfiguration({
-    required String taskId,
-    required String analysisId,
-    required int analysisRevision,
-    required EngineConfigurationSelection selection,
-  }) {
-    return saveEngineTaskConfiguration(
-      taskId: taskId,
-      analysisId: analysisId,
-      analysisRevision: analysisRevision,
-      selection: selection,
-    );
-  }
-
   Future<void> replaceMissingSource({
     required String taskId,
     required String newInputPath,
@@ -348,26 +331,24 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(taskId: taskId, newInputPath: newInputPath);
 
     state = AsyncData(replaceMediaTask(tasks, updatedTask));
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     _enqueueAnalyses([updatedTask.id]);
   }
 
   Future<void> deleteTaskById(String taskId) async {
     final repository = ref.read(mediaTaskRepositoryProvider);
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     await ref.read(mediaTaskExecutionCoordinatorProvider).cancelTask(taskId);
     await DeleteMediaTaskUseCase(
       repository: repository,
       analysisProjectionRepository: ref.read(
         engineAnalysisProjectionRepositoryProvider,
       ),
-      queueRunner: queueRunner,
     ).call(taskId);
     await pruneEmptyTaskFolders();
 
     state = AsyncData(await repository.loadAllTasks());
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> retryTaskById(String taskId) async {
@@ -386,7 +367,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(taskId);
 
     state = AsyncData(replaceMediaTask(tasks, result.task));
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
     if (result.shouldAnalyze) {
       _enqueueAnalyses([taskId]);
     }
@@ -394,7 +375,6 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
 
   Future<void> clearTasks() async {
     final repository = ref.read(mediaTaskRepositoryProvider);
-    final queueRunner = ref.read(ffmpegTaskQueueRunnerProvider);
     await ref.read(mediaTaskExecutionCoordinatorProvider).cancelAll();
     final tasks = await ClearMediaTasksUseCase(
       repository: repository,
@@ -402,12 +382,11 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
         engineAnalysisProjectionRepositoryProvider,
       ),
       taskFolderRepository: ref.read(taskFolderRepositoryProvider),
-      queueRunner: queueRunner,
     ).call();
 
     state = AsyncData(tasks);
     ref.invalidate(taskFolderListProvider);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> pruneEmptyTaskFolders() async {
@@ -420,7 +399,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     }
   }
 
-  Future<FfmpegQueueStartResult> startExecutionQueue({
+  Future<EngineQueueStartResult> startExecutionQueue({
     bool allowExtremeCompression = false,
   }) async {
     final result = await StartExecutionQueueUseCase(
@@ -428,16 +407,16 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
-    if (result.outcome == FfmpegQueueStartOutcome.started ||
-        result.outcome == FfmpegQueueStartOutcome.resumed ||
-        result.outcome == FfmpegQueueStartOutcome.alreadyRunning) {
+    if (result.outcome == EngineQueueStartOutcome.started ||
+        result.outcome == EngineQueueStartOutcome.resumed ||
+        result.outcome == EngineQueueStartOutcome.alreadyRunning) {
       startExecutionRefreshPolling();
     }
 
     return result;
   }
 
-  Future<FfmpegQueueStartResult> startOrResumeTaskById(
+  Future<EngineQueueStartResult> startOrResumeTaskById(
     String taskId, {
     bool allowExtremeCompression = false,
   }) async {
@@ -446,16 +425,16 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(taskId, allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
-    if (result.outcome == FfmpegQueueStartOutcome.started ||
-        result.outcome == FfmpegQueueStartOutcome.resumed ||
-        result.outcome == FfmpegQueueStartOutcome.alreadyRunning) {
+    if (result.outcome == EngineQueueStartOutcome.started ||
+        result.outcome == EngineQueueStartOutcome.resumed ||
+        result.outcome == EngineQueueStartOutcome.alreadyRunning) {
       startExecutionRefreshPolling();
     }
 
     return result;
   }
 
-  Future<FfmpegQueueStartResult> startNextTaskInFolder(
+  Future<EngineQueueStartResult> startNextTaskInFolder(
     String folderId, {
     bool allowExtremeCompression = false,
   }) async {
@@ -464,29 +443,29 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(folderId, allowExtremeCompression: allowExtremeCompression);
 
     await refreshTasksFromRepository();
-    if (result.outcome == FfmpegQueueStartOutcome.started ||
-        result.outcome == FfmpegQueueStartOutcome.resumed ||
-        result.outcome == FfmpegQueueStartOutcome.alreadyRunning) {
+    if (result.outcome == EngineQueueStartOutcome.started ||
+        result.outcome == EngineQueueStartOutcome.resumed ||
+        result.outcome == EngineQueueStartOutcome.alreadyRunning) {
       startExecutionRefreshPolling();
     }
 
     return result;
   }
 
-  Future<FfmpegQueueStartResult> pauseTaskById(String taskId) async {
+  Future<EngineQueueStartResult> pauseTaskById(String taskId) async {
     final result = await ref
         .read(mediaTaskExecutionCoordinatorProvider)
         .pauseTask(taskId);
 
     await refreshTasksFromRepository();
-    if (result.outcome == FfmpegQueueStartOutcome.paused) {
+    if (result.outcome == EngineQueueStartOutcome.paused) {
       startExecutionRefreshPolling();
     }
 
     return result;
   }
 
-  Future<FfmpegQueueStartResult> pauseRunningTaskInFolder(
+  Future<EngineQueueStartResult> pauseRunningTaskInFolder(
     String folderId,
   ) async {
     final result = await ref
@@ -494,14 +473,14 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
         .pauseFolder(folderId);
 
     await refreshTasksFromRepository();
-    if (result.outcome == FfmpegQueueStartOutcome.paused) {
+    if (result.outcome == EngineQueueStartOutcome.paused) {
       startExecutionRefreshPolling();
     }
 
     return result;
   }
 
-  Future<FfmpegQueueStartResult> pauseAllRunningTasks() async {
+  Future<EngineQueueStartResult> pauseAllRunningTasks() async {
     final result = await ref
         .read(mediaTaskExecutionCoordinatorProvider)
         .pauseActive();
@@ -544,7 +523,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     if (!hasActiveTask) {
       timer.cancel();
       executionRefreshTimer = null;
-      unawaited(syncFfmpegQueueStatus());
+      unawaited(syncEngineQueueStatus());
     }
   }
 
@@ -580,7 +559,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     state = AsyncData(tasks);
     ref.invalidate(taskFolderListProvider);
     await _applyEngineQueueOrder(tasks);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> reorderFolderTasks({
@@ -593,7 +572,7 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     ).call(folderId: folderId, oldIndex: oldIndex, newIndex: newIndex);
     state = AsyncData(tasks);
     await _applyEngineQueueOrder(tasks);
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
   Future<void> _applyEngineQueueOrder(List<MediaTask> tasks) async {
@@ -718,14 +697,11 @@ class MediaTaskListNotifier extends AsyncNotifier<List<MediaTask>> {
     final updatedTask = await repository.loadTaskById(taskId);
     if (updatedTask != null) {
       state = AsyncData(replaceMediaTask(state.requireValue, updatedTask));
-      if (updatedTask.isAnalysisReady) {
-        ref.read(ffmpegTaskQueueRunnerProvider).requestQueueRefill();
-      }
     }
-    unawaited(syncFfmpegQueueStatus());
+    unawaited(syncEngineQueueStatus());
   }
 
-  Future<void> syncFfmpegQueueStatus() async {
-    await ref.read(ffmpegTaskQueueRunnerProvider).refreshStatus();
+  Future<void> syncEngineQueueStatus() async {
+    await ref.read(engineLifecycleCoordinatorProvider.future);
   }
 }

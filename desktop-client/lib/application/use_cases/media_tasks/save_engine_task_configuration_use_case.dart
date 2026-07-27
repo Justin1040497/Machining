@@ -18,8 +18,7 @@ final class SaveEngineTaskConfigurationException implements Exception {
 /// Persists the user's opaque selection against an immutable analysis revision.
 ///
 /// Selection editing is a Client concern. FLL validates and resolves the same
-/// selection exactly once when `SubmitExecution` crosses the process boundary;
-/// there is deliberately no independent `ResolveConfiguration` request here.
+/// selection exactly once when `SubmitExecution` crosses the process boundary.
 final class SaveEngineTaskConfigurationUseCase {
   const SaveEngineTaskConfigurationUseCase({
     required this.repository,

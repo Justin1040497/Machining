@@ -89,67 +89,13 @@ function Resolve-IsccPath {
   throw "Missing required command: ISCC.exe. Install Inno Setup 6 or pass -IsccPath."
 }
 
-function Assert-FfmpegCapability {
-  param(
-    [string]$Output,
-    [string[]]$RequiredNames,
-    [string]$CapabilityName
-  )
-
-  foreach ($Name in $RequiredNames) {
-    if ($Output -notmatch [regex]::Escape($Name)) {
-      throw "Bundled FFmpeg runtime is missing required $CapabilityName`: $Name"
-    }
-  }
-}
-
-function Assert-FfmpegCapabilities {
-  param([string]$FfmpegPath)
-
-  $EncoderOutput = (& $FfmpegPath -hide_banner -encoders 2>$null) -join "`n"
-  $DecoderOutput = (& $FfmpegPath -hide_banner -decoders 2>$null) -join "`n"
-  $DemuxerOutput = (& $FfmpegPath -hide_banner -demuxers 2>$null) -join "`n"
-  $MuxerOutput = (& $FfmpegPath -hide_banner -muxers 2>$null) -join "`n"
-  $FilterOutput = (& $FfmpegPath -hide_banner -filters 2>$null) -join "`n"
-
-  Assert-FfmpegCapability -Output $EncoderOutput -RequiredNames @(
-    "libx264",
-    "libmp3lame",
-    "libwebp",
-    "libopus",
-    "libvpx-vp9",
-    "libsvtav1",
-    "mpeg4",
-    "mjpeg",
-    "prores_ks"
-  ) -CapabilityName "encoder"
-  Assert-FfmpegCapability -Output $DecoderOutput -RequiredNames @(
-    "opus",
-    "vorbis"
-  ) -CapabilityName "decoder"
-  Assert-FfmpegCapability -Output $DemuxerOutput -RequiredNames @(
-    "ogg"
-  ) -CapabilityName "demuxer"
-  Assert-FfmpegCapability -Output $MuxerOutput -RequiredNames @(
-    "mp4",
-    "mov",
-    "matroska",
-    "webm",
-    "avi"
-  ) -CapabilityName "muxer"
-  Assert-FfmpegCapability -Output $FilterOutput -RequiredNames @(
-    "zscale",
-    "tonemap"
-  ) -CapabilityName "filter"
-}
-
 function Assert-NativeVersionOutput {
   param(
     [string]$Path,
     [string]$Name
   )
 
-  $Output = & $Path -hide_banner -version 2>&1
+  $Output = & $Path --version 2>&1
   $ExitCode = $LASTEXITCODE
   if ($ExitCode -ne 0) {
     throw "Bundled $Name failed version validation with exit code $ExitCode.`n$($Output -join "`n")"
@@ -367,8 +313,7 @@ function Assert-ZipLayout {
       "${RootPrefix}vcruntime140.dll",
       "${RootPrefix}vcruntime140_1.dll",
       "${RootPrefix}data/app.so",
-      "${RootPrefix}ffmpeg/ffmpeg.exe",
-      "${RootPrefix}ffmpeg/ffprobe.exe",
+      "${RootPrefix}framelean-engine.exe",
       "${RootPrefix}legal/LICENSE",
       "${RootPrefix}legal/NOTICE.md"
     )
@@ -393,7 +338,7 @@ $ClientRoot = Join-Path $Root "desktop-client"
 $ReleaseDir = Join-Path $ClientRoot "build\windows\x64\runner\Release"
 $ZipDir = Join-Path $ClientRoot "build\windows\x64\runner"
 $InstallerDir = Join-Path $ClientRoot "build\windows\x64\installer"
-$FfmpegDir = Join-Path $Root "build\dependencies\ffmpeg\windows-x64"
+$FEngineDir = Join-Path $Root "build\dependencies\fengine\windows-x64"
 $QmcAdapterDir = Join-Path $Root "build\dependencies\qmc\windows-x64"
 $LegalDir = Join-Path $Root "legal"
 $PubspecPath = Join-Path $ClientRoot "pubspec.yaml"
@@ -422,8 +367,7 @@ $PubspecBuild = $PubspecVersionMatch.Groups[2].Value
 
 Require-Command "flutter"
 Require-Command "dart"
-Require-File (Join-Path $FfmpegDir "ffmpeg.exe")
-Require-File (Join-Path $FfmpegDir "ffprobe.exe")
+Require-File (Join-Path $FEngineDir "framelean-engine.exe")
 Require-Directory $LegalDir
 Require-File (Join-Path $Root "LICENSE")
 Require-File (Join-Path $LegalDir "NOTICE.md")
@@ -488,8 +432,7 @@ try {
   Require-File (Join-Path $ReleaseDir "FrameLean.exe")
   Require-File (Join-Path $ReleaseDir "flutter_windows.dll")
   Require-Directory (Join-Path $ReleaseDir "data")
-  Require-File (Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe")
-  Require-File (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe")
+  Require-File (Join-Path $ReleaseDir "framelean-engine.exe")
   Require-File (Join-Path $ReleaseDir "legal\COPYING")
   Require-File (Join-Path $ReleaseDir "legal\LICENSE")
   Require-File (Join-Path $ReleaseDir "legal\NOTICE.md")
@@ -530,13 +473,10 @@ try {
     Require-File (Join-Path $ReleaseQmcDir "LICENSE-APACHE")
   }
 
-  Write-Host "Validating bundled FFmpeg runtime..."
-  $ReleaseFfmpegPath = Join-Path $ReleaseDir "ffmpeg\ffmpeg.exe"
-  Assert-NativeVersionOutput -Path $ReleaseFfmpegPath -Name "ffmpeg.exe"
+  Write-Host "Validating bundled FEngine runtime..."
   Assert-NativeVersionOutput `
-    -Path (Join-Path $ReleaseDir "ffmpeg\ffprobe.exe") `
-    -Name "ffprobe.exe"
-  Assert-FfmpegCapabilities -FfmpegPath $ReleaseFfmpegPath
+    -Path (Join-Path $ReleaseDir "framelean-engine.exe") `
+    -Name "framelean-engine.exe"
 
   if (Test-Path -LiteralPath $ReleaseToolsDir -PathType Container) {
     Remove-Item -LiteralPath $ReleaseToolsDir -Recurse -Force

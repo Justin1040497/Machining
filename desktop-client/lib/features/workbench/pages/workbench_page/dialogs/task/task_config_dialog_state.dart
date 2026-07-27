@@ -10,9 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:framelean/app/library.dart';
 import 'package:framelean/application/library.dart';
 import 'package:framelean/domain/library.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_formatters.dart';
 import 'package:framelean/features/workbench/pages/workbench_page/configuration/workbench_policies.dart';
-import 'package:framelean/features/workbench/pages/workbench_page/dialogs/task/task_configuration_dialog_widgets.dart';
 
 const Object _sentinel = Object();
 
@@ -141,8 +139,9 @@ class TaskConfigDialogState {
     return copyWith(
       compressionMode: CompressionMode.preset,
       smartPreset: recommended,
-      qualityIndex:
-          WorkbenchQualityPolicy.qualityIndexForSmartPreset(recommended),
+      qualityIndex: WorkbenchQualityPolicy.qualityIndexForSmartPreset(
+        recommended,
+      ),
     );
   }
 
@@ -225,9 +224,7 @@ class TaskConfigDialogState {
   }
 
   /// 根据源文件名推断输出格式。
-  MediaOutputFormat? resolveSourceOutputFormat({
-    required MediaTask task,
-  }) {
+  MediaOutputFormat? resolveSourceOutputFormat({required MediaTask task}) {
     return mediaOutputFormatForSourceFileName(
       sourceFileName: task.inputPath,
       mediaKind: task.mediaKind,
@@ -281,31 +278,6 @@ class TaskConfigDialogState {
   }
 
   // -------------------------------------------------------------------------
-  // 输出大小估算
-  // -------------------------------------------------------------------------
-
-  String estimatedOutputSizeForPreset({
-    required MediaTask task,
-    required WorkbenchCompressionPreset preset,
-  }) {
-    if (WorkbenchFormatters.isSourceAlreadyCompressed(task)) {
-      return '';
-    }
-
-    final estimate = const DefaultCompressionEstimator().estimateSmartPreset(
-      task: task,
-      preset: preset.smartPreset,
-      targetCodec: preset.videoCodec,
-      targetResolutionPreset: resolutionPreset,
-    );
-    if (estimate == null) {
-      return '-';
-    }
-
-    return '约 ${WorkbenchFormatters.formatBytes(estimate.expectedBytes)}';
-  }
-
-  // -------------------------------------------------------------------------
   // 元数据开关
   // -------------------------------------------------------------------------
 
@@ -329,23 +301,17 @@ class TaskConfigDialogState {
 
     if (task.mediaKind == MediaKind.video && video != null) {
       return copyWith(
-        config: config.copyWith(
-          video: video.copyWith(preserveMetadata: value),
-        ),
+        config: config.copyWith(video: video.copyWith(preserveMetadata: value)),
       );
     }
     if (task.mediaKind == MediaKind.image && image != null) {
       return copyWith(
-        config: config.copyWith(
-          image: image.copyWith(preserveMetadata: value),
-        ),
+        config: config.copyWith(image: image.copyWith(preserveMetadata: value)),
       );
     }
     if (task.mediaKind == MediaKind.audio && audio != null) {
       return copyWith(
-        config: config.copyWith(
-          audio: audio.copyWith(preserveMetadata: value),
-        ),
+        config: config.copyWith(audio: audio.copyWith(preserveMetadata: value)),
       );
     }
 
@@ -356,9 +322,7 @@ class TaskConfigDialogState {
   // 变更检测
   // -------------------------------------------------------------------------
 
-  bool isModified({
-    required MediaTask task,
-  }) {
+  bool isModified({required MediaTask task}) {
     if (task.purpose != purpose || task.config.threadLimit != threadLimit) {
       return true;
     }

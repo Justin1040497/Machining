@@ -70,13 +70,13 @@ void main() {
       expect(result?.status, TaskStatus.pending);
       expect(result?.analysisResult, isNotNull);
       expect(gateway.analyzeRequests, hasLength(1));
-      expect(gateway.snapshotRequests, ['analysis-1']);
+      expect(gateway.snapshotRequests, isEmpty);
       expect(projectionRepository.upserts, isNotEmpty);
       final projection = projectionRepository.upserts.last;
       expect(projection.engineSessionId, 'session-1');
       expect(projection.analysisId, 'analysis-1');
       expect(projection.revision, 1);
-      expect(projection.lastEventSequence, 11);
+      expect(projection.lastEventSequence, 10);
       expect(repository.savedStatuses, [TaskStatus.ready]);
     });
 
@@ -169,7 +169,7 @@ void main() {
 
       expect(result?.status, TaskStatus.pending);
       expect(gateway.analyzeRequests, hasLength(1));
-      expect(gateway.snapshotRequests, ['analysis-1', 'analysis-1']);
+      expect(gateway.snapshotRequests, ['analysis-1']);
       expect(projectionRepository.deleteByTaskIdCallCount, 1);
       expect(projectionRepository.upserts.length, greaterThanOrEqualTo(2));
       expect(projectionRepository.upserts.first.validityStatus, 'invalid');
@@ -203,7 +203,7 @@ void main() {
 
       expect(result?.status, TaskStatus.pending);
       expect(gateway.analyzeRequests, hasLength(1));
-      expect(gateway.snapshotRequests, ['analysis-1', 'analysis-1']);
+      expect(gateway.snapshotRequests, ['analysis-1']);
       expect(
         projectionRepository.deleteByTaskIdCallCount,
         greaterThanOrEqualTo(1),
@@ -267,7 +267,7 @@ void main() {
       expect(result?.status, TaskStatus.pending);
       expect(result?.analysisResult, isNotNull);
       expect(gateway.analyzeRequests, hasLength(1));
-      expect(gateway.snapshotRequests, ['analysis-1']);
+      expect(gateway.snapshotRequests, isEmpty);
       expect(projectionRepository.upserts, isNotEmpty);
       expect(projectionRepository.upserts.last.validityStatus, 'valid');
     });
@@ -689,7 +689,7 @@ final class _FakeEngineGateway implements EngineGateway {
   }
 
   @override
-  Future<EngineOperationResult<EngineAnalysisResponseDocument>> analyze(
+  Future<EngineOperationResult<EngineAnalysisCompletionDocument>> analyze(
     EngineAnalysisRequest request,
   ) async {
     analyzeRequests.add(request);
@@ -724,7 +724,29 @@ final class _FakeEngineGateway implements EngineGateway {
         queueRevision: 2,
       ),
     );
-    return result;
+    EngineAnalysisSnapshotDocument? snapshot;
+    if (result.value.hasSnapshot && _snapshotResults.isNotEmpty) {
+      final snapshotResult = _snapshotResults.removeAt(0);
+      if (snapshotResult
+          is EngineOperationResult<EngineAnalysisSnapshotDocument>) {
+        snapshot = snapshotResult.value;
+      } else {
+        throw snapshotResult;
+      }
+    }
+    return EngineOperationResult(
+      sessionId: result.sessionId,
+      requestId: result.requestId,
+      workId: result.workId,
+      sequence: result.sequence,
+      value: EngineAnalysisCompletionDocument(
+        analysis: result.value,
+        snapshot: snapshot,
+      ),
+      queueKind: result.queueKind,
+      queuePosition: result.queuePosition,
+      queueRevision: result.queueRevision,
+    );
   }
 
   @override
@@ -742,12 +764,6 @@ final class _FakeEngineGateway implements EngineGateway {
       return outcome;
     }
     throw outcome;
-  }
-
-  @override
-  Future<EngineOperationResult<EngineConfigurationResolutionDocument>>
-  resolveConfiguration(EngineConfigurationRequest request) async {
-    throw UnimplementedError();
   }
 
   @override
