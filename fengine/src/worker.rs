@@ -1427,6 +1427,7 @@ impl WorkerCoordinator {
                 .push_back(TerminalExecutionSnapshot {
                     execution_id: event.execution_id.clone(),
                     client_task_id: client_task_id.clone(),
+                    resource_pool: event.resource_pool,
                     state: event.state,
                     output_path: event.output_path.clone(),
                     engine_code: event.error_code,
@@ -1441,6 +1442,7 @@ impl WorkerCoordinator {
                 WorkerEvent::ExecutionProgress {
                     execution_id: event.execution_id,
                     client_task_id,
+                    resource_pool: event.resource_pool,
                     progress: event.progress.expect("progress state was checked"),
                     resume_depth: event.resume_depth,
                 }
@@ -1448,6 +1450,7 @@ impl WorkerCoordinator {
             framelean_runtime::ExecutionTaskState::Running => WorkerEvent::ExecutionStarted {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 state: event.state,
                 resume_depth: event.resume_depth,
             },
@@ -1455,6 +1458,7 @@ impl WorkerCoordinator {
             | framelean_runtime::ExecutionTaskState::Preempted => WorkerEvent::ExecutionPaused {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 pause_reason: event.pause_reason,
                 preempted_by_execution_id: event.preempted_by_execution_id,
                 resume_depth: event.resume_depth,
@@ -1462,16 +1466,19 @@ impl WorkerCoordinator {
             framelean_runtime::ExecutionTaskState::Resuming => WorkerEvent::ExecutionResumed {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 resume_depth: event.resume_depth,
             },
             framelean_runtime::ExecutionTaskState::Completed => WorkerEvent::ExecutionCompleted {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 output_path: event.output_path.unwrap_or_default(),
             },
             framelean_runtime::ExecutionTaskState::Failed => WorkerEvent::ExecutionFailed {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 engine_code: event.error_code,
                 message: event
                     .message
@@ -1481,11 +1488,13 @@ impl WorkerCoordinator {
             framelean_runtime::ExecutionTaskState::Cancelled => WorkerEvent::ExecutionCancelled {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 resume_depth: event.resume_depth,
             },
             _ => WorkerEvent::ExecutionStateChanged {
                 execution_id: event.execution_id,
                 client_task_id,
+                resource_pool: event.resource_pool,
                 state: event.state,
                 pause_reason: event.pause_reason,
                 preempted_by_execution_id: event.preempted_by_execution_id,
@@ -4096,9 +4105,10 @@ mod tests {
                     order_revision: 8,
                     execution_lane: framelean_runtime::ExecutionLaneSnapshot {
                         queue_revision: 0,
-                        active: None,
+                        active_executions: Vec::new(),
                         normal_waiting: Vec::new(),
-                        resume_stack: Vec::new(),
+                        video_resume_stack: Vec::new(),
+                        auxiliary_resume_stack: Vec::new(),
                         user_paused: Vec::new(),
                     },
                 }),

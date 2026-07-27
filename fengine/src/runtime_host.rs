@@ -10,10 +10,9 @@ use framelean_runtime::{
     AnalysisServices, AnalysisSnapshotPolicy, AnalysisSnapshotRecord, AnalysisSnapshotView,
     AnalyzeMediaResponse, AnalyzeTaskRequest, DefaultCapabilityResolver,
     DefaultRecommendationEngine, DeterministicSizeEstimator, EngineRuntime, EstimatorPolicy,
-    EvictionStrategy, ExecutionBackend, ExecutionBackendControl, ExecutionBackendObserver,
-    ExecutionBackendOutcome, ExecutionBackendRequest, ExecutionLaneSnapshot, ExecutionProgress,
-    ExecutionRuntimeEvent, ExecutionServices, ExecutionSubmissionRequest,
-    ExecutionSubmissionResult, RecalculateConfigurationRequest, RecalculateConfigurationResponse,
+    EvictionStrategy, ExecutionLaneSnapshot, ExecutionRuntimeEvent, ExecutionServices,
+    ExecutionSubmissionRequest, ExecutionSubmissionResult, RecalculateConfigurationRequest,
+    RecalculateConfigurationResponse,
 };
 
 pub trait RuntimeHost: Send {
@@ -156,6 +155,14 @@ impl RuntimeHost for EngineRuntime {
 
 pub fn build_default_runtime() -> Result<EngineRuntime> {
     let adapter = Arc::new(FfmpegAdapter::new()?);
+    let execution_services = ExecutionServices::ffmpeg(adapter.clone());
+    build_runtime(adapter, execution_services)
+}
+
+fn build_runtime(
+    adapter: Arc<FfmpegAdapter>,
+    execution_services: ExecutionServices,
+) -> Result<EngineRuntime> {
     let system = Arc::new(SystemEnvironment::new());
     let services = AnalysisServices {
         analyzer: adapter.clone(),
@@ -171,61 +178,8 @@ pub fn build_default_runtime() -> Result<EngineRuntime> {
     Ok(EngineRuntime::with_analysis_and_execution_services(
         services,
         policy,
-        ExecutionServices {
-            backend: Arc::new(FfmpegRuntimeExecutionBackend { adapter }),
-        },
+        execution_services,
     ))
-}
-
-struct FfmpegRuntimeExecutionBackend {
-    adapter: Arc<FfmpegAdapter>,
-}
-
-impl ExecutionBackend for FfmpegRuntimeExecutionBackend {
-    fn execute(
-        &self,
-        request: &ExecutionBackendRequest,
-        observer: &mut dyn ExecutionBackendObserver,
-    ) -> Result<ExecutionBackendOutcome> {
-        let configuration = &request.configuration;
-        if !configuration.video_decoders.is_empty()
-            || !configuration.audio_decoders.is_empty()
-            || configuration.video_encoder_backend.is_some()
-            || configuration.audio_encoder_backend.is_some()
-            || !configuration.processors.is_empty()
-        {
-            return Err(framelean_core::EngineError::with_code(
-                framelean_core::ErrorKind::Pipeline,
-                framelean_core::EngineErrorCode::EngineExecutionChainNotReady,
-                "the selected execution chain requires an unimplemented transform stage",
-            ));
-        }
-        let outcome = self.adapter.remux(
-            &request.source_path,
-            &request.working_output_path,
-            |progress| match observer.on_progress(ExecutionProgress {
-                media_time_us: progress.media_time_us,
-                processed_bytes: progress.processed_bytes,
-            }) {
-                ExecutionBackendControl::Continue => framelean_ffmpeg::RemuxControl::Continue,
-                ExecutionBackendControl::Cancel => framelean_ffmpeg::RemuxControl::Cancel,
-            },
-        )?;
-        Ok(match outcome {
-            framelean_ffmpeg::RemuxOutcome::Completed(progress) => {
-                ExecutionBackendOutcome::Completed(ExecutionProgress {
-                    media_time_us: progress.media_time_us,
-                    processed_bytes: progress.processed_bytes,
-                })
-            }
-            framelean_ffmpeg::RemuxOutcome::Cancelled(progress) => {
-                ExecutionBackendOutcome::Cancelled(ExecutionProgress {
-                    media_time_us: progress.media_time_us,
-                    processed_bytes: progress.processed_bytes,
-                })
-            }
-        })
-    }
 }
 
 #[cfg(test)]
@@ -238,8 +192,8 @@ mod tests {
     use framelean_analysis::{MediaAnalyzeRequest, MediaSource};
     use framelean_runtime::{
         AnalyzeTaskRequest, ExecutionOutputRequest, ExecutionSubmissionRequest, ExecutionTaskState,
-        ManualConfigurationSelection, ManualSelection, OutputCollisionPolicy, RecalculateSelection,
-        RequestContext, TaskMode,
+        FfmpegExecutionBackend, ManualConfigurationSelection, ManualSelection,
+        OutputCollisionPolicy, RecalculateSelection, RequestContext, TaskMode,
     };
 
     use super::*;
@@ -255,7 +209,7 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let input_path = root.join("input.wav");
         let output_path = root.join("output.wav");
-        fs::write(&input_path, pcm_wav_fixture()).unwrap();
+        fs::write(&input_path, pcm_wav_fixture(800)).unwrap();
         let mut runtime = build_default_runtime().unwrap();
 
         let analysis = runtime
@@ -297,7 +251,7 @@ mod tests {
                 context: RequestContext::default(),
             })
             .unwrap();
-        assert_eq!(submission.state, ExecutionTaskState::Queued);
+        assert_eq!(submission.state, ExecutionTaskState::Running);
 
         let deadline = Instant::now() + Duration::from_secs(5);
         let mut terminal = None;
@@ -344,12 +298,285 @@ mod tests {
         fs::remove_dir_all(root).unwrap();
     }
 
-    fn pcm_wav_fixture() -> Vec<u8> {
+    #[test]
+    fn default_runtime_executes_a_real_video_decode_process_encode_mux_chain() {
+        static TEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+        let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "framelean-runtime-video-transcode-test-{}-{sequence}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let input_path = root.join("input.avi");
+        let output_path = root.join("output.mp4");
+        fs::write(&input_path, raw_video_avi_fixture()).unwrap();
+        let mut runtime = build_default_runtime().unwrap();
+
+        let analysis = runtime
+            .analyze_media(AnalyzeTaskRequest {
+                task_mode: TaskMode::VideoCompress,
+                media_request: MediaAnalyzeRequest {
+                    source: MediaSource::local_file(&input_path).unwrap(),
+                    request_id: Some("video-analysis-request".to_owned()),
+                    expected_source: None,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+        assert!(analysis.error.is_none(), "{:?}", analysis.error);
+        let candidate = analysis
+            .capabilities
+            .as_ref()
+            .and_then(|capabilities| {
+                capabilities
+                    .execution_chains
+                    .iter()
+                    .find(|candidate| candidate.video_encoder.is_some())
+            })
+            .unwrap_or_else(|| {
+                panic!(
+                    "real video transcode chain must be available; requirements: {:#?}; exclusions: {:#?}",
+                    analysis.requirements,
+                    analysis.capabilities.as_ref().map(|value| &value.exclusions)
+                )
+            });
+        assert!(
+            candidate
+                .processors
+                .iter()
+                .any(|processor| processor.operation == "pixel_format_conversion")
+        );
+
+        let submission = runtime
+            .submit_execution(ExecutionSubmissionRequest {
+                analysis_id: analysis.analysis_id,
+                expected_revision: analysis.analysis_revision,
+                selection: RecalculateSelection::Manual(ManualConfigurationSelection {
+                    candidate_id: candidate.id.clone(),
+                    overrides: ManualSelection::empty(),
+                }),
+                output: ExecutionOutputRequest {
+                    requested_path: output_path.clone(),
+                    collision_policy: OutputCollisionPolicy::FailIfExists,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut terminal = None;
+        while Instant::now() < deadline {
+            for event in runtime.drain_execution_events() {
+                if event.execution_id == submission.execution_id
+                    && matches!(
+                        event.state,
+                        ExecutionTaskState::Completed
+                            | ExecutionTaskState::Failed
+                            | ExecutionTaskState::Cancelled
+                    )
+                {
+                    terminal = Some(event);
+                }
+            }
+            if terminal.is_some() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        let terminal = terminal.expect("video execution must reach a terminal state");
+        assert_eq!(terminal.state, ExecutionTaskState::Completed);
+        assert!(terminal.error_code.is_none(), "{:?}", terminal.message);
+        assert_eq!(terminal.output_path.as_deref(), Some(output_path.as_path()));
+        assert!(fs::metadata(&output_path).unwrap().len() > 64);
+
+        let output_analysis = runtime
+            .analyze_media(AnalyzeTaskRequest {
+                task_mode: TaskMode::VideoConvert,
+                media_request: MediaAnalyzeRequest {
+                    source: MediaSource::local_file(&output_path).unwrap(),
+                    request_id: Some("video-output-analysis-request".to_owned()),
+                    expected_source: None,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+        assert!(
+            output_analysis.error.is_none(),
+            "transcoded output must be readable: {:?}",
+            output_analysis.error
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn real_auxiliary_remux_executions_resume_in_per_pool_lifo_order() {
+        static TEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+        let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "framelean-runtime-lifo-test-{}-{sequence}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let input_path = root.join("input.wav");
+        fs::write(&input_path, pcm_wav_fixture(400_000)).unwrap();
+
+        let adapter = Arc::new(FfmpegAdapter::new().unwrap());
+        let backend = Arc::new(FfmpegExecutionBackend::with_progress_delay(
+            adapter.clone(),
+            Duration::from_millis(2),
+        ));
+        let mut runtime = build_runtime(adapter, ExecutionServices { backend }).unwrap();
+        let analysis = runtime
+            .analyze_media(AnalyzeTaskRequest {
+                task_mode: TaskMode::AudioConvert,
+                media_request: MediaAnalyzeRequest {
+                    source: MediaSource::local_file(&input_path).unwrap(),
+                    request_id: Some("lifo-analysis-request".to_owned()),
+                    expected_source: None,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+        assert!(analysis.error.is_none(), "{:?}", analysis.error);
+        let candidate_id = analysis
+            .capabilities
+            .as_ref()
+            .and_then(|capabilities| capabilities.execution_chains.first())
+            .map(|candidate| candidate.id.clone())
+            .unwrap_or_else(|| {
+                panic!(
+                    "real remux backend must expose an audio conversion chain; requirements: {:#?}; exclusions: {:#?}",
+                    analysis.requirements,
+                    analysis.capabilities.as_ref().map(|value| &value.exclusions)
+                )
+            });
+
+        let output_paths = [
+            root.join("a1.wav"),
+            root.join("a2.wav"),
+            root.join("a3.wav"),
+            root.join("a4.wav"),
+        ];
+        let mut submissions = Vec::new();
+        for output_path in &output_paths {
+            submissions.push(
+                runtime
+                    .submit_execution(ExecutionSubmissionRequest {
+                        analysis_id: analysis.analysis_id.clone(),
+                        expected_revision: analysis.analysis_revision,
+                        selection: RecalculateSelection::Manual(ManualConfigurationSelection {
+                            candidate_id: candidate_id.clone(),
+                            overrides: ManualSelection::empty(),
+                        }),
+                        output: ExecutionOutputRequest {
+                            requested_path: output_path.clone(),
+                            collision_policy: OutputCollisionPolicy::FailIfExists,
+                        },
+                        context: RequestContext::default(),
+                    })
+                    .unwrap(),
+            );
+        }
+        let a1 = submissions[0].execution_id.clone();
+        let a2 = submissions[1].execution_id.clone();
+        let a3 = submissions[2].execution_id.clone();
+        let a4 = submissions[3].execution_id.clone();
+
+        runtime.preempt_and_start_execution(&a3).unwrap();
+        runtime.preempt_and_start_execution(&a4).unwrap();
+
+        let nested_snapshot = runtime.execution_snapshot().unwrap();
+        assert!(
+            nested_snapshot
+                .active_executions
+                .iter()
+                .any(|entry| entry.execution_id == a1)
+        );
+        assert!(
+            nested_snapshot
+                .active_executions
+                .iter()
+                .any(|entry| entry.execution_id == a4)
+        );
+        assert!(nested_snapshot.normal_waiting.is_empty());
+        assert_eq!(
+            nested_snapshot
+                .auxiliary_resume_stack
+                .iter()
+                .map(|entry| entry.execution_id.clone())
+                .collect::<Vec<_>>(),
+            [a2.clone(), a3.clone()]
+        );
+        assert!(
+            nested_snapshot
+                .auxiliary_resume_stack
+                .iter()
+                .all(|entry| entry.checkpoint.is_some())
+        );
+
+        let deadline = Instant::now() + Duration::from_secs(15);
+        let mut terminal_order = Vec::new();
+        let mut resume_order = Vec::new();
+        while Instant::now() < deadline && terminal_order.len() < submissions.len() {
+            for event in runtime.drain_execution_events() {
+                if event.state == ExecutionTaskState::Resuming {
+                    resume_order.push(event.execution_id.clone());
+                }
+                if matches!(
+                    event.state,
+                    ExecutionTaskState::Completed
+                        | ExecutionTaskState::Failed
+                        | ExecutionTaskState::Cancelled
+                ) {
+                    assert_eq!(
+                        event.state,
+                        ExecutionTaskState::Completed,
+                        "execution {} failed: {:?} {:?}",
+                        event.execution_id,
+                        event.error_code,
+                        event.message
+                    );
+                    terminal_order.push(event.execution_id);
+                }
+            }
+            thread::sleep(Duration::from_millis(5));
+        }
+        assert_eq!(resume_order, [a3, a2]);
+        assert_eq!(terminal_order.len(), submissions.len());
+        let final_snapshot = runtime.execution_snapshot().unwrap();
+        assert!(final_snapshot.active_executions.is_empty());
+        assert!(final_snapshot.normal_waiting.is_empty());
+        assert!(final_snapshot.video_resume_stack.is_empty());
+        assert!(final_snapshot.auxiliary_resume_stack.is_empty());
+
+        for (index, output_path) in output_paths.iter().enumerate() {
+            assert!(fs::metadata(output_path).unwrap().len() > 44);
+            let output_analysis = runtime
+                .analyze_media(AnalyzeTaskRequest {
+                    task_mode: TaskMode::AudioConvert,
+                    media_request: MediaAnalyzeRequest {
+                        source: MediaSource::local_file(output_path).unwrap(),
+                        request_id: Some(format!("lifo-output-analysis-{index}")),
+                        expected_source: None,
+                    },
+                    context: RequestContext::default(),
+                })
+                .unwrap();
+            assert!(
+                output_analysis.error.is_none(),
+                "output {} is not readable: {:?}",
+                output_path.display(),
+                output_analysis.error
+            );
+        }
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    fn pcm_wav_fixture(sample_count: u32) -> Vec<u8> {
         const SAMPLE_RATE: u32 = 8_000;
-        const SAMPLE_COUNT: u32 = 800;
         const CHANNELS: u16 = 1;
         const BITS_PER_SAMPLE: u16 = 16;
-        let data_size = SAMPLE_COUNT * u32::from(CHANNELS) * u32::from(BITS_PER_SAMPLE / 8);
+        let data_size = sample_count * u32::from(CHANNELS) * u32::from(BITS_PER_SAMPLE / 8);
         let mut bytes = Vec::with_capacity((44 + data_size) as usize);
         bytes.extend_from_slice(b"RIFF");
         bytes.extend_from_slice(&(36 + data_size).to_le_bytes());
@@ -364,7 +591,7 @@ mod tests {
         bytes.extend_from_slice(&BITS_PER_SAMPLE.to_le_bytes());
         bytes.extend_from_slice(b"data");
         bytes.extend_from_slice(&data_size.to_le_bytes());
-        for index in 0..SAMPLE_COUNT {
+        for index in 0..sample_count {
             let sample = if index % 16 < 8 {
                 4_000_i16
             } else {
@@ -373,5 +600,129 @@ mod tests {
             bytes.extend_from_slice(&sample.to_le_bytes());
         }
         bytes
+    }
+
+    fn raw_video_avi_fixture() -> Vec<u8> {
+        const WIDTH: u32 = 2;
+        const HEIGHT: u32 = 2;
+        const FRAME_BYTES: u32 = 16;
+
+        let mut main_header = Vec::with_capacity(56);
+        push_u32(&mut main_header, 500_000);
+        push_u32(&mut main_header, FRAME_BYTES * 2);
+        push_u32(&mut main_header, 0);
+        push_u32(&mut main_header, 0x10);
+        push_u32(&mut main_header, 1);
+        push_u32(&mut main_header, 0);
+        push_u32(&mut main_header, 1);
+        push_u32(&mut main_header, FRAME_BYTES);
+        push_u32(&mut main_header, WIDTH);
+        push_u32(&mut main_header, HEIGHT);
+        main_header.extend_from_slice(&[0; 16]);
+
+        let mut stream_header = Vec::with_capacity(56);
+        stream_header.extend_from_slice(b"vids");
+        stream_header.extend_from_slice(b"DIB ");
+        push_u32(&mut stream_header, 0);
+        push_u16(&mut stream_header, 0);
+        push_u16(&mut stream_header, 0);
+        push_u32(&mut stream_header, 0);
+        push_u32(&mut stream_header, 1);
+        push_u32(&mut stream_header, 2);
+        push_u32(&mut stream_header, 0);
+        push_u32(&mut stream_header, 1);
+        push_u32(&mut stream_header, FRAME_BYTES);
+        push_u32(&mut stream_header, u32::MAX);
+        push_u32(&mut stream_header, 0);
+        push_i16(&mut stream_header, 0);
+        push_i16(&mut stream_header, 0);
+        push_i16(&mut stream_header, WIDTH as i16);
+        push_i16(&mut stream_header, HEIGHT as i16);
+
+        let mut bitmap_info = Vec::with_capacity(40);
+        push_u32(&mut bitmap_info, 40);
+        push_i32(&mut bitmap_info, WIDTH as i32);
+        push_i32(&mut bitmap_info, HEIGHT as i32);
+        push_u16(&mut bitmap_info, 1);
+        push_u16(&mut bitmap_info, 24);
+        push_u32(&mut bitmap_info, 0);
+        push_u32(&mut bitmap_info, FRAME_BYTES);
+        push_i32(&mut bitmap_info, 0);
+        push_i32(&mut bitmap_info, 0);
+        push_u32(&mut bitmap_info, 0);
+        push_u32(&mut bitmap_info, 0);
+
+        let stream_list = list_chunk(
+            b"strl",
+            [
+                riff_chunk(b"strh", stream_header),
+                riff_chunk(b"strf", bitmap_info),
+            ]
+            .concat(),
+        );
+        let header_list = list_chunk(
+            b"hdrl",
+            [riff_chunk(b"avih", main_header), stream_list].concat(),
+        );
+        let frame = vec![0, 255, 0, 0, 255, 0, 0, 0, 0, 0, 255, 0, 0, 255, 0, 0];
+        let movie_data = riff_chunk(b"00db", frame);
+        let mut index_data = Vec::new();
+        index_data.extend_from_slice(b"00db");
+        push_u32(&mut index_data, 0x10);
+        push_u32(&mut index_data, 4);
+        push_u32(&mut index_data, FRAME_BYTES);
+        riff_file(
+            b"AVI ",
+            [
+                header_list,
+                list_chunk(b"movi", movie_data),
+                riff_chunk(b"idx1", index_data),
+            ]
+            .concat(),
+        )
+    }
+
+    fn riff_file(kind: &[u8; 4], contents: Vec<u8>) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(12 + contents.len());
+        bytes.extend_from_slice(b"RIFF");
+        push_u32(&mut bytes, (4 + contents.len()) as u32);
+        bytes.extend_from_slice(kind);
+        bytes.extend_from_slice(&contents);
+        bytes
+    }
+
+    fn list_chunk(kind: &[u8; 4], contents: Vec<u8>) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(4 + contents.len());
+        bytes.extend_from_slice(kind);
+        bytes.extend_from_slice(&contents);
+        riff_chunk(b"LIST", bytes)
+    }
+
+    fn riff_chunk(tag: &[u8; 4], mut data: Vec<u8>) -> Vec<u8> {
+        let data_len = data.len();
+        let mut bytes = Vec::with_capacity(8 + data_len + (data_len & 1));
+        bytes.extend_from_slice(tag);
+        push_u32(&mut bytes, data_len as u32);
+        bytes.append(&mut data);
+        if data_len & 1 != 0 {
+            bytes.push(0);
+        }
+        bytes
+    }
+
+    fn push_u16(bytes: &mut Vec<u8>, value: u16) {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_i16(bytes: &mut Vec<u8>, value: i16) {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_u32(bytes: &mut Vec<u8>, value: u32) {
+        bytes.extend_from_slice(&value.to_le_bytes());
+    }
+
+    fn push_i32(bytes: &mut Vec<u8>, value: i32) {
+        bytes.extend_from_slice(&value.to_le_bytes());
     }
 }

@@ -1,5 +1,3 @@
-use std::fs;
-use std::io::{self, Read};
 use std::path::PathBuf;
 use std::process::ExitCode;
 use std::thread;
@@ -17,8 +15,8 @@ use framelean_media::processor::{
 use framelean_media::{MediaBuffer, StreamId, VideoFrame};
 use framelean_plugin::{Plugin, PluginMetadata, PluginRegistry, PluginResult, ProcessorFactory};
 use framelean_runtime::{
-    AnalyzeTaskRequest, EngineRuntime, PipelineSpec, RecalculateConfigurationRequest,
-    RecalculateSelection, RequestContext, TaskMode, TaskRequest, TaskState,
+    AnalyzeTaskRequest, EngineRuntime, PipelineSpec, RequestContext, TaskMode, TaskRequest,
+    TaskState,
 };
 
 const DEMO_PROCESSOR_ID: &str = "example.passthrough";
@@ -49,12 +47,7 @@ fn main() -> ExitCode {
                 ExitCode::FAILURE
             }
         },
-        Some(Command::Analyze {
-            path,
-            mode,
-            json,
-            selection,
-        }) => execute_analyze(path, mode.into(), json, selection),
+        Some(Command::Analyze { path, mode, json }) => execute_analyze(path, mode.into(), json),
         Some(Command::Environment { json }) => execute_environment(json),
         Some(Command::Monitor {
             samples,
@@ -97,8 +90,6 @@ enum Command {
         mode: CliTaskMode,
         #[arg(long)]
         json: bool,
-        #[arg(long)]
-        selection: Option<PathBuf>,
     },
     Environment {
         #[arg(long)]
@@ -147,14 +138,9 @@ impl From<CliTaskMode> for TaskMode {
     }
 }
 
-fn execute_analyze(
-    path: PathBuf,
-    mode: TaskMode,
-    json: bool,
-    selection_path: Option<PathBuf>,
-) -> ExitCode {
-    match analyze(path, mode, selection_path) {
-        Ok(Output::Analysis(response)) => {
+fn execute_analyze(path: PathBuf, mode: TaskMode, json: bool) -> ExitCode {
+    match analyze(path, mode) {
+        Ok(response) => {
             let exit_code = if response.media_analysis_status == MediaAnalysisStatus::Failed {
                 ExitCode::FAILURE
             } else {
@@ -170,25 +156,6 @@ fn execute_analyze(
                 }
             }
             exit_code
-        }
-        Ok(Output::Combined {
-            initial,
-            recalculation,
-        }) => {
-            if json {
-                let output = serde_json::json!({
-                    "initial_analysis": initial,
-                    "recalculation": recalculation,
-                });
-                println!("{}", serde_json::to_string_pretty(&output).unwrap());
-            } else {
-                println!("Media analysis: {:?}", initial.media_analysis_status);
-                println!("Configuration: {:?}", recalculation.configuration_status);
-                for conflict in recalculation.conflicts {
-                    eprintln!("Conflict {:?}: {}", conflict.code, conflict.message);
-                }
-            }
-            ExitCode::SUCCESS
         }
         Err(error) => {
             if json {
@@ -209,21 +176,12 @@ fn execute_analyze(
     }
 }
 
-enum Output {
-    Analysis(Box<framelean_runtime::AnalyzeMediaResponse>),
-    Combined {
-        initial: Box<framelean_runtime::AnalyzeMediaResponse>,
-        recalculation: Box<framelean_runtime::RecalculateConfigurationResponse>,
-    },
-}
-
 fn analyze(
     path: PathBuf,
     mode: TaskMode,
-    selection_path: Option<PathBuf>,
-) -> Result<Output, EngineError> {
+) -> Result<framelean_runtime::AnalyzeMediaResponse, EngineError> {
     let mut runtime = build_default_runtime()?;
-    let initial = runtime.analyze_media(AnalyzeTaskRequest {
+    runtime.analyze_media(AnalyzeTaskRequest {
         task_mode: mode,
         media_request: MediaAnalyzeRequest {
             source: MediaSource::local_file(path)?,
@@ -231,44 +189,6 @@ fn analyze(
             expected_source: None,
         },
         context: RequestContext::default(),
-    })?;
-    let Some(selection_path) = selection_path else {
-        return Ok(Output::Analysis(Box::new(initial)));
-    };
-    let selection = read_selection(&selection_path)?;
-    let recalculation = runtime.recalculate_configuration(RecalculateConfigurationRequest {
-        analysis_id: initial.analysis_id.clone(),
-        expected_revision: initial.analysis_revision,
-        selection,
-        context: RequestContext::default(),
-    })?;
-    Ok(Output::Combined {
-        initial: Box::new(initial),
-        recalculation: Box::new(recalculation),
-    })
-}
-
-fn read_selection(path: &PathBuf) -> Result<RecalculateSelection, EngineError> {
-    let mut json = String::new();
-    if path.as_os_str() == "-" {
-        io::stdin().read_to_string(&mut json).map_err(|error| {
-            EngineError::with_source(
-                ErrorKind::InvalidArgument,
-                "cannot read selection stdin",
-                error,
-            )
-        })?;
-    } else {
-        json = fs::read_to_string(path).map_err(|error| {
-            EngineError::with_source(
-                ErrorKind::InvalidArgument,
-                "cannot read selection file",
-                error,
-            )
-        })?;
-    }
-    serde_json::from_str(&json).map_err(|error| {
-        EngineError::with_source(ErrorKind::InvalidArgument, "invalid selection JSON", error)
     })
 }
 
@@ -467,6 +387,22 @@ mod tests {
     #[test]
     fn serve_command_requires_snapshot_directory() {
         assert!(Cli::try_parse_from(["framelean-engine", "serve"]).is_err());
+    }
+
+    #[test]
+    fn analyze_command_rejects_the_removed_selection_option() {
+        assert!(
+            Cli::try_parse_from([
+                "framelean-engine",
+                "analyze",
+                "/tmp/input.mp4",
+                "--mode",
+                "video-compress",
+                "--selection",
+                "/tmp/selection.json",
+            ])
+            .is_err()
+        );
     }
 
     #[test]

@@ -9,7 +9,7 @@ Client
 → analysis queue + execution control queue
 → FLL Runtime
 ├→ AnalysisSnapshot persistent store
-└→ single execution lane + real libav stream-copy/remux
+└→ single execution lane + real libav execution
 ```
 
 FEngine 当前负责：
@@ -26,7 +26,7 @@ FEngine 当前负责：
 
 FEngine 不生成媒体能力、候选方案、预设或估算，也不构造 Pipeline。这些仍由 FLL Runtime 和 FLL Media Pipeline 拥有。
 
-预览帧和视频缩略图作为 Control queue 工作暴露给 Client。Worker 校验源 size/mtime 后调用 FLL libav helper，分别发布 `PreviewFramesReady` 与 `VideoThumbnailReady`；它们不改变分析队列、execution lane 或 LIFO 恢复栈。
+预览帧和视频缩略图作为 Control queue 工作暴露给 Client。Worker 校验源 size/mtime 后调用 FLL libav helper，分别发布 `PreviewFramesReady` 与 `VideoThumbnailReady`；它们不改变分析队列、execution 资源池或任何 LIFO 恢复栈。
 
 FEngine 的正式构建必须链接仓库脚本生成的 bundled static libav SDK，不允许使用系统 FFmpeg，也不会随包分发 ffmpeg/ffprobe CLI：
 
@@ -43,7 +43,8 @@ macOS Universal 2 由两个原生 FEngine 切片合并；Windows x64 在 MSYS2 �
 cargo run -- serve --snapshot-dir <directory>
 ```
 
-Desktop Client 使用守护入口，并将仅限当前用户读取的 endpoint 文件写入 Snapshot 目录：
+Desktop Client 使用守护入口，并将仅限当前用户读取的 endpoint 文件写入
+Snapshot 目录的父级 engine 目录，避免把 transport 记录混入 AnalysisSnapshot 存储：
 
 ```bash
 cargo run -- serve-daemon --snapshot-dir <directory> --endpoint-file <file>
@@ -61,6 +62,6 @@ cargo run -- monitor --samples 3 --interval-ms 1000 --json
 
 当前限制：
 
-- 默认 FLL Backend 只执行不含 Decoder、Encoder 或 Processor 的 packet stream-copy/remux 链。任一转换阶段未就绪时返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
+- 默认 FLL Runtime 可执行 packet stream-copy/remux，以及单视频、无音频的 software decode -> 可选 swscale -> libx264 -> MP4 链。音频、多流、HDR tone mapping、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换阶段仍返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
 - 新 request ID 不复用已完成 Work 的内存终态；Client 应通过持久化的 `analysis_id` 查询 Snapshot，或显式提交一次新分析。相同 request ID 仍在幂等保留窗口内重放。
 - Client 连接中断或 Client 进程重启不会结束守护 Worker；重连后复用原 session 并使用 Engine Snapshot 对账。FEngine 守护进程本身崩溃或显式关闭后的跨进程媒体断点续作尚未实现；Client 会将新引擎 Snapshot 中消失的非终态工作标记为可重试的 recovery failure。

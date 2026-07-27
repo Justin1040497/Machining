@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use framelean_core::{AnalysisId, EngineErrorCode};
 use framelean_runtime::{
     AnalysisRevision, AnalysisSnapshotView, AnalyzeMediaResponse, ExecutionLaneSnapshot,
-    ExecutionOutputRequest, ExecutionPauseReason, ExecutionProgress, ExecutionSubmissionResult,
-    ExecutionTaskState, RecalculateSelection, TaskMode,
+    ExecutionOutputRequest, ExecutionPauseReason, ExecutionProgress, ExecutionResourcePool,
+    ExecutionSubmissionResult, ExecutionTaskState, RecalculateSelection, TaskMode,
 };
 use serde::{Deserialize, Serialize};
 
@@ -214,6 +214,7 @@ pub struct AnalysisQueueEntrySnapshot {
 pub struct TerminalExecutionSnapshot {
     pub execution_id: framelean_core::TaskId,
     pub client_task_id: String,
+    pub resource_pool: ExecutionResourcePool,
     pub state: ExecutionTaskState,
     pub output_path: Option<PathBuf>,
     pub engine_code: Option<EngineErrorCode>,
@@ -366,18 +367,21 @@ pub enum WorkerEvent {
     ExecutionStarted {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         state: ExecutionTaskState,
         resume_depth: usize,
     },
     ExecutionProgress {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         progress: ExecutionProgress,
         resume_depth: usize,
     },
     ExecutionPaused {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         pause_reason: Option<ExecutionPauseReason>,
         preempted_by_execution_id: Option<framelean_core::TaskId>,
         resume_depth: usize,
@@ -385,11 +389,13 @@ pub enum WorkerEvent {
     ExecutionResumed {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         resume_depth: usize,
     },
     ExecutionStateChanged {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         state: ExecutionTaskState,
         pause_reason: Option<ExecutionPauseReason>,
         preempted_by_execution_id: Option<framelean_core::TaskId>,
@@ -404,11 +410,13 @@ pub enum WorkerEvent {
     ExecutionCompleted {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         output_path: PathBuf,
     },
     ExecutionFailed {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         engine_code: Option<EngineErrorCode>,
         message: String,
         resume_depth: usize,
@@ -416,6 +424,7 @@ pub enum WorkerEvent {
     ExecutionCancelled {
         execution_id: framelean_core::TaskId,
         client_task_id: String,
+        resource_pool: ExecutionResourcePool,
         resume_depth: usize,
     },
     WorkFailed {

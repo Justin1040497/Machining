@@ -25,9 +25,9 @@ Worker 使用 4-byte 大端长度帧 JSON；最大帧为 16 MiB。`serve` 提供
 
 输入通道、Work Queue、输出通道、幂等记录和完整终态缓存都有硬上限；终态缓存同时按数量、总字节和 TTL 淘汰。Engine Snapshot 另带最近 128 条分析和执行终态摘要，使 Client 能恢复离线窗口内完成的分析 Snapshot、完成输出、失败或取消。stdio EOF、非法输入和显式 Shutdown 进入有限时排空，到期会中止 Runtime 进程边界，避免无限挂起；daemon 的 Client socket EOF 只表示断开，不传递为 Worker stdin EOF。
 
-`serve` 必须接收 `--snapshot-dir`；`serve-daemon` 还必须接收 `--endpoint-file`。目录存储持有单实例文件锁，并限制条目数、总字节和单记录字节；容量满时明确失败，不会静默删除 Client 仍可能引用的 Snapshot。Snapshot 先由 FLL 生成，再由 FEngine 原子发布并在支持的平台同步父目录。恢复时文件名必须与记录内的 `analysis_id` 一致，重复 ID 或冲突 revision 不会覆盖已恢复 Snapshot。外部持久化失败时，FEngine 会从 Runtime 回滚尚未提交的内存 Snapshot。
+`serve` 必须接收 `--snapshot-dir`；`serve-daemon` 还必须接收 `--endpoint-file`。Desktop Client 将 endpoint 文件置于 Snapshot 目录的父级 engine 目录，Snapshot 存储目录只能包含 AnalysisSnapshot 记录。目录存储持有单实例文件锁，并限制条目数、总字节和单记录字节；容量满时明确失败，不会静默删除 Client 仍可能引用的 Snapshot。Snapshot 先由 FLL 生成，再由 FEngine 原子发布并在支持的平台同步父目录。恢复时文件名必须与记录内的 `analysis_id` 一致，重复 ID 或冲突 revision 不会覆盖已恢复 Snapshot。外部持久化失败时，FEngine 会从 Runtime 回滚尚未提交的内存 Snapshot。
 
-FLL 的媒体分析、候选、预设、估算、Task、execution Scheduler、Pipeline、输出事务和 Runtime Schema 不迁入 FEngine。FEngine 将 FLL execution event 转换为带 Client identity 和全局 sequence 的协议事件，但不成为 Task state 或 LIFO 恢复栈的第二权威源。默认 Runtime 已能通过进程内 libav 执行可兼容的 packet stream-copy/remux；需要转换节点的链仍 fail closed。
+FLL 的媒体分析、候选、预设、估算、Task、资源池 execution Scheduler、Pipeline、输出事务和 Runtime Schema 不迁入 FEngine。FEngine 将 FLL execution event 转换为带 Client identity、资源池和全局 sequence 的协议事件，但不成为 Task state 或按池 LIFO 恢复栈的第二权威源。FLL Runtime 从冻结的 Candidate 构建并路由 native execution plan；默认 Runtime 已能执行可兼容的 packet stream-copy/remux，以及严格限定的单视频、无音频 decode -> 可选 swscale -> libx264 -> MP4 链。其他转换组合仍 fail closed。
 
 FEngine release binary 通过 `scripts/build/with_bundled_ffmpeg.sh` 链接 `build/dependencies/ffmpeg/<platform>/` 中的 static libav SDK，不允许 system/Homebrew fallback。macOS 和 Windows Desktop package 只携带 `framelean-engine`，不再携带或启动 ffmpeg/ffprobe CLI；macOS 构建会用 `otool -L` 拒绝动态 libav，Windows 构建会用 `objdump -p` 拒绝动态 libav 和 GNU runtime DLL。
 

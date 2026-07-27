@@ -60,8 +60,8 @@ Client 必须先发送 `Hello`。FEngine 协商版本并建立单会话，输出
 
 `SubmitAnalysisBatch` 和 `SubmitExecutionBatch` 先校验完整批次，再原子建立各子工作的独立身份和顺序。`ApplyQueueOrder` 同时校验分析队列和执行 lane revision；任一冲突都不部分应用，而是返回最新 `EngineStateSnapshot`。拖拽只重排等待项，不改变正在分析、运行或恢复栈中的工作。
 
-执行 lane 为单活动位，`PreemptAndStart` 在安全检查点暂停当前工作后启动目标，并使用 LIFO 恢复栈。用户暂停与抢占暂停分开投影；前者不会被自动恢复。`ExecutionStarted/Progress/Paused/Resumed/StateChanged/Completed/Failed/Cancelled` 都携带会话内单调 sequence。
+执行调度由两个资源池组成：Video 池固定只有一个活动执行；Auxiliary 池在没有视频时最多两个活动执行，视频运行时最多一个。`PreemptAndStart` 会在安全检查点暂停目标资源池内的活动项；启动视频时若辅助池需要收缩，也会暂停一个多余的辅助项。每个资源池拥有独立 LIFO 恢复栈，用户暂停与抢占暂停分开投影，前者不会被自动恢复。`ExecutionStarted/Progress/Paused/Resumed/StateChanged/Completed/Failed/Cancelled` 都携带资源池和会话内单调 sequence。
 
-`GetEngineSnapshot` 返回当前分析活动项与等待队列、执行活动项、普通等待队列、LIFO 恢复栈、用户暂停集合、两类 queue revision，以及有界的最近分析/执行终态摘要。Client 发现 sequence gap 或重新接入 daemon 后保留同一权威 session 并以该 Snapshot 重建投影；成功分析摘要通过 `analysis_id` 重新读取 FLL Snapshot，执行摘要恢复完成输出、失败或取消。
+`GetEngineSnapshot` 返回当前分析活动项与等待队列、多个执行活动项、普通等待队列、Video/Auxiliary 两个 LIFO 恢复栈、用户暂停集合、两类 queue revision，以及有界的最近分析/执行终态摘要。Client 发现 sequence gap 或重新接入 daemon 后保留同一权威 session 并以该 Snapshot 重建投影；成功分析摘要通过 `analysis_id` 重新读取 FLL Snapshot，执行摘要恢复完成输出、失败或取消。
 
-当前默认执行 Backend 只会运行不需要 Decoder、Encoder 或 Processor 的 libav packet stream-copy/remux 链。需要转换阶段的 selection 以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝，不会伪造进度或成功输出。
+当前默认执行 Backend 支持兼容媒体的 libav packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4。音频、多流、HDR、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换组合以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝，不会伪造进度或成功输出。

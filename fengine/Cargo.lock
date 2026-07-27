@@ -345,6 +345,7 @@ dependencies = [
  "framelean-core",
  "framelean-decision",
  "framelean-environment",
+ "framelean-ffmpeg",
  "framelean-media",
  "framelean-pipeline",
  "framelean-plugin",

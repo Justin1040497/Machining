@@ -11,5 +11,6 @@
 - 拆分分析队列和 execution/control 队列，增加独立 revision、权威位置、`GetEngineSnapshot` 和同时校验两队列的原子 `ApplyQueueOrder`。
 - 增加 `SubmitAnalysisBatch` / `SubmitExecutionBatch`，在完整批次校验后一次建立独立子工作；子 request ID 与超长父 ID 解耦并始终满足协议上限。
 - 转发 FLL execution 的进度、暂停、恢复、取消、抢占关系和终态，增加 `PreemptAndStart` 与 `ControlExecution`；幂等重放不重复控制或压栈。
+- Engine Snapshot 和 execution 事件现在投影多个活动执行、Video/Auxiliary 资源池以及两个独立恢复栈；FEngine 仍只负责协议映射，不拥有容量和抢占规则。
 - 默认 Runtime Host 接入真实 libav packet stream-copy/remux Backend，并以真实 WAV 文件覆盖“启动 Worker 子进程 → protocol 分析 → 提交 → 真实进度 → 输出发布 → protocol 重新分析”端到端测试。
 - 增加受随机 token 保护的本机 loopback 守护 transport；Client 断开后守护层代发心跳，同一 Worker session 可由新 Client Hello 接回。Engine Snapshot 同时保留有界的最近分析与执行终态摘要，覆盖离线窗口内完成、失败或取消后的投影恢复。
