@@ -26,6 +26,17 @@ FEngine 当前负责：
 
 FEngine 不生成媒体能力、候选方案、预设或估算，也不构造 Pipeline。这些仍由 FLL Runtime 和 FLL Media Pipeline 拥有。
 
+预览帧和视频缩略图作为 Control queue 工作暴露给 Client。Worker 校验源 size/mtime 后调用 FLL libav helper，分别发布 `PreviewFramesReady` 与 `VideoThumbnailReady`；它们不改变分析队列、execution lane 或 LIFO 恢复栈。
+
+FEngine 的正式构建必须链接仓库脚本生成的 bundled static libav SDK，不允许使用系统 FFmpeg，也不会随包分发 ffmpeg/ffprobe CLI：
+
+```bash
+scripts/build/build_ffmpeg_macos_arch.sh arm64
+scripts/build/build_fengine_macos_arch.sh arm64
+```
+
+macOS Universal 2 由两个原生 FEngine 切片合并；Windows x64 在 MSYS2 中使用 `x86_64-pc-windows-gnu` 构建。Desktop Client release 只打包 `framelean-engine` 可执行文件。
+
 启动 Worker 时必须显式提供 Snapshot 目录：
 
 ```bash

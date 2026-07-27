@@ -5,7 +5,7 @@ use framelean_core::{AnalysisId, EngineErrorCode};
 use framelean_runtime::{
     AnalysisRevision, AnalysisSnapshotView, AnalyzeMediaResponse, ExecutionLaneSnapshot,
     ExecutionOutputRequest, ExecutionPauseReason, ExecutionProgress, ExecutionSubmissionResult,
-    ExecutionTaskState, RecalculateConfigurationResponse, RecalculateSelection, TaskMode,
+    ExecutionTaskState, RecalculateSelection, TaskMode,
 };
 use serde::{Deserialize, Serialize};
 
@@ -27,11 +27,10 @@ pub struct RequestEnvelope {
 pub enum WorkerCommand {
     Hello(HelloCommand),
     AnalyzeMedia(AnalyzeMediaCommand),
+    GeneratePreviewFrames(GeneratePreviewFramesCommand),
+    GenerateVideoThumbnail(GenerateVideoThumbnailCommand),
     SubmitAnalysisBatch(SubmitAnalysisBatchCommand),
     GetAnalysisSnapshot(GetAnalysisSnapshotCommand),
-    /// Compatibility-only v1 entry. New Clients persist a selection from the
-    /// analysis snapshot and validate it atomically during SubmitExecution.
-    ResolveConfiguration(ResolveConfigurationCommand),
     SubmitExecution(SubmitExecutionCommand),
     SubmitExecutionBatch(SubmitExecutionBatchCommand),
     ApplyQueueOrder(ApplyQueueOrderCommand),
@@ -70,6 +69,53 @@ pub struct AnalyzeMediaCommand {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GeneratePreviewFramesCommand {
+    pub client_task_id: String,
+    pub source: ClientSourceFacts,
+    pub output_directory: PathBuf,
+    pub timestamps_us: Vec<u64>,
+    pub max_width: Option<u32>,
+    #[serde(default)]
+    pub priority: WorkPriority,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GenerateVideoThumbnailCommand {
+    pub client_task_id: String,
+    pub source: ClientSourceFacts,
+    pub output_path: PathBuf,
+    pub duration_us: Option<u64>,
+    pub max_width: u32,
+    #[serde(default)]
+    pub priority: WorkPriority,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewFrameArtifactDocument {
+    pub index: usize,
+    pub requested_timestamp_us: u64,
+    pub decoded_timestamp_us: u64,
+    pub width: u32,
+    pub height: u32,
+    pub output_path: PathBuf,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewFramesDocument {
+    pub output_directory: PathBuf,
+    pub frames: Vec<PreviewFrameArtifactDocument>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct VideoThumbnailDocument {
+    pub output_path: PathBuf,
+    pub requested_timestamp_us: u64,
+    pub decoded_timestamp_us: u64,
+    pub width: u32,
+    pub height: u32,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SubmitAnalysisBatchCommand {
     pub items: Vec<AnalyzeMediaCommand>,
 }
@@ -77,15 +123,6 @@ pub struct SubmitAnalysisBatchCommand {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct GetAnalysisSnapshotCommand {
     pub analysis_id: AnalysisId,
-    #[serde(default)]
-    pub priority: WorkPriority,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ResolveConfigurationCommand {
-    pub analysis_id: AnalysisId,
-    pub expected_revision: AnalysisRevision,
-    pub selection: RecalculateSelection,
     #[serde(default)]
     pub priority: WorkPriority,
 }
@@ -287,14 +324,21 @@ pub enum WorkerEvent {
         client_task_id: String,
         client_file_id: String,
         analysis: Box<AnalyzeMediaResponse>,
+        snapshot: Option<Box<AnalysisSnapshotView>>,
     },
     AnalysisSnapshotReady {
         work_id: String,
         snapshot: Box<AnalysisSnapshotView>,
     },
-    ConfigurationResolved {
+    PreviewFramesReady {
         work_id: String,
-        configuration: Box<RecalculateConfigurationResponse>,
+        client_task_id: String,
+        result: Box<PreviewFramesDocument>,
+    },
+    VideoThumbnailReady {
+        work_id: String,
+        client_task_id: String,
+        result: Box<VideoThumbnailDocument>,
     },
     ExecutionSubmitted {
         work_id: String,

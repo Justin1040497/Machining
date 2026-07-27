@@ -32,7 +32,7 @@ case "$(uname -s)" in
     ;;
 esac
 
-for command_name in gcc g++ cmake curl git install make nasm pkg-config strip tar; do
+for command_name in cp find gcc g++ cmake curl git install make nasm pkg-config sed tar; do
   require_command "$command_name"
 done
 
@@ -232,6 +232,7 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-dxva2 \
   --disable-shared \
   --enable-static \
+  --disable-programs \
   --disable-sdl2 \
   --disable-debug \
   --disable-doc \
@@ -243,33 +244,27 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
 make -j"$JOBS"
 make install
 
-# ---- Install to output directory ----
-install -m 755 "$PREFIX/bin/ffmpeg.exe" "$OUT_DIR/ffmpeg.exe"
-install -m 755 "$PREFIX/bin/ffprobe.exe" "$OUT_DIR/ffprobe.exe"
+rm -rf "$OUT_DIR/include" "$OUT_DIR/lib"
+mkdir -p "$OUT_DIR/include" "$OUT_DIR/lib/pkgconfig"
+cp -R "$PREFIX/include/." "$OUT_DIR/include/"
+find "$PREFIX/lib" -maxdepth 1 -type f -name '*.a' -exec cp {} "$OUT_DIR/lib/" \;
+find "$PREFIX/lib/pkgconfig" -maxdepth 1 -type f -name '*.pc' -exec cp {} "$OUT_DIR/lib/pkgconfig/" \;
 
-strip "$OUT_DIR/ffmpeg.exe" >/dev/null 2>&1 || true
-strip "$OUT_DIR/ffprobe.exe" >/dev/null 2>&1 || true
-
-# ---- Architecture verification ----
-for binary_name in ffmpeg.exe ffprobe.exe; do
-  binary_path="$OUT_DIR/$binary_name"
-  file_output="$(file "$binary_path")"
-  if ! echo "$file_output" | grep -qE "PE32\+.*x86-64"; then
-    echo "error: expected $binary_name to be PE32+ x86-64, got: $file_output" >&2
+for library_name in avcodec avdevice avfilter avformat avutil swresample swscale; do
+  library_path="$OUT_DIR/lib/lib${library_name}.a"
+  if [[ ! -f "$library_path" ]]; then
+    echo "error: missing required static library: $library_path" >&2
     exit 1
   fi
 done
 
-# ---- DLL dependency check ----
-echo "Checking for unexpected DLL dependencies:"
-for binary_name in ffmpeg.exe ffprobe.exe; do
-  dlls="$(objdump -p "$OUT_DIR/$binary_name" | grep "DLL Name" || true)"
-  if echo "$dlls" | grep -vE '(KERNEL32|ADVAPI32|SHELL32|ole32|OLEAUT32|USER32|WS2_32|GDI32|COMCTL32|SETUPAPI|bcrypt|PSAPI|WINMM|Secur32|IPHLPAPI|POWRPROF|CFGMGR32|D3D9|DXVA2|MF|MFPlat|MFReadWrite|SHLWAPI|AVICAP32|VERSION|UxTheme|d3d11|dxgi|msvcrt)' | grep -q "DLL Name"; then
-    echo "error: $binary_name has unexpected DLL dependencies" >&2
-    echo "$dlls" >&2
-    exit 1
-  fi
-done
+pkg_config_root='${pcfiledir}/../..'
+while IFS= read -r pkg_config_file; do
+  sed -i \
+    -e "s|${PREFIX}|${pkg_config_root}|g" \
+    -e "s|${OUT_DIR}|${pkg_config_root}|g" \
+    "$pkg_config_file"
+done < <(find "$OUT_DIR/lib/pkgconfig" -maxdepth 1 -type f -name '*.pc' -print)
 
 # ---- Build info ----
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
@@ -306,6 +301,7 @@ Configure flags:
   --enable-dxva2
   --disable-shared
   --enable-static
+  --disable-programs
   --disable-sdl2
   --disable-ffplay
   --disable-doc
@@ -313,41 +309,6 @@ Configure flags:
   --pkg-config-flags=--static
 EOF
 
-# ---- Capability validation ----
-require_capability() {
-  local output="$1"
-  local capability="$2"
-  local capability_type="$3"
-
-  if grep "$capability" <<<"$output" >/dev/null; then
-    echo "OK: $capability $capability_type is available"
-    return
-  fi
-
-  echo "error: $capability $capability_type was not found" >&2
-  exit 1
-}
-
-encoder_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -encoders 2>/dev/null)"
-decoder_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -decoders 2>/dev/null)"
-demuxer_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -demuxers 2>/dev/null)"
-muxer_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -muxers 2>/dev/null)"
-filter_output="$("$OUT_DIR/ffmpeg.exe" -hide_banner -filters 2>/dev/null)"
-
-for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
-  require_capability "$encoder_output" "$encoder_name" "encoder"
-done
-for decoder_name in opus vorbis; do
-  require_capability "$decoder_output" "$decoder_name" "decoder"
-done
-require_capability "$demuxer_output" "ogg" "demuxer"
-for muxer_name in mp4 mov matroska webm avi; do
-  require_capability "$muxer_output" "$muxer_name" "muxer"
-done
-for filter_name in zscale tonemap; do
-  require_capability "$filter_output" "$filter_name" "filter"
-done
-
 echo
-echo "Built Windows x64 FFmpeg runtime:"
+echo "Built Windows x64 static libav SDK:"
 echo "$OUT_DIR"

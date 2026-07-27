@@ -8,20 +8,21 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use framelean_analysis::{
-    ExpectedSourceFacts, MediaAnalysisStatus, MediaAnalyzeRequest, MediaSource,
+    ExpectedSourceFacts, MediaAnalysisStatus, MediaAnalyzeRequest, MediaSource, SourceFingerprint,
 };
 use framelean_core::{AnalysisId, EngineError, ErrorKind, Result};
+use framelean_ffmpeg::{PreviewFramesRequest, VideoThumbnailRequest};
 use framelean_runtime::{
     AnalysisSnapshotView, AnalyzeMediaResponse, AnalyzeTaskRequest, ExecutionSubmissionRequest,
-    ExecutionSubmissionResult, RecalculateConfigurationRequest, RecalculateConfigurationResponse,
-    RequestContext, TaskMode,
+    ExecutionSubmissionResult, RequestContext, TaskMode,
 };
 
 use crate::protocol::{
     AnalysisQueueEntrySnapshot, AnalysisQueuePosition, AnalyzeMediaCommand, ApplyQueueOrderCommand,
-    BatchSubmissionItem, EngineStateSnapshot, ExecutionControlAction, ExecutionQueuePosition,
-    HelloCommand, OutputEnvelope, QueueKind, QueueOrderResult, RequestEnvelope,
-    TerminalAnalysisSnapshot, TerminalExecutionSnapshot, WorkState, WorkerCommand, WorkerError,
+    BatchSubmissionItem, ClientSourceFacts, EngineStateSnapshot, ExecutionControlAction,
+    ExecutionQueuePosition, HelloCommand, OutputEnvelope, PreviewFrameArtifactDocument,
+    PreviewFramesDocument, QueueKind, QueueOrderResult, RequestEnvelope, TerminalAnalysisSnapshot,
+    TerminalExecutionSnapshot, VideoThumbnailDocument, WorkState, WorkerCommand, WorkerError,
     WorkerErrorCode, WorkerEvent, WorkerOutput, WorkerResponse, read_request_frame,
     write_output_frame_resilient,
 };
@@ -55,8 +56,9 @@ const OUTPUT_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum WorkPayload {
     Analyze(AnalyzeMediaCommand),
+    GeneratePreviewFrames(crate::protocol::GeneratePreviewFramesCommand),
+    GenerateVideoThumbnail(crate::protocol::GenerateVideoThumbnailCommand),
     GetSnapshot(crate::protocol::GetAnalysisSnapshotCommand),
-    Resolve(crate::protocol::ResolveConfigurationCommand),
     SubmitExecution(crate::protocol::SubmitExecutionCommand),
     ApplyQueueOrder(ApplyQueueOrderWork),
     GetEngineSnapshot,
@@ -119,9 +121,13 @@ struct WorkRecord {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum WorkTerminal {
-    Analysis(Box<AnalyzeMediaResponse>),
+    Analysis {
+        analysis: Box<AnalyzeMediaResponse>,
+        snapshot: Option<Box<AnalysisSnapshotView>>,
+    },
     Snapshot(Box<AnalysisSnapshotView>),
-    Configuration(Box<RecalculateConfigurationResponse>),
+    PreviewFrames(Box<PreviewFramesDocument>),
+    VideoThumbnail(Box<VideoThumbnailDocument>),
     Execution(Box<ExecutionSubmissionResult>),
     EngineSnapshot(Box<EngineStateSnapshot>),
     QueueOrderApplied(Box<QueueOrderResult>),
@@ -172,8 +178,17 @@ impl WorkWaiter {
                 client_task_id: Some(command.client_task_id.clone()),
                 client_file_id: Some(command.client_file_id.clone()),
             },
+            WorkPayload::GeneratePreviewFrames(command) => Self {
+                request_id: request_id.to_owned(),
+                client_task_id: Some(command.client_task_id.clone()),
+                client_file_id: None,
+            },
+            WorkPayload::GenerateVideoThumbnail(command) => Self {
+                request_id: request_id.to_owned(),
+                client_task_id: Some(command.client_task_id.clone()),
+                client_file_id: None,
+            },
             WorkPayload::GetSnapshot(_)
-            | WorkPayload::Resolve(_)
             | WorkPayload::SubmitExecution(_)
             | WorkPayload::ApplyQueueOrder(_)
             | WorkPayload::GetEngineSnapshot
@@ -204,9 +219,13 @@ struct CompletedWork {
 }
 
 enum RuntimeCompletion {
-    Analysis(AnalyzeMediaResponse),
+    Analysis {
+        analysis: AnalyzeMediaResponse,
+        snapshot: Option<Box<AnalysisSnapshotView>>,
+    },
     Snapshot(AnalysisSnapshotView),
-    Configuration(RecalculateConfigurationResponse),
+    PreviewFrames(PreviewFramesDocument),
+    VideoThumbnail(VideoThumbnailDocument),
     Execution(ExecutionSubmissionResult),
     EngineSnapshot(framelean_runtime::ExecutionLaneSnapshot),
     QueueOrderApplied {
@@ -478,10 +497,16 @@ impl WorkerCoordinator {
                 WorkPayload::GetSnapshot(command),
                 runtime_tx,
             ),
-            WorkerCommand::ResolveConfiguration(command) => self.enqueue_work(
+            WorkerCommand::GeneratePreviewFrames(command) => self.enqueue_work(
                 request.request_id,
                 request.command,
-                WorkPayload::Resolve(command),
+                WorkPayload::GeneratePreviewFrames(command),
+                runtime_tx,
+            ),
+            WorkerCommand::GenerateVideoThumbnail(command) => self.enqueue_work(
+                request.request_id,
+                request.command,
+                WorkPayload::GenerateVideoThumbnail(command),
                 runtime_tx,
             ),
             WorkerCommand::SubmitExecution(command) => self.enqueue_work(
@@ -784,8 +809,9 @@ impl WorkerCoordinator {
         }
         let priority = match &payload {
             WorkPayload::Analyze(value) => value.priority,
+            WorkPayload::GeneratePreviewFrames(value) => value.priority,
+            WorkPayload::GenerateVideoThumbnail(value) => value.priority,
             WorkPayload::GetSnapshot(value) => value.priority,
-            WorkPayload::Resolve(value) => value.priority,
             WorkPayload::SubmitExecution(value) => value.priority,
             WorkPayload::ApplyQueueOrder(_) => WorkPriority::Foreground,
             WorkPayload::GetEngineSnapshot | WorkPayload::ControlExecution(_) => {
@@ -1084,7 +1110,7 @@ impl WorkerCoordinator {
                 self.active_analysis = None;
                 match result {
                     Err(error) => self.fail_work(item, error, &mut output),
-                    Ok(RuntimeCompletion::Analysis(analysis)) => {
+                    Ok(RuntimeCompletion::Analysis { analysis, snapshot }) => {
                         let WorkPayload::Analyze(command) = &item.payload else {
                             unreachable!("analysis completion must match analysis work");
                         };
@@ -1113,7 +1139,10 @@ impl WorkerCoordinator {
                                 WorkState::Completed
                             },
                             analysis_id.clone(),
-                            WorkTerminal::Analysis(Box::new(analysis.clone())),
+                            WorkTerminal::Analysis {
+                                analysis: Box::new(analysis.clone()),
+                                snapshot: snapshot.clone(),
+                            },
                         );
                         self.remove_analysis_key(&item);
                         let waiters = self.take_waiters(&item.work_id);
@@ -1125,6 +1154,7 @@ impl WorkerCoordinator {
                                     client_task_id: waiter.client_task_id.unwrap_or_default(),
                                     client_file_id: waiter.client_file_id.unwrap_or_default(),
                                     analysis: Box::new(analysis.clone()),
+                                    snapshot: snapshot.clone(),
                                 },
                             ));
                         }
@@ -1144,18 +1174,41 @@ impl WorkerCoordinator {
                             },
                         ));
                     }
-                    Ok(RuntimeCompletion::Configuration(configuration)) => {
+                    Ok(RuntimeCompletion::PreviewFrames(result)) => {
+                        let WorkPayload::GeneratePreviewFrames(command) = &item.payload else {
+                            unreachable!("preview completion must match preview work");
+                        };
                         self.complete_work(
                             &item,
                             WorkState::Completed,
-                            Some(configuration.analysis_id.clone()),
-                            WorkTerminal::Configuration(Box::new(configuration.clone())),
+                            None,
+                            WorkTerminal::PreviewFrames(Box::new(result.clone())),
                         );
                         output.push(self.event_output(
                             item.request_id,
-                            WorkerEvent::ConfigurationResolved {
+                            WorkerEvent::PreviewFramesReady {
                                 work_id: item.work_id,
-                                configuration: Box::new(configuration),
+                                client_task_id: command.client_task_id.clone(),
+                                result: Box::new(result),
+                            },
+                        ));
+                    }
+                    Ok(RuntimeCompletion::VideoThumbnail(result)) => {
+                        let WorkPayload::GenerateVideoThumbnail(command) = &item.payload else {
+                            unreachable!("thumbnail completion must match thumbnail work");
+                        };
+                        self.complete_work(
+                            &item,
+                            WorkState::Completed,
+                            None,
+                            WorkTerminal::VideoThumbnail(Box::new(result.clone())),
+                        );
+                        output.push(self.event_output(
+                            item.request_id,
+                            WorkerEvent::VideoThumbnailReady {
+                                work_id: item.work_id,
+                                client_task_id: command.client_task_id.clone(),
+                                result: Box::new(result),
                             },
                         ));
                     }
@@ -1761,23 +1814,34 @@ impl WorkerCoordinator {
             return outputs;
         };
         let event = match (terminal, command) {
-            (WorkTerminal::Analysis(analysis), WorkerCommand::AnalyzeMedia(command)) => {
-                WorkerEvent::AnalysisCompleted {
-                    work_id,
-                    client_task_id: command.client_task_id.clone(),
-                    client_file_id: command.client_file_id.clone(),
-                    analysis,
-                }
-            }
+            (
+                WorkTerminal::Analysis { analysis, snapshot },
+                WorkerCommand::AnalyzeMedia(command),
+            ) => WorkerEvent::AnalysisCompleted {
+                work_id,
+                client_task_id: command.client_task_id.clone(),
+                client_file_id: command.client_file_id.clone(),
+                analysis,
+                snapshot,
+            },
             (WorkTerminal::Snapshot(snapshot), WorkerCommand::GetAnalysisSnapshot(_)) => {
                 WorkerEvent::AnalysisSnapshotReady { work_id, snapshot }
             }
             (
-                WorkTerminal::Configuration(configuration),
-                WorkerCommand::ResolveConfiguration(_),
-            ) => WorkerEvent::ConfigurationResolved {
+                WorkTerminal::PreviewFrames(result),
+                WorkerCommand::GeneratePreviewFrames(command),
+            ) => WorkerEvent::PreviewFramesReady {
                 work_id,
-                configuration,
+                client_task_id: command.client_task_id.clone(),
+                result,
+            },
+            (
+                WorkTerminal::VideoThumbnail(result),
+                WorkerCommand::GenerateVideoThumbnail(command),
+            ) => WorkerEvent::VideoThumbnailReady {
+                work_id,
+                client_task_id: command.client_task_id.clone(),
+                result,
             },
             (WorkTerminal::Execution(submission), WorkerCommand::SubmitExecution(command)) => {
                 WorkerEvent::ExecutionSubmitted {
@@ -1867,9 +1931,12 @@ fn request_record_size(command: &WorkerCommand) -> usize {
 
 fn terminal_size(terminal: &WorkTerminal) -> usize {
     let size = match terminal {
-        WorkTerminal::Analysis(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
+        WorkTerminal::Analysis { analysis, snapshot } => {
+            bounded_json_size(&(analysis, snapshot), MAX_TERMINAL_CACHE_BYTES)
+        }
         WorkTerminal::Snapshot(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
-        WorkTerminal::Configuration(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
+        WorkTerminal::PreviewFrames(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
+        WorkTerminal::VideoThumbnail(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
         WorkTerminal::Execution(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
         WorkTerminal::EngineSnapshot(value) => bounded_json_size(value, MAX_TERMINAL_CACHE_BYTES),
         WorkTerminal::QueueOrderApplied(value) => {
@@ -2234,23 +2301,59 @@ where
                     return Err(persistence_error);
                 }
             }
-            Ok(RuntimeCompletion::Analysis(response))
+            let snapshot = if response.media_analysis_status == MediaAnalysisStatus::Failed {
+                None
+            } else {
+                Some(Box::new(runtime.analysis_snapshot(&response.analysis_id)?))
+            };
+            Ok(RuntimeCompletion::Analysis {
+                analysis: response,
+                snapshot,
+            })
         }
         WorkPayload::GetSnapshot(command) => Ok(RuntimeCompletion::Snapshot(
             runtime.analysis_snapshot(&command.analysis_id)?,
         )),
-        WorkPayload::Resolve(command) => Ok(RuntimeCompletion::Configuration(
-            runtime.recalculate_configuration(RecalculateConfigurationRequest {
-                analysis_id: command.analysis_id.clone(),
-                expected_revision: command.expected_revision,
-                selection: command.selection.clone(),
-                context: RequestContext {
-                    request_id: Some(item.request_id.clone()),
-                    client_file_id: None,
-                    correlation_id: None,
-                },
-            })?,
-        )),
+        WorkPayload::GeneratePreviewFrames(command) => {
+            validate_source_facts(&command.source)?;
+            let result = runtime.generate_preview_frames(&PreviewFramesRequest {
+                input_path: command.source.path.clone(),
+                output_directory: command.output_directory.clone(),
+                timestamps_us: command.timestamps_us.clone(),
+                max_width: command.max_width,
+            })?;
+            Ok(RuntimeCompletion::PreviewFrames(PreviewFramesDocument {
+                output_directory: result.output_directory,
+                frames: result
+                    .frames
+                    .into_iter()
+                    .map(|frame| PreviewFrameArtifactDocument {
+                        index: frame.index,
+                        requested_timestamp_us: frame.requested_timestamp_us,
+                        decoded_timestamp_us: frame.decoded_timestamp_us,
+                        width: frame.width,
+                        height: frame.height,
+                        output_path: frame.output_path,
+                    })
+                    .collect(),
+            }))
+        }
+        WorkPayload::GenerateVideoThumbnail(command) => {
+            validate_source_facts(&command.source)?;
+            let result = runtime.generate_video_thumbnail(&VideoThumbnailRequest {
+                input_path: command.source.path.clone(),
+                output_path: command.output_path.clone(),
+                duration_us: command.duration_us,
+                max_width: command.max_width,
+            })?;
+            Ok(RuntimeCompletion::VideoThumbnail(VideoThumbnailDocument {
+                output_path: result.output_path,
+                requested_timestamp_us: result.requested_timestamp_us,
+                decoded_timestamp_us: result.decoded_timestamp_us,
+                width: result.width,
+                height: result.height,
+            }))
+        }
         WorkPayload::SubmitExecution(command) => Ok(RuntimeCompletion::Execution(
             runtime.submit_execution(ExecutionSubmissionRequest {
                 analysis_id: command.analysis_id.clone(),
@@ -2336,6 +2439,15 @@ fn runtime_error(error: EngineError) -> WorkerError {
     }
 }
 
+fn validate_source_facts(source: &ClientSourceFacts) -> Result<()> {
+    let fingerprint = SourceFingerprint::from_local_file(&source.path)?;
+    ExpectedSourceFacts {
+        file_size_bytes: source.file_size_bytes,
+        modified_time_unix_nanos: source.modified_time_unix_nanos.clone(),
+    }
+    .validate(&fingerprint)
+}
+
 fn snapshot_store_error(error: EngineError) -> WorkerError {
     WorkerError {
         code: WorkerErrorCode::SnapshotStoreFailure,
@@ -2366,8 +2478,9 @@ fn invalid_worker_failure(message: impl Into<String>) -> WorkerError {
 fn work_queue_kind(payload: &WorkPayload) -> QueueKind {
     match payload {
         WorkPayload::Analyze(_) => QueueKind::Analysis,
-        WorkPayload::GetSnapshot(_)
-        | WorkPayload::Resolve(_)
+        WorkPayload::GeneratePreviewFrames(_)
+        | WorkPayload::GenerateVideoThumbnail(_)
+        | WorkPayload::GetSnapshot(_)
         | WorkPayload::SubmitExecution(_)
         | WorkPayload::ApplyQueueOrder(_)
         | WorkPayload::GetEngineSnapshot
@@ -2379,9 +2492,10 @@ fn work_queue_kind(payload: &WorkPayload) -> QueueKind {
 fn client_task_id_for_payload(payload: &WorkPayload) -> Option<String> {
     match payload {
         WorkPayload::Analyze(command) => Some(command.client_task_id.clone()),
+        WorkPayload::GeneratePreviewFrames(command) => Some(command.client_task_id.clone()),
+        WorkPayload::GenerateVideoThumbnail(command) => Some(command.client_task_id.clone()),
         WorkPayload::SubmitExecution(command) => Some(command.client_task_id.clone()),
         WorkPayload::GetSnapshot(_)
-        | WorkPayload::Resolve(_)
         | WorkPayload::ApplyQueueOrder(_)
         | WorkPayload::GetEngineSnapshot
         | WorkPayload::PreemptAndStart(_)
@@ -2420,6 +2534,30 @@ fn validate_command(command: &WorkerCommand) -> std::result::Result<(), WorkerEr
                 ));
             }
         }
+        WorkerCommand::GeneratePreviewFrames(command) => {
+            if !is_bounded_text(&command.client_task_id, MAX_CLIENT_ID_BYTES)
+                || command.source.path.as_os_str().is_empty()
+                || command.output_directory.as_os_str().is_empty()
+                || command.timestamps_us.is_empty()
+                || command.timestamps_us.len() > 16
+                || command.max_width == Some(0)
+            {
+                return Err(invalid_request(
+                    "preview request requires a task id, paths, one to sixteen timestamps, and a positive optional width",
+                ));
+            }
+        }
+        WorkerCommand::GenerateVideoThumbnail(command) => {
+            if !is_bounded_text(&command.client_task_id, MAX_CLIENT_ID_BYTES)
+                || command.source.path.as_os_str().is_empty()
+                || command.output_path.as_os_str().is_empty()
+                || command.max_width == 0
+            {
+                return Err(invalid_request(
+                    "thumbnail request requires a task id, paths, and a positive width",
+                ));
+            }
+        }
         WorkerCommand::SubmitAnalysisBatch(command) => {
             if command.items.is_empty() || command.items.len() > MAX_QUEUED_WORK_ITEMS {
                 return Err(invalid_request(
@@ -2437,11 +2575,6 @@ fn validate_command(command: &WorkerCommand) -> std::result::Result<(), WorkerEr
             }
         }
         WorkerCommand::GetAnalysisSnapshot(command) => {
-            if !is_bounded_text(command.analysis_id.as_str(), MAX_ANALYSIS_ID_BYTES) {
-                return Err(invalid_request("analysis_id exceeds the protocol limit"));
-            }
-        }
-        WorkerCommand::ResolveConfiguration(command) => {
             if !is_bounded_text(command.analysis_id.as_str(), MAX_ANALYSIS_ID_BYTES) {
                 return Err(invalid_request("analysis_id exceeds the protocol limit"));
             }
@@ -2519,8 +2652,9 @@ fn new_session_id() -> String {
 mod tests {
     use super::*;
     use crate::protocol::{
-        ClientSourceFacts, HelloCommand, RequestEnvelope, SubmitAnalysisBatchCommand,
-        SubmitExecutionCommand, WorkerCommand, WorkerOutput,
+        ClientSourceFacts, GeneratePreviewFramesCommand, GenerateVideoThumbnailCommand,
+        HelloCommand, RequestEnvelope, SubmitAnalysisBatchCommand, SubmitExecutionCommand,
+        WorkerCommand, WorkerOutput,
     };
     use crate::snapshot_store::MemorySnapshotStore;
 
@@ -2764,6 +2898,75 @@ mod tests {
             runtime_rx.recv().unwrap(),
             RuntimeCommand::Execute(_)
         ));
+    }
+
+    #[test]
+    fn media_artifact_requests_use_the_control_queue() {
+        let mut worker = WorkerCoordinator::new();
+        let (runtime_tx, runtime_rx) = mpsc::channel();
+        let session_id = establish_ready_session(&mut worker, &runtime_tx);
+        let source = ClientSourceFacts {
+            path: PathBuf::from("/tmp/input.mp4"),
+            file_size_bytes: 1,
+            modified_time_unix_nanos: None,
+        };
+
+        let preview = worker.handle_request(
+            RequestEnvelope {
+                protocol_version: crate::protocol::PROTOCOL_VERSION,
+                session_id: Some(session_id.clone()),
+                request_id: "preview-1".to_owned(),
+                command: WorkerCommand::GeneratePreviewFrames(GeneratePreviewFramesCommand {
+                    client_task_id: "task-1".to_owned(),
+                    source: source.clone(),
+                    output_directory: PathBuf::from("/tmp/previews"),
+                    timestamps_us: vec![1_000_000],
+                    max_width: Some(960),
+                    priority: WorkPriority::Foreground,
+                }),
+            },
+            &runtime_tx,
+        );
+        let thumbnail = worker.handle_request(
+            RequestEnvelope {
+                protocol_version: crate::protocol::PROTOCOL_VERSION,
+                session_id: Some(session_id),
+                request_id: "thumbnail-1".to_owned(),
+                command: WorkerCommand::GenerateVideoThumbnail(GenerateVideoThumbnailCommand {
+                    client_task_id: "task-2".to_owned(),
+                    source,
+                    output_path: PathBuf::from("/tmp/thumbnail.bmp"),
+                    duration_us: Some(10_000_000),
+                    max_width: 80,
+                    priority: WorkPriority::Background,
+                }),
+            },
+            &runtime_tx,
+        );
+
+        assert!(preview.iter().any(|output| matches!(
+            output.output,
+            WorkerOutput::Response(WorkerResponse::Accepted {
+                queue_kind: QueueKind::Control,
+                ..
+            })
+        )));
+        assert!(thumbnail.iter().any(|output| matches!(
+            output.output,
+            WorkerOutput::Response(WorkerResponse::Accepted {
+                queue_kind: QueueKind::Control,
+                ..
+            })
+        )));
+        let RuntimeCommand::Execute(item) = runtime_rx.recv().unwrap() else {
+            panic!("preview request should be dispatched to the runtime");
+        };
+        assert!(matches!(
+            item.payload,
+            WorkPayload::GeneratePreviewFrames(_)
+        ));
+        assert_eq!(worker.analysis_queue.len(), 0);
+        assert_eq!(worker.control_queue.len(), 1);
     }
 
     #[test]
@@ -3439,7 +3642,10 @@ mod tests {
         worker.handle_runtime(
             RuntimeResult::Completed(Box::new(CompletedWork {
                 item: *item,
-                result: Ok(RuntimeCompletion::Analysis(completed_analysis(&path))),
+                result: Ok(RuntimeCompletion::Analysis {
+                    analysis: completed_analysis(&path),
+                    snapshot: None,
+                }),
             })),
             &runtime_tx,
         );
@@ -3501,7 +3707,10 @@ mod tests {
         worker.handle_runtime(
             RuntimeResult::Completed(Box::new(CompletedWork {
                 item: *item,
-                result: Ok(RuntimeCompletion::Analysis(completed_analysis(&path))),
+                result: Ok(RuntimeCompletion::Analysis {
+                    analysis: completed_analysis(&path),
+                    snapshot: None,
+                }),
             })),
             &runtime_tx,
         );

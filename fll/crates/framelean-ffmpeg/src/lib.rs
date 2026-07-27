@@ -21,6 +21,13 @@ use framelean_media::capability::{
 use framelean_media::{MediaDuration, Rational};
 use rusty_ffmpeg::ffi;
 
+mod media_frames;
+
+pub use media_frames::{
+    DecodedVideoFrame, PreviewFrameArtifact, PreviewFramesRequest, PreviewFramesResult,
+    VideoThumbnailRequest, VideoThumbnailResult,
+};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LibraryVersions {
     pub avformat: u32,
@@ -164,6 +171,29 @@ impl FfmpegAdapter {
 
         output.write_trailer()?;
         Ok(RemuxOutcome::Completed(progress))
+    }
+
+    pub fn decode_video_frame(
+        &self,
+        input_path: &Path,
+        timestamp_us: u64,
+        max_width: Option<u32>,
+    ) -> Result<DecodedVideoFrame> {
+        media_frames::decode_video_frame(input_path, timestamp_us, max_width)
+    }
+
+    pub fn generate_preview_frames(
+        &self,
+        request: &PreviewFramesRequest,
+    ) -> Result<PreviewFramesResult> {
+        media_frames::generate_preview_frames(request)
+    }
+
+    pub fn generate_video_thumbnail(
+        &self,
+        request: &VideoThumbnailRequest,
+    ) -> Result<VideoThumbnailResult> {
+        media_frames::generate_video_thumbnail(request)
     }
 }
 

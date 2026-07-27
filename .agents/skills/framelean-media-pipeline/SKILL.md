@@ -37,6 +37,6 @@ Source -> Demuxer -> Packet Processor -> Decoder
 
 ## FFmpeg 与所有权
 
-FFmpeg 当前通过 `framelean-ffmpeg` 的低层 bindings 在进程内链接 `libavformat`、`libavcodec` 和 `libavutil`，用于媒体探测和 Native Backend 事实；开发构建使用系统 headers/libraries。Demux、Decode、Filter、Encode、Mux 执行接入，以及 bundled libraries、预生成 bindings、三平台 ABI 与发布打包仍未 qualification。禁止改回 `Command::new("ffmpeg")`、`ffmpeg.exe`、ffprobe 或等价进程调用。
+FFmpeg 当前通过 `framelean-ffmpeg` 的低层 bindings 在进程内链接 bundled static libav SDK，用于媒体探测、Native Backend 事实和受支持的 packet stream-copy/remux。构建必须显式使用 `build/dependencies/ffmpeg/<platform>/`，不得回退到系统或 Homebrew FFmpeg；Desktop package 只携带静态链接后的 FEngine，不携带 ffmpeg/ffprobe CLI。Demux、Decode、Filter、Encode、Mux 的完整执行 Pipeline 仍未全部接入。禁止改回 `Command::new("ffmpeg")`、`ffmpeg.exe`、ffprobe 或等价进程调用。
 
 `MediaBuffer`、`MediaPacket`、`VideoFrame`、`AudioFrame`、`ProcessInput`、`ProcessOutput` 优先 move，不为方便随意 Clone。把 FFI `unsafe` 限制在 `framelean-ffmpeg`，不向上泄漏裸 `AVFrame`、`AVPacket` 或 `AVFormatContext` 指针。

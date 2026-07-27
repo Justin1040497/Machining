@@ -12,6 +12,7 @@ FLL 拥有进程内处理逻辑、Task 状态、Scheduler 和执行组合，不�
 - 与 FFmpeg 无关的媒体和 Processor 抽象。
 - 视频、音频、图片和动图的类型化媒体分析模型。
 - 通过 libavformat/libavcodec/libavutil 进行的进程内媒体探测。
+- 通过 libavformat/libavcodec/libswscale 进行的预览帧解码、BMP artifact 输出和非黑帧视频缩略图选择。
 - 静态机器环境和动态资源采样。
 - Demuxer、Decoder、Processor、Encoder、Muxer 的中立能力契约。
 - Native 支持、Engine 注册和完整执行 readiness 的分离。
@@ -54,7 +55,7 @@ cargo test --workspace
 
 `demo` 使用验证专用 Passthrough Processor 演示静态 `Plugin -> Factory -> Processor -> Pipeline -> Runtime -> Completed Task` 链路，不执行真实媒体处理。
 
-当前 `framelean-ffmpeg` 开发构建使用系统 FFmpeg headers/libraries；本机已验证 Homebrew libavformat/libavcodec/libavutil。三平台 bundled libraries、预生成 bindings 和发布 ABI 尚未完成 qualification，不能视为发布事实。
+`framelean-ffmpeg` 不再回退到系统或 Homebrew FFmpeg。开发、测试和发布构建必须先用 `scripts/build/build_ffmpeg_*` 生成被忽略的 bundled static libav SDK，再通过 `scripts/build/with_bundled_ffmpeg.sh` 构建 FLL/FEngine。macOS arm64 已验证最终 FEngine 不依赖任何 `libav*.dylib`；Universal 2 与 Windows x64 由 Desktop Client workflow 分别在原生 runner 上构建并执行同类依赖检查。
 
 Runtime Schema 的 Rust 类型和导出逻辑位于 `crates/framelean-runtime`，生成基线位于 `schemas`，导出 example 与一致性测试继续保留在本 workspace。
 

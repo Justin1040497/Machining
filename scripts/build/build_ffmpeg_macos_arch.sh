@@ -49,7 +49,7 @@ if [[ "$(uname -m)" != "$ARCH" ]]; then
   exit 1
 fi
 
-for command_name in clang cmake curl git install lipo make nasm otool pkg-config strip tar; do
+for command_name in clang cmake cp curl find git install lipo make nasm pkg-config sed tar; do
   require_command "$command_name"
 done
 
@@ -196,10 +196,10 @@ fi
 CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
   CC=clang \
   CXX=clang++ \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static
+STL_LIBS="-lc++" ./configure \
+  --prefix="$PREFIX" \
+  --disable-shared \
+  --enable-static
 make -j"$JOBS"
 make install
 
@@ -252,6 +252,7 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-audiotoolbox \
   --disable-shared \
   --enable-static \
+  --disable-programs \
   --disable-sdl2 \
   --disable-debug \
   --disable-doc \
@@ -263,20 +264,32 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
 make -j"$JOBS"
 make install
 
-install -m 755 "$PREFIX/bin/ffmpeg" "$OUT_DIR/ffmpeg"
-install -m 755 "$PREFIX/bin/ffprobe" "$OUT_DIR/ffprobe"
+rm -rf "$OUT_DIR/include" "$OUT_DIR/lib"
+mkdir -p "$OUT_DIR/include" "$OUT_DIR/lib/pkgconfig"
+cp -R "$PREFIX/include/." "$OUT_DIR/include/"
+find "$PREFIX/lib" -maxdepth 1 -type f -name '*.a' -exec cp {} "$OUT_DIR/lib/" \;
+find "$PREFIX/lib/pkgconfig" -maxdepth 1 -type f -name '*.pc' -exec cp {} "$OUT_DIR/lib/pkgconfig/" \;
 
-strip "$OUT_DIR/ffmpeg" >/dev/null 2>&1 || true
-strip "$OUT_DIR/ffprobe" >/dev/null 2>&1 || true
-
-for binary_name in ffmpeg ffprobe; do
-  binary_path="$OUT_DIR/$binary_name"
-  built_arches="$(lipo -archs "$binary_path")"
+for library_name in avcodec avdevice avfilter avformat avutil swresample swscale; do
+  library_path="$OUT_DIR/lib/lib${library_name}.a"
+  if [[ ! -f "$library_path" ]]; then
+    echo "error: missing required static library: $library_path" >&2
+    exit 1
+  fi
+  built_arches="$(lipo -archs "$library_path")"
   if [[ "$built_arches" != "$ARCH" ]]; then
-    echo "error: expected $binary_name architecture $ARCH, got $built_arches" >&2
+    echo "error: expected $library_name architecture $ARCH, got $built_arches" >&2
     exit 1
   fi
 done
+
+pkg_config_root='${pcfiledir}/../..'
+while IFS= read -r pkg_config_file; do
+  sed -i '' \
+    -e "s|${PREFIX}|${pkg_config_root}|g" \
+    -e "s|${OUT_DIR}|${pkg_config_root}|g" \
+    "$pkg_config_file"
+done < <(find "$OUT_DIR/lib/pkgconfig" -maxdepth 1 -type f -name '*.pc' -print)
 
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
 FFmpeg version: ${FFMPEG_VERSION}
@@ -297,51 +310,9 @@ FFmpeg source: https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
 Target: macOS ${ARCH}
 Minimum macOS: ${MACOSX_DEPLOYMENT_TARGET}
 Nonfree enabled: no
+Distribution: static libav SDK; no ffmpeg or ffprobe executables
 EOF
 
-echo "Checking for Homebrew dynamic library dependencies:"
-for binary_name in ffmpeg ffprobe; do
-  if otool -L "$OUT_DIR/$binary_name" | grep -E '/opt/homebrew|/usr/local/Cellar' >/dev/null; then
-    echo "error: $binary_name still depends on Homebrew libraries" >&2
-    otool -L "$OUT_DIR/$binary_name" >&2
-    exit 1
-  fi
-done
-
-require_capability() {
-  local output="$1"
-  local capability="$2"
-  local capability_type="$3"
-
-  if grep "$capability" <<<"$output" >/dev/null; then
-    echo "OK: $capability $capability_type is available"
-    return
-  fi
-
-  echo "error: $capability $capability_type was not found" >&2
-  exit 1
-}
-
-encoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -encoders 2>/dev/null)"
-decoder_output="$("$OUT_DIR/ffmpeg" -hide_banner -decoders 2>/dev/null)"
-demuxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -demuxers 2>/dev/null)"
-muxer_output="$("$OUT_DIR/ffmpeg" -hide_banner -muxers 2>/dev/null)"
-filter_output="$("$OUT_DIR/ffmpeg" -hide_banner -filters 2>/dev/null)"
-
-for encoder_name in libx264 libmp3lame libwebp libopus libvpx-vp9 libsvtav1 mpeg4 mjpeg prores_ks; do
-  require_capability "$encoder_output" "$encoder_name" "encoder"
-done
-for decoder_name in opus vorbis; do
-  require_capability "$decoder_output" "$decoder_name" "decoder"
-done
-require_capability "$demuxer_output" "ogg" "demuxer"
-for muxer_name in mp4 mov matroska webm avi; do
-  require_capability "$muxer_output" "$muxer_name" "muxer"
-done
-for filter_name in zscale tonemap; do
-  require_capability "$filter_output" "$filter_name" "filter"
-done
-
 echo
-echo "Built macOS $ARCH FFmpeg runtime:"
+echo "Built macOS $ARCH static libav SDK:"
 echo "$OUT_DIR"

@@ -8,7 +8,6 @@ FEngine 是 FrameLean 的独立 Worker、外部请求队列和进程级管理边
 - `AnalyzeMedia`
 - `SubmitAnalysisBatch`
 - `GetAnalysisSnapshot`
-- `ResolveConfiguration`（兼容）
 - `SubmitExecution`
 - `SubmitExecutionBatch`
 - `ApplyQueueOrder`
@@ -29,3 +28,7 @@ Worker 使用 4-byte 大端长度帧 JSON；最大帧为 16 MiB。`serve` 提供
 `serve` 必须接收 `--snapshot-dir`；`serve-daemon` 还必须接收 `--endpoint-file`。目录存储持有单实例文件锁，并限制条目数、总字节和单记录字节；容量满时明确失败，不会静默删除 Client 仍可能引用的 Snapshot。Snapshot 先由 FLL 生成，再由 FEngine 原子发布并在支持的平台同步父目录。恢复时文件名必须与记录内的 `analysis_id` 一致，重复 ID 或冲突 revision 不会覆盖已恢复 Snapshot。外部持久化失败时，FEngine 会从 Runtime 回滚尚未提交的内存 Snapshot。
 
 FLL 的媒体分析、候选、预设、估算、Task、execution Scheduler、Pipeline、输出事务和 Runtime Schema 不迁入 FEngine。FEngine 将 FLL execution event 转换为带 Client identity 和全局 sequence 的协议事件，但不成为 Task state 或 LIFO 恢复栈的第二权威源。默认 Runtime 已能通过进程内 libav 执行可兼容的 packet stream-copy/remux；需要转换节点的链仍 fail closed。
+
+FEngine release binary 通过 `scripts/build/with_bundled_ffmpeg.sh` 链接 `build/dependencies/ffmpeg/<platform>/` 中的 static libav SDK，不允许 system/Homebrew fallback。macOS 和 Windows Desktop package 只携带 `framelean-engine`，不再携带或启动 ffmpeg/ffprobe CLI；macOS 构建会用 `otool -L` 拒绝动态 libav，Windows 构建会用 `objdump -p` 拒绝动态 libav 和 GNU runtime DLL。
+
+`GeneratePreviewFrames` 与 `GenerateVideoThumbnail` 属于 FEngine Control queue。FEngine 只负责协议、源事实校验和 artifact 事件映射，实际解码、缩放、黑帧判断与 BMP 写入由 FLL `framelean-ffmpeg` 完成。

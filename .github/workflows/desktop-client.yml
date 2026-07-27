@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build-runtime:
-    name: Build macOS ${{ matrix.arch }} runtime
+    name: Build macOS ${{ matrix.arch }} engine
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -37,23 +37,28 @@ jobs:
       - name: Install native build dependencies
         run: brew install autoconf automake libtool nasm pkg-config
 
-      - name: Prepare Rust target
-        run: rustup target add ${{ matrix.rust_target }}
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
 
-      - name: Build FFmpeg runtime
+      - name: Build static libav SDK
         run: scripts/build/build_ffmpeg_macos_arch.sh ${{ matrix.arch }}
+
+      - name: Build statically linked FEngine
+        run: scripts/build/build_fengine_macos_arch.sh ${{ matrix.arch }}
 
       - name: Build QMC adapter
         run: scripts/build/build_qmc_decrypt_macos_arch.sh ${{ matrix.arch }}
 
-      - name: Archive FFmpeg runtime slice
-        run: tar -C build/dependencies/ffmpeg/macos-${{ matrix.output_label }} -czf "$RUNNER_TEMP/framelean-ffmpeg-macos-${{ matrix.output_label }}.tar.gz" .
+      - name: Archive FEngine slice
+        run: tar -C build/dependencies/fengine/macos-${{ matrix.output_label }} -czf "$RUNNER_TEMP/framelean-fengine-macos-${{ matrix.output_label }}.tar.gz" .
 
-      - name: Upload FFmpeg runtime slice
+      - name: Upload FEngine slice
         uses: actions/upload-artifact@v4
         with:
-          name: framelean-ffmpeg-macos-${{ matrix.output_label }}
-          path: ${{ runner.temp }}/framelean-ffmpeg-macos-${{ matrix.output_label }}.tar.gz
+          name: framelean-fengine-macos-${{ matrix.output_label }}
+          path: ${{ runner.temp }}/framelean-fengine-macos-${{ matrix.output_label }}.tar.gz
           if-no-files-found: error
           retention-days: 14
 
@@ -89,17 +94,17 @@ jobs:
       - name: Use CocoaPods for macOS plugins
         run: flutter config --no-enable-swift-package-manager
 
-      - name: Download arm64 FFmpeg runtime
+      - name: Download arm64 FEngine
         uses: actions/download-artifact@v4
         with:
-          name: framelean-ffmpeg-macos-arm64
-          path: ${{ runner.temp }}/framelean-runtime-slices/ffmpeg-arm64
+          name: framelean-fengine-macos-arm64
+          path: ${{ runner.temp }}/framelean-runtime-slices/fengine-arm64
 
-      - name: Download x86_64 FFmpeg runtime
+      - name: Download x86_64 FEngine
         uses: actions/download-artifact@v4
         with:
-          name: framelean-ffmpeg-macos-x64
-          path: ${{ runner.temp }}/framelean-runtime-slices/ffmpeg-x64
+          name: framelean-fengine-macos-x64
+          path: ${{ runner.temp }}/framelean-runtime-slices/fengine-x64
 
       - name: Download arm64 QMC adapter
         uses: actions/download-artifact@v4
@@ -116,18 +121,18 @@ jobs:
       - name: Restore downloaded runtime slices
         run: |
           mkdir -p \
-            build/dependencies/ffmpeg/macos-arm64 \
-            build/dependencies/ffmpeg/macos-x64 \
+            build/dependencies/fengine/macos-arm64 \
+            build/dependencies/fengine/macos-x64 \
             build/dependencies/qmc/macos-arm64 \
             build/dependencies/qmc/macos-x64
-          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/ffmpeg-arm64/framelean-ffmpeg-macos-arm64.tar.gz" -C build/dependencies/ffmpeg/macos-arm64
-          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/ffmpeg-x64/framelean-ffmpeg-macos-x64.tar.gz" -C build/dependencies/ffmpeg/macos-x64
+          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/fengine-arm64/framelean-fengine-macos-arm64.tar.gz" -C build/dependencies/fengine/macos-arm64
+          tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/fengine-x64/framelean-fengine-macos-x64.tar.gz" -C build/dependencies/fengine/macos-x64
           tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/qmc-arm64/framelean-qmc-macos-arm64.tar.gz" -C build/dependencies/qmc/macos-arm64
           tar -xzf "$RUNNER_TEMP/framelean-runtime-slices/qmc-x64/framelean-qmc-macos-x64.tar.gz" -C build/dependencies/qmc/macos-x64
 
       - name: Merge Universal runtimes
         run: |
-          scripts/build/build_ffmpeg_macos_universal.sh
+          scripts/build/build_fengine_macos_universal.sh
           scripts/build/build_qmc_decrypt_macos_universal.sh
 
       - name: Install dmgbuild and Pillow
@@ -209,6 +214,7 @@ jobs:
             mingw-w64-x86_64-nasm
             mingw-w64-x86_64-libtool
             mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-clang
             make
             file
             autoconf
@@ -217,9 +223,18 @@ jobs:
             curl
             tar
 
-      - name: Build Windows FFmpeg from source
+      - name: Set up Rust GNU target
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-gnu
+
+      - name: Build Windows static libav SDK
         shell: msys2 {0}
         run: bash scripts/build/build_ffmpeg_windows_x64.sh
+
+      - name: Build statically linked Windows FEngine
+        shell: msys2 {0}
+        run: bash scripts/build/build_fengine_windows_x64.sh
 
       - name: Build Windows QMC adapter
         run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\build\build_qmc_decrypt_windows.ps1

@@ -8,4 +8,4 @@ publish.workspace = true
 framelean-core = { path = "../framelean-core" }
 framelean-media = { path = "../framelean-media" }
 framelean-analysis = { path = "../framelean-analysis" }
-rusty_ffmpeg = { version = "0.17.0", features = ["link_system_ffmpeg"] }
+rusty_ffmpeg = "0.17.0"

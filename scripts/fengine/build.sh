@@ -3,5 +3,5 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT/fengine"
-cargo check --all-targets --locked
-cargo test --locked
+"$ROOT/scripts/build/with_bundled_ffmpeg.sh" cargo check --all-targets --locked
+"$ROOT/scripts/build/with_bundled_ffmpeg.sh" cargo test --locked

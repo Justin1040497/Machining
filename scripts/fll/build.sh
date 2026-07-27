@@ -3,5 +3,5 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT/fll"
-cargo check --workspace --all-targets --locked
-cargo test --workspace --locked
+"$ROOT/scripts/build/with_bundled_ffmpeg.sh" cargo check --workspace --all-targets --locked
+"$ROOT/scripts/build/with_bundled_ffmpeg.sh" cargo test --workspace --locked

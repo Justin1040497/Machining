@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use framelean_core::{AnalysisId, Result, TaskId};
 use framelean_environment::SystemEnvironment;
-use framelean_ffmpeg::FfmpegAdapter;
+use framelean_ffmpeg::{
+    FfmpegAdapter, PreviewFramesRequest, PreviewFramesResult, VideoThumbnailRequest,
+    VideoThumbnailResult,
+};
 use framelean_runtime::{
     AnalysisServices, AnalysisSnapshotPolicy, AnalysisSnapshotRecord, AnalysisSnapshotView,
     AnalyzeMediaResponse, AnalyzeTaskRequest, DefaultCapabilityResolver,
@@ -17,6 +20,16 @@ pub trait RuntimeHost: Send {
     fn analyze_media(&mut self, request: AnalyzeTaskRequest) -> Result<AnalyzeMediaResponse>;
 
     fn analysis_snapshot(&mut self, analysis_id: &AnalysisId) -> Result<AnalysisSnapshotView>;
+
+    fn generate_preview_frames(
+        &mut self,
+        request: &PreviewFramesRequest,
+    ) -> Result<PreviewFramesResult>;
+
+    fn generate_video_thumbnail(
+        &mut self,
+        request: &VideoThumbnailRequest,
+    ) -> Result<VideoThumbnailResult>;
 
     fn analysis_snapshot_record(
         &mut self,
@@ -63,6 +76,20 @@ impl RuntimeHost for EngineRuntime {
 
     fn analysis_snapshot(&mut self, analysis_id: &AnalysisId) -> Result<AnalysisSnapshotView> {
         EngineRuntime::analysis_snapshot(self, analysis_id)
+    }
+
+    fn generate_preview_frames(
+        &mut self,
+        request: &PreviewFramesRequest,
+    ) -> Result<PreviewFramesResult> {
+        FfmpegAdapter::new()?.generate_preview_frames(request)
+    }
+
+    fn generate_video_thumbnail(
+        &mut self,
+        request: &VideoThumbnailRequest,
+    ) -> Result<VideoThumbnailResult> {
+        FfmpegAdapter::new()?.generate_video_thumbnail(request)
     }
 
     fn analysis_snapshot_record(

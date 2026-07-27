@@ -6,7 +6,7 @@ FLL 是 FrameLean 的核心处理库，负责媒体模型与分析、环境与�
 
 FLL 拥有进程内处理逻辑和执行组合，不负责桌面 UI、跨进程通信或操作系统级引擎进程宿主管理。独立 FEngine 是装配 FLL 的进程级启动与管理边界；当前已实现诊断 CLI、常驻 stdio Worker、分析/执行队列、会话与 Snapshot 持久化、执行控制和事件投影。FLL 提供真实 libav packet stream-copy/remux 执行 Backend；需要解码、编码或 processor 的完整转码宿主仍未就绪。
 
-FLL 不是 FFmpeg CLI wrapper。FFmpeg 通过 `framelean-ffmpeg` 在进程内链接 libav 子库；永久禁止从 FLL 调用 ffmpeg/ffprobe executable。
+FLL 不是 FFmpeg CLI wrapper。FFmpeg 通过 `framelean-ffmpeg` 在进程内链接 bundled static libav 子库；构建入口必须显式提供 `build/dependencies/ffmpeg/<platform>/` SDK，不允许回退到系统或 Homebrew FFmpeg，永久禁止从 FLL 调用 ffmpeg/ffprobe executable。
 
 ## 当前架构
 
@@ -88,6 +88,8 @@ execution lane 只有一个活动位。用户暂停和抢占暂停分开保存�
 Runtime 定义 `ExecutionSubmissionRequest`、`ExecutionSubmissionResult`、`ExecutionTaskState`、输出冲突策略和 `OutputTransaction`。`submit_execution` 先校验绝对输出文件路径，再基于指定 AnalysisSnapshot 和 revision 重新解析 selection，创建 execution 并加入 lane。实际输出先写同目录临时文件，只有 Backend 成功时才原子发布；失败与取消回滚。
 
 当前 `framelean-ffmpeg` 执行 Backend 使用 libavformat 复用输入 stream 参数、重写 packet timestamp 并以交错顺序写入输出。它支持进度、协作式安全暂停和取消。候选链包含 Decoder、Encoder 或 Processor 时，FEngine 的默认 Runtime Backend 以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝。
+
+媒体辅助 API 也由 `framelean-ffmpeg` 拥有：媒体元数据继续经 `AnalyzeMedia` / `AnalysisSnapshot` 提供；预览帧使用 libavcodec 解码和 libswscale 转 RGB24；视频缩略图按候选时间点跳过黑帧并输出事务性 BMP。上述 API 不调用 executable，也不进入 FLL execution scheduler。
 
 ## 当前非目标
 

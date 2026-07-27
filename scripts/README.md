@@ -24,9 +24,13 @@ attaches the macOS and Windows artifacts.
 
 | Script | Platform | Responsibility | Output |
 | --- | --- | --- | --- |
-| `build/build_ffmpeg_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned FFmpeg runtime and required codecs for one architecture | `build/dependencies/ffmpeg/macos-{arch}/` |
-| `build/build_ffmpeg_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 runtime slices | `build/dependencies/ffmpeg/macos-universal/` |
-| `build/build_ffmpeg_windows_x64.sh` | Windows x64 (MSYS2) | Build the pinned FFmpeg runtime and required codecs | `build/dependencies/ffmpeg/windows-x64/` |
+| `build/build_ffmpeg_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned static libav SDK and codec libraries for one architecture; no FFmpeg CLI programs | `build/dependencies/ffmpeg/macos-{arch}/` |
+| `build/build_ffmpeg_macos_universal.sh` | macOS Universal 2 | Merge static SDK library slices for development or diagnostics | `build/dependencies/ffmpeg/macos-universal/` |
+| `build/build_ffmpeg_windows_x64.sh` | Windows x64 (MSYS2) | Build the pinned static libav SDK and codec libraries; no FFmpeg CLI programs | `build/dependencies/ffmpeg/windows-x64/` |
+| `build/build_fengine_macos_arch.sh` | macOS arm64 / x86_64 | Build one native FEngine slice against its static libav SDK and reject dynamic libav dependencies | `build/dependencies/fengine/macos-{arch}/framelean-engine` |
+| `build/build_fengine_macos_universal.sh` | macOS Universal 2 | Merge and validate native FEngine slices | `build/dependencies/fengine/macos-universal/framelean-engine` |
+| `build/build_fengine_windows_x64.sh` | Windows x64 (MSYS2) | Build FEngine with Rust GNU against the static SDK and reject libav/GNU runtime DLL dependencies | `build/dependencies/fengine/windows-x64/framelean-engine.exe` |
+| `build/with_bundled_ffmpeg.sh` | macOS / Windows | Provide the required SDK paths and static link flags to Cargo; never fall back to a system FFmpeg | command wrapper |
 | `build/build_qmc_decrypt_macos_arch.sh` | macOS arm64 / x86_64 | Build the pinned upstream QMC adapter and copy its license files for one architecture | `build/dependencies/qmc/macos-{arch}/` |
 | `build/build_qmc_decrypt_macos_universal.sh` | macOS Universal 2 | Merge arm64 and x64 QMC adapter slices | `build/dependencies/qmc/macos-universal/` |
 | `build/build_qmc_decrypt_windows.ps1` | Windows x64 | Build the pinned upstream QMC adapter and copy its license files | `build/dependencies/qmc/windows-x64/` |
@@ -39,11 +43,12 @@ checks. Dependency build scripts may fetch their pinned upstream sources when
 explicitly run; they were not executed during the Monorepo migration.
 
 `macos-arm64` and `macos-x64` are architecture-specific build inputs. They are
-not separate user downloads. The release app consumes only
-`build/dependencies/ffmpeg/macos-universal`, and the final public macOS artifact remains
-one Universal 2 DMG. An Apple Silicon Mac cannot create the native Intel FFmpeg
-slice with the local build script; use the `Desktop Client` GitHub Actions
-workflow when both native slices are not already available.
+not separate user downloads. Each native runner builds its static libav SDK and
+then links one FEngine slice; the release job downloads only the FEngine slices,
+merges them into `build/dependencies/fengine/macos-universal`, and packages that
+single executable in the Universal 2 app. An Apple Silicon Mac cannot create the
+native Intel slice; use the `Desktop Client` GitHub Actions workflow when both
+native slices are not already available.
 
 ## Release Scripts
 

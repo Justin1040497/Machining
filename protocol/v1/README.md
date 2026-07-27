@@ -39,9 +39,10 @@ Client 必须先发送 `Hello`。FEngine 协商版本并建立单会话，输出
 
 - `Hello`
 - `AnalyzeMedia`
+- `GeneratePreviewFrames`
+- `GenerateVideoThumbnail`
 - `SubmitAnalysisBatch`
 - `GetAnalysisSnapshot`
-- `ResolveConfiguration`（仅保留给旧 Client 的兼容入口）
 - `SubmitExecution`
 - `SubmitExecutionBatch`
 - `ApplyQueueOrder`
@@ -52,6 +53,8 @@ Client 必须先发送 `Hello`。FEngine 协商版本并建立单会话，输出
 - `Shutdown`
 
 `AnalyzeMedia` 只接受 Client task/file identity、源路径、size/mtime、task mode、priority 和 force flag。FLL 在分析结果提交前校验源事实；源在排队或分析期间变化时不会生成有效 Snapshot。
+
+`GeneratePreviewFrames` 和 `GenerateVideoThumbnail` 接受 Client task identity、源事实、目标缓存路径和尺寸参数。它们进入 Control queue，调用 FLL 进程内 libav helper，既不占用分析队列，也不进入 execution lane 或改变 LIFO 恢复栈。完成事件分别为 `PreviewFramesReady` 和 `VideoThumbnailReady`。
 
 `SubmitExecution` 接受 Client task identity、`analysis_id`、预期 revision、FLL selection、输出请求和 priority。FLL Runtime 复核冻结 Snapshot、selection 和输出路径，创建真实 execution。相同 request ID 在有界窗口内重放原结果，不会重复入队或重复压栈；不同 request ID 不合并执行提交。
 
