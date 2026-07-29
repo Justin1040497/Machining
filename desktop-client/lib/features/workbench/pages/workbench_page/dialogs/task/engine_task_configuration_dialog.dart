@@ -607,6 +607,90 @@ class _EngineTaskConfigurationDialogState
       onChanged: (value) =>
           _updateManualOverride(field: 'audio_codecs', value: value),
     );
+    for (final input in _model.selectedCandidateAudioInputs) {
+      final selected = _model.effectiveAudioStreams
+          .where((stream) => stream.streamIndex == input.streamIndex)
+          .firstOrNull;
+      final streamFields = <Widget>[];
+      if (selected != null) {
+        _addOverrideDropdown(
+          streamFields,
+          field: 'audio_bitrates_bps',
+          label: '码率',
+          currentValue: selected.bitrateBps,
+          onChanged: (value) => _updateAudioStreamOverride(
+            streamIndex: input.streamIndex,
+            field: 'audio_bitrates_bps',
+            value: value,
+          ),
+          valueLabel: (value) =>
+              value is int ? '${value ~/ 1000} kbps' : '$value',
+        );
+        _addOverrideDropdown(
+          streamFields,
+          field: 'audio_sample_rates_hz',
+          label: '采样率',
+          currentValue: selected.sampleRateHz,
+          onChanged: (value) => _updateAudioStreamOverride(
+            streamIndex: input.streamIndex,
+            field: 'audio_sample_rates_hz',
+            value: value,
+          ),
+          valueLabel: (value) => value is int
+              ? '${value % 1000 == 0 ? value ~/ 1000 : value / 1000} kHz'
+              : '$value',
+        );
+        _addOverrideDropdown(
+          streamFields,
+          field: 'audio_channel_counts',
+          label: '声道',
+          currentValue: selected.channelCount,
+          onChanged: (value) => _updateAudioStreamOverride(
+            streamIndex: input.streamIndex,
+            field: 'audio_channel_counts',
+            value: value,
+          ),
+          valueLabel: (value) => switch (value) {
+            1 => '单声道',
+            2 => '立体声',
+            _ => '$value 声道',
+          },
+        );
+      }
+      fields.add(
+        Column(
+          key: ValueKey('engine-audio-stream-${input.streamIndex}'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ConfigCheckbox(
+              label: '保留音轨 ${input.streamIndex}',
+              value: selected != null,
+              onChanged: _resolving
+                  ? (_) {}
+                  : (value) => _setAudioStreamEnabled(
+                      streamIndex: input.streamIndex,
+                      enabled: value,
+                    ),
+            ),
+            Text(
+              '${input.codec}'
+              '${input.sampleRateHz == null ? '' : ' · ${input.sampleRateHz} Hz'}'
+              '${input.channelCount == null ? '' : ' · ${input.channelCount} 声道'}',
+              softWrap: true,
+              style: TextStyle(
+                color: context.frameLeanColors.textTertiary,
+                fontSize: 11.flSp,
+              ),
+            ),
+            if (streamFields.isNotEmpty) const SizedBox(height: 8),
+            for (var index = 0; index < streamFields.length; index++) ...[
+              if (index > 0) const SizedBox(height: 8),
+              streamFields[index],
+            ],
+          ],
+        ),
+      );
+    }
     _addOverrideDropdown(
       fields,
       field: 'pixel_formats',
@@ -731,6 +815,7 @@ class _EngineTaskConfigurationDialogState
       audioCodec: field == 'audio_codecs'
           ? value as String?
           : current.audioCodec,
+      audioStreams: current.audioStreams,
       outputPixelFormat: field == 'pixel_formats'
           ? value as String?
           : current.outputPixelFormat,
@@ -744,6 +829,79 @@ class _EngineTaskConfigurationDialogState
     }
     setState(() {
       _model = _model.selectManual(candidateId: candidateId, overrides: next);
+      _errorText = null;
+    });
+  }
+
+  void _setAudioStreamEnabled({
+    required int streamIndex,
+    required bool enabled,
+  }) {
+    final streams = _model.effectiveAudioStreams.toList();
+    final currentIndex = streams.indexWhere(
+      (stream) => stream.streamIndex == streamIndex,
+    );
+    if (enabled && currentIndex < 0) {
+      streams.add(EngineAudioStreamOverride(streamIndex: streamIndex));
+    } else if (!enabled && currentIndex >= 0) {
+      if (streams.length == 1) {
+        setState(() => _errorText = '至少保留一条音轨。');
+        return;
+      }
+      streams.removeAt(currentIndex);
+    }
+    streams.sort(
+      (left, right) => left.streamIndex.compareTo(right.streamIndex),
+    );
+    _replaceAudioStreams(streams);
+  }
+
+  void _updateAudioStreamOverride({
+    required int streamIndex,
+    required String field,
+    required Object? value,
+  }) {
+    final streams = _model.effectiveAudioStreams.toList();
+    final index = streams.indexWhere(
+      (stream) => stream.streamIndex == streamIndex,
+    );
+    if (index < 0) {
+      return;
+    }
+    final current = streams[index];
+    streams[index] = EngineAudioStreamOverride(
+      streamIndex: streamIndex,
+      bitrateBps: field == 'audio_bitrates_bps'
+          ? value as int?
+          : current.bitrateBps,
+      sampleRateHz: field == 'audio_sample_rates_hz'
+          ? value as int?
+          : current.sampleRateHz,
+      channelCount: field == 'audio_channel_counts'
+          ? value as int?
+          : current.channelCount,
+    );
+    _replaceAudioStreams(streams);
+  }
+
+  void _replaceAudioStreams(List<EngineAudioStreamOverride> streams) {
+    final candidateId = _model.selectedCandidateId;
+    if (candidateId == null) {
+      return;
+    }
+    final current = _model.manualOverrides;
+    setState(() {
+      _model = _model.selectManual(
+        candidateId: candidateId,
+        overrides: EngineManualOverrides(
+          container: current.container,
+          videoCodec: current.videoCodec,
+          audioCodec: current.audioCodec,
+          audioStreams: List.unmodifiable(streams),
+          outputPixelFormat: current.outputPixelFormat,
+          preservesHdr: current.preservesHdr,
+        ),
+      );
       _errorText = null;
     });
   }

@@ -126,7 +126,7 @@ EngineAnalysisSnapshotDocument _snapshot(Map<String, Object?> media) {
     'task_mode': 'video_compress',
     'media': media,
     'source_fingerprint': <String, Object?>{},
-    'requirements': <String, Object?>{},
+    'requirements': <String, Object?>{'audio_streams': <Object?>[]},
     'environment_summary': <String, Object?>{},
     'engine_backend_summary': <String, Object?>{},
     'capabilities': <String, Object?>{
@@ -139,6 +139,9 @@ EngineAnalysisSnapshotDocument _snapshot(Map<String, Object?> media) {
       'video_codecs': <Object?>[],
       'video_profiles': <Object?>[],
       'audio_codecs': <Object?>[],
+      'audio_bitrates_bps': <Object?>[],
+      'audio_sample_rates_hz': <Object?>[],
+      'audio_channel_counts': <Object?>[],
       'video_encoders': <Object?>[],
       'audio_encoders': <Object?>[],
       'pixel_formats': <Object?>[],

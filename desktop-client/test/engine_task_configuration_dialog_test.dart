@@ -97,6 +97,49 @@ void main() {
     expect(await dialogFuture, isNull);
   });
 
+  testWidgets(
+    'renders snapshot-backed audio parameter controls in manual mode',
+    (tester) async {
+      final task = _task();
+      late BuildContext hostContext;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              hostContext = context;
+              return const SizedBox();
+            },
+          ),
+        ),
+      );
+      final dialogFuture = showEngineTaskConfigurationEditor(
+        context: hostContext,
+        task: task,
+        snapshot: _snapshot(),
+        onResolve: (_) async => task,
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('手动配置'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('请选择候选方案'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('candidate-opaque').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('保留音轨 1'), findsOneWidget);
+      expect(find.textContaining('pcm_s16le'), findsOneWidget);
+      expect(find.text('码率'), findsOneWidget);
+      expect(find.text('采样率'), findsOneWidget);
+      expect(find.text('声道'), findsOneWidget);
+
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(await dialogFuture, isNull);
+    },
+  );
+
   testWidgets('shows unavailable when FLL has no presets', (tester) async {
     final task = _task();
     late BuildContext hostContext;
@@ -279,7 +322,16 @@ EngineAnalysisSnapshotDocument _snapshot({
     'task_mode': 'video_compress',
     'media': <String, Object?>{},
     'source_fingerprint': <String, Object?>{},
-    'requirements': <String, Object?>{},
+    'requirements': <String, Object?>{
+      'audio_streams': <Object?>[
+        <String, Object?>{
+          'stream_index': 1,
+          'codec': 'pcm_s16le',
+          'sample_rate_hz': 48000,
+          'channel_count': 2,
+        },
+      ],
+    },
     'environment_summary': <String, Object?>{},
     'engine_backend_summary': <String, Object?>{},
     'capabilities': <String, Object?>{
@@ -324,7 +376,9 @@ Map<String, Object?> _candidate(String id) {
     'id': id,
     'demuxer': 'fll-demuxer',
     'video_decoders': <Object?>[],
-    'audio_decoders': <Object?>[],
+    'audio_decoders': <Object?>[
+      <String, Object?>{'stream_index': 1, 'backend_id': 'fll-audio-decoder'},
+    ],
     'processors': <Object?>[],
     'muxer': 'fll-muxer',
     'output_container': 'mp4',
@@ -336,6 +390,9 @@ Map<String, Object?> _candidate(String id) {
     'output_video_codec': 'fll-video-codec',
     'output_video_profile': null,
     'output_audio_codec': 'fll-audio-codec',
+    'audio_bitrate_options_bps': <Object?>[192000],
+    'audio_sample_rate_options_hz': <Object?>[32000],
+    'audio_channel_count_options': <Object?>[2],
     'output_pixel_format': 'yuv420p',
     'output_bit_depth': 8,
   };
@@ -348,7 +405,14 @@ Map<String, Object?> _configuration(String candidateId) {
     'container': 'mp4',
     'demuxer_backend': 'fll-demuxer',
     'video_decoders': <Object?>[],
-    'audio_decoders': <Object?>[],
+    'audio_streams': <Object?>[
+      <String, Object?>{
+        'input_stream_index': 1,
+        'decoder_backend': 'fll-audio-decoder',
+        'encoder_backend': 'fll-audio-encoder',
+        'output_codec': 'fll-audio-codec',
+      },
+    ],
     'processors': <Object?>[],
     'muxer_backend': 'fll-muxer',
     'output_hdr_mode': 'sdr',
@@ -398,6 +462,9 @@ Map<String, Object?> _configurationOptions(List<String> candidateIds) {
     'video_codecs': option('fll-video-codec'),
     'video_profiles': <Object?>[],
     'audio_codecs': option('fll-audio-codec'),
+    'audio_bitrates_bps': option(192000),
+    'audio_sample_rates_hz': option(32000),
+    'audio_channel_counts': option(2),
     'video_encoders': <Object?>[],
     'audio_encoders': <Object?>[],
     'pixel_formats': option('yuv420p'),

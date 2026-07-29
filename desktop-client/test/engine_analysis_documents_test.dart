@@ -157,6 +157,28 @@ void main() {
       );
     });
 
+    test('rejects malformed audio parameter domains before UI projection', () {
+      final snapshot = _snapshot();
+      final graph = snapshot['configuration_options']! as Map<String, Object?>;
+      graph['audio_sample_rates_hz'] = <Object?>[
+        <String, Object?>{
+          'value': '48000',
+          'candidate_ids': <Object?>['candidate-1'],
+        },
+      ];
+
+      expect(
+        () => EngineAnalysisSnapshotDocument.fromJson(snapshot),
+        throwsA(
+          isA<EngineDocumentException>().having(
+            (error) => error.path,
+            'path',
+            r'$.configuration_options.audio_sample_rates_hz[0].value',
+          ),
+        ),
+      );
+    });
+
     test('surfaces an invalid snapshot without treating it as malformed', () {
       final snapshot = _snapshot();
       snapshot['validity'] = <String, Object?>{
@@ -221,7 +243,7 @@ Map<String, Object?> _snapshot() {
     'task_mode': 'video_compress',
     'media': <String, Object?>{},
     'source_fingerprint': <String, Object?>{},
-    'requirements': <String, Object?>{},
+    'requirements': <String, Object?>{'audio_streams': <Object?>[]},
     'environment_summary': <String, Object?>{},
     'engine_backend_summary': <String, Object?>{},
     'capabilities': <String, Object?>{
@@ -239,6 +261,9 @@ Map<String, Object?> _snapshot() {
       'video_codecs': <Object?>[],
       'video_profiles': <Object?>[],
       'audio_codecs': <Object?>[],
+      'audio_bitrates_bps': <Object?>[],
+      'audio_sample_rates_hz': <Object?>[],
+      'audio_channel_counts': <Object?>[],
       'video_encoders': <Object?>[],
       'audio_encoders': <Object?>[],
       'pixel_formats': <Object?>[],
@@ -301,6 +326,9 @@ Map<String, Object?> _candidate() {
     'output_video_codec': 'h264',
     'output_video_profile': null,
     'output_audio_codec': 'aac',
+    'audio_bitrate_options_bps': <Object?>[64000, 96000, 128000, 192000],
+    'audio_sample_rate_options_hz': <Object?>[32000, 44100, 48000],
+    'audio_channel_count_options': <Object?>[1, 2],
     'output_pixel_format': 'yuv420p',
     'output_bit_depth': 8,
     'output_hdr_mode': 'sdr',
@@ -320,9 +348,8 @@ Map<String, Object?> _configuration() {
     'audio_codec': 'aac',
     'demuxer_backend': 'demuxer-1',
     'video_decoders': <Object?>[],
-    'audio_decoders': <Object?>[],
+    'audio_streams': <Object?>[],
     'video_encoder_backend': 'video-encoder-1',
-    'audio_encoder_backend': 'audio-encoder-1',
     'processors': <Object?>[],
     'muxer_backend': 'muxer-1',
     'output_pixel_format': 'yuv420p',
@@ -330,7 +357,6 @@ Map<String, Object?> _configuration() {
     'output_hdr_mode': 'sdr',
     'target_size': null,
     'target_video_bitrate': 2000000,
-    'target_audio_bitrate': 96000,
     'preserves_hdr': false,
     'requires_tone_mapping': false,
   };

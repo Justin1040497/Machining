@@ -583,7 +583,7 @@ EngineAnalysisSnapshotDocument _analysisSnapshot() {
     'task_mode': 'audio_compress',
     'media': <String, Object?>{},
     'source_fingerprint': <String, Object?>{},
-    'requirements': <String, Object?>{},
+    'requirements': <String, Object?>{'audio_streams': <Object?>[]},
     'environment_summary': <String, Object?>{},
     'engine_backend_summary': <String, Object?>{},
     'capabilities': <String, Object?>{
@@ -596,6 +596,9 @@ EngineAnalysisSnapshotDocument _analysisSnapshot() {
       'video_codecs': <Object?>[],
       'video_profiles': <Object?>[],
       'audio_codecs': <Object?>[],
+      'audio_bitrates_bps': <Object?>[],
+      'audio_sample_rates_hz': <Object?>[],
+      'audio_channel_counts': <Object?>[],
       'video_encoders': <Object?>[],
       'audio_encoders': <Object?>[],
       'pixel_formats': <Object?>[],

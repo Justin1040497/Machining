@@ -27,6 +27,7 @@ final class EngineExecutionCandidateDocument {
   EngineExecutionCandidateDocument._({
     required this.id,
     required this.outputContainer,
+    required this.audioStreamIndexes,
     required this.raw,
   });
 
@@ -37,7 +38,29 @@ final class EngineExecutionCandidateDocument {
     final id = _requireNonEmptyString(json, 'id', path);
     _requireNonEmptyString(json, 'demuxer', path);
     _requireList(json, 'video_decoders', path);
-    _requireList(json, 'audio_decoders', path);
+    final audioDecoders = _requireList(json, 'audio_decoders', path);
+    final audioStreamIndexes = <int>[];
+    for (final (index, value) in audioDecoders.indexed) {
+      final decoder = _expectObject(value, '$path.audio_decoders[$index]');
+      final streamIndex = _requireNonNegativeInt(
+        decoder,
+        'stream_index',
+        '$path.audio_decoders[$index]',
+      );
+      _requireNonEmptyString(
+        decoder,
+        'backend_id',
+        '$path.audio_decoders[$index]',
+      );
+      if (audioStreamIndexes.contains(streamIndex)) {
+        _malformed(
+          '$path.audio_decoders[$index].stream_index',
+          'duplicates audio stream index $streamIndex',
+        );
+      }
+      audioStreamIndexes.add(streamIndex);
+    }
+    audioStreamIndexes.sort();
     _requireList(json, 'processors', path);
     _requireNonEmptyString(json, 'muxer', path);
     _requireNonEmptyString(json, 'output_container', path);
@@ -51,17 +74,48 @@ final class EngineExecutionCandidateDocument {
     _readNullableString(json, 'output_audio_codec', path);
     _readNullableString(json, 'output_pixel_format', path);
     _readNullableInt(json, 'output_bit_depth', path);
+    _requirePositiveIntList(json, 'audio_bitrate_options_bps', path);
+    _requirePositiveIntList(json, 'audio_sample_rate_options_hz', path);
+    _requirePositiveIntList(json, 'audio_channel_count_options', path);
 
     return EngineExecutionCandidateDocument._(
       id: id,
       outputContainer: _requireNonEmptyString(json, 'output_container', path),
+      audioStreamIndexes: List.unmodifiable(audioStreamIndexes),
       raw: _freezeMap(json, path),
     );
   }
 
   final String id;
   final String outputContainer;
+  final List<int> audioStreamIndexes;
   final Map<String, Object?> raw;
+}
+
+final class EngineAudioInputDocument {
+  const EngineAudioInputDocument({
+    required this.streamIndex,
+    required this.codec,
+    required this.sampleRateHz,
+    required this.channelCount,
+  });
+
+  factory EngineAudioInputDocument.fromJson(
+    Map<String, Object?> json, {
+    required String path,
+  }) {
+    return EngineAudioInputDocument(
+      streamIndex: _requireNonNegativeInt(json, 'stream_index', path),
+      codec: _requireNonEmptyString(json, 'codec', path),
+      sampleRateHz: _readNullableNonNegativeInt(json, 'sample_rate_hz', path),
+      channelCount: _readNullableNonNegativeInt(json, 'channel_count', path),
+    );
+  }
+
+  final int streamIndex;
+  final String codec;
+  final int? sampleRateHz;
+  final int? channelCount;
 }
 
 final class EngineResolvedConfigurationDocument {
@@ -83,7 +137,30 @@ final class EngineResolvedConfigurationDocument {
     _requireNonEmptyString(json, 'container', path);
     _requireNonEmptyString(json, 'demuxer_backend', path);
     _requireList(json, 'video_decoders', path);
-    _requireList(json, 'audio_decoders', path);
+    final audioStreams = _requireList(json, 'audio_streams', path);
+    for (final (index, value) in audioStreams.indexed) {
+      final stream = _expectObject(value, '$path.audio_streams[$index]');
+      _requireNonNegativeInt(
+        stream,
+        'input_stream_index',
+        '$path.audio_streams[$index]',
+      );
+      _requireNonEmptyString(
+        stream,
+        'decoder_backend',
+        '$path.audio_streams[$index]',
+      );
+      _requireNonEmptyString(
+        stream,
+        'encoder_backend',
+        '$path.audio_streams[$index]',
+      );
+      _requireNonEmptyString(
+        stream,
+        'output_codec',
+        '$path.audio_streams[$index]',
+      );
+    }
     _requireList(json, 'processors', path);
     _requireNonEmptyString(json, 'muxer_backend', path);
     _requireNonEmptyString(json, 'output_hdr_mode', path);
@@ -387,10 +464,18 @@ final class EngineConfigurationOptionGraphDocument {
       optionsByField[field] = List.unmodifiable(
         values.indexed.map((entry) {
           final (index, value) = entry;
-          return EngineConfigurationOption.fromJson(
+          final option = EngineConfigurationOption.fromJson(
             _expectObject(value, '$path.$field[$index]'),
             path: '$path.$field[$index]',
           );
+          if (_positiveIntOptionFields.contains(field) &&
+              (option.value is! int || (option.value as int) <= 0)) {
+            _malformed(
+              '$path.$field[$index].value',
+              'must be a positive integer',
+            );
+          }
+          return option;
         }),
       );
     }
@@ -406,6 +491,9 @@ final class EngineConfigurationOptionGraphDocument {
     'video_codecs',
     'video_profiles',
     'audio_codecs',
+    'audio_bitrates_bps',
+    'audio_sample_rates_hz',
+    'audio_channel_counts',
     'video_encoders',
     'audio_encoders',
     'pixel_formats',
@@ -414,6 +502,12 @@ final class EngineConfigurationOptionGraphDocument {
     'preserves_hdr',
     'requires_tone_mapping',
   ];
+
+  static const _positiveIntOptionFields = <String>{
+    'audio_bitrates_bps',
+    'audio_sample_rates_hz',
+    'audio_channel_counts',
+  };
 
   final List<String> candidateIds;
   final Map<String, List<EngineConfigurationOption>> optionsByField;
@@ -513,6 +607,7 @@ final class EngineAnalysisSnapshotDocument {
     required this.estimatorModelRevision,
     required this.taskMode,
     required this.executionCandidates,
+    required this.audioInputs,
     required this.presets,
     required this.configurationOptions,
     required this.recommendation,
@@ -546,7 +641,23 @@ final class EngineAnalysisSnapshotDocument {
     );
     _requireObject(json, 'media', path);
     _requireObject(json, 'source_fingerprint', path);
-    _requireObject(json, 'requirements', path);
+    final requirements = _requireObject(json, 'requirements', path);
+    final audioInputValues = _requireList(
+      requirements,
+      'audio_streams',
+      '$path.requirements',
+    );
+    final audioInputs = audioInputValues.indexed
+        .map(
+          (entry) => EngineAudioInputDocument.fromJson(
+            _expectObject(
+              entry.$2,
+              '$path.requirements.audio_streams[${entry.$1}]',
+            ),
+            path: '$path.requirements.audio_streams[${entry.$1}]',
+          ),
+        )
+        .toList(growable: false);
     _requireObject(json, 'environment_summary', path);
     _requireObject(json, 'engine_backend_summary', path);
 
@@ -621,6 +732,7 @@ final class EngineAnalysisSnapshotDocument {
       estimatorModelRevision: estimatorModelRevision,
       taskMode: taskMode,
       executionCandidates: Map.unmodifiable(candidates),
+      audioInputs: List.unmodifiable(audioInputs),
       presets: List.unmodifiable(presets),
       configurationOptions: configurationOptions,
       recommendation: recommendation,
@@ -637,6 +749,7 @@ final class EngineAnalysisSnapshotDocument {
   final int estimatorModelRevision;
   final EngineTaskMode taskMode;
   final Map<String, EngineExecutionCandidateDocument> executionCandidates;
+  final List<EngineAudioInputDocument> audioInputs;
   final List<EnginePresetOption> presets;
   final EngineConfigurationOptionGraphDocument configurationOptions;
   final EngineRecommendationDocument recommendation;
@@ -951,6 +1064,23 @@ List<String> _requireStringList(
         final (index, value) = entry;
         if (value is! String || value.trim().isEmpty) {
           _malformed('$path.$key[$index]', 'must be a non-empty string');
+        }
+        return value;
+      })
+      .toList(growable: false);
+}
+
+List<int> _requirePositiveIntList(
+  Map<String, Object?> json,
+  String key,
+  String path,
+) {
+  final values = _requireList(json, key, path);
+  return values.indexed
+      .map((entry) {
+        final (index, value) = entry;
+        if (value is! int || value <= 0) {
+          _malformed('$path.$key[$index]', 'must be a positive integer');
         }
         return value;
       })

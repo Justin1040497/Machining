@@ -99,6 +99,32 @@ final class EngineConfigurationEditorModel {
     return manualOptions[field] ?? const [];
   }
 
+  List<EngineAudioInputDocument> get selectedCandidateAudioInputs {
+    final candidate = _snapshot.executionCandidates[selectedCandidateId];
+    if (candidate == null) {
+      return const [];
+    }
+    final indexes = candidate.audioStreamIndexes.toSet();
+    final inputs =
+        _snapshot.audioInputs
+            .where((input) => indexes.contains(input.streamIndex))
+            .toList(growable: false)
+          ..sort(
+            (left, right) => left.streamIndex.compareTo(right.streamIndex),
+          );
+    return List.unmodifiable(inputs);
+  }
+
+  List<EngineAudioStreamOverride> get effectiveAudioStreams {
+    return manualOverrides.audioStreams ??
+        List.unmodifiable(
+          selectedCandidateAudioInputs.map(
+            (input) =>
+                EngineAudioStreamOverride(streamIndex: input.streamIndex),
+          ),
+        );
+  }
+
   bool get hasCompleteTargetSizeRange {
     final minimumBytes = customTargetSize.minimumBytes;
     final maximumBytes = customTargetSize.maximumBytes;
@@ -394,6 +420,30 @@ final class EngineConfigurationEditorModel {
         return '所选参数不属于当前候选方案。';
       }
     }
+    final audioStreams = overrides.audioStreams;
+    if (audioStreams != null) {
+      final candidate = _snapshot.executionCandidates[candidateId];
+      if (candidate == null || audioStreams.isEmpty) {
+        return '至少保留一条音轨。';
+      }
+      for (var index = 0; index < audioStreams.length; index++) {
+        final stream = audioStreams[index];
+        if (!candidate.audioStreamIndexes.contains(stream.streamIndex) ||
+            (index > 0 &&
+                audioStreams[index - 1].streamIndex >= stream.streamIndex)) {
+          return '音轨选择与当前候选方案不匹配。';
+        }
+        for (final (field, value) in <(String, Object?)>[
+          ('audio_bitrates_bps', stream.bitrateBps),
+          ('audio_sample_rates_hz', stream.sampleRateHz),
+          ('audio_channel_counts', stream.channelCount),
+        ]) {
+          if (value != null && !_supportsValue(candidateId, field, value)) {
+            return '所选音轨参数不属于当前候选方案。';
+          }
+        }
+      }
+    }
     return null;
   }
 
@@ -453,11 +503,13 @@ EngineManualOverrides? _parseOverrides(Map<String, Object?> selectionJson) {
   final container = _optionalString(overrides, 'container');
   final videoCodec = _optionalString(overrides, 'video_codec');
   final audioCodec = _optionalString(overrides, 'audio_codec');
+  final audioStreams = _optionalAudioStreams(overrides);
   final outputPixelFormat = _optionalString(overrides, 'output_pixel_format');
   final preservesHdr = _optionalBool(overrides, 'preserves_hdr');
   if (!container.valid ||
       !videoCodec.valid ||
       !audioCodec.valid ||
+      !audioStreams.valid ||
       !outputPixelFormat.valid ||
       !preservesHdr.valid) {
     return null;
@@ -466,9 +518,50 @@ EngineManualOverrides? _parseOverrides(Map<String, Object?> selectionJson) {
     container: container.value,
     videoCodec: videoCodec.value,
     audioCodec: audioCodec.value,
+    audioStreams: audioStreams.value,
     outputPixelFormat: outputPixelFormat.value,
     preservesHdr: preservesHdr.value,
   );
+}
+
+({bool valid, List<EngineAudioStreamOverride>? value}) _optionalAudioStreams(
+  Map<String, Object?> json,
+) {
+  final value = json['audio_streams'];
+  if (value == null) {
+    return (valid: true, value: null);
+  }
+  if (value is! List || value.isEmpty) {
+    return (valid: false, value: null);
+  }
+  final streams = <EngineAudioStreamOverride>[];
+  for (final item in value) {
+    final stream = _asObject(item);
+    if (stream == null) {
+      return (valid: false, value: null);
+    }
+    final streamIndex = stream['stream_index'];
+    final bitrate = _optionalPositiveInt(stream, 'bitrate_bps');
+    final sampleRate = _optionalPositiveInt(stream, 'sample_rate_hz');
+    final channelCount = _optionalPositiveInt(stream, 'channel_count');
+    if (streamIndex is! int ||
+        streamIndex < 0 ||
+        !bitrate.valid ||
+        !sampleRate.valid ||
+        !channelCount.valid ||
+        (streams.isNotEmpty && streams.last.streamIndex >= streamIndex)) {
+      return (valid: false, value: null);
+    }
+    streams.add(
+      EngineAudioStreamOverride(
+        streamIndex: streamIndex,
+        bitrateBps: bitrate.value,
+        sampleRateHz: sampleRate.value,
+        channelCount: channelCount.value,
+      ),
+    );
+  }
+  return (valid: true, value: List.unmodifiable(streams));
 }
 
 ({bool valid, String? value}) _optionalString(
@@ -490,5 +583,16 @@ EngineManualOverrides? _parseOverrides(Map<String, Object?> selectionJson) {
   return (
     valid: value == null || value is bool,
     value: value is bool ? value : null,
+  );
+}
+
+({bool valid, int? value}) _optionalPositiveInt(
+  Map<String, Object?> json,
+  String key,
+) {
+  final value = json[key];
+  return (
+    valid: value == null || (value is int && value > 0),
+    value: value is int && value > 0 ? value : null,
   );
 }

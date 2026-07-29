@@ -739,7 +739,7 @@ Map<String, Object?> _analysisResponse() {
     'configuration_status': 'unavailable',
     'media': <String, Object?>{},
     'source_fingerprint': <String, Object?>{},
-    'requirements': <String, Object?>{},
+    'requirements': <String, Object?>{'audio_streams': <Object?>[]},
     'environment_summary': <String, Object?>{},
     'engine_backend_summary': <String, Object?>{},
     'capabilities': <String, Object?>{},

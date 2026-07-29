@@ -179,6 +179,7 @@ final class EngineManualOverrides {
     this.container,
     this.videoCodec,
     this.audioCodec,
+    this.audioStreams,
     this.outputPixelFormat,
     this.preservesHdr,
   });
@@ -186,8 +187,26 @@ final class EngineManualOverrides {
   final String? container;
   final String? videoCodec;
   final String? audioCodec;
+  final List<EngineAudioStreamOverride>? audioStreams;
   final String? outputPixelFormat;
   final bool? preservesHdr;
+}
+
+final class EngineAudioStreamOverride {
+  const EngineAudioStreamOverride({
+    required this.streamIndex,
+    this.bitrateBps,
+    this.sampleRateHz,
+    this.channelCount,
+  }) : assert(streamIndex >= 0),
+       assert(bitrateBps == null || bitrateBps > 0),
+       assert(sampleRateHz == null || sampleRateHz > 0),
+       assert(channelCount == null || channelCount > 0);
+
+  final int streamIndex;
+  final int? bitrateBps;
+  final int? sampleRateHz;
+  final int? channelCount;
 }
 
 sealed class EngineConfigurationSelection {
@@ -290,6 +309,19 @@ Map<String, Object?> _engineManualOverridesToJson(
     if (overrides.container != null) 'container': overrides.container,
     if (overrides.videoCodec != null) 'video_codec': overrides.videoCodec,
     if (overrides.audioCodec != null) 'audio_codec': overrides.audioCodec,
+    if (overrides.audioStreams != null)
+      'audio_streams': overrides.audioStreams!
+          .map(
+            (stream) => <String, Object?>{
+              'stream_index': stream.streamIndex,
+              if (stream.bitrateBps != null) 'bitrate_bps': stream.bitrateBps,
+              if (stream.sampleRateHz != null)
+                'sample_rate_hz': stream.sampleRateHz,
+              if (stream.channelCount != null)
+                'channel_count': stream.channelCount,
+            },
+          )
+          .toList(growable: false),
     if (overrides.outputPixelFormat != null)
       'output_pixel_format': overrides.outputPixelFormat,
     if (overrides.preservesHdr != null) 'preserves_hdr': overrides.preservesHdr,
@@ -657,12 +689,57 @@ EngineManualOverrides _selectionOverrides(Map<String, Object?> selection) {
     container: _optionalSelectionString(overrides, 'container'),
     videoCodec: _optionalSelectionString(overrides, 'video_codec'),
     audioCodec: _optionalSelectionString(overrides, 'audio_codec'),
+    audioStreams: _optionalSelectionAudioStreams(overrides),
     outputPixelFormat: _optionalSelectionString(
       overrides,
       'output_pixel_format',
     ),
     preservesHdr: _optionalSelectionBool(overrides, 'preserves_hdr'),
   );
+}
+
+List<EngineAudioStreamOverride>? _optionalSelectionAudioStreams(
+  Map<String, Object?> json,
+) {
+  final value = json['audio_streams'];
+  if (value == null) {
+    return null;
+  }
+  if (value is! List || value.isEmpty) {
+    throw const EngineConfigurationSelectionException(
+      'selection.overrides.audio_streams must be a non-empty array',
+    );
+  }
+  final streams = <EngineAudioStreamOverride>[];
+  for (var index = 0; index < value.length; index++) {
+    final item = value[index];
+    if (item is! Map) {
+      throw EngineConfigurationSelectionException(
+        'selection.overrides.audio_streams[$index] must be an object',
+      );
+    }
+    final stream = _stringObjectMap(item);
+    final streamIndex = stream['stream_index'];
+    if (streamIndex is! int || streamIndex < 0) {
+      throw EngineConfigurationSelectionException(
+        'selection.overrides.audio_streams[$index].stream_index must be a non-negative integer',
+      );
+    }
+    if (streams.isNotEmpty && streams.last.streamIndex >= streamIndex) {
+      throw const EngineConfigurationSelectionException(
+        'selection.overrides.audio_streams must use unique, increasing stream indexes',
+      );
+    }
+    streams.add(
+      EngineAudioStreamOverride(
+        streamIndex: streamIndex,
+        bitrateBps: _optionalSelectionPositiveInt(stream, 'bitrate_bps'),
+        sampleRateHz: _optionalSelectionPositiveInt(stream, 'sample_rate_hz'),
+        channelCount: _optionalSelectionPositiveInt(stream, 'channel_count'),
+      ),
+    );
+  }
+  return List.unmodifiable(streams);
 }
 
 String? _optionalSelectionString(Map<String, Object?> json, String key) {
@@ -686,6 +763,19 @@ bool? _optionalSelectionBool(Map<String, Object?> json, String key) {
   if (value is! bool) {
     throw EngineConfigurationSelectionException(
       'selection.overrides.$key must be a boolean',
+    );
+  }
+  return value;
+}
+
+int? _optionalSelectionPositiveInt(Map<String, Object?> json, String key) {
+  final value = json[key];
+  if (value == null) {
+    return null;
+  }
+  if (value is! int || value <= 0) {
+    throw EngineConfigurationSelectionException(
+      'selection.overrides.$key must be a positive integer',
     );
   }
   return value;

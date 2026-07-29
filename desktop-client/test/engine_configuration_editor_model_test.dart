@@ -65,6 +65,14 @@ void main() {
           container: 'mov',
           videoCodec: 'hevc',
           audioCodec: 'aac',
+          audioStreams: [
+            EngineAudioStreamOverride(
+              streamIndex: 1,
+              bitrateBps: 192000,
+              sampleRateHz: 32000,
+              channelCount: 2,
+            ),
+          ],
           outputPixelFormat: 'p010le',
           preservesHdr: true,
         ),
@@ -85,8 +93,24 @@ void main() {
       expect(selection.overrides.container, 'mov');
       expect(selection.overrides.videoCodec, 'hevc');
       expect(selection.overrides.audioCodec, 'aac');
+      expect(selection.overrides.audioStreams, hasLength(1));
+      expect(selection.overrides.audioStreams!.single.bitrateBps, 192000);
+      expect(selection.overrides.audioStreams!.single.sampleRateHz, 32000);
+      expect(selection.overrides.audioStreams!.single.channelCount, 2);
       expect(selection.overrides.outputPixelFormat, 'p010le');
       expect(selection.overrides.preservesHdr, isTrue);
+      final encoded = engineConfigurationSelectionToJson(selection);
+      final encodedSelection = encoded['selection']! as Map<String, Object?>;
+      final encodedOverrides =
+          encodedSelection['overrides']! as Map<String, Object?>;
+      expect(encodedOverrides['audio_streams'], [
+        <String, Object?>{
+          'stream_index': 1,
+          'bitrate_bps': 192000,
+          'sample_rate_hz': 32000,
+          'channel_count': 2,
+        },
+      ]);
     });
 
     test('does not accept an option advertised for another candidate', () {
@@ -101,7 +125,7 @@ void main() {
       expect(selected.validationMessage, isNotNull);
     });
 
-    test('restores the legacy flat manual selection payload', () {
+    test('restores the per-stream manual selection payload', () {
       final reference = EngineConfigurationReference(
         analysisId: 'analysis-1',
         analysisRevision: 4,
@@ -112,6 +136,14 @@ void main() {
           'overrides': <String, Object?>{
             'container': 'mov',
             'video_codec': 'hevc',
+            'audio_streams': <Object?>[
+              <String, Object?>{
+                'stream_index': 1,
+                'bitrate_bps': 192000,
+                'sample_rate_hz': 32000,
+                'channel_count': 2,
+              },
+            ],
           },
         }),
       );
@@ -123,9 +155,52 @@ void main() {
 
       expect(model.mode, EngineConfigurationEditorMode.manual);
       expect(model.canResolve, isTrue);
+      expect(model.manualOverrides.audioStreams, hasLength(1));
+      expect(model.manualOverrides.audioStreams!.single.bitrateBps, 192000);
+      expect(model.manualOverrides.audioStreams!.single.sampleRateHz, 32000);
+      expect(model.manualOverrides.audioStreams!.single.channelCount, 2);
       final selection = model.selection! as EngineManualConfigurationSelection;
       expect(selection.candidateId, 'candidate-b');
       expect(selection.overrides.videoCodec, 'hevc');
+    });
+
+    test('defaults to every candidate audio stream in source order', () {
+      final model = EngineConfigurationEditorModel(
+        snapshot: _snapshot(),
+      ).selectManual(candidateId: 'candidate-b');
+
+      expect(
+        model.selectedCandidateAudioInputs.map((stream) => stream.streamIndex),
+        [1, 2],
+      );
+      expect(model.effectiveAudioStreams.map((stream) => stream.streamIndex), [
+        1,
+        2,
+      ]);
+      expect(model.manualOverrides.audioStreams, isNull);
+      expect(model.canResolve, isTrue);
+    });
+
+    test('rejects empty duplicate and unsorted audio stream selections', () {
+      final base = EngineConfigurationEditorModel(snapshot: _snapshot());
+      for (final streams in <List<EngineAudioStreamOverride>>[
+        const [],
+        const [
+          EngineAudioStreamOverride(streamIndex: 1),
+          EngineAudioStreamOverride(streamIndex: 1),
+        ],
+        const [
+          EngineAudioStreamOverride(streamIndex: 2),
+          EngineAudioStreamOverride(streamIndex: 1),
+        ],
+      ]) {
+        final model = base.selectManual(
+          candidateId: 'candidate-b',
+          overrides: EngineManualOverrides(audioStreams: streams),
+        );
+        expect(model.canResolve, isFalse);
+        expect(model.selection, isNull);
+      }
     });
   });
 
@@ -557,7 +632,22 @@ EngineAnalysisSnapshotDocument _snapshot({
     'task_mode': 'video_compress',
     'media': <String, Object?>{},
     'source_fingerprint': <String, Object?>{},
-    'requirements': <String, Object?>{},
+    'requirements': <String, Object?>{
+      'audio_streams': <Object?>[
+        <String, Object?>{
+          'stream_index': 1,
+          'codec': 'pcm_s16le',
+          'sample_rate_hz': 48000,
+          'channel_count': 2,
+        },
+        <String, Object?>{
+          'stream_index': 2,
+          'codec': 'pcm_s16le',
+          'sample_rate_hz': 44100,
+          'channel_count': 1,
+        },
+      ],
+    },
     'environment_summary': <String, Object?>{},
     'engine_backend_summary': <String, Object?>{},
     'capabilities': <String, Object?>{
@@ -612,7 +702,10 @@ Map<String, Object?> _candidate(String id) {
     'id': id,
     'demuxer': 'demuxer-1',
     'video_decoders': <Object?>[],
-    'audio_decoders': <Object?>[],
+    'audio_decoders': <Object?>[
+      <String, Object?>{'stream_index': 1, 'backend_id': 'audio-decoder'},
+      <String, Object?>{'stream_index': 2, 'backend_id': 'audio-decoder'},
+    ],
     'processors': <Object?>[],
     'video_encoder': second ? 'hevc-encoder' : 'h264-encoder',
     'audio_encoder': 'aac-encoder',
@@ -621,6 +714,9 @@ Map<String, Object?> _candidate(String id) {
     'output_video_codec': second ? 'hevc' : 'h264',
     'output_video_profile': null,
     'output_audio_codec': 'aac',
+    'audio_bitrate_options_bps': <Object?>[64000, 96000, 128000, 192000],
+    'audio_sample_rate_options_hz': <Object?>[32000, 44100, 48000],
+    'audio_channel_count_options': <Object?>[1, 2],
     'output_pixel_format': second ? 'p010le' : 'yuv420p',
     'output_bit_depth': second ? 10 : 8,
     'output_hdr_mode': second ? 'preserve' : 'sdr',
@@ -637,7 +733,14 @@ Map<String, Object?> _configuration(String candidateId) {
     'container': second ? 'mov' : 'mp4',
     'demuxer_backend': 'demuxer-1',
     'video_decoders': <Object?>[],
-    'audio_decoders': <Object?>[],
+    'audio_streams': <Object?>[
+      <String, Object?>{
+        'input_stream_index': 1,
+        'decoder_backend': 'audio-decoder',
+        'encoder_backend': 'aac-encoder',
+        'output_codec': 'aac',
+      },
+    ],
     'processors': <Object?>[],
     'muxer_backend': second ? 'mov-muxer' : 'mp4-muxer',
     'output_hdr_mode': second ? 'preserve' : 'sdr',
@@ -699,6 +802,12 @@ Map<String, Object?> _configurationOptions(List<String> candidateIds) {
     ],
     'video_profiles': <Object?>[],
     'audio_codecs': option('aac', const ['candidate-a', 'candidate-b']),
+    'audio_bitrates_bps': option(192000, const ['candidate-a', 'candidate-b']),
+    'audio_sample_rates_hz': option(32000, const [
+      'candidate-a',
+      'candidate-b',
+    ]),
+    'audio_channel_counts': option(2, const ['candidate-a', 'candidate-b']),
     'video_encoders': <Object?>[],
     'audio_encoders': <Object?>[],
     'pixel_formats': <Object?>[
