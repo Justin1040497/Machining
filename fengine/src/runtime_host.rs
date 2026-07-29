@@ -191,9 +191,10 @@ mod tests {
 
     use framelean_analysis::{MediaAnalyzeRequest, MediaSource};
     use framelean_runtime::{
-        AnalyzeTaskRequest, ExecutionOutputRequest, ExecutionSubmissionRequest, ExecutionTaskState,
-        FfmpegExecutionBackend, ManualConfigurationSelection, ManualSelection,
-        OutputCollisionPolicy, RecalculateSelection, RequestContext, TaskMode,
+        AnalyzeTaskRequest, AudioStreamSelection, ExecutionOutputRequest,
+        ExecutionSubmissionRequest, ExecutionTaskState, FfmpegExecutionBackend,
+        ManualConfigurationSelection, ManualSelection, OutputCollisionPolicy, PresetSelection,
+        RecalculateSelection, RequestContext, TaskMode,
     };
 
     use super::*;
@@ -299,7 +300,7 @@ mod tests {
     }
 
     #[test]
-    fn default_runtime_executes_a_real_video_decode_process_encode_mux_chain() {
+    fn default_runtime_executes_a_real_audio_video_transcode_chain() {
         static TEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
         let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let root = std::env::temp_dir().join(format!(
@@ -309,7 +310,7 @@ mod tests {
         fs::create_dir_all(&root).unwrap();
         let input_path = root.join("input.avi");
         let output_path = root.join("output.mp4");
-        fs::write(&input_path, raw_video_avi_fixture()).unwrap();
+        fs::write(&input_path, raw_audiovisual_avi_fixture()).unwrap();
         let mut runtime = build_default_runtime().unwrap();
 
         let analysis = runtime
@@ -331,7 +332,9 @@ mod tests {
                 capabilities
                     .execution_chains
                     .iter()
-                    .find(|candidate| candidate.video_encoder.is_some())
+                    .find(|candidate| {
+                        candidate.video_encoder.is_some() && candidate.audio_encoder.is_some()
+                    })
             })
             .unwrap_or_else(|| {
                 panic!(
@@ -346,6 +349,13 @@ mod tests {
                 .iter()
                 .any(|processor| processor.operation == "pixel_format_conversion")
         );
+        assert!(
+            candidate
+                .processors
+                .iter()
+                .any(|processor| processor.operation == "sample_format_conversion")
+        );
+        assert_eq!(candidate.audio_decoders.len(), 2);
 
         let submission = runtime
             .submit_execution(ExecutionSubmissionRequest {
@@ -353,7 +363,23 @@ mod tests {
                 expected_revision: analysis.analysis_revision,
                 selection: RecalculateSelection::Manual(ManualConfigurationSelection {
                     candidate_id: candidate.id.clone(),
-                    overrides: ManualSelection::empty(),
+                    overrides: ManualSelection {
+                        audio_streams: Some(vec![
+                            AudioStreamSelection {
+                                stream_index: candidate.audio_decoders[0].stream_index,
+                                bitrate_bps: Some(64_000),
+                                sample_rate_hz: Some(32_000),
+                                channel_count: Some(1),
+                            },
+                            AudioStreamSelection {
+                                stream_index: candidate.audio_decoders[1].stream_index,
+                                bitrate_bps: Some(96_000),
+                                sample_rate_hz: Some(48_000),
+                                channel_count: Some(2),
+                            },
+                        ]),
+                        ..ManualSelection::empty()
+                    },
                 }),
                 output: ExecutionOutputRequest {
                     requested_path: output_path.clone(),
@@ -391,7 +417,7 @@ mod tests {
 
         let output_analysis = runtime
             .analyze_media(AnalyzeTaskRequest {
-                task_mode: TaskMode::VideoConvert,
+                task_mode: TaskMode::VideoCompress,
                 media_request: MediaAnalyzeRequest {
                     source: MediaSource::local_file(&output_path).unwrap(),
                     request_id: Some("video-output-analysis-request".to_owned()),
@@ -405,6 +431,194 @@ mod tests {
             "transcoded output must be readable: {:?}",
             output_analysis.error
         );
+        let output_requirements = output_analysis.requirements.as_ref().unwrap();
+        assert_eq!(output_requirements.video_streams.len(), 1);
+        assert_eq!(output_requirements.audio_streams.len(), 2);
+        assert_eq!(output_requirements.video_streams[0].codec, "h264");
+        assert_eq!(output_requirements.audio_streams[0].codec, "aac");
+        assert_eq!(
+            output_requirements.audio_streams[0].sample_rate_hz,
+            Some(32_000)
+        );
+        assert_eq!(output_requirements.audio_streams[0].channel_count, Some(1));
+        assert_eq!(output_requirements.audio_streams[1].codec, "aac");
+        assert_eq!(
+            output_requirements.audio_streams[1].sample_rate_hz,
+            Some(48_000)
+        );
+        assert_eq!(output_requirements.audio_streams[1].channel_count, Some(2));
+        assert!(
+            output_analysis
+                .capabilities
+                .as_ref()
+                .is_some_and(|capabilities| capabilities
+                    .execution_chains
+                    .iter()
+                    .any(|candidate| candidate.video_encoder.is_some()
+                        && candidate.audio_encoder.is_some())),
+            "transcoded H.264/AAC MP4 must remain eligible for compression"
+        );
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn default_runtime_executes_a_real_audio_compression_chain() {
+        static TEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
+        let sequence = TEST_SEQUENCE.fetch_add(1, Ordering::Relaxed);
+        let root = std::env::temp_dir().join(format!(
+            "framelean-runtime-audio-transcode-test-{}-{sequence}",
+            std::process::id()
+        ));
+        fs::create_dir_all(&root).unwrap();
+        let input_path = root.join("input.wav");
+        let output_path = root.join("output.m4a");
+        fs::write(&input_path, pcm_wav_fixture(4_000)).unwrap();
+        let mut runtime = build_default_runtime().unwrap();
+
+        let analysis = runtime
+            .analyze_media(AnalyzeTaskRequest {
+                task_mode: TaskMode::AudioCompress,
+                media_request: MediaAnalyzeRequest {
+                    source: MediaSource::local_file(&input_path).unwrap(),
+                    request_id: Some("audio-compression-analysis".to_owned()),
+                    expected_source: None,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+        assert!(analysis.error.is_none(), "{:?}", analysis.error);
+        let preset = analysis
+            .presets
+            .iter()
+            .find(|preset| preset.id.as_str() == "balanced" && preset.applicable)
+            .unwrap_or_else(|| {
+                panic!(
+                    "balanced audio preset must be available; requirements: {:#?}; capabilities: {:#?}",
+                    analysis.requirements, analysis.capabilities
+                )
+            });
+        let preset_id = preset.id.clone();
+        let candidate = preset.candidate.as_ref().unwrap().clone();
+        assert_eq!(candidate.output_container, "m4a");
+        assert!(candidate.video_encoder.is_none());
+        assert!(candidate.audio_encoder.is_some());
+        assert_eq!(candidate.output_audio_codec.as_deref(), Some("aac"));
+        assert!(candidate.audio_bitrate_options_bps.contains(&192_000));
+        assert!(candidate.audio_sample_rate_options_hz.contains(&32_000));
+        assert!(candidate.audio_channel_count_options.contains(&2));
+
+        let rejected_output_path = root.join("rejected.m4a");
+        let rejected = runtime
+            .submit_execution(ExecutionSubmissionRequest {
+                analysis_id: analysis.analysis_id.clone(),
+                expected_revision: analysis.analysis_revision,
+                selection: RecalculateSelection::Preset(PresetSelection {
+                    preset_id: preset_id.clone(),
+                    candidate_id: candidate.id.clone(),
+                    overrides: ManualSelection {
+                        container: None,
+                        video_codec: None,
+                        audio_codec: None,
+                        audio_streams: Some(vec![AudioStreamSelection {
+                            stream_index: candidate.audio_decoders[0].stream_index,
+                            bitrate_bps: Some(192_000),
+                            sample_rate_hz: Some(12_345),
+                            channel_count: Some(2),
+                        }]),
+                        output_pixel_format: None,
+                        preserves_hdr: None,
+                    },
+                }),
+                output: ExecutionOutputRequest {
+                    requested_path: rejected_output_path.clone(),
+                    collision_policy: OutputCollisionPolicy::FailIfExists,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap_err();
+        assert_eq!(
+            rejected.code(),
+            framelean_core::EngineErrorCode::MediaCapabilityIncompatible
+        );
+        assert!(!rejected_output_path.exists());
+
+        let submission = runtime
+            .submit_execution(ExecutionSubmissionRequest {
+                analysis_id: analysis.analysis_id,
+                expected_revision: analysis.analysis_revision,
+                selection: RecalculateSelection::Preset(PresetSelection {
+                    preset_id,
+                    candidate_id: candidate.id.clone(),
+                    overrides: ManualSelection {
+                        container: None,
+                        video_codec: None,
+                        audio_codec: None,
+                        audio_streams: Some(vec![AudioStreamSelection {
+                            stream_index: candidate.audio_decoders[0].stream_index,
+                            bitrate_bps: Some(192_000),
+                            sample_rate_hz: Some(32_000),
+                            channel_count: Some(2),
+                        }]),
+                        output_pixel_format: None,
+                        preserves_hdr: None,
+                    },
+                }),
+                output: ExecutionOutputRequest {
+                    requested_path: output_path.clone(),
+                    collision_policy: OutputCollisionPolicy::FailIfExists,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+
+        let deadline = Instant::now() + Duration::from_secs(5);
+        let mut terminal = None;
+        while Instant::now() < deadline {
+            for event in runtime.drain_execution_events() {
+                if event.execution_id == submission.execution_id
+                    && matches!(
+                        event.state,
+                        ExecutionTaskState::Completed
+                            | ExecutionTaskState::Failed
+                            | ExecutionTaskState::Cancelled
+                    )
+                {
+                    terminal = Some(event);
+                }
+            }
+            if terminal.is_some() {
+                break;
+            }
+            thread::sleep(Duration::from_millis(10));
+        }
+        let terminal = terminal.expect("audio execution must reach a terminal state");
+        assert_eq!(terminal.state, ExecutionTaskState::Completed);
+        assert!(terminal.error_code.is_none(), "{:?}", terminal.message);
+        assert_eq!(terminal.output_path.as_deref(), Some(output_path.as_path()));
+        assert!(fs::metadata(&output_path).unwrap().len() > 64);
+
+        let output_analysis = runtime
+            .analyze_media(AnalyzeTaskRequest {
+                task_mode: TaskMode::AudioCompress,
+                media_request: MediaAnalyzeRequest {
+                    source: MediaSource::local_file(&output_path).unwrap(),
+                    request_id: Some("audio-compression-output-analysis".to_owned()),
+                    expected_source: None,
+                },
+                context: RequestContext::default(),
+            })
+            .unwrap();
+        assert!(
+            output_analysis.error.is_none(),
+            "compressed output must be readable: {:?}",
+            output_analysis.error
+        );
+        let requirements = output_analysis.requirements.as_ref().unwrap();
+        assert!(requirements.video_streams.is_empty());
+        assert_eq!(requirements.audio_streams.len(), 1);
+        assert_eq!(requirements.audio_streams[0].codec, "aac");
+        assert_eq!(requirements.audio_streams[0].sample_rate_hz, Some(32_000));
+        assert_eq!(requirements.audio_streams[0].channel_count, Some(2));
         fs::remove_dir_all(root).unwrap();
     }
 
@@ -602,42 +816,45 @@ mod tests {
         bytes
     }
 
-    fn raw_video_avi_fixture() -> Vec<u8> {
+    fn raw_audiovisual_avi_fixture() -> Vec<u8> {
         const WIDTH: u32 = 2;
         const HEIGHT: u32 = 2;
         const FRAME_BYTES: u32 = 16;
+        const SAMPLE_RATE: u32 = 8_000;
+        const SAMPLE_COUNT: u32 = 4_000;
+        const AUDIO_BYTES: u32 = SAMPLE_COUNT * 2;
 
         let mut main_header = Vec::with_capacity(56);
         push_u32(&mut main_header, 500_000);
-        push_u32(&mut main_header, FRAME_BYTES * 2);
+        push_u32(&mut main_header, SAMPLE_RATE * 2 + FRAME_BYTES * 2);
         push_u32(&mut main_header, 0);
         push_u32(&mut main_header, 0x10);
         push_u32(&mut main_header, 1);
         push_u32(&mut main_header, 0);
-        push_u32(&mut main_header, 1);
-        push_u32(&mut main_header, FRAME_BYTES);
+        push_u32(&mut main_header, 3);
+        push_u32(&mut main_header, AUDIO_BYTES);
         push_u32(&mut main_header, WIDTH);
         push_u32(&mut main_header, HEIGHT);
         main_header.extend_from_slice(&[0; 16]);
 
-        let mut stream_header = Vec::with_capacity(56);
-        stream_header.extend_from_slice(b"vids");
-        stream_header.extend_from_slice(b"DIB ");
-        push_u32(&mut stream_header, 0);
-        push_u16(&mut stream_header, 0);
-        push_u16(&mut stream_header, 0);
-        push_u32(&mut stream_header, 0);
-        push_u32(&mut stream_header, 1);
-        push_u32(&mut stream_header, 2);
-        push_u32(&mut stream_header, 0);
-        push_u32(&mut stream_header, 1);
-        push_u32(&mut stream_header, FRAME_BYTES);
-        push_u32(&mut stream_header, u32::MAX);
-        push_u32(&mut stream_header, 0);
-        push_i16(&mut stream_header, 0);
-        push_i16(&mut stream_header, 0);
-        push_i16(&mut stream_header, WIDTH as i16);
-        push_i16(&mut stream_header, HEIGHT as i16);
+        let mut video_header = Vec::with_capacity(56);
+        video_header.extend_from_slice(b"vids");
+        video_header.extend_from_slice(b"DIB ");
+        push_u32(&mut video_header, 0);
+        push_u16(&mut video_header, 0);
+        push_u16(&mut video_header, 0);
+        push_u32(&mut video_header, 0);
+        push_u32(&mut video_header, 1);
+        push_u32(&mut video_header, 2);
+        push_u32(&mut video_header, 0);
+        push_u32(&mut video_header, 1);
+        push_u32(&mut video_header, FRAME_BYTES);
+        push_u32(&mut video_header, u32::MAX);
+        push_u32(&mut video_header, 0);
+        push_i16(&mut video_header, 0);
+        push_i16(&mut video_header, 0);
+        push_i16(&mut video_header, WIDTH as i16);
+        push_i16(&mut video_header, HEIGHT as i16);
 
         let mut bitmap_info = Vec::with_capacity(40);
         push_u32(&mut bitmap_info, 40);
@@ -652,25 +869,92 @@ mod tests {
         push_u32(&mut bitmap_info, 0);
         push_u32(&mut bitmap_info, 0);
 
-        let stream_list = list_chunk(
+        let mut audio_header = Vec::with_capacity(56);
+        audio_header.extend_from_slice(b"auds");
+        audio_header.extend_from_slice(&[0; 4]);
+        push_u32(&mut audio_header, 0);
+        push_u16(&mut audio_header, 0);
+        push_u16(&mut audio_header, 0);
+        push_u32(&mut audio_header, 0);
+        push_u32(&mut audio_header, 2);
+        push_u32(&mut audio_header, SAMPLE_RATE * 2);
+        push_u32(&mut audio_header, 0);
+        push_u32(&mut audio_header, SAMPLE_COUNT);
+        push_u32(&mut audio_header, AUDIO_BYTES);
+        push_u32(&mut audio_header, u32::MAX);
+        push_u32(&mut audio_header, 2);
+        audio_header.extend_from_slice(&[0; 8]);
+
+        let mut wave_format = Vec::with_capacity(16);
+        push_u16(&mut wave_format, 1);
+        push_u16(&mut wave_format, 1);
+        push_u32(&mut wave_format, SAMPLE_RATE);
+        push_u32(&mut wave_format, SAMPLE_RATE * 2);
+        push_u16(&mut wave_format, 2);
+        push_u16(&mut wave_format, 16);
+
+        let video_stream = list_chunk(
             b"strl",
             [
-                riff_chunk(b"strh", stream_header),
+                riff_chunk(b"strh", video_header),
                 riff_chunk(b"strf", bitmap_info),
+            ]
+            .concat(),
+        );
+        let audio_stream = list_chunk(
+            b"strl",
+            [
+                riff_chunk(b"strh", audio_header),
+                riff_chunk(b"strf", wave_format),
             ]
             .concat(),
         );
         let header_list = list_chunk(
             b"hdrl",
-            [riff_chunk(b"avih", main_header), stream_list].concat(),
+            [
+                riff_chunk(b"avih", main_header),
+                video_stream,
+                audio_stream.clone(),
+                audio_stream,
+            ]
+            .concat(),
         );
         let frame = vec![0, 255, 0, 0, 255, 0, 0, 0, 0, 0, 255, 0, 0, 255, 0, 0];
-        let movie_data = riff_chunk(b"00db", frame);
+        let mut audio = Vec::with_capacity(AUDIO_BYTES as usize);
+        for index in 0..SAMPLE_COUNT {
+            let sample = if index % 32 < 16 {
+                4_000_i16
+            } else {
+                -4_000_i16
+            };
+            audio.extend_from_slice(&sample.to_le_bytes());
+        }
+        let mut second_audio = Vec::with_capacity(AUDIO_BYTES as usize);
+        for index in 0..SAMPLE_COUNT {
+            let sample = if index % 20 < 10 {
+                2_000_i16
+            } else {
+                -2_000_i16
+            };
+            second_audio.extend_from_slice(&sample.to_le_bytes());
+        }
+        let video_chunk = riff_chunk(b"00db", frame);
+        let audio_chunk = riff_chunk(b"01wb", audio);
+        let second_audio_chunk = riff_chunk(b"02wb", second_audio);
+        let movie_data = [video_chunk, audio_chunk, second_audio_chunk].concat();
         let mut index_data = Vec::new();
         index_data.extend_from_slice(b"00db");
         push_u32(&mut index_data, 0x10);
         push_u32(&mut index_data, 4);
         push_u32(&mut index_data, FRAME_BYTES);
+        index_data.extend_from_slice(b"01wb");
+        push_u32(&mut index_data, 0);
+        push_u32(&mut index_data, 4 + 8 + FRAME_BYTES);
+        push_u32(&mut index_data, AUDIO_BYTES);
+        index_data.extend_from_slice(b"02wb");
+        push_u32(&mut index_data, 0);
+        push_u32(&mut index_data, 4 + 8 + FRAME_BYTES + 8 + AUDIO_BYTES);
+        push_u32(&mut index_data, AUDIO_BYTES);
         riff_file(
             b"AVI ",
             [
