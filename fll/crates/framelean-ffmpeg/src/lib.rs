@@ -29,7 +29,8 @@ pub use media_frames::{
     VideoThumbnailRequest, VideoThumbnailResult,
 };
 pub use video_transcode::{
-    TranscodeControl, TranscodeOutcome, TranscodeProgress, VideoTranscodeRequest,
+    AudioFileTranscodeRequest, AudioTranscodeRequest, TranscodeControl, TranscodeOutcome,
+    TranscodeProgress, VideoTranscodeRequest,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -206,6 +207,14 @@ impl FfmpegAdapter {
         control: impl FnMut(TranscodeProgress) -> TranscodeControl,
     ) -> Result<TranscodeOutcome> {
         video_transcode::transcode_video(request, control)
+    }
+
+    pub fn transcode_audio(
+        &self,
+        request: &AudioFileTranscodeRequest,
+        control: impl FnMut(TranscodeProgress) -> TranscodeControl,
+    ) -> Result<TranscodeOutcome> {
+        video_transcode::transcode_audio(request, control)
     }
 }
 
@@ -914,6 +923,9 @@ fn demuxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         let Some(primary) = names.first() else {
             continue;
         };
+        let qualified_multistream = names
+            .iter()
+            .any(|name| matches!(name.as_str(), "avi" | "mov" | "mp4" | "matroska" | "webm"));
         backends.push(BackendDescriptor {
             id: BackendId::new(format!("ffmpeg.demuxer.{primary}"))?,
             provider: "framelean-ffmpeg".to_owned(),
@@ -926,9 +938,11 @@ fn demuxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
                 input_formats: names,
                 stream_types: all_stream_kinds(),
                 codec_restrictions: CapabilityConstraint::Unrestricted,
-                supports_multiple_streams: unavailable(
-                    "per-format multi-stream support requires qualification",
-                ),
+                supports_multiple_streams: if qualified_multistream {
+                    Observed::detected(true, "qualified libavformat demux path")
+                } else {
+                    unavailable("per-format multi-stream support requires qualification")
+                },
                 requires_seek: unavailable("seek requirements require format qualification"),
                 supports_custom_io: unavailable(
                     "custom IO support requires per-format initialization qualification",
@@ -956,6 +970,12 @@ fn muxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         let video = codec_name_option(format.video_codec);
         let audio = codec_name_option(format.audio_codec);
         let qualified_video_transcode = names.iter().any(|name| name == "mp4");
+        let qualified_audio_transcode = names.iter().any(|name| name == "ipod");
+        let output_formats = if qualified_audio_transcode {
+            vec!["m4a".to_owned()]
+        } else {
+            names.clone()
+        };
         backends.push(BackendDescriptor {
             id: BackendId::new(format!(
                 "ffmpeg.muxer.{primary}.{}",
@@ -968,7 +988,7 @@ fn muxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
             ),
             environment: BackendEnvironmentRequirements::unrestricted(),
             capability: BackendCapability::Muxer(MuxerCapability {
-                output_formats: names,
+                output_formats,
                 video_codecs: video.into_iter().collect(),
                 audio_codecs: audio.into_iter().collect(),
                 supports_subtitles: Observed::detected(
@@ -979,13 +999,26 @@ fn muxer_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
                 supports_attachments: unavailable(
                     "attachment support requires format qualification",
                 ),
-                supports_multiple_streams: unavailable(
-                    "per-format multi-stream support requires qualification",
-                ),
+                supports_multiple_streams: if qualified_video_transcode {
+                    Observed::detected(true, "qualified MP4 audio/video mux path")
+                } else {
+                    unavailable("per-format multi-stream support requires qualification")
+                },
                 codec_combinations: if qualified_video_transcode {
+                    CapabilityConstraint::Restricted(vec![
+                        MuxerCodecCombination {
+                            video_codec: Some("h264".to_owned()),
+                            audio_codec: None,
+                        },
+                        MuxerCodecCombination {
+                            video_codec: Some("h264".to_owned()),
+                            audio_codec: Some("aac".to_owned()),
+                        },
+                    ])
+                } else if qualified_audio_transcode {
                     CapabilityConstraint::Restricted(vec![MuxerCodecCombination {
-                        video_codec: Some("h264".to_owned()),
-                        audio_codec: None,
+                        video_codec: None,
+                        audio_codec: Some("aac".to_owned()),
                     }])
                 } else {
                     CapabilityConstraint::Unknown
@@ -1017,8 +1050,11 @@ fn codec_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         let native_status = NativeSupportStatus::NativeDiscovered;
         // SAFETY: codec descriptor is valid for the duration of the process.
         if unsafe { ffi::av_codec_is_decoder(codec) } != 0 {
-            let decoder_ready =
-                stream_type == StreamKind::Video && is_supported_video_decoder(&name);
+            let decoder_ready = match stream_type {
+                StreamKind::Video => is_supported_video_decoder(&name),
+                StreamKind::Audio => is_supported_audio_decoder(&name),
+                _ => false,
+            };
             backends.push(BackendDescriptor {
                 id: BackendId::new(format!("ffmpeg.decoder.{name}"))?,
                 provider: "framelean-ffmpeg".to_owned(),
@@ -1053,7 +1089,28 @@ fn codec_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         }
         // SAFETY: codec descriptor is valid for the duration of the process.
         if unsafe { ffi::av_codec_is_encoder(codec) } != 0 {
-            let encoder_ready = stream_type == StreamKind::Video && name == "libx264";
+            let encoder_ready = matches!(
+                (stream_type, name.as_str()),
+                (StreamKind::Video, "libx264") | (StreamKind::Audio, "aac")
+            );
+            let profiles = match stream_type {
+                StreamKind::Video if encoder_ready => CapabilityConstraint::Restricted(vec![
+                    "baseline".to_owned(),
+                    "main".to_owned(),
+                    "high".to_owned(),
+                ]),
+                StreamKind::Audio if encoder_ready => CapabilityConstraint::Unrestricted,
+                _ => CapabilityConstraint::Unknown,
+            };
+            let formats = match stream_type {
+                StreamKind::Video if encoder_ready => {
+                    CapabilityConstraint::Restricted(vec!["yuv420p".to_owned()])
+                }
+                StreamKind::Audio if encoder_ready => {
+                    CapabilityConstraint::Restricted(vec!["fltp".to_owned()])
+                }
+                _ => CapabilityConstraint::Unknown,
+            };
             backends.push(BackendDescriptor {
                 id: BackendId::new(format!("ffmpeg.encoder.{name}"))?,
                 provider: "framelean-ffmpeg".to_owned(),
@@ -1067,20 +1124,8 @@ fn codec_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
                 capability: BackendCapability::Encoder(EncoderCapability {
                     stream_type,
                     codecs: vec![codec_name(codec.id)],
-                    profiles: if encoder_ready {
-                        CapabilityConstraint::Restricted(vec![
-                            "baseline".to_owned(),
-                            "main".to_owned(),
-                            "high".to_owned(),
-                        ])
-                    } else {
-                        CapabilityConstraint::Unknown
-                    },
-                    pixel_or_sample_formats: if encoder_ready {
-                        CapabilityConstraint::Restricted(vec!["yuv420p".to_owned()])
-                    } else {
-                        CapabilityConstraint::Unknown
-                    },
+                    profiles,
+                    pixel_or_sample_formats: formats,
                     bit_depths: if encoder_ready {
                         CapabilityConstraint::Restricted(vec![8])
                     } else {
@@ -1108,7 +1153,7 @@ fn codec_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
         backends.push(BackendDescriptor {
             id: BackendId::new("ffmpeg.processor.swscale.pixel-format-conversion")?,
             provider: "framelean-ffmpeg".to_owned(),
-            version,
+            version: version.clone(),
             availability: BackendAvailability::execution_ready(
                 NativeSupportStatus::NativeInitializable,
             ),
@@ -1122,6 +1167,29 @@ fn codec_backends(version: Option<String>) -> Result<Vec<BackendDescriptor>> {
                 operations: vec!["pixel_format_conversion".to_owned()],
             }),
             source: "libswscale:sws_getContext".to_owned(),
+        });
+    }
+    if backends
+        .iter()
+        .any(|backend| backend.id.as_str() == "ffmpeg.encoder.aac")
+    {
+        backends.push(BackendDescriptor {
+            id: BackendId::new("ffmpeg.processor.swresample.sample-format-conversion")?,
+            provider: "framelean-ffmpeg".to_owned(),
+            version,
+            availability: BackendAvailability::execution_ready(
+                NativeSupportStatus::NativeInitializable,
+            ),
+            environment: BackendEnvironmentRequirements::unrestricted(),
+            capability: BackendCapability::Processor(ProcessorCapability {
+                stream_type: StreamKind::Audio,
+                input_formats: CapabilityConstraint::Unrestricted,
+                output_formats: CapabilityConstraint::Restricted(vec!["fltp".to_owned()]),
+                bit_depths: CapabilityConstraint::Unrestricted,
+                hdr_operations: CapabilityConstraint::Unsupported,
+                operations: vec!["sample_format_conversion".to_owned()],
+            }),
+            source: "libswresample:swr_alloc_set_opts2".to_owned(),
         });
     }
     Ok(backends)
@@ -1142,6 +1210,10 @@ fn is_supported_video_decoder(name: &str) -> bool {
             | "png"
             | "webp"
     )
+}
+
+fn is_supported_audio_decoder(name: &str) -> bool {
+    matches!(name, "aac" | "pcm_s16le")
 }
 
 fn c_string(pointer: *const std::ffi::c_char) -> Option<String> {
@@ -1535,7 +1607,7 @@ mod tests {
     }
 
     #[test]
-    fn implemented_remux_and_video_transcode_backends_are_reported_as_initializable() {
+    fn implemented_remux_and_audio_video_transcode_backends_are_initializable() {
         let catalog = FfmpegAdapter::new().unwrap().backend_catalog().unwrap();
         assert!(
             catalog
@@ -1551,7 +1623,10 @@ mod tests {
                             == NativeSupportStatus::NativeInitializable
                         {
                             backend.id.as_str().starts_with("ffmpeg.decoder.")
-                                || backend.id.as_str() == "ffmpeg.encoder.libx264"
+                                || matches!(
+                                    backend.id.as_str(),
+                                    "ffmpeg.encoder.libx264" | "ffmpeg.encoder.aac"
+                                )
                         } else {
                             true
                         }
@@ -1571,6 +1646,28 @@ mod tests {
         assert!(catalog.backends.iter().any(|backend| {
             backend.id.as_str() == "ffmpeg.processor.swscale.pixel-format-conversion"
                 && backend.availability.is_execution_ready()
+        }));
+        assert!(catalog.backends.iter().any(|backend| {
+            backend.id.as_str() == "ffmpeg.encoder.aac" && backend.availability.is_execution_ready()
+        }));
+        assert!(catalog.backends.iter().any(|backend| {
+            backend.id.as_str() == "ffmpeg.processor.swresample.sample-format-conversion"
+                && backend.availability.is_execution_ready()
+        }));
+        assert!(catalog.backends.iter().any(|backend| {
+            backend.id.as_str().starts_with("ffmpeg.muxer.ipod.")
+                && backend.availability.is_execution_ready()
+                && matches!(
+                    &backend.capability,
+                    BackendCapability::Muxer(capability)
+                        if capability.output_formats == ["m4a"]
+                            && capability.codec_combinations.values().is_some_and(|combinations| {
+                                combinations.contains(&MuxerCodecCombination {
+                                    video_codec: None,
+                                    audio_codec: Some("aac".to_owned()),
+                                })
+                            })
+                )
         }));
     }
 
@@ -1753,7 +1850,10 @@ mod tests {
                     BackendCapability::Decoder(_) | BackendCapability::Encoder(_) => {
                         if backend.availability.is_execution_ready() {
                             backend.id.as_str().starts_with("ffmpeg.decoder.")
-                                || backend.id.as_str() == "ffmpeg.encoder.libx264"
+                                || matches!(
+                                    backend.id.as_str(),
+                                    "ffmpeg.encoder.libx264" | "ffmpeg.encoder.aac"
+                                )
                         } else {
                             backend.availability.engine_registration
                                 == EngineRegistrationStatus::NotRegistered
@@ -1763,8 +1863,11 @@ mod tests {
                     }
                     BackendCapability::Processor(_) => {
                         backend.availability.is_execution_ready()
-                            == (backend.id.as_str()
-                                == "ffmpeg.processor.swscale.pixel-format-conversion")
+                            == matches!(
+                                backend.id.as_str(),
+                                "ffmpeg.processor.swscale.pixel-format-conversion"
+                                    | "ffmpeg.processor.swresample.sample-format-conversion"
+                            )
                     }
                 })
         );

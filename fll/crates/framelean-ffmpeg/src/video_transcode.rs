@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+use std::ffi::{CStr, CString, c_void};
 use std::path::PathBuf;
 use std::ptr;
 
@@ -13,6 +13,23 @@ const MICROSECONDS_TIME_BASE: ffi::AVRational = ffi::AVRational {
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AudioTranscodeRequest {
+    pub input_stream_index: u32,
+    pub decoder_name: String,
+    pub encoder_name: String,
+    pub target_bitrate_bps: Option<u64>,
+    pub target_sample_rate_hz: Option<u32>,
+    pub target_channel_count: Option<u32>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AudioFileTranscodeRequest {
+    pub input_path: PathBuf,
+    pub output_path: PathBuf,
+    pub audio_streams: Vec<AudioTranscodeRequest>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VideoTranscodeRequest {
     pub input_path: PathBuf,
     pub output_path: PathBuf,
@@ -22,6 +39,7 @@ pub struct VideoTranscodeRequest {
     pub output_pixel_format: String,
     pub output_profile: Option<String>,
     pub target_bitrate_bps: Option<u64>,
+    pub audio_streams: Vec<AudioTranscodeRequest>,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -44,6 +62,70 @@ pub enum TranscodeOutcome {
     Cancelled(TranscodeProgress),
 }
 
+pub(super) fn transcode_audio(
+    request: &AudioFileTranscodeRequest,
+    mut control: impl FnMut(TranscodeProgress) -> TranscodeControl,
+) -> Result<TranscodeOutcome> {
+    validate_audio_stream_requests(&request.audio_streams)?;
+    let input = InputContext::open(&request.input_path)?;
+    validate_audio_only_input(&input, &request.audio_streams)?;
+
+    let mut output = OutputContext::create(&request.output_path)?;
+    let global_header = output_requires_global_header(&output);
+    let mut audio_streams = request
+        .audio_streams
+        .iter()
+        .map(|audio| {
+            let input_stream = selected_audio_stream(&input, audio.input_stream_index)?;
+            AudioTranscodeState::new(audio, input_stream, &mut output, global_header)
+        })
+        .collect::<Result<Vec<_>>>()?;
+    output.open_io(&request.output_path)?;
+    output.write_header()?;
+
+    let input_packet = Packet::new_for_execution()?;
+    let mut progress = TranscodeProgress::default();
+    loop {
+        // SAFETY: input and packet are valid owned pointers.
+        let read_result = unsafe { ffi::av_read_frame(input.0, input_packet.0) };
+        if read_result == ffi::AVERROR_EOF {
+            break;
+        }
+        if read_result < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaInfoReadFailed,
+                "failed while reading audio packets",
+                read_result,
+            ));
+        }
+        // SAFETY: av_read_frame initialized the packet.
+        let packet_ref = unsafe { &*input_packet.0 };
+        let Some(audio) = audio_streams
+            .iter_mut()
+            .find(|audio| audio.input_stream_index == packet_ref.stream_index as u32)
+        else {
+            // SAFETY: packet is allocated and initialized.
+            unsafe { ffi::av_packet_unref(input_packet.0) };
+            continue;
+        };
+        update_input_progress(&mut progress, packet_ref, audio.input_time_base);
+        if control(progress) == TranscodeControl::Cancel {
+            // SAFETY: packet is allocated and initialized.
+            unsafe { ffi::av_packet_unref(input_packet.0) };
+            return Ok(TranscodeOutcome::Cancelled(progress));
+        }
+        audio.process_packet(input_packet.0, output.context, &mut progress)?;
+        // SAFETY: decoder has consumed or referenced the packet contents.
+        unsafe { ffi::av_packet_unref(input_packet.0) };
+    }
+
+    for audio in &mut audio_streams {
+        audio.finish(output.context, &mut progress)?;
+    }
+    output.write_trailer()?;
+    Ok(TranscodeOutcome::Completed(progress))
+}
+
 pub(super) fn transcode_video(
     request: &VideoTranscodeRequest,
     mut control: impl FnMut(TranscodeProgress) -> TranscodeControl,
@@ -51,7 +133,7 @@ pub(super) fn transcode_video(
     validate_request(request)?;
     let input = InputContext::open(&request.input_path)?;
     let input_stream = selected_video_stream(&input, request.input_stream_index)?;
-    validate_video_only_input(&input, request.input_stream_index)?;
+    validate_selected_input(&input, request.input_stream_index, &request.audio_streams)?;
 
     let decoder_name = c_string(&request.decoder_name, "decoder name")?;
     // SAFETY: decoder_name is a valid, null-terminated codec name.
@@ -101,7 +183,16 @@ pub(super) fn transcode_video(
         request.output_profile.as_deref(),
         output_requires_global_header(&output),
     )?;
-    let output_stream = create_output_stream(&mut output, &encoder_context)?;
+    let output_stream = create_output_stream(&mut output, &encoder_context, "video")?;
+    let global_header = output_requires_global_header(&output);
+    let mut audio_states = request
+        .audio_streams
+        .iter()
+        .map(|audio| {
+            let stream = selected_audio_stream(&input, audio.input_stream_index)?;
+            AudioTranscodeState::new(audio, stream, &mut output, global_header)
+        })
+        .collect::<Result<Vec<_>>>()?;
     output.open_io(&request.output_path)?;
     output.write_header()?;
 
@@ -130,36 +221,59 @@ pub(super) fn transcode_video(
         }
         // SAFETY: av_read_frame initialized the packet.
         let packet_ref = unsafe { &*input_packet.0 };
-        if packet_ref.stream_index != request.input_stream_index as i32 {
+        if packet_ref.stream_index != request.input_stream_index as i32
+            && !audio_states
+                .iter()
+                .any(|audio| packet_ref.stream_index == audio.input_stream_index as i32)
+        {
             // SAFETY: packet is allocated and initialized.
             unsafe { ffi::av_packet_unref(input_packet.0) };
             continue;
         }
 
-        update_input_progress(&mut progress, packet_ref, input_time_base);
+        let packet_time_base = if packet_ref.stream_index == request.input_stream_index as i32 {
+            input_time_base
+        } else {
+            audio_states
+                .iter()
+                .find(|audio| audio.input_stream_index == packet_ref.stream_index as u32)
+                .expect("selected audio packets require audio state")
+                .input_time_base
+        };
+        update_input_progress(&mut progress, packet_ref, packet_time_base);
         if control(progress) == TranscodeControl::Cancel {
             // SAFETY: packet is allocated and initialized.
             unsafe { ffi::av_packet_unref(input_packet.0) };
             return Ok(TranscodeOutcome::Cancelled(progress));
         }
 
-        send_packet(decoder_context.0, input_packet.0)?;
-        // SAFETY: decoder has consumed or referenced the packet contents.
-        unsafe { ffi::av_packet_unref(input_packet.0) };
-        receive_and_encode_frames(
-            decoder_context.0,
-            &decoded_frame,
-            &mut converter,
-            encoder_context.0,
-            &encoded_packet,
-            output.context,
-            output_stream,
-            input_time_base,
-            encoder_time_base,
-            output_time_base,
-            &mut next_pts,
-            &mut progress,
-        )?;
+        if packet_ref.stream_index == request.input_stream_index as i32 {
+            send_packet(decoder_context.0, input_packet.0)?;
+            // SAFETY: decoder has consumed or referenced the packet contents.
+            unsafe { ffi::av_packet_unref(input_packet.0) };
+            receive_and_encode_frames(
+                decoder_context.0,
+                &decoded_frame,
+                &mut converter,
+                encoder_context.0,
+                &encoded_packet,
+                output.context,
+                output_stream,
+                input_time_base,
+                encoder_time_base,
+                output_time_base,
+                &mut next_pts,
+                &mut progress,
+            )?;
+        } else {
+            audio_states
+                .iter_mut()
+                .find(|audio| audio.input_stream_index == packet_ref.stream_index as u32)
+                .expect("selected audio packets require audio state")
+                .process_packet(input_packet.0, output.context, &mut progress)?;
+            // SAFETY: decoder has consumed or referenced the packet contents.
+            unsafe { ffi::av_packet_unref(input_packet.0) };
+        }
     }
 
     send_packet(decoder_context.0, ptr::null())?;
@@ -187,6 +301,9 @@ pub(super) fn transcode_video(
         output_time_base,
         &mut progress,
     )?;
+    for audio in &mut audio_states {
+        audio.finish(output.context, &mut progress)?;
+    }
     output.write_trailer()?;
     Ok(TranscodeOutcome::Completed(progress))
 }
@@ -203,6 +320,55 @@ fn validate_request(request: &VideoTranscodeRequest) -> Result<()> {
     if request.target_bitrate_bps == Some(0) {
         return Err(EngineError::invalid_argument(
             "video target bitrate must be greater than zero",
+        ));
+    }
+    validate_audio_stream_requests(&request.audio_streams)?;
+    if request
+        .audio_streams
+        .iter()
+        .any(|audio| audio.input_stream_index == request.input_stream_index)
+    {
+        return Err(EngineError::invalid_argument(
+            "video and audio stream indexes must be distinct",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_audio_request(request: &AudioTranscodeRequest) -> Result<()> {
+    if request.decoder_name.trim().is_empty() || request.encoder_name.trim().is_empty() {
+        return Err(EngineError::invalid_argument(
+            "audio transcode decoder and encoder must be specified",
+        ));
+    }
+    if request.target_bitrate_bps == Some(0) {
+        return Err(EngineError::invalid_argument(
+            "audio target bitrate must be greater than zero",
+        ));
+    }
+    if request.target_sample_rate_hz == Some(0) {
+        return Err(EngineError::invalid_argument(
+            "audio target sample rate must be greater than zero",
+        ));
+    }
+    if request.target_channel_count == Some(0) {
+        return Err(EngineError::invalid_argument(
+            "audio target channel count must be greater than zero",
+        ));
+    }
+    Ok(())
+}
+
+fn validate_audio_stream_requests(requests: &[AudioTranscodeRequest]) -> Result<()> {
+    for request in requests {
+        validate_audio_request(request)?;
+    }
+    if requests
+        .windows(2)
+        .any(|pair| pair[0].input_stream_index >= pair[1].input_stream_index)
+    {
+        return Err(EngineError::invalid_argument(
+            "audio stream indexes must be unique and strictly increasing",
         ));
     }
     Ok(())
@@ -222,11 +388,74 @@ fn selected_video_stream(input: &InputContext, stream_index: u32) -> Result<&ffi
     Ok(stream)
 }
 
-fn validate_video_only_input(input: &InputContext, selected_stream_index: u32) -> Result<()> {
-    if input.as_ref().nb_streams != 1 || selected_stream_index != 0 {
+fn selected_audio_stream(input: &InputContext, stream_index: u32) -> Result<&ffi::AVStream> {
+    if stream_index >= input.as_ref().nb_streams {
+        return Err(chain_not_ready("selected audio stream does not exist"));
+    }
+    // SAFETY: stream_index is bounded by nb_streams.
+    let stream = unsafe { &**input.as_ref().streams.add(stream_index as usize) };
+    // SAFETY: codecpar is owned by the input stream.
+    let parameters = unsafe { &*stream.codecpar };
+    if parameters.codec_type != ffi::AVMEDIA_TYPE_AUDIO {
+        return Err(chain_not_ready("selected stream is not audio"));
+    }
+    Ok(stream)
+}
+
+fn validate_selected_input(
+    input: &InputContext,
+    video_stream_index: u32,
+    audio_streams: &[AudioTranscodeRequest],
+) -> Result<()> {
+    selected_video_stream(input, video_stream_index)?;
+    for audio in audio_streams {
+        selected_audio_stream(input, audio.input_stream_index)?;
+    }
+
+    let mut video_count = 0;
+    for index in 0..input.as_ref().nb_streams {
+        // SAFETY: index is bounded by nb_streams.
+        let stream = unsafe { &**input.as_ref().streams.add(index as usize) };
+        // SAFETY: codecpar is owned by the input stream.
+        match unsafe { (*stream.codecpar).codec_type } {
+            ffi::AVMEDIA_TYPE_VIDEO => video_count += 1,
+            ffi::AVMEDIA_TYPE_AUDIO => {}
+            _ => {
+                return Err(chain_not_ready(
+                    "video transcoding currently supports video and audio streams only",
+                ));
+            }
+        }
+    }
+    if video_count != 1 {
         return Err(chain_not_ready(
-            "the current video transcode backend supports exactly one video stream",
+            "video transcoding requires exactly one video stream",
         ));
+    }
+    Ok(())
+}
+
+fn validate_audio_only_input(
+    input: &InputContext,
+    audio_streams: &[AudioTranscodeRequest],
+) -> Result<()> {
+    if audio_streams.is_empty() {
+        return Err(EngineError::invalid_argument(
+            "audio transcoding requires at least one selected audio stream",
+        ));
+    }
+    for audio in audio_streams {
+        selected_audio_stream(input, audio.input_stream_index)?;
+    }
+    for index in 0..input.as_ref().nb_streams {
+        // SAFETY: index is bounded by nb_streams.
+        let stream = unsafe { &**input.as_ref().streams.add(index as usize) };
+        // SAFETY: codecpar is owned by the input stream.
+        if unsafe { (*stream.codecpar).codec_type } != ffi::AVMEDIA_TYPE_AUDIO {
+            return Err(chain_not_ready(
+                "audio transcoding requires an audio-only input",
+            ));
+        }
     }
     Ok(())
 }
@@ -266,6 +495,17 @@ impl CodecContext {
                 "failed to open the selected video decoder",
                 open_result,
             ));
+        }
+        if owned.as_ref().codec_type == ffi::AVMEDIA_TYPE_AUDIO
+            && owned.as_ref().ch_layout.order == ffi::AV_CHANNEL_ORDER_UNSPEC
+            && owned.as_ref().ch_layout.nb_channels > 0
+        {
+            let channel_count = owned.as_ref().ch_layout.nb_channels;
+            // SAFETY: the decoder context owns this layout; default initializes a native layout.
+            unsafe {
+                ffi::av_channel_layout_uninit(&mut (*owned.0).ch_layout);
+                ffi::av_channel_layout_default(&mut (*owned.0).ch_layout, channel_count);
+            }
         }
         Ok(owned)
     }
@@ -327,6 +567,88 @@ impl CodecContext {
         Ok(owned)
     }
 
+    fn audio_encoder(
+        codec: *const ffi::AVCodec,
+        decoder: &CodecContext,
+        target_bitrate_bps: Option<u64>,
+        target_sample_rate_hz: Option<u32>,
+        target_channel_count: Option<u32>,
+        global_header: bool,
+    ) -> Result<Self> {
+        let decoder = decoder.as_ref();
+        if decoder.sample_rate <= 0 || decoder.ch_layout.nb_channels <= 0 {
+            return Err(chain_not_ready(
+                "decoded audio sample rate and channel layout must be available",
+            ));
+        }
+        let sample_rate = target_sample_rate_hz
+            .map(|value| value.min(i32::MAX as u32) as i32)
+            .unwrap_or(decoder.sample_rate);
+        let channel_count = target_channel_count
+            .map(|value| value.min(i32::MAX as u32) as i32)
+            .unwrap_or(decoder.ch_layout.nb_channels);
+        if !codec_supports_sample_rate(codec, sample_rate) {
+            return Err(chain_not_ready(
+                "selected audio encoder does not support the target sample rate",
+            ));
+        }
+        // SAFETY: AVChannelLayout may be zero-initialized before av_channel_layout_default.
+        let mut target_layout: ffi::AVChannelLayout = unsafe { std::mem::zeroed() };
+        // SAFETY: target_layout is uninitialized and channel_count is positive.
+        unsafe { ffi::av_channel_layout_default(&mut target_layout, channel_count) };
+        if target_layout.nb_channels <= 0 || !codec_supports_channel_layout(codec, &target_layout) {
+            // SAFETY: target_layout was initialized above.
+            unsafe { ffi::av_channel_layout_uninit(&mut target_layout) };
+            return Err(chain_not_ready(
+                "selected audio encoder does not support the target channel layout",
+            ));
+        }
+        let sample_format = first_codec_sample_format(codec).ok_or_else(|| {
+            chain_not_ready("selected audio encoder does not expose a sample format")
+        })?;
+        // SAFETY: codec is a process-owned descriptor returned by libavcodec.
+        let context = unsafe { ffi::avcodec_alloc_context3(codec) };
+        if context.is_null() {
+            return Err(native_allocation_error("audio encoder context"));
+        }
+        let owned = Self(context);
+        // SAFETY: context is exclusively owned and initialized before opening the encoder.
+        unsafe {
+            (*owned.0).sample_fmt = sample_format;
+            (*owned.0).sample_rate = sample_rate;
+            (*owned.0).time_base = ffi::AVRational {
+                num: 1,
+                den: sample_rate,
+            };
+            (*owned.0).bit_rate = target_bitrate_bps.unwrap_or(96_000).min(i64::MAX as u64) as i64;
+            if global_header {
+                (*owned.0).flags |= ffi::AV_CODEC_FLAG_GLOBAL_HEADER as i32;
+            }
+        }
+        // SAFETY: both channel layouts are valid and the destination is uninitialized.
+        let copy_result =
+            unsafe { ffi::av_channel_layout_copy(&mut (*owned.0).ch_layout, &target_layout) };
+        // SAFETY: target_layout is no longer needed after copying.
+        unsafe { ffi::av_channel_layout_uninit(&mut target_layout) };
+        if copy_result < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                "failed to configure the audio encoder channel layout",
+                copy_result,
+            ));
+        }
+        // SAFETY: context and codec are compatible and options are omitted.
+        let open_result = unsafe { ffi::avcodec_open2(owned.0, codec, ptr::null_mut()) };
+        if open_result < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                "failed to open the selected audio encoder",
+                open_result,
+            ));
+        }
+        Ok(owned)
+    }
+
     fn as_ref(&self) -> &ffi::AVCodecContext {
         // SAFETY: CodecContext owns a non-null context until Drop.
         unsafe { &*self.0 }
@@ -371,12 +693,442 @@ impl Frame {
         }
         Ok(frame)
     }
+
+    fn new_audio(context: &CodecContext, sample_count: i32) -> Result<Self> {
+        if sample_count <= 0 {
+            return Err(EngineError::invalid_argument(
+                "audio frame sample count must be greater than zero",
+            ));
+        }
+        let frame = Self::new()?;
+        let encoder = context.as_ref();
+        // SAFETY: frame is exclusively owned and initialized before buffer allocation.
+        unsafe {
+            (*frame.0).format = encoder.sample_fmt;
+            (*frame.0).sample_rate = encoder.sample_rate;
+            (*frame.0).nb_samples = sample_count;
+        }
+        // SAFETY: both layouts are valid and the frame destination is uninitialized.
+        let copy_result =
+            unsafe { ffi::av_channel_layout_copy(&mut (*frame.0).ch_layout, &encoder.ch_layout) };
+        if copy_result < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                "failed to configure an audio frame channel layout",
+                copy_result,
+            ));
+        }
+        // SAFETY: audio frame parameters were initialized above.
+        let buffer_result = unsafe { ffi::av_frame_get_buffer(frame.0, 0) };
+        if buffer_result < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaInfoReadFailed,
+                "failed to allocate an audio frame buffer",
+                buffer_result,
+            ));
+        }
+        Ok(frame)
+    }
 }
 
 impl Drop for Frame {
     fn drop(&mut self) {
         // SAFETY: frame is owned by this guard and freed exactly once.
         unsafe { ffi::av_frame_free(&mut self.0) };
+    }
+}
+
+struct AudioResampler(*mut ffi::SwrContext);
+
+fn audio_conversion_required(decoder: &CodecContext, encoder: &CodecContext) -> bool {
+    let decoder = decoder.as_ref();
+    let encoder = encoder.as_ref();
+    decoder.sample_fmt != encoder.sample_fmt
+        || decoder.sample_rate != encoder.sample_rate
+        // SAFETY: both codec contexts own initialized channel layouts.
+        || unsafe { ffi::av_channel_layout_compare(&decoder.ch_layout, &encoder.ch_layout) } != 0
+}
+
+impl AudioResampler {
+    fn new(decoder: &CodecContext, encoder: &CodecContext) -> Result<Self> {
+        let mut context = ptr::null_mut();
+        let decoder = decoder.as_ref();
+        let encoder = encoder.as_ref();
+        // SAFETY: codec contexts expose initialized audio layouts and formats.
+        let allocation_result = unsafe {
+            ffi::swr_alloc_set_opts2(
+                &mut context,
+                &encoder.ch_layout,
+                encoder.sample_fmt,
+                encoder.sample_rate,
+                &decoder.ch_layout,
+                decoder.sample_fmt,
+                decoder.sample_rate,
+                0,
+                ptr::null_mut(),
+            )
+        };
+        if allocation_result < 0 || context.is_null() {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                "failed to configure the selected audio processor",
+                allocation_result,
+            ));
+        }
+        let owned = Self(context);
+        // SAFETY: context was configured by swr_alloc_set_opts2.
+        let initialize_result = unsafe { ffi::swr_init(owned.0) };
+        if initialize_result < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                "failed to initialize the selected audio processor",
+                initialize_result,
+            ));
+        }
+        Ok(owned)
+    }
+
+    fn convert_into_fifo(&mut self, input: *const ffi::AVFrame, fifo: &AudioFifo) -> Result<()> {
+        // SAFETY: input was populated by avcodec_receive_frame.
+        let input = unsafe { &*input };
+        // SAFETY: resampler is initialized and input sample count is non-negative.
+        let capacity = unsafe { ffi::swr_get_out_samples(self.0, input.nb_samples) };
+        if capacity < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaInfoReadFailed,
+                "failed to size the converted audio frame",
+                capacity,
+            ));
+        }
+        if capacity == 0 {
+            return Ok(());
+        }
+        let converted = Frame::new_audio(&fifo.encoder, capacity)?;
+        // SAFETY: both input and output audio planes are valid for their sample counts.
+        let sample_count = unsafe {
+            ffi::swr_convert(
+                self.0,
+                (*converted.0).extended_data,
+                capacity,
+                input.extended_data as *const *const u8,
+                input.nb_samples,
+            )
+        };
+        if sample_count < 0 {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaInfoReadFailed,
+                "failed to convert decoded audio samples",
+                sample_count,
+            ));
+        }
+        fifo.write_frame(&converted, sample_count)
+    }
+
+    fn flush_into_fifo(&mut self, fifo: &AudioFifo) -> Result<()> {
+        loop {
+            // SAFETY: resampler is initialized; zero input requests its pending output bound.
+            let capacity = unsafe { ffi::swr_get_out_samples(self.0, 0) };
+            if capacity <= 0 {
+                return if capacity == 0 {
+                    Ok(())
+                } else {
+                    Err(native_execution_error(
+                        EngineErrorCode::MediaInfoReadFailed,
+                        "failed to size buffered audio samples",
+                        capacity,
+                    ))
+                };
+            }
+            let converted = Frame::new_audio(&fifo.encoder, capacity)?;
+            // SAFETY: a null input flushes pending samples into the allocated output frame.
+            let sample_count = unsafe {
+                ffi::swr_convert(
+                    self.0,
+                    (*converted.0).extended_data,
+                    capacity,
+                    ptr::null(),
+                    0,
+                )
+            };
+            if sample_count < 0 {
+                return Err(native_execution_error(
+                    EngineErrorCode::MediaInfoReadFailed,
+                    "failed to flush converted audio samples",
+                    sample_count,
+                ));
+            }
+            if sample_count == 0 {
+                return Ok(());
+            }
+            fifo.write_frame(&converted, sample_count)?;
+        }
+    }
+}
+
+impl Drop for AudioResampler {
+    fn drop(&mut self) {
+        // SAFETY: context is owned by this guard and freed exactly once.
+        unsafe { ffi::swr_free(&mut self.0) };
+    }
+}
+
+struct AudioFifo {
+    fifo: *mut ffi::AVAudioFifo,
+    encoder: CodecContext,
+}
+
+impl AudioFifo {
+    fn new(encoder: CodecContext) -> Result<Self> {
+        let context = encoder.as_ref();
+        // SAFETY: encoder audio format and channel count were initialized before open.
+        let fifo = unsafe {
+            ffi::av_audio_fifo_alloc(context.sample_fmt, context.ch_layout.nb_channels, 1)
+        };
+        if fifo.is_null() {
+            return Err(native_allocation_error("audio sample FIFO"));
+        }
+        Ok(Self { fifo, encoder })
+    }
+
+    fn size(&self) -> i32 {
+        // SAFETY: fifo is owned and remains valid.
+        unsafe { ffi::av_audio_fifo_size(self.fifo) }
+    }
+
+    fn write_frame(&self, frame: &Frame, sample_count: i32) -> Result<()> {
+        if sample_count == 0 {
+            return Ok(());
+        }
+        // SAFETY: converted frame contains sample_count initialized audio samples.
+        let written = unsafe {
+            ffi::av_audio_fifo_write(
+                self.fifo,
+                (*frame.0).extended_data as *const *mut c_void,
+                sample_count,
+            )
+        };
+        if written != sample_count {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaInfoReadFailed,
+                "failed to buffer converted audio samples",
+                written,
+            ));
+        }
+        Ok(())
+    }
+
+    fn read_frame(&self, frame: &Frame, sample_count: i32) -> Result<()> {
+        // SAFETY: frame owns enough writable audio planes for sample_count samples.
+        let read = unsafe {
+            ffi::av_audio_fifo_read(
+                self.fifo,
+                (*frame.0).extended_data as *const *mut c_void,
+                sample_count,
+            )
+        };
+        if read != sample_count {
+            return Err(native_execution_error(
+                EngineErrorCode::MediaInfoReadFailed,
+                "failed to read converted audio samples",
+                read,
+            ));
+        }
+        Ok(())
+    }
+}
+
+impl Drop for AudioFifo {
+    fn drop(&mut self) {
+        // SAFETY: fifo is owned by this guard and freed exactly once.
+        unsafe { ffi::av_audio_fifo_free(self.fifo) };
+    }
+}
+
+struct AudioTranscodeState {
+    input_stream_index: u32,
+    input_time_base: ffi::AVRational,
+    decoder: CodecContext,
+    fifo: AudioFifo,
+    resampler: Option<AudioResampler>,
+    output_stream: *mut ffi::AVStream,
+    decoded_frame: Frame,
+    encoded_packet: Packet,
+    next_pts: Option<i64>,
+}
+
+impl AudioTranscodeState {
+    fn new(
+        request: &AudioTranscodeRequest,
+        input_stream: &ffi::AVStream,
+        output: &mut OutputContext,
+        global_header: bool,
+    ) -> Result<Self> {
+        let decoder_name = c_string(&request.decoder_name, "audio decoder name")?;
+        // SAFETY: decoder_name is a valid null-terminated codec name.
+        let decoder = unsafe { ffi::avcodec_find_decoder_by_name(decoder_name.as_ptr()) };
+        if decoder.is_null() {
+            return Err(chain_not_ready(format!(
+                "selected audio decoder {} is unavailable",
+                request.decoder_name
+            )));
+        }
+        let decoder_context = CodecContext::decoder(decoder, input_stream.codecpar)?;
+        // SAFETY: decoder context is exclusively owned and stream time base is valid.
+        unsafe { (*decoder_context.0).pkt_timebase = input_stream.time_base };
+
+        let encoder_name = c_string(&request.encoder_name, "audio encoder name")?;
+        // SAFETY: encoder_name is a valid null-terminated codec name.
+        let encoder = unsafe { ffi::avcodec_find_encoder_by_name(encoder_name.as_ptr()) };
+        if encoder.is_null() {
+            return Err(chain_not_ready(format!(
+                "selected audio encoder {} is unavailable",
+                request.encoder_name
+            )));
+        }
+        let encoder_context = CodecContext::audio_encoder(
+            encoder,
+            &decoder_context,
+            request.target_bitrate_bps,
+            request.target_sample_rate_hz,
+            request.target_channel_count,
+            global_header,
+        )?;
+        let output_stream = create_output_stream(output, &encoder_context, "audio")?;
+        let resampler = audio_conversion_required(&decoder_context, &encoder_context)
+            .then(|| AudioResampler::new(&decoder_context, &encoder_context))
+            .transpose()?;
+        let fifo = AudioFifo::new(encoder_context)?;
+        Ok(Self {
+            input_stream_index: request.input_stream_index,
+            input_time_base: input_stream.time_base,
+            decoder: decoder_context,
+            fifo,
+            resampler,
+            output_stream,
+            decoded_frame: Frame::new()?,
+            encoded_packet: Packet::new_for_execution()?,
+            next_pts: None,
+        })
+    }
+
+    fn process_packet(
+        &mut self,
+        packet: *const ffi::AVPacket,
+        output: *mut ffi::AVFormatContext,
+        progress: &mut TranscodeProgress,
+    ) -> Result<()> {
+        send_packet(self.decoder.0, packet)?;
+        self.receive_frames(output, progress)
+    }
+
+    fn receive_frames(
+        &mut self,
+        output: *mut ffi::AVFormatContext,
+        progress: &mut TranscodeProgress,
+    ) -> Result<()> {
+        loop {
+            // SAFETY: decoder and frame are valid and exclusively used here.
+            let result =
+                unsafe { ffi::avcodec_receive_frame(self.decoder.0, self.decoded_frame.0) };
+            if result == ffi::AVERROR(ffi::EAGAIN) || result == ffi::AVERROR_EOF {
+                return Ok(());
+            }
+            if result < 0 {
+                return Err(native_execution_error(
+                    EngineErrorCode::MediaInfoReadFailed,
+                    "failed to receive a decoded audio frame",
+                    result,
+                ));
+            }
+            if self.next_pts.is_none() {
+                // SAFETY: decoded frame was populated by avcodec_receive_frame.
+                let frame = unsafe { &*self.decoded_frame.0 };
+                let timestamp = if frame.best_effort_timestamp != ffi::AV_NOPTS_VALUE {
+                    frame.best_effort_timestamp
+                } else {
+                    frame.pts
+                };
+                let encoder_time_base = self.fifo.encoder.as_ref().time_base;
+                self.next_pts = Some(if timestamp == ffi::AV_NOPTS_VALUE {
+                    0
+                } else {
+                    // SAFETY: input and encoder time bases are valid.
+                    unsafe { ffi::av_rescale_q(timestamp, self.input_time_base, encoder_time_base) }
+                        .max(0)
+                });
+            }
+            if let Some(resampler) = self.resampler.as_mut() {
+                resampler.convert_into_fifo(self.decoded_frame.0, &self.fifo)?;
+            } else {
+                // SAFETY: the decoder populated the frame and no format conversion is required.
+                let sample_count = unsafe { (*self.decoded_frame.0).nb_samples };
+                self.fifo.write_frame(&self.decoded_frame, sample_count)?;
+            }
+            self.drain_fifo(output, progress, false)?;
+            // SAFETY: decoded frame may release references for reuse.
+            unsafe { ffi::av_frame_unref(self.decoded_frame.0) };
+        }
+    }
+
+    fn drain_fifo(
+        &mut self,
+        output: *mut ffi::AVFormatContext,
+        progress: &mut TranscodeProgress,
+        finishing: bool,
+    ) -> Result<()> {
+        let frame_size = self.fifo.encoder.as_ref().frame_size.max(1);
+        loop {
+            let available = self.fifo.size();
+            if available < frame_size && !finishing || available == 0 {
+                return Ok(());
+            }
+            let sample_count = available.min(frame_size);
+            let frame = Frame::new_audio(&self.fifo.encoder, sample_count)?;
+            self.fifo.read_frame(&frame, sample_count)?;
+            // SAFETY: frame is exclusively owned and timestamps use encoder time base.
+            let pts = self.next_pts.unwrap_or(0);
+            unsafe { (*frame.0).pts = pts };
+            self.next_pts = Some(pts.saturating_add(i64::from(sample_count)));
+            send_frame(self.fifo.encoder.0, frame.0)?;
+            let encoder_time_base = self.fifo.encoder.as_ref().time_base;
+            // SAFETY: output stream belongs to the live output format context.
+            let output_time_base = unsafe { (*self.output_stream).time_base };
+            drain_encoder(
+                self.fifo.encoder.0,
+                &self.encoded_packet,
+                output,
+                self.output_stream,
+                encoder_time_base,
+                output_time_base,
+                progress,
+            )?;
+        }
+    }
+
+    fn finish(
+        &mut self,
+        output: *mut ffi::AVFormatContext,
+        progress: &mut TranscodeProgress,
+    ) -> Result<()> {
+        send_packet(self.decoder.0, ptr::null())?;
+        self.receive_frames(output, progress)?;
+        if let Some(resampler) = self.resampler.as_mut() {
+            resampler.flush_into_fifo(&self.fifo)?;
+        }
+        self.drain_fifo(output, progress, true)?;
+        send_frame(self.fifo.encoder.0, ptr::null())?;
+        let encoder_time_base = self.fifo.encoder.as_ref().time_base;
+        // SAFETY: output stream belongs to the live output format context.
+        let output_time_base = unsafe { (*self.output_stream).time_base };
+        drain_encoder(
+            self.fifo.encoder.0,
+            &self.encoded_packet,
+            output,
+            self.output_stream,
+            encoder_time_base,
+            output_time_base,
+            progress,
+        )
     }
 }
 
@@ -626,6 +1378,7 @@ fn send_frame(encoder: *mut ffi::AVCodecContext, frame: *const ffi::AVFrame) -> 
 fn create_output_stream(
     output: &mut OutputContext,
     encoder: &CodecContext,
+    stream_kind: &str,
 ) -> Result<*mut ffi::AVStream> {
     // SAFETY: output owns a valid format context.
     let stream = unsafe { ffi::avformat_new_stream(output.context, ptr::null()) };
@@ -633,7 +1386,7 @@ fn create_output_stream(
         return Err(EngineError::with_code(
             ErrorKind::Runtime,
             EngineErrorCode::OutputContainerNotWritable,
-            "failed to create encoded video output stream",
+            format!("failed to create encoded {stream_kind} output stream"),
         ));
     }
     // SAFETY: stream codec parameters and encoder context are valid.
@@ -698,6 +1451,61 @@ fn codec_supports_pixel_format(
             return false;
         }
         if current == pixel_format {
+            return true;
+        }
+        index += 1;
+    }
+}
+
+fn first_codec_sample_format(codec: *const ffi::AVCodec) -> Option<ffi::AVSampleFormat> {
+    // SAFETY: codec is a valid process-owned descriptor.
+    let formats = unsafe { (*codec).sample_fmts };
+    if formats.is_null() {
+        return None;
+    }
+    // SAFETY: sample_fmts is terminated by AV_SAMPLE_FMT_NONE.
+    let format = unsafe { *formats };
+    (format != ffi::AV_SAMPLE_FMT_NONE).then_some(format)
+}
+
+fn codec_supports_sample_rate(codec: *const ffi::AVCodec, sample_rate: i32) -> bool {
+    // SAFETY: codec is a valid process-owned descriptor.
+    let rates = unsafe { (*codec).supported_samplerates };
+    if rates.is_null() {
+        return true;
+    }
+    let mut index = 0;
+    loop {
+        // SAFETY: supported_samplerates is terminated by zero.
+        let rate = unsafe { *rates.add(index) };
+        if rate == 0 {
+            return false;
+        }
+        if rate == sample_rate {
+            return true;
+        }
+        index += 1;
+    }
+}
+
+fn codec_supports_channel_layout(
+    codec: *const ffi::AVCodec,
+    layout: &ffi::AVChannelLayout,
+) -> bool {
+    // SAFETY: codec is a valid process-owned descriptor.
+    let layouts = unsafe { (*codec).ch_layouts };
+    if layouts.is_null() {
+        return true;
+    }
+    let mut index = 0;
+    loop {
+        // SAFETY: ch_layouts is terminated by a layout with zero channels.
+        let candidate = unsafe { &*layouts.add(index) };
+        if candidate.nb_channels == 0 {
+            return false;
+        }
+        // SAFETY: both layouts are initialized and valid.
+        if unsafe { ffi::av_channel_layout_compare(candidate, layout) } == 0 {
             return true;
         }
         index += 1;

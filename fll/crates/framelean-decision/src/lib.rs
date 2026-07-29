@@ -328,6 +328,9 @@ pub struct ExecutionChainCandidate {
     pub output_video_codec: Option<String>,
     pub output_video_profile: Option<String>,
     pub output_audio_codec: Option<String>,
+    pub audio_bitrate_options_bps: Vec<u64>,
+    pub audio_sample_rate_options_hz: Vec<u32>,
+    pub audio_channel_count_options: Vec<u32>,
     pub output_pixel_format: Option<String>,
     pub output_bit_depth: Option<u8>,
     pub output_hdr_mode: HdrMode,
@@ -365,6 +368,9 @@ pub struct ConfigurationOptionGraph {
     pub video_codecs: Vec<ConfigurationOption<String>>,
     pub video_profiles: Vec<ConfigurationOption<String>>,
     pub audio_codecs: Vec<ConfigurationOption<String>>,
+    pub audio_bitrates_bps: Vec<ConfigurationOption<u64>>,
+    pub audio_sample_rates_hz: Vec<ConfigurationOption<u32>>,
+    pub audio_channel_counts: Vec<ConfigurationOption<u32>>,
     pub video_encoders: Vec<ConfigurationOption<BackendId>>,
     pub audio_encoders: Vec<ConfigurationOption<BackendId>>,
     pub pixel_formats: Vec<ConfigurationOption<String>>,
@@ -382,6 +388,9 @@ impl ConfigurationOptionGraph {
             video_codecs: Vec::new(),
             video_profiles: Vec::new(),
             audio_codecs: Vec::new(),
+            audio_bitrates_bps: Vec::new(),
+            audio_sample_rates_hz: Vec::new(),
+            audio_channel_counts: Vec::new(),
             video_encoders: Vec::new(),
             audio_encoders: Vec::new(),
             pixel_formats: Vec::new(),
@@ -412,6 +421,15 @@ impl ConfigurationOptionGraph {
                 candidate.output_audio_codec.as_ref(),
                 &candidate.id,
             );
+            for value in &candidate.audio_bitrate_options_bps {
+                push_configuration_option(&mut graph.audio_bitrates_bps, *value, &candidate.id);
+            }
+            for value in &candidate.audio_sample_rate_options_hz {
+                push_configuration_option(&mut graph.audio_sample_rates_hz, *value, &candidate.id);
+            }
+            for value in &candidate.audio_channel_count_options {
+                push_configuration_option(&mut graph.audio_channel_counts, *value, &candidate.id);
+            }
             push_optional_configuration_option(
                 &mut graph.video_encoders,
                 candidate.video_encoder.as_ref(),
@@ -705,6 +723,9 @@ fn build_stream_copy_candidate(
         output_video_codec: video,
         output_video_profile: input_video.and_then(|stream| stream.profile.clone()),
         output_audio_codec: audio,
+        audio_bitrate_options_bps: Vec::new(),
+        audio_sample_rate_options_hz: Vec::new(),
+        audio_channel_count_options: Vec::new(),
         output_pixel_format: input_video.and_then(|stream| stream.pixel_format.clone()),
         output_bit_depth: input_video.and_then(|stream| stream.bit_depth),
         output_hdr_mode: input_video.map_or(HdrMode::Sdr, |stream| stream.hdr_mode),
@@ -1072,22 +1093,18 @@ fn build_output_candidates(
             vec![(None, None, None, HdrMode::Sdr, false, false, Vec::new())]
         };
         for audio_encoder in &audio_encoders {
-            if let Some(backend) = audio_encoder {
-                let BackendCapability::Encoder(capability) = &backend.capability else {
-                    continue;
-                };
-                let Some(sample) = context
-                    .requirements
-                    .audio_streams
-                    .first()
-                    .and_then(|v| v.sample_format.as_ref())
-                else {
-                    continue;
-                };
-                if !capability.pixel_or_sample_formats.allows(sample) {
-                    continue;
-                }
-            }
+            let Some((audio_bitrates, audio_sample_rates, audio_channel_counts)) =
+                output_audio_parameter_options(&context.requirements.audio_streams, *audio_encoder)
+            else {
+                continue;
+            };
+            let Some(audio_processors) = output_audio_processors(
+                &context.requirements.audio_streams,
+                *audio_encoder,
+                context.processors,
+            ) else {
+                continue;
+            };
             for (
                 pixel_format,
                 video_profile,
@@ -1098,12 +1115,14 @@ fn build_output_candidates(
                 selected_processors,
             ) in &video_options
             {
+                let mut selected_processors = selected_processors.clone();
+                selected_processors.extend(audio_processors.iter().cloned());
                 let mut candidate = ExecutionChainCandidate {
                     id: ExecutionChainId(String::new()),
                     demuxer: context.demuxer.id.clone(),
                     video_decoders: context.video_decoders.to_vec(),
                     audio_decoders: context.audio_decoders.to_vec(),
-                    processors: selected_processors.clone(),
+                    processors: selected_processors,
                     video_encoder: video_encoder.map(|v| v.id.clone()),
                     audio_encoder: audio_encoder.map(|v| v.id.clone()),
                     muxer: context.muxer.id.clone(),
@@ -1111,6 +1130,9 @@ fn build_output_candidates(
                     output_video_codec: combination.video_codec.clone(),
                     output_video_profile: video_profile.clone(),
                     output_audio_codec: combination.audio_codec.clone(),
+                    audio_bitrate_options_bps: audio_bitrates.clone(),
+                    audio_sample_rate_options_hz: audio_sample_rates.clone(),
+                    audio_channel_count_options: audio_channel_counts.clone(),
                     output_pixel_format: pixel_format.clone(),
                     output_bit_depth: *bit_depth,
                     output_hdr_mode: *hdr_mode,
@@ -1123,6 +1145,98 @@ fn build_output_candidates(
         }
     }
     Some(result)
+}
+
+fn output_audio_parameter_options(
+    inputs: &[AudioInputRequirement],
+    encoder: Option<&BackendDescriptor>,
+) -> Option<(Vec<u64>, Vec<u32>, Vec<u32>)> {
+    let Some(encoder) = encoder else {
+        return if inputs.is_empty() {
+            Some((Vec::new(), Vec::new(), Vec::new()))
+        } else {
+            None
+        };
+    };
+    let BackendCapability::Encoder(capability) = &encoder.capability else {
+        return None;
+    };
+    if !capability.codecs.iter().any(|codec| codec == "aac") {
+        return None;
+    }
+    const AAC_SAMPLE_RATES: [u32; 12] = [
+        8_000, 11_025, 12_000, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000, 64_000, 88_200,
+        96_000,
+    ];
+    if inputs.is_empty()
+        || inputs.iter().any(|input| {
+            input
+                .sample_rate_hz
+                .is_none_or(|value| !AAC_SAMPLE_RATES.contains(&value))
+                || !matches!(input.channel_count, Some(1 | 2))
+        })
+    {
+        return None;
+    }
+    Some((
+        vec![48_000, 64_000, 96_000, 128_000, 192_000, 320_000],
+        AAC_SAMPLE_RATES.to_vec(),
+        vec![1, 2],
+    ))
+}
+
+fn output_audio_processors(
+    inputs: &[AudioInputRequirement],
+    encoder: Option<&BackendDescriptor>,
+    processors: &[&BackendDescriptor],
+) -> Option<Vec<ProcessorSelection>> {
+    let Some(encoder) = encoder else {
+        return if inputs.is_empty() {
+            Some(Vec::new())
+        } else {
+            None
+        };
+    };
+    let BackendCapability::Encoder(capability) = &encoder.capability else {
+        return None;
+    };
+    if inputs.is_empty() {
+        return None;
+    }
+    let sample_formats = inputs
+        .iter()
+        .map(|input| input.sample_format.as_ref())
+        .collect::<Option<Vec<_>>>()?;
+    if sample_formats
+        .iter()
+        .all(|sample_format| capability.pixel_or_sample_formats.allows(sample_format))
+    {
+        return Some(Vec::new());
+    }
+    processors.iter().find_map(|backend| {
+        let BackendCapability::Processor(processor) = &backend.capability else {
+            return None;
+        };
+        let supports_conversion = processor.stream_type == StreamKind::Audio
+            && sample_formats
+                .iter()
+                .all(|sample_format| processor.input_formats.allows(sample_format))
+            && processor
+                .operations
+                .iter()
+                .any(|operation| operation == "sample_format_conversion")
+            && processor.output_formats.values().is_some_and(|formats| {
+                formats
+                    .iter()
+                    .any(|format| capability.pixel_or_sample_formats.allows(format))
+            });
+        supports_conversion.then(|| {
+            vec![ProcessorSelection {
+                backend_id: backend.id.clone(),
+                operation: "sample_format_conversion".to_owned(),
+            }]
+        })
+    })
 }
 
 type VideoOutputOption = (
@@ -1335,6 +1449,15 @@ fn chain_id(candidate: &ExecutionChainCandidate) -> ExecutionChainId {
     }
     if let Some(value) = candidate.output_bit_depth {
         hash.update(&[value]);
+    }
+    for value in &candidate.audio_bitrate_options_bps {
+        hash.update(&value.to_le_bytes());
+    }
+    for value in &candidate.audio_sample_rate_options_hz {
+        hash.update(&value.to_le_bytes());
+    }
+    for value in &candidate.audio_channel_count_options {
+        hash.update(&value.to_le_bytes());
     }
     ExecutionChainId(format!("chain-{}", &hash.finalize().to_hex()[..24]))
 }
@@ -1623,8 +1746,8 @@ pub fn preset_policies() -> Vec<PresetPolicy> {
             id: PresetId::new(id).expect("fixed preset identifiers are valid"),
             display_name: name.to_owned(),
             description: description.to_owned(),
-            applicable_task_modes: vec![TaskMode::VideoCompress],
-            preferred_containers: vec!["mp4".to_owned()],
+            applicable_task_modes: vec![TaskMode::VideoCompress, TaskMode::AudioCompress],
+            preferred_containers: vec!["mp4".to_owned(), "m4a".to_owned()],
             preferred_video_codecs: if id == "chat" {
                 vec!["h264".to_owned()]
             } else {
@@ -1783,8 +1906,17 @@ pub struct ManualSelection {
     pub container: Option<String>,
     pub video_codec: Option<String>,
     pub audio_codec: Option<String>,
+    pub audio_streams: Option<Vec<AudioStreamSelection>>,
     pub output_pixel_format: Option<String>,
     pub preserves_hdr: Option<bool>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct AudioStreamSelection {
+    pub stream_index: u32,
+    pub bitrate_bps: Option<u64>,
+    pub sample_rate_hz: Option<u32>,
+    pub channel_count: Option<u32>,
 }
 
 impl ManualSelection {
@@ -1793,6 +1925,7 @@ impl ManualSelection {
             container: None,
             video_codec: None,
             audio_codec: None,
+            audio_streams: None,
             output_pixel_format: None,
             preserves_hdr: None,
         }
@@ -1839,9 +1972,8 @@ pub struct ResolvedConfiguration {
     pub audio_codec: Option<String>,
     pub demuxer_backend: BackendId,
     pub video_decoders: Vec<StreamBackendSelection>,
-    pub audio_decoders: Vec<StreamBackendSelection>,
     pub video_encoder_backend: Option<BackendId>,
-    pub audio_encoder_backend: Option<BackendId>,
+    pub audio_streams: Vec<ResolvedAudioStreamConfiguration>,
     pub processors: Vec<ProcessorSelection>,
     pub muxer_backend: BackendId,
     pub output_pixel_format: Option<String>,
@@ -1849,9 +1981,19 @@ pub struct ResolvedConfiguration {
     pub output_hdr_mode: HdrMode,
     pub target_size: Option<TargetBitrateSolution>,
     pub target_video_bitrate: Option<BitRateBps>,
-    pub target_audio_bitrate: Option<BitRateBps>,
     pub preserves_hdr: bool,
     pub requires_tone_mapping: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub struct ResolvedAudioStreamConfiguration {
+    pub input_stream_index: u32,
+    pub decoder_backend: BackendId,
+    pub encoder_backend: BackendId,
+    pub output_codec: String,
+    pub target_bitrate: Option<BitRateBps>,
+    pub target_sample_rate_hz: Option<u32>,
+    pub target_channel_count: Option<u32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
@@ -2075,32 +2217,140 @@ impl DecisionService {
                     "media duration is unavailable",
                 ));
             };
-            Some(
-                estimator
-                    .solve_target_bitrate(
-                        target.target_bytes,
-                        duration.div_ceil(1_000_000),
-                        None,
-                        policy,
+            let target_size_audio_budget =
+                if chain.output_video_codec.is_some() && !chain.audio_decoders.is_empty() {
+                    Some(BitRateBps::new(
+                        96_000_u64.saturating_mul(chain.audio_decoders.len() as u64),
+                    ))
+                } else {
+                    None
+                };
+            let mut solution = estimator
+                .solve_target_bitrate(
+                    target.target_bytes,
+                    duration.div_ceil(1_000_000),
+                    target_size_audio_budget,
+                    policy,
+                )
+                .map_err(|error| {
+                    conflict(
+                        EngineErrorCode::TargetSizeUnachievable,
+                        Some("target_bytes"),
+                        error.message(),
                     )
-                    .map_err(|error| {
-                        conflict(
-                            EngineErrorCode::TargetSizeUnachievable,
-                            Some("target_bytes"),
-                            error.message(),
-                        )
-                    })?,
-            )
+                })?;
+            if chain.output_video_codec.is_none() {
+                solution.video_bitrate = None;
+                solution.audio_bitrate = Some(solution.total_bitrate);
+            }
+            Some(solution)
         } else {
             None
         };
-        let (target_video_bitrate, target_audio_bitrate) = if let Some(policy) = preset.as_ref() {
+        let (target_video_bitrate, policy_audio_bitrate) = if let Some(policy) = preset.as_ref() {
             preset_bitrates(policy, requirements, chain)
         } else if let Some(solution) = target_size.as_ref() {
-            (solution.video_bitrate, solution.audio_bitrate)
+            (solution.video_bitrate, None)
         } else {
             (None, None)
         };
+        // The frozen candidate has one decoder selection per input stream. An absent
+        // override therefore means preserving every advertised audio stream.
+        let selected_audio_streams = manual.audio_streams.as_deref().unwrap_or(&[]);
+        let selected_audio_indexes: Vec<_> = if manual.audio_streams.is_some() {
+            selected_audio_streams
+                .iter()
+                .map(|selection| selection.stream_index)
+                .collect()
+        } else {
+            chain
+                .audio_decoders
+                .iter()
+                .map(|selection| selection.stream_index)
+                .collect()
+        };
+        let audio_stream_count = selected_audio_indexes.len() as u64;
+        let target_size_audio_per_stream = target_size.as_ref().and_then(|solution| {
+            let total = if chain.output_video_codec.is_none() {
+                Some(solution.total_bitrate)
+            } else {
+                solution.audio_bitrate
+            }?;
+            (audio_stream_count > 0)
+                .then(|| BitRateBps::new(total.value() / audio_stream_count.max(1)))
+        });
+        let Some(audio_encoder_backend) = chain.audio_encoder.as_ref() else {
+            if !selected_audio_indexes.is_empty() {
+                return Err(conflict(
+                    EngineErrorCode::MediaCapabilityIncompatible,
+                    Some("audio_streams"),
+                    "selected audio streams require an audio encoder",
+                ));
+            }
+            return Ok(ResolvedConfiguration {
+                selection_source: source,
+                selected_preset: preset.map(|v| v.id),
+                execution_chain_id: chain.id.clone(),
+                container: chain.output_container.clone(),
+                video_codec: chain.output_video_codec.clone(),
+                video_profile: chain.output_video_profile.clone(),
+                audio_codec: chain.output_audio_codec.clone(),
+                demuxer_backend: chain.demuxer.clone(),
+                video_decoders: chain.video_decoders.clone(),
+                video_encoder_backend: chain.video_encoder.clone(),
+                audio_streams: Vec::new(),
+                processors: chain.processors.clone(),
+                muxer_backend: chain.muxer.clone(),
+                output_pixel_format: chain.output_pixel_format.clone(),
+                output_bit_depth: chain.output_bit_depth,
+                output_hdr_mode: chain.output_hdr_mode,
+                target_size,
+                target_video_bitrate,
+                preserves_hdr: chain.preserves_hdr,
+                requires_tone_mapping: chain.requires_tone_mapping,
+            });
+        };
+        let output_audio_codec = chain.output_audio_codec.as_ref().ok_or_else(|| {
+            conflict(
+                EngineErrorCode::MediaCapabilityIncompatible,
+                Some("audio_codec"),
+                "selected audio streams require an output audio codec",
+            )
+        })?;
+        let mut audio_streams = Vec::with_capacity(selected_audio_indexes.len());
+        for stream_index in selected_audio_indexes {
+            let decoder = chain
+                .audio_decoders
+                .iter()
+                .find(|selection| selection.stream_index == stream_index)
+                .expect("manual selection was validated against the candidate");
+            let input = requirements
+                .audio_streams
+                .iter()
+                .find(|input| input.stream_index == stream_index)
+                .expect("candidate audio decoder references a frozen input stream");
+            let stream_override = selected_audio_streams
+                .iter()
+                .find(|selection| selection.stream_index == stream_index);
+            audio_streams.push(ResolvedAudioStreamConfiguration {
+                input_stream_index: stream_index,
+                decoder_backend: decoder.backend_id.clone(),
+                encoder_backend: audio_encoder_backend.clone(),
+                output_codec: output_audio_codec.clone(),
+                target_bitrate: stream_override
+                    .and_then(|selection| selection.bitrate_bps)
+                    .map(BitRateBps::new)
+                    .or(policy_audio_bitrate)
+                    .or(target_size_audio_per_stream),
+                target_sample_rate_hz: stream_override
+                    .and_then(|selection| selection.sample_rate_hz)
+                    .or(input.sample_rate_hz),
+                target_channel_count: stream_override
+                    .and_then(|selection| selection.channel_count)
+                    .or(input.channel_count),
+            });
+        }
+        audio_streams.sort_by_key(|stream| stream.input_stream_index);
         Ok(ResolvedConfiguration {
             selection_source: source,
             selected_preset: preset.map(|v| v.id),
@@ -2111,9 +2361,8 @@ impl DecisionService {
             audio_codec: chain.output_audio_codec.clone(),
             demuxer_backend: chain.demuxer.clone(),
             video_decoders: chain.video_decoders.clone(),
-            audio_decoders: chain.audio_decoders.clone(),
             video_encoder_backend: chain.video_encoder.clone(),
-            audio_encoder_backend: chain.audio_encoder.clone(),
+            audio_streams,
             processors: chain.processors.clone(),
             muxer_backend: chain.muxer.clone(),
             output_pixel_format: chain.output_pixel_format.clone(),
@@ -2121,7 +2370,6 @@ impl DecisionService {
             output_hdr_mode: chain.output_hdr_mode,
             target_size,
             target_video_bitrate,
-            target_audio_bitrate,
             preserves_hdr: chain.preserves_hdr,
             requires_tone_mapping: chain.requires_tone_mapping,
         })
@@ -2141,6 +2389,27 @@ fn manual_matches(value: &ManualSelection, chain: &ExecutionChainCandidate) -> b
             .audio_codec
             .as_ref()
             .is_none_or(|v| Some(v) == chain.output_audio_codec.as_ref())
+        && value.audio_streams.as_ref().is_none_or(|streams| {
+            !streams.is_empty()
+                && streams
+                    .windows(2)
+                    .all(|pair| pair[0].stream_index < pair[1].stream_index)
+                && streams.iter().all(|stream| {
+                    chain
+                        .audio_decoders
+                        .iter()
+                        .any(|decoder| decoder.stream_index == stream.stream_index)
+                        && stream
+                            .bitrate_bps
+                            .is_none_or(|value| chain.audio_bitrate_options_bps.contains(&value))
+                        && stream
+                            .sample_rate_hz
+                            .is_none_or(|value| chain.audio_sample_rate_options_hz.contains(&value))
+                        && stream
+                            .channel_count
+                            .is_none_or(|value| chain.audio_channel_count_options.contains(&value))
+                })
+        })
         && value
             .output_pixel_format
             .as_ref()
@@ -2244,9 +2513,8 @@ pub fn resolved_configuration_matches_candidate(
         && configuration.audio_codec == candidate.output_audio_codec
         && configuration.demuxer_backend == candidate.demuxer
         && configuration.video_decoders == candidate.video_decoders
-        && configuration.audio_decoders == candidate.audio_decoders
         && configuration.video_encoder_backend == candidate.video_encoder
-        && configuration.audio_encoder_backend == candidate.audio_encoder
+        && resolved_audio_streams_match_candidate(configuration, candidate)
         && configuration.processors == candidate.processors
         && configuration.muxer_backend == candidate.muxer
         && configuration.output_pixel_format == candidate.output_pixel_format
@@ -2254,6 +2522,34 @@ pub fn resolved_configuration_matches_candidate(
         && configuration.output_hdr_mode == candidate.output_hdr_mode
         && configuration.preserves_hdr == candidate.preserves_hdr
         && configuration.requires_tone_mapping == candidate.requires_tone_mapping
+}
+
+fn resolved_audio_streams_match_candidate(
+    configuration: &ResolvedConfiguration,
+    candidate: &ExecutionChainCandidate,
+) -> bool {
+    configuration
+        .audio_streams
+        .windows(2)
+        .all(|pair| pair[0].input_stream_index < pair[1].input_stream_index)
+        && configuration.audio_streams.iter().all(|stream| {
+            candidate.audio_decoders.iter().any(|decoder| {
+                decoder.stream_index == stream.input_stream_index
+                    && decoder.backend_id == stream.decoder_backend
+            }) && candidate.audio_encoder.as_ref() == Some(&stream.encoder_backend)
+                && candidate.output_audio_codec.as_ref() == Some(&stream.output_codec)
+                && stream.target_bitrate.is_none_or(|value| {
+                    configuration.selection_source == SelectionSource::CustomTargetSize
+                        || candidate.audio_bitrate_options_bps.contains(&value.value())
+                })
+                && stream
+                    .target_sample_rate_hz
+                    .is_none_or(|value| candidate.audio_sample_rate_options_hz.contains(&value))
+                && stream
+                    .target_channel_count
+                    .is_none_or(|value| candidate.audio_channel_count_options.contains(&value))
+        })
+        && (candidate.audio_decoders.is_empty() || !configuration.audio_streams.is_empty())
 }
 
 fn estimate_configuration(
@@ -2271,13 +2567,16 @@ fn estimate_configuration(
                 "media duration is unavailable for output estimation",
             )
         })?;
-    let stream_bitrates: Vec<_> = [
-        configuration.target_video_bitrate,
-        configuration.target_audio_bitrate,
-    ]
-    .into_iter()
-    .flatten()
-    .collect();
+    let stream_bitrates: Vec<_> = configuration
+        .target_video_bitrate
+        .into_iter()
+        .chain(
+            configuration
+                .audio_streams
+                .iter()
+                .filter_map(|stream| stream.target_bitrate),
+        )
+        .collect();
     if stream_bitrates.is_empty() {
         return Err(EngineError::new(
             ErrorKind::Estimation,
@@ -2305,7 +2604,12 @@ fn estimate_configuration(
         estimator.1,
     )?;
     estimate.recommended_video_bitrate = configuration.target_video_bitrate;
-    estimate.recommended_audio_bitrate = configuration.target_audio_bitrate;
+    estimate.recommended_audio_bitrate = configuration
+        .audio_streams
+        .iter()
+        .filter_map(|stream| stream.target_bitrate)
+        .try_fold(0_u64, |total, bitrate| total.checked_add(bitrate.value()))
+        .map(BitRateBps::new);
     Ok(estimate)
 }
 
@@ -2973,6 +3277,7 @@ mod tests {
                         container: Some("mp4".to_owned()),
                         video_codec: Some("h264".to_owned()),
                         audio_codec: None,
+                        audio_streams: None,
                         output_pixel_format: Some("yuv420p".to_owned()),
                         preserves_hdr: Some(false),
                     },
@@ -2987,6 +3292,273 @@ mod tests {
             resolved.execution_chain_id,
             capabilities.execution_chains[0].id
         );
+    }
+
+    fn multi_audio_decision_fixture() -> (InputMediaRequirements, CapabilitySet) {
+        let mut media_requirements = requirements();
+        media_requirements.audio_streams = vec![
+            AudioInputRequirement {
+                stream_index: 2,
+                codec: "pcm_s16le".to_owned(),
+                profile: None,
+                sample_rate_hz: Some(48_000),
+                channel_count: Some(2),
+                channel_layout: Some("stereo".to_owned()),
+                sample_format: Some("s16".to_owned()),
+            },
+            AudioInputRequirement {
+                stream_index: 1,
+                codec: "pcm_s16le".to_owned(),
+                profile: None,
+                sample_rate_hz: Some(44_100),
+                channel_count: Some(1),
+                channel_layout: Some("mono".to_owned()),
+                sample_format: Some("s16".to_owned()),
+            },
+        ];
+        let mut capabilities = DefaultCapabilityResolver
+            .resolve(
+                &requirements(),
+                TaskMode::VideoCompress,
+                &environment(),
+                &complete_catalog(true),
+            )
+            .unwrap();
+        let candidate = &mut capabilities.execution_chains[0];
+        candidate.audio_decoders = vec![
+            StreamBackendSelection {
+                stream_index: 2,
+                backend_id: BackendId::new("audio-decoder").unwrap(),
+            },
+            StreamBackendSelection {
+                stream_index: 1,
+                backend_id: BackendId::new("audio-decoder").unwrap(),
+            },
+        ];
+        candidate.audio_encoder = Some(BackendId::new("audio-encoder").unwrap());
+        candidate.output_audio_codec = Some("aac".to_owned());
+        candidate.audio_bitrate_options_bps = vec![64_000, 96_000, 128_000];
+        candidate.audio_sample_rate_options_hz = vec![32_000, 44_100, 48_000];
+        candidate.audio_channel_count_options = vec![1, 2];
+        (media_requirements, capabilities)
+    }
+
+    #[test]
+    fn multi_audio_defaults_to_all_streams_in_stable_source_order() {
+        let (requirements, capabilities) = multi_audio_decision_fixture();
+        let candidate = &capabilities.execution_chains[0];
+        let resolved = DecisionService
+            .resolve_selection(
+                &RecalculateSelection::Manual(ManualConfigurationSelection {
+                    candidate_id: candidate.id.clone(),
+                    overrides: ManualSelection::empty(),
+                }),
+                &requirements,
+                TaskMode::VideoCompress,
+                &capabilities,
+                None,
+            )
+            .unwrap();
+
+        assert_eq!(
+            resolved
+                .audio_streams
+                .iter()
+                .map(|stream| stream.input_stream_index)
+                .collect::<Vec<_>>(),
+            vec![1, 2]
+        );
+        assert_eq!(
+            resolved.audio_streams[0].target_sample_rate_hz,
+            Some(44_100)
+        );
+        assert_eq!(resolved.audio_streams[1].target_channel_count, Some(2));
+    }
+
+    #[test]
+    fn multi_audio_manual_selection_keeps_a_subset_with_per_stream_parameters() {
+        let (requirements, capabilities) = multi_audio_decision_fixture();
+        let candidate = &capabilities.execution_chains[0];
+        let resolved = DecisionService
+            .resolve_selection(
+                &RecalculateSelection::Manual(ManualConfigurationSelection {
+                    candidate_id: candidate.id.clone(),
+                    overrides: ManualSelection {
+                        audio_streams: Some(vec![AudioStreamSelection {
+                            stream_index: 2,
+                            bitrate_bps: Some(96_000),
+                            sample_rate_hz: Some(32_000),
+                            channel_count: Some(1),
+                        }]),
+                        ..ManualSelection::empty()
+                    },
+                }),
+                &requirements,
+                TaskMode::VideoCompress,
+                &capabilities,
+                None,
+            )
+            .unwrap();
+
+        assert_eq!(resolved.audio_streams.len(), 1);
+        let stream = &resolved.audio_streams[0];
+        assert_eq!(stream.input_stream_index, 2);
+        assert_eq!(stream.target_bitrate.unwrap().value(), 96_000);
+        assert_eq!(stream.target_sample_rate_hz, Some(32_000));
+        assert_eq!(stream.target_channel_count, Some(1));
+    }
+
+    #[test]
+    fn multi_audio_rejects_empty_duplicate_and_unsorted_stream_selections() {
+        let (requirements, capabilities) = multi_audio_decision_fixture();
+        let candidate_id = capabilities.execution_chains[0].id.clone();
+        for audio_streams in [
+            Vec::new(),
+            vec![
+                AudioStreamSelection {
+                    stream_index: 1,
+                    bitrate_bps: None,
+                    sample_rate_hz: None,
+                    channel_count: None,
+                },
+                AudioStreamSelection {
+                    stream_index: 1,
+                    bitrate_bps: None,
+                    sample_rate_hz: None,
+                    channel_count: None,
+                },
+            ],
+            vec![
+                AudioStreamSelection {
+                    stream_index: 2,
+                    bitrate_bps: None,
+                    sample_rate_hz: None,
+                    channel_count: None,
+                },
+                AudioStreamSelection {
+                    stream_index: 1,
+                    bitrate_bps: None,
+                    sample_rate_hz: None,
+                    channel_count: None,
+                },
+            ],
+        ] {
+            let conflict = DecisionService
+                .resolve_selection(
+                    &RecalculateSelection::Manual(ManualConfigurationSelection {
+                        candidate_id: candidate_id.clone(),
+                        overrides: ManualSelection {
+                            audio_streams: Some(audio_streams),
+                            ..ManualSelection::empty()
+                        },
+                    }),
+                    &requirements,
+                    TaskMode::VideoCompress,
+                    &capabilities,
+                    None,
+                )
+                .unwrap_err();
+            assert_eq!(conflict.code, EngineErrorCode::MediaCapabilityIncompatible);
+        }
+    }
+
+    #[test]
+    fn multi_audio_estimate_sums_all_selected_stream_bitrates() {
+        let (requirements, capabilities) = multi_audio_decision_fixture();
+        let candidate = &capabilities.execution_chains[0];
+        let resolved = DecisionService
+            .resolve_selection(
+                &RecalculateSelection::Manual(ManualConfigurationSelection {
+                    candidate_id: candidate.id.clone(),
+                    overrides: ManualSelection {
+                        audio_streams: Some(vec![
+                            AudioStreamSelection {
+                                stream_index: 1,
+                                bitrate_bps: Some(64_000),
+                                sample_rate_hz: None,
+                                channel_count: None,
+                            },
+                            AudioStreamSelection {
+                                stream_index: 2,
+                                bitrate_bps: Some(64_000),
+                                sample_rate_hz: None,
+                                channel_count: None,
+                            },
+                        ]),
+                        ..ManualSelection::empty()
+                    },
+                }),
+                &requirements,
+                TaskMode::VideoCompress,
+                &capabilities,
+                None,
+            )
+            .unwrap();
+        let estimate = estimate_configuration(
+            &requirements,
+            &resolved,
+            (&DeterministicSizeEstimator, &EstimatorPolicy::baseline()),
+        )
+        .unwrap();
+
+        assert_eq!(estimate.expected_bytes, 160_000);
+        assert_eq!(estimate.recommended_audio_bitrate.unwrap().value(), 128_000);
+    }
+
+    #[test]
+    fn multi_audio_target_size_uses_one_total_audio_budget_without_video_bitrate() {
+        let (mut requirements, mut capabilities) = multi_audio_decision_fixture();
+        requirements.media_kind = MediaKind::Audio;
+        requirements.video_streams.clear();
+        let candidate = &mut capabilities.execution_chains[0];
+        candidate.video_decoders.clear();
+        candidate.video_encoder = None;
+        candidate.output_video_codec = None;
+        candidate.output_video_profile = None;
+        candidate.output_pixel_format = None;
+        candidate.output_bit_depth = None;
+        let candidate_id = candidate.id.clone();
+        let policy = EstimatorPolicy {
+            id: EstimatorPolicyId::new("calibrated").unwrap(),
+            version: 1,
+            calibrated_container_overhead_bytes: Some(1_000),
+            calibration_sample_count: 1,
+        };
+
+        let resolved = DecisionService
+            .resolve_selection(
+                &RecalculateSelection::CustomTargetSize(TargetSizeSelection {
+                    candidate_id,
+                    target_bytes: 161_000,
+                    allow_resolution_change: false,
+                    allow_frame_rate_change: false,
+                }),
+                &requirements,
+                TaskMode::AudioCompress,
+                &capabilities,
+                Some((&DeterministicSizeEstimator, &policy)),
+            )
+            .unwrap();
+
+        let solution = resolved.target_size.as_ref().unwrap();
+        assert_eq!(solution.total_bitrate.value(), 128_000);
+        assert_eq!(solution.video_bitrate, None);
+        assert_eq!(solution.audio_bitrate.unwrap().value(), 128_000);
+        assert_eq!(resolved.target_video_bitrate, None);
+        assert_eq!(resolved.audio_streams.len(), 2);
+        assert!(
+            resolved
+                .audio_streams
+                .iter()
+                .all(|stream| stream.target_bitrate.unwrap().value() == 64_000)
+        );
+        let estimate = estimate_configuration(
+            &requirements,
+            &resolved,
+            (&DeterministicSizeEstimator, &policy),
+        )
+        .unwrap();
+        assert_eq!(estimate.expected_bytes, 161_000);
     }
 
     #[test]
@@ -3196,6 +3768,7 @@ mod tests {
                         container: Some("mp4".to_owned()),
                         video_codec: Some("hevc".to_owned()),
                         audio_codec: None,
+                        audio_streams: None,
                         output_pixel_format: None,
                         preserves_hdr: None,
                     },
@@ -3229,6 +3802,7 @@ mod tests {
                         container: None,
                         video_codec: Some("hevc".to_owned()),
                         audio_codec: None,
+                        audio_streams: None,
                         output_pixel_format: None,
                         preserves_hdr: None,
                     },

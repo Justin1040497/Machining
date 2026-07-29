@@ -454,8 +454,7 @@
         },
         "value": {
           "type": "integer",
-          "format": "uint8",
-          "maximum": 255,
+          "format": "uint64",
           "minimum": 0
         }
       },
@@ -474,7 +473,9 @@
           }
         },
         "value": {
-          "$ref": "#/$defs/HdrMode"
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
         }
       },
       "required": [
@@ -483,6 +484,45 @@
       ]
     },
     "ConfigurationOption4": {
+      "type": "object",
+      "properties": {
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "type": "integer",
+          "format": "uint8",
+          "maximum": 255,
+          "minimum": 0
+        }
+      },
+      "required": [
+        "value",
+        "candidate_ids"
+      ]
+    },
+    "ConfigurationOption5": {
+      "type": "object",
+      "properties": {
+        "candidate_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "value": {
+          "$ref": "#/$defs/HdrMode"
+        }
+      },
+      "required": [
+        "value",
+        "candidate_ids"
+      ]
+    },
+    "ConfigurationOption6": {
       "type": "object",
       "properties": {
         "candidate_ids": {
@@ -503,6 +543,18 @@
     "ConfigurationOptionGraph": {
       "type": "object",
       "properties": {
+        "audio_bitrates_bps": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption2"
+          }
+        },
+        "audio_channel_counts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption3"
+          }
+        },
         "audio_codecs": {
           "type": "array",
           "items": {
@@ -515,10 +567,16 @@
             "$ref": "#/$defs/ConfigurationOption"
           }
         },
+        "audio_sample_rates_hz": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ConfigurationOption3"
+          }
+        },
         "bit_depths": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ConfigurationOption2"
+            "$ref": "#/$defs/ConfigurationOption4"
           }
         },
         "candidate_ids": {
@@ -536,7 +594,7 @@
         "hdr_modes": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ConfigurationOption3"
+            "$ref": "#/$defs/ConfigurationOption5"
           }
         },
         "pixel_formats": {
@@ -548,13 +606,13 @@
         "preserves_hdr": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ConfigurationOption4"
+            "$ref": "#/$defs/ConfigurationOption6"
           }
         },
         "requires_tone_mapping": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/ConfigurationOption4"
+            "$ref": "#/$defs/ConfigurationOption6"
           }
         },
         "video_codecs": {
@@ -582,6 +640,9 @@
         "video_codecs",
         "video_profiles",
         "audio_codecs",
+        "audio_bitrates_bps",
+        "audio_sample_rates_hz",
+        "audio_channel_counts",
         "video_encoders",
         "audio_encoders",
         "pixel_formats",
@@ -799,6 +860,22 @@
     "ExecutionChainCandidate": {
       "type": "object",
       "properties": {
+        "audio_bitrate_options_bps": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint64",
+            "minimum": 0
+          }
+        },
+        "audio_channel_count_options": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          }
+        },
         "audio_decoders": {
           "type": "array",
           "items": {
@@ -810,6 +887,14 @@
             "string",
             "null"
           ]
+        },
+        "audio_sample_rate_options_hz": {
+          "type": "array",
+          "items": {
+            "type": "integer",
+            "format": "uint32",
+            "minimum": 0
+          }
         },
         "demuxer": {
           "type": "string"
@@ -892,6 +977,9 @@
         "processors",
         "muxer",
         "output_container",
+        "audio_bitrate_options_bps",
+        "audio_sample_rate_options_hz",
+        "audio_channel_count_options",
         "output_hdr_mode",
         "preserves_hdr",
         "requires_tone_mapping"
@@ -1887,6 +1975,55 @@
         "unavailable"
       ]
     },
+    "ResolvedAudioStreamConfiguration": {
+      "type": "object",
+      "properties": {
+        "decoder_backend": {
+          "type": "string"
+        },
+        "encoder_backend": {
+          "type": "string"
+        },
+        "input_stream_index": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0
+        },
+        "output_codec": {
+          "type": "string"
+        },
+        "target_bitrate": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint64",
+          "minimum": 0
+        },
+        "target_channel_count": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        },
+        "target_sample_rate_hz": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "format": "uint32",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "input_stream_index",
+        "decoder_backend",
+        "encoder_backend",
+        "output_codec"
+      ]
+    },
     "ResolvedConfiguration": {
       "type": "object",
       "properties": {
@@ -1896,17 +2033,11 @@
             "null"
           ]
         },
-        "audio_decoders": {
+        "audio_streams": {
           "type": "array",
           "items": {
-            "$ref": "#/$defs/StreamBackendSelection"
+            "$ref": "#/$defs/ResolvedAudioStreamConfiguration"
           }
-        },
-        "audio_encoder_backend": {
-          "type": [
-            "string",
-            "null"
-          ]
         },
         "container": {
           "type": "string"
@@ -1959,14 +2090,6 @@
         "selection_source": {
           "$ref": "#/$defs/SelectionSource"
         },
-        "target_audio_bitrate": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "format": "uint64",
-          "minimum": 0
-        },
         "target_size": {
           "anyOf": [
             {
@@ -2016,7 +2139,7 @@
         "container",
         "demuxer_backend",
         "video_decoders",
-        "audio_decoders",
+        "audio_streams",
         "processors",
         "muxer_backend",
         "output_hdr_mode",

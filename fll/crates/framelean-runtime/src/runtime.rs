@@ -643,11 +643,11 @@ fn build_media_pipeline_plan(
     );
     nodes.extend(
         configuration
-            .audio_decoders
+            .audio_streams
             .iter()
             .map(|selection| MediaPipelineNode::Decoder {
-                backend_id: selection.backend_id.clone(),
-                stream_index: selection.stream_index,
+                backend_id: selection.decoder_backend.clone(),
+                stream_index: selection.input_stream_index,
                 stream_kind: StreamKind::Audio,
             }),
     );
@@ -700,9 +700,9 @@ fn build_media_pipeline_plan(
             stream_kind: StreamKind::Video,
         });
     }
-    if let Some(backend_id) = &configuration.audio_encoder_backend {
+    for stream in &configuration.audio_streams {
         nodes.push(MediaPipelineNode::Encoder {
-            backend_id: backend_id.clone(),
+            backend_id: stream.encoder_backend.clone(),
             stream_kind: StreamKind::Audio,
         });
     }

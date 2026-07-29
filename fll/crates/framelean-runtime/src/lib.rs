@@ -26,9 +26,10 @@ pub use execution_backend::{
 };
 pub use execution_runtime::{ExecutionRuntime, ExecutionRuntimeEvent, ExecutionRuntimePlan};
 pub use framelean_decision::{
-    DefaultCapabilityResolver, DefaultRecommendationEngine, DeterministicSizeEstimator,
-    EstimatorPolicy, ExecutionChainId, ManualConfigurationSelection, ManualSelection,
-    PresetSelection, RecalculateSelection, ResolvedConfiguration, TaskMode,
+    AudioStreamSelection, DefaultCapabilityResolver, DefaultRecommendationEngine,
+    DeterministicSizeEstimator, EstimatorPolicy, ExecutionChainId, ManualConfigurationSelection,
+    ManualSelection, PresetSelection, RecalculateSelection, ResolvedAudioStreamConfiguration,
+    ResolvedConfiguration, TaskMode,
 };
 pub use output_transaction::OutputTransaction;
 pub use runtime::EngineRuntime;
