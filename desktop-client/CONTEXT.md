@@ -23,6 +23,7 @@ FrameLean（帧轻）是面向 macOS 和 Windows 的本地桌面媒体压缩与�
 - 预览帧和视频缩略图通过 `EngineMediaGateway` 进入 FEngine Control queue，由 FLL 进程内 libav 解码并写入临时 BMP；它们不占用分析队列或 execution lane。
 - 视频覆盖 MP4、MOV、MKV、WebM 和 AVI 的受约束容器 / 编码组合；透明视频自动使用 MOV + ProRes 4444 保留 alpha。
 - 图片与音频压缩执行结果验收，避免把无效或更大的输出静默标记为成功。
+- 任务配置弹窗按源 `stream_index` 显示 FLL Snapshot 针对所选候选声明的音轨保留开关，以及逐轨 AAC 码率、采样率和单/双声道参数；至少保留一条音轨，这些值随 Snapshot-bound selection 提交，Client 旧音频默认配置不参与 Engine 参数决策。
 - 设置保存媒体默认值、输出规则、通知策略、快捷键、扫描深度、主题和关闭行为；执行并发由 FLL 资源池调度语义决定，不提供 Client 并发上限。
 - 更新体验提供工作台状态、轻量通知和完整版本日志。公开发布默认跳转 GitHub、Gitee 或备用下载地址，不直接下载安装包。
 

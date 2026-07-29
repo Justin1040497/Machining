@@ -217,7 +217,7 @@ Desktop Client 不定位、不校验也不启动 `ffmpeg` / `ffprobe` executable
 - 元数据、能力、候选、预设和估算来自 `AnalyzeMedia` 返回的 FLL Snapshot。
 - 预览帧和视频缩略图通过 `EngineMediaGateway` 提交到 FEngine Control queue，由 FLL 使用 libavcodec / libswscale 生成 BMP artifact。
 - 执行 selection 由 Client 按 Snapshot 展示并原样提交；Client 不生成 native 命令参数。
-- 当前默认执行 Backend 支持兼容媒体的 packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4。音频、多流、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
+- 当前默认执行 Backend 支持兼容媒体的 packet stream-copy/remux、严格限定的单 SDR 视频加多条 PCM/AAC 音轨 -> H.264/AAC MP4，以及多条 PCM/AAC 音轨 -> AAC M4A。逐轨保留集合、AAC 码率、采样率和单/双声道由 Snapshot 候选参数域约束。多视频流、字幕/数据/附件、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
 
 FEngine 正式构建使用仓库脚本生成的 bundled static libav SDK：
 

@@ -157,7 +157,7 @@ Desktop package 不包含或启动 `ffmpeg` / `ffprobe` executable。
 - 源文件缺失或 source facts 不匹配时拒绝生成新 Snapshot/artifact。
 - 协议、Worker 和 FLL engine code 保持结构化边界。
 - 预览帧与缩略图失败只影响可选视觉 artifact，不改变任务状态。
-- 当前真实 Backend 支持兼容媒体的 packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4；音频、多流、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
+- 当前真实 Backend 支持兼容媒体的 packet stream-copy/remux、严格限定的单 SDR 视频加多条 PCM/AAC 音轨 -> H.264/AAC MP4，以及多条 PCM/AAC 音轨 -> AAC M4A。配置弹窗按源 `stream_index` 显示保留开关以及 Snapshot 候选域中的逐轨 AAC 码率、采样率和单/双声道，不读取 Client 旧音频默认值生成 Engine 参数。多视频流、字幕/数据/附件、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
 - Client 不以本地计时器、文件日志或进程句柄作为任务权威；FEngine/FLL Snapshot 和事件是唯一来源。
 
 ## 验证入口

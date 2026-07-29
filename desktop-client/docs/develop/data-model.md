@@ -230,6 +230,8 @@ lib/infrastructure/repositories/mappers/compression_mode_mapper.dart
 最终仍将每个 selection 分别绑定该任务的 analysis ID/revision 持久化；
 任务夹 ID、默认 purpose 和默认媒体配置不会发送到 FEngine/FLL。
 
+Snapshot-bound 手动 selection 的 `EngineManualOverrides.audioStreams` 使用逐轨列表，不再使用全局音频码率、采样率或声道字段。`null` 表示保留当前 Candidate 声明的全部音轨；显式值必须是按源 `streamIndex` 严格递增的非空列表，表示用户选择保留的音轨集合。每个 `EngineAudioStreamOverride` 可独立保存 `bitrateBps`、`sampleRateHz` 和 `channelCount`，缺失参数表示使用 Candidate/FLL 的默认值。Client 至少保留一条音轨；视频完全移除音频由无音频 Candidate 表达。
+
 ## `settings` 表
 
 `settings` 保存应用级偏好。当前只使用一行，仓储层固定 `id = 1`；如果数据库里没有这一行，`loadSettings()` 会返回 `AppSettings.initial()`。

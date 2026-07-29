@@ -64,4 +64,4 @@ Client 必须先发送 `Hello`。FEngine 协商版本并建立单会话，输出
 
 `GetEngineSnapshot` 返回当前分析活动项与等待队列、多个执行活动项、普通等待队列、Video/Auxiliary 两个 LIFO 恢复栈、用户暂停集合、两类 queue revision，以及有界的最近分析/执行终态摘要。Client 发现 sequence gap 或重新接入 daemon 后保留同一权威 session 并以该 Snapshot 重建投影；成功分析摘要通过 `analysis_id` 重新读取 FLL Snapshot，执行摘要恢复完成输出、失败或取消。
 
-当前默认执行 Backend 支持兼容媒体的 libav packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4。音频、多流、HDR、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换组合以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝，不会伪造进度或成功输出。
+当前默认执行 Backend 支持兼容媒体的 libav packet stream-copy/remux、严格限定的单 SDR 视频加多条 PCM/AAC 音轨 software decode -> 可选 swscale/swresample -> libx264/AAC -> MP4，以及多条 PCM/AAC 音轨 -> 可选 swresample -> AAC -> M4A。Snapshot Candidate/OptionGraph 公开源音轨和 AAC 码率、采样率、单/双声道参数域；selection 的 `audio_streams` 省略时保留 Candidate 全部音轨，显式值必须是按 `stream_index` 严格递增的非空保留集合，视频完全移除音频必须选择无音频 Candidate。FEngine 不另行解析媒体参数。多视频流、字幕/数据/附件、HDR、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换组合以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝，不会伪造进度或成功输出。

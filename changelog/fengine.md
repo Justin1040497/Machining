@@ -13,4 +13,7 @@
 - 转发 FLL execution 的进度、暂停、恢复、取消、抢占关系和终态，增加 `PreemptAndStart` 与 `ControlExecution`；幂等重放不重复控制或压栈。
 - Engine Snapshot 和 execution 事件现在投影多个活动执行、Video/Auxiliary 资源池以及两个独立恢复栈；FEngine 仍只负责协议映射，不拥有容量和抢占规则。
 - 默认 Runtime Host 接入真实 libav packet stream-copy/remux Backend，并以真实 WAV 文件覆盖“启动 Worker 子进程 → protocol 分析 → 提交 → 真实进度 → 输出发布 → protocol 重新分析”端到端测试。
+- 默认 Runtime Host 接入单 SDR 视频加多条 PCM/AAC 音轨的原生 libx264/AAC MP4 转码，并以真实双音轨媒体覆盖能力求交、逐轨提交、输出发布及重新分析。
+- 默认 Runtime Host 接入多条 PCM/AAC 音轨的原生 AAC M4A 压缩，并以真实 WAV 覆盖分析候选、均衡预设、提交执行、输出发布及重新分析。
+- Runtime Host 透传 Snapshot-bound AAC 码率、采样率和声道选择，并以 8 kHz 单声道 WAV 到 32 kHz 立体声 AAC 的真实执行覆盖参数闭环。
 - 增加受随机 token 保护的本机 loopback 守护 transport；Client 断开后守护层代发心跳，同一 Worker session 可由新 Client Hello 接回。Engine Snapshot 同时保留有界的最近分析与执行终态摘要，覆盖离线窗口内完成、失败或取消后的投影恢复。

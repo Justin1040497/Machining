@@ -6,4 +6,4 @@
 - 通过 FLL 和进程内 libav 执行可兼容媒体的 packet stream-copy/remux，输出使用同目录事务和原子发布。
 - Client 连接中断或进程重启后可接回同一 Worker session，并以包含双队列、多个活动 execution、两个资源池恢复栈及最近终态摘要的 Engine Snapshot 重建投影。
 
-当前真实 Backend 支持兼容媒体的 packet stream-copy/remux，以及严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4；其他 Decoder、Encoder、音频、多流、HDR 或任意 Processor 组合仍 fail closed。FEngine 守护进程本身崩溃后的跨进程媒体断点续作也不在本草稿范围。
+当前真实 Backend 支持兼容媒体的 packet stream-copy/remux、严格限定的单 SDR 视频加多条 PCM/AAC 音轨 software decode -> 可选 swscale/swresample -> libx264/AAC -> MP4，以及多条 PCM/AAC 音轨 -> 可选 swresample -> AAC -> M4A；Snapshot-bound selection 已支持逐轨保留集合、AAC 码率、采样率和单/双声道。多视频流、字幕/数据/附件、HDR 或任意 Plugin Processor 组合仍 fail closed。FEngine 守护进程本身崩溃后的跨进程媒体断点续作也不在本草稿范围。

@@ -14,7 +14,7 @@ Source -> Demuxer -> Packet Processor -> Decoder
        -> Video / Audio Processor -> Encoder -> Muxer -> Sink
 ```
 
-当前媒体执行 Pipeline 只实现 `PacketProcessor`、`VideoProcessor` 和 `AudioProcessor`。`MediaAnalyzer` 已作为独立分析边界实现，`framelean-ffmpeg` 可在进程内探测媒体并报告 Native Backend Catalog；这不代表 Demuxer、Decoder、Encoder、Muxer 或 Sink 已接入执行 Pipeline。其余 `NodeKind` 仍只是预留边界。不要创建 `FakeFFmpeg`、`FakeDecoder` 或 `FakeEncoder`。
+逐数据单元的通用 Pipeline 只实现 `PacketProcessor`、`VideoProcessor` 和 `AudioProcessor`；媒体 execution plan 已用 `MediaPipelineNode` 描述 Source、Demuxer、Decoder、Processor、Encoder、Muxer 与 Sink，并由 Runtime 路由到已资格化的 native Backend。`framelean-ffmpeg` 当前实际执行兼容媒体 remux、单 SDR 视频加多条 PCM/AAC 音轨的 swscale/swresample、libx264/AAC 和 MP4 组合，以及多条 PCM/AAC 音轨的 AAC M4A 组合；这不代表任意保留 Node、codec、container 或 Plugin Processor 已接入。不要创建 `FakeFFmpeg`、`FakeDecoder` 或 `FakeEncoder`。
 
 ## 边界
 
@@ -37,6 +37,6 @@ Source -> Demuxer -> Packet Processor -> Decoder
 
 ## FFmpeg 与所有权
 
-FFmpeg 当前通过 `framelean-ffmpeg` 的低层 bindings 在进程内链接 bundled static libav SDK，用于媒体探测、Native Backend 事实和受支持的 packet stream-copy/remux。构建必须显式使用 `build/dependencies/ffmpeg/<platform>/`，不得回退到系统或 Homebrew FFmpeg；Desktop package 只携带静态链接后的 FEngine，不携带 ffmpeg/ffprobe CLI。Demux、Decode、Filter、Encode、Mux 的完整执行 Pipeline 仍未全部接入。禁止改回 `Command::new("ffmpeg")`、`ffmpeg.exe`、ffprobe 或等价进程调用。
+FFmpeg 当前通过 `framelean-ffmpeg` 的低层 bindings 在进程内链接 bundled static libav SDK，用于媒体探测、Native Backend 事实、受支持的 packet stream-copy/remux、严格资格化的单 SDR 视频加多条 PCM/AAC 音轨的 H.264/AAC MP4 转码，以及多条 PCM/AAC 音轨的 AAC M4A 压缩。构建必须显式使用 `build/dependencies/ffmpeg/<platform>/`，不得回退到系统或 Homebrew FFmpeg；Desktop package 只携带静态链接后的 FEngine，不携带 ffmpeg/ffprobe CLI。多视频流、字幕/数据/附件、HDR、任意 Plugin Processor 和其他未资格化 Demux/Decode/Process/Encode/Mux 组合仍 fail closed。禁止改回 `Command::new("ffmpeg")`、`ffmpeg.exe`、ffprobe 或等价进程调用。
 
 `MediaBuffer`、`MediaPacket`、`VideoFrame`、`AudioFrame`、`ProcessInput`、`ProcessOutput` 优先 move，不为方便随意 Clone。把 FFI `unsafe` 限制在 `framelean-ffmpeg`，不向上泄漏裸 `AVFrame`、`AVPacket` 或 `AVFormatContext` 指针。

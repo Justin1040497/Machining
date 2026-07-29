@@ -10,7 +10,7 @@
 
 已接受并实现。
 
-本文记录已落地的执行调度语义。wire model 由 `fengine/src/protocol.rs` 拥有，FLL Task、execution state、checkpoint 和 Scheduler API 由 FLL Runtime 拥有。当前真实 Backend 覆盖可兼容媒体的 libav packet stream-copy/remux；需要转换阶段的完整转码链不在本决策的已实现范围内。
+本文记录已落地的执行调度语义。wire model 由 `fengine/src/protocol.rs` 拥有，FLL Task、execution state、checkpoint 和 Scheduler API 由 FLL Runtime 拥有。本文不规定具体媒体转换能力；现行 Backend 范围以 `fll/CONTEXT.md` 为准。
 
 ## 背景
 

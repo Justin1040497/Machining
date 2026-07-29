@@ -12,6 +12,6 @@ Backend Catalog 按 BackendId 规范化后使用 BLAKE3 计算 revision。Decode
 
 当前 SDK 由仓库脚本固定 FFmpeg feature、静态库、headers、许可证和 manifest；具体平台构建输入以 `dependencies/ffmpeg/` 与对应构建脚本为事实源，可重建二进制只进入被忽略的 `build/dependencies/`。
 
-当前实际 execution scope 是 packet stream-copy/remux，以及一个严格限定的 video path：单一视频流、无音频、软件 decoder、可选 swscale 像素格式转换、`libx264` 和 MP4 输出。音频、多流、HDR tone mapping、任意 Plugin Processor 的 native-frame 桥接、其他 container/codec 组合和 hardware encoding 均 fail closed。
+当前实际 execution scope 是 packet stream-copy/remux，以及两条严格限定的 transform path：单一 SDR 视频流加多条 PCM/AAC 音轨、软件 decoder、可选 swscale/swresample、`libx264`/AAC 和 MP4 输出；多条 PCM/AAC 音轨、可选 swresample、AAC 和 M4A 输出。每条输出音轨按源 `stream_index` 稳定排列并持有独立 decoder、FIFO、resampler 和 encoder；保留集合以及 AAC 码率、采样率和单/双声道目标值来自冻结的 Candidate 参数域与 ResolvedConfiguration，不从 Client 旧配置或命令行推导。多视频流、字幕/数据/附件转码、HDR tone mapping、任意 Plugin Processor 的 native-frame 桥接、其他 container/codec 组合和 hardware encoding 均 fail closed。
 
 永久禁止调用 ffmpeg/ffprobe executable、shell、PATH、CLI 参数或解析 CLI 输出。

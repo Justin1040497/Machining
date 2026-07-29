@@ -77,7 +77,7 @@ rg -n 'Process\.(start|run|runSync).*?(ffmpeg|ffprobe)|Command::new\(\s*"ffmpeg|
 
 - 源文件缺失或源 size/mtime 不匹配时不生成有效 Snapshot/artifact。
 - 协议断帧、非法 payload、WorkerBusy 和 sequence gap 具有明确恢复路径。
-- 严格限定的单视频、无音频 software decode -> 可选 swscale -> libx264 -> MP4 可以真实完成；音频、多流、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`，不会伪造进度或成功输出。
+- 严格限定的单 SDR 视频加多条 PCM/AAC 音轨 -> H.264/AAC MP4，以及多条 PCM/AAC 音轨 -> AAC M4A 可以真实完成；Snapshot 声明的逐轨保留集合、AAC 码率、采样率和单/双声道选择必须贯穿输出复检，重复、乱序和空保留集合必须在提交前拒绝。多视频流、字幕/数据/附件、HDR、任意 Plugin Processor 桥接和其他未资格化转换组合返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`，不会伪造进度或成功输出。
 - 输出目录不可写、磁盘空间不足、文件占用和发布失败映射为可读失败。
 - 删除任务、清空列表、应用退出和更新准备会先通过 Engine control API 取消或暂停相关工作。
 

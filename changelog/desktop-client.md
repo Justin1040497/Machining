@@ -14,5 +14,6 @@
 - 自动导入任务夹在分析完成后按兼容类别重组，视频至少区分 HDR 与 SDR；单项分区保持总队列独立任务。手动多选只允许已分析且兼容的任务进入同一任务夹，现有手动任务夹不会被静默拆分。
 - 任务夹配置窗口现在先求成员 Snapshot 的共同预设和候选，再保存逐任务的 Snapshot-bound selection；目标体积在具备明确的跨 Snapshot 交集模型前不在任务夹窗口提供。
 - 删除旧 Client 配置弹窗适配器及音频、图片、视频配置面板；工作台只呈现 FLL Snapshot 广告的预设、候选和参数。
+- 手动配置模式按源 `stream_index` 增加音轨保留开关和 Snapshot 限定的逐轨 AAC 码率、采样率、单/双声道控件；selection 编解码与持久化不再从旧 `AudioProcessingConfig` 推导 Engine 参数。
 - 删除批量入队后的本地 `MediaAnalysisQueue` 和单任务分析重提链；Client 只提交一次 FEngine 原子分析批次，并由 Engine 生命周期事件和 Snapshot 对账更新状态。
 - Client Snapshot 对账支持多个同时运行的 execution，并按 Video/Auxiliary 两个恢复栈计算抢占深度；暂停全部与取消全部会覆盖所有活动资源槽，任务夹仍不参与并发调度。

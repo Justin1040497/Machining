@@ -4,7 +4,7 @@
 
 FLL 是 FrameLean 的核心处理库，负责媒体模型与分析、环境与能力发现、配置决策、Processor、Pipeline、Plugin、进程内 Task、Scheduler、Runtime 和 Runtime Schema。它不是普通工具集合，也不只负责单个媒体任务的分析或决策。
 
-FLL 拥有进程内处理逻辑和执行组合，不负责桌面 UI、跨进程通信或操作系统级引擎进程宿主管理。独立 FEngine 是装配 FLL 的进程级启动与管理边界；当前已实现诊断 CLI、常驻 stdio Worker、分析/执行队列、会话与 Snapshot 持久化、执行控制和事件投影。FLL Runtime 提供真实 libav packet stream-copy/remux，以及单视频、无音频的 software decode -> 可选 swscale -> libx264 -> MP4 执行 Backend；其余完整转码组合仍未就绪。
+FLL 拥有进程内处理逻辑和执行组合，不负责桌面 UI、跨进程通信或操作系统级引擎进程宿主管理。独立 FEngine 是装配 FLL 的进程级启动与管理边界；当前已实现诊断 CLI、常驻 stdio Worker、分析/执行队列、会话与 Snapshot 持久化、执行控制和事件投影。FLL Runtime 提供真实 libav packet stream-copy/remux、单 SDR 视频加多条 PCM/AAC 音轨的 software decode -> 可选 swscale/swresample -> libx264/AAC -> MP4，以及多条 PCM/AAC 音轨 -> AAC -> M4A 执行 Backend；其余完整转码组合仍未就绪。
 
 FLL 不是 FFmpeg CLI wrapper。FFmpeg 通过 `framelean-ffmpeg` 在进程内链接 bundled static libav 子库；构建入口必须显式提供 `build/dependencies/ffmpeg/<platform>/` SDK，不允许回退到系统或 Homebrew FFmpeg，永久禁止从 FLL 调用 ffmpeg/ffprobe executable。
 
@@ -87,13 +87,13 @@ execution scheduler 使用两个资源池：Video 固定 1 个活动位，Auxili
 
 Runtime 定义 `ExecutionSubmissionRequest`、`ExecutionSubmissionResult`、`ExecutionTaskState`、输出冲突策略和 `OutputTransaction`。`submit_execution` 先校验绝对输出文件路径，再基于指定 AnalysisSnapshot 和 revision 重新解析 selection，创建 execution 并加入 lane。实际输出先写同目录临时文件，只有 Backend 成功时才原子发布；失败与取消回滚。
 
-Runtime 从冻结的 `BackendCatalog` 和已解析 Candidate 构建并验证跨阶段 `MediaPipelinePlan`，再将 execution request 路由给 `framelean-ffmpeg` 的 Backend。该 Backend 使用 libavformat 复用输入 stream 参数、重写 packet timestamp 并以交错顺序写入输出；也能对严格限定的单视频、无音频链执行 `decode -> 可选 swscale -> libx264 -> MP4 mux`。它支持进度、协作式安全暂停和取消。音频、多流、HDR tone mapping、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换组合以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝。
+Runtime 从冻结的 `BackendCatalog` 和已解析 Candidate 构建并验证跨阶段 `MediaPipelinePlan`，再将 execution request 路由给 `framelean-ffmpeg` 的 Backend。该 Backend 使用 libavformat 复用输入 stream 参数、重写 packet timestamp 并以交错顺序写入输出；也能对严格限定的单 SDR 视频加多条 PCM/AAC 音轨执行 `decode -> 可选 swscale/swresample -> libx264/AAC -> MP4 mux`，或对多条 PCM/AAC 音轨执行 `decode -> 可选 swresample -> AAC -> M4A mux`。AAC Candidate 在 Snapshot 中声明源 `stream_index` 和允许的码率、采样率、单/双声道参数；省略 selection 的 `audio_streams` 表示保留全部，显式非空列表表示保留集合。ResolvedConfiguration 按源索引稳定排序，Backend 为每条音轨初始化独立 decoder、swresample、FIFO 和 encoder。它支持进度、协作式安全暂停和取消。多视频流、字幕/数据/附件转码、HDR tone mapping、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换组合以 `ENGINE_EXECUTION_CHAIN_NOT_READY` 明确拒绝。
 
 媒体辅助 API 也由 `framelean-ffmpeg` 拥有：媒体元数据继续经 `AnalyzeMedia` / `AnalysisSnapshot` 提供；预览帧使用 libavcodec 解码和 libswscale 转 RGB24；视频缩略图按候选时间点跳过黑帧并输出事务性 BMP。上述 API 不调用 executable，也不进入 FLL execution scheduler。
 
 ## 当前非目标
 
-- 音频、多流、HDR 和任意 Processor 的完整转码 Pipeline
+- 多视频流、字幕/数据/附件、HDR 和任意 Plugin Processor 的完整转码 Pipeline
 - 将 Native capability 冒充 Engine 可执行能力
 - 未资格化 codec/hardware 或不在已实现范围内的压缩/转码 Pipeline
 - IPC、HTTP、gRPC 或云端 Worker

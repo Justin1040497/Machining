@@ -62,6 +62,6 @@ cargo run -- monitor --samples 3 --interval-ms 1000 --json
 
 当前限制：
 
-- 默认 FLL Runtime 可执行 packet stream-copy/remux，以及单视频、无音频的 software decode -> 可选 swscale -> libx264 -> MP4 链。音频、多流、HDR tone mapping、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换阶段仍返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
+- 默认 FLL Runtime 可执行 packet stream-copy/remux、单 SDR 视频加多条 PCM/AAC 音轨的 software decode -> 可选 swscale/swresample -> libx264/AAC -> MP4 链，以及多条 PCM/AAC 音轨 -> 可选 swresample -> AAC -> M4A 链。FEngine 只透传 Snapshot 绑定的逐轨保留集合、AAC 码率、采样率和单/双声道 selection，不解释或改写媒体参数。多视频流、字幕/数据/附件、HDR tone mapping、任意 Plugin Processor 桥接、未资格化 codec/hardware 和其他转换阶段仍返回 `ENGINE_EXECUTION_CHAIN_NOT_READY`。
 - 新 request ID 不复用已完成 Work 的内存终态；Client 应通过持久化的 `analysis_id` 查询 Snapshot，或显式提交一次新分析。相同 request ID 仍在幂等保留窗口内重放。
 - Client 连接中断或 Client 进程重启不会结束守护 Worker；重连后复用原 session 并使用 Engine Snapshot 对账。FEngine 守护进程本身崩溃或显式关闭后的跨进程媒体断点续作尚未实现；Client 会将新引擎 Snapshot 中消失的非终态工作标记为可重试的 recovery failure。
