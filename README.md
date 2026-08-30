@@ -13,7 +13,7 @@
 <p>
   <a href="#下载与安装"><img src="https://img.shields.io/badge/platform-macOS%20Universal%202%20%7C%20Windows%20x64-000000" alt="Platform"></a>
   <a href="https://flutter.dev/"><img src="https://img.shields.io/badge/built%20with-Flutter-02569B" alt="Flutter"></a>
-  <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/media%20runtime-FFmpeg%207.1.1-007808" alt="FFmpeg"></a>
+  <a href="https://ffmpeg.org/"><img src="https://img.shields.io/badge/media%20runtime-FFmpeg%209.0-007808" alt="FFmpeg"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-GPLv3%2B-C62828" alt="License"></a>
   <br>
   <a href="https://github.com/zhouycheng/FrameLean/releases">下载最新版本</a> ·

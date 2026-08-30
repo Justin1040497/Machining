@@ -2,7 +2,7 @@
 
 ## 当前选择
 
-FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。FEngine 在进程内静态链接由 FFmpeg 7.1.1 构建得到的 libav SDK，并启用 x264 / libx264、LAME / libmp3lame、libwebp、Opus / libopus、zimg / libzimg、libvpx 和 SVT-AV1。因此包含该静态链接引擎的发布包需要按 GPLv3+ 路线处理。
+FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。FEngine 在进程内静态链接由 FFmpeg 9.0 构建得到的 libav SDK，并启用 x264 / libx264 与 libwebp。因此包含该静态链接引擎的发布包需要按 GPLv3+ 路线处理。
 
 当前构建脚本启用：
 
@@ -10,12 +10,7 @@ FrameLean 采用 `GPL-3.0-or-later` 作为项目整体开源许可证。FEngine 
 --enable-gpl
 --enable-version3
 --enable-libx264
---enable-libmp3lame
 --enable-libwebp
---enable-libopus
---enable-libzimg
---enable-libvpx
---enable-libsvtav1
 --enable-videotoolbox
 --enable-audiotoolbox
 --disable-shared
@@ -102,23 +97,17 @@ bash scripts/build/build_ffmpeg_windows_x64.sh
 
 构建完成后，FEngine 需要在对应 SDK 上完成静态链接；发布脚本还会拒绝最终 FEngine 的动态 libav（及 Windows GNU runtime DLL）依赖。能力验证的具体命令、库列表和输出以构建脚本为准，不能把 `ffmpeg -encoders` 或 `ffprobe` 作为应用运行时检查。
 
-历史构建日志可能包含如下 FFmpeg configure 能力断言：
+当前支持范围以 FLL Runtime 的执行能力为准。历史构建日志可能包含已经不再随 SDK 分发的外部编码器或滤镜断言：
 
 ```text
 Architectures: x86_64 arm64
 OK: no Homebrew dynamic library dependencies detected
 OK: libx264 encoder is available
-OK: libmp3lame encoder is available
 OK: libwebp encoder is available
-OK: libopus encoder is available
-OK: libvpx-vp9 encoder is available
-OK: libsvtav1 encoder is available
 OK: mpeg4 encoder is available
 OK: mjpeg encoder is available
 OK: prores_ks encoder is available
 OK: mp4 / mov / matroska / webm / avi muxers are available
-OK: zscale filter is available
-OK: tonemap filter is available
 ```
 
 ## 发布要求
@@ -126,10 +115,10 @@ OK: tonemap filter is available
 公开分发包含静态链接 libav + x264 的 FEngine 时，发布包会包含：
 
 - FrameLean 源码
-- FFmpeg、x264、LAME、libwebp、Opus、zimg、libvpx 和 SVT-AV1 的源码获取方式
+- FFmpeg、x264 和 libwebp 的源码获取方式
 - FFmpeg 构建脚本和配置参数
 - GPLv3 许可证文本
-- FFmpeg / x264 / LAME / libwebp / Opus / zimg / libvpx / SVT-AV1 的版权说明
+- FFmpeg / x264 / libwebp 的版权说明
 - 用户能够重新构建 bundled static libav SDK 与 FEngine 的说明
 - 发布包内许可证目录，包含 `LICENSE`、`legal/NOTICE.md`、`legal/COPYING`、`legal/THIRD_PARTY_NOTICES.md`、`legal/SOURCE_OFFER.md`、`legal/third-party/` 和 SDK 构建元数据
 

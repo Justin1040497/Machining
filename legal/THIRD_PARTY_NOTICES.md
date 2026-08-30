@@ -30,11 +30,10 @@ license records rather than FrameLean's main project license:
 ### FFmpeg / libav
 
 - Upstream: <https://ffmpeg.org/>
-- Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
+- Source for current documented runtime: <https://ffmpeg.org/releases/ffmpeg-9.0.tar.xz>
 - Current FrameLean configuration: GPLv3-or-later route, because the runtime is
-  built with `--enable-gpl`, `--enable-version3`, `--enable-libx264`,
-  `--enable-libmp3lame`, `--enable-libwebp`, `--enable-libopus`,
-  `--enable-libzimg`, `--enable-libvpx`, and `--enable-libsvtav1`.
+  built with `--enable-gpl`, `--enable-version3`, `--enable-libx264`, and
+  `--enable-libwebp`.
 - Nonfree configuration: `--enable-nonfree` must not be enabled for distributed
   builds.
 - Local build reference: `scripts/build/build_ffmpeg_macos_arm64.sh`
@@ -53,14 +52,6 @@ x264 is a GPL-licensed H.264 encoder. Because FrameLean distributes an FFmpeg
 runtime with x264 enabled, FrameLean release packages should follow the GPLv3+
 source and license delivery path documented in legal/SOURCE_OFFER.md.
 
-### LAME / libmp3lame
-
-- Upstream: <https://lame.sourceforge.io/>
-- Source for current documented runtime: <https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz>
-- Used by FrameLean through the FFmpeg runtime via `--enable-libmp3lame`.
-
-LAME provides MP3 encoding support through the bundled static libav SDK.
-
 ### libwebp
 
 - Upstream: <https://chromium.googlesource.com/webm/libwebp/>
@@ -68,40 +59,6 @@ LAME provides MP3 encoding support through the bundled static libav SDK.
 - Used by FrameLean through the FFmpeg runtime via `--enable-libwebp`.
 
 libwebp provides WebP image encoding support through the bundled static libav SDK.
-
-### Opus / libopus
-
-- Upstream: <https://opus-codec.org/>
-- Source for current documented runtime: <https://downloads.xiph.org/releases/opus/opus-1.5.2.tar.gz>
-- Used by FrameLean through the FFmpeg runtime via `--enable-libopus`.
-
-Opus provides Opus and Ogg Opus audio encoding support through the bundled
-static libav SDK.
-
-### zimg / libzimg
-
-- Upstream: <https://github.com/sekrit-twc/zimg>
-- Source for current documented runtime: <https://github.com/sekrit-twc/zimg/archive/refs/tags/release-3.0.6.tar.gz>
-- Used by FrameLean through the FFmpeg runtime via `--enable-libzimg`.
-
-zimg provides the `zscale` filter used by FrameLean's HDR10 / HLG to SDR
-conversion path.
-
-### libvpx
-
-- Upstream: <https://chromium.googlesource.com/webm/libvpx/>
-- Source for current documented runtime: <https://github.com/webmproject/libvpx/archive/refs/tags/v1.15.2.tar.gz>
-- Used by FrameLean through the FFmpeg runtime via `--enable-libvpx`.
-
-libvpx provides VP9 encoding support for WebM and MKV outputs.
-
-### SVT-AV1 / libsvtav1
-
-- Upstream: <https://gitlab.com/AOMediaCodec/SVT-AV1>
-- Source for current documented runtime: <https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v2.3.0/SVT-AV1-v2.3.0.tar.gz>
-- Used by FrameLean through the FFmpeg runtime via `--enable-libsvtav1`.
-
-SVT-AV1 provides AV1 software encoding support for MP4, MKV, and WebM outputs.
 
 ## Flutter and Dart
 

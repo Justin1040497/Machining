@@ -1,12 +1,12 @@
 # FFmpeg / static libav SDK
 
 FrameLean release packages include FEngine statically linked with a libav SDK
-built from FFmpeg 7.1.1 and GPL components including x264 / libx264. They do
+built from FFmpeg 9.0 and GPL components including x264 / libx264. They do
 not include or launch ffmpeg / ffprobe executable programs.
 
 Upstream source:
 
-- FFmpeg: <https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz>
+- FFmpeg: <https://ffmpeg.org/releases/ffmpeg-9.0.tar.xz>
 - FFmpeg project: <https://ffmpeg.org/>
 
 Local build entrypoint:
