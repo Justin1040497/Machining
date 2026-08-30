@@ -285,6 +285,7 @@ dependencies = [
  "framelean-media",
  "framelean-plugin",
  "framelean-runtime",
+ "libloading",
  "serde",
  "serde_json",
  "uuid",

@@ -1,6 +1,8 @@
 # FEngine Context
 
-FEngine 是 FrameLean 的独立 Worker、外部请求队列和进程级管理边界。`src/protocol.rs` 是 wire model 的代码事实，`src/worker.rs` 是会话、幂等、事件与请求调度的事实，`src/daemon.rs` 是 Client 重启可恢复的本机认证 transport，`src/work_queue.rs` 拥有外部队列 revision 和重排，`src/runtime_host.rs` 装配 FLL 分析与 execution Runtime，`src/snapshot_store.rs` 是 AnalysisSnapshot 持久化适配器。
+FEngine 是 FrameLean 的独立 Worker、外部请求队列和进程级管理边界。`src/protocol.rs` 是 wire model 的代码事实，`src/worker.rs` 是会话、幂等、事件与请求调度的事实，`src/daemon.rs` 是 Client 重启可恢复的本机认证 transport，`src/work_queue.rs` 拥有外部队列 revision 和重排，`src/runtime_host.rs` 保留 RuntimeHost seam 与静态兼容实现，`src/fll/` 负责 FLL 动态库 ABI loader 和 Phase 2A typed adapter，`src/snapshot_store.rs` 是 AnalysisSnapshot 持久化适配器。
+
+仓库根级 `rust-toolchain.toml` 固定 Rust 1.98.0；FEngine 的本地构建、release 脚本和 CI 共享这一 baseline。该版本用于避开已验证的 macOS release proc-macro Mach-O LINKEDIT 对齐问题；不改变 FEngine/FLL 的 ABI 或 DTO 所有权边界。
 
 当前可用请求为：
 
@@ -27,8 +29,10 @@ Worker 使用 4-byte 大端长度帧 JSON；最大帧为 16 MiB。`serve` 提供
 
 `serve` 必须接收 `--snapshot-dir`；`serve-daemon` 还必须接收 `--endpoint-file`。Desktop Client 将 endpoint 文件置于 Snapshot 目录的父级 engine 目录，Snapshot 存储目录只能包含 AnalysisSnapshot 记录。目录存储持有单实例文件锁，并限制条目数、总字节和单记录字节；容量满时明确失败，不会静默删除 Client 仍可能引用的 Snapshot。Snapshot 先由 FLL 生成，再由 FEngine 原子发布并在支持的平台同步父目录。恢复时文件名必须与记录内的 `analysis_id` 一致，重复 ID 或冲突 revision 不会覆盖已恢复 Snapshot。外部持久化失败时，FEngine 会从 Runtime 回滚尚未提交的内存 Snapshot。
 
-FLL 的媒体分析、候选、预设、估算、Task、资源池 execution Scheduler、Pipeline、输出事务和 Runtime Schema 不迁入 FEngine。FEngine 将 FLL execution event 转换为带 Client identity、资源池和全局 sequence 的协议事件，但不成为 Task state 或按池 LIFO 恢复栈的第二权威源，也不解释 Snapshot 中的逐轨保留集合、AAC 码率、采样率和声道 selection。FLL Runtime 从冻结的 Candidate 构建并路由 native execution plan；默认 Runtime 已能执行可兼容的 packet stream-copy/remux、严格限定的单 SDR 视频加多条 PCM/AAC 音轨的 H.264/AAC MP4 转码，以及多条 PCM/AAC 音轨的 AAC M4A 压缩。其他转换组合仍 fail closed。
+FLL 的媒体分析、候选、预设、估算、Task、资源池 execution Scheduler、Pipeline、输出事务和 Runtime Schema 不迁入 FEngine。FEngine 将 FLL execution event 转换为带 Client identity、资源池和全局 sequence 的协议事件，但不成为 Task state 或按池 LIFO 恢复栈的第二权威源，也不解释 Snapshot 中的逐轨保留集合、AAC 参数或图片质量、无损、缩放 selection。FLL Runtime 从冻结的 Candidate 构建并路由 native execution plan；默认 Runtime 已能执行可兼容的 packet stream-copy/remux、严格限定的视频/音频转码，以及 JPEG/PNG/WebP 静态图片转码。其他转换组合仍 fail closed。
 
-FEngine release binary 通过 `scripts/build/with_bundled_ffmpeg.sh` 链接 `build/dependencies/ffmpeg/<platform>/` 中的 static libav SDK，不允许 system/Homebrew fallback。macOS 和 Windows Desktop package 只携带 `framelean-engine`，不再携带或启动 ffmpeg/ffprobe CLI；macOS 构建会用 `otool -L` 拒绝动态 libav，Windows 构建会用 `objdump -p` 拒绝动态 libav 和 GNU runtime DLL。
+FEngine release 构建通过 `scripts/build/with_bundled_ffmpeg.sh` 使用 `build/dependencies/ffmpeg/<platform>/` 中的 static libav SDK；FLL 动态库承载实际的 FLL Runtime 与 native media code，FEngine 同时保留兼容测试所需的 Rust 依赖。macOS 和 Windows Desktop package 会同时携带 `framelean-engine` 与同目录的 `libframelean_fll.dylib` / `framelean_fll.dll`，不携带或启动 ffmpeg/ffprobe CLI；构建会分别检查 FEngine/FLL 不依赖动态 libav，Windows 还检查 GNU runtime DLL。
+
+Phase 2A 的生产 Runtime 路径是 `Worker/CLI -> DynamicRuntimeHost -> libloading -> framelean_fll -> FLL Runtime`。动态库发现只使用 `FRAMELEAN_FLL_LIBRARY` 的显式开发路径或 FEngine 可执行文件同目录的受信任打包位置；缺少动态库、bootstrap、ABI 或 Runtime 创建失败都会 fail-closed。FEngine 仍直接使用 FLL typed DTO，Phase 2B 才迁移 protocol/worker/snapshot-facing 模型并移除静态 FLL Cargo 依赖。
 
 `GeneratePreviewFrames` 与 `GenerateVideoThumbnail` 属于 FEngine Control queue。FEngine 只负责协议、源事实校验和 artifact 事件映射，实际解码、缩放、黑帧判断与 BMP 写入由 FLL `framelean-ffmpeg` 完成。

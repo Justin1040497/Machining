@@ -19,4 +19,5 @@ framelean-ffmpeg = { path = "../fll/crates/framelean-ffmpeg" }
 clap = { version = "4", features = ["derive"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+libloading = "0.8"
 uuid = { version = "1", features = ["v4"] }
