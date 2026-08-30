@@ -21,13 +21,9 @@ BUILD_DIR="${ROOT}/build/ffmpeg-macos-${ARCH_LABEL}"
 SRC_DIR="${BUILD_DIR}/src"
 PREFIX="${BUILD_DIR}/dist"
 OUT_DIR="${ROOT}/build/dependencies/ffmpeg/macos-${ARCH_LABEL}"
-FFMPEG_VERSION="${FFMPEG_VERSION:-7.1.1}"
-LAME_VERSION="${LAME_VERSION:-3.100}"
+FFMPEG_VERSION="${FFMPEG_VERSION:-9.0}"
 LIBWEBP_VERSION="${LIBWEBP_VERSION:-1.5.0}"
-OPUS_VERSION="${OPUS_VERSION:-1.5.2}"
-ZIMG_VERSION="${ZIMG_VERSION:-3.0.6}"
-LIBVPX_VERSION="${LIBVPX_VERSION:-1.15.2}"
-SVT_AV1_VERSION="${SVT_AV1_VERSION:-2.3.0}"
+X264_COMMIT="${X264_COMMIT:-0480cb05fa188d37ae87e8f4fd8f1aea3711f7ee}"
 MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-10.15}"
 JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 ARCH_FLAGS="-arch ${ARCH} -mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET}"
@@ -37,6 +33,26 @@ require_command() {
     echo "error: missing required command: $1" >&2
     exit 1
   fi
+}
+
+download_archive() {
+  local url="$1"
+  local archive="$2"
+  local partial_archive="${archive}.partial"
+
+  if [[ -f "$archive" ]] && tar -tf "$archive" >/dev/null 2>&1; then
+    return
+  fi
+
+  rm -f "$archive" "$partial_archive"
+  curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 \
+    --output "$partial_archive" "$url"
+  if ! tar -tf "$partial_archive" >/dev/null 2>&1; then
+    echo "error: downloaded archive is invalid: $url" >&2
+    rm -f "$partial_archive"
+    exit 1
+  fi
+  mv "$partial_archive" "$archive"
 }
 
 if [[ "$(uname -s)" != "Darwin" ]]; then
@@ -49,89 +65,21 @@ if [[ "$(uname -m)" != "$ARCH" ]]; then
   exit 1
 fi
 
-for command_name in clang cmake cp curl find git install lipo make nasm pkg-config sed tar; do
+for command_name in clang clang++ cmake cp curl find git install lipo make nasm pkg-config sed tar xcrun; do
   require_command "$command_name"
 done
+
+SDK_PATH="$(xcrun --show-sdk-path)"
+LIBCXX_SDK_FLAGS="-isysroot ${SDK_PATH} -isystem ${SDK_PATH}/usr/include/c++/v1"
 
 export MACOSX_DEPLOYMENT_TARGET
 rm -rf "$PREFIX"
 mkdir -p "$SRC_DIR" "$PREFIX" "$OUT_DIR"
 
 cd "$SRC_DIR"
-if [[ ! -f "lame-${LAME_VERSION}.tar.gz" ]]; then
-  curl -L \
-    "https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz" \
-    -o "lame-${LAME_VERSION}.tar.gz"
-fi
-
-rm -rf "lame-${LAME_VERSION}"
-tar -xf "lame-${LAME_VERSION}.tar.gz"
-
-cd "$SRC_DIR/lame-${LAME_VERSION}"
-make distclean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static \
-    --disable-frontend
-make -j"$JOBS"
-make install
-
-cd "$SRC_DIR"
-if [[ ! -f "libvpx-${LIBVPX_VERSION}.tar.gz" ]]; then
-  curl -L \
-    "https://github.com/webmproject/libvpx/archive/refs/tags/v${LIBVPX_VERSION}.tar.gz" \
-    -o "libvpx-${LIBVPX_VERSION}.tar.gz"
-fi
-
-rm -rf "libvpx-${LIBVPX_VERSION}"
-tar -xf "libvpx-${LIBVPX_VERSION}.tar.gz"
-
-cd "$SRC_DIR/libvpx-${LIBVPX_VERSION}"
-make clean >/dev/null 2>&1 || true
-./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static \
-    --disable-examples \
-    --disable-tools \
-    --disable-unit-tests \
-    --disable-docs \
-    --extra-cflags="$ARCH_FLAGS"
-make -j"$JOBS"
-make install
-
-cd "$SRC_DIR"
-if [[ ! -f "svt-av1-${SVT_AV1_VERSION}.tar.gz" ]]; then
-  curl -L \
-    "https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v${SVT_AV1_VERSION}/SVT-AV1-v${SVT_AV1_VERSION}.tar.gz" \
-    -o "svt-av1-${SVT_AV1_VERSION}.tar.gz"
-fi
-
-rm -rf "SVT-AV1-v${SVT_AV1_VERSION}"
-tar -xf "svt-av1-${SVT_AV1_VERSION}.tar.gz"
-
-cmake \
-  -S "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}" \
-  -B "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean" \
-  -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_INSTALL_PREFIX="$PREFIX" \
-  -DCMAKE_OSX_ARCHITECTURES="$ARCH" \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET="$MACOSX_DEPLOYMENT_TARGET" \
-  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
-  -DBUILD_SHARED_LIBS=OFF \
-  -DBUILD_APPS=OFF \
-  -DBUILD_TESTING=OFF
-cmake --build "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean" --parallel "$JOBS"
-cmake --install "$SRC_DIR/SVT-AV1-v${SVT_AV1_VERSION}/Build/framelean"
-
-cd "$SRC_DIR"
-if [[ ! -f "libwebp-${LIBWEBP_VERSION}.tar.gz" ]]; then
-  curl -L \
-    "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz" \
-    -o "libwebp-${LIBWEBP_VERSION}.tar.gz"
-fi
+download_archive \
+  "https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz" \
+  "libwebp-${LIBWEBP_VERSION}.tar.gz"
 
 rm -rf "libwebp-${LIBWEBP_VERSION}"
 tar -xf "libwebp-${LIBWEBP_VERSION}.tar.gz"
@@ -154,62 +102,16 @@ make -j"$JOBS"
 make install
 
 cd "$SRC_DIR"
-if [[ ! -f "opus-${OPUS_VERSION}.tar.gz" ]]; then
-  curl -L \
-    "https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz" \
-    -o "opus-${OPUS_VERSION}.tar.gz"
-fi
-
-rm -rf "opus-${OPUS_VERSION}"
-tar -xf "opus-${OPUS_VERSION}.tar.gz"
-
-cd "$SRC_DIR/opus-${OPUS_VERSION}"
-make distclean >/dev/null 2>&1 || true
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  ./configure \
-    --prefix="$PREFIX" \
-    --disable-shared \
-    --enable-static \
-    --disable-extra-programs \
-    --disable-doc
-make -j"$JOBS"
-make install
-
-cd "$SRC_DIR"
-if [[ ! -f "zimg-release-${ZIMG_VERSION}.tar.gz" ]]; then
-  curl -L \
-    "https://github.com/sekrit-twc/zimg/archive/refs/tags/release-${ZIMG_VERSION}.tar.gz" \
-    -o "zimg-release-${ZIMG_VERSION}.tar.gz"
-fi
-
-rm -rf "zimg-release-${ZIMG_VERSION}"
-tar -xf "zimg-release-${ZIMG_VERSION}.tar.gz"
-
-cd "$SRC_DIR/zimg-release-${ZIMG_VERSION}"
-make distclean >/dev/null 2>&1 || true
-if [[ ! -x ./configure ]]; then
-  for command_name in autoreconf aclocal automake glibtoolize; do
-    require_command "$command_name"
-  done
-  bash ./autogen.sh
-fi
-CFLAGS="$ARCH_FLAGS" CXXFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
-  CC=clang \
-  CXX=clang++ \
-STL_LIBS="-lc++" ./configure \
-  --prefix="$PREFIX" \
-  --disable-shared \
-  --enable-static
-make -j"$JOBS"
-make install
-
-cd "$SRC_DIR"
 if [[ ! -d x264 ]]; then
   git clone https://code.videolan.org/videolan/x264.git
 fi
 
 cd "$SRC_DIR/x264"
-git fetch --tags --quiet || echo "warning: x264 fetch failed; using the local checkout"
+git fetch --quiet origin "$X264_COMMIT" || echo "warning: x264 fetch failed; using the local checkout"
+if ! git checkout --quiet --detach "$X264_COMMIT"; then
+  echo "error: x264 commit is unavailable: $X264_COMMIT" >&2
+  exit 1
+fi
 make distclean >/dev/null 2>&1 || true
 CFLAGS="$ARCH_FLAGS" LDFLAGS="$ARCH_FLAGS" \
   ./configure \
@@ -221,10 +123,9 @@ make -j"$JOBS"
 make install
 
 cd "$SRC_DIR"
-if [[ ! -f "ffmpeg-${FFMPEG_VERSION}.tar.xz" ]]; then
-  curl -L "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
-    -o "ffmpeg-${FFMPEG_VERSION}.tar.xz"
-fi
+download_archive \
+  "https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz" \
+  "ffmpeg-${FFMPEG_VERSION}.tar.xz"
 
 rm -rf "ffmpeg-${FFMPEG_VERSION}"
 tar -xf "ffmpeg-${FFMPEG_VERSION}.tar.xz"
@@ -242,12 +143,7 @@ PKG_CONFIG_LIBDIR="${PREFIX}/lib/pkgconfig" \
   --enable-gpl \
   --enable-version3 \
   --enable-libx264 \
-  --enable-libmp3lame \
   --enable-libwebp \
-  --enable-libopus \
-  --enable-libzimg \
-  --enable-libvpx \
-  --enable-libsvtav1 \
   --enable-videotoolbox \
   --enable-audiotoolbox \
   --disable-shared \
@@ -294,18 +190,9 @@ done < <(find "$OUT_DIR/lib/pkgconfig" -maxdepth 1 -type f -name '*.pc' -print)
 cat > "$OUT_DIR/ffmpeg-build-info.txt" <<EOF
 FFmpeg version: ${FFMPEG_VERSION}
 x264 source: https://code.videolan.org/videolan/x264.git
-LAME version: ${LAME_VERSION}
-LAME source: https://downloads.sourceforge.net/project/lame/lame/${LAME_VERSION}/lame-${LAME_VERSION}.tar.gz
+x264 commit: ${X264_COMMIT}
 libwebp version: ${LIBWEBP_VERSION}
 libwebp source: https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz
-Opus version: ${OPUS_VERSION}
-Opus source: https://downloads.xiph.org/releases/opus/opus-${OPUS_VERSION}.tar.gz
-zimg version: ${ZIMG_VERSION}
-zimg source: https://github.com/sekrit-twc/zimg/archive/refs/tags/release-${ZIMG_VERSION}.tar.gz
-libvpx version: ${LIBVPX_VERSION}
-libvpx source: https://github.com/webmproject/libvpx/archive/refs/tags/v${LIBVPX_VERSION}.tar.gz
-SVT-AV1 version: ${SVT_AV1_VERSION}
-SVT-AV1 source: https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v${SVT_AV1_VERSION}/SVT-AV1-v${SVT_AV1_VERSION}.tar.gz
 FFmpeg source: https://ffmpeg.org/releases/ffmpeg-${FFMPEG_VERSION}.tar.xz
 Target: macOS ${ARCH}
 Minimum macOS: ${MACOSX_DEPLOYMENT_TARGET}
