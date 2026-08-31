@@ -65,7 +65,7 @@ pub trait RuntimeHost: Send {
         request: ExecutionSubmissionRequest,
     ) -> Result<ExecutionSubmissionResult>;
 
-    fn drain_execution_events(&mut self) -> Vec<ExecutionRuntimeEvent>;
+    fn drain_execution_events(&mut self) -> Result<Vec<ExecutionRuntimeEvent>>;
 
     fn execution_snapshot(&self) -> Result<ExecutionLaneSnapshot>;
 
@@ -192,8 +192,8 @@ impl RuntimeHost for EngineRuntime {
         EngineRuntime::submit_execution(self, request)
     }
 
-    fn drain_execution_events(&mut self) -> Vec<ExecutionRuntimeEvent> {
-        EngineRuntime::drain_execution_events(self)
+    fn drain_execution_events(&mut self) -> Result<Vec<ExecutionRuntimeEvent>> {
+        Ok(EngineRuntime::drain_execution_events(self))
     }
 
     fn execution_snapshot(&self) -> Result<ExecutionLaneSnapshot> {

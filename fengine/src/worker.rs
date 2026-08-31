@@ -2258,11 +2258,21 @@ fn run_executor<R, S>(
             Err(mpsc::RecvTimeoutError::Timeout) => {}
             Err(mpsc::RecvTimeoutError::Disconnected) => break,
         }
-        for event in runtime.drain_execution_events() {
-            if result_tx
-                .send(CoordinatorMessage::RuntimeExecutionEvent(event))
-                .is_err()
-            {
+        match runtime.drain_execution_events() {
+            Ok(events) => {
+                for event in events {
+                    if result_tx
+                        .send(CoordinatorMessage::RuntimeExecutionEvent(event))
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+            Err(error) => {
+                let _ = result_tx.send(CoordinatorMessage::Runtime(RuntimeResult::Fatal(
+                    runtime_error(error),
+                )));
                 return;
             }
         }
