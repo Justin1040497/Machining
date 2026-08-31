@@ -165,7 +165,7 @@ pub(super) fn transcode_video(
             request.output_pixel_format
         )));
     }
-    if !codec_supports_pixel_format(encoder, pixel_format) {
+    if !codec_supports_pixel_format(encoder, pixel_format)? {
         return Err(chain_not_ready(format!(
             "encoder {} does not support pixel format {}",
             request.encoder_name, request.output_pixel_format
@@ -587,7 +587,7 @@ impl CodecContext {
         let channel_count = target_channel_count
             .map(|value| value.min(i32::MAX as u32) as i32)
             .unwrap_or(decoder.ch_layout.nb_channels);
-        if !codec_supports_sample_rate(codec, sample_rate) {
+        if !codec_supports_sample_rate(codec, sample_rate)? {
             return Err(chain_not_ready(
                 "selected audio encoder does not support the target sample rate",
             ));
@@ -596,14 +596,15 @@ impl CodecContext {
         let mut target_layout: ffi::AVChannelLayout = unsafe { std::mem::zeroed() };
         // SAFETY: target_layout is uninitialized and channel_count is positive.
         unsafe { ffi::av_channel_layout_default(&mut target_layout, channel_count) };
-        if target_layout.nb_channels <= 0 || !codec_supports_channel_layout(codec, &target_layout) {
+        if target_layout.nb_channels <= 0 || !codec_supports_channel_layout(codec, &target_layout)?
+        {
             // SAFETY: target_layout was initialized above.
             unsafe { ffi::av_channel_layout_uninit(&mut target_layout) };
             return Err(chain_not_ready(
                 "selected audio encoder does not support the target channel layout",
             ));
         }
-        let sample_format = first_codec_sample_format(codec).ok_or_else(|| {
+        let sample_format = first_codec_sample_format(codec)?.ok_or_else(|| {
             chain_not_ready("selected audio encoder does not expose a sample format")
         })?;
         // SAFETY: codec is a process-owned descriptor returned by libavcodec.
@@ -1437,79 +1438,124 @@ fn valid_frame_rate(value: ffi::AVRational) -> ffi::AVRational {
 fn codec_supports_pixel_format(
     codec: *const ffi::AVCodec,
     pixel_format: ffi::AVPixelFormat,
-) -> bool {
-    // SAFETY: codec is a valid process-owned descriptor.
-    let formats = unsafe { (*codec).pix_fmts };
-    if formats.is_null() {
-        return false;
-    }
-    let mut index = 0;
-    loop {
-        // SAFETY: pix_fmts is terminated by AV_PIX_FMT_NONE.
-        let current = unsafe { *formats.add(index) };
-        if current == ffi::AV_PIX_FMT_NONE {
-            return false;
+) -> Result<bool> {
+    let Some((configs, config_count)) = codec_supported_config(
+        codec,
+        ffi::AV_CODEC_CONFIG_PIX_FORMAT,
+        "failed to query encoder pixel-format capabilities",
+    )?
+    else {
+        // Preserve the previous conservative policy for an unrestricted/null list.
+        return Ok(false);
+    };
+    let formats = configs.cast::<ffi::AVPixelFormat>();
+    for index in 0..config_count {
+        // SAFETY: libavcodec returned config_count elements in the capability array.
+        if unsafe { *formats.add(index) } == pixel_format {
+            return Ok(true);
         }
-        if current == pixel_format {
-            return true;
-        }
-        index += 1;
     }
+    Ok(false)
 }
 
-fn first_codec_sample_format(codec: *const ffi::AVCodec) -> Option<ffi::AVSampleFormat> {
-    // SAFETY: codec is a valid process-owned descriptor.
-    let formats = unsafe { (*codec).sample_fmts };
-    if formats.is_null() {
-        return None;
+fn codec_supported_config(
+    codec: *const ffi::AVCodec,
+    config: ffi::AVCodecConfig,
+    description: &str,
+) -> Result<Option<(*const c_void, usize)>> {
+    let mut configs = ptr::null();
+    let mut config_count = 0;
+    // SAFETY: codec is a valid process-owned descriptor; the output pointers are local and the
+    // returned configuration memory is owned by libavcodec for the lifetime of the codec.
+    let result = unsafe {
+        ffi::avcodec_get_supported_config(
+            ptr::null(),
+            codec,
+            config,
+            0,
+            &mut configs,
+            &mut config_count,
+        )
+    };
+    if result < 0 {
+        return Err(native_execution_error(
+            EngineErrorCode::MediaCapabilityIncompatible,
+            description,
+            result,
+        ));
     }
-    // SAFETY: sample_fmts is terminated by AV_SAMPLE_FMT_NONE.
+    if configs.is_null() {
+        return Ok(None);
+    }
+    if config_count < 0 {
+        return Err(EngineError::with_code(
+            ErrorKind::NativeLibrary,
+            EngineErrorCode::MediaCapabilityIncompatible,
+            "FFmpeg returned a negative codec capability count",
+        ));
+    }
+    Ok(Some((configs, config_count as usize)))
+}
+
+fn first_codec_sample_format(codec: *const ffi::AVCodec) -> Result<Option<ffi::AVSampleFormat>> {
+    let Some((configs, config_count)) = codec_supported_config(
+        codec,
+        ffi::AV_CODEC_CONFIG_SAMPLE_FORMAT,
+        "failed to query encoder sample-format capabilities",
+    )?
+    else {
+        return Ok(None);
+    };
+    if config_count == 0 {
+        return Ok(None);
+    }
+    let formats = configs.cast::<ffi::AVSampleFormat>();
+    // SAFETY: libavcodec returned at least one sample format.
     let format = unsafe { *formats };
-    (format != ffi::AV_SAMPLE_FMT_NONE).then_some(format)
+    Ok((format != ffi::AV_SAMPLE_FMT_NONE).then_some(format))
 }
 
-fn codec_supports_sample_rate(codec: *const ffi::AVCodec, sample_rate: i32) -> bool {
-    // SAFETY: codec is a valid process-owned descriptor.
-    let rates = unsafe { (*codec).supported_samplerates };
-    if rates.is_null() {
-        return true;
-    }
-    let mut index = 0;
-    loop {
-        // SAFETY: supported_samplerates is terminated by zero.
-        let rate = unsafe { *rates.add(index) };
-        if rate == 0 {
-            return false;
+fn codec_supports_sample_rate(codec: *const ffi::AVCodec, sample_rate: i32) -> Result<bool> {
+    let Some((configs, config_count)) = codec_supported_config(
+        codec,
+        ffi::AV_CODEC_CONFIG_SAMPLE_RATE,
+        "failed to query encoder sample-rate capabilities",
+    )?
+    else {
+        return Ok(true);
+    };
+    let rates = configs.cast::<i32>();
+    for index in 0..config_count {
+        // SAFETY: libavcodec returned config_count elements in the capability array.
+        if unsafe { *rates.add(index) } == sample_rate {
+            return Ok(true);
         }
-        if rate == sample_rate {
-            return true;
-        }
-        index += 1;
     }
+    Ok(false)
 }
 
 fn codec_supports_channel_layout(
     codec: *const ffi::AVCodec,
     layout: &ffi::AVChannelLayout,
-) -> bool {
-    // SAFETY: codec is a valid process-owned descriptor.
-    let layouts = unsafe { (*codec).ch_layouts };
-    if layouts.is_null() {
-        return true;
-    }
-    let mut index = 0;
-    loop {
-        // SAFETY: ch_layouts is terminated by a layout with zero channels.
+) -> Result<bool> {
+    let Some((configs, config_count)) = codec_supported_config(
+        codec,
+        ffi::AV_CODEC_CONFIG_CHANNEL_LAYOUT,
+        "failed to query encoder channel-layout capabilities",
+    )?
+    else {
+        return Ok(true);
+    };
+    let layouts = configs.cast::<ffi::AVChannelLayout>();
+    for index in 0..config_count {
+        // SAFETY: libavcodec returned config_count initialized channel layouts.
         let candidate = unsafe { &*layouts.add(index) };
-        if candidate.nb_channels == 0 {
-            return false;
-        }
         // SAFETY: both layouts are initialized and valid.
         if unsafe { ffi::av_channel_layout_compare(candidate, layout) } == 0 {
-            return true;
+            return Ok(true);
         }
-        index += 1;
     }
+    Ok(false)
 }
 
 fn set_dictionary_option(

@@ -1,18 +1,165 @@
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 
-use framelean_core::{AnalysisId, EngineErrorCode};
-use framelean_runtime::{
-    AnalysisRevision, AnalysisSnapshotView, AnalyzeMediaResponse, ExecutionLaneSnapshot,
-    ExecutionOutputRequest, ExecutionPauseReason, ExecutionProgress, ExecutionResourcePool,
-    ExecutionSubmissionResult, ExecutionTaskState, RecalculateSelection, TaskMode,
-};
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 use crate::work_queue::WorkPriority;
 
 pub const PROTOCOL_VERSION: u32 = 1;
 pub const MAX_FRAME_BYTES: usize = 16 * 1024 * 1024;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AnalysisId(String);
+
+impl AnalysisId {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn into_string(self) -> String {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct ExecutionId(String);
+
+impl ExecutionId {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+
+    pub fn into_string(self) -> String {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct AnalysisRevision(u64);
+
+impl AnalysisRevision {
+    pub const fn new(value: u64) -> Self {
+        Self(value)
+    }
+
+    pub const fn value(self) -> u64 {
+        self.0
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum TaskMode {
+    VideoCompress,
+    VideoConvert,
+    AudioCompress,
+    AudioConvert,
+    ImageCompress,
+    ImageConvert,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum OutputCollisionPolicy {
+    FailIfExists,
+    GenerateUnique,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionOutputRequest {
+    pub requested_path: PathBuf,
+    pub collision_policy: OutputCollisionPolicy,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionTaskState {
+    Queued,
+    Running,
+    Preempting,
+    Preempted,
+    Resuming,
+    PauseRequested,
+    Paused,
+    CancelRequested,
+    Cancelled,
+    Completed,
+    Failed,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionPauseReason {
+    User,
+    Preemption,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ExecutionResourcePool {
+    Video,
+    Auxiliary,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub struct ExecutionProgress {
+    pub media_time_us: u64,
+    pub processed_bytes: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionSubmissionResult {
+    pub execution_id: ExecutionId,
+    pub state: ExecutionTaskState,
+    pub queue_position: usize,
+    pub queue_revision: u64,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ScheduledExecution {
+    pub execution_id: ExecutionId,
+    pub resource_pool: ExecutionResourcePool,
+    pub state: ExecutionTaskState,
+    pub pause_reason: Option<ExecutionPauseReason>,
+    pub preempted_by_execution_id: Option<ExecutionId>,
+    pub checkpoint: Option<Value>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionLaneSnapshot {
+    pub queue_revision: u64,
+    pub active_executions: Vec<ScheduledExecution>,
+    pub normal_waiting: Vec<ScheduledExecution>,
+    pub video_resume_stack: Vec<ScheduledExecution>,
+    pub auxiliary_resume_stack: Vec<ScheduledExecution>,
+    pub user_paused: Vec<ScheduledExecution>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(transparent)]
+pub struct EngineErrorCode(String);
+
+impl EngineErrorCode {
+    pub fn new(value: impl Into<String>) -> Self {
+        Self(value.into())
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RequestEnvelope {
@@ -132,7 +279,7 @@ pub struct SubmitExecutionCommand {
     pub client_task_id: String,
     pub analysis_id: AnalysisId,
     pub expected_revision: AnalysisRevision,
-    pub selection: RecalculateSelection,
+    pub selection: Value,
     pub output: ExecutionOutputRequest,
     #[serde(default)]
     pub priority: WorkPriority,
@@ -155,7 +302,7 @@ pub struct BatchSubmissionItem {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PreemptAndStartCommand {
-    pub execution_id: framelean_core::TaskId,
+    pub execution_id: ExecutionId,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -175,7 +322,7 @@ pub struct AnalysisQueuePosition {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutionQueuePosition {
-    pub execution_id: framelean_core::TaskId,
+    pub execution_id: ExecutionId,
     pub client_task_id: String,
     pub queue_position: usize,
 }
@@ -199,7 +346,7 @@ pub enum ExecutionControlAction {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ControlExecutionCommand {
-    pub execution_id: framelean_core::TaskId,
+    pub execution_id: ExecutionId,
     pub action: ExecutionControlAction,
 }
 
@@ -212,7 +359,7 @@ pub struct AnalysisQueueEntrySnapshot {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TerminalExecutionSnapshot {
-    pub execution_id: framelean_core::TaskId,
+    pub execution_id: ExecutionId,
     pub client_task_id: String,
     pub resource_pool: ExecutionResourcePool,
     pub state: ExecutionTaskState,
@@ -324,12 +471,12 @@ pub enum WorkerEvent {
         work_id: String,
         client_task_id: String,
         client_file_id: String,
-        analysis: Box<AnalyzeMediaResponse>,
-        snapshot: Option<Box<AnalysisSnapshotView>>,
+        analysis: Box<Value>,
+        snapshot: Option<Box<Value>>,
     },
     AnalysisSnapshotReady {
         work_id: String,
-        snapshot: Box<AnalysisSnapshotView>,
+        snapshot: Box<Value>,
     },
     PreviewFramesReady {
         work_id: String,
@@ -352,7 +499,7 @@ pub enum WorkerEvent {
     },
     ExecutionControlAccepted {
         work_id: String,
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         state: ExecutionTaskState,
     },
     QueueOrderApplied {
@@ -365,56 +512,56 @@ pub enum WorkerEvent {
         snapshot: Box<EngineStateSnapshot>,
     },
     ExecutionStarted {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         state: ExecutionTaskState,
         resume_depth: usize,
     },
     ExecutionProgress {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         progress: ExecutionProgress,
         resume_depth: usize,
     },
     ExecutionPaused {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         pause_reason: Option<ExecutionPauseReason>,
-        preempted_by_execution_id: Option<framelean_core::TaskId>,
+        preempted_by_execution_id: Option<ExecutionId>,
         resume_depth: usize,
     },
     ExecutionResumed {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         resume_depth: usize,
     },
     ExecutionStateChanged {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         state: ExecutionTaskState,
         pause_reason: Option<ExecutionPauseReason>,
-        preempted_by_execution_id: Option<framelean_core::TaskId>,
+        preempted_by_execution_id: Option<ExecutionId>,
         resume_depth: usize,
     },
     Warning {
         client_task_id: Option<String>,
-        execution_id: Option<framelean_core::TaskId>,
+        execution_id: Option<ExecutionId>,
         engine_code: Option<EngineErrorCode>,
         message: String,
     },
     ExecutionCompleted {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         output_path: PathBuf,
     },
     ExecutionFailed {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         engine_code: Option<EngineErrorCode>,
@@ -422,7 +569,7 @@ pub enum WorkerEvent {
         resume_depth: usize,
     },
     ExecutionCancelled {
-        execution_id: framelean_core::TaskId,
+        execution_id: ExecutionId,
         client_task_id: String,
         resource_pool: ExecutionResourcePool,
         resume_depth: usize,
@@ -700,7 +847,7 @@ mod tests {
     }
 
     #[test]
-    fn execution_submission_wire_shape_uses_fll_payloads_without_client_identity_leakage() {
+    fn execution_submission_wire_shape_preserves_protocol_fields_without_client_identity_leakage() {
         let request: RequestEnvelope = serde_json::from_value(serde_json::json!({
             "protocol_version": PROTOCOL_VERSION,
             "session_id": "session-test",
@@ -743,8 +890,8 @@ mod tests {
             work_id: "work-1".to_owned(),
             client_task_id: command.client_task_id,
             submission: Box::new(ExecutionSubmissionResult {
-                execution_id: framelean_core::TaskId::new("task-1").unwrap(),
-                state: framelean_runtime::ExecutionTaskState::Queued,
+                execution_id: ExecutionId::new("task-1"),
+                state: ExecutionTaskState::Queued,
                 queue_position: 1,
                 queue_revision: 7,
             }),
@@ -760,6 +907,83 @@ mod tests {
             encoded["payload"]["submission"]
                 .get("client_task_id")
                 .is_none()
+        );
+    }
+
+    #[test]
+    fn protocol_models_preserve_opaque_payloads_and_unknown_engine_codes() {
+        let selection = serde_json::json!({
+            "mode": "manual",
+            "selection": {
+                "candidate_id": "chain-1",
+                "future_override": {"quality": "lossless"}
+            },
+            "future_selection_field": true
+        });
+        let command = WorkerCommand::SubmitExecution(SubmitExecutionCommand {
+            client_task_id: "client-task-1".to_owned(),
+            analysis_id: AnalysisId::new("analysis-1"),
+            expected_revision: AnalysisRevision::new(3),
+            selection: selection.clone(),
+            output: ExecutionOutputRequest {
+                requested_path: PathBuf::from("/tmp/output.mp4"),
+                collision_policy: OutputCollisionPolicy::GenerateUnique,
+            },
+            priority: WorkPriority::Foreground,
+        });
+        let encoded_command = serde_json::to_value(&command).unwrap();
+        assert_eq!(encoded_command["type"], "submit_execution");
+        assert_eq!(encoded_command["payload"]["analysis_id"], "analysis-1");
+        assert_eq!(encoded_command["payload"]["expected_revision"], 3);
+        assert_eq!(encoded_command["payload"]["selection"], selection);
+        assert_eq!(
+            encoded_command["payload"]["output"]["collision_policy"],
+            "generate_unique"
+        );
+
+        let event = WorkerEvent::AnalysisCompleted {
+            work_id: "work-1".to_owned(),
+            client_task_id: "client-task-1".to_owned(),
+            client_file_id: "file-1".to_owned(),
+            analysis: Box::new(serde_json::json!({
+                "analysis_id": "analysis-1",
+                "future_analysis_field": {"version": 2}
+            })),
+            snapshot: Some(Box::new(serde_json::json!({
+                "analysis_id": "analysis-1",
+                "future_snapshot_field": ["kept"]
+            }))),
+        };
+        let encoded_event = serde_json::to_value(event).unwrap();
+        assert_eq!(
+            encoded_event["payload"]["analysis"]["future_analysis_field"]["version"],
+            2
+        );
+        assert_eq!(
+            encoded_event["payload"]["snapshot"]["future_snapshot_field"][0],
+            "kept"
+        );
+        assert!(encoded_event["payload"]["analysis"].get("raw").is_none());
+        assert!(encoded_event["payload"]["snapshot"].get("raw").is_none());
+
+        let decoded_error: WorkerError = serde_json::from_value(serde_json::json!({
+            "code": "RUNTIME_FAILURE",
+            "engine_code": "FUTURE_ENGINE_CODE",
+            "message": "future code is accepted",
+            "retryable": false
+        }))
+        .unwrap();
+        assert_eq!(
+            decoded_error.engine_code,
+            Some(EngineErrorCode::new("FUTURE_ENGINE_CODE"))
+        );
+        assert_eq!(
+            serde_json::to_value(ExecutionTaskState::PauseRequested).unwrap(),
+            "pause_requested"
+        );
+        assert_eq!(
+            serde_json::to_value(TaskMode::VideoCompress).unwrap(),
+            "video_compress"
         );
     }
 }
