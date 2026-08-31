@@ -296,6 +296,45 @@ mod tests {
     }
 
     #[test]
+    fn lane_projection_preserves_legacy_shape_and_opaque_checkpoint() {
+        let value = serde_json::json!({
+            "queue_revision": 11,
+            "active_executions": [{
+                "execution_id": "execution-1",
+                "resource_pool": "video",
+                "state": "paused",
+                "pause_reason": "preemption",
+                "preempted_by_execution_id": "execution-2",
+                "checkpoint": {
+                    "media_time_us": 17,
+                    "processed_bytes": 23,
+                    "opaque_token": "future-token"
+                }
+            }],
+            "normal_waiting": [],
+            "video_resume_stack": [],
+            "auxiliary_resume_stack": [],
+            "user_paused": []
+        });
+        let local: ExecutionLaneSnapshot = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(local).unwrap(), value);
+    }
+
+    #[test]
+    fn reorder_request_round_trips_with_transparent_execution_ids() {
+        let request = ReorderExecutionsRequest {
+            expected_revision: 4,
+            ordered_execution_ids: vec![
+                ExecutionId::new("execution-2"),
+                ExecutionId::new("execution-1"),
+            ],
+        };
+        let value = serde_json::to_value(&request).unwrap();
+        let decoded: ReorderExecutionsRequest = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(decoded).unwrap(), value);
+    }
+
+    #[test]
     fn event_shape_uses_transparent_ids_and_projection_labels() {
         let event = ExecutionEvent {
             execution_id: ExecutionId::new("execution-1"),
@@ -318,5 +357,24 @@ mod tests {
         assert_eq!(value["resource_pool"], "auxiliary");
         assert_eq!(value["state"], "paused");
         assert_eq!(value["error_code"], "EXTERNAL_CODE");
+    }
+
+    #[test]
+    fn event_wire_shape_matches_legacy_document_and_accepts_unknown_code() {
+        let value = serde_json::json!({
+            "execution_id": "execution-1",
+            "resource_pool": "auxiliary",
+            "sequence": 4,
+            "state": "failed",
+            "pause_reason": null,
+            "preempted_by_execution_id": null,
+            "resume_depth": 0,
+            "progress": {"media_time_us": 12, "processed_bytes": 34},
+            "output_path": "/tmp/output.mkv",
+            "error_code": "FUTURE_EXECUTION_CODE",
+            "message": "future failure"
+        });
+        let local: ExecutionEvent = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(local).unwrap(), value);
     }
 }

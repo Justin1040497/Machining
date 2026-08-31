@@ -303,6 +303,19 @@ mod tests {
     }
 
     #[test]
+    fn snapshot_view_preserves_raw_json_through_serde() {
+        let value = json!({
+            "analysis_id": "analysis-1",
+            "analysis_revision": 8,
+            "future_snapshot_field": {
+                "nested": ["value", 2, true]
+            }
+        });
+        let document: AnalysisSnapshotDocument = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(document).unwrap(), value);
+    }
+
+    #[test]
     fn snapshot_record_is_opaque_to_domain_consistency() {
         let value = json!({
             "id": "snapshot-1",
@@ -315,6 +328,39 @@ mod tests {
         assert_eq!(document.identity().id, "snapshot-1");
         assert_eq!(document.identity().revision, 7);
         assert_eq!(serde_json::to_value(document).unwrap(), value);
+    }
+
+    #[test]
+    fn recalculate_document_preserves_raw_json_without_domain_validation() {
+        let value = json!({
+            "configuration_status": "future_status",
+            "selection": {"future_selection": {"enabled": true}},
+            "resolved_configuration": {"future_configuration": "opaque"},
+            "unknown_nested_field": [1, {"two": 2}]
+        });
+        let document: RecalculateConfigurationDocument =
+            serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(document).unwrap(), value);
+    }
+
+    #[test]
+    fn analysis_document_accepts_unknown_error_codes() {
+        let value = json!({
+            "analysis_id": "analysis-1",
+            "analysis_revision": 3,
+            "media_analysis_status": "failed",
+            "configuration_status": "unavailable",
+            "error": {
+                "code": "FUTURE_ANALYSIS_CODE",
+                "message": "future error",
+                "retryable": false
+            }
+        });
+        let document = AnalysisDocument::from_value(value).unwrap();
+        assert_eq!(
+            document.metadata().error.as_ref().unwrap().code.0,
+            "FUTURE_ANALYSIS_CODE"
+        );
     }
 
     #[test]

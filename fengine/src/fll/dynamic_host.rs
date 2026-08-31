@@ -452,6 +452,113 @@ mod tests {
     }
 
     #[test]
+    fn legacy_execution_request_matches_local_transport() {
+        let legacy = framelean_runtime::ExecutionSubmissionRequest {
+            analysis_id: framelean_core::AnalysisId::new("analysis-1").unwrap(),
+            expected_revision: framelean_runtime::AnalysisRevision::initial()
+                .next()
+                .unwrap(),
+            selection: framelean_runtime::RecalculateSelection::Manual(
+                framelean_runtime::ManualConfigurationSelection {
+                    candidate_id: framelean_runtime::ExecutionChainId::new("candidate-1").unwrap(),
+                    overrides: framelean_runtime::ManualSelection::empty(),
+                },
+            ),
+            output: framelean_runtime::ExecutionOutputRequest {
+                requested_path: "/tmp/output.mkv".into(),
+                collision_policy: framelean_runtime::OutputCollisionPolicy::FailIfExists,
+            },
+            context: framelean_runtime::RequestContext {
+                request_id: Some("request-1".to_owned()),
+                client_file_id: Some("file-1".to_owned()),
+                correlation_id: Some("correlation-1".to_owned()),
+            },
+        };
+        let value = serde_json::to_value(&legacy).unwrap();
+        let local: LocalExecutionSubmissionRequest =
+            DynamicRuntimeHost::decode_legacy_projection(legacy, "execution submission request")
+                .unwrap();
+        assert_eq!(serde_json::to_value(local).unwrap(), value);
+    }
+
+    #[test]
+    fn execution_result_matches_local_and_legacy_wire_shapes() {
+        let value = json!({
+            "execution_id": "execution-1",
+            "state": "queued",
+            "queue_position": 2,
+            "queue_revision": 9
+        });
+        let legacy: framelean_runtime::ExecutionSubmissionResult =
+            serde_json::from_value(value.clone()).unwrap();
+        let local: LocalExecutionSubmissionResult = serde_json::from_value(value.clone()).unwrap();
+        assert_eq!(serde_json::to_value(legacy).unwrap(), value);
+        assert_eq!(serde_json::to_value(local).unwrap(), value);
+    }
+
+    #[test]
+    fn local_lane_projection_converts_to_legacy_wire_shape() {
+        let value = json!({
+            "queue_revision": 11,
+            "active_executions": [{
+                "execution_id": "execution-1",
+                "resource_pool": "video",
+                "state": "paused",
+                "pause_reason": "preemption",
+                "preempted_by_execution_id": "execution-2",
+                "checkpoint": {
+                    "media_time_us": 17,
+                    "processed_bytes": 23,
+                    "opaque_token": "future-token"
+                }
+            }],
+            "normal_waiting": [],
+            "video_resume_stack": [],
+            "auxiliary_resume_stack": [],
+            "user_paused": []
+        });
+        let local: LocalExecutionLaneSnapshot = serde_json::from_value(value.clone()).unwrap();
+        let legacy = DynamicRuntimeHost::convert_execution_snapshot(local).unwrap();
+        assert_eq!(serde_json::to_value(legacy).unwrap(), value);
+    }
+
+    #[test]
+    fn local_event_converts_to_legacy_runtime_event_fields() {
+        let value = json!({
+            "execution_id": "execution-1",
+            "resource_pool": "auxiliary",
+            "sequence": 4,
+            "state": "failed",
+            "pause_reason": null,
+            "preempted_by_execution_id": null,
+            "resume_depth": 0,
+            "progress": {"media_time_us": 12, "processed_bytes": 34},
+            "output_path": "/tmp/output.mkv",
+            "error_code": "INTERNAL_RUNTIME_ERROR",
+            "message": "failure"
+        });
+        let local: ExecutionEvent = serde_json::from_value(value).unwrap();
+        let legacy = DynamicRuntimeHost::convert_event(local).unwrap();
+        assert_eq!(legacy.execution_id.as_str(), "execution-1");
+        assert_eq!(
+            legacy.resource_pool,
+            framelean_runtime::ExecutionResourcePool::Auxiliary
+        );
+        assert_eq!(legacy.sequence, 4);
+        assert_eq!(legacy.state, framelean_runtime::ExecutionTaskState::Failed);
+        assert_eq!(legacy.progress.unwrap().media_time_us, 12);
+        assert_eq!(
+            legacy.output_path.unwrap(),
+            PathBuf::from("/tmp/output.mkv")
+        );
+        assert_eq!(
+            legacy.error_code,
+            Some(framelean_core::EngineErrorCode::InternalRuntimeError)
+        );
+        assert_eq!(legacy.message.as_deref(), Some("failure"));
+    }
+
+    #[test]
     fn event_conversion_rejects_empty_execution_ids() {
         let bytes = serde_json::to_vec(&json!({
             "document_version": 1,
