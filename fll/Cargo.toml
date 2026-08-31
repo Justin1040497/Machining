@@ -7,6 +7,7 @@ members = [
     "crates/framelean-environment",
     "crates/framelean-decision",
     "crates/framelean-ffmpeg",
+    "crates/framelean-ffi",
     "crates/framelean-pipeline",
     "crates/framelean-plugin",
     "crates/framelean-runtime",
@@ -18,7 +19,7 @@ edition = "2024"
 publish = false
 
 [workspace.dependencies]
-blake3 = "1"
+blake3 = { version = "1", features = ["no_neon"] }
 schemars = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

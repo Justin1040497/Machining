@@ -189,6 +189,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "framelean-ffi"
+version = "0.1.0"
+dependencies = [
+ "framelean-analysis",
+ "framelean-core",
+ "framelean-decision",
+ "framelean-environment",
+ "framelean-ffmpeg",
+ "framelean-runtime",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "framelean-ffmpeg"
 version = "0.1.0"
 dependencies = [
