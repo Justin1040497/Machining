@@ -10,7 +10,7 @@ pub(crate) use analysis::{
 pub(crate) use artifacts::{
     PreviewFramesRequest, PreviewFramesResult, VideoThumbnailRequest, VideoThumbnailResult,
 };
-pub(crate) use common::{ExecutionId, FllErrorCode, ModelError};
+pub(crate) use common::{AnalysisId, ExecutionId, FllErrorCode, ModelError};
 pub(crate) use execution::{
     ExecutionEvent, ExecutionLaneSnapshot, ExecutionSubmissionRequest, ExecutionSubmissionResult,
     ReorderExecutionsRequest, ScheduledExecutionProjection,

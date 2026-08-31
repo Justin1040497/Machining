@@ -1,5 +1,21 @@
 use std::sync::Arc;
 
+use crate::runtime_api::{
+    AnalysisDocument as LocalAnalysisDocument, AnalysisId as LocalAnalysisId,
+    AnalysisSnapshotDocument as LocalAnalysisSnapshotDocument,
+    AnalysisSnapshotRecordDocument as LocalAnalysisSnapshotRecordDocument,
+    AnalyzeRequest as LocalAnalyzeRequest, ExecutionEvent as LocalExecutionEvent,
+    ExecutionId as LocalExecutionId, ExecutionLaneSnapshot as LocalExecutionLaneSnapshot,
+    ExecutionSubmissionRequest as LocalExecutionSubmissionRequest,
+    ExecutionSubmissionResult as LocalExecutionSubmissionResult,
+    PreviewFramesRequest as LocalPreviewFramesRequest,
+    PreviewFramesResult as LocalPreviewFramesResult,
+    RecalculateConfigurationDocument as LocalRecalculateConfigurationDocument,
+    RecalculateConfigurationRequest as LocalRecalculateConfigurationRequest,
+    ReorderExecutionsRequest as LocalReorderExecutionsRequest,
+    VideoThumbnailRequest as LocalVideoThumbnailRequest,
+    VideoThumbnailResult as LocalVideoThumbnailResult,
+};
 use framelean_core::{AnalysisId, Result, TaskId};
 use framelean_environment::SystemEnvironment;
 use framelean_ffmpeg::{
@@ -66,6 +82,62 @@ pub trait RuntimeHost: Send {
     fn resume_execution(&mut self, execution_id: &TaskId) -> Result<()>;
 
     fn cancel_execution(&mut self, execution_id: &TaskId) -> Result<()>;
+}
+
+pub(crate) trait RuntimeApiHost: Send {
+    fn analyze_media(&mut self, request: LocalAnalyzeRequest) -> Result<LocalAnalysisDocument>;
+
+    fn analysis_snapshot(
+        &mut self,
+        analysis_id: &LocalAnalysisId,
+    ) -> Result<LocalAnalysisSnapshotDocument>;
+
+    fn generate_preview_frames(
+        &mut self,
+        request: &LocalPreviewFramesRequest,
+    ) -> Result<LocalPreviewFramesResult>;
+
+    fn generate_video_thumbnail(
+        &mut self,
+        request: &LocalVideoThumbnailRequest,
+    ) -> Result<LocalVideoThumbnailResult>;
+
+    fn analysis_snapshot_record(
+        &mut self,
+        analysis_id: &LocalAnalysisId,
+    ) -> Result<LocalAnalysisSnapshotRecordDocument>;
+
+    fn discard_analysis_snapshot(&mut self, analysis_id: &LocalAnalysisId) -> Result<bool>;
+
+    fn restore_analysis_snapshot(
+        &mut self,
+        record: LocalAnalysisSnapshotRecordDocument,
+    ) -> Result<()>;
+
+    fn recalculate_configuration(
+        &mut self,
+        request: LocalRecalculateConfigurationRequest,
+    ) -> Result<LocalRecalculateConfigurationDocument>;
+
+    fn submit_execution(
+        &mut self,
+        request: LocalExecutionSubmissionRequest,
+    ) -> Result<LocalExecutionSubmissionResult>;
+
+    fn drain_execution_events(&mut self) -> Result<Vec<LocalExecutionEvent>>;
+
+    fn execution_snapshot(&self) -> Result<LocalExecutionLaneSnapshot>;
+
+    fn reorder_waiting_executions(&mut self, request: LocalReorderExecutionsRequest)
+    -> Result<u64>;
+
+    fn preempt_and_start_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()>;
+
+    fn pause_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()>;
+
+    fn resume_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()>;
+
+    fn cancel_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()>;
 }
 
 impl RuntimeHost for EngineRuntime {

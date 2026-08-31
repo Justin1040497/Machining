@@ -4,10 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use super::abi::DOCUMENT_VERSION;
-pub(crate) use crate::runtime_api::{
-    ExecutionEvent as ExecutionEventDocument, PreviewFramesResult as PreviewFramesResultDocument,
-    VideoThumbnailResult as VideoThumbnailResultDocument,
-};
+pub(crate) use crate::runtime_api::ExecutionEvent as ExecutionEventDocument;
 
 #[derive(Debug, Serialize)]
 pub(crate) struct RequestDocument<'a, T> {

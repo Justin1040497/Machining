@@ -15,21 +15,22 @@ use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
 
 use super::documents::{
-    ExecutionEventDocument, PreviewFramesResultDocument, RequestDocument,
-    VideoThumbnailResultDocument, decode_response, decode_response_value,
+    ExecutionEventDocument, RequestDocument, decode_response, decode_response_value,
 };
 use super::loader::{FllLoader, resolve_default_library_path};
 use crate::runtime_api::{
-    AnalysisDocument, AnalysisSnapshotDocument, AnalysisSnapshotRecordDocument, AnalyzeRequest,
-    ExecutionEvent, ExecutionId as LocalExecutionId,
-    ExecutionLaneSnapshot as LocalExecutionLaneSnapshot,
+    AnalysisDocument, AnalysisId as LocalAnalysisId, AnalysisSnapshotDocument,
+    AnalysisSnapshotRecordDocument, AnalyzeRequest, ExecutionEvent,
+    ExecutionId as LocalExecutionId, ExecutionLaneSnapshot as LocalExecutionLaneSnapshot,
     ExecutionSubmissionRequest as LocalExecutionSubmissionRequest,
     ExecutionSubmissionResult as LocalExecutionSubmissionResult, FllErrorCode, ModelError,
-    PreviewFramesRequest as LocalPreviewFramesRequest, RecalculateConfigurationDocument,
+    PreviewFramesRequest as LocalPreviewFramesRequest,
+    PreviewFramesResult as LocalPreviewFramesResult, RecalculateConfigurationDocument,
     RecalculateConfigurationRequest as LocalRecalculateConfigurationRequest,
     ReorderExecutionsRequest, VideoThumbnailRequest as LocalVideoThumbnailRequest,
+    VideoThumbnailResult as LocalVideoThumbnailResult,
 };
-use crate::runtime_host::RuntimeHost;
+use crate::runtime_host::{RuntimeApiHost, RuntimeHost};
 
 pub struct DynamicRuntimeHost {
     loader: FllLoader,
@@ -88,46 +89,46 @@ impl DynamicRuntimeHost {
         )
     }
 
-    fn decode_analysis_document<T: DeserializeOwned>(
+    fn decode_analysis_document(
         &self,
         operation: &str,
         payload: impl Serialize,
-    ) -> Result<T> {
+    ) -> Result<AnalysisDocument> {
         let document = AnalysisDocument::from_value(self.invoke_value(operation, payload)?)
             .map_err(|error| Self::map_model_error(operation, error))?;
-        Self::decode_legacy_value(document.into_value(), operation)
+        Ok(document)
     }
 
-    fn decode_snapshot_document<T: DeserializeOwned>(
+    fn decode_snapshot_document(
         &self,
         operation: &str,
         payload: impl Serialize,
-    ) -> Result<T> {
+    ) -> Result<AnalysisSnapshotDocument> {
         let document = AnalysisSnapshotDocument::from_value(self.invoke_value(operation, payload)?)
             .map_err(|error| Self::map_model_error(operation, error))?;
-        Self::decode_legacy_value(document.into_value(), operation)
+        Ok(document)
     }
 
-    fn decode_snapshot_record_document<T: DeserializeOwned>(
+    fn decode_snapshot_record_document(
         &self,
         operation: &str,
         payload: impl Serialize,
-    ) -> Result<T> {
+    ) -> Result<AnalysisSnapshotRecordDocument> {
         let document =
             AnalysisSnapshotRecordDocument::from_value(self.invoke_value(operation, payload)?)
                 .map_err(|error| Self::map_model_error(operation, error))?;
-        Self::decode_legacy_value(document.into_value(), operation)
+        Ok(document)
     }
 
-    fn decode_recalculate_document<T: DeserializeOwned>(
+    fn decode_recalculate_document(
         &self,
         operation: &str,
         payload: impl Serialize,
-    ) -> Result<T> {
+    ) -> Result<RecalculateConfigurationDocument> {
         let document =
             RecalculateConfigurationDocument::from_value(self.invoke_value(operation, payload)?)
                 .map_err(|error| Self::map_model_error(operation, error))?;
-        Self::decode_legacy_value(document.into_value(), operation)
+        Ok(document)
     }
 
     fn decode_legacy_projection<T: DeserializeOwned, S: Serialize>(
@@ -246,21 +247,128 @@ impl DynamicRuntimeHost {
         })
     }
 
-    fn invoke_id<T: serde::de::DeserializeOwned>(&self, operation: &str, id: &TaskId) -> Result<T> {
+    fn invoke_local_id<T: serde::de::DeserializeOwned>(
+        &self,
+        operation: &str,
+        id: &LocalExecutionId,
+    ) -> Result<T> {
         self.invoke(operation, json!({ "execution_id": id.as_str() }))
     }
 
-    fn invoke_analysis_id<T: serde::de::DeserializeOwned>(
+    fn invoke_local_analysis_id<T: serde::de::DeserializeOwned>(
         &self,
         operation: &str,
-        id: &AnalysisId,
+        id: &LocalAnalysisId,
     ) -> Result<T> {
         self.invoke(operation, json!({ "analysis_id": id.as_str() }))
     }
 
-    fn decode_event(bytes: &[u8]) -> Result<ExecutionRuntimeEvent> {
+    fn decode_local_event(bytes: &[u8]) -> Result<ExecutionEvent> {
         let document: ExecutionEventDocument = decode_response(bytes)?;
-        Self::convert_event(document)
+        Ok(document)
+    }
+
+    #[cfg(test)]
+    fn decode_event(bytes: &[u8]) -> Result<ExecutionRuntimeEvent> {
+        Self::convert_event(Self::decode_local_event(bytes)?)
+    }
+}
+
+impl RuntimeApiHost for DynamicRuntimeHost {
+    fn analyze_media(&mut self, request: AnalyzeRequest) -> Result<AnalysisDocument> {
+        self.decode_analysis_document("analyze_media", request)
+    }
+
+    fn analysis_snapshot(
+        &mut self,
+        analysis_id: &LocalAnalysisId,
+    ) -> Result<AnalysisSnapshotDocument> {
+        self.decode_snapshot_document(
+            "analysis_snapshot",
+            json!({ "analysis_id": analysis_id.as_str() }),
+        )
+    }
+
+    fn generate_preview_frames(
+        &mut self,
+        request: &LocalPreviewFramesRequest,
+    ) -> Result<LocalPreviewFramesResult> {
+        self.invoke("generate_preview_frames", request)
+    }
+
+    fn generate_video_thumbnail(
+        &mut self,
+        request: &LocalVideoThumbnailRequest,
+    ) -> Result<LocalVideoThumbnailResult> {
+        self.invoke("generate_video_thumbnail", request)
+    }
+
+    fn analysis_snapshot_record(
+        &mut self,
+        analysis_id: &LocalAnalysisId,
+    ) -> Result<AnalysisSnapshotRecordDocument> {
+        self.decode_snapshot_record_document(
+            "export_analysis_snapshot",
+            json!({ "analysis_id": analysis_id.as_str() }),
+        )
+    }
+
+    fn discard_analysis_snapshot(&mut self, analysis_id: &LocalAnalysisId) -> Result<bool> {
+        self.invoke_local_analysis_id("discard_analysis_snapshot", analysis_id)
+    }
+
+    fn restore_analysis_snapshot(&mut self, record: AnalysisSnapshotRecordDocument) -> Result<()> {
+        self.invoke("restore_analysis_snapshot", record.into_value())
+    }
+
+    fn recalculate_configuration(
+        &mut self,
+        request: LocalRecalculateConfigurationRequest,
+    ) -> Result<RecalculateConfigurationDocument> {
+        self.decode_recalculate_document("recalculate_configuration", request)
+    }
+
+    fn submit_execution(
+        &mut self,
+        request: LocalExecutionSubmissionRequest,
+    ) -> Result<LocalExecutionSubmissionResult> {
+        self.invoke("submit_execution", request)
+    }
+
+    fn drain_execution_events(&mut self) -> Result<Vec<ExecutionEvent>> {
+        let mut events = Vec::new();
+        loop {
+            match self.loader.poll_event() {
+                Ok(Some(bytes)) => events.push(Self::decode_local_event(&bytes)?),
+                Ok(None) => break,
+                Err(error) => return Err(error),
+            }
+        }
+        Ok(events)
+    }
+
+    fn execution_snapshot(&self) -> Result<LocalExecutionLaneSnapshot> {
+        self.invoke("execution_snapshot", json!({}))
+    }
+
+    fn reorder_waiting_executions(&mut self, request: ReorderExecutionsRequest) -> Result<u64> {
+        self.invoke("reorder_waiting_executions", request)
+    }
+
+    fn preempt_and_start_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()> {
+        self.invoke_local_id("preempt_and_start_execution", execution_id)
+    }
+
+    fn pause_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()> {
+        self.invoke_local_id("pause_execution", execution_id)
+    }
+
+    fn resume_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()> {
+        self.invoke_local_id("resume_execution", execution_id)
+    }
+
+    fn cancel_execution(&mut self, execution_id: &LocalExecutionId) -> Result<()> {
+        self.invoke_local_id("cancel_execution", execution_id)
     }
 }
 
@@ -274,14 +382,14 @@ impl RuntimeHost for DynamicRuntimeHost {
             )?,
             context: Self::decode_legacy_projection(request.context, "request context")?,
         };
-        self.decode_analysis_document("analyze_media", local_request)
+        let document = RuntimeApiHost::analyze_media(self, local_request)?;
+        Self::decode_legacy_value(document.into_value(), "analyze_media")
     }
 
     fn analysis_snapshot(&mut self, analysis_id: &AnalysisId) -> Result<AnalysisSnapshotView> {
-        self.decode_snapshot_document(
-            "analysis_snapshot",
-            json!({ "analysis_id": analysis_id.as_str() }),
-        )
+        let local_id = LocalAnalysisId::new(analysis_id.as_str());
+        let document = RuntimeApiHost::analysis_snapshot(self, &local_id)?;
+        Self::decode_legacy_value(document.into_value(), "analysis_snapshot")
     }
 
     fn generate_preview_frames(
@@ -294,8 +402,7 @@ impl RuntimeHost for DynamicRuntimeHost {
             timestamps_us: request.timestamps_us.clone(),
             max_width: request.max_width,
         };
-        let result: PreviewFramesResultDocument =
-            self.invoke("generate_preview_frames", local_request)?;
+        let result = RuntimeApiHost::generate_preview_frames(self, &local_request)?;
         Ok(PreviewFramesResult {
             output_directory: result.output_directory,
             frames: result
@@ -323,8 +430,7 @@ impl RuntimeHost for DynamicRuntimeHost {
             duration_us: request.duration_us,
             max_width: request.max_width,
         };
-        let result: VideoThumbnailResultDocument =
-            self.invoke("generate_video_thumbnail", local_request)?;
+        let result = RuntimeApiHost::generate_video_thumbnail(self, &local_request)?;
         Ok(VideoThumbnailResult {
             output_path: result.output_path,
             requested_timestamp_us: result.requested_timestamp_us,
@@ -338,14 +444,14 @@ impl RuntimeHost for DynamicRuntimeHost {
         &mut self,
         analysis_id: &AnalysisId,
     ) -> Result<AnalysisSnapshotRecord> {
-        self.decode_snapshot_record_document(
-            "export_analysis_snapshot",
-            json!({ "analysis_id": analysis_id.as_str() }),
-        )
+        let local_id = LocalAnalysisId::new(analysis_id.as_str());
+        let document = RuntimeApiHost::analysis_snapshot_record(self, &local_id)?;
+        Self::decode_legacy_value(document.into_value(), "export_analysis_snapshot")
     }
 
     fn discard_analysis_snapshot(&mut self, analysis_id: &AnalysisId) -> Result<bool> {
-        self.invoke_analysis_id("discard_analysis_snapshot", analysis_id)
+        let local_id = LocalAnalysisId::new(analysis_id.as_str());
+        RuntimeApiHost::discard_analysis_snapshot(self, &local_id)
     }
 
     fn restore_analysis_snapshot(&mut self, record: AnalysisSnapshotRecord) -> Result<()> {
@@ -359,7 +465,7 @@ impl RuntimeHost for DynamicRuntimeHost {
         })?;
         let document = AnalysisSnapshotRecordDocument::from_value(value)
             .map_err(|error| Self::map_model_error("restore_analysis_snapshot", error))?;
-        self.invoke("restore_analysis_snapshot", document.into_value())
+        RuntimeApiHost::restore_analysis_snapshot(self, document)
     }
 
     fn recalculate_configuration(
@@ -368,7 +474,8 @@ impl RuntimeHost for DynamicRuntimeHost {
     ) -> Result<RecalculateConfigurationResponse> {
         let local_request: LocalRecalculateConfigurationRequest =
             Self::decode_legacy_projection(request, "recalculate configuration request")?;
-        self.decode_recalculate_document("recalculate_configuration", local_request)
+        let document = RuntimeApiHost::recalculate_configuration(self, local_request)?;
+        Self::decode_legacy_value(document.into_value(), "recalculate_configuration")
     }
 
     fn submit_execution(
@@ -377,8 +484,7 @@ impl RuntimeHost for DynamicRuntimeHost {
     ) -> Result<ExecutionSubmissionResult> {
         let local_request: LocalExecutionSubmissionRequest =
             Self::decode_legacy_projection(request, "execution submission request")?;
-        let result: LocalExecutionSubmissionResult =
-            self.invoke("submit_execution", local_request)?;
+        let result = RuntimeApiHost::submit_execution(self, local_request)?;
         Ok(ExecutionSubmissionResult {
             execution_id: TaskId::new(result.execution_id.into_string())?,
             state: Self::decode_legacy_projection(result.state, "execution state")?,
@@ -388,23 +494,14 @@ impl RuntimeHost for DynamicRuntimeHost {
     }
 
     fn drain_execution_events(&mut self) -> Result<Vec<ExecutionRuntimeEvent>> {
-        let mut events = Vec::new();
-        loop {
-            match self.loader.poll_event() {
-                Ok(Some(bytes)) => {
-                    let event = Self::decode_event(&bytes)?;
-                    events.push(event);
-                }
-                Ok(None) => break,
-                Err(error) => return Err(error),
-            }
-        }
-        Ok(events)
+        RuntimeApiHost::drain_execution_events(self)?
+            .into_iter()
+            .map(Self::convert_event)
+            .collect()
     }
 
     fn execution_snapshot(&self) -> Result<ExecutionLaneSnapshot> {
-        let snapshot: LocalExecutionLaneSnapshot = self.invoke("execution_snapshot", json!({}))?;
-        Self::convert_execution_snapshot(snapshot)
+        Self::convert_execution_snapshot(RuntimeApiHost::execution_snapshot(self)?)
     }
 
     fn reorder_waiting_executions(
@@ -419,23 +516,27 @@ impl RuntimeHost for DynamicRuntimeHost {
                 .map(|id| LocalExecutionId::new(id.as_str()))
                 .collect(),
         };
-        self.invoke("reorder_waiting_executions", request)
+        RuntimeApiHost::reorder_waiting_executions(self, request)
     }
 
     fn preempt_and_start_execution(&mut self, execution_id: &TaskId) -> Result<()> {
-        self.invoke_id("preempt_and_start_execution", execution_id)
+        let local_id = LocalExecutionId::new(execution_id.as_str());
+        RuntimeApiHost::preempt_and_start_execution(self, &local_id)
     }
 
     fn pause_execution(&mut self, execution_id: &TaskId) -> Result<()> {
-        self.invoke_id("pause_execution", execution_id)
+        let local_id = LocalExecutionId::new(execution_id.as_str());
+        RuntimeApiHost::pause_execution(self, &local_id)
     }
 
     fn resume_execution(&mut self, execution_id: &TaskId) -> Result<()> {
-        self.invoke_id("resume_execution", execution_id)
+        let local_id = LocalExecutionId::new(execution_id.as_str());
+        RuntimeApiHost::resume_execution(self, &local_id)
     }
 
     fn cancel_execution(&mut self, execution_id: &TaskId) -> Result<()> {
-        self.invoke_id("cancel_execution", execution_id)
+        let local_id = LocalExecutionId::new(execution_id.as_str());
+        RuntimeApiHost::cancel_execution(self, &local_id)
     }
 }
 
