@@ -418,6 +418,248 @@ fn serve_process_analyzes_executes_and_reanalyzes_real_media() {
 }
 
 #[test]
+fn serve_process_restores_snapshot_across_process_restart() {
+    let root = snapshot_directory("restart-restore");
+    let snapshot_dir = root.join("snapshots");
+    let input_path = root.join("input.wav");
+    fs::create_dir_all(&root).expect("fixture directory should be creatable");
+    fs::write(&input_path, pcm_wav_fixture()).expect("WAV fixture should be writable");
+
+    let mut first = Command::new(env!("CARGO_BIN_EXE_framelean-engine"))
+        .arg("serve")
+        .arg("--snapshot-dir")
+        .arg(&snapshot_dir)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("first worker process should start");
+    let mut first_stdin = first
+        .stdin
+        .take()
+        .expect("first worker stdin should be piped");
+    let mut first_stdout = first
+        .stdout
+        .take()
+        .expect("first worker stdout should be piped");
+    let mut first_stderr = first
+        .stderr
+        .take()
+        .expect("first worker stderr should be piped");
+
+    write_request_frame(
+        &mut first_stdin,
+        &RequestEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            session_id: None,
+            request_id: "hello-restart-restore-a".to_owned(),
+            command: WorkerCommand::Hello(HelloCommand {
+                minimum_protocol_version: PROTOCOL_VERSION,
+                maximum_protocol_version: PROTOCOL_VERSION,
+                client_name: "restart-restore-integration-test".to_owned(),
+                client_version: "1".to_owned(),
+            }),
+        },
+    );
+    let hello = read_output_frame(&mut first_stdout)
+        .expect("first hello frame should decode")
+        .expect("first hello should produce a response");
+    assert_not_error(&hello);
+    let session_id = hello.session_id.clone();
+
+    write_request_frame(
+        &mut first_stdin,
+        &RequestEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            session_id: Some(session_id.clone()),
+            request_id: "analyze-restart-restore".to_owned(),
+            command: WorkerCommand::AnalyzeMedia(AnalyzeMediaCommand {
+                client_task_id: "task-restart-restore".to_owned(),
+                client_file_id: "file-restart-restore".to_owned(),
+                source: source_facts(&input_path),
+                task_mode: TaskMode::AudioConvert,
+                priority: Default::default(),
+                force_reanalysis: false,
+            }),
+        },
+    );
+    let analysis = loop {
+        let output = read_output_frame(&mut first_stdout)
+            .expect("analysis frame should decode")
+            .expect("analysis should produce a response");
+        assert_not_error(&output);
+        if let WorkerOutput::Event(WorkerEvent::AnalysisCompleted { analysis, .. }) = output.output
+        {
+            break analysis;
+        }
+    };
+    assert!(analysis["error"].is_null(), "{analysis:?}");
+    let analysis_id = analysis["analysis_id"]
+        .as_str()
+        .expect("analysis event should contain an analysis id")
+        .to_owned();
+    let analysis_revision = analysis["analysis_revision"]
+        .as_u64()
+        .expect("analysis event should contain an analysis revision");
+
+    write_request_frame(
+        &mut first_stdin,
+        &RequestEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            session_id: Some(session_id),
+            request_id: "shutdown-restart-restore-a".to_owned(),
+            command: WorkerCommand::Shutdown,
+        },
+    );
+    loop {
+        let output = read_output_frame(&mut first_stdout)
+            .expect("first shutdown frame should decode")
+            .expect("first shutdown should complete");
+        if matches!(
+            output.output,
+            WorkerOutput::Event(WorkerEvent::ShutdownComplete)
+        ) {
+            break;
+        }
+    }
+    drop(first_stdin);
+    assert!(
+        first
+            .wait()
+            .expect("first worker should be waitable")
+            .success()
+    );
+    let mut first_diagnostics = String::new();
+    first_stderr
+        .read_to_string(&mut first_diagnostics)
+        .expect("first worker stderr should be readable");
+    assert!(
+        first_diagnostics.is_empty(),
+        "unexpected first worker stderr: {first_diagnostics}"
+    );
+    assert!(
+        fs::read_dir(&snapshot_dir)
+            .expect("snapshot directory should be readable")
+            .filter_map(Result::ok)
+            .any(|entry| entry.path().extension().and_then(|value| value.to_str()) == Some("json")),
+        "first worker should publish a snapshot file"
+    );
+
+    let mut second = Command::new(env!("CARGO_BIN_EXE_framelean-engine"))
+        .arg("serve")
+        .arg("--snapshot-dir")
+        .arg(&snapshot_dir)
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .expect("second worker process should start");
+    let mut second_stdin = second
+        .stdin
+        .take()
+        .expect("second worker stdin should be piped");
+    let mut second_stdout = second
+        .stdout
+        .take()
+        .expect("second worker stdout should be piped");
+    let mut second_stderr = second
+        .stderr
+        .take()
+        .expect("second worker stderr should be piped");
+
+    write_request_frame(
+        &mut second_stdin,
+        &RequestEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            session_id: None,
+            request_id: "hello-restart-restore-b".to_owned(),
+            command: WorkerCommand::Hello(HelloCommand {
+                minimum_protocol_version: PROTOCOL_VERSION,
+                maximum_protocol_version: PROTOCOL_VERSION,
+                client_name: "restart-restore-integration-test".to_owned(),
+                client_version: "1".to_owned(),
+            }),
+        },
+    );
+    let second_hello = read_output_frame(&mut second_stdout)
+        .expect("second hello frame should decode")
+        .expect("second hello should produce a response");
+    assert_not_error(&second_hello);
+    let second_session_id = second_hello.session_id.clone();
+
+    write_request_frame(
+        &mut second_stdin,
+        &RequestEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            session_id: Some(second_session_id.clone()),
+            request_id: "get-restored-snapshot".to_owned(),
+            command: WorkerCommand::GetAnalysisSnapshot(
+                framelean_engine::protocol::GetAnalysisSnapshotCommand {
+                    analysis_id: AnalysisId::new(&analysis_id),
+                    priority: Default::default(),
+                },
+            ),
+        },
+    );
+    let restored_snapshot = loop {
+        let output = read_output_frame(&mut second_stdout)
+            .expect("restored snapshot frame should decode")
+            .expect("restored snapshot should produce a response");
+        assert_not_error(&output);
+        if let WorkerOutput::Event(WorkerEvent::AnalysisSnapshotReady { snapshot, .. }) =
+            output.output
+        {
+            break snapshot;
+        }
+    };
+    assert_eq!(
+        restored_snapshot["analysis_id"].as_str(),
+        Some(analysis_id.as_str())
+    );
+    assert_eq!(
+        restored_snapshot["analysis_revision"].as_u64(),
+        Some(analysis_revision)
+    );
+
+    write_request_frame(
+        &mut second_stdin,
+        &RequestEnvelope {
+            protocol_version: PROTOCOL_VERSION,
+            session_id: Some(second_session_id),
+            request_id: "shutdown-restart-restore-b".to_owned(),
+            command: WorkerCommand::Shutdown,
+        },
+    );
+    loop {
+        let output = read_output_frame(&mut second_stdout)
+            .expect("second shutdown frame should decode")
+            .expect("second shutdown should complete");
+        if matches!(
+            output.output,
+            WorkerOutput::Event(WorkerEvent::ShutdownComplete)
+        ) {
+            break;
+        }
+    }
+    drop(second_stdin);
+    assert!(
+        second
+            .wait()
+            .expect("second worker should be waitable")
+            .success()
+    );
+    let mut second_diagnostics = String::new();
+    second_stderr
+        .read_to_string(&mut second_diagnostics)
+        .expect("second worker stderr should be readable");
+    assert!(
+        second_diagnostics.is_empty(),
+        "unexpected second worker stderr: {second_diagnostics}"
+    );
+    fs::remove_dir_all(root).expect("restart fixture should be removable");
+}
+
+#[test]
 fn daemon_keeps_the_worker_session_alive_across_client_reconnect() {
     let root = snapshot_directory("daemon-reconnect");
     let snapshot_dir = root.join("snapshots");
