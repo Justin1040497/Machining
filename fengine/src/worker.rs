@@ -7,16 +7,9 @@ use std::sync::mpsc::{self, Receiver, Sender, SyncSender, TrySendError};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use framelean_analysis::{
-    ExpectedSourceFacts, MediaAnalysisStatus, MediaAnalyzeRequest, MediaSource, SourceFingerprint,
-};
-use framelean_core::{AnalysisId, EngineError, ErrorKind, Result};
-use framelean_ffmpeg::{PreviewFramesRequest, VideoThumbnailRequest};
-use framelean_runtime::{
-    AnalysisSnapshotView, AnalyzeMediaResponse, AnalyzeTaskRequest, ExecutionSubmissionRequest,
-    ExecutionSubmissionResult, RequestContext, TaskMode,
-};
+use framelean_core::{EngineError, ErrorKind, Result};
 
+use crate::fll::DynamicRuntimeHost;
 use crate::protocol::{
     AnalysisQueueEntrySnapshot, AnalysisQueuePosition, AnalyzeMediaCommand, ApplyQueueOrderCommand,
     BatchSubmissionItem, ClientSourceFacts, EngineStateSnapshot, ExecutionControlAction,
@@ -26,7 +19,22 @@ use crate::protocol::{
     WorkerErrorCode, WorkerEvent, WorkerOutput, WorkerResponse, read_request_frame,
     write_output_frame_resilient,
 };
-use crate::runtime_host::{RuntimeHost, build_default_runtime};
+use crate::runtime_api::{
+    AnalysisDocument as RuntimeAnalysisDocument, AnalysisId as RuntimeAnalysisId,
+    AnalysisRevision as RuntimeAnalysisRevision,
+    AnalysisSnapshotDocument as RuntimeAnalysisSnapshotDocument,
+    AnalyzeRequest as RuntimeAnalyzeRequest, ExecutionEvent as RuntimeExecutionEvent,
+    ExecutionId as RuntimeExecutionId, ExecutionLaneSnapshot as RuntimeExecutionLaneSnapshot,
+    ExecutionOutputRequest as RuntimeExecutionOutputRequest,
+    ExecutionSubmissionRequest as RuntimeExecutionSubmissionRequest,
+    ExecutionSubmissionResult as RuntimeExecutionSubmissionResult,
+    ExecutionTaskState as RuntimeExecutionTaskState,
+    ExpectedSourceFacts as RuntimeExpectedSourceFacts, LocalMediaAnalyzeRequest, LocalMediaSource,
+    PreviewFramesRequest as RuntimePreviewFramesRequest,
+    ReorderExecutionsRequest as RuntimeReorderExecutionsRequest, RuntimeRequestContext,
+    TaskMode as RuntimeTaskMode, VideoThumbnailRequest as RuntimeVideoThumbnailRequest,
+};
+use crate::runtime_host::RuntimeApiHost;
 use crate::snapshot_store::{DirectorySnapshotStore, SnapshotStore};
 use crate::work_queue::{QueuedWork, WorkPriority, WorkQueue};
 
@@ -70,7 +78,7 @@ enum WorkPayload {
 struct ApplyQueueOrderWork {
     command: ApplyQueueOrderCommand,
     ordered_analysis_work_ids: Vec<String>,
-    ordered_execution_ids: Vec<framelean_core::TaskId>,
+    ordered_execution_ids: Vec<RuntimeExecutionId>,
     analysis_revision_matches: bool,
 }
 
@@ -109,26 +117,26 @@ impl RequestRecord {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 struct WorkRecord {
     state: WorkState,
-    analysis_id: Option<AnalysisId>,
+    analysis_id: Option<crate::protocol::AnalysisId>,
     waiters: Vec<WorkWaiter>,
     terminal: Option<WorkTerminal>,
     terminal_bytes: usize,
     completed_at: Option<Instant>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq)]
 enum WorkTerminal {
     Analysis {
-        analysis: Box<AnalyzeMediaResponse>,
-        snapshot: Option<Box<AnalysisSnapshotView>>,
+        analysis: Box<RuntimeAnalysisDocument>,
+        snapshot: Option<Box<RuntimeAnalysisSnapshotDocument>>,
     },
-    Snapshot(Box<AnalysisSnapshotView>),
+    Snapshot(Box<RuntimeAnalysisSnapshotDocument>),
     PreviewFrames(Box<PreviewFramesDocument>),
     VideoThumbnail(Box<VideoThumbnailDocument>),
-    Execution(Box<ExecutionSubmissionResult>),
+    Execution(Box<RuntimeExecutionSubmissionResult>),
     EngineSnapshot(Box<EngineStateSnapshot>),
     QueueOrderApplied(Box<QueueOrderResult>),
     QueueOrderConflict {
@@ -136,8 +144,8 @@ enum WorkTerminal {
         snapshot: Box<EngineStateSnapshot>,
     },
     ExecutionControl {
-        execution_id: framelean_core::TaskId,
-        state: framelean_runtime::ExecutionTaskState,
+        execution_id: RuntimeExecutionId,
+        state: RuntimeExecutionTaskState,
     },
     Failed(WorkerError),
 }
@@ -155,7 +163,7 @@ struct AnalysisWorkKey {
     path: PathBuf,
     file_size_bytes: u64,
     modified_time_unix_nanos: Option<String>,
-    task_mode: TaskMode,
+    task_mode: crate::protocol::TaskMode,
 }
 
 impl From<&AnalyzeMediaCommand> for AnalysisWorkKey {
@@ -220,25 +228,25 @@ struct CompletedWork {
 
 enum RuntimeCompletion {
     Analysis {
-        analysis: AnalyzeMediaResponse,
-        snapshot: Option<Box<AnalysisSnapshotView>>,
+        analysis: RuntimeAnalysisDocument,
+        snapshot: Option<Box<RuntimeAnalysisSnapshotDocument>>,
     },
-    Snapshot(AnalysisSnapshotView),
+    Snapshot(RuntimeAnalysisSnapshotDocument),
     PreviewFrames(PreviewFramesDocument),
     VideoThumbnail(VideoThumbnailDocument),
-    Execution(ExecutionSubmissionResult),
-    EngineSnapshot(framelean_runtime::ExecutionLaneSnapshot),
+    Execution(RuntimeExecutionSubmissionResult),
+    EngineSnapshot(RuntimeExecutionLaneSnapshot),
     QueueOrderApplied {
         order_revision: u64,
-        execution_lane: framelean_runtime::ExecutionLaneSnapshot,
+        execution_lane: RuntimeExecutionLaneSnapshot,
     },
     QueueOrderConflict {
         order_revision: u64,
-        execution_lane: framelean_runtime::ExecutionLaneSnapshot,
+        execution_lane: RuntimeExecutionLaneSnapshot,
     },
     ExecutionControl {
-        execution_id: framelean_core::TaskId,
-        state: framelean_runtime::ExecutionTaskState,
+        execution_id: RuntimeExecutionId,
+        state: RuntimeExecutionTaskState,
     },
 }
 
@@ -248,7 +256,7 @@ enum CoordinatorMessage {
         received_at: Instant,
     },
     Runtime(RuntimeResult),
-    RuntimeExecutionEvent(framelean_runtime::ExecutionRuntimeEvent),
+    RuntimeExecutionEvent(RuntimeExecutionEvent),
     HeartbeatTimedOut,
     DrainTimedOut,
     InputClosed,
@@ -280,8 +288,8 @@ pub struct WorkerCoordinator {
     terminal_cache_bytes: usize,
     analysis_work: HashMap<AnalysisWorkKey, String>,
     hello_request: Option<(String, HelloCommand)>,
-    execution_clients: HashMap<framelean_core::TaskId, String>,
-    execution_order: Vec<framelean_core::TaskId>,
+    execution_clients: HashMap<RuntimeExecutionId, String>,
+    execution_order: Vec<RuntimeExecutionId>,
     terminal_analyses: VecDeque<TerminalAnalysisSnapshot>,
     terminal_executions: VecDeque<TerminalExecutionSnapshot>,
 }
@@ -1114,23 +1122,27 @@ impl WorkerCoordinator {
                         let WorkPayload::Analyze(command) = &item.payload else {
                             unreachable!("analysis completion must match analysis work");
                         };
-                        let failed = analysis.media_analysis_status == MediaAnalysisStatus::Failed;
+                        let metadata = analysis.metadata();
+                        let failed = metadata.media_analysis_status == "failed";
                         self.terminal_analyses
                             .retain(|entry| entry.client_task_id != command.client_task_id);
                         self.terminal_analyses.push_back(TerminalAnalysisSnapshot {
                             work_id: item.work_id.clone(),
                             client_task_id: command.client_task_id.clone(),
                             client_file_id: command.client_file_id.clone(),
-                            analysis_id: analysis.analysis_id.clone(),
-                            analysis_revision: analysis.analysis_revision,
+                            analysis_id: project_protocol(&metadata.analysis_id),
+                            analysis_revision: project_protocol(&metadata.analysis_revision),
                             succeeded: !failed,
-                            engine_code: analysis.error.as_ref().map(|error| error.code),
-                            message: analysis.error.as_ref().map(|error| error.message.clone()),
+                            engine_code: metadata
+                                .error
+                                .as_ref()
+                                .map(|error| protocol_engine_code_from_fll(&error.code)),
+                            message: metadata.error.as_ref().map(|error| error.message.clone()),
                         });
                         while self.terminal_analyses.len() > MAX_TERMINAL_ANALYSIS_ENTRIES {
                             self.terminal_analyses.pop_front();
                         }
-                        let analysis_id = (!failed).then(|| analysis.analysis_id.clone());
+                        let analysis_id = (!failed).then(|| metadata.analysis_id.clone());
                         self.complete_work(
                             &item,
                             if failed {
@@ -1138,7 +1150,7 @@ impl WorkerCoordinator {
                             } else {
                                 WorkState::Completed
                             },
-                            analysis_id.clone(),
+                            analysis_id.as_ref().map(project_protocol),
                             WorkTerminal::Analysis {
                                 analysis: Box::new(analysis.clone()),
                                 snapshot: snapshot.clone(),
@@ -1147,30 +1159,36 @@ impl WorkerCoordinator {
                         self.remove_analysis_key(&item);
                         let waiters = self.take_waiters(&item.work_id);
                         for waiter in waiters {
-                            output.push(self.event_output(
-                                waiter.request_id,
-                                WorkerEvent::AnalysisCompleted {
-                                    work_id: item.work_id.clone(),
-                                    client_task_id: waiter.client_task_id.unwrap_or_default(),
-                                    client_file_id: waiter.client_file_id.unwrap_or_default(),
-                                    analysis: Box::new(analysis.clone()),
-                                    snapshot: snapshot.clone(),
-                                },
-                            ));
+                            output.push(
+                                self.event_output(
+                                    waiter.request_id,
+                                    WorkerEvent::AnalysisCompleted {
+                                        work_id: item.work_id.clone(),
+                                        client_task_id: waiter.client_task_id.unwrap_or_default(),
+                                        client_file_id: waiter.client_file_id.unwrap_or_default(),
+                                        analysis: Box::new(project_protocol(&analysis)),
+                                        snapshot: snapshot.as_ref().map(|value| {
+                                            Box::new(project_protocol(value.as_ref()))
+                                        }),
+                                    },
+                                ),
+                            );
                         }
                     }
                     Ok(RuntimeCompletion::Snapshot(snapshot)) => {
                         self.complete_work(
                             &item,
                             WorkState::Completed,
-                            Some(snapshot.analysis_id.clone()),
+                            Some(project_protocol(&RuntimeAnalysisId::new(
+                                snapshot.identity().id.clone(),
+                            ))),
                             WorkTerminal::Snapshot(Box::new(snapshot.clone())),
                         );
                         output.push(self.event_output(
                             item.request_id,
                             WorkerEvent::AnalysisSnapshotReady {
                                 work_id: item.work_id,
-                                snapshot: Box::new(snapshot),
+                                snapshot: Box::new(project_protocol(&snapshot)),
                             },
                         ));
                     }
@@ -1232,12 +1250,12 @@ impl WorkerCoordinator {
                             WorkerEvent::ExecutionSubmitted {
                                 work_id: item.work_id,
                                 client_task_id: command.client_task_id.clone(),
-                                submission: Box::new(submission),
+                                submission: Box::new(project_protocol(&submission)),
                             },
                         ));
                     }
                     Ok(RuntimeCompletion::EngineSnapshot(execution_lane)) => {
-                        let snapshot = self.engine_state_snapshot(execution_lane);
+                        let snapshot = self.engine_state_snapshot(&execution_lane);
                         self.complete_work(
                             &item,
                             WorkState::Completed,
@@ -1284,7 +1302,7 @@ impl WorkerCoordinator {
                         order_revision,
                         execution_lane,
                     }) => {
-                        let snapshot = self.engine_state_snapshot(execution_lane);
+                        let snapshot = self.engine_state_snapshot(&execution_lane);
                         self.complete_work(
                             &item,
                             WorkState::Completed,
@@ -1320,8 +1338,8 @@ impl WorkerCoordinator {
                             item.request_id,
                             WorkerEvent::ExecutionControlAccepted {
                                 work_id: item.work_id,
-                                execution_id,
-                                state,
+                                execution_id: project_protocol(&execution_id),
+                                state: project_protocol(&state),
                             },
                         ));
                     }
@@ -1335,7 +1353,7 @@ impl WorkerCoordinator {
 
     fn engine_state_snapshot(
         &self,
-        execution_lane: framelean_runtime::ExecutionLaneSnapshot,
+        execution_lane: &RuntimeExecutionLaneSnapshot,
     ) -> EngineStateSnapshot {
         let analysis_queue = self
             .analysis_queue
@@ -1356,7 +1374,7 @@ impl WorkerCoordinator {
             active_analysis: self.active_analysis.clone(),
             analysis_queue,
             terminal_analyses: self.terminal_analyses.iter().cloned().collect(),
-            execution_lane,
+            execution_lane: project_protocol(&execution_lane),
             terminal_executions: self.terminal_executions.iter().cloned().collect(),
             last_sequence: self.sequence,
         }
@@ -1365,7 +1383,7 @@ impl WorkerCoordinator {
     fn queue_order_result(
         &self,
         order_revision: u64,
-        execution_lane: &framelean_runtime::ExecutionLaneSnapshot,
+        execution_lane: &RuntimeExecutionLaneSnapshot,
     ) -> QueueOrderResult {
         let analysis_positions = self
             .analysis_queue
@@ -1387,7 +1405,7 @@ impl WorkerCoordinator {
             .iter()
             .enumerate()
             .map(|(index, entry)| ExecutionQueuePosition {
-                execution_id: entry.execution_id.clone(),
+                execution_id: project_protocol(&entry.execution_id),
                 client_task_id: self
                     .execution_clients
                     .get(&entry.execution_id)
@@ -1405,32 +1423,43 @@ impl WorkerCoordinator {
         }
     }
 
-    fn handle_execution_event(
-        &mut self,
-        event: framelean_runtime::ExecutionRuntimeEvent,
-    ) -> Vec<OutputEnvelope> {
+    fn handle_execution_event(&mut self, event: RuntimeExecutionEvent) -> Vec<OutputEnvelope> {
         let client_task_id = self
             .execution_clients
             .get(&event.execution_id)
             .cloned()
             .unwrap_or_default();
-        let request_id = format!("execution-event-{}", event.execution_id);
+        let request_id = format!("execution-event-{}", event.execution_id.as_str());
+        let protocol_execution_id: crate::protocol::ExecutionId =
+            project_protocol(&event.execution_id);
+        let protocol_resource_pool: crate::protocol::ExecutionResourcePool =
+            project_protocol(&event.resource_pool);
+        let protocol_state: crate::protocol::ExecutionTaskState = project_protocol(&event.state);
+        let protocol_pause_reason: Option<crate::protocol::ExecutionPauseReason> =
+            event.pause_reason.as_ref().map(project_protocol);
+        let protocol_preempted_by_execution_id: Option<crate::protocol::ExecutionId> = event
+            .preempted_by_execution_id
+            .as_ref()
+            .map(project_protocol);
+        let protocol_progress: Option<crate::protocol::ExecutionProgress> =
+            event.progress.map(|value| project_protocol(&value));
+        let protocol_error_code = event.error_code.as_ref().map(protocol_engine_code_from_fll);
         if matches!(
             event.state,
-            framelean_runtime::ExecutionTaskState::Completed
-                | framelean_runtime::ExecutionTaskState::Failed
-                | framelean_runtime::ExecutionTaskState::Cancelled
+            RuntimeExecutionTaskState::Completed
+                | RuntimeExecutionTaskState::Failed
+                | RuntimeExecutionTaskState::Cancelled
         ) {
             self.terminal_executions
-                .retain(|entry| entry.execution_id != event.execution_id);
+                .retain(|entry| entry.execution_id.as_str() != event.execution_id.as_str());
             self.terminal_executions
                 .push_back(TerminalExecutionSnapshot {
-                    execution_id: event.execution_id.clone(),
+                    execution_id: protocol_execution_id.clone(),
                     client_task_id: client_task_id.clone(),
-                    resource_pool: event.resource_pool,
-                    state: event.state,
+                    resource_pool: protocol_resource_pool,
+                    state: protocol_state,
                     output_path: event.output_path.clone(),
-                    engine_code: event.error_code,
+                    engine_code: protocol_error_code.clone(),
                     message: event.message.clone(),
                 });
             while self.terminal_executions.len() > MAX_TERMINAL_EXECUTION_ENTRIES {
@@ -1438,66 +1467,67 @@ impl WorkerCoordinator {
             }
         }
         let protocol_event = match event.state {
-            framelean_runtime::ExecutionTaskState::Running if event.progress.is_some() => {
+            RuntimeExecutionTaskState::Running if event.progress.is_some() => {
                 WorkerEvent::ExecutionProgress {
-                    execution_id: event.execution_id,
+                    execution_id: protocol_execution_id,
                     client_task_id,
-                    resource_pool: event.resource_pool,
-                    progress: event.progress.expect("progress state was checked"),
+                    resource_pool: protocol_resource_pool,
+                    progress: protocol_progress.expect("progress state was checked"),
                     resume_depth: event.resume_depth,
                 }
             }
-            framelean_runtime::ExecutionTaskState::Running => WorkerEvent::ExecutionStarted {
-                execution_id: event.execution_id,
+            RuntimeExecutionTaskState::Running => WorkerEvent::ExecutionStarted {
+                execution_id: protocol_execution_id,
                 client_task_id,
-                resource_pool: event.resource_pool,
-                state: event.state,
+                resource_pool: protocol_resource_pool,
+                state: protocol_state,
                 resume_depth: event.resume_depth,
             },
-            framelean_runtime::ExecutionTaskState::Paused
-            | framelean_runtime::ExecutionTaskState::Preempted => WorkerEvent::ExecutionPaused {
-                execution_id: event.execution_id,
+            RuntimeExecutionTaskState::Paused | RuntimeExecutionTaskState::Preempted => {
+                WorkerEvent::ExecutionPaused {
+                    execution_id: protocol_execution_id,
+                    client_task_id,
+                    resource_pool: protocol_resource_pool,
+                    pause_reason: protocol_pause_reason,
+                    preempted_by_execution_id: protocol_preempted_by_execution_id,
+                    resume_depth: event.resume_depth,
+                }
+            }
+            RuntimeExecutionTaskState::Resuming => WorkerEvent::ExecutionResumed {
+                execution_id: protocol_execution_id,
                 client_task_id,
-                resource_pool: event.resource_pool,
-                pause_reason: event.pause_reason,
-                preempted_by_execution_id: event.preempted_by_execution_id,
+                resource_pool: protocol_resource_pool,
                 resume_depth: event.resume_depth,
             },
-            framelean_runtime::ExecutionTaskState::Resuming => WorkerEvent::ExecutionResumed {
-                execution_id: event.execution_id,
+            RuntimeExecutionTaskState::Completed => WorkerEvent::ExecutionCompleted {
+                execution_id: protocol_execution_id,
                 client_task_id,
-                resource_pool: event.resource_pool,
-                resume_depth: event.resume_depth,
-            },
-            framelean_runtime::ExecutionTaskState::Completed => WorkerEvent::ExecutionCompleted {
-                execution_id: event.execution_id,
-                client_task_id,
-                resource_pool: event.resource_pool,
+                resource_pool: protocol_resource_pool,
                 output_path: event.output_path.unwrap_or_default(),
             },
-            framelean_runtime::ExecutionTaskState::Failed => WorkerEvent::ExecutionFailed {
-                execution_id: event.execution_id,
+            RuntimeExecutionTaskState::Failed => WorkerEvent::ExecutionFailed {
+                execution_id: protocol_execution_id,
                 client_task_id,
-                resource_pool: event.resource_pool,
-                engine_code: event.error_code,
+                resource_pool: protocol_resource_pool,
+                engine_code: protocol_error_code,
                 message: event
                     .message
                     .unwrap_or_else(|| "media execution failed".to_owned()),
                 resume_depth: event.resume_depth,
             },
-            framelean_runtime::ExecutionTaskState::Cancelled => WorkerEvent::ExecutionCancelled {
-                execution_id: event.execution_id,
+            RuntimeExecutionTaskState::Cancelled => WorkerEvent::ExecutionCancelled {
+                execution_id: protocol_execution_id,
                 client_task_id,
-                resource_pool: event.resource_pool,
+                resource_pool: protocol_resource_pool,
                 resume_depth: event.resume_depth,
             },
             _ => WorkerEvent::ExecutionStateChanged {
-                execution_id: event.execution_id,
+                execution_id: protocol_execution_id,
                 client_task_id,
-                resource_pool: event.resource_pool,
-                state: event.state,
-                pause_reason: event.pause_reason,
-                preempted_by_execution_id: event.preempted_by_execution_id,
+                resource_pool: protocol_resource_pool,
+                state: protocol_state,
+                pause_reason: protocol_pause_reason,
+                preempted_by_execution_id: protocol_preempted_by_execution_id,
                 resume_depth: event.resume_depth,
             },
         };
@@ -1612,7 +1642,7 @@ impl WorkerCoordinator {
         &mut self,
         item: &WorkItem,
         state: WorkState,
-        analysis_id: Option<AnalysisId>,
+        analysis_id: Option<crate::protocol::AnalysisId>,
         terminal: WorkTerminal,
     ) {
         let terminal_bytes = terminal_size(&terminal);
@@ -1634,10 +1664,13 @@ impl WorkerCoordinator {
 
     fn fail_work(&mut self, item: WorkItem, error: WorkerError, output: &mut Vec<OutputEnvelope>) {
         let preemption_warning = match &item.payload {
-            WorkPayload::PreemptAndStart(command) => Some((
-                command.execution_id.clone(),
-                self.execution_clients.get(&command.execution_id).cloned(),
-            )),
+            WorkPayload::PreemptAndStart(command) => {
+                let execution_id = RuntimeExecutionId::new(command.execution_id.as_str());
+                Some((
+                    command.execution_id.clone(),
+                    self.execution_clients.get(&execution_id).cloned(),
+                ))
+            }
             _ => None,
         };
         self.complete_work(
@@ -1659,7 +1692,7 @@ impl WorkerCoordinator {
         }
         if let Some((execution_id, client_task_id)) = preemption_warning {
             output.push(self.event_output(
-                format!("execution-warning-{execution_id}"),
+                format!("execution-warning-{}", execution_id.as_str()),
                 WorkerEvent::Warning {
                     client_task_id,
                     execution_id: Some(execution_id),
@@ -1830,11 +1863,16 @@ impl WorkerCoordinator {
                 work_id,
                 client_task_id: command.client_task_id.clone(),
                 client_file_id: command.client_file_id.clone(),
-                analysis,
-                snapshot,
+                analysis: Box::new(project_protocol(analysis.as_ref())),
+                snapshot: snapshot
+                    .as_ref()
+                    .map(|value| Box::new(project_protocol(value.as_ref()))),
             },
             (WorkTerminal::Snapshot(snapshot), WorkerCommand::GetAnalysisSnapshot(_)) => {
-                WorkerEvent::AnalysisSnapshotReady { work_id, snapshot }
+                WorkerEvent::AnalysisSnapshotReady {
+                    work_id,
+                    snapshot: Box::new(project_protocol(snapshot.as_ref())),
+                }
             }
             (
                 WorkTerminal::PreviewFrames(result),
@@ -1856,7 +1894,7 @@ impl WorkerCoordinator {
                 WorkerEvent::ExecutionSubmitted {
                     work_id,
                     client_task_id: command.client_task_id.clone(),
-                    submission,
+                    submission: Box::new(project_protocol(submission.as_ref())),
                 }
             }
             (WorkTerminal::EngineSnapshot(snapshot), WorkerCommand::GetEngineSnapshot) => {
@@ -1884,8 +1922,8 @@ impl WorkerCoordinator {
                 WorkerCommand::PreemptAndStart(_) | WorkerCommand::ControlExecution(_),
             ) => WorkerEvent::ExecutionControlAccepted {
                 work_id,
-                execution_id,
-                state,
+                execution_id: project_protocol(&execution_id),
+                state: project_protocol(&state),
             },
             (WorkTerminal::Failed(error), _) => WorkerEvent::WorkFailed { work_id, error },
             _ => {
@@ -2001,14 +2039,14 @@ fn bounded_json_size(value: &impl serde::Serialize, maximum_bytes: usize) -> Opt
 }
 
 pub fn serve_stdio(snapshot_dir: PathBuf) -> Result<()> {
-    let runtime = build_default_runtime()?;
+    let runtime = DynamicRuntimeHost::from_default_location()?;
     let store: Box<dyn SnapshotStore> = Box::new(DirectorySnapshotStore::new(snapshot_dir)?);
     run_stdio(runtime, store)
 }
 
 fn run_stdio<R, S>(runtime: R, store: S) -> Result<()>
 where
-    R: RuntimeHost + 'static,
+    R: RuntimeApiHost + 'static,
     S: SnapshotStore + 'static,
 {
     let (input_tx, input_rx) = mpsc::sync_channel(MAX_INGRESS_MESSAGES);
@@ -2210,7 +2248,7 @@ fn run_executor<R, S>(
     runtime_rx: Receiver<RuntimeCommand>,
     result_tx: SyncSender<CoordinatorMessage>,
 ) where
-    R: RuntimeHost,
+    R: RuntimeApiHost,
     S: SnapshotStore,
 {
     match store.load_all() {
@@ -2279,34 +2317,56 @@ fn run_executor<R, S>(
     }
 }
 
+fn project_protocol<T, S>(value: &S) -> T
+where
+    T: serde::de::DeserializeOwned,
+    S: serde::Serialize + ?Sized,
+{
+    serde_json::from_value(
+        serde_json::to_value(value).expect("protocol boundary value must be serializable"),
+    )
+    .expect("runtime and protocol representations must remain wire-compatible")
+}
+
+fn protocol_engine_code(code: framelean_core::EngineErrorCode) -> crate::protocol::EngineErrorCode {
+    project_protocol(&code)
+}
+
+fn protocol_engine_code_from_fll(
+    code: &crate::runtime_api::FllErrorCode,
+) -> crate::protocol::EngineErrorCode {
+    crate::protocol::EngineErrorCode::new(code.0.clone())
+}
+
 fn execute_work<R, S>(runtime: &mut R, store: &mut S, item: &WorkItem) -> Result<RuntimeCompletion>
 where
-    R: RuntimeHost,
+    R: RuntimeApiHost,
     S: SnapshotStore,
 {
     match &item.payload {
         WorkPayload::Analyze(command) => {
-            let response = runtime.analyze_media(AnalyzeTaskRequest {
-                task_mode: command.task_mode,
-                media_request: MediaAnalyzeRequest {
-                    source: MediaSource::local_file(&command.source.path)?,
+            let response = runtime.analyze_media(RuntimeAnalyzeRequest {
+                task_mode: project_protocol::<RuntimeTaskMode, _>(&command.task_mode),
+                media_request: LocalMediaAnalyzeRequest {
+                    source: LocalMediaSource::LocalFile(command.source.path.clone()),
                     request_id: Some(item.request_id.clone()),
-                    expected_source: Some(ExpectedSourceFacts {
+                    expected_source: Some(RuntimeExpectedSourceFacts {
                         file_size_bytes: command.source.file_size_bytes,
                         modified_time_unix_nanos: command.source.modified_time_unix_nanos.clone(),
                     }),
                 },
-                context: RequestContext {
+                context: RuntimeRequestContext {
                     request_id: Some(item.request_id.clone()),
                     client_file_id: Some(command.client_file_id.clone()),
                     correlation_id: Some(command.client_task_id.clone()),
                 },
             })?;
-            if response.media_analysis_status != MediaAnalysisStatus::Failed {
-                let record = runtime.analysis_snapshot_record(&response.analysis_id)?;
+            let failed = response.metadata().media_analysis_status == "failed";
+            if !failed {
+                let record = runtime.analysis_snapshot_record(&response.metadata().analysis_id)?;
                 if let Err(persistence_error) = store.save(&record) {
                     runtime
-                        .discard_analysis_snapshot(&response.analysis_id)
+                        .discard_analysis_snapshot(&response.metadata().analysis_id)
                         .map_err(|rollback_error| {
                             EngineError::new(
                                 ErrorKind::Snapshot,
@@ -2320,10 +2380,12 @@ where
                     return Err(persistence_error);
                 }
             }
-            let snapshot = if response.media_analysis_status == MediaAnalysisStatus::Failed {
+            let snapshot = if failed {
                 None
             } else {
-                Some(Box::new(runtime.analysis_snapshot(&response.analysis_id)?))
+                Some(Box::new(
+                    runtime.analysis_snapshot(&response.metadata().analysis_id)?,
+                ))
             };
             Ok(RuntimeCompletion::Analysis {
                 analysis: response,
@@ -2331,11 +2393,11 @@ where
             })
         }
         WorkPayload::GetSnapshot(command) => Ok(RuntimeCompletion::Snapshot(
-            runtime.analysis_snapshot(&command.analysis_id)?,
+            runtime.analysis_snapshot(&RuntimeAnalysisId::new(command.analysis_id.as_str()))?,
         )),
         WorkPayload::GeneratePreviewFrames(command) => {
             validate_source_facts(&command.source)?;
-            let result = runtime.generate_preview_frames(&PreviewFramesRequest {
+            let result = runtime.generate_preview_frames(&RuntimePreviewFramesRequest {
                 input_path: command.source.path.clone(),
                 output_directory: command.output_directory.clone(),
                 timestamps_us: command.timestamps_us.clone(),
@@ -2359,7 +2421,7 @@ where
         }
         WorkPayload::GenerateVideoThumbnail(command) => {
             validate_source_facts(&command.source)?;
-            let result = runtime.generate_video_thumbnail(&VideoThumbnailRequest {
+            let result = runtime.generate_video_thumbnail(&RuntimeVideoThumbnailRequest {
                 input_path: command.source.path.clone(),
                 output_path: command.output_path.clone(),
                 duration_us: command.duration_us,
@@ -2374,12 +2436,12 @@ where
             }))
         }
         WorkPayload::SubmitExecution(command) => Ok(RuntimeCompletion::Execution(
-            runtime.submit_execution(ExecutionSubmissionRequest {
-                analysis_id: command.analysis_id.clone(),
-                expected_revision: command.expected_revision,
+            runtime.submit_execution(RuntimeExecutionSubmissionRequest {
+                analysis_id: RuntimeAnalysisId::new(command.analysis_id.as_str()),
+                expected_revision: RuntimeAnalysisRevision::new(command.expected_revision.value()),
                 selection: command.selection.clone(),
-                output: command.output.clone(),
-                context: RequestContext {
+                output: project_protocol::<RuntimeExecutionOutputRequest, _>(&command.output),
+                context: RuntimeRequestContext {
                     request_id: Some(item.request_id.clone()),
                     client_file_id: None,
                     correlation_id: Some(command.client_task_id.clone()),
@@ -2407,10 +2469,10 @@ where
                 .filter(|execution_id| waiting.contains(*execution_id))
                 .cloned()
                 .collect();
-            runtime.reorder_waiting_executions(
-                work.command.expected_execution_queue_revision,
-                &ordered_waiting,
-            )?;
+            runtime.reorder_waiting_executions(RuntimeReorderExecutionsRequest {
+                expected_revision: work.command.expected_execution_queue_revision,
+                ordered_execution_ids: ordered_waiting,
+            })?;
             Ok(RuntimeCompletion::QueueOrderApplied {
                 order_revision: work.command.order_revision,
                 execution_lane: runtime.execution_snapshot()?,
@@ -2420,29 +2482,31 @@ where
             runtime.execution_snapshot()?,
         )),
         WorkPayload::PreemptAndStart(command) => {
-            runtime.preempt_and_start_execution(&command.execution_id)?;
+            let execution_id = RuntimeExecutionId::new(command.execution_id.as_str());
+            runtime.preempt_and_start_execution(&execution_id)?;
             Ok(RuntimeCompletion::ExecutionControl {
-                execution_id: command.execution_id.clone(),
-                state: framelean_runtime::ExecutionTaskState::Running,
+                execution_id,
+                state: RuntimeExecutionTaskState::Running,
             })
         }
         WorkPayload::ControlExecution(command) => {
+            let execution_id = RuntimeExecutionId::new(command.execution_id.as_str());
             let state = match command.action {
                 ExecutionControlAction::Pause => {
-                    runtime.pause_execution(&command.execution_id)?;
-                    framelean_runtime::ExecutionTaskState::Paused
+                    runtime.pause_execution(&execution_id)?;
+                    RuntimeExecutionTaskState::Paused
                 }
                 ExecutionControlAction::Resume => {
-                    runtime.resume_execution(&command.execution_id)?;
-                    framelean_runtime::ExecutionTaskState::Running
+                    runtime.resume_execution(&execution_id)?;
+                    RuntimeExecutionTaskState::Running
                 }
                 ExecutionControlAction::Cancel => {
-                    runtime.cancel_execution(&command.execution_id)?;
-                    framelean_runtime::ExecutionTaskState::CancelRequested
+                    runtime.cancel_execution(&execution_id)?;
+                    RuntimeExecutionTaskState::CancelRequested
                 }
             };
             Ok(RuntimeCompletion::ExecutionControl {
-                execution_id: command.execution_id.clone(),
+                execution_id,
                 state,
             })
         }
@@ -2452,25 +2516,68 @@ where
 fn runtime_error(error: EngineError) -> WorkerError {
     WorkerError {
         code: WorkerErrorCode::RuntimeFailure,
-        engine_code: Some(error.code()),
+        engine_code: Some(protocol_engine_code(error.code())),
         message: error.message().to_owned(),
         retryable: error.code().is_retryable(),
     }
 }
 
 fn validate_source_facts(source: &ClientSourceFacts) -> Result<()> {
-    let fingerprint = SourceFingerprint::from_local_file(&source.path)?;
-    ExpectedSourceFacts {
-        file_size_bytes: source.file_size_bytes,
-        modified_time_unix_nanos: source.modified_time_unix_nanos.clone(),
+    let metadata = std::fs::metadata(&source.path).map_err(|error| {
+        let code = match error.kind() {
+            std::io::ErrorKind::NotFound => framelean_core::EngineErrorCode::MediaFileNotFound,
+            std::io::ErrorKind::PermissionDenied => {
+                framelean_core::EngineErrorCode::MediaPermissionDenied
+            }
+            _ => framelean_core::EngineErrorCode::MediaInfoReadFailed,
+        };
+        EngineError::with_source_code(
+            ErrorKind::Analysis,
+            code,
+            "cannot read media source metadata",
+            error,
+        )
+    })?;
+    if !metadata.is_file() {
+        return Err(EngineError::with_code(
+            ErrorKind::Analysis,
+            framelean_core::EngineErrorCode::MediaInvalidFormat,
+            "media source is not a regular file",
+        ));
     }
-    .validate(&fingerprint)
+    if metadata.len() != source.file_size_bytes {
+        return Err(EngineError::with_code(
+            ErrorKind::Analysis,
+            framelean_core::EngineErrorCode::AnalysisSourceChanged,
+            "media source size no longer matches the submitted source facts",
+        ));
+    }
+    if let Some(expected) = &source.modified_time_unix_nanos {
+        let expected = expected.parse::<u128>().map_err(|_| {
+            EngineError::invalid_argument(
+                "expected source modified time must be an unsigned integer",
+            )
+        })?;
+        let actual = metadata
+            .modified()
+            .ok()
+            .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+            .map(|value| value.as_nanos());
+        if actual != Some(expected) {
+            return Err(EngineError::with_code(
+                ErrorKind::Analysis,
+                framelean_core::EngineErrorCode::AnalysisSourceChanged,
+                "media source modified time no longer matches the submitted source facts",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn snapshot_store_error(error: EngineError) -> WorkerError {
     WorkerError {
         code: WorkerErrorCode::SnapshotStoreFailure,
-        engine_code: Some(error.code()),
+        engine_code: Some(protocol_engine_code(error.code())),
         message: error.message().to_owned(),
         retryable: true,
     }
@@ -2673,24 +2780,27 @@ mod tests {
     use crate::protocol::{
         ClientSourceFacts, GeneratePreviewFramesCommand, GenerateVideoThumbnailCommand,
         HelloCommand, RequestEnvelope, SubmitAnalysisBatchCommand, SubmitExecutionCommand,
-        WorkerCommand, WorkerOutput,
+        TaskMode, WorkerCommand, WorkerOutput,
     };
+    use crate::runtime_api::AnalysisSnapshotRecordDocument as RuntimeAnalysisSnapshotRecordDocument;
     use crate::snapshot_store::MemorySnapshotStore;
+    use framelean_core::EngineErrorCode;
 
     fn submit_execution_command(client_task_id: &str) -> SubmitExecutionCommand {
         SubmitExecutionCommand {
             client_task_id: client_task_id.to_owned(),
-            analysis_id: framelean_core::AnalysisId::new("analysis-test").unwrap(),
-            expected_revision: framelean_runtime::AnalysisRevision::initial(),
-            selection: framelean_runtime::RecalculateSelection::Manual(
+            analysis_id: crate::protocol::AnalysisId::new("analysis-test"),
+            expected_revision: crate::protocol::AnalysisRevision::new(1),
+            selection: serde_json::to_value(framelean_runtime::RecalculateSelection::Manual(
                 framelean_runtime::ManualConfigurationSelection {
                     candidate_id: framelean_runtime::ExecutionChainId::new("chain-test").unwrap(),
                     overrides: framelean_runtime::ManualSelection::empty(),
                 },
-            ),
-            output: framelean_runtime::ExecutionOutputRequest {
+            ))
+            .unwrap(),
+            output: crate::protocol::ExecutionOutputRequest {
                 requested_path: PathBuf::from("/tmp/framelean-output.mp4"),
-                collision_policy: framelean_runtime::OutputCollisionPolicy::FailIfExists,
+                collision_policy: crate::protocol::OutputCollisionPolicy::FailIfExists,
             },
             priority: WorkPriority::Normal,
         }
@@ -2720,14 +2830,14 @@ mod tests {
             .clone()
     }
 
-    fn completed_analysis(path: &std::path::Path) -> AnalyzeMediaResponse {
+    fn completed_analysis(path: &std::path::Path) -> RuntimeAnalysisDocument {
         let fingerprint = framelean_analysis::SourceFingerprint::from_local_file(path).unwrap();
         let quick_content_hash_hex: String = fingerprint
             .quick_content_hash()
             .iter()
             .map(|byte| format!("{byte:02x}"))
             .collect();
-        serde_json::from_value(serde_json::json!({
+        RuntimeAnalysisDocument::from_value(serde_json::json!({
             "schema_version": "1.0",
             "analysis_id": "analysis-test",
             "analysis_revision": 1,
@@ -2759,6 +2869,89 @@ mod tests {
             "error": null
         }))
         .unwrap()
+    }
+
+    #[test]
+    fn source_facts_preflight_preserves_the_metadata_contract() {
+        let path = std::env::temp_dir().join(format!(
+            "framelean-worker-source-facts-{}-{}",
+            std::process::id(),
+            SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_nanos()
+        ));
+        let contents = b"source facts";
+        std::fs::write(&path, contents).unwrap();
+        let metadata = std::fs::metadata(&path).unwrap();
+        let modified_time = metadata
+            .modified()
+            .ok()
+            .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+            .map(|value| value.as_nanos())
+            .expect("test source should have a unix modification time");
+        let matching = ClientSourceFacts {
+            path: path.clone(),
+            file_size_bytes: contents.len() as u64,
+            modified_time_unix_nanos: None,
+        };
+
+        assert!(validate_source_facts(&matching).is_ok());
+
+        let mut wrong_size = matching.clone();
+        wrong_size.file_size_bytes += 1;
+        let error = validate_source_facts(&wrong_size).unwrap_err();
+        assert_eq!(error.code(), EngineErrorCode::AnalysisSourceChanged);
+        assert_eq!(
+            error.message(),
+            "media source size no longer matches the submitted source facts"
+        );
+
+        let mut malformed_mtime = matching.clone();
+        malformed_mtime.modified_time_unix_nanos = Some("not-a-number".to_owned());
+        let error = validate_source_facts(&malformed_mtime).unwrap_err();
+        assert_eq!(error.code(), EngineErrorCode::InvalidArgument);
+        assert_eq!(
+            error.message(),
+            "expected source modified time must be an unsigned integer"
+        );
+
+        let mut matching_mtime = matching.clone();
+        matching_mtime.modified_time_unix_nanos = Some(modified_time.to_string());
+        assert!(validate_source_facts(&matching_mtime).is_ok());
+
+        let mut wrong_mtime = matching_mtime.clone();
+        wrong_mtime.modified_time_unix_nanos = Some((modified_time + 1).to_string());
+        let error = validate_source_facts(&wrong_mtime).unwrap_err();
+        assert_eq!(error.code(), EngineErrorCode::AnalysisSourceChanged);
+        assert_eq!(
+            error.message(),
+            "media source modified time no longer matches the submitted source facts"
+        );
+
+        let missing_path = path.with_extension("missing");
+        let error = validate_source_facts(&ClientSourceFacts {
+            path: missing_path,
+            file_size_bytes: 0,
+            modified_time_unix_nanos: None,
+        })
+        .unwrap_err();
+        assert_eq!(error.code(), EngineErrorCode::MediaFileNotFound);
+        assert_eq!(error.message(), "cannot read media source metadata");
+
+        let directory_path = path.with_extension("directory");
+        std::fs::create_dir(&directory_path).unwrap();
+        let error = validate_source_facts(&ClientSourceFacts {
+            path: directory_path.clone(),
+            file_size_bytes: 0,
+            modified_time_unix_nanos: None,
+        })
+        .unwrap_err();
+        assert_eq!(error.code(), EngineErrorCode::MediaInvalidFormat);
+        assert_eq!(error.message(), "media source is not a regular file");
+
+        std::fs::remove_dir(directory_path).unwrap();
+        std::fs::remove_file(path).unwrap();
     }
 
     #[test]
@@ -2893,7 +3086,7 @@ mod tests {
                         file_size_bytes: 1,
                         modified_time_unix_nanos: None,
                     },
-                    task_mode: framelean_runtime::TaskMode::VideoCompress,
+                    task_mode: TaskMode::VideoCompress,
                     priority: WorkPriority::Normal,
                     force_reanalysis: false,
                 }),
@@ -3008,7 +3201,7 @@ mod tests {
                             file_size_bytes: 1,
                             modified_time_unix_nanos: None,
                         },
-                        task_mode: framelean_runtime::TaskMode::VideoCompress,
+                        task_mode: TaskMode::VideoCompress,
                         priority: WorkPriority::Normal,
                         force_reanalysis: false,
                     }),
@@ -3297,7 +3490,7 @@ mod tests {
                     file_size_bytes: 1,
                     modified_time_unix_nanos: None,
                 },
-                task_mode: framelean_runtime::TaskMode::VideoCompress,
+                task_mode: TaskMode::VideoCompress,
                 priority: WorkPriority::Normal,
                 force_reanalysis: false,
             }),
@@ -3355,14 +3548,14 @@ mod tests {
         let RuntimeCommand::Execute(item) = runtime_rx.recv().unwrap() else {
             panic!("execution submission should be dispatched to the runtime");
         };
-        let execution_id = framelean_core::TaskId::new("task-1").unwrap();
+        let execution_id = RuntimeExecutionId::new("task-1");
         let completed = worker.handle_runtime(
             RuntimeResult::Completed(Box::new(CompletedWork {
                 item: *item,
                 result: Ok(RuntimeCompletion::Execution(
-                    framelean_runtime::ExecutionSubmissionResult {
+                    RuntimeExecutionSubmissionResult {
                         execution_id: execution_id.clone(),
-                        state: framelean_runtime::ExecutionTaskState::Queued,
+                        state: RuntimeExecutionTaskState::Queued,
                         queue_position: 1,
                         queue_revision: 3,
                     },
@@ -3385,8 +3578,8 @@ mod tests {
                 submission,
                 ..
             }) if client_task_id == "client-task-1"
-                && submission.execution_id == execution_id
-                && submission.state == framelean_runtime::ExecutionTaskState::Queued
+                && submission.execution_id.as_str() == execution_id.as_str()
+                && submission.state == crate::protocol::ExecutionTaskState::Queued
         )));
 
         let replay = worker.handle_request(request, &runtime_tx);
@@ -3398,7 +3591,7 @@ mod tests {
                 submission,
                 ..
             }) if client_task_id == "client-task-1"
-                && submission.execution_id == execution_id
+                && submission.execution_id.as_str() == execution_id.as_str()
         ));
         assert!(runtime_rx.try_recv().is_err());
     }
@@ -3435,7 +3628,9 @@ mod tests {
             &output.output,
             WorkerOutput::Event(WorkerEvent::WorkFailed { error, .. })
                 if error.engine_code
-                    == Some(framelean_core::EngineErrorCode::EngineExecutionChainNotReady)
+                    == Some(crate::protocol::EngineErrorCode::new(
+                        "ENGINE_EXECUTION_CHAIN_NOT_READY",
+                    ))
         )));
         assert!(!failed.iter().any(|output| matches!(
             output.output,
@@ -3448,7 +3643,9 @@ mod tests {
             &replay[1].output,
             WorkerOutput::Event(WorkerEvent::WorkFailed { error, .. })
                 if error.engine_code
-                    == Some(framelean_core::EngineErrorCode::EngineExecutionChainNotReady)
+                    == Some(crate::protocol::EngineErrorCode::new(
+                        "ENGINE_EXECUTION_CHAIN_NOT_READY",
+                    ))
         ));
         assert!(runtime_rx.try_recv().is_err());
     }
@@ -3502,7 +3699,7 @@ mod tests {
                         file_size_bytes: 1,
                         modified_time_unix_nanos: None,
                     },
-                    task_mode: framelean_runtime::TaskMode::VideoCompress,
+                    task_mode: TaskMode::VideoCompress,
                     priority: WorkPriority::Normal,
                     force_reanalysis: false,
                 }),
@@ -3545,7 +3742,7 @@ mod tests {
                     file_size_bytes: 1,
                     modified_time_unix_nanos: None,
                 },
-                task_mode: framelean_runtime::TaskMode::VideoCompress,
+                task_mode: TaskMode::VideoCompress,
                 priority: WorkPriority::Normal,
                 force_reanalysis: false,
             }),
@@ -3595,7 +3792,7 @@ mod tests {
                     file_size_bytes: 10,
                     modified_time_unix_nanos: Some("100".to_owned()),
                 },
-                task_mode: framelean_runtime::TaskMode::VideoCompress,
+                task_mode: TaskMode::VideoCompress,
                 priority: WorkPriority::Normal,
                 force_reanalysis: false,
             }),
@@ -3648,7 +3845,7 @@ mod tests {
                         .modified_time_unix_nanos()
                         .map(|value| value.to_string()),
                 },
-                task_mode: framelean_runtime::TaskMode::VideoCompress,
+                task_mode: TaskMode::VideoCompress,
                 priority: WorkPriority::Normal,
                 force_reanalysis: false,
             }),
@@ -3768,7 +3965,7 @@ mod tests {
                     file_size_bytes: 10,
                     modified_time_unix_nanos: Some("100".to_owned()),
                 },
-                task_mode: framelean_runtime::TaskMode::VideoCompress,
+                task_mode: TaskMode::VideoCompress,
                 priority: WorkPriority::Normal,
                 force_reanalysis: false,
             }),
@@ -3812,7 +4009,7 @@ mod tests {
                 file_size_bytes: 10,
                 modified_time_unix_nanos: Some("100".to_owned()),
             },
-            task_mode: framelean_runtime::TaskMode::VideoCompress,
+            task_mode: TaskMode::VideoCompress,
             priority: WorkPriority::Normal,
             force_reanalysis: false,
         };
@@ -3854,7 +4051,7 @@ mod tests {
                 file_size_bytes: 10,
                 modified_time_unix_nanos: Some("100".to_owned()),
             },
-            task_mode: framelean_runtime::TaskMode::VideoCompress,
+            task_mode: TaskMode::VideoCompress,
             priority: WorkPriority::Normal,
             force_reanalysis: false,
         };
@@ -3899,14 +4096,127 @@ mod tests {
 
     #[test]
     fn persistence_failure_rolls_back_the_runtime_snapshot() {
+        struct FixtureRuntimeApiHost {
+            analysis: RuntimeAnalysisDocument,
+            record: RuntimeAnalysisSnapshotRecordDocument,
+            discarded_analysis_id: Option<RuntimeAnalysisId>,
+        }
+
+        fn fixture_not_called<T>() -> Result<T> {
+            Err(EngineError::new(
+                ErrorKind::Runtime,
+                "fixture runtime method was not expected",
+            ))
+        }
+
+        impl RuntimeApiHost for FixtureRuntimeApiHost {
+            fn analyze_media(
+                &mut self,
+                _request: RuntimeAnalyzeRequest,
+            ) -> Result<RuntimeAnalysisDocument> {
+                Ok(self.analysis.clone())
+            }
+
+            fn analysis_snapshot(
+                &mut self,
+                _analysis_id: &RuntimeAnalysisId,
+            ) -> Result<RuntimeAnalysisSnapshotDocument> {
+                fixture_not_called()
+            }
+
+            fn generate_preview_frames(
+                &mut self,
+                _request: &RuntimePreviewFramesRequest,
+            ) -> Result<crate::runtime_api::PreviewFramesResult> {
+                fixture_not_called()
+            }
+
+            fn generate_video_thumbnail(
+                &mut self,
+                _request: &RuntimeVideoThumbnailRequest,
+            ) -> Result<crate::runtime_api::VideoThumbnailResult> {
+                fixture_not_called()
+            }
+
+            fn analysis_snapshot_record(
+                &mut self,
+                _analysis_id: &RuntimeAnalysisId,
+            ) -> Result<RuntimeAnalysisSnapshotRecordDocument> {
+                Ok(self.record.clone())
+            }
+
+            fn discard_analysis_snapshot(
+                &mut self,
+                analysis_id: &RuntimeAnalysisId,
+            ) -> Result<bool> {
+                self.discarded_analysis_id = Some(analysis_id.clone());
+                Ok(true)
+            }
+
+            fn restore_analysis_snapshot(
+                &mut self,
+                _record: RuntimeAnalysisSnapshotRecordDocument,
+            ) -> Result<()> {
+                fixture_not_called()
+            }
+
+            fn recalculate_configuration(
+                &mut self,
+                _request: crate::runtime_api::RecalculateConfigurationRequest,
+            ) -> Result<crate::runtime_api::RecalculateConfigurationDocument> {
+                fixture_not_called()
+            }
+
+            fn submit_execution(
+                &mut self,
+                _request: RuntimeExecutionSubmissionRequest,
+            ) -> Result<RuntimeExecutionSubmissionResult> {
+                fixture_not_called()
+            }
+
+            fn drain_execution_events(&mut self) -> Result<Vec<RuntimeExecutionEvent>> {
+                fixture_not_called()
+            }
+
+            fn execution_snapshot(&self) -> Result<RuntimeExecutionLaneSnapshot> {
+                fixture_not_called()
+            }
+
+            fn reorder_waiting_executions(
+                &mut self,
+                _request: RuntimeReorderExecutionsRequest,
+            ) -> Result<u64> {
+                fixture_not_called()
+            }
+
+            fn preempt_and_start_execution(
+                &mut self,
+                _execution_id: &RuntimeExecutionId,
+            ) -> Result<()> {
+                fixture_not_called()
+            }
+
+            fn pause_execution(&mut self, _execution_id: &RuntimeExecutionId) -> Result<()> {
+                fixture_not_called()
+            }
+
+            fn resume_execution(&mut self, _execution_id: &RuntimeExecutionId) -> Result<()> {
+                fixture_not_called()
+            }
+
+            fn cancel_execution(&mut self, _execution_id: &RuntimeExecutionId) -> Result<()> {
+                fixture_not_called()
+            }
+        }
+
         #[derive(Default)]
         struct RejectingSnapshotStore {
-            saved_id: Option<AnalysisId>,
+            saved_id: Option<RuntimeAnalysisId>,
         }
 
         impl SnapshotStore for RejectingSnapshotStore {
-            fn save(&mut self, snapshot: &framelean_runtime::AnalysisSnapshotRecord) -> Result<()> {
-                self.saved_id = Some(snapshot.id.clone());
+            fn save(&mut self, snapshot: &RuntimeAnalysisSnapshotRecordDocument) -> Result<()> {
+                self.saved_id = Some(RuntimeAnalysisId::new(snapshot.identity().id.clone()));
                 Err(EngineError::new(
                     ErrorKind::Snapshot,
                     "fixture persistence failure",
@@ -3915,20 +4225,33 @@ mod tests {
 
             fn load(
                 &self,
-                _analysis_id: &AnalysisId,
-            ) -> Result<Option<framelean_runtime::AnalysisSnapshotRecord>> {
+                _analysis_id: &RuntimeAnalysisId,
+            ) -> Result<Option<RuntimeAnalysisSnapshotRecordDocument>> {
                 Ok(None)
             }
 
-            fn load_all(&self) -> Result<Vec<framelean_runtime::AnalysisSnapshotRecord>> {
+            fn load_all(&self) -> Result<Vec<RuntimeAnalysisSnapshotRecordDocument>> {
                 Ok(Vec::new())
             }
         }
 
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../desktop-client/assets/icons/github-black.png");
-        let fingerprint = framelean_analysis::SourceFingerprint::from_local_file(&path).unwrap();
-        let mut runtime = build_default_runtime().unwrap();
+        let mut runtime = FixtureRuntimeApiHost {
+            analysis: RuntimeAnalysisDocument::from_value(serde_json::json!({
+                "analysis_id": "analysis-1",
+                "analysis_revision": 1,
+                "schema_version": "fixture",
+                "media_analysis_status": "completed",
+                "configuration_status": "ready"
+            }))
+            .unwrap(),
+            record: RuntimeAnalysisSnapshotRecordDocument::from_value(serde_json::json!({
+                "id": "analysis-1",
+                "revision": 1,
+                "future": {"opaque": true}
+            }))
+            .unwrap(),
+            discarded_analysis_id: None,
+        };
         let mut store = RejectingSnapshotStore::default();
         let item = WorkItem {
             work_id: "work-1".to_owned(),
@@ -3938,11 +4261,9 @@ mod tests {
                 client_task_id: "task-1".to_owned(),
                 client_file_id: "file-1".to_owned(),
                 source: ClientSourceFacts {
-                    path,
-                    file_size_bytes: fingerprint.size_bytes(),
-                    modified_time_unix_nanos: fingerprint
-                        .modified_time_unix_nanos()
-                        .map(|value| value.to_string()),
+                    path: PathBuf::from("fixture-media"),
+                    file_size_bytes: 0,
+                    modified_time_unix_nanos: None,
                 },
                 task_mode: TaskMode::ImageCompress,
                 priority: WorkPriority::Normal,
@@ -3959,7 +4280,13 @@ mod tests {
         let analysis_id = store
             .saved_id
             .expect("successful analysis should reach persistence");
-        assert!(runtime.analysis_snapshot(&analysis_id).is_err());
+        assert_eq!(
+            runtime
+                .discarded_analysis_id
+                .as_ref()
+                .map(RuntimeAnalysisId::as_str),
+            Some(analysis_id.as_str())
+        );
     }
 
     #[test]
@@ -4031,7 +4358,7 @@ mod tests {
             session_id: Some(session_id),
             request_id: "preempt-1".to_owned(),
             command: WorkerCommand::PreemptAndStart(crate::protocol::PreemptAndStartCommand {
-                execution_id: framelean_core::TaskId::new("execution-2").unwrap(),
+                execution_id: crate::protocol::ExecutionId::new("execution-2"),
             }),
         };
 
@@ -4053,6 +4380,162 @@ mod tests {
                 ..
             }))
         ));
+    }
+
+    #[test]
+    fn engine_snapshot_replay_preserves_the_complete_worker_snapshot() {
+        let mut worker = WorkerCoordinator::new();
+        let (runtime_tx, runtime_rx) = mpsc::channel();
+        let session_id = establish_ready_session(&mut worker, &runtime_tx);
+        let request = RequestEnvelope {
+            protocol_version: crate::protocol::PROTOCOL_VERSION,
+            session_id: Some(session_id),
+            request_id: "engine-snapshot-1".to_owned(),
+            command: WorkerCommand::GetEngineSnapshot,
+        };
+
+        let accepted = worker.handle_request(request.clone(), &runtime_tx);
+        let RuntimeCommand::Execute(item) = runtime_rx.recv().unwrap() else {
+            panic!("engine snapshot should be dispatched to the runtime");
+        };
+        let first = worker.handle_runtime(
+            RuntimeResult::Completed(Box::new(CompletedWork {
+                item: *item,
+                result: Ok(RuntimeCompletion::EngineSnapshot(
+                    RuntimeExecutionLaneSnapshot {
+                        queue_revision: 7,
+                        active_executions: Vec::new(),
+                        normal_waiting: Vec::new(),
+                        video_resume_stack: Vec::new(),
+                        auxiliary_resume_stack: Vec::new(),
+                        user_paused: Vec::new(),
+                    },
+                )),
+            })),
+            &runtime_tx,
+        );
+        let first_snapshot = first
+            .iter()
+            .find_map(|output| match &output.output {
+                WorkerOutput::Event(WorkerEvent::EngineSnapshotReady { snapshot, .. }) => {
+                    Some(snapshot.as_ref().clone())
+                }
+                _ => None,
+            })
+            .expect("first engine snapshot should be emitted");
+
+        let replay = worker.handle_request(request, &runtime_tx);
+        let replay_snapshot = replay
+            .iter()
+            .find_map(|output| match &output.output {
+                WorkerOutput::Event(WorkerEvent::EngineSnapshotReady { snapshot, .. }) => {
+                    Some(snapshot.as_ref().clone())
+                }
+                _ => None,
+            })
+            .expect("engine snapshot should be replayed");
+
+        assert_eq!(
+            serde_json::to_value(first_snapshot).unwrap(),
+            serde_json::to_value(&replay_snapshot).unwrap()
+        );
+        assert_eq!(replay_snapshot.execution_lane.queue_revision, 7);
+        assert!(replay_snapshot.last_sequence > accepted[0].sequence);
+        assert!(runtime_rx.try_recv().is_err());
+    }
+
+    #[test]
+    fn queue_order_conflict_replay_preserves_the_complete_worker_snapshot() {
+        let mut worker = WorkerCoordinator::new();
+        let (runtime_tx, runtime_rx) = mpsc::channel();
+        let session_id = establish_ready_session(&mut worker, &runtime_tx);
+        worker.active_work_id = Some("blocker".to_owned());
+        let analysis = AnalyzeMediaCommand {
+            client_task_id: "task-1".to_owned(),
+            client_file_id: "file-1".to_owned(),
+            source: ClientSourceFacts {
+                path: PathBuf::from("/tmp/task-1.wav"),
+                file_size_bytes: 10,
+                modified_time_unix_nanos: Some("100".to_owned()),
+            },
+            task_mode: TaskMode::AudioConvert,
+            priority: WorkPriority::Normal,
+            force_reanalysis: false,
+        };
+        worker.handle_request(
+            RequestEnvelope {
+                protocol_version: crate::protocol::PROTOCOL_VERSION,
+                session_id: Some(session_id.clone()),
+                request_id: "analysis-for-conflict".to_owned(),
+                command: WorkerCommand::AnalyzeMedia(analysis),
+            },
+            &runtime_tx,
+        );
+        let request = RequestEnvelope {
+            protocol_version: crate::protocol::PROTOCOL_VERSION,
+            session_id: Some(session_id),
+            request_id: "queue-conflict-1".to_owned(),
+            command: WorkerCommand::ApplyQueueOrder(ApplyQueueOrderCommand {
+                order_revision: 9,
+                expected_analysis_queue_revision: worker.analysis_queue.revision(),
+                expected_execution_queue_revision: 0,
+                ordered_task_ids: vec!["task-1".to_owned()],
+            }),
+        };
+
+        worker.handle_request(request.clone(), &runtime_tx);
+        worker.active_work_id = None;
+        let mut dispatch = Vec::new();
+        worker.dispatch_next(&runtime_tx, &mut dispatch);
+        let RuntimeCommand::Execute(item) = runtime_rx.recv().unwrap() else {
+            panic!("queue order should be dispatched to the runtime");
+        };
+        let first = worker.handle_runtime(
+            RuntimeResult::Completed(Box::new(CompletedWork {
+                item: *item,
+                result: Ok(RuntimeCompletion::QueueOrderConflict {
+                    order_revision: 9,
+                    execution_lane: RuntimeExecutionLaneSnapshot {
+                        queue_revision: 13,
+                        active_executions: Vec::new(),
+                        normal_waiting: Vec::new(),
+                        video_resume_stack: Vec::new(),
+                        auxiliary_resume_stack: Vec::new(),
+                        user_paused: Vec::new(),
+                    },
+                }),
+            })),
+            &runtime_tx,
+        );
+        let first_snapshot = first
+            .iter()
+            .find_map(|output| match &output.output {
+                WorkerOutput::Event(WorkerEvent::QueueOrderConflict { snapshot, .. }) => {
+                    Some(snapshot.as_ref().clone())
+                }
+                _ => None,
+            })
+            .expect("first queue conflict should be emitted");
+
+        let replay = worker.handle_request(request, &runtime_tx);
+        let replay_snapshot = replay
+            .iter()
+            .find_map(|output| match &output.output {
+                WorkerOutput::Event(WorkerEvent::QueueOrderConflict { snapshot, .. }) => {
+                    Some(snapshot.as_ref().clone())
+                }
+                _ => None,
+            })
+            .expect("queue conflict should be replayed");
+
+        assert_eq!(
+            serde_json::to_value(first_snapshot).unwrap(),
+            serde_json::to_value(&replay_snapshot).unwrap()
+        );
+        assert_eq!(replay_snapshot.execution_lane.queue_revision, 13);
+        let RuntimeCommand::Execute(_) = runtime_rx.recv().unwrap() else {
+            panic!("the queued analysis should be dispatched after the conflict");
+        };
     }
 
     #[test]
@@ -4113,7 +4596,7 @@ mod tests {
                 item: *item,
                 result: Ok(RuntimeCompletion::QueueOrderApplied {
                     order_revision: 8,
-                    execution_lane: framelean_runtime::ExecutionLaneSnapshot {
+                    execution_lane: RuntimeExecutionLaneSnapshot {
                         queue_revision: 0,
                         active_executions: Vec::new(),
                         normal_waiting: Vec::new(),

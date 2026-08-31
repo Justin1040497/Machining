@@ -8,15 +8,11 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use framelean_engine::daemon::DaemonEndpoint;
 use framelean_engine::protocol::{
-    AnalyzeMediaCommand, ClientSourceFacts, HelloCommand, OutputEnvelope, PROTOCOL_VERSION,
-    RequestEnvelope, SubmitExecutionCommand, WorkerCommand, WorkerErrorCode, WorkerEvent,
+    AnalysisId, AnalysisRevision, AnalyzeMediaCommand, ClientSourceFacts, ExecutionOutputRequest,
+    ExecutionTaskState, HelloCommand, OutputCollisionPolicy, OutputEnvelope, PROTOCOL_VERSION,
+    RequestEnvelope, SubmitExecutionCommand, TaskMode, WorkerCommand, WorkerErrorCode, WorkerEvent,
     WorkerOutput, WorkerResponse,
 };
-use framelean_runtime::{
-    ExecutionOutputRequest, ManualConfigurationSelection, ManualSelection, OutputCollisionPolicy,
-    RecalculateSelection, TaskMode,
-};
-
 #[test]
 fn serve_process_uses_only_framed_stdout_for_handshake_ping_and_shutdown() {
     let snapshot_dir = snapshot_directory("protocol");
@@ -269,11 +265,15 @@ fn serve_process_analyzes_executes_and_reanalyzes_real_media() {
             break analysis;
         }
     };
-    assert!(analysis.error.is_none(), "{:?}", analysis.error);
-    let candidate = analysis
-        .capabilities
-        .as_ref()
-        .and_then(|capabilities| capabilities.execution_chains.first())
+    assert!(analysis["error"].is_null(), "{analysis:?}");
+    let analysis_id = analysis["analysis_id"]
+        .as_str()
+        .expect("analysis event should contain an analysis id");
+    let analysis_revision = analysis["analysis_revision"]
+        .as_u64()
+        .expect("analysis event should contain an analysis revision");
+    let candidate_id = analysis["capabilities"]["execution_chains"][0]["id"]
+        .as_str()
         .expect("real WAV must expose a stream-copy execution chain");
 
     write_request_frame(
@@ -284,11 +284,20 @@ fn serve_process_analyzes_executes_and_reanalyzes_real_media() {
             request_id: "execute-input".to_owned(),
             command: WorkerCommand::SubmitExecution(SubmitExecutionCommand {
                 client_task_id: "task-real-media".to_owned(),
-                analysis_id: analysis.analysis_id.clone(),
-                expected_revision: analysis.analysis_revision,
-                selection: RecalculateSelection::Manual(ManualConfigurationSelection {
-                    candidate_id: candidate.id.clone(),
-                    overrides: ManualSelection::empty(),
+                analysis_id: AnalysisId::new(analysis_id),
+                expected_revision: AnalysisRevision::new(analysis_revision),
+                selection: serde_json::json!({
+                    "mode": "manual",
+                    "selection": {
+                        "candidate_id": candidate_id,
+                        "overrides": {
+                            "container": null,
+                            "video_codec": null,
+                            "audio_codec": null,
+                            "output_pixel_format": null,
+                            "preserves_hdr": null
+                        }
+                    }
                 }),
                 output: ExecutionOutputRequest {
                     requested_path: output_path.clone(),
@@ -342,12 +351,12 @@ fn serve_process_analyzes_executes_and_reanalyzes_real_media() {
         {
             assert!(snapshot.terminal_analyses.iter().any(|entry| {
                 entry.client_task_id == "task-real-media"
-                    && entry.analysis_id == analysis.analysis_id
+                    && entry.analysis_id.as_str() == analysis_id
                     && entry.succeeded
             }));
             assert!(snapshot.terminal_executions.iter().any(|entry| {
                 entry.client_task_id == "task-real-media"
-                    && entry.state == framelean_runtime::ExecutionTaskState::Completed
+                    && entry.state == ExecutionTaskState::Completed
                     && entry.output_path.as_deref() == Some(output_path.as_path())
             }));
             break;
@@ -375,7 +384,7 @@ fn serve_process_analyzes_executes_and_reanalyzes_real_media() {
         assert_not_error(&output);
         if let WorkerOutput::Event(WorkerEvent::AnalysisCompleted { analysis, .. }) = output.output
         {
-            assert!(analysis.error.is_none(), "{:?}", analysis.error);
+            assert!(analysis["error"].is_null(), "{analysis:?}");
             break;
         }
     }

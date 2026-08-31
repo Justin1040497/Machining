@@ -4,44 +4,47 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use framelean_core::{AnalysisId, EngineError, ErrorKind, Result};
-use framelean_runtime::AnalysisSnapshotRecord;
+use framelean_core::{EngineError, ErrorKind, Result};
+
+use crate::runtime_api::{AnalysisId, AnalysisSnapshotRecordDocument};
 
 static TEMP_FILE_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 const DEFAULT_MAX_SNAPSHOT_ENTRIES: usize = 512;
 const DEFAULT_MAX_SNAPSHOT_TOTAL_BYTES: usize = 4 * 1024 * 1024 * 1024;
 const DEFAULT_MAX_SNAPSHOT_RECORD_BYTES: usize = 64 * 1024 * 1024;
 
-pub trait SnapshotStore: Send {
-    fn save(&mut self, snapshot: &AnalysisSnapshotRecord) -> Result<()>;
-    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecord>>;
-    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecord>>;
+pub(crate) trait SnapshotStore: Send {
+    fn save(&mut self, snapshot: &AnalysisSnapshotRecordDocument) -> Result<()>;
+    #[allow(dead_code)]
+    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecordDocument>>;
+    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecordDocument>>;
 }
 
 impl<T: SnapshotStore + ?Sized> SnapshotStore for Box<T> {
-    fn save(&mut self, snapshot: &AnalysisSnapshotRecord) -> Result<()> {
+    fn save(&mut self, snapshot: &AnalysisSnapshotRecordDocument) -> Result<()> {
         (**self).save(snapshot)
     }
 
-    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecord>> {
+    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecordDocument>> {
         (**self).load(analysis_id)
     }
 
-    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecord>> {
+    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecordDocument>> {
         (**self).load_all()
     }
 }
 
 #[derive(Default)]
 pub struct MemorySnapshotStore {
-    snapshots: HashMap<AnalysisId, AnalysisSnapshotRecord>,
+    snapshots: HashMap<AnalysisId, AnalysisSnapshotRecordDocument>,
 }
 
 impl SnapshotStore for MemorySnapshotStore {
-    fn save(&mut self, snapshot: &AnalysisSnapshotRecord) -> Result<()> {
-        snapshot.validate()?;
-        if let Some(existing) = self.snapshots.get(&snapshot.id) {
-            if existing.revision != snapshot.revision {
+    fn save(&mut self, snapshot: &AnalysisSnapshotRecordDocument) -> Result<()> {
+        let identity = snapshot.identity();
+        let snapshot_id = AnalysisId::new(identity.id.clone());
+        if let Some(existing) = self.snapshots.get(&snapshot_id) {
+            if existing.identity().revision != identity.revision {
                 return Err(EngineError::with_code(
                     ErrorKind::Snapshot,
                     framelean_core::EngineErrorCode::AnalysisRevisionConflict,
@@ -53,17 +56,22 @@ impl SnapshotStore for MemorySnapshotStore {
                 "analysis snapshot id is already stored",
             ));
         }
-        self.snapshots.insert(snapshot.id.clone(), snapshot.clone());
+        self.snapshots.insert(snapshot_id, snapshot.clone());
         Ok(())
     }
 
-    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecord>> {
+    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecordDocument>> {
         Ok(self.snapshots.get(analysis_id).cloned())
     }
 
-    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecord>> {
+    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecordDocument>> {
         let mut snapshots: Vec<_> = self.snapshots.values().cloned().collect();
-        snapshots.sort_by(|left, right| left.id.as_str().cmp(right.id.as_str()));
+        snapshots.sort_by(|left, right| {
+            left.identity()
+                .id
+                .as_str()
+                .cmp(right.identity().id.as_str())
+        });
         Ok(snapshots)
     }
 }
@@ -159,12 +167,13 @@ impl DirectorySnapshotStore {
 }
 
 impl SnapshotStore for DirectorySnapshotStore {
-    fn save(&mut self, snapshot: &AnalysisSnapshotRecord) -> Result<()> {
-        snapshot.validate()?;
-        let path = self.path_for(&snapshot.id)?;
+    fn save(&mut self, snapshot: &AnalysisSnapshotRecordDocument) -> Result<()> {
+        let identity = snapshot.identity();
+        let snapshot_id = AnalysisId::new(identity.id.clone());
+        let path = self.path_for(&snapshot_id)?;
         if path.exists() {
             let existing = read_snapshot(&path)?;
-            if existing.revision != snapshot.revision {
+            if existing.identity().revision != identity.revision {
                 return Err(EngineError::with_code(
                     ErrorKind::Snapshot,
                     framelean_core::EngineErrorCode::AnalysisRevisionConflict,
@@ -186,7 +195,7 @@ impl SnapshotStore for DirectorySnapshotStore {
         let sequence = TEMP_FILE_SEQUENCE.fetch_add(1, Ordering::Relaxed);
         let temporary = self.root.join(format!(
             ".{}.tmp-{}-{sequence}",
-            snapshot.id.as_str(),
+            identity.id,
             std::process::id()
         ));
         let mut file = OpenOptions::new()
@@ -260,7 +269,7 @@ impl SnapshotStore for DirectorySnapshotStore {
         Ok(())
     }
 
-    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecord>> {
+    fn load(&self, analysis_id: &AnalysisId) -> Result<Option<AnalysisSnapshotRecordDocument>> {
         let path = self.path_for(analysis_id)?;
         if !path.exists() {
             return Ok(None);
@@ -268,7 +277,7 @@ impl SnapshotStore for DirectorySnapshotStore {
         read_snapshot(&path).map(Some)
     }
 
-    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecord>> {
+    fn load_all(&self) -> Result<Vec<AnalysisSnapshotRecordDocument>> {
         let mut paths = Vec::new();
         for entry in fs::read_dir(&self.root).map_err(|error| {
             EngineError::with_source(
@@ -295,18 +304,18 @@ impl SnapshotStore for DirectorySnapshotStore {
     }
 }
 
-fn read_snapshot(path: &Path) -> Result<AnalysisSnapshotRecord> {
+fn read_snapshot(path: &Path) -> Result<AnalysisSnapshotRecordDocument> {
     let bytes = fs::read(path).map_err(|error| {
         EngineError::with_source(ErrorKind::Snapshot, "cannot read analysis snapshot", error)
     })?;
-    let snapshot: AnalysisSnapshotRecord = serde_json::from_slice(&bytes).map_err(|error| {
-        EngineError::with_source(
-            ErrorKind::Snapshot,
-            "cannot deserialize analysis snapshot",
-            error,
-        )
-    })?;
-    snapshot.validate()?;
+    let snapshot: AnalysisSnapshotRecordDocument =
+        serde_json::from_slice(&bytes).map_err(|error| {
+            EngineError::with_source(
+                ErrorKind::Snapshot,
+                "cannot deserialize analysis snapshot",
+                error,
+            )
+        })?;
     validate_snapshot_file_identity(path, &snapshot)?;
     Ok(snapshot)
 }
@@ -376,7 +385,10 @@ impl std::io::Write for BoundedFileWriter<'_> {
     }
 }
 
-fn validate_snapshot_file_identity(path: &Path, snapshot: &AnalysisSnapshotRecord) -> Result<()> {
+fn validate_snapshot_file_identity(
+    path: &Path,
+    snapshot: &AnalysisSnapshotRecordDocument,
+) -> Result<()> {
     let file_stem = path
         .file_stem()
         .and_then(|value| value.to_str())
@@ -387,7 +399,7 @@ fn validate_snapshot_file_identity(path: &Path, snapshot: &AnalysisSnapshotRecor
             )
         })?;
     validate_file_stem(file_stem)?;
-    if file_stem != snapshot.id.as_str() {
+    if file_stem != snapshot.identity().id.as_str() {
         return Err(EngineError::new(
             ErrorKind::Snapshot,
             "analysis snapshot file name does not match its analysis id",
@@ -424,11 +436,7 @@ fn validate_file_stem(value: &str) -> Result<()> {
 mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
-    use framelean_analysis::{MediaAnalyzeRequest, MediaSource};
-    use framelean_runtime::{AnalyzeTaskRequest, RequestContext, TaskMode};
-
     use super::*;
-    use crate::runtime_host::build_default_runtime;
 
     fn temporary_directory(label: &str) -> PathBuf {
         let suffix = SystemTime::now()
@@ -438,24 +446,21 @@ mod tests {
         std::env::temp_dir().join(format!("framelean-{label}-{}-{suffix}", std::process::id()))
     }
 
-    fn snapshot_record() -> AnalysisSnapshotRecord {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../desktop-client/assets/icons/github-black.png");
-        let mut runtime = build_default_runtime().unwrap();
-        let response = runtime
-            .analyze_media(AnalyzeTaskRequest {
-                task_mode: TaskMode::VideoCompress,
-                media_request: MediaAnalyzeRequest {
-                    source: MediaSource::local_file(path).unwrap(),
-                    request_id: None,
-                    expected_source: None,
-                },
-                context: RequestContext::default(),
-            })
-            .unwrap();
-        runtime
-            .analysis_snapshot_record(&response.analysis_id)
-            .unwrap()
+    fn snapshot_record_with_id_and_revision(
+        id: &str,
+        revision: u64,
+        future: serde_json::Value,
+    ) -> AnalysisSnapshotRecordDocument {
+        AnalysisSnapshotRecordDocument::from_value(serde_json::json!({
+            "id": id,
+            "revision": revision,
+            "future": future,
+        }))
+        .unwrap()
+    }
+
+    fn snapshot_record() -> AnalysisSnapshotRecordDocument {
+        snapshot_record_with_id_and_revision("analysis-1", 1, serde_json::json!({"opaque": true}))
     }
 
     #[test]
@@ -483,7 +488,7 @@ mod tests {
         let root = temporary_directory("snapshot-store-file-id");
         let store = DirectorySnapshotStore::new(&root).unwrap();
         let record = snapshot_record();
-        let alias = AnalysisId::new("analysis-alias").unwrap();
+        let alias = AnalysisId::new("analysis-alias");
         fs::write(
             root.join("analysis-alias.json"),
             serde_json::to_vec_pretty(&record).unwrap(),
@@ -504,14 +509,15 @@ mod tests {
         let mut store = DirectorySnapshotStore::new(&root).unwrap();
         let record = snapshot_record();
         store.save(&record).unwrap();
-        let saved = fs::read(store.path_for(&record.id).unwrap()).unwrap();
+        let analysis_id = AnalysisId::new(record.identity().id.clone());
+        let saved = fs::read(store.path_for(&analysis_id).unwrap()).unwrap();
 
         let error = store.save(&record).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::Snapshot);
         assert!(error.message().contains("already"));
         assert_eq!(
-            fs::read(store.path_for(&record.id).unwrap()).unwrap(),
+            fs::read(store.path_for(&analysis_id).unwrap()).unwrap(),
             saved
         );
         drop(store);
@@ -524,8 +530,11 @@ mod tests {
         let mut store = DirectorySnapshotStore::new(&root).unwrap();
         let record = snapshot_record();
         store.save(&record).unwrap();
-        let mut conflicting = record.clone();
-        conflicting.revision = conflicting.revision.next().unwrap();
+        let conflicting = snapshot_record_with_id_and_revision(
+            "analysis-1",
+            2,
+            serde_json::json!({"opaque": true}),
+        );
 
         let error = store.save(&conflicting).unwrap_err();
 
@@ -534,8 +543,13 @@ mod tests {
             framelean_core::EngineErrorCode::AnalysisRevisionConflict
         );
         assert_eq!(
-            store.load(&record.id).unwrap().unwrap().revision,
-            record.revision
+            store
+                .load(&AnalysisId::new("analysis-1"))
+                .unwrap()
+                .unwrap()
+                .identity()
+                .revision,
+            1
         );
         drop(store);
         fs::remove_dir_all(root).unwrap();
@@ -552,14 +566,22 @@ mod tests {
         let mut store = DirectorySnapshotStore::new_with_limits(&root, limits).unwrap();
         let first = snapshot_record();
         store.save(&first).unwrap();
-        let mut second = first.clone();
-        second.id = AnalysisId::new("analysis-second").unwrap();
+        let second = snapshot_record_with_id_and_revision(
+            "analysis-second",
+            1,
+            serde_json::json!({"opaque": true}),
+        );
 
         let error = store.save(&second).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::Snapshot);
         assert!(error.message().contains("capacity"));
-        assert!(store.load(&second.id).unwrap().is_none());
+        assert!(
+            store
+                .load(&AnalysisId::new("analysis-second"))
+                .unwrap()
+                .is_none()
+        );
         drop(store);
         fs::remove_dir_all(root).unwrap();
     }
@@ -573,13 +595,22 @@ mod tests {
             max_record_bytes: 64,
         };
         let mut store = DirectorySnapshotStore::new_with_limits(&root, limits).unwrap();
-        let record = snapshot_record();
+        let record = snapshot_record_with_id_and_revision(
+            "analysis-1",
+            1,
+            serde_json::Value::String("x".repeat(128)),
+        );
 
         let error = store.save(&record).unwrap_err();
 
         assert_eq!(error.kind(), ErrorKind::Snapshot);
         assert!(error.message().contains("size limit"));
-        assert!(store.load(&record.id).unwrap().is_none());
+        assert!(
+            store
+                .load(&AnalysisId::new("analysis-1"))
+                .unwrap()
+                .is_none()
+        );
         assert!(
             fs::read_dir(&root)
                 .unwrap()
@@ -589,6 +620,31 @@ mod tests {
                         != Some("json")
                 )
         );
+        drop(store);
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn directory_store_preserves_structurally_valid_opaque_snapshot_documents() {
+        let root = temporary_directory("snapshot-store-opaque");
+        let mut store = DirectorySnapshotStore::new(&root).unwrap();
+        let expected = serde_json::json!({
+            "id": "analysis-opaque",
+            "revision": 7,
+            "future": {
+                "opaque": true,
+                "nested": ["kept", 3]
+            }
+        });
+        let record = AnalysisSnapshotRecordDocument::from_value(expected.clone()).unwrap();
+
+        store.save(&record).unwrap();
+        let loaded = store
+            .load(&AnalysisId::new("analysis-opaque"))
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(serde_json::to_value(loaded).unwrap(), expected);
         drop(store);
         fs::remove_dir_all(root).unwrap();
     }
