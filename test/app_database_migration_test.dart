@@ -22,8 +22,42 @@ void main() {
       final task = (await database.select(database.taskRows).get()).single;
       expect(task.id, 'legacy-task');
       expect(task.failureJson, isNull);
-      expect(await _userVersion(database), 30);
+      expect(await _userVersion(database), 31);
     });
+
+    test(
+      'restores settings columns from incompatible schema 30 builds',
+      () async {
+        final fixture = await _seedCurrentDatabase();
+        addTearDown(fixture.dispose);
+        _downgrade(
+          fixture.file,
+          version: 30,
+          statements: const [
+            'ALTER TABLE settings DROP COLUMN custom_ffmpeg_path',
+            'ALTER TABLE settings DROP COLUMN custom_ffprobe_path',
+            'ALTER TABLE settings DROP COLUMN show_raw_log',
+            'ALTER TABLE settings DROP COLUMN show_advanced_options',
+            'ALTER TABLE settings DROP COLUMN default_output_video_codec',
+            'ALTER TABLE settings DROP COLUMN default_compression_smart_preset',
+            'ALTER TABLE settings DROP COLUMN default_media_config_json',
+            'ALTER TABLE settings DROP COLUMN show_task_completion_dialog',
+            'ALTER TABLE settings DROP COLUMN max_concurrent_executions',
+          ],
+        );
+
+        final database = AppDatabase.forTesting(NativeDatabase(fixture.file));
+        addTearDown(database.close);
+
+        final settings = await database
+            .select(database.settingsRows)
+            .getSingle();
+        expect(settings.defaultOutputVideoCodec, 'h264');
+        expect(settings.defaultCompressionSmartPreset, 'chat');
+        expect(settings.maxConcurrentExecutions, 2);
+        expect(await _userVersion(database), 31);
+      },
+    );
 
     test(
       'upgrades schema 28 and preserves tasks folders and notifications',
@@ -59,7 +93,7 @@ void main() {
         expect(settings.notificationPoliciesJson, '{}');
         expect(settings.shortcutBindingsJson, '{}');
         expect(settings.closeBehavior, 'background');
-        expect(await _userVersion(database), 30);
+        expect(await _userVersion(database), 31);
       },
     );
 
@@ -99,7 +133,7 @@ void main() {
       final settings = await database.select(database.settingsRows).getSingle();
       expect(settings.maxConcurrentExecutions, 2);
       expect(settings.folderImportScanDepth, 2);
-      expect(await _userVersion(database), 30);
+      expect(await _userVersion(database), 31);
     });
 
     test('applies custom value migrations from schema 21', () async {
@@ -122,7 +156,7 @@ void main() {
       expect(settings.defaultCompressionSmartPreset, 'chat');
       expect(settings.defaultOutputFileNameTemplate, '{source}-{action}');
       expect(settings.taskCompletionSound, 'clean_success');
-      expect(await _userVersion(database), 30);
+      expect(await _userVersion(database), 31);
     });
   });
 }
