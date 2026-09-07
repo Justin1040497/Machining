@@ -55,7 +55,7 @@ class AppDatabase extends _$AppDatabase {
   }
 
   @override
-  int get schemaVersion => 30;
+  int get schemaVersion => 31;
 
   @override
   MigrationStrategy get migration {
@@ -412,6 +412,52 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 30) {
           await _safeAddColumn(migrator, taskRows, taskRows.failureJson);
+        }
+        // Some development builds reused schema version 30 after replacing
+        // the settings table shape. Restore the columns expected by the
+        // stable client before Drift maps a settings row.
+        if (from < 31) {
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.customFfmpegPath,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.customFfprobePath,
+          );
+          await _safeAddColumn(migrator, settingsRows, settingsRows.showRawLog);
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.showAdvancedOptions,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.defaultOutputVideoCodec,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.defaultCompressionSmartPreset,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.defaultMediaConfigJson,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.showTaskCompletionDialog,
+          );
+          await _safeAddColumn(
+            migrator,
+            settingsRows,
+            settingsRows.maxConcurrentExecutions,
+          );
         }
       },
     );
